@@ -493,7 +493,7 @@ class MajZjHai(MajHai):
                 l.append(HeZhong((10, 2, 1)))   #七对子
             else:
                 #门断平类
-                if len(fuuros) == 0:
+                if not any(map(lambda x: x.status.what != FuuRoStatus.ANKAN, fuuros)):
                     l.append(HeZhong((1, 2, 1)))    #门前清，不与七对子复合
             if len(shun) == 4:
                 l.append(HeZhong((1, 1, 1)))    #平和
@@ -533,8 +533,8 @@ class MajZjHai(MajHai):
                     l.append(HeZhong((3, 9, 2)))    #大三风
             elif len(sixi - zi) == 2 and zi_dui in sixi - zi:
                 l.append(HeZhong((3, 9, 1)))    #小三风
-            if int(els[0]) in zi:
-                l.append(HeZhong(3, int(els[0]) - 2, 1))   #自风
+            if int(els[0]) + 3 in zi:
+                l.append(HeZhong((3, int(els[0]) + 1, 1)))   #自风
             if len(ke) == 4:
                 l.append(HeZhong((4, 1, 1)))    #对对和
             anke = len(list(filter(lambda x: not x[2], ke)))
