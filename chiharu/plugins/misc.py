@@ -156,13 +156,37 @@ async def maj_train(session: CommandSession):
         result = maj.MajHai._ting(map(lambda x: x - 1, stack))
         daan[session.ctx['group_id']] = \
             ''.join(map(lambda x: str(x[0] + 1), filter(lambda x: x[1] > 0, enumerate(map(len, result)))))
+    elif text == '2':
+        str_title = '清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）\n'
+        stack = []
+        for i in range(random.randint(5, 8)):
+            if random.random() < 0.3:
+                a = random.randint(1, 9)
+                stack.append(a)
+                stack.append(a)
+                stack.append(a)
+            else:
+                a = random.randint(1, 7)
+                stack.append(a)
+                stack.append(a + 1)
+                stack.append(a + 2)
+        a = random.randint(1, 9)
+        stack.append(a)
+        stack.append(a)
+        stack.sort()
+        stack.pop(random.randint(0, len(stack) - 1))
+        strout = str_title + ''.join(map(str, stack))
+        await session.send(strout, auto_escape=True)
+        result = maj.MajHai._ting(map(lambda x: x - 1, stack))
+        daan[session.ctx['group_id']] = \
+            ''.join(map(lambda x: str(x[0] + 1), filter(lambda x: x[1] > 0, enumerate(map(len, result)))))
     elif text == '-1':
         if session.ctx['group_id'] not in daan:
             await session.send('没有题目')
         else:
             await session.send(daan.pop(session.ctx['group_id']))
     else:
-        await session.send('支持参数：\n0或p0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）\n-1：返回上次的答案')
+        await session.send('支持参数：\n0或p0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）\n2：清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）\n-1：返回上次的答案')
 
 class MajException(Exception):
     def __init__(self, arg):
@@ -292,6 +316,57 @@ async def maj_ting(session: CommandSession):
                     color_c = {0: 'm', 1: 'p', 2: 's', 3: 'z'}[color]
                     yield str(num + 1) + color_c
             await session.send(' '.join(_()))
+    except MajException as e:
+        await session.send(''.join(e.args))
+    except maj.MajErr as e:
+        await session.send(str(e))
+
+@on_command(('misc', 'maj', 'ting_ex'), only_to_me=False)
+@config.ErrorHandle
+async def maj_ting(session: CommandSession):
+    def expand(s):
+        l = []
+        for char in s:
+            if char in '123456789':
+                l.append(char)
+            elif char in 'mpsz':
+                for i in l:
+                    yield i + char
+                l = []
+            else:
+                raise MajException('unknown char ' + char)
+        if len(l) != 0:
+            raise MajException('unknown end')
+    try:
+        tehai = list(map(maj.MajHai, expand(session.current_arg_text)))
+        if len(tehai) % 3 != 1:
+            await session.send('INVALID TEHAI LENGTH')
+            return
+        result = maj.MajHai.ten(tehai)
+        if len(tehai) == 13:
+            result.update(maj.MajHai.qitui(tehai))
+            result.update(maj.MajHai.kokushimusou(tehai))
+        if result == {}:
+            await session.send('没听')
+        else:
+            def _():
+                keys = list(result.keys())
+                keys.sort()
+                for hai in keys:
+                    num = hai % 9
+                    color = hai // 9
+                    color_c = {0: 'm', 1: 'p', 2: 's', 3: 'z'}[color]
+                    s = str(num + 1) + color_c + ": "
+                    for barrel, v in result[hai][0].items():
+                        if barrel <= 2:
+                            for t in v:
+                                s += ''.join(map(lambda x: str(x + 1), t))
+                                s += {0: 'm', 1: 'p', 2: 's'}[barrel]
+                        else:
+                            s += ''.join(map(lambda x: str(barrel - 2), t))
+                            s += 'z'
+                    yield s
+            await session.send('\n'.join(_()))
     except MajException as e:
         await session.send(''.join(e.args))
     except maj.MajErr as e:

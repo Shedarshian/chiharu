@@ -180,7 +180,7 @@ class MajHai:
             d_temp = list(map(copy, d))
             s_temp = list(map(copy, s))
             s_temp.append((d_temp[key].pop(), d_temp[key + 1].pop(), d_temp[key + 2].pop()))
-            result |= MajHai._3(d_temp, s_temp, False)
+            result |= MajHai._3(d_temp, s_temp, hasTou)
         if len(val) >= 2 and not hasTou:
             d_temp = list(map(copy, d))
             s_temp = list(map(copy, s))
@@ -190,7 +190,7 @@ class MajHai:
             d_temp = list(map(copy, d))
             s_temp = list(map(copy, s))
             s_temp.append((d_temp[key].pop(), d_temp[key].pop(), d_temp[key].pop()))
-            result |= MajHai._3(d_temp, s_temp, False)
+            result |= MajHai._3(d_temp, s_temp, hasTou)
         return result
     @staticmethod
     def _chai(d: Iterable[int]) -> Tuple[Set[Tuple[Tuple[int,...],...]], List[List[int]]]:
