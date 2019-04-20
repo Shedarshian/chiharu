@@ -608,12 +608,17 @@ class Player:
     doable_naku_all = ('pon', 'daiminkan', 'ron')
     doable_kakan = ('ron',)
     doable_ankan = ()
-    def __init__(self, board):
+    def __init__(self, board, pos):
         self.tehai = [] # type: List[H]
         self.fuuro = [] # type: List[FuuRo]
         self.ho = [] # type: List[Tuple[H, HaiHoStatus]]
-        self.ting = {}
+        self.ten = {}
         self.board = board
+        self.tensu = 0
+        self.pos = pos
+    @property
+    def index(self):
+        return self.board.players.index(self)
     def give(self, tehai: Union[Sequence[H], H]):
         if isinstance(tehai, MajHai):
             self.tehai.append(tehai)
@@ -754,9 +759,6 @@ class Player:
         self.__getattribute__(option_chosen.name + '_do')((pos, hai, t))
         return
 
-class ZjPlayer(Player, Hai=MajZjHai):
-    pass
-
 B = TypeVar('B', bound='MajBoard')
 O = TypeVar('O', bound='MajBoard.NakuOption')
 class MajBoard:
@@ -764,12 +766,18 @@ class MajBoard:
         super().__init_subclass__(**kwargs)
         cls.Hai = Hai
         cls.Player = Player
-    def __init__(self, typ):
+    def __init__(self):
         self.yama = None
-        self.players = [self.Player(self), self.Player(self), self.Player(self), self.Player(self)]
+        self.players = [self.Player(self, PlayerPos.TON), self.Player(self, PlayerPos.NAN), self.Player(self, PlayerPos.SHA), self.Player(self, PlayerPos.PEI)]
         self.toncha = 0
         self.chiicha = 0
         self.isBegin = False
+    def __iter__(self):
+        try:
+            kyoku = self.kyoku()
+            yield from kyoku
+        except:
+            pass
     def haipai(self):
         #配牌
         self.yama = list(map(self.Hai, range(136)))
@@ -825,6 +833,9 @@ class MajBoard:
         else:
             return 0
     def kyoku(self):
+        for p in self.players:
+            pos = p.index - self.toncha
+            p.pos = PlayerPos(pos if pos >= 0 else pos + 4)
         self.haipai()
         for i, p in enumerate(self.players):
             v = i - self.toncha
@@ -883,6 +894,9 @@ class MajBoard:
                 self.now = i_naku
             #第一张牌结束
             self.status &= ~PlayerStatus.FIRST
+
+class ZjPlayer(Player, Hai=MajZjHai):
+    pass
 
 class MajZjBoard(MajBoard, Hai=MajZjHai, Player=ZjPlayer):
     pass

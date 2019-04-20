@@ -80,15 +80,22 @@ async def change(session: CommandSession):
     await save()
     await session.send([config.cq.text('尊敬的银幕会员'), config.cq.at(qq), config.cq.text('，您现在的银幕尊享时间为%i分钟。' % time)])
 
-@scheduler.scheduled_job('cron', hour='06')
+@scheduler.scheduled_job('cron', hour='06-07/1')
+async def tiemu_lengjing_time():
+    await tiemu_lengjing()
+
+@on_command(('tiemu', 'lengjing'), only_to_me=False)
+async def tiemu_lengjing_cmd(session: CommandSession):
+    await tiemu_lengjing()
+
 async def tiemu_lengjing():
     global tiemu_g
     bot = get_bot()
     for group_id in tiemu_g:
         if tiemu_g[group_id]['tiemu'] != 0:
             tiemu_g[group_id]['tiemu'] = 0
-        try:
-            await bot.send_group_msg(group_id=group_id, message='铁幕冷静了下来')
-        except:
-            pass
+            try:
+                await bot.send_group_msg(group_id=group_id, message='铁幕冷静了下来')
+            except:
+                pass
     await save()
