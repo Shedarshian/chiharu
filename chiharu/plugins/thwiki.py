@@ -33,13 +33,13 @@ async def change(title=None, description=None):
         data=value, cookies=cookie_jar, headers=headers))
     return url.text
 
-async def th_open():
+async def th_open(area=235):
     cookie_jar = requests.cookies.RequestsCookieJar()
     with open(config.rel('cookie.txt')) as f:
         value = f.readline().strip()
     cookie_jar.set(name="SESSDATA", value=value)
     cookie_jar.set(name="bili_jct", value=config.csrf_thb)
-    value = {'room_id': 14055253, 'area_v2': 235, 'platform': 'pc', 'csrf': config.csrf_thb, 'csrf_token': config.csrf_thb}
+    value = {'room_id': 14055253, 'area_v2': area, 'platform': 'pc', 'csrf': config.csrf_thb, 'csrf_token': config.csrf_thb}
     length = len(parse.urlencode(value))
     print('length: ' + str(length))
     headers = copy(config.headers)
@@ -424,9 +424,14 @@ async def get(session: CommandSession):
             f.write(rtmp['code'] + '\n')
     url2 = await loop.run_in_executor(None, requests.get, 'https://api.live.bilibili.com/room/v1/Room/room_init?id=14055253')
     if url2.json()['data']['live_status'] != 1:
-        ret = await th_open()
+        try:
+            area = {'': 235, '户外': 123, '演奏': 143, '才艺': 143}[session.current_arg_text]
+        except:
+            await session.send('不支持分区：%s' % session.current_arg_text, auto_escape=True)
+            area = 235
+        ret = await th_open(area)
         if json.loads(ret)['code'] == 0:
-            await session.send('检测到直播间未开启，现已开启，分区：单机·其他')
+            await session.send('检测到直播间未开启，现已开启，分区：%s' % {235: '单机·其他', 123: '娱乐·户外', 143: '娱乐·才艺'}[area])
         else:
             await session.send('检测到直播间未开启，开启直播间失败')
 
