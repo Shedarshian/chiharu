@@ -425,13 +425,15 @@ async def get(session: CommandSession):
     url2 = await loop.run_in_executor(None, requests.get, 'https://api.live.bilibili.com/room/v1/Room/room_init?id=14055253')
     if url2.json()['data']['live_status'] != 1:
         try:
-            area = {'': 235, '户外': 123, '演奏': 143, '才艺': 143}[session.current_arg_text]
+            area = {'': 235, '单机·其他': 235, '单机·其他单机': 235, '户外': 123, '娱乐·户外': 123, '演奏': 143, '才艺': 143, '娱乐·才艺': 143, '手游': 98, '手游·其他': 98, '手游·其他手游': 98, '网游': 107, '网游·其他': 107, '网游·其他网游': 107, '音乐台': 34, '娱乐·音乐台': 34, '虚拟主播': 199, 'vtb': 199, '娱乐·虚拟主播': 199, '绘画': 94, '同人绘画': 94, '临摹绘画': 95, '绘画·同人绘画': 94, '绘画·临摹绘画': 95}[session.current_arg_text]
         except:
             await session.send('不支持分区：%s' % session.current_arg_text, auto_escape=True)
             area = 235
         ret = await th_open(area)
         if json.loads(ret)['code'] == 0:
-            await session.send('检测到直播间未开启，现已开启，分区：%s' % {235: '单机·其他', 123: '娱乐·户外', 143: '娱乐·才艺'}[area])
+            await session.send('检测到直播间未开启，现已开启，分区：%s' % \
+                {235: '单机·其他', 123: '娱乐·户外', 143: '娱乐·才艺', 34: '娱乐·音乐台', 199: '娱乐·虚拟主播', 98: '手游·其他', 107: '网游·其他', 94: '绘画：同人绘画', 95: '绘画·临摹绘画'} \
+                [area])
         else:
             await session.send('检测到直播间未开启，开启直播间失败')
 
