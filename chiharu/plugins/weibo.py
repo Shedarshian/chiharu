@@ -42,7 +42,7 @@ async def _GetBandoriManga():
 		for weibo in data:
 			if weibo['user']['name'] == 'BanGDream每日推' and '#bangdream四格漫画#' in weibo['text']:
 				if_2 = 1 if "2nd" in weibo['text'] else 0
-				match = re.search('第(.*?)话', weibo['text'])
+				match = re.search('第(.*?)(话|話)', weibo['text'])
 				if not match:
 					continue
 				if bandori_last_manga[if_2] < int(match.group(1)):

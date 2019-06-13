@@ -30,12 +30,12 @@ async def AscTrans(session: CommandSession):
 
 @contextlib.contextmanager
 def stdoutIO(stdout=None):
-	old = sys.stdout
-	if stdout is None:
-		stdout = StringIO()
-	sys.stdout = stdout
-	yield stdout
-	sys.stdout = old
+    old = sys.stdout
+    if stdout is None:
+        stdout = StringIO()
+    sys.stdout = stdout
+    yield stdout
+    sys.stdout = old
 
 @on_command(('python', 'exec'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
@@ -107,6 +107,10 @@ async def maj_train(session: CommandSession):
     global daan
     text = session.current_arg_text
     p = False
+    try:
+        group_id = session.ctx['group_id']
+    except:
+        group_id = session.ctx['user_id']
     if text.startswith('p'):
         text = text[1:]
         p = True
@@ -146,7 +150,7 @@ async def maj_train(session: CommandSession):
             u = 'http://mjv.jp/2/img/n%s.png' % s
             url2 = await loop.run_in_executor(None, functools.partial(requests.get, u,
                 headers={'Referer': 'http://tenhou.net/2/img/'}))
-            name = str(hash((s, session.ctx['group_id'], session.ctx['user_id'])))
+            name = str(hash((s, group_id, session.ctx['user_id'])))
             with open(config.img(name + '.png'), 'wb') as f:
                 f.write(url2.content)
             await session.send([config.cq.text(str_title), config.cq.img(name + '.png')], auto_escape=True)
@@ -154,7 +158,7 @@ async def maj_train(session: CommandSession):
             strout = str_title + ''.join(map(str, stack))
             await session.send(strout, auto_escape=True)
         result = maj.MajHai._ting(map(lambda x: x - 1, stack))
-        daan[session.ctx['group_id']] = \
+        daan[group_id] = \
             ''.join(map(lambda x: str(x[0] + 1), filter(lambda x: x[1] > 0, enumerate(map(len, result)))))
     elif text == '2':
         str_title = '清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）\n'
@@ -178,13 +182,13 @@ async def maj_train(session: CommandSession):
         strout = str_title + ''.join(map(str, stack))
         await session.send(strout, auto_escape=True)
         result = maj.MajHai._ting(map(lambda x: x - 1, stack))
-        daan[session.ctx['group_id']] = \
+        daan[group_id] = \
             ''.join(map(lambda x: str(x[0] + 1), filter(lambda x: x[1] > 0, enumerate(map(len, result)))))
     elif text == '-1':
-        if session.ctx['group_id'] not in daan:
+        if group_id not in daan:
             await session.send('没有题目')
         else:
-            await session.send(daan.pop(session.ctx['group_id']))
+            await session.send(daan.pop(group_id))
     else:
         await session.send('支持参数：\n0或p0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）\n2：清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）\n-1：返回上次的答案')
 
@@ -484,3 +488,67 @@ async def latex(session: CommandSession):
 @config.ErrorHandle
 async def shuru(session: CommandSession):
     pass
+
+class MoneyComputer:
+    class Man:
+        def __init__(self, name, id):
+            self.name = name
+            self.id = id
+    class Strategy:
+        oneman_id = 0
+        @staticmethod
+        def oneman(name):
+            return (MoneyComputer.Strategy.oneman_id, name)
+    
+    def __init__(self):
+        self.man = []
+        self.money = {}
+    def clear(self):
+        self.man = []
+        self.money = {}
+    def addMan(self, name):
+        self.man.append(MoneyComputer.Man(name, len(self.man)))
+        self.money[self.man[-1]] = 0.
+    def findMan(self, name):
+        return list(filter(lambda x: x.name == name, self.man))[0]
+    def addBill(self, m, money, l):
+        if len(l) == 0:
+            l = self.man
+        self.money[m] += float(money)
+        part = float(money) / len(l)
+        for i in l:
+            self.money[i] -= part
+    def output(self, strategy):
+        if strategy[0] == MoneyComputer.Strategy.oneman_id:
+            man = strategy[1]
+            def _f():
+                for m in self.man:
+                    if m is not man:
+                        if self.money[m] < 0:
+                            yield "%s should give %s %f yuan" % (m.name, man.name, abs(self.money[m]))
+                        elif self.money[m] > 0:
+                            yield "%s should give %s %f yuan" % (man.name, m.name, self.money[m])
+            return "\n".join(list(_f()))
+    def process(self, command):
+        t = command.split(" ")
+        if len(t) == 0:
+            return
+        if t[0] == "clear":
+            self.clear()
+        elif t[0] == "add":
+            self.addMan(t[1])
+        elif t[0] == "bill": # bill name1 money [name2 ...]
+            self.addBill(self.findMan(t[1]), float(t[2]), list(map(self.findMan, t[3:])))
+        elif t[0] == "output":
+            if t[1] == "oneman":
+                return self.output(MoneyComputer.Strategy.oneman(self.findMan(t[2])))
+    def processLines(self, commands):
+        for line in commands:
+            ret = self.process(line)
+            if ret is not None:
+                return ret
+
+@on_command(('misc', 'money'), only_to_me=False)
+@config.ErrorHandle
+async def shuru(session: CommandSession):
+    await session.send(MoneyComputer().processLines(session.current_arg_text.split('\r\n')))

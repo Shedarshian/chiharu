@@ -737,6 +737,9 @@ async def chess_begin(session: CommandSession):
         duizhan[group_id] = {'red': qq_red, 'black': qq, 'board': ChessBoard(), 'nowRed': True}
         await session.send('已为您安排黑方')
         await session.send(str(duizhan[group_id]['board']), auto_escape=True)
+        bot = get_bot()
+        for group in config.group_id_dict['log']:
+            await bot.send_group_msg(group_id=group, message='chess begin in group %s' % group_id)
     else:
         duizhan_uncomplete[group_id] = qq
         await session.send('已为您安排红方，等候黑方')
@@ -751,6 +754,9 @@ async def chess_end(session: CommandSession):
     if group_id in duizhan and (is_admin or duizhan[group_id]['red'] == qq or duizhan[group_id]['black'] == qq):
         duizhan.pop(group_id)
         await session.send('已删除')
+        bot = get_bot()
+        for group in config.group_id_dict['log']:
+            await bot.send_group_msg(group_id=group, message='chess end in group %s' % group_id)
     elif group_id in duizhan_uncomplete and (is_admin or duizhan_uncomplete[group_id] == qq):
         duizhan_uncomplete.pop(group_id)
         await session.send('已删除')
