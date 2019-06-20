@@ -46,9 +46,9 @@ def group(n, *iterables):
             yield a
 
 def ErrorHandle(f):
-    async def _f(session: CommandSession):
+    async def _f(session: CommandSession, *args, **kwargs):
         try:
-            return await f(session)
+            return await f(session, *args, **kwargs)
         except Exception:
             await session.send(traceback.format_exc(), auto_escape=True)
     _f.__name__ = f.__name__
