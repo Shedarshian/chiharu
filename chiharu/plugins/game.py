@@ -123,8 +123,11 @@ class GameSameGroup:
                 l = list(filter(lambda x: x['game'] is self, self.center[group_id]))
                 if len(l) == 0 or qq not in l[0]['players']:
                     return
-                def _h():
+                async def _h():
                     self.center[group_id].remove(l[0])
+                    bot = get_bot()
+                    for group in config.group_id_dict['log']:
+                        await bot.send_group_msg(group_id=group, message='%s end in group %s' % (self.name, group_id))
                 return await _f(session, l[0], _h)
             return _g
         return _

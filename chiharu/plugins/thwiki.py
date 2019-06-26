@@ -7,8 +7,9 @@ import functools
 import random
 from copy import copy
 from urllib import parse
-from nonebot import on_command, CommandSession, get_bot, permission, scheduler
+from nonebot import on_command, CommandSession, get_bot, permission, scheduler, on_notice, NoticeSession
 import chiharu.plugins.config as config
+import chiharu.plugins.help as Help
 #from selenium.webdriver import chrome, Chrome
 
 #chrome_options = chrome.options.Options()
@@ -457,3 +458,9 @@ async def thwiki_change(session: CommandSession):
 async def thwiki_changedes(session: CommandSession):
     ret = await change(description=session.current_arg_text)
     await session.send(ret, auto_escape=True)
+
+@on_notice('group_increase')
+async def thwiki_greet(session: NoticeSession):
+    if session.ctx['group_id'] in config.group_id_dict['thwiki_live']:
+        message = '欢迎来到THBWiki直播群！我是直播小助手，在群里使用指令即可申请直播时间~以下为指令列表，欢迎在群里使用与提问~\n' + Help.sp['thwiki_live']['thwiki'] % Help._dict['thwiki']
+        await get_bot().send_private_msg(user_id=session.ctx['user_id'], message=message, auto_escape=True)

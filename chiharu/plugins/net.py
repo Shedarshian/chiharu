@@ -161,7 +161,7 @@ async def check_boss():
     global BossCheck, isLoggedin
     bot = get_bot()
     if not isLoggedin:
-        for group in config.group_id_dict['test']:
+        for group in config.group_id_dict['boss']:
             await bot.send_group_msg(group_id=group, message='please login: -boss.login password')
     def _f():
         stdin, stdout, stderr = ssh.exec_command('/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin/hep_q -u qity')
@@ -186,14 +186,14 @@ async def check_boss():
                     f.write('0')
             strout = status.process(_g)
         if strout != "":
-            for group in config.group_id_dict['test']:
+            for group in config.group_id_dict['boss']:
                 await bot.send_group_msg(group_id=group, message=strout)
     else:
         if status.Running():
             BossCheck = True
             with open(config.rel("boss_check.txt"), 'w') as f:
                 f.write('1')
-            for group in config.group_id_dict['test']:
+            for group in config.group_id_dict['boss']:
                 await bot.send_group_msg(group_id=group, message='Running job found! Begin boss check')
 
 idmap = {'all': 2503049358,

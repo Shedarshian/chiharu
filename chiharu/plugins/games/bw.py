@@ -1,6 +1,6 @@
 import random
 import itertools
-from typing import Dict, Any, Callable
+from typing import Dict, Any, Callable, Awaitable
 import chiharu.plugins.config as config
 from chiharu.plugins.game import GameSameGroup, ChessError, ChessWin
 from nonebot import on_command, CommandSession, get_bot, permission, NLPSession, IntentCommand
@@ -24,7 +24,7 @@ class BwBoard:
         s = '\n'.join(itertools.starmap(lambda i, a, b: a + ''.join( \
                 itertools.starmap(lambda j, y: f(y, i, j), enumerate(b))), \
                 zip(itertools.count(0), row, self.board)))
-        return '┏０１２３４５６７\n' + s
+        return '┏１２３４５６７８\n' + s
     def process(self, i, j, isBlack: bool):
         if self.board[i][j] != 0:
             raise ChessError('此处已有棋子')
@@ -121,16 +121,16 @@ async def chess_begin_complete(session: CommandSession, data: Dict[str, Any]):
 async def chess_end(session: CommandSession, data: Dict[str, Any]):
     await session.send('已删除')
 
-str_all = 'ABCDEFGHabcdefgh01234567'
+str_all = 'ABCDEFGHabcdefgh12345678'
 @bw.process(only_short_message=True)
-async def chess_process(session: NLPSession, data: Dict[str, Any], delete_func: Callable):
+async def chess_process(session: NLPSession, data: Dict[str, Any], delete_func: Awaitable):
     command = session.msg_text
     qq = int(session.ctx['user_id'])
     board = data['board']
     if command in {"认输", "认负", "我认输", "我认负"}:
         isRed = data['black'] == qq
         await session.send(('黑' if not isRed else '白') + '方胜出')
-        delete_func()
+        await delete_func()
     if len(command) != 2:
         return
     c1 = str_all.find(command[0])
@@ -160,6 +160,6 @@ async def chess_test(session: CommandSession):
     except ChessWin as e:
         await session.send(str(board), auto_escape=True)
         await session.send(e.args[0], auto_escape=True)
-        session.get('ifWin')()
+        await session.get('ifWin')()
     except ChessError as e:
         await session.send(e.args[0], auto_escape=True)

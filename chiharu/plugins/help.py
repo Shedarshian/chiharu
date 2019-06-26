@@ -11,7 +11,7 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
     "seiyuu": "使用格式：\n-seiyuu.today：查询今天生日的声优列表\n-seiyuu.check seiyuu_name[, count]：返回声优的基本信息，找到多个时可以使用count指明第几个。声优名以日语原文键入，允许假名甚至罗马音。\n-seiyuu.list string[, bound=15]：查询包含string的声优名列表，超过bound时返回前bound个，顺序未指定",
     #"chess": "使用格式：-chess.begin：开始对战\n-chess.end：结束对战",
     "game": "欢迎使用-game 指令访问七海千春游戏大厅~",
-    "tool": "-tool.Julia [c的x坐标] [c的y坐标]：绘制Julia集",
+    "tools": "-tools.Julia [c的x坐标] [c的y坐标]：绘制Julia集\n-tools.oeis：查询oeis（整数序列在线百科全书），支持查询数列前几项（只返回第一个结果），或oeis的编号如A036057",
     "misc": "-misc.asc.check str：转换str的所有字符到ascii码\n-misc.asc.trans numbers：转换数字到字符\n-misc.bandori.news：查询bandori新闻\n-misc.maj.ten：日麻算点器\n-misc.maj.train：麻将训练\n-misc.maj.img：天凤牌画\n-misc.maj.ting：听牌计算器\n-misc.token：将输入文本中大括号包含的token转换成latex中包含的unicode字符，使用https://github.com/joom/latex-unicoder.vim/blob/master/autoload/unicoder.vim, https://pastebin.com/jxHsjQK0\n  例：-misc.token f(0)={\\aleph}_0,f({\\alpha}+1)={\\aleph}_{\\alpha}\n-misc.latex：渲染latex公式\n-misc.money：面基算钱小助手 请单独-help misc.money\n-misc.roll.lyric：随机抽歌词，默认从全歌单中抽取，支持参数：vocalo kon imas ml cgss sphere aki bandori ll mu's Aqours starlight mh",
     "misc.money": "每行为一条指令。指令：\nclear: 清除所有数据。\nadd [人名]: 增加一个人。\nbill [人名] [金额] [可选：需付费的人名列表]: 增加一个需付费账单，人名列表为空则默认【包括自己的】所有人。\noutput [策略] [参数]: 输出金额交换。策略目前有：\n\toneman [参数：人名]: 所有金额交换全部支付给此人/由此人支付。",
     "event": "使用格式：\n-event year month day [max_note = 100]：按日期在eventernote.com查询该日发生的event，筛选条件为eventernote登录数大于max_note，默认为100，调低时请一定要注意避免刷屏！",
@@ -21,14 +21,14 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
         #"\n-eclins：查询ecl的instruction"
         "\n-seiyuu：查询声优信息"
         "\n-game：\U0001F6AA七海千春游戏大厅\U0001F6AA"
-        "\n-tool：数理小工具"
+        "\n-tools：数理小工具"
         "\n-mbf：调用mbf脚本语言解释器"
         "\n-event：按日期查询event"
         "\n-misc：隐藏指令"
         "\n-help：展示本帮助\n-help command名称：查看该命令帮助\n欢迎加入测试群947279366避免刷屏"}
 
-sp = {"thwiki_live": {"default": "\n-thwiki：thwiki直播申请相关",
-        "thwiki": "\n-thwiki.apply [开始时间] [结束时间] [直播项目名称]或者-申请 [开始时间] [结束时间] [直播项目名称]；时间格式：x年x月x日x点x分或者xx:xx，今日或今年可以省，开始可以用now，结束可以用float\n-thwiki.cancel [直播项目名称]或者-取消 [直播项目名称]\n-thwiki.get 获取rtmp与流密码，会以私聊形式发送，若直播间未开启则会自动开启，可以后跟想开启的直播分区如绘画，演奏，户外，vtb等，不指定则默认是单机·其他\n-thwiki.term 提前下播\napply cancel get term只能用于群内"}}
+sp = {"thwiki_live": {"default": "%s\n-thwiki：thwiki直播申请相关",
+        "thwiki": "%s\n-thwiki.apply [开始时间] [结束时间] [直播项目名称]或者-申请 [开始时间] [结束时间] [直播项目名称]；时间格式：x年x月x日x点x分或者xx:xx，今日或今年可以省，开始可以用now，结束可以用float\n-thwiki.cancel [直播项目名称]或者-取消 [直播项目名称]\n-thwiki.get 获取rtmp与流密码，会以私聊形式发送，若直播间未开启则会自动开启，可以后跟想开启的直播分区如绘画，演奏，户外，vtb等，不指定则默认是单机·其他\n-thwiki.term 提前下播\napply cancel get term只能用于群内"}}
 
 @on_command(name='help', only_to_me=False)
 @config.ErrorHandle
@@ -45,13 +45,16 @@ async def help(session: CommandSession):
                 yield val[name]
     str_tail = ''.join(_f())
     if name in _dict:
-        strout = _dict[name] + str_tail
+        if str_tail != "":
+            strout = str_tail % _dict[name]
+        else:
+            strout = _dict[name]
     else:
         strout = str_tail
-    #try:
-    await session.send(strout, auto_escape=True)
-    #except KeyError:
-    #    await session.send("请使用-help 命令名 查询命令帮助")
+    if name == 'thwiki' and str_tail != '':
+        await session.send(strout, auto_escape=True, ensure_private=True)
+    else:
+        await session.send(strout, auto_escape=True)
 
 @help.args_parser
 async def _(session: CommandSession):

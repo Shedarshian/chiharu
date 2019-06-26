@@ -203,7 +203,7 @@ async def mbfChg(pos, listins, listin, char, stack, maps):
 			_break = True
 		else:
 			push(stack, ord(listin[0]))
-			listin.erase(0)
+			listin.pop(0)
 	elif char == ";":
 		i = pop(stack)
 		strout = chr(i)

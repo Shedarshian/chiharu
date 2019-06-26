@@ -1,10 +1,10 @@
 import abc
 import itertools
 import functools
-from typing import Dict, Any, Callable
+from typing import Dict, Any, Callable, Awaitable
 import chiharu.plugins.config as config
 from chiharu.plugins.game import GameSameGroup, ChessError, ChessWin
-from nonebot import on_command, CommandSession, get_bot, permission, NLPSession
+from nonebot import on_command, CommandSession, get_bot, permission, NLPSession, IntentCommand
 
 name_dict = {}
 
@@ -734,14 +734,14 @@ async def chess_end(session: CommandSession, data: Dict[str, Any]):
 
 all_name = set('车車马馬象相士仕将帅炮砲兵卒')
 @xiangqi.process(only_short_message=True)
-async def chess_process(session: NLPSession, data: Dict[str, Any], delete_func: Callable):
+async def chess_process(session: NLPSession, data: Dict[str, Any], delete_func: Awaitable):
     command = session.msg_text
     qq = int(session.ctx['user_id'])
     board = data['board']
     if command in {"认输", "认负", "我认输", "我认负"}:
         isRed = data['red'] == qq
         await session.send(('红' if not isRed else '黑') + '方胜出')
-        delete_func()
+        await delete_func()
     if len(command) != 4 and len(command) != 5:
         return
     if command[0] in '前中后' and command[1] in all_name or command[0] in all_name:
@@ -765,7 +765,7 @@ async def chess_test(session: CommandSession):
         await session.send(str(board), auto_escape=True)
     except ChessWin as e:
         await session.send(e.args[0], auto_escape=True)
-        session.get('ifWin')()
+        await session.get('ifWin')()
     except ChessError as e:
         await session.send(e.args[0], auto_escape=True)
 
