@@ -1,5 +1,6 @@
 from typing import Callable, Iterable, Tuple, Any, Awaitable, List, Dict
 import chiharu.plugins.config as config
+import chiharu.plugins.games.card as card
 from nonebot import on_command, CommandSession, get_bot, permission, on_natural_language, NLPSession, IntentCommand
 
 class ChessError(BaseException):
@@ -135,7 +136,10 @@ class GameSameGroup:
 @on_command('game', only_to_me=False)
 @config.ErrorHandle
 async def game_center(session: CommandSession):
-    await session.send(config.game_center_help)
+    if session.current_arg_text == '':
+        await session.send(config.game_center_help)
+    elif session.current_arg_text == 'card':
+        await session.send(card.center_card)
 
 # xiangqi = GameSameGroup('xiangqi')
 
