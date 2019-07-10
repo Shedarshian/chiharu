@@ -3,6 +3,7 @@ import json
 from os import path
 from nonebot import CommandSession, get_bot, on_command
 import traceback
+from collections import UserDict
 
 PATH = "C:\\coolq_data\\"
 PATH_IMG = "C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\image"
@@ -53,3 +54,7 @@ def ErrorHandle(f):
             await session.send(traceback.format_exc(), auto_escape=True)
     _f.__name__ = f.__name__
     return _f
+
+#class formatter(UserDict):
+#    def __getattr__(self, attr):
+#        pass
