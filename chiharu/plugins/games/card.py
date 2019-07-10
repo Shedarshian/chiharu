@@ -68,7 +68,7 @@ class user_info:
         # self.operate = operate
     def __del__(self):
         self.file.close()
-class user_storage(user, path=r"games\card\user_storage\%i"):
+class user_storage(user_info, path=r"games\card\user_storage\%i"):
     def check(self):
         if os.stat(self.path).st_size < 4 * len(pool):
             self.file.seek(0, 2)
@@ -99,7 +99,7 @@ class user_storage(user, path=r"games\card\user_storage\%i"):
                 ret['wish_reset'].append(i)
             self.save(i, data)
         return ret
-class user_create(user, path=r"games\card\user_create\%i.json"):
+class user_create(user_info, path=r"games\card\user_create\%i.json"):
     pass
 @contextlib.contextmanager
 def open_user_create(qq, operate='r'):

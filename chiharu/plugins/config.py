@@ -15,6 +15,11 @@ def img(rel_path):
 
 with open(rel('config_data.py'), encoding='utf-8') as f:
     exec(f.read())
+with open(rel('maintain.json'), encoding='utf-8') as f:
+    maintain_str = json.load(f)
+def maintain_str_save():
+    with open(rel('maintain.json'), 'w', encoding='utf-8') as f:
+        f.write(json.dumps(maintain_str, ensure_ascii=False, indent=4, separators=(',', ': ')))
 
 class cq:
     @staticmethod
@@ -54,6 +59,21 @@ def ErrorHandle(f):
             await session.send(traceback.format_exc(), auto_escape=True)
     _f.__name__ = f.__name__
     return _f
+
+def maintain(s):
+    global maintain_str
+    def _(f):
+        async def _f(*args, **kwargs):
+            if s not in maintain_str or maintain_str[s] == "":
+                return await f(*args, **kwargs)
+            else:
+                if len(args) >= 1 and isinstance(args[0], CommandSession):
+                    await args[0].send(maintain_str[s])
+                elif 'session' in kwargs and isinstance(kwargs['session'], CommandSession):
+                    await kwargs['session'].send(maintain_str[s])
+        _f.__name__ = f.__name__
+        return _f
+    return _
 
 #class formatter(UserDict):
 #    def __getattr__(self, attr):

@@ -150,6 +150,7 @@ async def change_des_to_list():
 
 @on_command(('thwiki', 'apply'), aliases=('申请',), only_to_me=False)
 @config.ErrorHandle
+@config.maintain('thwiki')
 async def apply(session: CommandSession):
     group_id = session.ctx['group_id']
     if group_id not in config.group_id_dict['thwiki_live']:
@@ -265,6 +266,7 @@ async def _(session: CommandSession):
 
 @on_command(('thwiki', 'cancel'), aliases=('取消',), only_to_me=False)
 @config.ErrorHandle
+@config.maintain('thwiki')
 async def cancel(session: CommandSession):
     global l
     l2 = list(filter(lambda x: x[1].name == session.current_arg_text, enumerate(l)))
@@ -286,6 +288,7 @@ async def cancel(session: CommandSession):
 
 @on_command(('thwiki', 'list'), only_to_me=False)
 @config.ErrorHandle
+@config.maintain('thwiki')
 async def thlist(session: CommandSession):
     global l
     l = polish(l)
@@ -297,6 +300,7 @@ async def thlist(session: CommandSession):
 
 @on_command(('thwiki', 'term'), only_to_me=False)
 @config.ErrorHandle
+@config.maintain('thwiki')
 async def term(session: CommandSession):
     group_id = session.ctx['group_id']
     if group_id not in config.group_id_dict['thwiki_live']:
@@ -327,6 +331,7 @@ async def term(session: CommandSession):
                 await session.send('更新到直播间失败')
 
 @scheduler.scheduled_job('cron', hour='00')
+@config.maintain('thwiki')
 async def _():
     global l
     ret = await change_des_to_list()
@@ -335,6 +340,7 @@ async def _():
             await bot.send_group_msg(group_id=id, message='直播间简介更新失败')
 
 @scheduler.scheduled_job('cron', second='00')
+@config.maintain('thwiki')
 async def _():
     global l
     now = datetime.now()
@@ -360,6 +366,7 @@ async def _():
 
 @on_command(('thwiki', 'check'), only_to_me=False)
 @config.ErrorHandle
+@config.maintain('thwiki')
 async def check(session: CommandSession):
     loop = asyncio.get_event_loop()
     url = await loop.run_in_executor(None, requests.get, 'https://api.live.bilibili.com/room/v1/Room/room_init?id=14055253')
@@ -375,6 +382,7 @@ async def check(session: CommandSession):
 
 @on_command(('thwiki', 'get'), only_to_me=False)
 @config.ErrorHandle
+@config.maintain('thwiki')
 async def get(session: CommandSession):
     group_id = session.ctx['group_id']
     if group_id not in config.group_id_dict['thwiki_live']:
@@ -459,7 +467,21 @@ async def thwiki_changedes(session: CommandSession):
     ret = await change(description=session.current_arg_text)
     await session.send(ret, auto_escape=True)
 
+@on_command(('thwiki', 'maintain'), only_to_me=False, permission=permission.GROUP_ADMIN)
+@config.ErrorHandle
+async def thwiki_maintain(session: CommandSession):
+    group_id = session.ctx['group_id']
+    if group_id not in config.group_id_dict['thwiki_live']:
+        return
+    config.maintain_str['thwiki'] = session.current_arg_text
+    config.maintain_str_save()
+    if session.current_arg_text != "":
+        await session.send('已进入维护状态，再次输入空字符串解除')
+    else:
+        await session.send('已解除维护状态')
+
 @on_notice('group_increase')
+@config.maintain('thwiki')
 async def thwiki_greet(session: NoticeSession):
     if session.ctx['group_id'] in config.group_id_dict['thwiki_live']:
         message = '欢迎来到THBWiki直播群！我是直播小助手，在群里使用指令即可申请直播时间~以下为指令列表，欢迎在群里使用与提问~\n' + Help.sp['thwiki_live']['thwiki'] % Help._dict['thwiki']
