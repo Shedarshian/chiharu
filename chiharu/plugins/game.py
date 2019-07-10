@@ -117,7 +117,10 @@ class GameSameGroup:
         def _(_f: Awaitable) -> Awaitable:
             @on_natural_language(only_to_me=False, only_short_message=only_short_message)
             async def _g(session: NLPSession): # 以后可能搁到一起？
-                group_id = int(session.ctx['group_id'])
+                try:
+                    group_id = int(session.ctx['group_id'])
+                except KeyError:
+                    return
                 qq = int(session.ctx['user_id'])
                 if group_id not in self.center:
                     return

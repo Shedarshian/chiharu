@@ -34,22 +34,24 @@ async def change(title=None, description=None):
         data=value, cookies=cookie_jar, headers=headers))
     return url.text
 
-async def th_open(area=235):
+async def th_open(is_open=True, area=235):
     cookie_jar = requests.cookies.RequestsCookieJar()
     with open(config.rel('cookie.txt')) as f:
         value = f.readline().strip()
     cookie_jar.set(name="SESSDATA", value=value)
     cookie_jar.set(name="bili_jct", value=config.csrf_thb)
-    value = {'room_id': 14055253, 'area_v2': area, 'platform': 'pc', 'csrf': config.csrf_thb, 'csrf_token': config.csrf_thb}
+    value = {'room_id': 14055253, 'platform': 'pc', 'csrf': config.csrf_thb, 'csrf_token': config.csrf_thb}
+    if is_open:
+        value['area_v2'] = area
     length = len(parse.urlencode(value))
-    print('length: ' + str(length))
     headers = copy(config.headers)
     headers['Content-Length'] = str(length)
     loop = asyncio.get_event_loop()
-    url = await loop.run_in_executor(None, functools.partial(requests.post,
-        'https://api.live.bilibili.com/room/v1/Room/startLive',
+    ret = await loop.run_in_executor(None, functools.partial(requests.post,
+        'https://api.live.bilibili.com/room/v1/Room/startLive' if is_open
+            else 'https://api.live.bilibili.com/room/v1/Room/stopLive',
         data=value, cookies=cookie_jar, headers=headers))
-    return url.text
+    return ret.text
 
 def format_date(dat: datetime):
     today = date.today()
@@ -438,7 +440,7 @@ async def get(session: CommandSession):
         except:
             await session.send('不支持分区：%s' % session.current_arg_text, auto_escape=True)
             area = 235
-        ret = await th_open(area)
+        ret = await th_open(area=area)
         if json.loads(ret)['code'] == 0:
             await session.send('检测到直播间未开启，现已开启，分区：%s' % \
                 {235: '单机·其他', 123: '娱乐·户外', 143: '娱乐·才艺', 34: '娱乐·音乐台', 199: '娱乐·虚拟主播', 98: '手游·其他', 107: '网游·其他', 94: '绘画：同人绘画', 95: '绘画·临摹绘画'} \
@@ -476,6 +478,7 @@ async def thwiki_maintain(session: CommandSession):
     config.maintain_str['thwiki'] = session.current_arg_text
     config.maintain_str_save()
     if session.current_arg_text != "":
+        await th_open(is_open=False)
         await session.send('已进入维护状态，再次输入空字符串解除')
     else:
         await session.send('已解除维护状态')
