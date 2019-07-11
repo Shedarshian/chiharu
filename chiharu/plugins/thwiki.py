@@ -326,8 +326,12 @@ async def term(session: CommandSession):
             await session.send('现在不是你在播')
         else:
             l.pop(0)
-            await session.send('成功删除')
             await _save(l)
+            ret = await th_open(is_open=False)
+            if json.loads(ret)['code'] != 0:
+                await session.send('成功删除，断流失败')
+            else:
+                await session.send('成功断流')
             ret = await change_des_to_list()
             if json.loads(ret)['code'] != 0:
                 await session.send('更新到直播间失败')
