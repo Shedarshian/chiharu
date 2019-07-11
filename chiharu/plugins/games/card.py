@@ -9,10 +9,11 @@ from typing import Dict, Iterable, Tuple, Awaitable, List
 from datetime import date
 import chiharu.plugins.config as config
 from nonebot import on_command, CommandSession, get_bot, permission
+from nonebot.command import call_command
 
 # -game card 引导至card的指令列表
-# 抽卡指令（参数：卡池，张数） 参数为空时引导至查看卡池 限额抽完时引导至查看个人信息 再次输入确认使用资源抽卡
-# 查看卡池指令（参数：卡池或空） 引导抽卡指令 查看具体卡池 引导至私聊卡池信息
+# √抽卡指令（参数：卡池，张数） 参数为空时引导至查看卡池 限额抽完时引导至查看个人信息 再次输入确认使用资源抽卡
+# √查看卡池指令（参数：卡池或空） 引导抽卡指令 查看具体卡池 引导至私聊卡池信息
 # 添加卡指令（参数：卡名，张数） 引导至查看卡池
 # 查看个人信息，包含资源数，仓库量，剩余免费抽卡次数（级别？） 引导至查看库存与分解卡与留言簿
 # 查看库存指令（翻页）
@@ -28,6 +29,11 @@ from nonebot import on_command, CommandSession, get_bot, permission
 
 def to_byte(num):
     return bytes([num // 256, num % 256])
+guide = {'draw': '使用-card.draw 卡池id/名字 抽卡次数 进行抽卡，\n-card.draw5 卡池id/名字 直接进行五连抽卡',
+    'check_detail': '私聊-card.check 卡池id/名字 查询卡池具体信息（刷屏预警）',
+    'check': '-card.check 不带参数 查询卡池列表',
+    'info': '-xxxxxx 查看个人信息'
+}
 
 with open(config.rel(r"games\card\pool"), 'rb') as f:
     pool = list(itertools.starmap(lambda x, y: int(x) * 256 + int(y), config.group(2, f.read())))
@@ -35,7 +41,8 @@ with open(config.rel(r"games\card\card_info.json"), encoding='utf-8') as f:
     card_info = json.load(f)
 with open(config.rel(r"games\card\daily_pool.json"), encoding='utf-8') as f:
     daily_pool_all = json.load(f)
-    daily_pool = list(filter(lambda x: x['status'] == 1, daily_pool_all))
+    daily_pool = list(filter(lambda x: x['status'] == 1 or x['status'] == 3, daily_pool_all))
+    daily_pool_draw = list(map(lambda x: x['cards'], daily_pool))
 def save_card_info():
     with open(config.rel(r"games\card\card_info.json"), 'w', encoding='utf-8') as f:
         f.write(json.dumps(card_info, ensure_ascii=False, indent=4, separators=(',', ': ')))
@@ -45,43 +52,53 @@ def save_pool():
 def save_daily_pool():
     with open(config.rel(r"games\card\daily_pool.json"), 'w', encoding='utf-8') as f:
         f.write(json.dumps(daily_pool_all, ensure_ascii=False, indent=4, separators=(',', ': ')))
-maintain_str = ""
 
-# class user:
-#     def __init_subclass__(self, path):
-#         self.path_all = config.rel(path)
-#     def __init__(self, index):
-#         self.path = self.path_all % index
-#         try:
-#             with open(self.path, encoding='utf-8') as f:
-#                 self.val = json.load(f)
-#         except FileNotFoundError:
-#             self.val = {}
+def get_card_names(*l):
+    return '，'.join([card_info[i]['name'] for i in l])
+def daily_pool_find(s):
+    l = list(filter(lambda x: x['name'] == s or str(x['id']) == s, daily_pool))
+    if len(l) == 0:
+        return None
+    return l[0]
+
 class user_info:
-    def __init_subclass__(cls, path):
+    def __init_subclass__(cls, path, if_binary=False):
         cls.path_all = config.rel(path)
-    def __init__(self, index, operate='r'):
+        cls.if_binary = if_binary
+    def __init__(self, index):
         self.path = self.path_all % index
-        self.file = open(self.path, '+')
-        # if operate != 'r' and operate != 'w':
-        #     raise ValueError
-        # self.operate = operate
+        try:
+            self.file = open(self.path, 'r+b' if self.if_binary else 'r+')
+        except FileNotFoundError:
+            self.init_begin()
     def __del__(self):
         self.file.close()
-class user_storage(user_info, path=r"games\card\user_storage\%i"):
+class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True):
+    def init_begin(self):
+        self.file = open(self.path, 'x+b' if self.if_binary else 'x+')
+        self.file.write(bytes([0, 0, 10, 0]))
     def check(self):
-        if os.stat(self.path).st_size < 4 * len(pool):
+        if os.stat(self.path).st_size < 4 * len(pool) + 4:
             self.file.seek(0, 2)
-            self.file.write(bytes(map(lambda x: 0, range(4 * len(pool) - os.stat(self.path).st_size))))
+            self.file.write(bytes(map(lambda x: 0, range(4 * len(pool) + 4 - os.stat(self.path).st_size))))
             self.file.flush()
+    def read_info(self):
+        # 4 byte data for user info
+        self.file.seek(0)
+        a, b, c, d = self.file.read(4)
+        return {'money': a * 256 + b, 'confirm': bool(c & 128), 'time': c % 128}
+    def save_info(self, val):
+        self.file.seek(0)
+        self.file.write(bytes([val['money'] // 256, val['money'] % 256, val['confirm'] * 128 + val['time'], 0]))
     def read(self, id):
-        self.file.seek(4 * id)
+        # 4 byte data for each card
+        self.check()
+        self.file.seek(4 * id + 4)
         a, b, c, d = self.file.read(4)
         return {'num': a * 256 + b, 'fav': bool(d & 2), 'wish': bool(d & 1)}
     def save(self, id, dct):
-        self.file.seek(4 * id)
-        self.file.write(bytes([red['num'] // 256, red['num'] % 256, 0, red['fav'] * 2 + red['wish']]))
-    # 4 byte data for each card
+        self.file.seek(4 * id + 4)
+        self.file.write(bytes([dct['num'] // 256, dct['num'] % 256, 0, dct['fav'] * 2 + dct['wish']]))
     def give(self, *args) -> Dict[str, List[int]]:
         self.check()
         ret = {'max': [], 'wish_reset': []}
@@ -116,7 +133,7 @@ def open_user_storage(qq):
     finally:
         del resource
 #with open_user_storage(qq) as f:
-#    f.give(id)
+#    f.give(id, id)
 
 def _des(l, if_len=True, max=3):
     if len(l) > max:
@@ -126,9 +143,6 @@ def _des(l, if_len=True, max=3):
 def pool_des(pool_info: Dict):
     title = {'event': '活动卡池', 'daily': '每日卡池', 'new': '新卡卡池'}
     not_zero = list(filter(lambda x: pool[x] > 0, pool_info['cards']))
-    if len(not_zero) == 0:
-        #raise
-        pass
     only_one = list(filter(lambda x: pool[x] == 1, pool_info['cards']))
     num = functools.reduce(lambda x, y: x + y, map(lambda x: pool[x], pool_info['cards']))
     return f"""{title[pool_info['type']]}{f'''：{pool_info['name']} id：{pool_info['id']}
@@ -161,41 +175,120 @@ def add_card(arg: Iterable[Tuple[int, int]]):
             pool[id] += num
             f.write(to_byte(pool[id]))
 
-# 维护
-def maintain(f: Awaitable):
-    async def _(session: CommandSession):
-        if maintain_str != "":
-            await session.send(maintain_str)
-        else:
-            await f()
-    return _
-
-@on_command(('card', 'draw'), only_to_me=False)
+@on_command(('card', 'draw'), only_to_me=False, aliases=('抽卡'))
 @config.ErrorHandle
-@maintain
+@config.maintain('card')
 async def card_draw(session: CommandSession):
-    if session.current_arg_text == "":
+    if session.get('name') is None:
         # 卡池介绍
-        await session.send('\n\n'.join(map(lambda x: pool_des(x), daily_pool)) + '\n\n使用-card.draw 卡池id 抽卡次数 进行抽卡', auto_escape=True)
-    pass
+        await session.send('\n\n'.join(map(lambda x: pool_des(x), daily_pool)) + '\n\n' + guide['draw'], auto_escape=True)
+    else:
+        qq = session.ctx['user_id']
+        name, num = session.get('name'), session.get('num')
+        if num > 5 or num <= 0:
+            await session.send('一次最多五连抽卡！')
+            return
+        p = daily_pool_find(name)
+        if p is None:
+            await session.send('未发现此卡池\n' + guide['draw'])
+        elif p['status'] == 3:
+            await session.send('卡池已空，无法继续抽取')
+        else:
+            with open_user_storage(qq) as f:
+                data = {'empty': False, 'payed': False, 'money': 0}
+                info = f.read_info()
+                weight = list(map(lambda x: pool[x], p['cards']))
+                pool_num = functools.reduce(lambda x, y: x + y, weight)
+                if pool_num <= num:
+                    num = pool_num
+                    data['empty'] = True
+                if info['time'] == 0:
+                    if not info['confirm']:
+                        if info['money'] >= 100:
+                            info['confirm'] = True
+                            f.save_info(info)
+                            await session.send(f'您今日的免费10次抽卡次数已用尽，是否确认使用en进行抽卡？再次输入抽卡指令确认\n{guide["info"]}') # 取消确认？？？ TODO
+                        else:
+                            await session.send(f'您今日的免费10次抽卡次数已用尽\n{guide["info"]}')
+                        return
+                    else:
+                        if info['money'] >= 100 * num:
+                            info['money'] -= 100 * num
+                            data['payed'] = True
+                            data['money'] = info['money']
+                            f.save_info(info)
+                        else:
+                            await session.send(f'您剩余en已不足\n\n您还有{info["money"]}en，每100en可以抽一张卡\n{guide["info"]}')
+                            return
+                elif info['time'] < num:
+                    await session.send(f'您今日的免费10次抽卡次数不足，还有{info["time"]}次\n{guide["info"]}')
+                    return
+                else:
+                    info['time'] -= num
+                    f.save_info(info)
+                if data['empty']:
+                    def _f():
+                        for id, n in zip(p['cards'], weight):
+                            for i in range(n):
+                                pool[id] -= 1
+                                yield id
+                    p['status'] = 3
+                    save_daily_pool()
+                else:
+                    def _f():
+                        for i in range(num):
+                            index = random.choices(range(len(p['cards'])), weight)[0]
+                            weight[index] -= 1
+                            pool[p['cards'][index]] -= 1
+                            yield p['cards'][index]
+                get = list(_f())
+                ret = f.give(*get)
+            await session.send(f"""{'''您已把卡池抽空！
+''' if data['empty'] else ''}恭喜您抽中：
+{get_card_names(*get)}{f'''
+库存 {get_card_names(*ret['max'])} 已达到上限''' if len(ret['max']) != 0 else ''}{f'''
+{get_card_names(*ret['wish_reset'])} 已自动取消愿望单''' if len(ret['wish_reset']) != 0 else ''}{f'''
+您还剩余{data['money']}en''' if data['payed'] else ''}""")
+
+@card_draw.args_parser
+@config.ErrorHandle
+async def _(session: CommandSession):
+    if session.current_arg_text == "":
+        session.state['name'] = None
+    else:
+        l = session.current_arg_text.strip().split(' ')
+        if len(l) == 1:
+            session.state['name'] = l[0]
+            session.state['num'] = 1
+        else:
+            session.state['name'] = l[0]
+            session.state['num'] = int(l[1])
+
+@on_command(('card', 'draw5'), aliases=('五连抽卡',), only_to_me=False)
+@config.ErrorHandle
+@config.maintain('card')
+async def card_draw_5(session: CommandSession):
+    if session.current_arg_text == "":
+        await call_command(get_bot(), session.ctx, ('card', 'draw'), current_arg="")
+    else:
+        await call_command(get_bot(), session.ctx, ('card', 'draw'), current_arg=session.current_arg_text.strip() + ' 5')
 
 @on_command(('card', 'check'), only_to_me=False)
 @config.ErrorHandle
-@maintain
+@config.maintain('card')
 async def card_check(session: CommandSession):
     if session.current_arg_text == "":
-        await session.send('\n\n'.join(map(lambda x: pool_des(x), daily_pool)) + '\n\n使用-card.draw 卡池id 抽卡次数 进行抽卡\n私聊-card.check 卡池id 查询卡池具体信息（刷屏预警）', auto_escape=True)
+        await session.send('\n\n'.join(map(lambda x: pool_des(x), daily_pool)) + f'\n\n{guide["draw"]}\n{guide["check_detail"]}', auto_escape=True)
     else:
-        id = int(session.current_arg_text)
-        find = list(filter(lambda x: x['id'] == id, daily_pool))
-        if len(find) == 0:
-            await session.send('未发现此id的卡池')
-            return
-        await session.send(pool_des_detail(find[0]) + '\n\n使用-card.draw 卡池id 抽卡次数 进行抽卡\n-card.check 不带参数 查询卡池列表', auto_escape=True)
+        p = daily_pool_find(session.current_arg_text)
+        if p is None:
+            await session.send('未发现此卡池')
+        else:
+            await session.send(pool_des_detail(find[0]) + f'\n\n{guide["draw"]}\n{guide["check"]}', auto_escape=True)
 
 @on_command(('card', 'add'), only_to_me=False)
 @config.ErrorHandle
-@maintain
+@config.maintain('card')
 async def card_add(session: CommandSession):
     pass
 
