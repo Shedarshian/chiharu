@@ -30,9 +30,10 @@ config.logger.open('card')
 
 def to_byte(num):
     return bytes([num // 256, num % 256])
-guide = {'draw': '使用-card.draw 卡池id/名字 抽卡次数 进行抽卡，\n-card.draw5 卡池id/名字 直接进行五连抽卡',
+guide = {'draw': '使用-card.draw 卡池id/名字 抽卡次数 进行抽卡，次数不填默认为单抽，\n-card.draw5 卡池id/名字 直接进行五连抽卡',
     'check_detail': '私聊-card.check 卡池id/名字 查询卡池具体信息（刷屏预警）',
     'check': '-card.check 不带参数 查询卡池列表',
+    'add': '使用-card.add 卡片名字 张数 创造卡片加入次日新卡卡池与每日随机卡池 张数不填默认为1张',
     'info': '-xxxxxx 查看个人信息'
 }
 
@@ -61,6 +62,11 @@ def daily_pool_find(s):
     if len(l) == 0:
         return None
     return l[0]
+def card_find(s):
+    l = list(filter(lambda x: x['name'] == s, card_info))
+    if len(l) == 0:
+        return None
+    return l[0]
 
 class user_info:
     def __init_subclass__(cls, path, if_binary=False):
@@ -72,39 +78,40 @@ class user_info:
             self.file = open(self.path, 'r+b' if self.if_binary else 'r+')
         except FileNotFoundError:
             self.init_begin()
+    def init_begin(self):
+        self.file = open(self.path, 'x+b' if self.if_binary else 'x+')
     def __del__(self):
         self.file.close()
 class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True):
     def init_begin(self):
         self.file = open(self.path, 'x+b' if self.if_binary else 'x+')
-        self.file.write(bytes([0, 0, 10, 0]))
+        self.file.write(bytes([0, 0, 10, 10, 0, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
     def check(self):
-        if os.stat(self.path).st_size < 4 * len(pool) + 4:
+        if os.stat(self.path).st_size < 4 * len(pool) + 16:
             self.file.seek(0, 2)
-            self.file.write(bytes(map(lambda x: 0, range(4 * len(pool) + 4 - os.stat(self.path).st_size))))
+            self.file.write(bytes(map(lambda x: 0, range(4 * len(pool) + 16 - os.stat(self.path).st_size))))
             self.file.flush()
     def read_info(self):
-        # 4 byte data for user info
+        # 16 byte data for user info
         self.file.seek(0)
-        a, b, c, d = self.file.read(4)
-        return {'money': a * 256 + b, 'confirm': bool(c & 128), 'time': c % 128}
+        a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p = self.file.read(16)
+        return {'money': a * 256 + b, 'confirm': bool(c & 128), 'time': c % 128, 'create_type': d, 'create_num': e * 256 + f}
     def save_info(self, val):
         self.file.seek(0)
-        self.file.write(bytes([val['money'] // 256, val['money'] % 256, val['confirm'] * 128 + val['time'], 0]))
-    def read(self, id):
+        self.file.write(bytes([val['money'] // 256, val['money'] % 256, val['confirm'] * 128 + val['time'], val['create_type'], val['create_num'] // 256, val['create_num'] % 256, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+    def read_nocheck(self, id):
         # 4 byte data for each card
-        self.check()
-        self.file.seek(4 * id + 4)
+        self.file.seek(4 * id + 16)
         a, b, c, d = self.file.read(4)
         return {'num': a * 256 + b, 'fav': bool(d & 2), 'wish': bool(d & 1)}
     def save(self, id, dct):
-        self.file.seek(4 * id + 4)
+        self.file.seek(4 * id + 16)
         self.file.write(bytes([dct['num'] // 256, dct['num'] % 256, 0, dct['fav'] * 2 + dct['wish']]))
     def give(self, *args) -> Dict[str, List[int]]:
         self.check()
         ret = {'max': [], 'wish_reset': []}
         for i in args:
-            data = self.read(i)
+            data = self.read_nocheck(i)
             data['num'] += 1
             # 超过上限
             if data['num'] >= 65536:
@@ -117,8 +124,27 @@ class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True
                 ret['wish_reset'].append(i)
             self.save(i, data)
         return ret
-class user_create(user_info, path=r"games\card\user_create\%i.txt"):
-    pass
+class user_create(user_info, path=r"games\card\user_create\%i"):
+    def check(self):
+        if os.stat(self.path).st_size < 4 * len(pool):
+            self.file.seek(0, 2)
+            self.file.write(bytes(map(lambda x: 0, range(4 * len(pool) - os.stat(self.path).st_size))))
+            self.file.flush()
+    def read_nocheck(self, id):
+        # 4 byte data for each card
+        self.file.seek(4 * id)
+        a, b, c, d = self.file.read(4)
+        return {'num': a * 256 + b, 'first': bool(d & 1)}
+    def save(self, id, dct):
+        self.file.seek(4 * id)
+        self.file.write(bytes([dct['num'] // 256, dct['num'] % 256, 0, dct['first']]))
+    def create(self, id, num, is_first):
+        self.check()
+        data = self.file.read_nocheck(id)
+        data['num'] += num
+        data['first'] = is_first
+        self.save(data)
+
 @contextlib.contextmanager
 def open_user_create(qq, operate='r'):
     resource = user_create(qq, operate)
@@ -160,10 +186,10 @@ def pool_des_detail(pool_info: Dict):
 def center_card(*args):
     return ""
 
-def add_cardname(names, num=0, **kwargs):
+def add_cardname(arg: Iterable[Tuple[int, int]], **kwargs):
     global card_info, pool
     with open(config.rel(r"games\card\pool"), 'ab') as f:
-        for name in names:
+        for name, num in arg:
             card_info.append(dict(name=name, id=len(card_info), **kwargs))
             pool.append(num)
             f.write(to_byte(num)) # 每个卡最多65535张
@@ -249,6 +275,7 @@ async def card_draw(session: CommandSession):
                             yield p['cards'][index]
                 get = list(_f())
                 ret = f.give(*get)
+                save_pool()
             await session.send(f"""{'''您已把卡池抽空！
 ''' if data['empty'] else ''}恭喜您抽中：
 {get_card_names(*get)}{f'''
@@ -266,20 +293,6 @@ async def card_draw(session: CommandSession):
                 config.logger.card << f'【LOG】用户{qq} 愿望单内{ret["wish_reset"]}已被自动取消'
             if data['empty']:
                 config.logger.card << f'【LOG】卡池{p["id"]}已空'
-
-@card_draw.args_parser
-@config.ErrorHandle
-async def _(session: CommandSession):
-    if session.current_arg_text == "":
-        session.state['name'] = None
-    else:
-        l = session.current_arg_text.strip().split(' ')
-        if len(l) == 1:
-            session.state['name'] = l[0]
-            session.state['num'] = 1
-        else:
-            session.state['name'] = l[0]
-            session.state['num'] = int(l[1])
 
 @on_command(('card', 'draw5'), aliases=('五连抽卡',), only_to_me=False)
 @config.ErrorHandle
@@ -307,7 +320,45 @@ async def card_check(session: CommandSession):
 @config.ErrorHandle
 @config.maintain('card')
 async def card_add(session: CommandSession):
-    pass
+    if session.get('name') is None:
+        await session.send(guide['add'])
+        return
+    qq = session.ctx['user_id']
+    name, num = session.get('name'), session.get('num')
+    if num <= 0:
+        await session.send('不能创造负数张卡')
+    with open_user_storage(qq) as f1, open_user_create(qq) as f2:
+        info = f1.read_info()
+        if info['create_type'] < 1:
+            await session.send(f"您今日创造卡片的种类已达上限，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。")
+        elif info['create_num'] < num:
+            await session.send(f"您今日创造卡片的剩余张数不足，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。")
+        elif '\n' in name or '\t' in name:
+            info['create_type'] -= 1
+            info['create_num'] -= num
+            f1.save_info(info)
+            c = card_find(name)
+            if c is None:
+                # new card
+                pass
+            else:
+                add_card(c['id'])
+
+@card_draw.args_parser
+@card_add.args_parser
+@config.ErrorHandle
+async def _(session: CommandSession):
+    if session.current_arg_text == "":
+        session.state['name'] = None
+    else:
+        s = session.current_arg_text.strip()
+        i = s.rfind(' ')
+        if i == -1:
+            session.state['name'] = s
+            session.state['num'] = 1
+        else:
+            session.state['name'] = s[:i]
+            session.state['num'] = int(s[i + 1:])
 
 @on_command(('card', 'add_group'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
@@ -318,7 +369,7 @@ async def card_add_group(session: CommandSession):
     if num >= 65536:
         await session.send(">65536")
         return
-    add_cardname(map(lambda x: x.strip(), lst[1:-1]), num=num, group=group)
+    add_cardname(map(lambda x: (x.strip(), num), lst[1:-1]), group=group)
     await session.send("successfully added cards")
     config.logger.card << f'【LOG】卡池新增{group}卡组共{len(lst) - 2}种，每种{num}张'
 
