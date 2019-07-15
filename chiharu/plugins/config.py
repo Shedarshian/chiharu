@@ -1,5 +1,6 @@
 import itertools
 import json
+import datetime
 from os import path
 from nonebot import CommandSession, get_bot, on_command
 import traceback
@@ -75,6 +76,24 @@ def maintain(s):
         return _f
     return _
 
-#class formatter(UserDict):
-#    def __getattr__(self, attr):
-#        pass
+class _logger:
+    def __init__(self, name):
+        self.file = open(rel("log\\%s.log" % name), 'a')
+    def __del__(self):
+        self.file.close()
+    def __lshift__(self, a):
+        self.file.write(datetime.datetime.now().isoformat(' '))
+        self.file.write(' ')
+        self.file.write(str(a))
+        self.file.write('\n')
+        self.file.flush()
+
+class _logger_meta(type):
+    def __getattr__(cls, attr):
+        return cls._l[attr]
+
+class logger(metaclass=_logger_meta):
+    _l = {}
+    @staticmethod
+    def open(name):
+        logger._l[name] = _logger(name)

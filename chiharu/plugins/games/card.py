@@ -10,17 +10,18 @@ from datetime import date
 import chiharu.plugins.config as config
 from nonebot import on_command, CommandSession, get_bot, permission
 from nonebot.command import call_command
+config.logger.open('card')
 
 # -game card 引导至card的指令列表
 # √抽卡指令（参数：卡池，张数） 参数为空时引导至查看卡池 限额抽完时引导至查看个人信息 再次输入确认使用资源抽卡
 # √查看卡池指令（参数：卡池或空） 引导抽卡指令 查看具体卡池 引导至私聊卡池信息
 # 添加卡指令（参数：卡名，张数） 引导至查看卡池
-# 查看个人信息，包含资源数，仓库量，剩余免费抽卡次数（级别？） 引导至查看库存与分解卡与留言簿
-# 查看库存指令（翻页）
+# 查看个人信息，包含资源数，仓库量，剩余免费抽卡次数（级别？） 引导至查看库存与创造卡与留言簿
+# 查看库存指令（翻页） 引导至分解卡与创造卡
 # 仓储操作指令，包含加入特别喜欢，加入愿望单
 # 分解卡指令
 # 留言簿指令
-# 批量添加指令
+# √批量添加指令
 # 查看审核指令
 # 审核通过指令
 # 预约开放活动卡池指令
@@ -116,7 +117,7 @@ class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True
                 ret['wish_reset'].append(i)
             self.save(i, data)
         return ret
-class user_create(user_info, path=r"games\card\user_create\%i.json"):
+class user_create(user_info, path=r"games\card\user_create\%i.txt"):
     pass
 @contextlib.contextmanager
 def open_user_create(qq, operate='r'):
@@ -194,6 +195,7 @@ async def card_draw(session: CommandSession):
         elif p['status'] == 3:
             await session.send('卡池已空，无法继续抽取')
         else:
+            config.logger.card << f'【LOG】用户{qq} 于卡池{p["id"]} 进行{num}次抽卡'
             with open_user_storage(qq) as f:
                 data = {'empty': False, 'payed': False, 'money': 0}
                 info = f.read_info()
@@ -208,8 +210,10 @@ async def card_draw(session: CommandSession):
                             info['confirm'] = True
                             f.save_info(info)
                             await session.send(f'您今日的免费10次抽卡次数已用尽，是否确认使用en进行抽卡？再次输入抽卡指令确认\n{guide["info"]}') # 取消确认？？？ TODO
+                            config.logger.card << f'【LOG】用户{qq} 免费抽卡次数已用尽 可以使用en进行抽卡'
                         else:
                             await session.send(f'您今日的免费10次抽卡次数已用尽\n{guide["info"]}')
+                            config.logger.card << f'【LOG】用户{qq} 免费抽卡次数已用尽'
                         return
                     else:
                         if info['money'] >= 100 * num:
@@ -219,9 +223,11 @@ async def card_draw(session: CommandSession):
                             f.save_info(info)
                         else:
                             await session.send(f'您剩余en已不足\n\n您还有{info["money"]}en，每100en可以抽一张卡\n{guide["info"]}')
+                            config.logger.card << f'【LOG】用户{qq} en数不足'
                             return
                 elif info['time'] < num:
-                    await session.send(f'您今日的免费10次抽卡次数不足，还有{info["time"]}次\n{guide["info"]}')
+                    await session.send(f'您今日的免费10次抽卡次数不足，只剩{info["time"]}次\n{guide["info"]}')
+                    config.logger.card << f'【LOG】用户{qq} 免费抽卡次数不足'
                     return
                 else:
                     info['time'] -= num
@@ -249,6 +255,17 @@ async def card_draw(session: CommandSession):
 库存 {get_card_names(*ret['max'])} 已达到上限''' if len(ret['max']) != 0 else ''}{f'''
 {get_card_names(*ret['wish_reset'])} 已自动取消愿望单''' if len(ret['wish_reset']) != 0 else ''}{f'''
 您还剩余{data['money']}en''' if data['payed'] else ''}""")
+            if data['payed']:
+                config.logger.card << f'【LOG】用户{qq} 消耗了{100 * num}en 剩余{data["money"]}en'
+            else:
+                config.logger.card << f'【LOG】用户{qq} 剩余{info["time"]}次免费抽取机会'
+            config.logger.card << f'【LOG】用户{qq} 获得卡片{get}'
+            if len(ret['max']) != 0:
+                config.logger.card << f'【LOG】用户{qq} 卡片{ret["max"]}已达到上限'
+            if len(ret['wish_reset']) != 0:
+                config.logger.card << f'【LOG】用户{qq} 愿望单内{ret["wish_reset"]}已被自动取消'
+            if data['empty']:
+                config.logger.card << f'【LOG】卡池{p["id"]}已空'
 
 @card_draw.args_parser
 @config.ErrorHandle
@@ -303,6 +320,7 @@ async def card_add_group(session: CommandSession):
         return
     add_cardname(map(lambda x: x.strip(), lst[1:-1]), num=num, group=group)
     await session.send("successfully added cards")
+    config.logger.card << f'【LOG】卡池新增{group}卡组共{len(lst) - 2}种，每种{num}张'
 
 @on_command(('card', 'check_valid'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
