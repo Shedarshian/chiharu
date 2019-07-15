@@ -150,6 +150,9 @@ async def change_des_to_list():
         '<br />'.join(map(Event.str_url, filter(lambda x: x.begin < fut, l)))
     return await change(description=s)
 
+with open(config.rel("thwiki_blacklist.txt")) as f:
+    blacklist = list(map(lambda x: int(x.strip()), f.readlines()))
+
 @on_command(('thwiki', 'apply'), aliases=('申请',), only_to_me=False)
 @config.ErrorHandle
 @config.maintain('thwiki')
@@ -161,6 +164,11 @@ async def apply(session: CommandSession):
     begin = session.get('begin')
     end = session.get('end')
     float_end = session.get('float_end')
+    qq = session.get('qq')
+    card = session.get('card')
+    name = session.get('name')
+    if qq in blacklist:
+        return
     if begin == False or (float_end == False and end == False):
         await session.send('时间格式不正确，请使用' '(\\d+年)?(\\d+月)?(\\d+(日|号))?'
         '(' '(\\d+(时|点))' '(\\d+分)?' '|' '\\d+:\\d+' ')，且保证时间有效'
@@ -173,9 +181,6 @@ async def apply(session: CommandSession):
         if end < datetime.now():
             await session.send('结束需要比现在晚')
             return
-    qq = session.get('qq')
-    card = session.get('card')
-    name = session.get('name')
     if len(name) < 1:
         await session.send('不能没有名字')
         return
@@ -271,6 +276,8 @@ async def _(session: CommandSession):
 @config.maintain('thwiki')
 async def cancel(session: CommandSession):
     global l
+    if int(session.ctx['user_id']) in blacklist:
+        return
     l2 = list(filter(lambda x: x[1].name == session.current_arg_text, enumerate(l)))
     if len(l2) == 0:
         await session.send('未找到')
@@ -308,6 +315,8 @@ async def term(session: CommandSession):
     if group_id not in config.group_id_dict['thwiki_live']:
         return
     global l
+    if int(session.ctx['user_id']) in blacklist:
+        return
     now = datetime.now()
     def _():
         for i, e in enumerate(l):
@@ -396,6 +405,8 @@ async def get(session: CommandSession):
     #permission check
     now = datetime.now()
     qq = int(session.ctx['user_id'])
+    if qq in blacklist:
+        return
     async def _():
         if await permission.check_permission(get_bot(), session.ctx, permission.GROUP_ADMIN):
             return True
@@ -486,6 +497,21 @@ async def thwiki_maintain(session: CommandSession):
         await session.send('已进入维护状态，再次输入空字符串解除')
     else:
         await session.send('已解除维护状态')
+
+@on_command(('thwiki', 'blacklist'), only_to_me=False, permission=permission.GROUP_ADMIN)
+@config.ErrorHandle
+async def thwiki_blacklist(session: CommandSession):
+    group_id = session.ctx['group_id']
+    if group_id not in config.group_id_dict['thwiki_live']:
+        return
+    global blacklist
+    qq = int(session.current_arg_text)
+    blacklist.append(qq)
+    with open(config.rel('thwiki_blacklist.txt'), 'w') as f:
+        for qq in blacklist:
+            f.write(str(qq))
+            f.write('\n')
+    await session.send('successfully added to blacklist')
 
 @on_notice('group_increase')
 @config.maintain('thwiki')
