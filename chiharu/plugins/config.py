@@ -1,7 +1,9 @@
 import itertools
+import functools
 import json
 import datetime
 from os import path
+from typing import Awaitable
 from nonebot import CommandSession, get_bot, on_command
 import traceback
 from collections import UserDict
@@ -52,30 +54,6 @@ def group(n, *iterables):
         else:
             yield a
 
-def ErrorHandle(f):
-    async def _f(session: CommandSession, *args, **kwargs):
-        try:
-            return await f(session, *args, **kwargs)
-        except Exception:
-            await session.send(traceback.format_exc(), auto_escape=True)
-    _f.__name__ = f.__name__
-    return _f
-
-def maintain(s):
-    global maintain_str
-    def _(f):
-        async def _f(*args, **kwargs):
-            if s not in maintain_str or maintain_str[s] == "":
-                return await f(*args, **kwargs)
-            else:
-                if len(args) >= 1 and isinstance(args[0], CommandSession):
-                    await args[0].send(maintain_str[s])
-                elif 'session' in kwargs and isinstance(kwargs['session'], CommandSession):
-                    await kwargs['session'].send(maintain_str[s])
-        _f.__name__ = f.__name__
-        return _f
-    return _
-
 class _logger:
     def __init__(self, name):
         self.file = open(rel("log\\%s.log" % name), 'a')
@@ -97,3 +75,43 @@ class logger(metaclass=_logger_meta):
     @staticmethod
     def open(name):
         logger._l[name] = _logger(name)
+
+@functools.singledispatch
+def ErrorHandle(f):
+    @functools.wraps(f)
+    async def _f(session: CommandSession, *args, **kwargs):
+        try:
+            return await f(session, *args, **kwargs)
+        except Exception:
+            await session.send(traceback.format_exc(), auto_escape=True)
+    return _f
+
+@ErrorHandle.register
+def _(g: _logger, if_send=True):
+    def _g(f: Awaitable):
+        @functools.wraps(f)
+        async def _f(session: CommandSession, *args, **kwargs):
+            try:
+                return await f(session, *args, **kwargs)
+            except Exception:
+                g << f"【ERR】用户{session.ctx['user_id']} 使用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
+                if if_send:
+                    await session.send(traceback.format_exc(), auto_escape=True)
+        return _f
+    return _g
+        
+
+def maintain(s):
+    global maintain_str
+    def _(f):
+        @functools.wraps(f)
+        async def _f(*args, **kwargs):
+            if s not in maintain_str or maintain_str[s] == "":
+                return await f(*args, **kwargs)
+            else:
+                if len(args) >= 1 and isinstance(args[0], CommandSession):
+                    await args[0].send(maintain_str[s])
+                elif 'session' in kwargs and isinstance(kwargs['session'], CommandSession):
+                    await kwargs['session'].send(maintain_str[s])
+        return _f
+    return _
