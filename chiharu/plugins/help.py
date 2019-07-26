@@ -25,7 +25,7 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
         "\n-mbf：调用mbf脚本语言解释器"
         "\n-event：按日期查询event"
         "\n-misc：隐藏指令"
-        "\n-help：展示本帮助\n-help command名称：查看该命令帮助\n欢迎加入测试群947279366避免刷屏"}
+        "\n-help：展示本帮助\n-help 指令名：查看该命令帮助\n例：-help tools：查看tools指令的帮助\n欢迎加入测试群947279366避免刷屏"}
 
 sp = {"thwiki_live": {"default": "%s\n-thwiki：thwiki直播申请相关",
         "thwiki": "%s\n-thwiki.apply [开始时间] [结束时间] [直播项目名称]或者-申请 [开始时间] [结束时间] [直播项目名称]；时间格式：x年x月x日x点x分或者xx:xx，今日或今年可以省，开始可以用now，结束可以用float\n-thwiki.cancel [直播项目名称]或者-取消 [直播项目名称]\n-thwiki.get 获取rtmp与流密码，会以私聊形式发送，若直播间未开启则会自动开启，可以后跟想开启的直播分区如绘画，演奏，户外，vtb等，不指定则默认是单机·其他\n-thwiki.term 提前下播\napply cancel get term只能用于群内"}}

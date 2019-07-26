@@ -17,7 +17,7 @@ config.logger.open('card')
 # √抽卡指令（参数：卡池，张数） 参数为空时引导至查看卡池 限额抽完时引导至查看个人信息 再次输入确认使用资源抽卡
 # √查看卡池指令（参数：卡池或空） 引导抽卡指令 查看具体卡池 引导至私聊卡池信息
 # √添加卡指令（参数：卡名，张数） 限额抽完时引导至查看个人信息
-# 查看个人信息，包含资源数，仓库量，剩余免费抽卡次数（级别？） 引导至查看库存与创造卡与留言簿
+# √查看个人信息，包含资源数，剩余免费抽卡次数（级别？） 引导至查看库存与创造卡与留言簿
 # 查看库存指令（翻页） 引导至分解卡与创造卡
 # 仓储操作指令，包含加入特别喜欢，加入愿望单
 # 分解卡指令
@@ -37,8 +37,10 @@ guide = {'draw': '使用-card.draw 卡池id/名字 抽卡次数 进行抽卡，�
     'check': '使用-card.check 不带参数 查询卡池列表',
     'add': '使用-card.add 卡片名字 张数 创造卡片加入次日新卡卡池与每日随机卡池 张数不填默认为1张',
     'info': '使用-card.userinfo 查看个人信息，包含en数，剩余免费抽卡次数等等',
-    'confirm': '使用-card.set.unconfirm 取消今日确认',
-    'message': '使用-xxxxxx 设置消息箱提醒'
+    'storage': '使用-xxxxxx 查看库存',
+    'confirm': '使用-card.set.unconfirm 取消今日确认使用en抽卡',
+    'message': '使用-xxxxxx 设置消息箱提醒',
+    'guide': '使用-xxxxxx 关闭或开启指令提示'
 }
 
 with open(config.rel(r"games\card\pool"), 'rb') as f:
@@ -351,12 +353,11 @@ async def card_add(session: CommandSession):
         await session.send('不能创造负数张卡')
     with open_user_storage(qq) as f1, open_user_create(qq) as f2:
         info = f1.read_info()
-        n = '\n'
         created = f2.check_created(name)
         if info['create_type'] < 1 and not created:
-            await session.send(f"您今日创造卡片的种类已达上限，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。{n}{guide['info']}", auto_escape=True)
+            await session.send(f"您今日创造卡片的种类已达上限，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。\n{guide['info']}", auto_escape=True)
         elif info['create_num'] < num:
-            await session.send(f"您今日创造卡片的剩余张数不足，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。{n}{guide['info']}", auto_escape=True)
+            await session.send(f"您今日创造卡片的剩余张数不足，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。\n{guide['info']}", auto_escape=True)
         elif '\n' in name or '\t' in name or '\r' in name:
             await session.send("卡片名中含有非法字符，未通过")
         else:
@@ -417,7 +418,8 @@ async def card_userinfo(session: CommandSession):
     with open_user_storage(session.ctx['user_id']) as f:
         info = f.read_info()
         await session.send(f"""剩余en数：{info['money']}\n今日剩余：免费抽卡次数{info['time']} 创造卡片种类{info['create_type']} 创造卡片张数{info['create_num']}{'''
-今日已确认使用en抽卡''' if info['confirm'] else ''}\n消息箱设置：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']] }\n\n{guide['message']}""")
+今日已确认使用en抽卡''' if info['confirm'] else ''}\n消息箱设置：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']] }\n\n{guide['confirm']}\n{guide['storage']}{f'''
+{guide['message']}''' if info['confirm'] else ''}\n{guide['guide']}""")
 
 @on_command(('card', 'set', 'unconfirm'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
