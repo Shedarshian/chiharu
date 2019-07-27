@@ -444,6 +444,12 @@ async def maj_zj_ten(session: CommandSession):
     except maj.MajErr as e:
         await session.send(str(e))
 
+@on_command(('misc', 'maj', 'voice'), only_to_me=False)
+@config.ErrorHandle
+async def maj_voice(session: CommandSession):
+    # args
+    pass
+
 token = {}
 with open(config.rel('unicode.txt'), encoding='utf-16') as f:
     for line in f:
