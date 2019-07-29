@@ -456,7 +456,7 @@ async def maj_voice(session: CommandSession):
         voicer_str = '1'
         content = session.current_arg_text
     voicer_dict = {'一姬': 1, '1': 1, '二阶堂': 2, '二阶堂美树': 2, '2': 2, '千织': 3, '三上千织': 3, '3': 3, '四宫夏生': 4, '夏生': 4, '4': 4, '相原舞': 5, '抚子': 6, '佳奈': 7, '藤田佳奈': 7, '八木唯': 8, '八木': 8, '8': 8, '九条': 9, '九条璃雨': 9, '9': 9, '泽尼娅': 10, '卡维': 11, '汪次郎': 12, '汪': 12, '一之濑空': 13, '明智英树': 14}
-    voicer_name = {1: 'yiji', 2: 'erjietang', 3: 'qianzhi', 4: 'sigongxiasheng', 5: 'xiangyuanwu', 6: 'fuzi', 7: 'jianai', 8: 'bamuwei', 9: 'jiutiao', 10: 'zeniya', 11: 'kawei', 12: 'wangcilang', 13: 'yizhilaikong', 14: 'mingzhiyingshu'}
+    voicer_name = {1: 'yiji', 2: 'erjietang', 3: 'qianzhi', 4: 'sigongxiasheng', 5: 'xiangyuan', 6: 'fuzi', 7: 'jianai', 8: 'bamuwei', 9: 'jiutiao', 10: 'zeniya', 11: 'kawei', 12: 'wangcilang', 13: 'yizhilaikong', 14: 'mingzhiyingshu'}
     if voicer_str in voicer_dict:
         voicer = voicer_name[voicer_dict[voicer_str]]
     else:
@@ -483,7 +483,10 @@ async def maj_voice(session: CommandSession):
     except maj.MajErr as e:
         await session.send(e.args[0], auto_escape=True)
         return
-    audio_fin = functools.reduce(lambda x, y: x + AudioSegment.silent(duration=200) + y, [AudioSegment.from_mp3(config.rel(f'Cache\\majsoul_voice\\{voicer}\\{audio}.mp3')) for audio in l])
+    audio_fin = functools.reduce(lambda x, y: x + AudioSegment.silent(duration=200) + y,
+        [AudioSegment.silent(duration=400) + AudioSegment.from_mp3(config.rel(f'Cache\\majsoul_voice\\{voicer}\\{audio}.mp3'))
+        if audio.startswith('gameend') else
+        AudioSegment.from_mp3(config.rel(f'Cache\\majsoul_voice\\{voicer}\\{audio}.mp3')) for audio in l])
     audio_fin.export(config.rec(str(hash(session.current_arg_text)) + '.mp3'), format='mp3')
     await session.send(config.cq.rec(str(hash(session.current_arg_text)) + '.mp3'))
 
