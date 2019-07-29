@@ -90,14 +90,17 @@ async def _(session: CommandSession):
         session.args['year'], session.args['month'], session.args['day'], max_note_str = tup
         session.args['max_note'] = int(max_note_str)
 
-ssh = paramiko.SSHClient()
-ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-with open(config.rel("boss_check.txt")) as f:
-    BossCheck = bool(int(f.readline().strip('\n')))
-with open(config.rel("QAQ.txt")) as f:
-    p = f.readline().strip('\n')
-    ssh.connect("lxslc6.ihep.ac.cn", 22, 'qity', p)
-isLoggedin = True
+try:
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    with open(config.rel("boss_check.txt")) as f:
+        BossCheck = bool(int(f.readline().strip('\n')))
+    with open(config.rel("QAQ.txt")) as f:
+        p = f.readline().strip('\n')
+        ssh.connect("lxslc6.ihep.ac.cn", 22, 'qity', p)
+    isLoggedin = True
+except:
+    isLoggedin = False
 
 @on_command(('boss', 'login'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
@@ -143,11 +146,10 @@ class Status:
     def Running(self):
         return self.idle + self.running != 0
     def process(self, f):
-        print((self.all, self.completed, self.removed, self.idle, self.running, self.held, self.suspended))
         if self.held != 0:
             f()
             return "Job held!"
-        elif self.all - self.completed == 0:
+        elif self.all - self.completed - self.removed == 0:
             f()
             return "All of your jobs have ended!"
         else:
@@ -155,14 +157,12 @@ class Status:
 
 @scheduler.scheduled_job('cron', minute='00-57/3')
 async def check_boss():
-#@on_command(('boss', 'check'), only_to_me=False)
-#@config.ErrorHandle
-#async def check_boss(session: CommandSession):
     global BossCheck, isLoggedin
     bot = get_bot()
     if not isLoggedin:
-        for group in config.group_id_dict['boss']:
-            await bot.send_group_msg(group_id=group, message='please login: -boss.login password')
+        return
+    #    for group in config.group_id_dict['boss']:
+    #        await bot.send_group_msg(group_id=group, message='please login: -boss.login password')
     def _f():
         stdin, stdout, stderr = ssh.exec_command('/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin/hep_q -u qity')
         output = stdout.readlines()[-1]
@@ -173,9 +173,7 @@ async def check_boss():
             return Status(None)
         return Status(match.groups())
     status = _f()
-    print(BossCheck)
     if BossCheck:
-        print((status.valid, status.all, status.completed, status.removed, status.idle, status.running, status.held, status.suspended))
         if not status.isValid():
             strout = "Error!"
         else:

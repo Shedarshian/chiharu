@@ -1,6 +1,7 @@
 import contextlib
 import sys
 import re
+import os
 import math
 import random
 import functools
@@ -447,8 +448,148 @@ async def maj_zj_ten(session: CommandSession):
 @on_command(('misc', 'maj', 'voice'), only_to_me=False)
 @config.ErrorHandle
 async def maj_voice(session: CommandSession):
+    if '\n' in session.current_arg_text:
+        content, voicer_str = session.current_arg_text.split('\n')
+        content = content.strip()
+        voicer_str = voicer_str.strip()
+    else:
+        voicer_str = '1'
+        content = session.current_arg_text
+    voicer_dict = {'一姬': 1, '1': 1, '二阶堂': 2, '二阶堂美树': 2, '2': 2, '千织': 3, '三上千织': 3, '3': 3, '四宫夏生': 4, '夏生': 4, '4': 4, '相原舞': 5, '抚子': 6, '佳奈': 7, '藤田佳奈': 7, '八木唯': 8, '八木': 8, '8': 8, '九条': 9, '九条璃雨': 9, '9': 9, '泽尼娅': 10, '卡维': 11, '汪次郎': 12, '汪': 12, '一之濑空': 13, '明智英树': 14}
+    voicer_name = {1: 'yiji', 2: 'erjietang', 3: 'qianzhi', 4: 'sigongxiasheng', 5: 'xiangyuanwu', 6: 'fuzi', 7: 'jianai', 8: 'bamuwei', 9: 'jiutiao', 10: 'zeniya', 11: 'kawei', 12: 'wangcilang', 13: 'yizhilaikong', 14: 'mingzhiyingshu'}
+    if voicer_str in voicer_dict:
+        voicer = voicer_name[voicer_dict[voicer_str]]
+    else:
+        await session.send('未找到角色' + voicer_str, auto_escape=True)
+        return
+    try:
+        l = list(maj_parse(content, voicer_dict[voicer_str]))
+    except maj.MajErr as e:
+        await session.send(e.args[0], auto_escape=True)
+        return
+    if not os.path.isdir(config.rel(f'Cache\\majsoul_voice\\{voicer}')):
+        os.mkdir(config.rel(f'Cache\\majsoul_voice\\{voicer}'))
+    loop = asyncio.get_event_loop()
+    from pydub import AudioSegment
+    try:
+        for audio in l:
+            if not os.path.isfile(config.rel(f'Cache\\majsoul_voice\\{voicer}\\{audio}.mp3')):
+                url = await loop.run_in_executor(None, functools.partial(requests.get,
+                    f'https://majsoul.union-game.com/0/v0.5.1.w/audio/sound/{voicer}/{audio}.mp3'))
+                if url.status_code != 200:
+                    raise maj.MajErr(f"{voicer}/{audio}.mp3 can't download")
+                with open(config.rel(f'Cache\\majsoul_voice\\{voicer}\\{audio}.mp3'), 'wb') as f:
+                    f.write(url.content)
+    except maj.MajErr as e:
+        await session.send(e.args[0], auto_escape=True)
+        return
+    audio_fin = functools.reduce(lambda x, y: x + AudioSegment.silent(duration=200) + y, [AudioSegment.from_mp3(config.rel(f'Cache\\majsoul_voice\\{voicer}\\{audio}.mp3')) for audio in l])
+    audio_fin.export(config.rec(str(hash(session.current_arg_text)) + '.mp3'), format='mp3')
+    await session.send(config.cq.rec(str(hash(session.current_arg_text)) + '.mp3'))
+
+def maj_parse(content: str, voicer_id: int):
     # args
-    pass
+    d = {"立直": (1, 1), "立": (1, 1), "两立直": (1, 2), "一发": (1, 3), "自摸": (1, 4), "门前清自摸和": (1, 4), "门": (1, 1),
+        "东": (2, 1), "南": (2, 2), "西": (2, 3), "北": (2, 4), "白": (2, 5), "发": (2, 6), "中": (2, 7),
+        "枪杠": (3, 1), "抢杠": (3, 1), "岭上开花": (3, 2), "岭上": (3, 2), "海底摸月": (3, 3), "海底": (3, 3), "河底捞鱼": (3, 4), "河底": (3, 4),
+        "断幺九": (5, 1), "断幺": (5, 1), "断": (5, 1),
+        "平和": (6, 1), "平": (6, 1),
+        "一杯口": (7, 1), "一杯": (7, 1), "一般高": (7, 1), "两杯口": (7, 2), "两杯": (7, 2), "二杯口": (7, 2),
+        "三色同顺": (8, 1), "三色同刻": (8, 2), "三色": (8, 1), "一气通贯": (8, 3), "一气": (8, 3), "一通": (8, 3),
+        "七对子": (9, 1), "七对": (9, 1),
+        "对对和": (10, 1), "对对": (10, 1), "碰碰和": (10, 1),
+        "三暗刻": (11, 1), "三暗": (11, 1), "四暗刻单骑": (11, 3), "四暗刻": (11, 2), "四暗单": (11, 3), "四暗": (11, 2),
+        "三杠子": (12, 1), "四杠子": (12, 2),
+        "小三元": (13, 1), "大三元": (13, 2),
+        "小四喜": (14, 1), "大四喜": (14, 2), "四喜和": (14, 1), "四喜": (14, 1),
+        "混全带幺九": (15, 1), "混全带": (15, 1), "混全": (15, 1), "全带": (15, 1), "纯全带幺九": (15, 2), "纯全带": (15, 2), "纯全": (15, 2),
+        "混老头": (15, 3), "混幺九": (15, 3), "清老头": (15, 4), "清幺九": (15, 4),
+        "混一色": (16, 1), "清一色": (16, 2), "绿一色": (16, 3), "九莲宝灯": (16, 4), "九莲": (16, 4), "纯正九莲宝灯": (16, 5), "纯九莲": (16, 5), "准正九莲宝灯": (16, 4),
+        "天和": (17, 1), "地和": (17, 2),
+        "字一色": (18, 1),
+        "国士无双十三面": (19, 2), "国士无双13面": (19, 2), "国士无双": (19, 1), "十三幺九": (19, 1), "十三幺": (19, 1), "纯国士无双": (19, 2), "国士十三面": (19, 2), "国士13面": (19, 2), "国士": (19, 1),
+        "流局满贯": (20, 1), "流满": (20, 1)}
+    voice = {(1, 1): "rich", (1, 2): "drich", (1, 3): "yifa", (1, 4): "tumo",
+        (2, 1): "dong", (2, 2): "nan", (2, 3): "xi", (2, 4): "bei",
+        (2, 5): "bai", (2, 6): "fa", (2, 7): "zhong",
+        (3, 1): "qianggang", (3, 2): "lingshang", (3, 3): "haidi", (3, 4): "hedi",
+        #(4, 1): "宝牌", (4, 2): "红宝牌", (4, 3): "里宝牌", (4, 4): "北宝牌",
+        (5, 1): "duanyao",
+        (6, 1): "pinghu",
+        (7, 1): "yibeikou", (7, 2): "erbeikou",
+        (8, 1): "sansetongshun", (8, 2): "sansetongke", (8, 3): "yiqitongguan",
+        (9, 1): "qiduizi",
+        (10, 1): "duiduihu",
+        (11, 1): "sananke", (11, 2): "sianke", (11, 3): "siankedanqi",
+        (12, 1): "sangangzi", (12, 2): "sigangzi",
+        (13, 1): "xiaosanyuan", (13, 2): "dasanyuan",
+        (14, 1): "xiaosixi", (14, 2): "dasixi",
+        (15, 1): "hunquandaiyaojiu", (15, 2): "chunquandaiyaojiu", (15, 3): "hunlaotou", (15, 4): "qinglaotou",
+        (16, 1): "hunyise", (16, 2): "qingyise", (16, 3): "lvyise", (16, 4): "jiulianbaodeng", (16, 5): "chunzhengjiulianbaodeng",
+        (17, 1): "tianhu", (17, 2): "dihu",
+        (18, 1): "ziyise",
+        (19, 1): "guoshiwushuang", (19, 2): "guoshishisanmian",
+        (20, 1): "liujumanguan"}
+    if voicer_id >= 8:
+        voice[(1, 1)] = 'liqi'
+        voice[(1, 2)] = 'dliqi'
+        voice[(1, 4)] = 'zimo'
+    #ddr = {"dora": 1, "宝": 1, "赤宝": 2, "红宝":2, "里宝": 3}
+    w = re.compile('东|南|西|北|立直?')
+    al = re.compile('|'.join(d.keys()))
+    dora = re.compile('(dr|dora|宝|赤宝|红宝|里宝|赤|里)牌?(\d*)')
+    d2 = {"满贯": 'manguan', "跳满": 'tiaoman', "倍满": 'beiman', "三倍满": 'sanbeiman', "役满": 'yiman1',
+        "累计役满": 'leijiyiman', "两倍役满": "yiman2", "三倍役满": "yiman3", "四倍役满": "yiman4",
+        "五倍役满": "yiman5", "六倍役满": "yiman6"}
+    ten = re.compile('|'.join(d2.keys()))
+    if_w = ''
+    if_end = ''
+    yakuman = 0
+    while len(content):
+        if if_w:
+            match = w.match(content)
+            if match:
+                content = content[match.span()[1]:]
+                if match.group()[0] == '立':
+                    yield 'fan_' + voice[(1, 2)]
+                else:
+                    yield 'fan_double' + voice[d[match.group()]]
+            else:
+                raise maj.MajErr('役种名读取失败: ' + if_w + content[0:1] + '...')
+            if_w = ''
+        elif content[0] == ' ':
+            content = content[1:]
+        elif if_end:
+            raise maj.MajErr(if_end + '应为结尾')
+        elif content[0] == 'w' or content[0] == '连':
+            content = content[1:]
+            if_w = content[0]
+        else:
+            match = al.match(content)
+            if match:
+                content = content[match.span()[1]:]
+                yield 'fan_' + voice[d[match.group()]]
+                han = maj.MajRichiHai.HeZhong.dict_ten[d[match.group()]][0]
+                if han >= 13:
+                    yakuman += han // 13
+            else:
+                match = dora.match(content)
+                if match:
+                    content = content[match.span()[1]:]
+                    count = 1 if match.group(2) == '' else int(match.group(2))
+                    if count > 13:
+                        count = 13
+                    yield 'fan_dora' + str(count)
+                else:
+                    match = ten.match(content)
+                    if match:
+                        content = content[match.span()[1]:]
+                        if_end = match.group(0)
+                        yield 'gameend_' + d2[match.group(0)]
+                    else:
+                        raise maj.MajErr('役种名读取失败: ' + content[0:2] + '...')
+    if if_end == '' and yakuman > 0 and yakuman <= 6:
+        yield 'gameend_yiman' + str(yakuman)
 
 token = {}
 with open(config.rel('unicode.txt'), encoding='utf-16') as f:

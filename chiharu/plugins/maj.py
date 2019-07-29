@@ -10,7 +10,10 @@ from typing import Sequence, Union, TypeVar, Generic, Type, Dict, List, Tuple, S
 
 H = TypeVar('H', bound='MajHai')
 class MajErr(Exception):
-    pass
+    def __init__(self, *args):
+        self.args = args
+    def __str__(self):
+        return str(args)
 class FuuRoNotValid(MajErr):
     def __init__(self, status: 'FuuRoStatus', hai: Sequence[H]):
         self.args = (status, hai)

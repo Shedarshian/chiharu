@@ -10,11 +10,14 @@ from collections import UserDict
 
 PATH = "C:\\coolq_data\\"
 PATH_IMG = "C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\image"
+PATH_REC = "C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\record"
 
 def rel(rel_path):
     return path.join(PATH, rel_path)
 def img(rel_path):
     return path.join(PATH_IMG, rel_path)
+def rec(rel_path):
+    return path.join(PATH_REC, rel_path)
 
 with open(rel('config_data.py'), encoding='utf-8') as f:
     exec(f.read())
@@ -37,6 +40,9 @@ class cq:
     @staticmethod
     def img(s: str):
         return {'type': 'image', 'data': {'file': s}}
+    @staticmethod
+    def rec(s: str):
+        return {'type': 'record', 'data': {'file': s}}
 
 def group(n, *iterables):
     def _(n, it):
