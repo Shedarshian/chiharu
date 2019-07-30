@@ -328,7 +328,7 @@ async def maj_ting(session: CommandSession):
 
 @on_command(('misc', 'maj', 'ting_ex'), only_to_me=False)
 @config.ErrorHandle
-async def maj_ting(session: CommandSession):
+async def maj_ting_ex(session: CommandSession):
     def expand(s):
         l = []
         for char in s:

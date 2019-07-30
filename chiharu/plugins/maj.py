@@ -13,7 +13,7 @@ class MajErr(Exception):
     def __init__(self, *args):
         self.args = args
     def __str__(self):
-        return str(args)
+        return str(self.args)
 class FuuRoNotValid(MajErr):
     def __init__(self, status: 'FuuRoStatus', hai: Sequence[H]):
         self.args = (status, hai)
@@ -268,19 +268,19 @@ class MajHai:
                 result = tuple(_(val)) + ((val[0], val[0]),)
                 results[val[0] + 27] = [r + [(key, result)] for r in result_nonten]
         else:
-            ((key1, val1), (key2, val2)) = mod2_barrel
+            key1, val1, key2, val2 = itertools.chain(mod2_barrel)
             for k1, t1, k2, t2 in ((key1, val1, key2, val2), (key2, val2, key1, val1)):
                 result1 = MajHai._ting(t1) # type: List[Set[Tuple[Tuple[int,...],...]]]
                 result2 = MajHai._chai(t2) # type: Set[Tuple[Tuple[int,...],...]]
                 if len(result2) == 0:
                     continue
-                l0 = len(result_nonten)
-                l2 = len(result2)
+                #l0 = len(result_nonten)
+                #l2 = len(result2)
                 for i, re in enumerate(result1):
                     if len(re) == 0:
                         continue
                     hai = MajHai._hai(i, k1)
-                    l1 = len(re)
+                    #l1 = len(re)
                     results[hai] = [r + [(k1, r1)] + [(k2, r2)] for r in result_nonten for r1 in re for r2 in result2]
         for key in results:
             results[key] = list(map(dict, results[key]))
@@ -644,7 +644,7 @@ class Player:
         yield PlayerStatus.NOTHING
     def kiri_check(self) -> List[H]:
         l = []
-        for hai in tehai:
+        for hai in self.tehai:
             if all(lambda x: not hai.isSame(x), l):
                 l.append(hai)
         return l
@@ -694,7 +694,7 @@ class Player:
         self.give(self.board.rinshan())
     def qi_check(self, hai) -> List[Tuple[H, H]]:
         l = []
-        for i, j in functools.combinations(self.tehai, 2):
+        for i, j in itertools.combinations(self.tehai, 2):
             if i.isaddOne(j) and j.isaddOne(hai) or i.isaddOne(hai) and hai.isaddOne(j) or hai.isaddOne(i) and i.isaddOne(j):
                 if not any(map(lambda x: x[0].isSame(i) and x[1].isSame(j), l)):
                     l.append((i, j))
@@ -702,10 +702,10 @@ class Player:
     def qi_do(self, tpl: Tuple[FuuRoStatus, H, Tuple[H, H]]) -> None:
         for hai in tpl[2]:
             self.tehai.remove(hai)
-        self.fuuros.append(FuuRo(tpl[0] | FuuRoStatus.QI), (tpl[1],) + tpl[2])
+        self.fuuro.append(FuuRo(tpl[0] | FuuRoStatus.QI, (tpl[1],) + tpl[2]))
     def pon_check(self, hai) -> List[Tuple[H, H]]:
         l = []
-        for i, j in functools.combinations(self.tehai, 2):
+        for i, j in itertools.combinations(self.tehai, 2):
             if i == j == hai:
                 if not any(map(lambda x: x[0].isSame(i) and x[1].isSame(j), l)):
                     l.append((i, j))
@@ -713,15 +713,15 @@ class Player:
     def pon_do(self, tpl: Tuple[FuuRoStatus, H, Tuple[H, H]]) -> None:
         for hai in tpl[2]:
             self.tehai.remove(hai)
-        self.fuuros.append(FuuRo(tpl[0] | FuuRoStatus.PON), (tpl[1],) + tpl[2])
+        self.fuuro.append(FuuRo(tpl[0] | FuuRoStatus.PON, (tpl[1],) + tpl[2]))
     def daiminkan_check(self, hai) -> List[Tuple[H, H, H]]:
-        for i, j, k in functools.combinations(self.tehai, 3):
+        for i, j, k in itertools.combinations(self.tehai, 3):
             if i == j == k == hai:
                 return [(i, j, k)]
     def daiminkan_do(self, tpl: Tuple[FuuRoStatus, H, Tuple[H, H, H]]) -> None:
         for hai in tpl[2]:
             self.tehai.remove(hai)
-        self.fuuros.append(FuuRo(tpl[0] | FuuRoStatus.DAIMINKAN), (tpl[1],) + tpl[2])
+        self.fuuro.append(FuuRo(tpl[0] | FuuRoStatus.DAIMINKAN, (tpl[1],) + tpl[2]))
         self.give(self.board.rinshan())
     def ron_check(self, hai) -> List[None]:
         if hai in self.ten:
@@ -785,7 +785,7 @@ class MajBoard:
         #配牌
         self.yama = list(map(self.Hai, range(136)))
         random.shuffle(self.yama)
-        for i, p in itertools.product(range(3), self.players):
+        for p in self.players:
             p.give(self.yama[0:4])
             self.yama = self.yama[4:]
         for p in self.players:
@@ -860,9 +860,9 @@ class MajBoard:
             l = dict(_()) # type: Dict[int, Tuple[FuuRoStatus, Generator]]
             d_send = {} # type: Dict[int, NakuOption]
             for i, n in l.items():
-                na = self.NakuOption(x[1][0], *(next(x[1][1])))
+                na = self.NakuOption(n[1][0], *(next(n[1][1])))
                 if na.isPass():
-                    l[i].close()
+                    n[1].close() # no bug?
                 else:
                     d_send[i] = na
             # 处理荣碰吃的顺序
@@ -874,7 +874,7 @@ class MajBoard:
                 try:
                     #调整状态，继续至下家，摸牌
                     ret.send(True)
-                except StopIteration as e:
+                except StopIteration:
                     pass
                 if self.now == self.toncha:
                     #第一巡结束
@@ -888,7 +888,7 @@ class MajBoard:
                 #处理鸣牌
                 try:
                     l[i_naku][1].send((option_chosen.chosen, option_chosen.arg))
-                except StopIteration as e:
+                except StopIteration:
                     pass
                 #鸣牌破第一巡
                 self.status &= ~PlayerStatus.TIAN

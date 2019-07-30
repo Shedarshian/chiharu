@@ -19,7 +19,7 @@ config.logger.open('card')
 # √添加卡指令（参数：卡名，张数） 限额抽完时引导至查看个人信息
 # √查看个人信息，包含资源数，剩余免费抽卡次数（级别？） 引导至查看库存与创造卡与留言簿
 # √查看库存指令（翻页） 引导至分解卡与创造卡
-# 查看愿望单 引导至加入愿望单
+# 查看愿望单 引导至加入愿望单，说明在首次抽到愿望单卡时会自动取消并加入特别喜欢，可以再次加入愿望单代表想要更多
 # 仓储操作指令，包含加入特别喜欢，加入愿望单，消息箱设置，指令提示设置
 # √分解卡指令
 # √留言簿指令
@@ -40,13 +40,13 @@ guide = {'draw': '使用-card.draw 卡池id/名字 抽卡次数 进行抽卡，�
     'add': '使用-card.add 卡片名字 张数 创造卡片加入次日新卡卡池与每日随机卡池 张数不填默认为1张',
     'info': '使用-card.userinfo 查看个人信息，包含en数，剩余免费抽卡次数等等',
     'storage': '使用-card.storage 查看库存',
-    'fav&wish': '使用-card.fav 卡片名 加入特别喜欢，-card.wish 卡片名 加入愿望单',
     'discard': '使用-card.discard 卡片名 数量 分解不需要的卡片获得资源（数量默认为1）',
+    'fav&wish': '使用-card.fav 卡片名 将卡片加入特别喜欢，-card.wish 卡片名 将卡片加入愿望单',
+    'wish': '使用-card.wish 卡片名 将卡片加入愿望单',
     'confirm': '使用-card.set.unconfirm 取消今日确认使用en抽卡',
     'message': '使用-xxxxxx 设置消息箱提醒',
     'guide': '使用-xxxxxx 关闭或开启指令提示',
-    'comment': '使用-card.comment 给维护者留言~'
-}
+    'comment': '使用-card.comment 给维护者留言~'}
 
 with open(config.rel(r"games\card\pool"), 'rb') as f:
     pool = list(itertools.starmap(lambda x, y: int(x) * 256 + int(y), more_itertools.chunked(f.read(), 2)))
@@ -349,7 +349,7 @@ async def card_check(session: CommandSession):
         if p is None:
             await session.send('未发现此卡池')
         else:
-            await session.send(pool_des_detail(find[0]) + f'\n\n{guide["draw"]}\n{guide["check"]}', auto_escape=True)
+            await session.send(pool_des_detail(p) + f'\n\n{guide["draw"]}\n{guide["check"]}', auto_escape=True)
 
 @on_command(('card', 'add'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
@@ -369,7 +369,7 @@ async def card_add(session: CommandSession):
             await session.send(f"您今日创造卡片的种类已达上限，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。\n{guide['info']}", auto_escape=True)
         elif info['create_num'] < num:
             await session.send(f"您今日创造卡片的剩余张数不足，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。\n{guide['info']}", auto_escape=True)
-        elif '\n' in name or '\t' in name or '\r' in name:
+        elif '\n' in name or '\t' in name or '\r' in name or name.startswith(' ') or name.endswith(' '):
             await session.send("卡片名中含有非法字符，未通过")
         else:
             c = card_find(name)
@@ -417,6 +417,48 @@ async def card_userinfo(session: CommandSession):
 今日已确认使用en抽卡''' if info['confirm'] else ''}\n消息箱设置：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']] }\n{guide['message']}\n{guide['storage']}{f'''
 {guide['confirm']}''' if info['confirm'] else ''}\n{guide['guide']}\n{guide['comment']}""")
 
+@on_command(('card', 'fav'), only_to_me=False)
+@config.ErrorHandle(config.logger.card)
+async def card_fav(session: CommandSession):
+    name = session.current_arg_text.strip()
+    qq = session.ctx['user_id']
+    card = card_find(name)
+    if card is None:
+        await session.send('未找到卡片')
+    else:
+        with open_user_storage(qq) as f:
+            f.check()
+            data = f.read_nocheck(card['id'])
+            if data['fav']:
+                await session.send('该卡已在您的特别喜欢之内')
+            elif data['num'] == 0:
+                await session.send('您还未拥有该卡，可' + guide['wish'])
+            else:
+                data['fav'] = True
+                f.save(card['id'], data)
+                config.logger.card << f"用户{qq} 将卡片{card['name']}加入特别喜欢"
+                await session.send(f'已成功将卡片{card["name"]}加入特别喜欢\n{guide["storage"]}')
+
+@on_command(('card', 'wish'), only_to_me=False)
+@config.ErrorHandle(config.logger.card)
+async def card_wish(session: CommandSession):
+    name = session.current_arg_text.strip()
+    qq = session.ctx['user_id']
+    card = card_find(name)
+    if card is None:
+        await session.send('未找到卡片')
+    else:
+        with open_user_storage(qq) as f:
+            f.check()
+            data = f.read_nocheck(card['id'])
+            if data['wish']:
+                await session.send('该卡已在您的愿望单之内')
+            else:
+                data['wish'] = True
+                f.save(card['id'], data)
+                config.logger.card << f"用户{qq} 将{'未' if data['num'] == 0 else '已'}拥有的卡片{card['name']}加入愿望单"
+                await session.send(f"已成功将{'未' if data['num'] == 0 else '已'}拥有的卡片{card['name']}加入愿望单\n{guide['storage']}")
+
 @on_command(('card', 'set', 'unconfirm'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 async def card_unconfirm(session: CommandSession):
@@ -437,11 +479,12 @@ async def card_storage(session: CommandSession):
         page = 1
     qq = session.ctx['user_id']
     with open_user_storage(qq) as f:
+        have = [(i, data) for i, data in enumerate(f.yield_all()) if data['num'] != 0]
         fav = [f"{card_info[i]['name']}x{data['num']}" if data['num'] > 1 else card_info[i]['name']
-            for i, data in enumerate(f.yield_all()) if data['num'] != 0 and data['fav']]
+            for i, data in have if data['fav']]
         not_fav = [f"{card_info[i]['name']}x{data['num']}" if data['num'] > 1 else card_info[i]['name']
-            for i, data in enumerate(f.yield_all()) if data['num'] != 0 and not data['fav']]
-        page_count = (len(fav) + len(not_fav) - 1) // page_max + 1
+            for i, data in have if not data['fav']]
+        page_count = (len(have) - 1) // page_max + 1
         if page <= 0 or page > page_count:
             await session.send(f'页码超出范围，您的仓库共有{page_count}页')
             return
@@ -454,7 +497,6 @@ async def card_storage(session: CommandSession):
         if page_count != 1:
             strout += f'\npage: {page}/{page_count}'
         await session.send(strout + f'\n{guide["add"]}\n{guide["discard"]}\n{guide["fav&wish"]}', auto_escape=True)
-
 
 @on_command(('card', 'discard'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
