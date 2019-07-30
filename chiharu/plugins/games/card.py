@@ -22,12 +22,13 @@ config.logger.open('card')
 # 查看愿望单 引导至加入愿望单
 # 仓储操作指令，包含加入特别喜欢，加入愿望单，消息箱设置，指令提示设置
 # √分解卡指令
-# 留言簿指令
+# √留言簿指令
 # 凌晨：更新每日限额，更新每日卡池
 # √批量添加指令
 # √查看审核指令
 # √审核通过指令
 # 预约开放活动卡池指令
+# 回复留言指令（指直接塞入消息箱）
 # 维护？
 # status: 1 已开放 0 已结束 2 未开始 3 已空
 
@@ -43,7 +44,8 @@ guide = {'draw': '使用-card.draw 卡池id/名字 抽卡次数 进行抽卡，�
     'discard': '使用-card.discard 卡片名 数量 分解不需要的卡片获得资源（数量默认为1）',
     'confirm': '使用-card.set.unconfirm 取消今日确认使用en抽卡',
     'message': '使用-xxxxxx 设置消息箱提醒',
-    'guide': '使用-xxxxxx 关闭或开启指令提示'
+    'guide': '使用-xxxxxx 关闭或开启指令提示',
+    'comment': '使用-card.comment 给维护者留言~'
 }
 
 with open(config.rel(r"games\card\pool"), 'rb') as f:
@@ -498,6 +500,20 @@ async def name_num_parser(session: CommandSession):
         else:
             session.state['name'] = s[:i]
             session.state['num'] = int(s[i + 1:])
+
+@on_command(('card', 'comment'), only_to_me=False)
+@config.ErrorHandle(config.logger.card)
+async def card_comment(session: CommandSession):
+    with open(config.rel(r'games\card\comment.json'), encoding='utf-8') as f:
+        comments = json.load(f)
+    import datetime
+    comments.append({'qq': session.ctx['user_id'], 'time': datetime.datetime.now().isoformat(' '), 'content': session.current_arg})
+    with open(config.rel(r'games\card\comment.json'), 'w', encoding='utf-8') as f:
+        f.write(json.dumps(comments, ensure_ascii=False, indent=4, separators=(',', ': ')))
+    config.logger.card << f"用户{session.ctx["user_id"]} 留言：\n{session.current_arg}"
+    await session.send('您已成功送出一条留言~感谢您的反馈')
+    for group in config.group_id_dict['card_verify']:
+        await get_bot().send_group_msg(group_id=group, message=f'用户{session.ctx["user_id"]} 留言：\n{session.current_arg}', auto_escape=True)
 
 @on_command(('card', 'add_group'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
