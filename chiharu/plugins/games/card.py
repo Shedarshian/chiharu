@@ -19,8 +19,9 @@ config.logger.open('card')
 # √添加卡指令（参数：卡名，张数） 限额抽完时引导至查看个人信息
 # √查看个人信息，包含资源数，剩余免费抽卡次数（级别？） 引导至查看库存与创造卡与留言簿
 # √查看库存指令（翻页） 引导至分解卡与创造卡
+# 查看愿望单 引导至加入愿望单
 # 仓储操作指令，包含加入特别喜欢，加入愿望单，消息箱设置，指令提示设置
-# 分解卡指令
+# √分解卡指令
 # 留言簿指令
 # 凌晨：更新每日限额，更新每日卡池
 # √批量添加指令
@@ -38,7 +39,8 @@ guide = {'draw': '使用-card.draw 卡池id/名字 抽卡次数 进行抽卡，�
     'add': '使用-card.add 卡片名字 张数 创造卡片加入次日新卡卡池与每日随机卡池 张数不填默认为1张',
     'info': '使用-card.userinfo 查看个人信息，包含en数，剩余免费抽卡次数等等',
     'storage': '使用-card.storage 查看库存',
-    'discard': '使用-card.xxxx 分解不需要的卡片获得资源',
+    'fav&wish': '使用-card.fav 卡片名 加入特别喜欢，-card.wish 卡片名 加入愿望单',
+    'discard': '使用-card.discard 卡片名 数量 分解不需要的卡片获得资源（数量默认为1）',
     'confirm': '使用-card.set.unconfirm 取消今日确认使用en抽卡',
     'message': '使用-xxxxxx 设置消息箱提醒',
     'guide': '使用-xxxxxx 关闭或开启指令提示'
@@ -404,21 +406,6 @@ async def card_add(session: CommandSession):
                 config.logger.card << f'【LOG】用户{qq} 获得了{20 * num}en 剩余{info["money"]}en'
                 await session.send(f"成功放入卡片 {c['name']} {num}张，欢迎明日查看新卡卡池\n您已获得{20 * num}en\n\n{guide['check']}\n{guide['info']}", auto_escape=True)
 
-@card_draw.args_parser
-@card_add.args_parser
-async def _(session: CommandSession):
-    if session.current_arg_text == "":
-        session.state['name'] = None
-    else:
-        s = session.current_arg_text.strip()
-        i = s.rfind(' ')
-        if i == -1:
-            session.state['name'] = s
-            session.state['num'] = 1
-        else:
-            session.state['name'] = s[:i]
-            session.state['num'] = int(s[i + 1:])
-
 @on_command(('card', 'userinfo'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 async def card_userinfo(session: CommandSession):
@@ -429,12 +416,13 @@ async def card_userinfo(session: CommandSession):
 {guide['message']}''' if info['confirm'] else ''}\n{guide['guide']}""")
 
 @on_command(('card', 'set', 'unconfirm'), only_to_me=False)
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.card)
 async def card_unconfirm(session: CommandSession):
     with open_user_storage(session.ctx['user_id']) as f:
         info = f.read_info()
         info['confirm'] = False
         f.save_info(info)
+        config.logger.card << f'用户{session.ctx["user_id"]} 取消今日自动使用en抽卡'
         await session.send("已成功取消自动使用en抽卡")
 
 @on_command(('card', 'storage'), only_to_me=False)
@@ -463,7 +451,53 @@ async def card_storage(session: CommandSession):
             strout = '您的卡牌：\n' + '，'.join(not_fav[page_max * (page - 1) - len(fav):page_max * page - len(fav)])
         if page_count != 1:
             strout += f'\npage: {page}/{page_count}'
-        await session.send(strout + f'\n\n{guide["add"]}\n{guide["discard"]}', auto_escape=True)
+        await session.send(strout + f'\n{guide["add"]}\n{guide["discard"]}\n{guide["fav&wish"]}', auto_escape=True)
+
+
+@on_command(('card', 'discard'), only_to_me=False)
+@config.ErrorHandle(config.logger.card)
+async def card_discard(session: CommandSession):
+    if session.get('name') is None:
+        await session.send('请输入想分解的卡名')
+        return
+    card = card_find(session.get('name'))
+    if card is None:
+        await session.send('未找到该卡')
+        return
+    qq = session.ctx['user_id']
+    num = session.get('num')
+    with open_user_storage(qq) as f:
+        f.check()
+        data = f.read_nocheck(card['id'])
+        if data['num'] == 0:
+            await session.send('您没有此卡，无法分解')
+        elif data['num'] < num:
+            await session.send(f'您此卡余量不足，只有{data["num"]}张')
+        else:
+            data['num'] -= num
+            info = f.read_info()
+            info['money'] += num * 20
+            f.save(card['id'], data)
+            f.save_info(info)
+            config.logger.card << f"【LOG】用户{qq} 分解了{num}张{card['name']}"
+            config.logger.card << f'【LOG】用户{qq} 获得了{20 * num}en 剩余{info["money"]}en'
+            await session.send(f'您已成功分解{num}张{card["name"]}，现剩余{info["money"]}en\n{guide["info"]}', auto_escape=True)
+
+@card_draw.args_parser
+@card_add.args_parser
+@card_discard.args_parser
+async def name_num_parser(session: CommandSession):
+    if session.current_arg_text == "":
+        session.state['name'] = None
+    else:
+        s = session.current_arg_text.strip()
+        i = s.rfind(' ')
+        if i == -1:
+            session.state['name'] = s
+            session.state['num'] = 1
+        else:
+            session.state['name'] = s[:i]
+            session.state['num'] = int(s[i + 1:])
 
 @on_command(('card', 'add_group'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
