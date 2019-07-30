@@ -3,7 +3,7 @@ import functools
 import json
 import datetime
 from os import path
-from typing import Awaitable
+from typing import Awaitable, Generator
 from nonebot import CommandSession, get_bot, on_command
 import traceback
 from collections import UserDict

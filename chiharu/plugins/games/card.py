@@ -18,8 +18,8 @@ config.logger.open('card')
 # √查看卡池指令（参数：卡池或空） 引导抽卡指令 查看具体卡池 引导至私聊卡池信息
 # √添加卡指令（参数：卡名，张数） 限额抽完时引导至查看个人信息
 # √查看个人信息，包含资源数，剩余免费抽卡次数（级别？） 引导至查看库存与创造卡与留言簿
-# 查看库存指令（翻页） 引导至分解卡与创造卡
-# 仓储操作指令，包含加入特别喜欢，加入愿望单
+# √查看库存指令（翻页） 引导至分解卡与创造卡
+# 仓储操作指令，包含加入特别喜欢，加入愿望单，消息箱设置，指令提示设置
 # 分解卡指令
 # 留言簿指令
 # 凌晨：更新每日限额，更新每日卡池
@@ -37,7 +37,8 @@ guide = {'draw': '使用-card.draw 卡池id/名字 抽卡次数 进行抽卡，�
     'check': '使用-card.check 不带参数 查询卡池列表',
     'add': '使用-card.add 卡片名字 张数 创造卡片加入次日新卡卡池与每日随机卡池 张数不填默认为1张',
     'info': '使用-card.userinfo 查看个人信息，包含en数，剩余免费抽卡次数等等',
-    'storage': '使用-xxxxxx 查看库存',
+    'storage': '使用-card.storage 查看库存',
+    'discard': '使用-card.xxxx 分解不需要的卡片获得资源',
     'confirm': '使用-card.set.unconfirm 取消今日确认使用en抽卡',
     'message': '使用-xxxxxx 设置消息箱提醒',
     'guide': '使用-xxxxxx 关闭或开启指令提示'
@@ -112,6 +113,12 @@ class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True
         self.file.seek(4 * id + 16)
         a, b, c, d = self.file.read(4)
         return {'num': a * 256 + b, 'fav': bool(d & 2), 'wish': bool(d & 1)}
+    def yield_all(self):
+        self.file.seek(16)
+        for a, b, c, d in iter(lambda: self.file.read(4), b''):
+            yield {'num': a * 256 + b, 'fav': bool(d & 2), 'wish': bool(d & 1)}
+    def read_all(self):
+        return list(self.yield_all())
     def save(self, id, dct):
         self.file.seek(4 * id + 16)
         self.file.write(bytes([dct['num'] // 256, dct['num'] % 256, 0, dct['fav'] * 2 + dct['wish']]))
@@ -421,7 +428,7 @@ async def card_userinfo(session: CommandSession):
 今日已确认使用en抽卡''' if info['confirm'] else ''}\n消息箱设置：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']] }\n\n{guide['confirm']}\n{guide['storage']}{f'''
 {guide['message']}''' if info['confirm'] else ''}\n{guide['guide']}""")
 
-@on_command(('card', 'set', 'unconfirm'), only_to_me=False, permission=permission.SUPERUSER)
+@on_command(('card', 'set', 'unconfirm'), only_to_me=False)
 @config.ErrorHandle
 async def card_unconfirm(session: CommandSession):
     with open_user_storage(session.ctx['user_id']) as f:
@@ -429,6 +436,34 @@ async def card_unconfirm(session: CommandSession):
         info['confirm'] = False
         f.save_info(info)
         await session.send("已成功取消自动使用en抽卡")
+
+@on_command(('card', 'storage'), only_to_me=False)
+@config.ErrorHandle(config.logger.card)
+async def card_storage(session: CommandSession):
+    page_max = 30
+    if session.current_arg_text != '':
+        page = int(session.current_arg_text)
+    else:
+        page = 1
+    qq = session.ctx['user_id']
+    with open_user_storage(qq) as f:
+        fav = [f"{card_info[i]['name']}x{data['num']}" if data['num'] > 1 else card_info[i]['name']
+            for i, data in enumerate(f.yield_all()) if data['num'] != 0 and data['fav']]
+        not_fav = [f"{card_info[i]['name']}x{data['num']}" if data['num'] > 1 else card_info[i]['name']
+            for i, data in enumerate(f.yield_all()) if data['num'] != 0 and not data['fav']]
+        page_count = (len(fav) + len(not_fav) - 1) // page_max + 1
+        if page <= 0 or page > page_count:
+            await session.send(f'页码超出范围，您的仓库共有{page_count}页')
+            return
+        if len(fav) >= page_max * page:
+            strout = '特别喜欢：\n' + '，'.join(fav[page_max * (page - 1):page_max * page])
+        elif len(fav) >= page_max * (page - 1) and len(fav) != 0:
+            strout = '特别喜欢：\n' + '，'.join(fav[page_max * (page - 1):]) + '\n您的卡牌：\n' + '，'.join(not_fav[:page_max * page - len(fav)])
+        else:
+            strout = '您的卡牌：\n' + '，'.join(not_fav[page_max * (page - 1) - len(fav):page_max * page - len(fav)])
+        if page_count != 1:
+            strout += f'\npage: {page}/{page_count}'
+        await session.send(strout + f'\n\n{guide["add"]}\n{guide["discard"]}', auto_escape=True)
 
 @on_command(('card', 'add_group'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle

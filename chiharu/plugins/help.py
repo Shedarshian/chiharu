@@ -9,7 +9,6 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
     #"eclins": "使用格式：-eclins ins_num\n检索ecl的ins。",
     "birth": "使用格式：-birth.today bandori或LL或imas：查询今天生日的角色",
     "seiyuu": "使用格式：\n-seiyuu.today：查询今天生日的声优列表\n-seiyuu.check seiyuu_name[, count]：返回声优的基本信息，找到多个时可以使用count指明第几个。声优名以日语原文键入，允许假名甚至罗马音。\n-seiyuu.list string[, bound=15]：查询包含string的声优名列表，超过bound时返回前bound个，顺序未指定",
-    #"chess": "使用格式：-chess.begin：开始对战\n-chess.end：结束对战",
     "game": "欢迎使用-game 指令访问七海千春游戏大厅~",
     "tools": "-tools.Julia [c的x坐标] [c的y坐标]：绘制Julia集\n-tools.oeis：查询oeis（整数序列在线百科全书），支持查询数列前几项（只返回第一个结果），或oeis的编号如A036057",
     "misc": "-misc.asc.check str：转换str的所有字符到ascii码\n-misc.asc.trans numbers：转换数字到字符\n-misc.bandori.news：查询bandori新闻\n-misc.maj.ten：日麻算点器\n-misc.maj.train：麻将训练\n-misc.maj.ting：听牌计算器\n-misc.maj.voice：雀魂报番语音，第一行番种，换行后为指定角色名\n-misc.token：将输入文本中大括号包含的token转换成latex中包含的unicode字符，使用https://github.com/joom/latex-unicoder.vim/blob/master/autoload/unicoder.vim, https://pastebin.com/jxHsjQK0\n  例：-misc.token f(0)={\\aleph}_0,f({\\alpha}+1)={\\aleph}_{\\alpha}\npage 1/2 使用-help misc 2 翻页",
