@@ -426,9 +426,9 @@ async def card_userinfo(session: CommandSession):
 今日已确认使用en抽卡''' if info['confirm'] else ''}\n消息箱设置：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']] }\n{guide['message']}\n{guide['storage']}{f'''
 {guide['confirm']}''' if info['confirm'] else ''}\n{guide['guide']}\n{guide['comment']}""")
 
-@on_command(('card', 'favlist'), only_to_me=False)
+@on_command(('card', 'wishlist'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
-async def card_favlist(session: CommandSession):
+async def card_wishlist(session: CommandSession):
     if session.current_arg_text != '':
         page = int(session.current_arg_text)
     else:
