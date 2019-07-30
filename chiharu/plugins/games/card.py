@@ -19,8 +19,8 @@ config.logger.open('card')
 # √添加卡指令（参数：卡名，张数） 限额抽完时引导至查看个人信息
 # √查看个人信息，包含资源数，剩余免费抽卡次数（级别？） 引导至查看库存与创造卡与留言簿
 # √查看库存指令（翻页） 引导至分解卡与创造卡
-# 查看愿望单 引导至加入愿望单，说明在首次抽到愿望单卡时会自动取消并加入特别喜欢，可以再次加入愿望单代表想要更多
-# 仓储操作指令，包含加入特别喜欢，加入愿望单，消息箱设置，指令提示设置
+# √查看愿望单 引导至加入愿望单，说明在首次抽到愿望单卡时会自动取消并加入特别喜欢，可以再次加入愿望单代表想要更多
+# 仓储操作指令，包含√加入特别喜欢，√加入愿望单，消息箱设置，指令提示设置
 # √分解卡指令
 # √留言簿指令
 # 凌晨：更新每日限额，更新每日卡池
@@ -32,8 +32,14 @@ config.logger.open('card')
 # 维护？
 # status: 1 已开放 0 已结束 2 未开始 3 已空
 
-def to_byte(num):
-    return bytes([num // 256, num % 256])
+page_max = 30
+# daily_draw = 10
+# daily_create = 30
+# daily_create_type = 10
+daily_draw = 10
+daily_create = 30
+daily_create_type = 10
+
 guide = {'draw': '使用-card.draw 卡池id/名字 抽卡次数 进行抽卡，次数不填默认为单抽，\n-card.draw5 卡池id/名字 直接进行五连抽卡',
     'check_detail': '私聊-card.check 卡池id/名字 查询卡池具体信息（刷屏预警）',
     'check': '使用-card.check 不带参数 查询卡池列表',
@@ -74,6 +80,8 @@ def save_verify(verify):
     with open(config.rel(r"games\card\verify.json"), 'w', encoding='utf-8') as f:
         f.write(json.dumps(verify, ensure_ascii=False, indent=4, separators=(',', ': ')))
 
+def to_byte(num):
+    return bytes([num // 256, num % 256])
 def get_card_names(*l):
     return '，'.join([card_info[i]['name'] for i in l])
 def daily_pool_find(s):
@@ -99,7 +107,7 @@ class user_info:
 class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True):
     def init_begin(self):
         self.file = open(self.path, 'x+b' if self.if_binary else 'x+')
-        self.file.write(bytes([0, 0, 10, 10, 0, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+        self.file.write(bytes([0, 0, daily_draw, daily_create_type, 0, daily_create, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
     def check(self):
         if os.stat(self.path).st_size < 4 * len(pool) + 16:
             self.file.seek(0, 2)
@@ -418,6 +426,25 @@ async def card_userinfo(session: CommandSession):
 今日已确认使用en抽卡''' if info['confirm'] else ''}\n消息箱设置：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']] }\n{guide['message']}\n{guide['storage']}{f'''
 {guide['confirm']}''' if info['confirm'] else ''}\n{guide['guide']}\n{guide['comment']}""")
 
+@on_command(('card', 'favlist'), only_to_me=False)
+@config.ErrorHandle(config.logger.card)
+async def card_favlist(session: CommandSession):
+    if session.current_arg_text != '':
+        page = int(session.current_arg_text)
+    else:
+        page = 1
+    qq = session.ctx['user_id']
+    with open_user_storage(qq) as f:
+        wish = [card_info[i]['name'] for i, data in enumerate(f.yield_all()) if data['wish']]
+        page_count = (len(wish) - 1) // page_max + 1
+        if page <= 0 or page > page_count:
+            await session.send(f'页码超出范围，您的愿望单共有{page_count}页')
+            return
+        strout = ''.join(wish[page_max * (page - 1):page_max * page])
+        if page_count != 1:
+            strout += f'\npage: {page}/{page_count}'
+        await session.send(f'您的愿望单包含：\n{strout}\n{guide["storage"]}', auto_escape=True)
+
 @on_command(('card', 'fav'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 async def card_fav(session: CommandSession):
@@ -473,7 +500,6 @@ async def card_unconfirm(session: CommandSession):
 @on_command(('card', 'storage'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 async def card_storage(session: CommandSession):
-    page_max = 30
     if session.current_arg_text != '':
         page = int(session.current_arg_text)
     else:
@@ -528,7 +554,7 @@ async def card_discard(session: CommandSession):
             config.logger.card << f'【LOG】用户{qq} 获得了{20 * num}en 剩余{info["money"]}en'
             if data['num'] == 0 and data['fav']:
                 data['fav'] = False
-            config.logger.card << f'【LOG】用户{qq} 已无{card['name']}，自动从特别喜欢中删除'
+            config.logger.card << f'【LOG】用户{qq} 已无{card["name"]}，自动从特别喜欢中删除'
             await session.send(f'您已成功分解{num}张{card["name"]}，现剩余{info["money"]}en\n{guide["info"]}', auto_escape=True)
 
 @card_draw.args_parser
