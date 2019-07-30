@@ -41,6 +41,7 @@ guide = {'draw': '使用-card.draw 卡池id/名字 抽卡次数 进行抽卡，�
     'info': '使用-card.userinfo 查看个人信息，包含en数，剩余免费抽卡次数等等',
     'storage': '使用-card.storage 查看库存',
     'discard': '使用-card.discard 卡片名 数量 分解不需要的卡片获得资源（数量默认为1）',
+    'wishlist': '使用-card.wishlist 查看愿望单',
     'fav&wish': '使用-card.fav 卡片名 将卡片加入特别喜欢，-card.wish 卡片名 将卡片加入愿望单',
     'wish': '使用-card.wish 卡片名 将卡片加入愿望单',
     'confirm': '使用-card.set.unconfirm 取消今日确认使用en抽卡',
@@ -457,7 +458,7 @@ async def card_wish(session: CommandSession):
                 data['wish'] = True
                 f.save(card['id'], data)
                 config.logger.card << f"用户{qq} 将{'未' if data['num'] == 0 else '已'}拥有的卡片{card['name']}加入愿望单"
-                await session.send(f"已成功将{'未' if data['num'] == 0 else '已'}拥有的卡片{card['name']}加入愿望单\n{guide['storage']}")
+                await session.send(f"已成功将{'未' if data['num'] == 0 else '已'}拥有的卡片{card['name']}加入愿望单\n{guide['storage']}\n{guide['wishlist']}")
 
 @on_command(('card', 'set', 'unconfirm'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
@@ -525,6 +526,9 @@ async def card_discard(session: CommandSession):
             f.save_info(info)
             config.logger.card << f"【LOG】用户{qq} 分解了{num}张{card['name']}"
             config.logger.card << f'【LOG】用户{qq} 获得了{20 * num}en 剩余{info["money"]}en'
+            if data['num'] == 0 and data['fav']:
+                data['fav'] = False
+            config.logger.card << f'【LOG】用户{qq} 已无{card['name']}，自动从特别喜欢中删除'
             await session.send(f'您已成功分解{num}张{card["name"]}，现剩余{info["money"]}en\n{guide["info"]}', auto_escape=True)
 
 @card_draw.args_parser
