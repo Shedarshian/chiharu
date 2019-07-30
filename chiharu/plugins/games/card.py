@@ -414,8 +414,8 @@ async def card_userinfo(session: CommandSession):
     with open_user_storage(session.ctx['user_id']) as f:
         info = f.read_info()
         await session.send(f"""剩余en数：{info['money']}\n今日剩余：免费抽卡次数{info['time']} 创造卡片种类{info['create_type']} 创造卡片张数{info['create_num']}{'''
-今日已确认使用en抽卡''' if info['confirm'] else ''}\n消息箱设置：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']] }\n\n{guide['confirm']}\n{guide['storage']}{f'''
-{guide['message']}''' if info['confirm'] else ''}\n{guide['guide']}""")
+今日已确认使用en抽卡''' if info['confirm'] else ''}\n消息箱设置：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']] }\n{guide['message']}\n{guide['storage']}{f'''
+{guide['confirm']}''' if info['confirm'] else ''}\n{guide['guide']}\n{guide['comment']}""")
 
 @on_command(('card', 'set', 'unconfirm'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
@@ -510,7 +510,7 @@ async def card_comment(session: CommandSession):
     comments.append({'qq': session.ctx['user_id'], 'time': datetime.datetime.now().isoformat(' '), 'content': session.current_arg})
     with open(config.rel(r'games\card\comment.json'), 'w', encoding='utf-8') as f:
         f.write(json.dumps(comments, ensure_ascii=False, indent=4, separators=(',', ': ')))
-    config.logger.card << f"用户{session.ctx["user_id"]} 留言：\n{session.current_arg}"
+    config.logger.card << f"用户{session.ctx['user_id']} 留言：\n{session.current_arg}"
     await session.send('您已成功送出一条留言~感谢您的反馈')
     for group in config.group_id_dict['card_verify']:
         await get_bot().send_group_msg(group_id=group, message=f'用户{session.ctx["user_id"]} 留言：\n{session.current_arg}', auto_escape=True)
