@@ -9,7 +9,7 @@ import os
 from typing import Dict, Iterable, Tuple, Awaitable, List
 from datetime import date, datetime
 import chiharu.plugins.config as config
-from nonebot import on_command, CommandSession, get_bot, permission
+from nonebot import on_command, CommandSession, get_bot, permission, scheduler
 from nonebot.command import call_command
 config.logger.open('card')
 
@@ -20,7 +20,7 @@ config.logger.open('card')
 # √查看个人信息，包含资源数，剩余免费抽卡次数（级别？） 引导至查看库存与创造卡与留言簿
 # √查看库存指令（翻页） 引导至分解卡与创造卡
 # √查看愿望单 引导至加入愿望单，说明在首次抽到愿望单卡时会自动取消并加入特别喜欢，可以再次加入愿望单代表想要更多
-# 仓储操作指令，包含√加入特别喜欢，√加入愿望单，消息箱设置，指令提示设置
+# 仓储操作指令，包含√加入特别喜欢，√加入愿望单，√消息箱设置，指令提示设置
 # √查看消息箱指令
 # √分解卡指令
 # √留言簿指令
@@ -33,13 +33,16 @@ config.logger.open('card')
 # 维护？
 # status: 1 已开放 0 已结束 2 未开始 3 已空
 
-page_max = 30
+page_max = 40
 # daily_draw = 10
 # daily_create = 30
 # daily_create_type = 10
 daily_draw = 10
 daily_create = 30
 daily_create_type = 10
+daily_pool_num = 3
+daily_pool_cap = 300
+daily_pool_exceed = 400
 
 guide = {'draw': '使用-card.draw 卡池id/名字 抽卡次数 进行抽卡，次数不填默认为单抽，\n-card.draw5 卡池id/名字 直接进行五连抽卡',
     'check_detail': '私聊-card.check 卡池id/名字 查询卡池具体信息（刷屏预警）',
@@ -53,7 +56,7 @@ guide = {'draw': '使用-card.draw 卡池id/名字 抽卡次数 进行抽卡，�
     'fav&wish': '使用-card.fav 卡片名 将卡片加入特别喜欢，-card.wish 卡片名 将卡片加入愿望单',
     'wish': '使用-card.wish 卡片名 将卡片加入愿望单',
     'confirm': '使用-card.set.unconfirm 取消今日确认使用en抽卡',
-    'message': '使用-xxxxxx 设置消息箱提醒',
+    'message': '使用-card.set.message 参数 设置消息箱提醒',
     'guide': '使用-xxxxxx 关闭或开启指令提示',
     'comment': '使用-card.comment 给维护者留言~'}
 
@@ -63,8 +66,8 @@ with open(config.rel(r"games\card\card_info.json"), encoding='utf-8') as f:
     card_info = json.load(f)
 with open(config.rel(r"games\card\daily_pool.json"), encoding='utf-8') as f:
     daily_pool_all = json.load(f)
-    daily_pool = list(filter(lambda x: x['status'] == 1 or x['status'] == 3, daily_pool_all))
-    daily_pool_draw = list(map(lambda x: x['cards'], daily_pool))
+    daily_pool = [x for x in daily_pool_all if x['status'] == 1 or x['status'] == 3]
+    daily_pool_draw = [x['cards'] for x in daily_pool]
 def save_card_info():
     with open(config.rel(r"games\card\card_info.json"), 'w', encoding='utf-8') as f:
         f.write(json.dumps(card_info, ensure_ascii=False, indent=4, separators=(',', ': ')))
@@ -81,6 +84,16 @@ def read_verify():
 def save_verify(verify):
     with open(config.rel(r"games\card\verify.json"), 'w', encoding='utf-8') as f:
         f.write(json.dumps(verify, ensure_ascii=False, indent=4, separators=(',', ': ')))
+def read_new_card():
+    with open(config.rel(r'games\card\new_card.json')) as f:
+        return json.load(f)
+def save_new_card(new_card):
+    with open(config.rel(r'games\card\new_card.json'), 'w') as f:
+        f.write(json.dumps(new_card))
+def add_new_card(id):
+    new_card = read_new_card()
+    new_card[-1].append(id)
+    save_new_card(new_card)
 
 def to_byte(num):
     return bytes([num // 256, num % 256])
@@ -109,7 +122,7 @@ class user_info:
 class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True):
     def init_begin(self):
         self.file = open(self.path, 'x+b' if self.if_binary else 'x+')
-        self.file.write(bytes([0, 0, daily_draw, daily_create_type, 0, daily_create, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+        self.file.write(bytes([0, 0, daily_draw, daily_create_type, daily_create // 256, daily_create % 256, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
     def check(self):
         if os.stat(self.path).st_size < 4 * len(pool) + 16:
             self.file.seek(0, 2)
@@ -119,7 +132,7 @@ class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True
         # 16 byte data for user info
         self.file.seek(0)
         a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p = self.file.read(16)
-        return {'money': a * 256 + b, 'confirm': bool(c & 128), 'time': c % 128, 'create_type': d, 'create_num': e * 256 + f, 'message': g % 16}
+        return {'money': a * 256 + b, 'confirm': bool(c & 128), 'time': c % 128, 'create_type': d, 'create_num': e * 256 + f, 'message': g % 32}
     def save_info(self, val):
         self.file.seek(0)
         self.file.write(bytes([val['money'] // 256, val['money'] % 256, val['confirm'] * 128 + val['time'], val['create_type'], val['create_num'] // 256, val['create_num'] % 256, val['message'], 0, 0, 0, 0, 0, 0, 0, 0, 0]))
@@ -158,7 +171,7 @@ class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True
         info = self.read_info()['message']
         if info == 0:
             await get_bot().send_private_msg(user_id=self.qq, message=msg + f'\n{guide["message"]}', auto_escape=True)
-        elif info == 1:
+        elif info == 1 or info == 2:
             with open(config.rel(r"games\card\message.json"), encoding='utf-8') as f:
                 message = json.load(f)
             import datetime
@@ -169,14 +182,13 @@ class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True
                 message[self.qq].append(msg)
             with open(config.rel(r"games\card\message.json"), 'w', encoding='utf-8') as f:
                 f.write(json.dumps(message, ensure_ascii=False, indent=4, separators=(',', ': ')))
-    async def check_message(self):
+    def check_message(self):
         with open(config.rel(r"games\card\message.json"), encoding='utf-8') as f:
             message = json.load(f)
         if self.qq not in message:
             return []
         else:
             return message.pop(self.qq)
-
 class user_create(user_info, path=r"games\card\user_create\%i", if_binary=True):
     def check(self):
         if os.stat(self.path).st_size < 4 * len(pool):
@@ -234,22 +246,40 @@ def _des(l, if_len=True, max=3):
         return '，'.join(map(lambda x: card_info[x]['name'], l))
 def pool_des(pool_info: Dict):
     title = {'event': '活动卡池', 'daily': '每日卡池', 'new': '新卡卡池'}
-    not_zero = list(filter(lambda x: pool[x] > 0, pool_info['cards']))
-    only_one = list(filter(lambda x: pool[x] == 1, pool_info['cards']))
-    num = functools.reduce(lambda x, y: x + y, map(lambda x: pool[x], pool_info['cards']))
-    return f"""{title[pool_info['type']]}{f'''：{pool_info['name']} id：{pool_info['id']}
+    not_zero = [x for x in pool_info['cards'] if pool[x] > 0]
+    only_one = [x for x in pool_info['cards'] if pool[x] == 1]
+    num = functools.reduce(lambda x, y: x + y, map(lambda x: pool[x], pool_info['cards']), 0)
+    return f"""{title[pool_info['type']]}：{pool_info['name']} id：{pool_info['id']}{f'''
 {pool_info['description']} {pool_info['end_date']} 截止''' if pool_info['type'] == 'event' else ''}
-包含{_des(not_zero)}共{num}张。{f'''
+{f'包含{_des(not_zero)}共{num}张。' if num != 0 else '卡池已空。'}{f'''
 {_des(only_one)}只余一张！''' if len(only_one) != 0 else ''}"""
 def pool_des_detail(pool_info: Dict):
     title = {'event': '活动卡池', 'daily': '每日卡池', 'new': '新卡卡池'}
     not_zero = list(filter(lambda x: pool[x] > 0, pool_info['cards']))
-    return f"""{title[pool_info['type']]}{f'''：{pool_info['name']} id：{pool_info['id']}
+    return f"""{title[pool_info['type']]}：{pool_info['name']} id：{pool_info['id']}{f'''
 {pool_info['description']} {pool_info['end_date']} 截止''' if pool_info['type'] == 'event' else ''}
 包含卡牌：{'，'.join(map(lambda x: f'''{card_info[x]['name']}x{pool[x]}''', not_zero))}"""
 
 def center_card(*args):
-    return ""
+    return """欢迎来到抽卡游戏！（现在正在删档测试一周~~）
+本抽卡游戏是一个【用户可以任意创造卡片放入】且卡池有限的抽卡游戏
+每天呢，有3个随机取出的每日卡池，以及近3天所有新创造的卡的新卡卡池，不定期还会开放活动卡池哦
+玩家每天有10次免费抽卡机会，每分解一张卡以及创造一张都可以获得20en，也可以消耗100en抽一张卡
+每天创造的卡片数和种类数也有上限哦，在凌晨5点会更新每日卡池以及重置上限www创造的新的卡片名字需要审核哦~
+指令列表：-card.draw 卡池id/名字 抽卡次数 可以抽卡！！次数不填默认为单抽
+-card.draw5 卡池id/名字 直接进行五连抽卡
+-card.check 卡池id/名字 查询卡池具体信息，包含具体卡牌（刷屏预警，建议私聊~）
+-card.check 不带参数 查询卡池列表与介绍
+-card.add 卡片名字 张数 就可以创造卡片加入卡池 张数不填默认为1张
+-card.userinfo 查看个人信息，包含en数，剩余免费抽卡次数等等
+-card.storage 查看库存卡片
+-card.discard 卡片名 数量 分解卡片获得en，张数不填默认为1张
+-card.wishlist 查看愿望单
+-card.check 手动查看消息箱
+-card.fav 卡片名 将卡片加入特别喜欢
+-card.wish 卡片名 将卡片加入愿望单
+-card.comment 给维护者留言~想说的话，想更新的功能，想开启的活动卡池都可以哦~
+お楽しみに～"""
 
 def add_cardname(arg: Iterable[Tuple[int, int]], **kwargs):
     global card_info, pool
@@ -273,7 +303,7 @@ def add_card(arg: Iterable[Tuple[int, int]]):
 async def card_draw(session: CommandSession):
     if session.get('name') is None:
         # 卡池介绍
-        await session.send('\n\n'.join([pool_des(x) for x in daily_pool]) + '\n\n' + guide['draw'], auto_escape=True)
+        await session.send('\n'.join([pool_des(x) for x in daily_pool]) + '\n\n' + guide['draw'], auto_escape=True)
     else:
         qq = session.ctx['user_id']
         name, num = session.get('name'), session.get('num')
@@ -291,7 +321,7 @@ async def card_draw(session: CommandSession):
                 data = {'empty': False, 'payed': False, 'money': 0}
                 info = f.read_info()
                 weight = list(map(lambda x: pool[x], p['cards']))
-                pool_num = functools.reduce(lambda x, y: x + y, weight)
+                pool_num = functools.reduce(lambda x, y: x + y, weight, 0)
                 if pool_num <= num:
                     num = pool_num
                     data['empty'] = True
@@ -373,7 +403,7 @@ async def card_draw_5(session: CommandSession):
 @config.maintain('card')
 async def card_check(session: CommandSession):
     if session.current_arg_text == "":
-        await session.send('\n\n'.join([pool_des(x) for x in daily_pool]) + f'\n\n{guide["draw"]}\n{guide["check_detail"]}', auto_escape=True)
+        await session.send('\n'.join([pool_des(x) for x in daily_pool]) + f'\n\n{guide["draw"]}\n{guide["check_detail"]}', auto_escape=True)
     else:
         p = daily_pool_find(session.current_arg_text)
         if p is None:
@@ -430,6 +460,7 @@ async def card_add(session: CommandSession):
                 for group in config.group_id_dict['card_verify']:
                     await get_bot().send_group_msg(group_id=group, message=f'用户{qq} 提交卡片名\n{name}\n{num}张', auto_escape=True)
             else:
+                add_new_card(c['id'])
                 add_card(c['id'])
                 f2.create(c['id'], num, False)
                 info['money'] += 20 * num
@@ -458,6 +489,8 @@ async def card_wishlist(session: CommandSession):
     qq = session.ctx['user_id']
     with open_user_storage(qq) as f:
         wish = [card_info[i]['name'] for i, data in enumerate(f.yield_all()) if data['wish']]
+        if len(wish) == 0:
+            await session.send(f'您的愿望单是空的呢\n{guide["fav&wish"]}', auto_escape=True)
         page_count = (len(wish) - 1) // page_max + 1
         if page <= 0 or page > page_count:
             await session.send(f'页码超出范围，您的愿望单共有{page_count}页')
@@ -486,7 +519,7 @@ async def card_fav(session: CommandSession):
             else:
                 data['fav'] = True
                 f.save(card['id'], data)
-                config.logger.card << f"用户{qq} 将卡片{card['name']}加入特别喜欢"
+                config.logger.card << f"【LOG】用户{qq} 将卡片{card['name']}加入特别喜欢"
                 await session.send(f'已成功将卡片{card["name"]}加入特别喜欢\n{guide["storage"]}')
 
 @on_command(('card', 'wish'), only_to_me=False)
@@ -506,7 +539,7 @@ async def card_wish(session: CommandSession):
             else:
                 data['wish'] = True
                 f.save(card['id'], data)
-                config.logger.card << f"用户{qq} 将{'未' if data['num'] == 0 else '已'}拥有的卡片{card['name']}加入愿望单"
+                config.logger.card << f"【LOG】用户{qq} 将{'未' if data['num'] == 0 else '已'}拥有的卡片{card['name']}加入愿望单"
                 await session.send(f"已成功将{'未' if data['num'] == 0 else '已'}拥有的卡片{card['name']}加入愿望单\n{guide['storage']}\n{guide['wishlist']}")
 
 @on_command(('card', 'set', 'unconfirm'), only_to_me=False)
@@ -516,8 +549,22 @@ async def card_unconfirm(session: CommandSession):
         info = f.read_info()
         info['confirm'] = False
         f.save_info(info)
-        config.logger.card << f'用户{session.ctx["user_id"]} 取消今日自动使用en抽卡'
+        config.logger.card << f'【LOG】用户{session.ctx["user_id"]} 取消今日自动使用en抽卡'
         await session.send("已成功取消自动使用en抽卡")
+
+@on_command(('card', 'set', 'message'), only_to_me=False)
+@config.ErrorHandle(config.logger.card)
+async def card_set_message(session: CommandSession):
+    if session.current_arg_text in {'0', '1', '2'}:
+        qq = session.ctx['user_id']
+        with open_user_storage(qq) as f:
+            info = f.read_info()
+            info['message'] = int(session.current_arg_text)
+            f.save_info(info)
+            config.logger.card << f"【LOG】用户{qq} 修改消息箱设置至{info['message']}：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']]}"
+            await session.send(f"消息箱设置已修改为：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']]}\n{guide['userinfo']}")
+    else:
+        await session.send("支持参数：\n-card.set.message 0：立即私聊\n-card.set.message 1：手动收取\n-card.set.message 2：凌晨定时发送私聊")
 
 @on_command(('card', 'storage'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
@@ -595,7 +642,7 @@ async def name_num_parser(session: CommandSession):
             session.state['name'] = s[:i]
             session.state['num'] = int(s[i + 1:])
 
-@on_command(('card', 'check'), only_to_me=False)
+@on_command(('card', 'message'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 async def card_check(session: CommandSession):
     with open_user_storage(session.ctx['user_id']) as f:
@@ -603,6 +650,7 @@ async def card_check(session: CommandSession):
         if message == []:
             await session.send('消息箱为空')
         else:
+            config.logger.card << f'【LOG】用户{session.ctx["user_id"]} 已接收消息：\n' + '\n'.join(message)
             await session.send('\n'.join(message))
 
 @on_command(('card', 'comment'), only_to_me=False)
@@ -614,7 +662,7 @@ async def card_comment(session: CommandSession):
     comments.append({'qq': session.ctx['user_id'], 'time': datetime.datetime.now().isoformat(' '), 'content': session.current_arg})
     with open(config.rel(r'games\card\comment.json'), 'w', encoding='utf-8') as f:
         f.write(json.dumps(comments, ensure_ascii=False, indent=4, separators=(',', ': ')))
-    config.logger.card << f"用户{session.ctx['user_id']} 留言：\n{session.current_arg}"
+    config.logger.card << f"【LOG】用户{session.ctx['user_id']} 留言：\n{session.current_arg}"
     await session.send('您已成功送出一条留言~感谢您的反馈')
     for group in config.group_id_dict['card_verify']:
         await get_bot().send_group_msg(group_id=group, message=f'用户{session.ctx["user_id"]} 留言：\n{session.current_arg}', auto_escape=True)
@@ -658,6 +706,7 @@ async def card_verify(session: CommandSession):
         return
     elif if_pass:
         add_cardname([(a['name'], functools.reduce(lambda x, y: x + y, [x['num'] for x in a['user']]))])
+        add_new_card(len(card_info) - 1)
         for x in a['user']:
             with open_user_create(x['qq']) as f:
                 f.create(len(card_info) - 1, x['num'], True) # 一定是add一个cardname
@@ -671,3 +720,61 @@ async def card_verify(session: CommandSession):
         await session.send('成功审核 未通过')
     verify.remove(a)
     save_verify(verify)
+
+@scheduler.scheduled_job('cron', hour='05')
+@config.ErrorHandle(config.logger.card)
+async def update():
+    global daily_pool_all, daily_pool
+    #new card pool
+    new_card = read_new_card()
+    print(new_card)
+    all_new = list(itertools.chain(*new_card))
+    all_new.sort()
+    all_new = list(more_itertools.unique_justseen(all_new))
+    pool_info = more_itertools.only(filter(lambda x: x['id'] == 0, daily_pool))
+    num = functools.reduce(lambda x, y: x + y, map(lambda x: pool[x], pool_info['cards']), 0)
+    if pool_info is None:
+        daily_pool_all.append({"type": "new", "name": "新卡卡池", "id": 0, "status": 3 if num == 0 else 1, "cards": all_new})
+    else:
+        pool_info['cards'] = all_new
+        if num == 0:
+            pool_info['status'] = 3
+    new_card.pop(0)
+    new_card.append([])
+    save_new_card(new_card)
+    #daily pool
+    for i in range(1, daily_pool_num + 1):
+        #generate
+        num = 0
+        all = list(range(len(card_info)))
+        pool_now = []
+        while num < daily_pool_cap:
+            p = random.choice(all)
+            all.remove(p)
+            if num + pool[p] >= daily_pool_exceed:
+                config.logger.card << f'【WARNING】在生成每日卡池时出现超额，卡池为{pool_now}共{num}张，试图加入{p}共{pool[p]}张失败'
+                continue
+            pool_now.append(p)
+            num += pool[p]
+            if len(all) == 0:
+                break
+        pool_info = more_itertools.only(filter(lambda x: x['id'] == i, daily_pool))
+        pool_now.sort()
+        if pool_info is None:
+            daily_pool_all.append({"type": "daily", "name": "每日卡池" + str(i), "id": i, "status": 1, "cards": pool_now})
+        else:
+            pool_info['cards'] = pool_now
+    save_daily_pool()
+    #person info
+    for qq in os.listdir(config.rel(r'games\card\user_storage')):
+        with open_user_storage(qq) as f:
+            info = f.read_info()
+            info['time'] = daily_draw
+            info['create_time'] = daily_create_type
+            info['create_num'] = daily_create
+            f.save_info(info)
+            if info['message'] == 2:
+                message = f.check_message()
+                if message != []:
+                    config.logger.card << f'【LOG】已定时向用户{f.qq}发送消息：\n' + '\n'.join(message)
+                    await get_bot().send_private_msg(user_id=f.qq, message='\n'.join(message), auto_escape=True)

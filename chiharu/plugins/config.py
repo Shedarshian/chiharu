@@ -85,24 +85,34 @@ class logger(metaclass=_logger_meta):
 @functools.singledispatch
 def ErrorHandle(f):
     @functools.wraps(f)
-    async def _f(session: CommandSession, *args, **kwargs):
+    async def _f(*args, **kwargs):
         try:
-            return await f(session, *args, **kwargs)
+            return await f(*args, **kwargs)
         except Exception:
-            await session.send(traceback.format_exc(), auto_escape=True)
+            if len(args) >= 1 and isinstance(args[0], CommandSession):
+                await args[0].send(traceback.format_exc(), auto_escape=True)
+            elif 'session' in kwargs and isinstance(kwargs['session'], CommandSession):
+                await kwargs['session'].send(traceback.format_exc(), auto_escape=True)
     return _f
 
 @ErrorHandle.register
 def _(g: _logger, if_send=True):
     def _g(f: Awaitable):
         @functools.wraps(f)
-        async def _f(session: CommandSession, *args, **kwargs):
+        async def _f(*args, **kwargs):
             try:
-                return await f(session, *args, **kwargs)
+                return await f(*args, **kwargs)
             except Exception:
-                g << f"【ERR】用户{session.ctx['user_id']} 使用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
-                if if_send:
-                    await session.send(traceback.format_exc(), auto_escape=True)
+                if len(args) >= 1 and isinstance(args[0], CommandSession):
+                    g << f"【ERR】用户{args[0].ctx['user_id']} 使用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
+                    if if_send:
+                        await args[0].send(traceback.format_exc(), auto_escape=True)
+                elif 'session' in kwargs and isinstance(kwargs['session'], CommandSession):
+                    g << f"【ERR】用户{kwargs['session'].ctx['user_id']} 使用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
+                    if if_send:
+                        await kwargs['session'].send(traceback.format_exc(), auto_escape=True)
+                else:
+                    g << f"【ERR】调用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
         return _f
     return _g
         
@@ -116,8 +126,8 @@ def maintain(s):
                 return await f(*args, **kwargs)
             else:
                 if len(args) >= 1 and isinstance(args[0], CommandSession):
-                    await args[0].send(maintain_str[s])
+                    await args[0].send(maintain_str[s], auto_escape=True)
                 elif 'session' in kwargs and isinstance(kwargs['session'], CommandSession):
-                    await kwargs['session'].send(maintain_str[s])
+                    await kwargs['session'].send(maintain_str[s], auto_escape=True)
         return _f
     return _
