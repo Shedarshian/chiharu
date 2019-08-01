@@ -21,6 +21,7 @@ config.logger.open('card')
 # √查看库存指令（翻页） 引导至分解卡与创造卡
 # √查看愿望单 引导至加入愿望单，说明在首次抽到愿望单卡时会自动取消并加入特别喜欢，可以再次加入愿望单代表想要更多
 # 仓储操作指令，包含√加入特别喜欢，√加入愿望单，消息箱设置，指令提示设置
+# √查看消息箱指令
 # √分解卡指令
 # √留言簿指令
 # 凌晨：更新每日限额，更新每日卡池
@@ -48,6 +49,7 @@ guide = {'draw': '使用-card.draw 卡池id/名字 抽卡次数 进行抽卡，�
     'storage': '使用-card.storage 查看库存',
     'discard': '使用-card.discard 卡片名 数量 分解不需要的卡片获得资源（数量默认为1）',
     'wishlist': '使用-card.wishlist 查看愿望单',
+    'check': '使用-card.check 手动查看消息箱',
     'fav&wish': '使用-card.fav 卡片名 将卡片加入特别喜欢，-card.wish 卡片名 将卡片加入愿望单',
     'wish': '使用-card.wish 卡片名 将卡片加入愿望单',
     'confirm': '使用-card.set.unconfirm 取消今日确认使用en抽卡',
@@ -153,9 +155,28 @@ class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True
             self.save(i, data)
         return ret
     async def send(self, msg):
-        info = self.read_info()
-        if info['message'] == 0:
+        info = self.read_info()['message']
+        if info == 0:
             await get_bot().send_private_msg(user_id=self.qq, message=msg + f'\n{guide["message"]}', auto_escape=True)
+        elif info == 1:
+            with open(config.rel(r"games\card\message.json"), encoding='utf-8') as f:
+                message = json.load(f)
+            import datetime
+            msg = f"{datetime.datetime.now().isoformat(' ')} {msg}"
+            if self.qq not in message:
+                message[self.qq] = [msg]
+            else:
+                message[self.qq].append(msg)
+            with open(config.rel(r"games\card\message.json"), 'w', encoding='utf-8') as f:
+                f.write(json.dumps(message, ensure_ascii=False, indent=4, separators=(',', ': ')))
+    async def check_message(self):
+        with open(config.rel(r"games\card\message.json"), encoding='utf-8') as f:
+            message = json.load(f)
+        if self.qq not in message:
+            return []
+        else:
+            return message.pop(self.qq)
+
 class user_create(user_info, path=r"games\card\user_create\%i", if_binary=True):
     def check(self):
         if os.stat(self.path).st_size < 4 * len(pool):
@@ -423,7 +444,8 @@ async def card_userinfo(session: CommandSession):
     with open_user_storage(session.ctx['user_id']) as f:
         info = f.read_info()
         await session.send(f"""剩余en数：{info['money']}\n今日剩余：免费抽卡次数{info['time']} 创造卡片种类{info['create_type']} 创造卡片张数{info['create_num']}{'''
-今日已确认使用en抽卡''' if info['confirm'] else ''}\n消息箱设置：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']] }\n{guide['message']}\n{guide['storage']}{f'''
+今日已确认使用en抽卡''' if info['confirm'] else ''}\n消息箱设置：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']] }{f'''
+{guide['check']}''' if info['message'] == 1 else ''}\n{guide['message']}\n{guide['storage']}{f'''
 {guide['confirm']}''' if info['confirm'] else ''}\n{guide['guide']}\n{guide['comment']}""")
 
 @on_command(('card', 'wishlist'), only_to_me=False)
@@ -572,6 +594,16 @@ async def name_num_parser(session: CommandSession):
         else:
             session.state['name'] = s[:i]
             session.state['num'] = int(s[i + 1:])
+
+@on_command(('card', 'check'), only_to_me=False)
+@config.ErrorHandle(config.logger.card)
+async def card_check(session: CommandSession):
+    with open_user_storage(session.ctx['user_id']) as f:
+        message = f.check_message()
+        if message == []:
+            await session.send('消息箱为空')
+        else:
+            await session.send('\n'.join(message))
 
 @on_command(('card', 'comment'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
