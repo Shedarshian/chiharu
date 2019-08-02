@@ -62,7 +62,7 @@ def group(n, *iterables):
 
 class _logger:
     def __init__(self, name):
-        self.file = open(rel("log\\%s.log" % name), 'a')
+        self.file = open(rel("log\\%s.log" % name), 'a', encoding='utf-8')
     def __del__(self):
         self.file.close()
     def __lshift__(self, a):

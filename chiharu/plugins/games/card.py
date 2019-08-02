@@ -249,15 +249,15 @@ def pool_des(pool_info: Dict):
     not_zero = [x for x in pool_info['cards'] if pool[x] > 0]
     only_one = [x for x in pool_info['cards'] if pool[x] == 1]
     num = functools.reduce(lambda x, y: x + y, map(lambda x: pool[x], pool_info['cards']), 0)
-    return f"""{title[pool_info['type']]}：{pool_info['name']} id：{pool_info['id']}{f'''
-{pool_info['description']} {pool_info['end_date']} 截止''' if pool_info['type'] == 'event' else ''}
+    return f"""{f'''{title[pool_info['type']]}：{pool_info['name']} id：{pool_info['id']}
+{pool_info['description']} {pool_info['end_date']} 截止''' if pool_info['type'] == 'event' else f"{pool_info['name']} id：{pool_info['id']}"}
 {f'包含{_des(not_zero)}共{num}张。' if num != 0 else '卡池已空。'}{f'''
 {_des(only_one)}只余一张！''' if len(only_one) != 0 else ''}"""
 def pool_des_detail(pool_info: Dict):
     title = {'event': '活动卡池', 'daily': '每日卡池', 'new': '新卡卡池'}
     not_zero = list(filter(lambda x: pool[x] > 0, pool_info['cards']))
-    return f"""{title[pool_info['type']]}：{pool_info['name']} id：{pool_info['id']}{f'''
-{pool_info['description']} {pool_info['end_date']} 截止''' if pool_info['type'] == 'event' else ''}
+    return f"""{f'''{title[pool_info['type']]}：{pool_info['name']} id：{pool_info['id']}
+{pool_info['description']} {pool_info['end_date']} 截止''' if pool_info['type'] == 'event' else f"{pool_info['name']} id：{pool_info['id']}"}
 包含卡牌：{'，'.join(map(lambda x: f'''{card_info[x]['name']}x{pool[x]}''', not_zero))}"""
 
 def center_card(*args):
@@ -297,7 +297,7 @@ def add_card(arg: Iterable[Tuple[int, int]]):
             pool[id] += num
             f.write(to_byte(pool[id]))
 
-@on_command(('card', 'draw'), only_to_me=False, aliases=('抽卡'))
+@on_command(('card', 'draw'), only_to_me=False, aliases=('抽卡',))
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
 async def card_draw(session: CommandSession):
@@ -446,6 +446,7 @@ async def card_add(session: CommandSession):
                     id_max = max(-1, -1, *[x['id'] for x in verify]) + 1
                     verify.append({'name': name, 'id': id_max, 'user': [{'qq': qq, 'num': num}]})
                 else:
+                    id_max = None
                     b = more_itertools.only(filter(lambda x: x['qq'] == qq, a['user']))
                     if b is None:
                         a['user'].append({'qq': qq, 'num': num})
@@ -458,7 +459,7 @@ async def card_add(session: CommandSession):
                 config.logger.card << f'【LOG】用户{qq} 获得了{20 * num}en 剩余{info["money"]}en'
                 await session.send(f"已提交卡片 {name} ，待审核，审核成功后会将通知发送至消息箱（默认为私聊）~\n您已获得{20 * num}en\n\n{guide['check']}\n{guide['info']}", auto_escape=True)
                 for group in config.group_id_dict['card_verify']:
-                    await get_bot().send_group_msg(group_id=group, message=f'用户{qq} 提交卡片名\n{name}\n{num}张', auto_escape=True)
+                    await get_bot().send_group_msg(group_id=group, message=f'{qq}提交\n{name}\n{num}张 id:{id_max}', auto_escape=True)
             else:
                 add_new_card(c['id'])
                 add_card(c['id'])
@@ -491,6 +492,7 @@ async def card_wishlist(session: CommandSession):
         wish = [card_info[i]['name'] for i, data in enumerate(f.yield_all()) if data['wish']]
         if len(wish) == 0:
             await session.send(f'您的愿望单是空的呢\n{guide["fav&wish"]}', auto_escape=True)
+            return
         page_count = (len(wish) - 1) // page_max + 1
         if page <= 0 or page > page_count:
             await session.send(f'页码超出范围，您的愿望单共有{page_count}页')
@@ -576,6 +578,9 @@ async def card_storage(session: CommandSession):
     qq = session.ctx['user_id']
     with open_user_storage(qq) as f:
         have = [(i, data) for i, data in enumerate(f.yield_all()) if data['num'] != 0]
+        if len(have) == 0:
+            await session.send(f'您的仓库是空的呢\n{guide["draw"]}', auto_escape=True)
+            return
         fav = [f"{card_info[i]['name']}x{data['num']}" if data['num'] > 1 else card_info[i]['name']
             for i, data in have if data['fav']]
         not_fav = [f"{card_info[i]['name']}x{data['num']}" if data['num'] > 1 else card_info[i]['name']
@@ -689,7 +694,7 @@ async def card_vlist(session: CommandSession):
     else:
         await session.send('\n'.join([f"""id:{x['id']} {x['name']}\n\t{' '.join([f"{a['qq']}的{a['num']}张" for a in x['user']])}""" for x in verify]))
 
-@on_command(('card', 'verify'), only_to_me=False, permission=permission.SUPERUSER)
+@on_command(('card', 'verify'), only_to_me=False, aliases=('cvf',), permission=permission.SUPERUSER)
 @config.ErrorHandle
 async def card_verify(session: CommandSession):
     verify = read_verify()
@@ -764,17 +769,37 @@ async def update():
             daily_pool_all.append({"type": "daily", "name": "每日卡池" + str(i), "id": i, "status": 1, "cards": pool_now})
         else:
             pool_info['cards'] = pool_now
+    #event pool
+    for p in daily_pool:
+        if p['type'] == 'event':
+            if date.fromisoformat(p['end_date']) <= date.today():
+                p['status'] = 0
+            elif p['status'] == 2 and date.fromisoformat(p['begin_date']) <= date.today():
+                p['status'] = 1
     save_daily_pool()
     #person info
     for qq in os.listdir(config.rel(r'games\card\user_storage')):
-        with open_user_storage(qq) as f:
+        with open_user_storage(int(qq)) as f:
             info = f.read_info()
             info['time'] = daily_draw
-            info['create_time'] = daily_create_type
+            info['create_type'] = daily_create_type
             info['create_num'] = daily_create
+            info['confirm'] = False
             f.save_info(info)
             if info['message'] == 2:
                 message = f.check_message()
                 if message != []:
                     config.logger.card << f'【LOG】已定时向用户{f.qq}发送消息：\n' + '\n'.join(message)
                     await get_bot().send_private_msg(user_id=f.qq, message='\n'.join(message), auto_escape=True)
+
+@on_command(('card', 'test'), only_to_me=False, permission=permission.SUPERUSER)
+@config.ErrorHandle
+async def card_test(session: CommandSession):
+    for qq in os.listdir(config.rel(r'games\card\user_storage')):
+        with open_user_storage(int(qq)) as f:
+            info = f.read_info()
+            info['time'] = daily_draw
+            info['create_type'] = daily_create_type
+            info['create_num'] = daily_create
+            info['confirm'] = False
+            f.save_info(info)
