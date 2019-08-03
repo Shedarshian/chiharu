@@ -141,6 +141,7 @@ class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True
     def save_info(self, val):
         self.file.seek(0)
         self.file.write(bytes([val['money'] // 256, val['money'] % 256, val['confirm'] * 128 + val['time'], val['create_type'], val['create_num'] // 256, val['create_num'] % 256, val['message'], val['guide1'], val['guide2'], 0, 0, 0, 0, 0, 0, 0]))
+        self.file.flush()
     def read_nocheck(self, id):
         # 4 byte data for each card
         self.file.seek(4 * id + 16)
@@ -155,6 +156,7 @@ class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True
     def save(self, id, dct):
         self.file.seek(4 * id + 16)
         self.file.write(bytes([dct['num'] // 256, dct['num'] % 256, 0, dct['fav'] * 2 + dct['wish']]))
+        self.file.flush()
     def give(self, *args) -> Dict[str, List[int]]:
         self.check()
         ret = {'max': [], 'wish_reset': []}
@@ -181,19 +183,19 @@ class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True
                 message = json.load(f)
             import datetime
             msg = f"{datetime.datetime.now().isoformat(' ')} {msg}"
-            if self.qq not in message:
-                message[self.qq] = [msg]
+            if str(self.qq) not in message:
+                message[str(self.qq)] = [msg]
             else:
-                message[self.qq].append(msg)
+                message[str(self.qq)].append(msg)
             with open(config.rel(r"games\card\message.json"), 'w', encoding='utf-8') as f:
                 f.write(json.dumps(message, ensure_ascii=False, indent=4, separators=(',', ': ')))
     def check_message(self):
         with open(config.rel(r"games\card\message.json"), encoding='utf-8') as f:
             message = json.load(f)
-        if self.qq not in message:
+        if str(self.qq) not in message:
             return []
         else:
-            return message.pop(self.qq)
+            return message.pop(str(self.qq))
     class _:
         def __init__(self, c):
             self.c = c
@@ -249,16 +251,17 @@ class user_create(user_info, path=r"games\card\user_create\%i", if_binary=True):
         self.save(id, data)
     def check_created(self, name):
         try:
-            with open(self.path + '.txt', 'r') as f:
+            with open(self.path + '.txt', 'r', encoding='utf-8') as f:
                 self.c = list(map(lambda x: x.strip(), f.readlines()))
         except FileNotFoundError:
             self.c = []
         return name in self.c
     def new_created_type_checked(self, name):
         self.c.append(name)
-        with open(self.path + '.txt', 'w') as f:
+        with open(self.path + '.txt', 'w', encoding='utf-8') as f:
             for i in self.c:
                 f.write(i + '\n')
+                f.flush()
 
 @contextlib.contextmanager
 def open_user_create(qq):
@@ -456,17 +459,19 @@ async def card_add(session: CommandSession):
     name, num = session.get('name'), session.get('num')
     if num <= 0:
         await session.send('不能创造负数张卡')
+        return
+    async def _f():
+        pass
     with open_user_storage(qq) as f1, open_user_create(qq) as f2:
         info = f1.read_info()
         created = f2.check_created(name)
         if info['create_type'] < 1 and not created:
-            await session.send(f"您今日创造卡片的种类已达上限，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。{f1.guide['info']}", auto_escape=True)
+            strout = f"您今日创造卡片的种类已达上限，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。{f1.guide['info']}"
         elif info['create_num'] < num:
-            await session.send(f"您今日创造卡片的剩余张数不足，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。{f1.guide['info']}", auto_escape=True)
+            strout = f"您今日创造卡片的剩余张数不足，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。{f1.guide['info']}"
         elif '\n' in name or '\t' in name or '\r' in name or name.startswith(' ') or name.endswith(' '):
-            await session.send("卡片名中含有非法字符，未通过")
+            strout = "卡片名中含有非法字符，未通过"
         else:
-            f1.close('add')
             c = card_find(name)
             if not created:
                 info['create_type'] -= 1
@@ -492,9 +497,10 @@ async def card_add(session: CommandSession):
                 f1.save_info(info)
                 config.logger.card << f"【LOG】用户{qq} 提交卡片名 {name} ，{num}张，待审核"
                 config.logger.card << f'【LOG】用户{qq} 获得了{20 * num}en 剩余{info["money"]}en'
-                await session.send(f"已提交卡片 {name} ，待审核，审核成功后会将通知发送至消息箱（默认为私聊）~\n您已获得{20 * num}en\n{f1.guide['check']}{f1.guide['info']}".strip(), auto_escape=True)
-                for group in config.group_id_dict['card_verify']:
-                    await get_bot().send_group_msg(group_id=group, message=f'{qq}提交\n{name}\n{num}张 id:{id_max}', auto_escape=True)
+                strout = f"已提交卡片 {name} ，待审核，审核成功后会将通知发送至消息箱（默认为私聊）~\n您已获得{20 * num}en\n{f1.guide['check']}{f1.guide['info']}".strip()
+                async def _f():
+                    for group in config.group_id_dict['card_verify']:
+                        await get_bot().send_group_msg(group_id=group, message=f'{qq}提交\n{name}\n{num}张 id:{id_max}', auto_escape=True)
             else:
                 add_new_card(c['id'])
                 add_card(c['id'])
@@ -503,10 +509,14 @@ async def card_add(session: CommandSession):
                 f1.save_info(info)
                 config.logger.card << f"【LOG】用户{qq} 创造卡片{c['id']}，{num}张"
                 config.logger.card << f'【LOG】用户{qq} 获得了{20 * num}en 剩余{info["money"]}en'
-                await session.send(f"成功放入卡片 {c['name']} {num}张，欢迎明日查看新卡卡池\n您已获得{20 * num}en\n{f1.guide['check']}{f1.guide['info']}".strip(), auto_escape=True)
+                strout = f"成功放入卡片 {c['name']} {num}张，欢迎明日查看新卡卡池\n您已获得{20 * num}en\n{f1.guide['check']}{f1.guide['info']}".strip()
+            f1.close('add')
+    await session.send(strout, auto_escape=True)
+    await _f()
 
 @on_command(('card', 'userinfo'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
+@config.maintain('card')
 async def card_userinfo(session: CommandSession):
     qq = session.ctx['user_id']
     with open_user_storage(qq) as f:
@@ -517,6 +527,7 @@ async def card_userinfo(session: CommandSession):
 
 @on_command(('card', 'wishlist'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
+@config.maintain('card')
 async def card_wishlist(session: CommandSession):
     if session.current_arg_text != '':
         page = int(session.current_arg_text)
@@ -540,6 +551,7 @@ async def card_wishlist(session: CommandSession):
 
 @on_command(('card', 'fav'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
+@config.maintain('card')
 async def card_fav(session: CommandSession):
     name = session.current_arg_text.strip()
     qq = session.ctx['user_id']
@@ -563,6 +575,7 @@ async def card_fav(session: CommandSession):
 
 @on_command(('card', 'wish'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
+@config.maintain('card')
 async def card_wish(session: CommandSession):
     name = session.current_arg_text.strip()
     qq = session.ctx['user_id']
@@ -584,6 +597,7 @@ async def card_wish(session: CommandSession):
 
 @on_command(('card', 'set', 'unconfirm'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
+@config.maintain('card')
 async def card_unconfirm(session: CommandSession):
     with open_user_storage(session.ctx['user_id']) as f:
         f.close('confirm')
@@ -595,6 +609,7 @@ async def card_unconfirm(session: CommandSession):
 
 @on_command(('card', 'set', 'message'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
+@config.maintain('card')
 async def card_set_message(session: CommandSession):
     if session.current_arg_text in {'0', '1', '2'}:
         qq = session.ctx['user_id']
@@ -610,6 +625,7 @@ async def card_set_message(session: CommandSession):
 
 @on_command(('card', 'set', 'guide'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
+@config.maintain('card')
 async def card_set_guide(session: CommandSession):
     if session.current_arg_text == 'off':
         off = 255
@@ -629,6 +645,7 @@ async def card_set_guide(session: CommandSession):
 
 @on_command(('card', 'storage'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
+@config.maintain('card')
 async def card_storage(session: CommandSession):
     if session.current_arg_text != '':
         page = int(session.current_arg_text)
@@ -661,6 +678,7 @@ async def card_storage(session: CommandSession):
 
 @on_command(('card', 'discard'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
+@config.maintain('card')
 async def card_discard(session: CommandSession):
     if session.get('name') is None:
         await session.send('请输入想分解的卡名')
@@ -710,6 +728,7 @@ async def name_num_parser(session: CommandSession):
 
 @on_command(('card', 'message'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
+@config.maintain('card')
 async def card_check(session: CommandSession):
     with open_user_storage(session.ctx['user_id']) as f:
         message = f.check_message()
@@ -722,6 +741,7 @@ async def card_check(session: CommandSession):
 
 @on_command(('card', 'comment'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
+@config.maintain('card')
 async def card_comment(session: CommandSession):
     with open(config.rel(r'games\card\comment.json'), encoding='utf-8') as f:
         comments = json.load(f)
@@ -738,6 +758,7 @@ async def card_comment(session: CommandSession):
 
 @on_command(('card', 'help'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
+@config.maintain('card')
 async def card_help(session: CommandSession):
     await call_command(get_bot(), session.ctx, ('help',), current_arg="card")
     with open_user_storage(session.ctx["user_id"]) as f:
@@ -756,7 +777,7 @@ async def card_add_group(session: CommandSession):
     await session.send("successfully added cards")
     config.logger.card << f'【LOG】卡池新增{group}卡组共{len(lst) - 2}种，每种{num}张'
 
-@on_command(('card', 'vlist'), only_to_me=False, permission=permission.SUPERUSER)
+@on_command(('card', 'vlist'), only_to_me=False, aliases=('cvl',), permission=permission.SUPERUSER)
 @config.ErrorHandle
 async def card_vlist(session: CommandSession):
     verify = read_verify()
@@ -868,4 +889,9 @@ async def update():
 @on_command(('card', 'test'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
 async def card_test(session: CommandSession):
-    pass
+    qq = session.ctx['user_id']
+    with open_user_storage(qq) as f:
+        info = f.read_info()
+        info['create_num'] = 11
+        f.save_info(info)
+        await session.send(str(f.read_info()))
