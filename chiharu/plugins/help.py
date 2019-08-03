@@ -11,11 +11,29 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
     "seiyuu": "使用格式：\n-seiyuu.today：查询今天生日的声优列表\n-seiyuu.check seiyuu_name[, count]：返回声优的基本信息，找到多个时可以使用count指明第几个。声优名以日语原文键入，允许假名甚至罗马音。\n-seiyuu.list string[, bound=15]：查询包含string的声优名列表，超过bound时返回前bound个，顺序未指定",
     "game": "欢迎使用-game 指令访问七海千春游戏大厅~",
     "tools": "-tools.Julia [c的x坐标] [c的y坐标]：绘制Julia集\n-tools.oeis：查询oeis（整数序列在线百科全书），支持查询数列前几项（只返回第一个结果），或oeis的编号如A036057",
-    "misc": "-misc.asc.check str：转换str的所有字符到ascii码\n-misc.asc.trans numbers：转换数字到字符\n-misc.bandori.news：查询bandori新闻\n-misc.maj.ten：日麻算点器\n-misc.maj.train：麻将训练\n-misc.maj.ting：听牌计算器\n-misc.maj.voice：雀魂报番语音，第一行番种，换行后为指定角色名\n-misc.token：将输入文本中大括号包含的token转换成latex中包含的unicode字符，使用https://github.com/joom/latex-unicoder.vim/blob/master/autoload/unicoder.vim, https://pastebin.com/jxHsjQK0\n  例：-misc.token f(0)={\\aleph}_0,f({\\alpha}+1)={\\aleph}_{\\alpha}\npage 1/2 使用-help misc 2 翻页",
-    "misc 2": "-misc.latex：渲染latex公式\n-misc.money：面基算钱小助手 请单独-help misc.money\n-misc.roll.lyric：随机抽歌词，默认从全歌单中抽取，支持参数：vocalo kon imas ml cgss sphere aki bandori ll mu's Aqours starlight mh\n-event year month day [max_note=100]：按日期在eventernote.com查询该日发生的event，筛选条件为eventernote登录数大于max_note，默认为100，调低时请一定要注意避免刷屏！\npage 2/2",
+    "misc": "-misc.asc.check str：转换str的所有字符到ascii码\n-misc.asc.trans numbers：转换数字到字符\n-misc.bandori.news：查询bandori新闻\n-misc.maj.ten：日麻算点器\n-misc.maj.train：麻将训练\n-misc.maj.ting：听牌计算器\n-misc.maj.voice：雀魂报番语音，第一行番种，换行后为指定角色名\n-misc.token：将输入文本中大括号包含的token转换成latex中包含的unicode字符，使用https://github.com/joom/latex-unicoder.vim/blob/master/autoload/unicoder.vim, https://pastebin.com/jxHsjQK0\n  例：-misc.token f(0)={\\aleph}_0,f({\\alpha}+1)={\\aleph}_{\\alpha}\n-misc.latex：渲染latex公式\n-misc.money：面基算钱小助手 请单独-help misc.money\n-misc.roll.lyric：随机抽歌词，默认从全歌单中抽取，支持参数：vocalo kon imas ml cgss sphere aki bandori ll mu's Aqours starlight mh\n-event year month day [max_note=100]：按日期在eventernote.com查询该日发生的event，筛选条件为eventernote登录数大于max_note，默认为100，调低时请一定要注意避免刷屏！",
     "misc.money": "每行为一条指令。指令：\nclear: 清除所有数据。\nadd [人名]: 增加一个人。\nbill [人名] [金额] [可选：需付费的人名列表]: 增加一个需付费账单，人名列表为空则默认【包括自己的】所有人。\noutput [策略] [参数]: 输出金额交换。策略目前有：\n\toneman [参数：人名]: 所有金额交换全部支付给此人/由此人支付。",
     #"event": "使用格式：\n-event year month day [max_note = 100]：按日期在eventernote.com查询该日发生的event，筛选条件为eventernote登录数大于max_note，默认为100，调低时请一定要注意避免刷屏！",
     "thwiki": "使用格式：-thwiki.list：显示预定直播列表\n-thwiki.check：查询thbwiki bilibili账户的直播状态",
+    "card": """指令列表：-card.draw 卡池id/名字 抽卡次数 可以抽卡！！次数不填默认为单抽
+-card.draw5 卡池id/名字 直接进行五连抽卡
+-card.check 卡池id/名字 查询卡池具体信息，包含具体卡牌（刷屏预警，建议私聊~）
+-card.check 不带参数 查询卡池列表与介绍
+-card.add 卡片名字 张数 就可以创造卡片加入卡池 张数不填默认为1张
+-card.userinfo 查看个人信息，包含en数，剩余免费抽卡次数等等
+-card.storage 查看库存卡片
+-card.discard 卡片名 数量 分解卡片获得en，张数不填默认为1张
+-card.wishlist 查看愿望单
+-card.message 手动查看消息箱
+-card.set.属性 改变用户设置，可以使用-help card.set查询可以改变的设置
+-card.fav 卡片名 将卡片加入特别喜欢
+-card.wish 卡片名 将卡片加入愿望单
+-card.comment 给维护者留言~想说的话，想更新的功能，想开启的活动卡池都可以哦~""",
+    "card.set": """-card.set.unconfirm 取消今日确认使用en抽卡
+-card.set.message 参数 设置消息箱提醒，支持参数：-card.set.message 0：立即私聊
+-card.set.message 1：手动收取
+-card.set.message 2：凌晨定时发送私聊
+-card.set.guide on或off：开启或关闭全部指令引导。指令引导会在使用一次该指令后自动关闭""",
     "me": "こんにちは～七海千春です～\n维护者：小大圣\n鸣谢：Python®  酷Q®  nonebot®  阿里云®",
     "default": "指令："
         #"\n-eclins：查询ecl的instruction"

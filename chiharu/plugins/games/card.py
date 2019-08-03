@@ -52,13 +52,15 @@ guide = {'draw': '使用-card.draw 卡池id/名字 抽卡次数 进行抽卡，�
     'storage': '使用-card.storage 查看库存',
     'discard': '使用-card.discard 卡片名 数量 分解不需要的卡片获得资源（数量默认为1）',
     'wishlist': '使用-card.wishlist 查看愿望单',
-    'check': '使用-card.check 手动查看消息箱',
+    'check_message': '使用-card.message 手动查看消息箱',
     'fav&wish': '使用-card.fav 卡片名 将卡片加入特别喜欢，-card.wish 卡片名 将卡片加入愿望单',
     'wish': '使用-card.wish 卡片名 将卡片加入愿望单',
     'confirm': '使用-card.set.unconfirm 取消今日确认使用en抽卡',
     'message': '使用-card.set.message 参数 设置消息箱提醒',
-    'guide': '使用-xxxxxx 关闭或开启指令提示',
-    'comment': '使用-card.comment 给维护者留言~'}
+    'guide': '使用-card.set.guide on或off 开启或关闭指令提示',
+    'comment': '使用-card.comment 给维护者留言~',
+    'help': '使用-card.help或-help card查询指令列表'}
+    #16个，满了！
 
 with open(config.rel(r"games\card\pool"), 'rb') as f:
     pool = list(itertools.starmap(lambda x, y: int(x) * 256 + int(y), more_itertools.chunked(f.read(), 2)))
@@ -120,6 +122,9 @@ class user_info:
     def __del__(self):
         self.file.close()
 class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True):
+    def __init__(self, index):
+        super(user_storage, self).__init__(index)
+        self.guide = user_storage._(self)
     def init_begin(self):
         self.file = open(self.path, 'x+b' if self.if_binary else 'x+')
         self.file.write(bytes([0, 0, daily_draw, daily_create_type, daily_create // 256, daily_create % 256, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
@@ -132,10 +137,10 @@ class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True
         # 16 byte data for user info
         self.file.seek(0)
         a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p = self.file.read(16)
-        return {'money': a * 256 + b, 'confirm': bool(c & 128), 'time': c % 128, 'create_type': d, 'create_num': e * 256 + f, 'message': g % 32}
+        return {'money': a * 256 + b, 'confirm': bool(c & 128), 'time': c % 128, 'create_type': d, 'create_num': e * 256 + f, 'message': g % 32, 'guide1': h, 'guide2': i}
     def save_info(self, val):
         self.file.seek(0)
-        self.file.write(bytes([val['money'] // 256, val['money'] % 256, val['confirm'] * 128 + val['time'], val['create_type'], val['create_num'] // 256, val['create_num'] % 256, val['message'], 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+        self.file.write(bytes([val['money'] // 256, val['money'] % 256, val['confirm'] * 128 + val['time'], val['create_type'], val['create_num'] // 256, val['create_num'] % 256, val['message'], val['guide1'], val['guide2'], 0, 0, 0, 0, 0, 0, 0]))
     def read_nocheck(self, id):
         # 4 byte data for each card
         self.file.seek(4 * id + 16)
@@ -170,7 +175,7 @@ class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True
     async def send(self, msg):
         info = self.read_info()['message']
         if info == 0:
-            await get_bot().send_private_msg(user_id=self.qq, message=msg + f'\n{guide["message"]}', auto_escape=True)
+            await get_bot().send_private_msg(user_id=self.qq, message=msg + self.guide["message"], auto_escape=True)
         elif info == 1 or info == 2:
             with open(config.rel(r"games\card\message.json"), encoding='utf-8') as f:
                 message = json.load(f)
@@ -189,6 +194,39 @@ class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True
             return []
         else:
             return message.pop(self.qq)
+    class _:
+        def __init__(self, c):
+            self.c = c
+        def __getitem__(self, key):
+            info = self.c.read_info()
+            try:
+                id = list(guide.keys()).index(key)
+                if id >= 8:
+                    res = bool(info['guide2'] & 2 ** (id - 8))
+                else:
+                    res = bool(info['guide1'] & 2 ** id)
+                if res:
+                    return ''
+                else:
+                    return '\n' + guide[key]
+            except ValueError:
+                raise KeyError
+    def close(self, key):
+        info = self.read_info()
+        try:
+            id = list(guide.keys()).index(key)
+            if id >= 8:
+                if not info['guide2'] & 2 ** (id - 8):
+                    config.logger.card << f'用户{self.qq} 已自动关闭指令引导{key}'
+                    info['guide2'] |= 2 ** (id - 8)
+                    self.save_info(info)
+            else:
+                if not info['guide1'] & 2 ** id:
+                    config.logger.card << f'用户{self.qq} 已自动关闭指令引导{key}'
+                    info['guide1'] |= 2 ** id
+                    self.save_info(info)
+        except ValueError:
+            raise KeyError
 class user_create(user_info, path=r"games\card\user_create\%i", if_binary=True):
     def check(self):
         if os.stat(self.path).st_size < 4 * len(pool):
@@ -266,19 +304,7 @@ def center_card(*args):
 每天呢，有3个随机取出的每日卡池，以及近3天所有新创造的卡的新卡卡池，不定期还会开放活动卡池哦
 玩家每天有10次免费抽卡机会，每分解一张卡以及创造一张都可以获得20en，也可以消耗100en抽一张卡
 每天创造的卡片数和种类数也有上限哦，在凌晨5点会更新每日卡池以及重置上限www创造的新的卡片名字需要审核哦~
-指令列表：-card.draw 卡池id/名字 抽卡次数 可以抽卡！！次数不填默认为单抽
--card.draw5 卡池id/名字 直接进行五连抽卡
--card.check 卡池id/名字 查询卡池具体信息，包含具体卡牌（刷屏预警，建议私聊~）
--card.check 不带参数 查询卡池列表与介绍
--card.add 卡片名字 张数 就可以创造卡片加入卡池 张数不填默认为1张
--card.userinfo 查看个人信息，包含en数，剩余免费抽卡次数等等
--card.storage 查看库存卡片
--card.discard 卡片名 数量 分解卡片获得en，张数不填默认为1张
--card.wishlist 查看愿望单
--card.check 手动查看消息箱
--card.fav 卡片名 将卡片加入特别喜欢
--card.wish 卡片名 将卡片加入愿望单
--card.comment 给维护者留言~想说的话，想更新的功能，想开启的活动卡池都可以哦~
+使用-card.help或-help card查询全部指令列表
 お楽しみに～"""
 
 def add_cardname(arg: Iterable[Tuple[int, int]], **kwargs):
@@ -303,7 +329,8 @@ def add_card(arg: Iterable[Tuple[int, int]]):
 async def card_draw(session: CommandSession):
     if session.get('name') is None:
         # 卡池介绍
-        await session.send('\n'.join([pool_des(x) for x in daily_pool]) + '\n\n' + guide['draw'], auto_escape=True)
+        with open_user_storage(session.ctx['user_id']) as f:
+            await session.send(('\n'.join([pool_des(x) for x in daily_pool]) + '\n' + f.guide['draw']).strip(), auto_escape=True)
     else:
         qq = session.ctx['user_id']
         name, num = session.get('name'), session.get('num')
@@ -312,7 +339,8 @@ async def card_draw(session: CommandSession):
             return
         p = daily_pool_find(name)
         if p is None:
-            await session.send('未发现此卡池\n' + guide['draw'])
+            with open_user_storage(qq) as f:
+                await session.send('未发现此卡池' + f.guide['draw'])
         elif p['status'] == 3:
             await session.send('卡池已空，无法继续抽取')
         else:
@@ -330,10 +358,10 @@ async def card_draw(session: CommandSession):
                         if info['money'] >= 100:
                             info['confirm'] = True
                             f.save_info(info)
-                            await session.send(f'您今日的免费10次抽卡次数已用尽，是否确认使用en进行抽卡？再次输入抽卡指令确认\n{guide["info"]}\n{guide["confirm"]}', auto_escape=True) # 取消确认？？？ TODO
+                            await session.send(f'您今日的免费10次抽卡次数已用尽，是否确认使用en进行抽卡？再次输入抽卡指令确认{f.guide["info"]}{f.guide["confirm"]}', auto_escape=True) # 取消确认？？？ TODO
                             config.logger.card << f'【LOG】用户{qq} 免费抽卡次数已用尽 可以使用en进行抽卡'
                         else:
-                            await session.send(f'您今日的免费10次抽卡次数已用尽\n{guide["info"]}', auto_escape=True)
+                            await session.send(f'您今日的免费10次抽卡次数已用尽{f.guide["info"]}', auto_escape=True)
                             config.logger.card << f'【LOG】用户{qq} 免费抽卡次数已用尽'
                         return
                     else:
@@ -343,11 +371,11 @@ async def card_draw(session: CommandSession):
                             data['money'] = info['money']
                             f.save_info(info)
                         else:
-                            await session.send(f'您剩余en已不足\n\n您还有{info["money"]}en，每100en可以抽一张卡\n{guide["info"]}', auto_escape=True)
+                            await session.send(f'您剩余en已不足\n\n您还有{info["money"]}en，每100en可以抽一张卡{f.guide["info"]}', auto_escape=True)
                             config.logger.card << f'【LOG】用户{qq} en数不足'
                             return
                 elif info['time'] < num:
-                    await session.send(f'您今日的免费10次抽卡次数不足，只剩{info["time"]}次\n{guide["info"]}', auto_escape=True)
+                    await session.send(f'您今日的免费10次抽卡次数不足，只剩{info["time"]}次{f.guide["info"]}', auto_escape=True)
                     config.logger.card << f'【LOG】用户{qq} 免费抽卡次数不足'
                     return
                 else:
@@ -371,6 +399,7 @@ async def card_draw(session: CommandSession):
                 get = list(_f())
                 ret = f.give(*get)
                 save_pool()
+                f.close('draw')
             await session.send(f"""{'''您已把卡池抽空！
 ''' if data['empty'] else ''}恭喜您抽中：
 {get_card_names(*get)}{f'''
@@ -402,14 +431,19 @@ async def card_draw_5(session: CommandSession):
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
 async def card_check(session: CommandSession):
+    qq = session.ctx['user_id']
     if session.current_arg_text == "":
-        await session.send('\n'.join([pool_des(x) for x in daily_pool]) + f'\n\n{guide["draw"]}\n{guide["check_detail"]}', auto_escape=True)
+        with open_user_storage(qq) as f:
+            f.close('check')
+            await session.send(('\n'.join([pool_des(x) for x in daily_pool]) + f'\n{f.guide["draw"]}{f.guide["check_detail"]}').strip(), auto_escape=True)
     else:
         p = daily_pool_find(session.current_arg_text)
         if p is None:
             await session.send('未发现此卡池')
         else:
-            await session.send(pool_des_detail(p) + f'\n\n{guide["draw"]}\n{guide["check"]}', auto_escape=True)
+            with open_user_storage(qq) as f:
+                f.close('check_detail')
+                await session.send((pool_des_detail(p) + f'\n{guide["draw"]}{guide["check"]}').strip(), auto_escape=True)
 
 @on_command(('card', 'add'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
@@ -426,12 +460,13 @@ async def card_add(session: CommandSession):
         info = f1.read_info()
         created = f2.check_created(name)
         if info['create_type'] < 1 and not created:
-            await session.send(f"您今日创造卡片的种类已达上限，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。\n{guide['info']}", auto_escape=True)
+            await session.send(f"您今日创造卡片的种类已达上限，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。{f1.guide['info']}", auto_escape=True)
         elif info['create_num'] < num:
-            await session.send(f"您今日创造卡片的剩余张数不足，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。\n{guide['info']}", auto_escape=True)
+            await session.send(f"您今日创造卡片的剩余张数不足，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。{f1.guide['info']}", auto_escape=True)
         elif '\n' in name or '\t' in name or '\r' in name or name.startswith(' ') or name.endswith(' '):
             await session.send("卡片名中含有非法字符，未通过")
         else:
+            f1.close('add')
             c = card_find(name)
             if not created:
                 info['create_type'] -= 1
@@ -457,7 +492,7 @@ async def card_add(session: CommandSession):
                 f1.save_info(info)
                 config.logger.card << f"【LOG】用户{qq} 提交卡片名 {name} ，{num}张，待审核"
                 config.logger.card << f'【LOG】用户{qq} 获得了{20 * num}en 剩余{info["money"]}en'
-                await session.send(f"已提交卡片 {name} ，待审核，审核成功后会将通知发送至消息箱（默认为私聊）~\n您已获得{20 * num}en\n\n{guide['check']}\n{guide['info']}", auto_escape=True)
+                await session.send(f"已提交卡片 {name} ，待审核，审核成功后会将通知发送至消息箱（默认为私聊）~\n您已获得{20 * num}en\n{f1.guide['check']}{f1.guide['info']}".strip(), auto_escape=True)
                 for group in config.group_id_dict['card_verify']:
                     await get_bot().send_group_msg(group_id=group, message=f'{qq}提交\n{name}\n{num}张 id:{id_max}', auto_escape=True)
             else:
@@ -468,17 +503,17 @@ async def card_add(session: CommandSession):
                 f1.save_info(info)
                 config.logger.card << f"【LOG】用户{qq} 创造卡片{c['id']}，{num}张"
                 config.logger.card << f'【LOG】用户{qq} 获得了{20 * num}en 剩余{info["money"]}en'
-                await session.send(f"成功放入卡片 {c['name']} {num}张，欢迎明日查看新卡卡池\n您已获得{20 * num}en\n\n{guide['check']}\n{guide['info']}", auto_escape=True)
+                await session.send(f"成功放入卡片 {c['name']} {num}张，欢迎明日查看新卡卡池\n您已获得{20 * num}en\n{f1.guide['check']}{f1.guide['info']}".strip(), auto_escape=True)
 
 @on_command(('card', 'userinfo'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 async def card_userinfo(session: CommandSession):
-    with open_user_storage(session.ctx['user_id']) as f:
+    qq = session.ctx['user_id']
+    with open_user_storage(qq) as f:
+        f.close('info')
         info = f.read_info()
         await session.send(f"""剩余en数：{info['money']}\n今日剩余：免费抽卡次数{info['time']} 创造卡片种类{info['create_type']} 创造卡片张数{info['create_num']}{'''
-今日已确认使用en抽卡''' if info['confirm'] else ''}\n消息箱设置：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']] }{f'''
-{guide['check']}''' if info['message'] == 1 else ''}\n{guide['message']}\n{guide['storage']}{f'''
-{guide['confirm']}''' if info['confirm'] else ''}\n{guide['guide']}\n{guide['comment']}""")
+今日已确认使用en抽卡''' if info['confirm'] else ''}\n消息箱设置：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']] }{f'''{f.guide['check_message']}''' if info['message'] == 1 else ''}{f.guide['message']}{f.guide['storage']}{f.guide['confirm'] if info['confirm'] else ''}{f.guide['guide']}{f.guide['comment']}""")
 
 @on_command(('card', 'wishlist'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
@@ -491,7 +526,7 @@ async def card_wishlist(session: CommandSession):
     with open_user_storage(qq) as f:
         wish = [card_info[i]['name'] for i, data in enumerate(f.yield_all()) if data['wish']]
         if len(wish) == 0:
-            await session.send(f'您的愿望单是空的呢\n{guide["fav&wish"]}', auto_escape=True)
+            await session.send(f'您的愿望单是空的呢{f.guide["fav&wish"]}', auto_escape=True)
             return
         page_count = (len(wish) - 1) // page_max + 1
         if page <= 0 or page > page_count:
@@ -500,7 +535,8 @@ async def card_wishlist(session: CommandSession):
         strout = ''.join(wish[page_max * (page - 1):page_max * page])
         if page_count != 1:
             strout += f'\npage: {page}/{page_count}'
-        await session.send(f'您的愿望单包含：\n{strout}\n{guide["storage"]}', auto_escape=True)
+        f.close('wishlist')
+        await session.send(f'您的愿望单包含：\n{strout}{f.guide["storage"]}', auto_escape=True)
 
 @on_command(('card', 'fav'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
@@ -519,10 +555,11 @@ async def card_fav(session: CommandSession):
             elif data['num'] == 0:
                 await session.send('您还未拥有该卡，可' + guide['wish'])
             else:
+                f.close('fav&wish')
                 data['fav'] = True
                 f.save(card['id'], data)
                 config.logger.card << f"【LOG】用户{qq} 将卡片{card['name']}加入特别喜欢"
-                await session.send(f'已成功将卡片{card["name"]}加入特别喜欢\n{guide["storage"]}')
+                await session.send(f'已成功将卡片{card["name"]}加入特别喜欢{f.guide["storage"]}')
 
 @on_command(('card', 'wish'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
@@ -539,15 +576,17 @@ async def card_wish(session: CommandSession):
             if data['wish']:
                 await session.send('该卡已在您的愿望单之内')
             else:
+                f.close('wish')
                 data['wish'] = True
                 f.save(card['id'], data)
                 config.logger.card << f"【LOG】用户{qq} 将{'未' if data['num'] == 0 else '已'}拥有的卡片{card['name']}加入愿望单"
-                await session.send(f"已成功将{'未' if data['num'] == 0 else '已'}拥有的卡片{card['name']}加入愿望单\n{guide['storage']}\n{guide['wishlist']}")
+                await session.send(f"已成功将{'未' if data['num'] == 0 else '已'}拥有的卡片{card['name']}加入愿望单{f.guide['storage']}{f.guide['wishlist']}")
 
 @on_command(('card', 'set', 'unconfirm'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 async def card_unconfirm(session: CommandSession):
     with open_user_storage(session.ctx['user_id']) as f:
+        f.close('confirm')
         info = f.read_info()
         info['confirm'] = False
         f.save_info(info)
@@ -560,13 +599,33 @@ async def card_set_message(session: CommandSession):
     if session.current_arg_text in {'0', '1', '2'}:
         qq = session.ctx['user_id']
         with open_user_storage(qq) as f:
+            f.close('message')
             info = f.read_info()
             info['message'] = int(session.current_arg_text)
             f.save_info(info)
             config.logger.card << f"【LOG】用户{qq} 修改消息箱设置至{info['message']}：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']]}"
-            await session.send(f"消息箱设置已修改为：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']]}\n{guide['userinfo']}")
+            await session.send(f"消息箱设置已修改为：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']]}{f.guide['info']}")
     else:
         await session.send("支持参数：\n-card.set.message 0：立即私聊\n-card.set.message 1：手动收取\n-card.set.message 2：凌晨定时发送私聊")
+
+@on_command(('card', 'set', 'guide'), only_to_me=False)
+@config.ErrorHandle(config.logger.card)
+async def card_set_guide(session: CommandSession):
+    if session.current_arg_text == 'off':
+        off = 255
+    elif session.current_arg_text == 'on':
+        off = 0
+    else:
+        await session.send('使用-card.set.guide on或off：开启或关闭全部指令引导。指令引导会在使用一次该指令后自动关闭')
+        return
+    with open_user_storage(session.ctx['user_id']) as f:
+        #f.close('guide')
+        info = f.read_info()
+        info['guide1'] = off
+        info['guide2'] = off
+        f.save_info(info)
+        config.logger.card << f'用户{session.ctx["user_id"]} 已{"关闭" if off else "开启"}全部指令引导'
+        await session.send(f'您已成功{"关闭" if off else "开启"}全部指令引导')
 
 @on_command(('card', 'storage'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
@@ -579,7 +638,7 @@ async def card_storage(session: CommandSession):
     with open_user_storage(qq) as f:
         have = [(i, data) for i, data in enumerate(f.yield_all()) if data['num'] != 0]
         if len(have) == 0:
-            await session.send(f'您的仓库是空的呢\n{guide["draw"]}', auto_escape=True)
+            await session.send(f'您的仓库是空的呢{f.guide["draw"]}', auto_escape=True)
             return
         fav = [f"{card_info[i]['name']}x{data['num']}" if data['num'] > 1 else card_info[i]['name']
             for i, data in have if data['fav']]
@@ -597,7 +656,8 @@ async def card_storage(session: CommandSession):
             strout = '您的卡牌：\n' + '，'.join(not_fav[page_max * (page - 1) - len(fav):page_max * page - len(fav)])
         if page_count != 1:
             strout += f'\npage: {page}/{page_count}'
-        await session.send(strout + f'\n{guide["add"]}\n{guide["discard"]}\n{guide["fav&wish"]}', auto_escape=True)
+        f.close('storage')
+        await session.send(strout + f'{f.guide["add"]}{f.guide["discard"]}{f.guide["fav&wish"]}', auto_escape=True)
 
 @on_command(('card', 'discard'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
@@ -619,6 +679,7 @@ async def card_discard(session: CommandSession):
         elif data['num'] < num:
             await session.send(f'您此卡余量不足，只有{data["num"]}张')
         else:
+            f.close('discard')
             data['num'] -= num
             info = f.read_info()
             info['money'] += num * 20
@@ -629,7 +690,7 @@ async def card_discard(session: CommandSession):
             if data['num'] == 0 and data['fav']:
                 data['fav'] = False
             config.logger.card << f'【LOG】用户{qq} 已无{card["name"]}，自动从特别喜欢中删除'
-            await session.send(f'您已成功分解{num}张{card["name"]}，现剩余{info["money"]}en\n{guide["info"]}', auto_escape=True)
+            await session.send(f'您已成功分解{num}张{card["name"]}，现剩余{info["money"]}en{f.guide["info"]}', auto_escape=True)
 
 @card_draw.args_parser
 @card_add.args_parser
@@ -655,8 +716,9 @@ async def card_check(session: CommandSession):
         if message == []:
             await session.send('消息箱为空')
         else:
+            f.close('check_message')
             config.logger.card << f'【LOG】用户{session.ctx["user_id"]} 已接收消息：\n' + '\n'.join(message)
-            await session.send('\n'.join(message))
+            await session.send('您的消息箱包含以下消息：\n' + '\n'.join(message))
 
 @on_command(('card', 'comment'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
@@ -668,9 +730,18 @@ async def card_comment(session: CommandSession):
     with open(config.rel(r'games\card\comment.json'), 'w', encoding='utf-8') as f:
         f.write(json.dumps(comments, ensure_ascii=False, indent=4, separators=(',', ': ')))
     config.logger.card << f"【LOG】用户{session.ctx['user_id']} 留言：\n{session.current_arg}"
+    with open_user_storage(session.ctx["user_id"]) as f:
+        f.close('message')
     await session.send('您已成功送出一条留言~感谢您的反馈')
     for group in config.group_id_dict['card_verify']:
         await get_bot().send_group_msg(group_id=group, message=f'用户{session.ctx["user_id"]} 留言：\n{session.current_arg}', auto_escape=True)
+
+@on_command(('card', 'help'), only_to_me=False)
+@config.ErrorHandle(config.logger.card)
+async def card_help(session: CommandSession):
+    await call_command(get_bot(), session.ctx, ('help',), current_arg="card")
+    with open_user_storage(session.ctx["user_id"]) as f:
+        f.close('message')
 
 @on_command(('card', 'add_group'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
@@ -732,7 +803,6 @@ async def update():
     global daily_pool_all, daily_pool
     #new card pool
     new_card = read_new_card()
-    print(new_card)
     all_new = list(itertools.chain(*new_card))
     all_new.sort()
     all_new = list(more_itertools.unique_justseen(all_new))
@@ -744,6 +814,8 @@ async def update():
         pool_info['cards'] = all_new
         if num == 0:
             pool_info['status'] = 3
+        else:
+            pool_info['status'] = 1
     new_card.pop(0)
     new_card.append([])
     save_new_card(new_card)
@@ -769,6 +841,7 @@ async def update():
             daily_pool_all.append({"type": "daily", "name": "每日卡池" + str(i), "id": i, "status": 1, "cards": pool_now})
         else:
             pool_info['cards'] = pool_now
+            pool_info['status'] = 1
     #event pool
     for p in daily_pool:
         if p['type'] == 'event':
@@ -795,11 +868,4 @@ async def update():
 @on_command(('card', 'test'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
 async def card_test(session: CommandSession):
-    for qq in os.listdir(config.rel(r'games\card\user_storage')):
-        with open_user_storage(int(qq)) as f:
-            info = f.read_info()
-            info['time'] = daily_draw
-            info['create_type'] = daily_create_type
-            info['create_num'] = daily_create
-            info['confirm'] = False
-            f.save_info(info)
+    pass
