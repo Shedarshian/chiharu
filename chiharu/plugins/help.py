@@ -19,6 +19,7 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
 -card.draw5 卡池id/名字 直接进行五连抽卡
 -card.check 卡池id/名字 查询卡池具体信息，包含具体卡牌（刷屏预警，建议私聊~）
 -card.check 不带参数 查询卡池列表与介绍
+-card.check_card 卡片名 查询卡片余量
 -card.add 卡片名字 张数 就可以创造卡片加入卡池 张数不填默认为1张
 -card.userinfo 查看个人信息，包含en数，剩余免费抽卡次数等等
 -card.storage 查看库存卡片
