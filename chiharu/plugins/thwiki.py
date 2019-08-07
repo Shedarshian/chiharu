@@ -10,12 +10,6 @@ from urllib import parse
 from nonebot import on_command, CommandSession, get_bot, permission, scheduler, on_notice, NoticeSession
 import chiharu.plugins.config as config
 import chiharu.plugins.help as Help
-#from selenium.webdriver import chrome, Chrome
-
-#chrome_options = chrome.options.Options()
-#chrome_options.add_argument('--disable-gpu')
-#driver = Chrome(options=chrome_options)
-#driver.get('https://passport.bilibili.com/login')
 
 async def change(title=None, description=None):
     cookie_jar = requests.cookies.RequestsCookieJar()
@@ -496,7 +490,8 @@ async def thwiki_maintain(session: CommandSession):
         await th_open(is_open=False)
         await session.send('已进入维护状态，再次输入空字符串解除')
     else:
-        await session.send('已解除维护状态')
+        if await permission.check_permission(get_bot(), session.ctx, permission.GROUP_OWNER | permission.SUPERUSER):
+            await session.send('已解除维护状态')
 
 @on_command(('thwiki', 'blacklist'), only_to_me=False, permission=permission.GROUP_ADMIN)
 @config.ErrorHandle

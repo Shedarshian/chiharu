@@ -101,6 +101,7 @@ try:
     isLoggedin = True
 except:
     isLoggedin = False
+told_not_logged_in = False
 
 @on_command(('boss', 'login'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
@@ -157,12 +158,14 @@ class Status:
 
 @scheduler.scheduled_job('cron', minute='00-57/3')
 async def check_boss():
-    global BossCheck, isLoggedin
+    global BossCheck, isLoggedin, told_not_logged_in
     bot = get_bot()
     if not isLoggedin:
+        if not told_not_logged_in:
+            for group in config.group_id_dict['boss']:
+                await bot.send_group_msg(group_id=group, message='please login: -boss.login password')
+            told_not_logged_in = True
         return
-    #    for group in config.group_id_dict['boss']:
-    #        await bot.send_group_msg(group_id=group, message='please login: -boss.login password')
     def _f():
         stdin, stdout, stderr = ssh.exec_command('/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin/hep_q -u qity')
         output = stdout.readlines()[-1]
@@ -218,14 +221,13 @@ idmap = {'all': 2503049358,
 
 @functools.total_ordering
 class Time:
+    match = re.compile('^(\d{1,3}):(\d{1,2})\.(\d{1,3})$')
     def __init__(self, timestr):
         self.str = timestr
-        assert(len(timestr) >= 7 and len(timestr) <= 9)
-        self.minute = int(timestr[0:2])
-        assert(timestr[2] == ':')
-        self.second = int(timestr[3:5])
-        assert(timestr[5] == '.')
-        self.milisecond = int(timestr[6:]) * (10 ** (9 - len(timestr)))
+        match = re.match(self.match, self.str)
+        assert(match)
+        self.minute, self.second, self.milisecond = match.groups()
+        self.milisecond *= 10 ** (3 - len(match.group(3)))
     def __lt__(self, other):
         return (self.minute, self.second, self.milisecond) < (other.minute, other.second, other.milisecond)
     def __eq__(self, other):
@@ -287,7 +289,7 @@ def printLyric(idx):
 def getLyric(listid):
     pl = ncmbot.play_list_detail(id = str(listid)).json()
     trks = pl['playlist']['trackIds']
-    print(len(trks))
+    #print(len(trks))
     while 1:
         ran_trk = random.choice(trks)
         lyricl = ncmbot.lyric(id = ran_trk['id']).json()

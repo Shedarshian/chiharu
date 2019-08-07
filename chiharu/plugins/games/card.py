@@ -525,7 +525,7 @@ async def card_add(session: CommandSession):
                         await get_bot().send_group_msg(group_id=group, message=f'{qq}提交\n{name}\n{num}张 id:{id_max}', auto_escape=True)
             else:
                 add_new_card(c['id'])
-                add_card(c['id'])
+                add_card(((c['id'], num),))
                 f2.create(c['id'], num, False)
                 info['money'] += 20 * num
                 f1.save_info(info)
