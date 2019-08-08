@@ -4,6 +4,7 @@ import requests
 import json
 import asyncio
 import functools
+import more_itertools
 import random
 from copy import copy
 from urllib import parse
@@ -63,11 +64,16 @@ def format_date(dat: datetime):
         return '{0:%Y}年{0:%m}月{0:%d}日{0:%H}:{0:%M}'.format(dat)
 
 class Event:
+    max_id = 0
     def __init__(self, *args):
         if len(args) == 6:
             self.begin, self.end, self.qq, self.card, self.name, self.isFloat = args
+            self.id = Event.max_id
+            Event.max_id += 1
         elif len(args) == 3:
-            begin, end, qq = args[0].split(' ')
+            id, begin, end, qq, witness = args[0].split(' ')
+            self.id = int(id)
+            Event.max_id = max(Event.max_id, self.id + 1)
             if end == 'float':
                 self.end = False
                 self.isFloat = True
@@ -75,35 +81,40 @@ class Event:
             else:
                 self.isFloat = False
                 self.begin, self.end, self.qq = datetime.fromtimestamp(float(begin)), datetime.fromtimestamp(float(end)), int(qq)
+            self.witness = int(witness)
             self.card = args[1]
             self.name = args[2]
         else:
             raise TypeError()
+        self.witness = 0 # -1: 有权限，0: 无权限
     def __repr__(self):
         begin = str(self.begin.timestamp())
         if self.isFloat:
             end = 'float'
         else:
             end = str(self.end.timestamp())
-        qq = str(self.qq)
-        return '%s %s %s\n%s\n%s' % (begin, end, qq, self.card, self.name)
+        return f'{self.id} {begin} {end} {self.qq} {self.witness}\n{self.card}\n{self.name}'
     def __str__(self):
         begin = format_date(self.begin)
         if self.isFloat:
             end = '自由'
         else:
             end = format_date(self.end)
-        return '%s-%s\n投稿人: %s\n内容: %s' % (begin, end, self.card, self.name)
+        return f'id: {self.id} {begin}-{end}\n投稿人: {self.card}\n内容: {self.name}'
     def str_url(self):
         begin = format_date(self.begin)
         if self.isFloat:
             end = '自由'
         else:
             end = format_date(self.end)
-        return '%s-%s<br />投稿人: %s<br />内容: %s' % (begin, end, self.card, self.name)
+        return f'{begin}-{end}<br />投稿人: {self.card}<br />内容: {self.name}'
     def output_with_at(self):
-        return [config.cq.text('开播提醒！\n'), config.cq.at(self.qq),
-            config.cq.text('\n内容: %s' % self.name)]
+        if self.witness == -1:
+            return [config.cq.text('开播提醒！\n'), config.cq.at(self.qq), config.cq.text('\n内容: %s' % self.name)]
+        elif self.witness != 0:
+            return [config.cq.text('开播提醒！\n'), config.cq.at(self.qq), config.cq.text('\n内容: %s，请监视者就位' % self.name), config.cq.at(self.witness)]
+        else: # TODO
+            return [config.cq.text('开播提醒！\n'), config.cq.at(self.qq), config.cq.text('\n内容: %s' % self.name)]
     def overlap(self, other):
         if self.isFloat and other.isFloat:
             return False
@@ -146,6 +157,33 @@ async def change_des_to_list():
 
 with open(config.rel("thwiki_blacklist.txt")) as f:
     blacklist = list(map(lambda x: int(x.strip()), f.readlines()))
+def _line(s, has_card):
+    l = s.split(' ')
+    return l.pop(0), l.pop(0), l.pop(0), ' '.join(l) if has_card else None
+with open(config.rel("thwiki_whiteforest.json"), encoding='utf-8') as f:
+    whiteforest = json.load(f)
+def find_whiteforest(id=None, qq=None):
+    return more_itertools.only([x for x in whiteforest if x['qq'] == qq]) if id is None else more_itertools.only([x for x in whiteforest if x['id'] == id])
+def save_whiteforest():
+    with open(config.rel("thwiki_whiteforest.json"), 'w', encoding='utf-8') as f:
+        f.write(json.dumps(whiteforest, ensure_ascii=False, indent=4, separators=(',', ': ')))
+def check_whiteforest(qq):
+    ret = find_whiteforest(qq=qq)
+    return (ret is not None and ret['trail'] != 0), ret
+async def get_card(qq):
+    for group in group_id_dict['thwiki_card']:
+        c = await get_bot().get_group_member_info(group_id=group, user_id=qq)
+        if c['card'] == '':
+            return c['nickname']
+        else:
+            return c['card']
+def find_or_new(qq):
+    ret = find_whiteforest(qq=qq)
+    if ret is None:
+        ret = {'id': len(whiteforest), 'qq': qq, 'trail': 1, 'card': None, 'time': 0}
+        whiteforest.append(ret)
+    return ret
+#need: func add time
 
 @on_command(('thwiki', 'apply'), aliases=('申请',), only_to_me=False)
 @config.ErrorHandle
@@ -185,6 +223,8 @@ async def apply(session: CommandSession):
     if len(t) != 0:
         await session.send('已有重名，请换名字')
         return
+    if len(l) == 0:
+        Event.max_id = 0
     e = Event(begin, end, qq, card, name, float_end)
     for i in l:
         if i.overlap(e):
@@ -194,10 +234,14 @@ async def apply(session: CommandSession):
     l.sort(key=lambda x: x.begin)
     l = polish(l)
     await _save(l)
-    await session.send('成功申请')
+    check = find_or_new(qq)
+    await session.send(f'成功申请，id为{e.id}，您还在试用期，请等待管理员监视，敬请谅解w' if check['trail'] else f'成功申请，id为{e.id}')
     ret = await change_des_to_list()
     if json.loads(ret)['code'] != 0:
         await session.send('更新到直播间失败')
+    if check['trail']:
+        for group in config.group_id_dict['thwiki_witness']:
+            await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
     
 @apply.args_parser
 @config.ErrorHandle
@@ -272,12 +316,13 @@ async def cancel(session: CommandSession):
     global l
     if int(session.ctx['user_id']) in blacklist:
         return
-    l2 = list(filter(lambda x: x[1].name == session.current_arg_text, enumerate(l)))
-    if len(l2) == 0:
-        await session.send('未找到')
-    #elif len(l2) == 1:
+    l2 = more_itertools.only([x for x in enumerate(l) if x[1].name == session.current_arg_text])
+    if l2 is None:
+        l2 = more_itertools.only([x for x in enumerate(l) if x[1].id == int(session.current_arg_text)])
+        if l2 is None:
+            await session.send('未找到')
     else:
-        i = l2[0][0]
+        i = l2[0]
         if int(session.ctx['user_id']) == l[i].qq or \
                 await permission.check_permission(get_bot(), session.ctx, permission.GROUP_ADMIN):
             l.pop(i)
@@ -457,6 +502,76 @@ async def get(session: CommandSession):
         else:
             await session.send('检测到直播间未开启，开启直播间失败')
 
+@on_command(('thwiki', 'grant'), only_to_me=False)
+@config.ErrorHandle
+@config.maintain('thwiki')
+async def grant(session: CommandSession):
+    sqq = session.ctx['user_id']
+    valid, ret = check_whiteforest(sqq)
+    if not valid:
+        await session.send("您还处在试用期，无法推荐")
+    def _(s):
+        begin = 0
+        while 1:
+            match = re.search('qq=(\\d+)', s[begin:])
+            if not match:
+                return
+            begin += match.span()[1]
+            yield int(match.group(1))
+    qqs = list(_(str(session.current_arg)))
+    s = session.current_arg[session.current_arg.rfind(' ') + 1:]
+    if s == 'false' or s == 'False' or s == 'f' or s == 'F':
+        not_update = []
+        updated = []
+        to_card = []
+        for qq in qqs:
+            ret_c = find_whiteforest(qq=qq)
+            if ret_c is None:
+                to_card.append(qq)
+            elif ret_c['trail'] == 0 or ret_c['parent'] != ret['id']:
+                not_update.append(ret_c['card'])
+            else:
+                to_do = [ret_c]
+                ret['child'].remove(ret_c['id'])
+                while len(to_do):
+                    r = to_do.pop(0)
+                    r.pop('parent')
+                    for i in r.pop('child'):
+                        f = find_whiteforest(id=i)
+                        to_do.append(f)
+                    r['trail'] = 0
+                    r['time'] = 0
+                    updated.append(r['card'])
+        save_whiteforest()
+        for qq in to_card:
+            not_update.append(await get_card(qq))
+        await session.send(f"{'，'.join(updated)} 已成功退回推荐！试用期直播时间从0开始计算。" + f"\n{'，'.join(not_update)} 不是您推荐的用户，删除失败" if len(not_update) > 0 else '', auto_escape=True)
+    else:
+        not_update = []
+        updated = []
+        to_card = []
+        for qq in qqs:
+            ret_c = find_or_new(qq)
+            if not ret_c['trail']:
+                if ret_c['card'] is None:
+                    to_card.append(ret_c)
+                else:
+                    not_update.append(ret_c['card'])
+            else:
+                ret_c['parent'] = ret['id']
+                ret_c['child'] = []
+                ret_c['trail'] = 0
+                ret['child'].append(ret_c['id'])
+                updated.append(ret_c['card'])
+        save_whiteforest()
+        for r in to_card:
+            c = await get_card(r['qq'])
+            not_update.append(c)
+            r['card'] = c
+        if len(to_card) != 0:
+            save_whiteforest()
+        await session.send(f"{'，'.join(updated)} 已成功推荐！" + f"\n{'，'.join(not_update)} 是已推荐用户，推荐失败" if len(not_update) > 0 else '', auto_escape=True)
+
 @on_command(('thwiki', 'open'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
 async def thwiki_open(session: CommandSession):
@@ -490,8 +605,8 @@ async def thwiki_maintain(session: CommandSession):
         await th_open(is_open=False)
         await session.send('已进入维护状态，再次输入空字符串解除')
     else:
-        if await permission.check_permission(get_bot(), session.ctx, permission.GROUP_OWNER | permission.SUPERUSER):
-            await session.send('已解除维护状态')
+        #if await permission.check_permission(get_bot(), session.ctx, permission.GROUP_OWNER | permission.SUPERUSER):
+        await session.send('已解除维护状态')
 
 @on_command(('thwiki', 'blacklist'), only_to_me=False, permission=permission.GROUP_ADMIN)
 @config.ErrorHandle
