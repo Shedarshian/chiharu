@@ -12,6 +12,7 @@ from nonebot import on_command, CommandSession, get_bot, permission, scheduler, 
 import chiharu.plugins.config as config
 import chiharu.plugins.help as Help
 
+TRAIL_TIME = 36 * 60
 async def change(title=None, description=None):
     cookie_jar = requests.cookies.RequestsCookieJar()
     with open(config.rel('cookie.txt')) as f:
@@ -169,7 +170,7 @@ def _line(s, has_card):
     return l.pop(0), l.pop(0), l.pop(0), (' '.join(l) if has_card else None)
 with open(config.rel("thwiki_whiteforest.json"), encoding='utf-8') as f:
     whiteforest = json.load(f)
-def find_whiteforest(id=None, qq=None):
+def find_whiteforest(*, id=None, qq=None):
     return more_itertools.only([x for x in whiteforest if x['qq'] == qq]) if id is None else more_itertools.only([x for x in whiteforest if x['id'] == id])
 def save_whiteforest():
     with open(config.rel("thwiki_whiteforest.json"), 'w', encoding='utf-8') as f:
@@ -190,30 +191,34 @@ def find_or_new(qq):
         ret = {'id': len(whiteforest), 'qq': qq, 'trail': 1, 'card': None, 'time': 0}
         whiteforest.append(ret)
     return ret
-def deprive(qqs, node):
-    not_update = []
+def deprive(node, if_save=True):
     updated = []
-    for qq in qqs:
-        node_c = find_whiteforest(qq=qq)
-        if node_c is None:
-            not_update.append(config.cq.at(qq))
-        elif node_c['trail'] == 0 or node_c['parent'] != node['id']:
-            not_update.append(config.cq.at(node_c['qq']))
-        else:
-            to_do = [node_c]
-            node['child'].remove(node_c['id'])
-            while len(to_do):
-                r = to_do.pop(0)
-                r.pop('parent')
-                for i in r.pop('child'):
-                    f = find_whiteforest(id=i)
-                    to_do.append(f)
-                r['trail'] = 0
-                r['time'] = 0
-                updated.append(config.cq.at(r['qq']))
+    to_do = [node]
+    while len(to_do):
+        r = to_do.pop(0)
+        r.pop('parent')
+        for i in r.pop('child'):
+            f = find_whiteforest(id=i)
+            to_do.append(f)
+        r['trail'] = 0
+        r['time'] = 0
+        updated.append(config.cq.at(r['qq']))
+    if if_save:
+        save_whiteforest()
+    return updated
+def add_time(qq, time):
+    node = find_or_new(qq)
+    if time not in node:
+        node['time'] = 0
+    node['time'] += time
+    b = False
+    if node['time'] >= TRAIL_TIME and node['trail']:
+        b = True
+        node['trail'] = 0
+        node['parent'] = -1
+        node['child'] = []
     save_whiteforest()
-    return not_update, updated
-#need: func add time
+    return b
 
 @on_command(('thwiki', 'apply'), aliases=('申请',), only_to_me=False)
 @config.ErrorHandle
@@ -403,8 +408,11 @@ async def term(session: CommandSession):
         elif l[0].qq != session.ctx['user_id']:
             await session.send('现在不是你在播')
         else:
-            l.pop(0)
+            e = l.pop(0)
+            d = ((now - e.begin).total_seconds() - 1) // 60 + 1
             await _save(l)
+            if add_time(e.qq, d):
+                await session.send('您已成功通过试用期转正！')
             ret = await th_open(is_open=False)
             if json.loads(ret)['code'] != 0:
                 await session.send('成功删除，断流失败')
@@ -441,9 +449,11 @@ async def _():
                 for id in config.group_id_dict['thwiki_send']:
                     await bot.send_group_msg(group_id=id, message='直播间标题修改失败')
     for i, e in enumerate(l):
-        if e.isFloat and i != len(l) - 1 and now - timedelta(seconds=59) < l[i + 1].begin < now + timedelta(seconds=1) or \
-            not e.isFloat and now - timedelta(seconds=59) < e.end < now + timedelta(seconds=1):
+        if e.isFloat and i != len(l) - 1 and now - timedelta(seconds=59) < l[i + 1].begin < now + timedelta(seconds=1) or not e.isFloat and now - timedelta(seconds=59) < e.end < now + timedelta(seconds=1):
             l.pop(i)
+            d = ((now - e.begin).total_seconds() - 1) // 60 + 1
+            if add_time(e.qq, d):
+                await session.send([config.cq.at(e.qq), config.cq.text('已成功通过试用期转正！')], auto_escape=True)
             await _save(l)
             ret = await change_des_to_list()
             if json.loads(ret)['code'] != 0:
@@ -538,12 +548,12 @@ async def get(session: CommandSession):
 @on_command(('thwiki', 'grant'), only_to_me=False)
 @config.ErrorHandle
 @config.maintain('thwiki')
-async def grant(session: CommandSession):
+async def thwiki_grant(session: CommandSession):
     group_id = session.ctx['group_id']
     if group_id not in config.group_id_dict['thwiki_live']:
         return
     sqq = session.ctx['user_id']
-    valid, ret = check_whiteforest(sqq)
+    valid, node = check_whiteforest(sqq)
     if not valid:
         await session.send("您还处在试用期，无法推荐")
     def _(s):
@@ -555,9 +565,23 @@ async def grant(session: CommandSession):
             begin += match.span()[1]
             yield int(match.group(1))
     qqs = list(_(str(session.current_arg)))
+    if len(qqs) == 0:
+        await session.send('没有@人')
+        return
     s = session.current_arg[session.current_arg.rfind(' ') + 1:]
     if s == 'false' or s == 'False' or s == 'f' or s == 'F':
-        not_update, updated = deprive(qqs, ret)
+        not_update = []
+        updated = []
+        for qq in qqs:
+            node_c = find_whiteforest(qq=qq)
+            if node_c is None:
+                not_update.append(config.cq.at(qq))
+            elif node_c['trail'] == 0 or node_c['parent'] != node['id']:
+                not_update.append(config.cq.at(node_c['qq']))
+            else:
+                node['child'].remove(node_c['id'])
+                updated += deprive(node_c, False)
+        save_whiteforest()
         await session.send(updated + ([config.cq.text(" 已成功退回推荐！试用期直播时间从0开始计算。\n")] if len(updated) > 0 else []) + not_update + ([config.cq.text(" 不是您推荐的用户，删除失败")] if len(not_update) > 0 else []), auto_escape=True)
     else:
         not_update = []
@@ -585,9 +609,32 @@ async def grant(session: CommandSession):
             save_whiteforest()
         await session.send(updated + ([config.cq.text(" 已成功推荐！\n")] if len(updated) > 0 else []) + not_update + ([config.cq.text(" 是已推荐用户，推荐失败")] if len(not_update) > 0 else []), auto_escape=True)
 
-@on_command(('thwiki', 'supervise'), only_to_me=False)
+@on_command(('thwiki', 'deprive'), only_to_me=False, permission=permission.GROUP_ADMIN)
 @config.ErrorHandle
 @config.maintain('thwiki')
+async def thwiki_deprive(session: CommandSession):
+    group_id = session.ctx['group_id']
+    if group_id not in config.group_id_dict['thwiki_live']:
+        return
+    match = re.search('qq=(\\d+)', s[begin:])
+    if not match:
+        await session.send('没有@人')
+        return
+    qq = match.group(1)
+    node = find_or_new(qq=qq)
+    if node['trail'] == 1:
+        if node['card'] is None:
+            node['card'] = await get_card(qq)
+        await session.send('此人仍在试用期，删除失败')
+        return
+    node_parent = find_whiteforest(id=node['id'])
+    if node_parent is not None:
+        node_parent['child'].remove(node['id'])
+    updated = deprive(node)
+    await session.send([config.cq.text('已成功删除')] + updated)
+
+@on_command(('thwiki', 'supervise'), only_to_me=False)
+@config.ErrorHandle
 async def thwiki_supervise(session: CommandSession):
     group_id = session.ctx['group_id']
     if group_id not in config.group_id_dict['thwiki_supervise']:
@@ -683,3 +730,18 @@ async def thwiki_greet(session: NoticeSession):
     if session.ctx['group_id'] in config.group_id_dict['thwiki_live']:
         message = '欢迎来到THBWiki直播群！我是直播小助手，在群里使用指令即可申请直播时间~以下为指令列表，欢迎在群里使用与提问~\n' + Help.sp['thwiki_live']['thwiki'] % Help._dict['thwiki']
         await get_bot().send_private_msg(user_id=session.ctx['user_id'], message=message, auto_escape=True)
+
+@on_notice('group_decrease')
+@config.maintain('thwiki')
+async def thwiki_decrease(session: NoticeSession):
+    qq = session.ctx['user_id']
+    node = find_whiteforest(qq=qq)
+    if node is not None and node['trail'] == 0 and node['parent'] != -1:
+        node_parent = find_whiteforest(id=node['parent'])
+        if node_parent is not None:
+            node_parent['child'].remove(node['id'])
+        if_send = len(node['child']) != 0
+        updated = deprive(node)
+        if if_send:
+            for group in config.group_id_dict['thwiki_send']:
+                await get_bot().send_group_msg(group_id=group, message=[config.cq.text(f"{node['card']} 退群，已自动退回推荐")] + updated + [config.cq.text("！试用期直播时间从0开始计算。\n")])
