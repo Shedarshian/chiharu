@@ -47,7 +47,18 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
         "\n-help：展示本帮助\n-help 指令名：查看该命令帮助\n例：-help tools：查看tools指令的帮助\n欢迎加入测试群947279366避免刷屏"}
 
 sp = {"thwiki_live": {"default": "%s\n-thwiki：thwiki直播申请相关",
-        "thwiki": "%s\n-thwiki.apply [开始时间] [结束时间] [直播项目名称]或者-申请 [开始时间] [结束时间] [直播项目名称]；时间格式：x年x月x日x点x分或者xx:xx，今日或今年可以省，开始可以用now，结束可以用float\n-thwiki.cancel [直播项目名称]或者-取消 [直播项目名称]\n-thwiki.get 获取rtmp与流密码，会以私聊形式发送，若直播间未开启则会自动开启，可以后跟想开启的直播分区如绘画，演奏，户外，vtb等，不指定则默认是单机·其他\n-thwiki.term 提前下播\napply cancel get term只能用于群内"}}
+    "thwiki": """%s
+-thwiki.apply [开始时间] [结束时间] [直播项目名称]或者-申请 [开始时间] [结束时间] [直播项目名称]；时间格式：x年x月x日x点x分或者xx:xx，今日或今年可以省，开始可以用now，结束可以用float
+-thwiki.cancel [直播项目名称]或者-取消 [直播项目名称]
+-thwiki.get 获取rtmp与流密码，会以私聊形式发送，若直播间未开启则会自动开启，可以后跟想开启的直播分区如绘画，演奏，户外，vtb等，不指定则默认是单机·其他
+-thwiki.change 更改当前直播标题，只可在自己直播时间段内
+-thwiki.term 提前下播
+-thwiki.grant @别人 可多个@ 可加false 推荐别人进入推荐列表，请慎重推荐！结尾加false代表撤回推荐，撤回推荐会一同撤回被推荐人推荐的所有人
+-thwiki.time 查看自己的直播总时长（2019年8月至今）
+apply cancel get term grant只能用于群内"""},
+    "thwiki_supervise": {"thwiki": """%s
+-thwiki.deprive @别人 剥夺别人的推荐/转正，管理员在直播群使用
+-thwiki.supervise id号 可加false 监视别人的直播申请，结尾加false代表撤回监视"""}}
 
 @on_command(name='help', only_to_me=False)
 @config.ErrorHandle
@@ -70,7 +81,7 @@ async def help(session: CommandSession):
             strout = _dict[name]
     else:
         strout = str_tail
-    if name == 'thwiki' and str_tail != '':
+    if name == 'thwiki' and str_tail != '' and group_id in config.group_id_dict['thwiki_live']:
         await session.send(strout, auto_escape=True, ensure_private=True)
     else:
         await session.send(strout, auto_escape=True)
