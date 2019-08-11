@@ -774,7 +774,7 @@ async def thwiki_change(session: CommandSession):
     if '东方' not in t:
         t = '【东方】' + t
     ret = await change(title=t)
-    if json.load(ret)['code'] == 0:
+    if json.loads(ret)['code'] == 0:
         await session.send(f'成功修改标题至"{t}"', auto_escape=True)
     else:
         await session.send(ret, auto_escape=True)
