@@ -128,10 +128,12 @@ async def boss_process(session: CommandSession):
     if not isLoggedin:
         await session.send('not logged in!')
         return
-    stdin, stdout, stderr = ssh.exec_command(session.current_arg_text)
-    output = ''.join(stdout.readlines()).strip()
-    err = ''.join(stderr.readlines()).strip()
-    await session.send(output + '\n' + err)
+    def _f(c):
+        std = ssh.exec_command(c.strip())
+        return '\n'.join([''.join(s.readlines()).strip() for s in std[1:3]])
+    output = '\n'.join([_f(c) for c in session.current_arg_text.split('\n')])
+    #output = '\n'.join(['\n'.join(['$ ' + '\n'.join([''.join(s.readlines()).strip() for s in std]) for std in ssh.exec_command(c.strip())]) for c in session.current_arg_text.split('\n')])
+    await session.send(output)
 
 class Status:
     def __init__(self, groups):
@@ -152,7 +154,7 @@ class Status:
             return "Job held!"
         elif self.all - self.completed - self.removed == 0:
             f()
-            return "All of your jobs have ended!"
+            return "All of your jobs have ended! func executed."
         else:
             return ""
 
@@ -169,7 +171,6 @@ async def check_boss():
     def _f():
         stdin, stdout, stderr = ssh.exec_command('/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin/hep_q -u qity')
         output = stdout.readlines()[-1]
-        print(output)
         match = re.match("(\d+) jobs; (\d+) completed, (\d+) removed, (\d+) idle, (\d+) running, (\d+) held, (\d+) suspended", output)
         if not match:
             print("Not found")
@@ -180,11 +181,22 @@ async def check_boss():
         if not status.isValid():
             strout = "Error!"
         else:
-            def _g():
-                global BossCheck
-                BossCheck = False
-                with open(config.rel("boss_check.txt"), 'w') as f:
-                    f.write('0')
+            with open(config.rel("boss_check.txt")) as f:
+                f.readline()
+                command = f.readline().strip()
+            if command == '':
+                def _g():
+                    global BossCheck
+                    BossCheck = False
+                    with open(config.rel("boss_check.txt"), 'w') as f:
+                        f.write('0')
+            else:
+                def _g():
+                    stdin, stdout, stderr = ssh.exec_command(command)
+                    print((stdout.readlines(), stderr.readlines()))
+                    with open(config.rel("boss_check.txt"), 'w') as f:
+                        f.write('1')
+                        f.write('\n')
             strout = status.process(_g)
         if strout != "":
             for group in config.group_id_dict['boss']:
@@ -196,6 +208,15 @@ async def check_boss():
                 f.write('1')
             for group in config.group_id_dict['boss']:
                 await bot.send_group_msg(group_id=group, message='Running job found! Begin boss check')
+
+@on_command(('boss', 'hang'), only_to_me=False, permission=permission.SUPERUSER)
+@config.ErrorHandle
+async def boss_hang(session: CommandSession):
+    with open(config.rel('boss_check.txt'), 'w') as f:
+        f.write('1' if BossCheck else '0')
+        f.write('\n')
+        f.write(session.current_arg_text)
+    await session.send('Successfully saved.')
 
 idmap = {'all': 2503049358,
         'LL': 138461796,

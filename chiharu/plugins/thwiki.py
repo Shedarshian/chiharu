@@ -66,12 +66,10 @@ def format_date(dat: datetime):
         return '{0:%Y}年{0:%m}月{0:%d}日{0:%H}:{0:%M}'.format(dat)
 
 class Event:
-    max_id = 0
     def __init__(self, *args):
         if len(args) == 6:
             self.begin, self.end, self.qq, self.card, self.name, self.isFloat = args
-            self.id = Event.max_id
-            Event.max_id += 1
+            self.id = max(-1, -1, *map(lambda e: e.id, l)) + 1
             node = find_whiteforest(qq=self.qq)
             if node is not None and node['trail'] == 0:
                 self.supervise = -1
@@ -80,7 +78,6 @@ class Event:
         elif len(args) == 3:
             id, begin, end, qq, supervise = args[0].split(' ')
             self.id = int(id)
-            Event.max_id = max(Event.max_id, self.id + 1)
             if end == 'float':
                 self.end = False
                 self.isFloat = True
@@ -270,8 +267,6 @@ async def apply(session: CommandSession):
     if len(t) != 0:
         await session.send('已有重名，请换名字')
         return
-    if len(l) == 0:
-        Event.max_id = 0
     e = Event(begin, end, qq, card, name, float_end)
     for i in l:
         if i.overlap(e):
@@ -289,7 +284,7 @@ async def apply(session: CommandSession):
     if check['trail']:
         for group in config.group_id_dict['thwiki_supervise']:
             await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
-    
+
 @apply.args_parser
 @config.ErrorHandle
 async def _(session: CommandSession):
@@ -308,8 +303,12 @@ async def _(session: CommandSession):
     i = session.current_arg_text.find(' ')
     time_begin = session.current_arg_text[:i]
     j = session.current_arg_text.find(' ', i + 1)
-    time_end = session.current_arg_text[i + 1:j]
-    session.args['name'] = session.current_arg_text[j + 1:]
+    if j == -1:
+        time_end = session.current_arg_text[i + 1:]
+        session.args['name'] = ""
+    else:
+        time_end = session.current_arg_text[i + 1:j]
+        session.args['name'] = session.current_arg_text[j + 1:]
     r = re.compile('(?:' '(?:(\\d+)年)?' '(?:(\\d+)月)?' '(?:(\\d+)(?:日|号))?'
         '(?:' '(?:(\\d+)(?:时|点))' '(?:(\\d+)分)?' '|' '(\\d+):(\\d+)' '))|(now)|(float)')
     m_begin = re.match(r, time_begin)
@@ -462,12 +461,13 @@ async def _():
         if now - timedelta(seconds=59) < e.begin < now + timedelta(seconds=1):
             for id in config.group_id_dict['thwiki_send']:
                 await bot.send_group_msg(group_id=id, message=e.output_with_at())
-            for id in config.group_id_dict['thwiki_supervise']:
-                await bot.send_group_msg(group_id=id, message=[config.cq.text('\n内容: %s\n请监视者就位' % e.name), config.cq.at(self.supervise)])
             ret = await change(title=('【东方】' if '【东方】' not in e.name else '') + e.name)
             if json.loads(ret)['code'] != 0:
                 for id in config.group_id_dict['thwiki_send']:
                     await bot.send_group_msg(group_id=id, message='直播间标题修改失败')
+            if e.supervise > 0:
+                for id in config.group_id_dict['thwiki_supervise']:
+                    await bot.send_group_msg(group_id=id, message=[config.cq.text('\n内容: %s\n请监视者就位' % e.name), config.cq.at(e.supervise)])
     for i, e in enumerate(l):
         if e.isFloat and i != len(l) - 1 and now - timedelta(seconds=59) < l[i + 1].begin < now + timedelta(seconds=1) or not e.isFloat and now - timedelta(seconds=59) < e.end < now + timedelta(seconds=1):
             l.pop(i)
@@ -766,7 +766,7 @@ async def thwiki_change(session: CommandSession):
         return False, None
     r = await _()
     if not r[0]:
-        await session.send('请在您预约的时间段前后十五分钟内修改' if r[1].supervise != 0 else '十分抱歉，您现在的直播尚无监视员，无法直播qwq')
+        await session.send('请在您预约的时间段前后十五分钟内修改' if r[1] is None or r[1].supervise != 0 else '十分抱歉，您现在的直播尚无监视员，无法直播qwq')
         return
     t = session.current_arg_text.strip()
     if r[1] is not None:
