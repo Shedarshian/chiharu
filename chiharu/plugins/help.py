@@ -1,4 +1,4 @@
-from nonebot import on_command, CommandSession, get_bot, permission, plugin
+from nonebot import on_command, CommandSession, get_bot, permission, plugin, command
 import nonebot
 import importlib
 import chiharu.plugins.config as config
@@ -15,6 +15,8 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
     "misc.money": "每行为一条指令。指令：\nclear: 清除所有数据。\nadd [人名]: 增加一个人。\nbill [人名] [金额] [可选：需付费的人名列表]: 增加一个需付费账单，人名列表为空则默认【包括自己的】所有人。\noutput [策略] [参数]: 输出金额交换。策略目前有：\n\toneman [参数：人名]: 所有金额交换全部支付给此人/由此人支付。",
     #"event": "使用格式：\n-event year month day [max_note = 100]：按日期在eventernote.com查询该日发生的event，筛选条件为eventernote登录数大于max_note，默认为100，调低时请一定要注意避免刷屏！",
     "thwiki": "使用格式：-thwiki.list：显示预定直播列表\n-thwiki.check：查询thbwiki bilibili账户的直播状态",
+    "code": "脚本语言解释器：\nmbf：modified brainf**k\nesulang\n使用如-mbf.run 指令 运行脚本\n使用如-help mbf查看语言解释",
+    "esulang": "还在开发中，敬请期待！~",
     "card": """指令列表：-card.draw 卡池id/名字 抽卡次数 可以抽卡！！次数不填默认为单抽
 -card.draw5 卡池id/名字 直接进行五连抽卡
 -card.check 卡池id/名字 查询卡池具体信息，包含具体卡牌（刷屏预警，建议私聊~）
@@ -41,7 +43,7 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
         "\n-seiyuu：查询声优信息"
         "\n-game：\U0001F6AA七海千春游戏大厅\U0001F6AA"
         "\n-tools：数理小工具"
-        "\n-mbf：调用mbf脚本语言解释器"
+        "\n-code：语言解释器"
         #"\n-event：按日期查询event"
         "\n-misc：隐藏指令"
         "\n-help：展示本帮助\n-help 指令名：查看该命令帮助\n例：-help tools：查看tools指令的帮助\n欢迎加入测试群947279366避免刷屏"}
@@ -60,6 +62,11 @@ apply cancel get term grant只能用于群内"""},
 -thwiki.deprive @别人 剥夺别人的推荐/转正，管理员在直播群使用
 -thwiki.supervise id号 可加false 监视别人的直播申请，结尾加false代表撤回监视
 -thwiki.grantlist 输出推荐树"""}}
+
+@on_command('code', only_to_me=False)
+@config.ErrorHandle
+async def help_code(session: CommandSession):
+    await command.call_command(get_bot(), session.ctx, 'help', current_arg='code')
 
 @on_command(name='help', only_to_me=False)
 @config.ErrorHandle
