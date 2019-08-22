@@ -13,7 +13,7 @@ from string import Formatter
 from nonebot import on_command, CommandSession, permission
 import chiharu.plugins.config as config
 from chiharu.plugins.birth import myFormatter
-import chiharu.plugins.maj as maj
+import chiharu.plugins.maj as maj, chiharu.plugins.math as cmath
 
 @on_command(('misc', 'asc', 'check'), only_to_me=False)
 @config.ErrorHandle
@@ -619,20 +619,7 @@ async def token_alpha(session: CommandSession):
 @on_command(('misc', 'latex'), only_to_me=False)
 @config.ErrorHandle
 async def latex(session: CommandSession):
-    loop = asyncio.get_event_loop()
-    ipt = re.sub('\+', '%2B', session.current_arg_text)
-    url = await loop.run_in_executor(None, functools.partial(requests.get,
-        'https://www.zhihu.com/equation?tex=' + ipt,
-        headers={'user-agent': config.user_agent}))
-    name = str(hash((session.current_arg_text, session.ctx['group_id'], session.ctx['user_id'])))
-    with open(config.img(name + '.svg'), 'wb') as f:
-        f.write(url.content)
-    with wand.image.Image(filename=config.img(name + '.svg')) as image:
-        with image.convert('png') as converted:
-            converted.background_color = wand.color.Color('white')
-            converted.alpha_channel = 'remove'
-            converted.save(filename=config.img(name + '.png'))
-    await session.send(config.cq.img(name + '.png'))
+    await session.send(config.cq.img(await cmath.latex(session.current_arg_text, hsh=(session.ctx['group_id'], session.ctx['user_id']))))
 
 @on_command(('misc', 'shuru'), only_to_me=False)
 @config.ErrorHandle

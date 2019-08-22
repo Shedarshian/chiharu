@@ -374,7 +374,7 @@ async def cancel(session: CommandSession):
         now = datetime.now()
         e = l.pop(i)
         await _save(l)
-        if not e.isFloat and e.begin < now < e.end or e.isFloat and (i == len(l) - 1 or e.begin < now < l[i + 1].begin):
+        if e.supervise != 0 and (not e.isFloat and e.begin < now < e.end or e.isFloat and (i == len(l) - 1 or e.begin < now < l[i + 1].begin)):
             d = ((now - e.begin).total_seconds() - 1) // 60 + 1
             if add_time(e.qq, d):
                 await session.send('您已成功通过试用期转正！')

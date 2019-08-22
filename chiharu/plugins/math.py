@@ -10,6 +10,22 @@ import chiharu.plugins.config as config
 from nonebot import on_command, CommandSession, get_bot, permission
 import os
 
+async def latex(s, hsh=()):
+    loop = asyncio.get_event_loop()
+    ipt = re.sub('\+', '%2B', s)
+    url = await loop.run_in_executor(None, functools.partial(requests.get,
+        'https://www.zhihu.com/equation?tex=' + ipt,
+        headers={'user-agent': config.user_agent}))
+    name = str(hash((s,) + hsh))
+    with open(config.img(name + '.svg'), 'wb') as f:
+        f.write(url.content)
+    with wand.image.Image(filename=config.img(name + '.svg')) as image:
+        with image.convert('png') as converted:
+            converted.background_color = wand.color.Color('white')
+            converted.alpha_channel = 'remove'
+            converted.save(filename=config.img(name + '.png'))
+    return name + '.png'
+
 @on_command(('tools', 'Julia'), only_to_me=False)
 @config.ErrorHandle
 async def Julia(session: CommandSession):
@@ -163,3 +179,30 @@ async def oeis_id(s):
             example = '\n'.join(example_list)
     result = {'Id': Id, 'description': description, 'numbers': numbers, 'example': example}
     return result
+
+@on_command(('tools', 'quiz'), only_to_me=False)
+@config.ErrorHandle
+async def quiz(session: CommandSession):
+    if session.current_arg_text == 'math':
+        await session.send("""今日趣题：A、B两人在主持人C的带领下玩一个游戏。C向两人宣布游戏规则：“一会儿我会随机产生两个不同的形如n–1/2^k–1/2^(k+r)的数，其中n、k是正整数，r是非负整数。然后，我会把这两个数分别交给你们。你们每个人都只知道自己手中的数是多少，但不知道对方手中的数是多少。你们需要猜测，谁手中的数更大一些。”这里，我们假设所有人的逻辑推理能力都是无限强的，并且这一点本身也成为了共识。C按照规则随机产生了两个数，把它们交给了A和B，然后问他们是否知道谁手中的数更大。于是有了这样的一段对话。
+
+A：我不知道。
+B：我也不知道。
+A：我还是不知道。
+B：我也还是不知道。
+C：这样下去是没有用的！可以告诉你们，不管你们像这样来来回回说多少轮，你们仍然都没法知道，谁手中的数更大一些。
+A：哇，这个信息量好像有点儿大！不过，即使知道了这一点，我还是不知道谁手中的数更大。
+B：我也还是不知道。
+A：我继续不知道。
+B：我也继续不知道。
+C：还是套用刚才的话，不管你们像这样继续说多少轮，你们仍然没法知道谁手中的数更大。
+A：哦……不过，我还是不知道谁手中的数更大。
+B：而且我也还是不知道。我们究竟什么时候才能知道呢？
+C：事实上啊，如果我们三个就像这样继续重复刚才的一切——你们俩互相说一堆不知道，我告诉你们这样永远没用，然后你们继续互说不知道，我继续说这不管用——那么不管这一切重复多少次，你们仍然不知道谁手中的数更大！
+A：哇，这次的信息量就真的大了。只可惜，我还是不知道谁的数更大一些。
+B：我也还是不知道。
+A：是吗？好，那我现在终于知道谁的数更大了。
+B：这样的话，那我也知道了。而且，我还知道我们俩手中的数具体是多少了。
+A：那我也知道了。
+
+那么，C究竟把哪两个数给了A和B？""")
