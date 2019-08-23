@@ -426,15 +426,18 @@ async def term(session: CommandSession):
             await session.send('现在不是你在播')
         else:
             e = l.pop(0)
-            d = ((now - e.begin).total_seconds() - 1) // 60 + 1
-            if add_time(e.qq, d):
-                await session.send('您已成功通过试用期转正！')
+            s = ""
+            if e.supervise != 0:
+                d = ((now - e.begin).total_seconds() - 1) // 60 + 1
+                if add_time(e.qq, d):
+                    await session.send('您已成功通过试用期转正！')
+                s = f"，已为您累积直播时间{d}分钟"
             await _save(l)
             ret = await th_open(is_open=False)
             if json.loads(ret)['code'] != 0:
-                await session.send('成功删除，断流失败')
+                await session.send('成功删除，断流失败' + s)
             else:
-                await session.send('成功断流')
+                await session.send('成功断流' + s)
             ret = await change_des_to_list()
             if json.loads(ret)['code'] != 0:
                 await session.send('更新到直播间失败')
@@ -477,6 +480,8 @@ async def _():
                     for id in config.group_id_dict['thwiki_send']:
                         await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('已成功通过试用期转正！')], auto_escape=True)
                 await _save(l)
+                for id in config.group_id_dict['thwiki_send']:
+                    await bot.send_group_msg(group_id=id, message=f"已为您累积直播时间{d}分钟", auto_escape=True)
                 ret = await change_des_to_list()
                 if json.loads(ret)['code'] != 0:
                     for id in config.group_id_dict['thwiki_send']:
