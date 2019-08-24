@@ -481,7 +481,7 @@ async def _():
                         await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('已成功通过试用期转正！')], auto_escape=True)
                 await _save(l)
                 for id in config.group_id_dict['thwiki_send']:
-                    await bot.send_group_msg(group_id=id, message=f"已为您累积直播时间{d}分钟", auto_escape=True)
+                    await bot.send_group_msg(group_id=id, message=[config.cq.text("已为"), config.cq.at(e.qq), config.cq.text(f"累积直播时间{d}分钟")], auto_escape=True)
                 ret = await change_des_to_list()
                 if json.loads(ret)['code'] != 0:
                     for id in config.group_id_dict['thwiki_send']:
