@@ -13,6 +13,8 @@ import aiocqhttp
 import chiharu.plugins.config as config
 import chiharu.plugins.help as Help
 
+version = "2.1.0"
+
 TRAIL_TIME = 36 * 60
 async def change(title=None, description=None):
     cookie_jar = requests.cookies.RequestsCookieJar()
@@ -783,6 +785,12 @@ async def thwiki_change(session: CommandSession):
         await session.send(f'成功修改标题至"{t}"', auto_escape=True)
     else:
         await session.send(ret, auto_escape=True)
+
+@on_command(('thwiki', 'version'), only_to_me=False)
+@config.ErrorHandle
+@config.maintain('thwiki')
+async def thwiki_version(session: CommandSession):
+    await session.send(f"七海千春 THBWiki直播小助手 ver.{version} 为您服务")
 
 @on_command(('thwiki', 'des'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
