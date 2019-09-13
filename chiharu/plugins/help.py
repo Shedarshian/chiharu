@@ -14,7 +14,7 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
     "misc": "-misc.asc.check str：转换str的所有字符到ascii码\n-misc.asc.trans numbers：转换数字到字符\n-misc.bandori.news：查询bandori新闻\n-misc.maj.ten：日麻算点器\n-misc.maj.train：麻将训练\n-misc.maj.ting：听牌计算器\n-misc.maj.voice：雀魂报番语音，第一行番种，换行后为指定角色名\n-misc.token：将输入文本中大括号包含的token转换成latex中包含的unicode字符，使用https://github.com/joom/latex-unicoder.vim/blob/master/autoload/unicoder.vim, https://pastebin.com/jxHsjQK0\n  例：-misc.token f(0)={\\aleph}_0,f({\\alpha}+1)={\\aleph}_{\\alpha}\n-misc.latex：渲染latex公式\n-misc.money：面基算钱小助手 请单独-help misc.money\n-misc.roll.lyric：随机抽歌词，默认从全歌单中抽取，支持参数：vocalo kon imas ml cgss sphere aki bandori ll mu's Aqours starlight mh\n-event year month day [max_note=100]：按日期在eventernote.com查询该日发生的event，筛选条件为eventernote登录数大于max_note，默认为100，调低时请一定要注意避免刷屏！",
     "misc.money": "每行为一条指令。指令：\nclear: 清除所有数据。\nadd [人名]: 增加一个人。\nbill [人名] [金额] [可选：需付费的人名列表]: 增加一个需付费账单，人名列表为空则默认【包括自己的】所有人。\noutput [策略] [参数]: 输出金额交换。策略目前有：\n\toneman [参数：人名]: 所有金额交换全部支付给此人/由此人支付。",
     #"event": "使用格式：\n-event year month day [max_note = 100]：按日期在eventernote.com查询该日发生的event，筛选条件为eventernote登录数大于max_note，默认为100，调低时请一定要注意避免刷屏！",
-    "thwiki": "使用格式：-thwiki.list：显示预定直播列表\n-thwiki.check：查询thbwiki bilibili账户的直播状态",
+    "thwiki": "使用格式：-thwiki.list：显示预定直播列表\n-thwiki.check：查询thbwiki bilibili账户的直播状态\n-thwiki.time 可以@别人 查看自己或别人的直播总时长（2019年8月至今）\n-thwiki.timezone UTC时区 调整自己的时区，只支持整数时区。影响list与apply\n-thwiki.timezone 空或者@别人 查询时区信息\n-thwiki.leaderboard 查看直播排行榜",
     "code": "脚本语言解释器：\nmbf：modified brainf**k\nesulang\n使用如-mbf.run 指令 运行脚本\n使用如-help mbf查看语言解释",
     "esulang": "还在开发中，敬请期待！~",
     "card": """指令列表：-card.draw 卡池id/名字 抽卡次数 可以抽卡！！次数不填默认为单抽
@@ -57,8 +57,7 @@ sp = {"thwiki_live": {"default": "%s\n-thwiki：thwiki直播申请相关",
 -thwiki.change 更改当前直播标题，只可在自己直播时间段内，同样会修改列表里的名字
 -thwiki.term 提前下播
 -thwiki.grant @别人 可多个@ 可加false 推荐别人进入推荐列表，请慎重推荐！结尾加false代表撤回推荐，撤回推荐会一同撤回被推荐人推荐的所有人
--thwiki.time  可以@别人 查看自己或别人的直播总时长（2019年8月至今）
-apply cancel get term grant只能用于群内"""},
+apply cancel get term grant change只能用于群内"""},
     "thwiki_supervise": {"thwiki": """%s
 -thwiki.deprive @别人 剥夺别人的推荐/转正，管理员在直播群使用
 -thwiki.supervise id号 可加false 监视别人的直播申请，结尾加false代表撤回监视

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 import re
 import requests
 import json
@@ -13,7 +13,7 @@ import aiocqhttp
 import chiharu.plugins.config as config
 import chiharu.plugins.help as Help
 
-version = "2.1.0"
+version = "2.2.1"
 
 TRAIL_TIME = 36 * 60
 async def change(title=None, description=None):
@@ -52,8 +52,8 @@ async def th_open(is_open=True, area=235):
         data=value, cookies=cookie_jar, headers=headers))
     return ret.text
 
-def format_date(dat: datetime):
-    today = date.today()
+def format_date(dat: datetime, tz=None):
+    today = datetime.now(tz=tz).date()
     if dat.date() == today:
         return '今天{0:%H}:{0:%M}'.format(dat)
     elif dat.date() == today + timedelta(days=1):
@@ -105,6 +105,15 @@ class Event:
             end = '自由'
         else:
             end = format_date(self.end)
+        return f'id: {self.id} {begin}-{end}\n投稿人: {self.card}' + \
+            (('\n监视人' + ('尚无' if self.supervise == 0 else '已有')) if self.supervise >= 0 else '') + \
+            f'\n内容: {self.name}'
+    def str_tz(self, tz):
+        begin = format_date(datetime.combine(self.begin.date(), self.begin.time(), timezone(timedelta(hours=8))).astimezone(tz).replace(tzinfo=None), tz)
+        if self.isFloat:
+            end = '自由'
+        else:
+            end = format_date(datetime.combine(self.end.date(), self.end.time(), timezone(timedelta(hours=8))).astimezone(tz).replace(tzinfo=None), tz)
         return f'id: {self.id} {begin}-{end}\n投稿人: {self.card}' + \
             (('\n监视人' + ('尚无' if self.supervise == 0 else '已有')) if self.supervise >= 0 else '') + \
             f'\n内容: {self.name}'
@@ -223,10 +232,12 @@ def add_time(qq, time):
         node['time'] = 0
     node['time'] += int(time)
     b = False
-    if node['time'] >= TRAIL_TIME and node['trail']:
+    if node['time'] >= TRAIL_TIME:
         b = True
-        node['trail'] = 0
+        if not node['trail'] and node['parent'] != -1:
+            find_whiteforest(id=node['parent'])['child'].remove(node['id'])
         node['parent'] = -1
+        node['trail'] = 0
         node['child'] = []
     save_whiteforest()
     return b
@@ -245,6 +256,7 @@ async def apply(session: CommandSession):
     qq = session.get('qq')
     card = session.get('card')
     name = session.get('name')
+    tz = session.get('tz')
     if qq in blacklist:
         return
     if begin == False or (float_end == False and end == False):
@@ -272,13 +284,13 @@ async def apply(session: CommandSession):
     e = Event(begin, end, qq, card, name, float_end)
     for i in l:
         if i.overlap(e):
-            await session.send('这个时间段已经有人了\n' + str(i), auto_escape=True)
+            await session.send('这个时间段已经有人了\n' + (str(i) if tz is None else f"时区：{tz.tzname(datetime.now())}\n{i.str_tz(tz)}"), auto_escape=True)
             return
     l.append(e)
     l.sort(key=lambda x: x.begin)
     l = polish(l)
     await _save(l)
-    check = find_or_new(qq)
+    check = find_or_new(qq=qq)
     await session.send(f'成功申请，id为{e.id}，您还在试用期，请等待管理员监视，敬请谅解w' if check['trail'] else f'成功申请，id为{e.id}')
     ret = await change_des_to_list()
     if json.loads(ret)['code'] != 0:
@@ -296,7 +308,13 @@ async def _(session: CommandSession):
     else:
         session.args['card'] = session.ctx['sender']['card']
     session.args['float_end'] = False
-    now = datetime.now()
+    check = find_or_new(session.ctx['user_id'])
+    if 'timezone' in check and check['timezone'] != 8:
+        tz = timezone(timedelta(hours=check['timezone']))
+    else:
+        tz = None
+    session.args['tz'] = tz
+    now = datetime.now(tz=tz).date()
     def _default(t, t_default):
         if t is None:
             return t_default
@@ -332,7 +350,11 @@ async def _(session: CommandSession):
             hours = int(hours)
             minute = _default(minute, 0)
             try:
-                session.args['begin'] = datetime(year, month, day, hours, minute)
+                begin = datetime(year, month, day, hours, minute, tzinfo=tz)
+                if tz is not None:
+                    session.args['begin'] = begin.astimezone(timezone(timedelta(hours=8))).replace(tzinfo=None)
+                else:
+                    session.args['begin'] = begin
             except:
                 session.args['begin'] = False
     if m_end is None:
@@ -353,7 +375,11 @@ async def _(session: CommandSession):
             hours = int(hours)
             minute = _default(minute, 0)
             try:
-                session.args['end'] = datetime(year, month, day, hours, minute)
+                end = datetime(year, month, day, hours, minute, tzinfo=tz)
+                if tz is not None:
+                    session.args['end'] = end.astimezone(timezone(timedelta(hours=8))).replace(tzinfo=None)
+                else:
+                    session.args['end'] = end
             except:
                 session.args['end'] = False
 
@@ -398,7 +424,13 @@ async def thlist(session: CommandSession):
     if len(l) == 0:
         await session.send('列表为空')
     else:
-        await session.send('\n'.join(map(str, l)), auto_escape=True)
+        qq = session.ctx['user_id']
+        node = find_or_new(qq=qq)
+        if 'timezone' not in node or node['timezone'] == 8:
+            await session.send('\n'.join(map(str, l)), auto_escape=True)
+        else:
+            tz = timezone(timedelta(hours=node['timezone']))
+            await session.send(f"您的时区为{tz.tzname(datetime.now())}\n" + '\n'.join(map(lambda x: x.str_tz(tz), l)), auto_escape=True)
 
 @on_command(('thwiki', 'term'), only_to_me=False)
 @config.ErrorHandle
@@ -704,6 +736,8 @@ async def thwiki_supervise(session: CommandSession):
     else:
         if t:
             ret.supervise = qq
+            if ret.begin < datetime.now():
+                ret.begin = datetime.now()
             await _save(l)
             await session.send('成功提交监视')
             for group in config.group_id_dict['thwiki_send']:
@@ -729,6 +763,34 @@ async def thwiki_time(session: CommandSession):
         node['time'] = 0
     await session.send(f'您{"查询的人" if match else ""}的直播总时长为：{node["time"]}分钟。（2019年8月开始）', auto_escape=True)
 
+@on_command(('thwiki', 'timezone'), only_to_me=False)
+@config.ErrorHandle
+@config.maintain('thwiki')
+async def thwiki_timezone(session: CommandSession):
+    match = re.search('qq=(\d+)', session.current_arg)
+    if match:
+        qq = int(match.group(1))
+        other = True
+    else:
+        qq = session.ctx['user_id']
+        other = False
+    match = re.fullmatch('(UTC)?(\+\d+|-\d+|\d+)(:00)?', session.current_arg_text.strip())
+    if match and not other:
+        tz_new = int(match.group(2))
+        if tz_new <= -24 or tz_new >= 24:
+            await session.send("UTC时区必须在(-24, +24)以内")
+            return
+    else:
+        tz_new = None
+    node = find_or_new(qq=qq)
+    if tz_new is not None:
+        node['timezone'] = tz_new
+        await session.send(f"您的时区已修改为{timezone(timedelta(hours=tz_new)).tzname(datetime.today())}")
+        save_whiteforest()
+    else:
+        tz = node.get('timezone', 8)
+        await session.send(("您查询的用户" if other else "您") + f"的时区为{timezone(timedelta(hours=tz)).tzname(datetime.today())}")
+
 @on_command(('thwiki', 'grantlist'), only_to_me=False)
 @config.ErrorHandle
 @config.maintain('thwiki')
@@ -737,6 +799,15 @@ async def thwiki_grantlist(session: CommandSession):
         if node['card'] is None:
             node['card'] = await get_card(node['qq'])
     await session.send('\n'.join([f"id: {node['id']} qq: {node['qq']} 名片: {node['card']}\nparent id: {node['parent']}" + (f" 名片: {find_whiteforest(id=node['parent'])['card']}" if node['parent'] != -1 else '') + (f"\nchilds id: {' '.join(map(str, node['child']))}" if len(node['child']) > 0 else "") for node in whiteforest if node['trail'] == 0]), auto_escape=True, ensure_private=True)
+
+@on_command(('thwiki', 'leaderboard'), only_to_me=False)
+@config.ErrorHandle
+@config.maintain('thwiki')
+async def thwiki_leaderboard(session: CommandSession):
+    for node in whiteforest:
+        if node['card'] is None:
+            node['card'] = await get_card(node['qq'])
+    await session.send('\n'.join([f"{i + 1} 直播时长：{node['time']}min 用户：{node['card']} {node['qq']}" for i, node in enumerate(more_itertools.take(10, sorted(whiteforest, key=lambda node: (0 if 'time' not in node else node['time']), reverse=True)))]), auto_escape=True)
 
 @on_command(('thwiki', 'open'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
