@@ -95,8 +95,7 @@ class BwBoard:
                 raise ChessWin("白方胜出")
             else:
                 raise ChessWin("平局！")
-        print(safe)
-        if not safe[white_need - 1]:
+        if not safe[black_need - 1]:
             raise ChessCantMove("黑白"[2 - black_need] + "方无法移动，" + "黑白"[black_need - 1] + "方继续移动")
 
 
