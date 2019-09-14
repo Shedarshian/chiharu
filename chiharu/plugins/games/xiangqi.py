@@ -224,7 +224,7 @@ class HongPao(Chess, metaclass=metastr("炮")):
                 step = Chess.step[command[1]]
             except KeyError:
                 raise ChessError('不明指令')
-            if self.pos[0] - step > 9:
+            if self.pos[0] + step > 9:
                 return (False, )
             num = 0
             for i in range(step - 1):
@@ -466,7 +466,7 @@ class HeiPao(Chess, metaclass=metastr("砲")):
                 step = Chess.step[command[1]]
             except KeyError:
                 raise ChessError('不明指令')
-            if self.pos[0] - step > 9:
+            if self.pos[0] + step > 9:
                 return (False, )
             num = 0
             for i in range(step - 1):
