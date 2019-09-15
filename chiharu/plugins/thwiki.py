@@ -233,7 +233,7 @@ def add_time(qq, time):
     node['time'] += int(time)
     b = False
     if node['time'] >= TRAIL_TIME:
-        b = True
+        b = node['trail'] != 0
         if not node['trail'] and node['parent'] != -1:
             find_whiteforest(id=node['parent'])['child'].remove(node['id'])
         node['parent'] = -1
@@ -271,6 +271,9 @@ async def apply(session: CommandSession):
         if end < datetime.now():
             await session.send('结束需要比现在晚')
             return
+    if begin < datetime.now():
+        await session.send('开始需要比现在晚！')
+        return
     if len(name) < 1:
         await session.send('不能没有名字')
         return
