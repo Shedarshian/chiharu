@@ -268,10 +268,7 @@ async def apply(session: CommandSession):
         if begin > end:
             await session.send('结束需要比开始晚！')
             return
-        if end < datetime.now():
-            await session.send('结束需要比现在晚')
-            return
-    if begin < datetime.now():
+    if begin < datetime.now() - timedelta(minutes=1):
         await session.send('开始需要比现在晚！')
         return
     if len(name) < 1:
@@ -421,6 +418,7 @@ async def cancel(session: CommandSession):
 @config.ErrorHandle
 @config.maintain('thwiki')
 async def thlist(session: CommandSession):
+    if_all = session.current_arg_text == 'all'
     global l
     l = polish(l)
     await _save(l)
@@ -430,10 +428,26 @@ async def thlist(session: CommandSession):
         qq = session.ctx['user_id']
         node = find_or_new(qq=qq)
         if 'timezone' not in node or node['timezone'] == 8:
-            await session.send('\n'.join(map(str, l)), auto_escape=True)
+            if if_all:
+                await session.send('\n'.join([str(x) for x in l]), auto_escape=True)
+            else:
+                end = datetime.now() + timedelta(days=5)
+                l_show = [str(x) for x in l if x.begin < end]
+                await session.send('\n'.join(l_show) + (f'\n{len(l) - len(l_show)}条五天以后的预约已被折叠' if len(l) != len(l_show) else ""), auto_escape=True)
         else:
             tz = timezone(timedelta(hours=node['timezone']))
-            await session.send(f"您的时区为{tz.tzname(datetime.now())}\n" + '\n'.join(map(lambda x: x.str_tz(tz), l)), auto_escape=True)
+            if if_all:
+                await session.send(f"您的时区为{tz.tzname(datetime.now())}\n" + '\n'.join([x.str_tz(tz) for x in l]), auto_escape=True)
+            else:
+                end = datetime.now() + timedelta(days=5)
+                l_show = [str(x) for x in l if x.begin < end]
+                await session.send(f"您的时区为{tz.tzname(datetime.now())}\n" + '\n'.join([x.str_tz(tz) for x in l if x.begin < end]) + (f'\n{len(l) - len(l_show)}条五天以后的预约已被折叠' if len(l) != len(l_show) else ""), auto_escape=True)
+
+@on_command(('thwiki', 'listall'), only_to_me=False)
+@config.ErrorHandle
+@config.maintain('thwiki')
+async def thlistall(session: CommandSession):
+    await call_command(get_bot(), session.ctx, ('thwiki', 'list'), current_arg="all")
 
 @on_command(('thwiki', 'term'), only_to_me=False)
 @config.ErrorHandle
