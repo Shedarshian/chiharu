@@ -12,6 +12,10 @@ import chiharu.plugins.config as config
 from nonebot import on_command, CommandSession, get_bot, permission, scheduler
 from nonebot.command import call_command
 config.logger.open('card')
+def _time():
+    h = datetime.now().hour
+    return h < 6 or 11 <= h < 13 or h >= 23
+c1 = config.Constraint({720680608}, _time, "现时段本群功能管制，欢迎加入bot测试群947279366刷屏")
 
 # -game card 引导至card的指令列表
 # √抽卡指令（参数：卡池，张数） 参数为空时引导至查看卡池 限额抽完时引导至查看个人信息 再次输入确认使用资源抽卡
@@ -307,13 +311,14 @@ def pool_des_detail(pool_info: Dict, wish: Set):
 【在您的愿望单中的卡牌】：{'，'.join([f'''{card_info[x]['name']}x{pool[x]}''' for x in in_wish])}""" if len(in_wish) != 0 else '')
 
 def center_card(*args):
-    return """欢迎来到抽卡游戏！（现在正在删档测试一周~~）
+    return """欢迎来到抽卡游戏！
 本抽卡游戏是一个【用户可以任意创造卡片放入】且卡池有限的抽卡游戏
 每天呢，有3个随机取出的每日卡池，以及近3天所有新创造的卡的新卡卡池，不定期还会开放活动卡池哦
-玩家每天有10次免费抽卡机会，每分解一张卡以及创造一张都可以获得20en，也可以消耗100en抽一张卡
+玩家每天有10次免费抽卡机会，每分解一张卡以及创造一张都可以获得20en，消耗100en也能够抽一张卡
 每天创造的卡片数和种类数也有上限哦，在凌晨5点会更新每日卡池以及重置上限www
 还有，创造的新的卡片名字需要审核哦~
 使用-card.help或-help card查询全部指令列表
+抽卡时可能会【刷屏】，避免造成群友困扰欢迎加入测试群947279366
 お楽しみに～"""
 
 def add_cardname(arg: Iterable[Tuple[int, int]], **kwargs):
@@ -335,6 +340,7 @@ def add_card(arg: Iterable[Tuple[int, int]]):
 @on_command(('card', 'draw'), only_to_me=False, aliases=('抽卡',))
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_draw(session: CommandSession):
     if session.get('name') is None:
         # 卡池介绍
@@ -371,7 +377,7 @@ async def card_draw(session: CommandSession):
                             await session.send(f'您今日的免费10次抽卡次数已用尽，是否确认使用en进行抽卡？再次输入抽卡指令确认{f.guide["info"]}{f.guide["confirm"]}', auto_escape=True) # 取消确认？？？ TODO
                             config.logger.card << f'【LOG】用户{qq} 免费抽卡次数已用尽 可以使用en进行抽卡'
                         else:
-                            await session.send(f'您今日的免费10次抽卡次数已用尽{f.guide["info"]}', auto_escape=True)
+                            await session.send(f'您今日的免费10次抽卡次数已用尽{f.guide["info"]}{f.guide["wish"]}', auto_escape=True)
                             config.logger.card << f'【LOG】用户{qq} 免费抽卡次数已用尽'
                         return
                     else:
@@ -381,7 +387,7 @@ async def card_draw(session: CommandSession):
                             data['money'] = info['money']
                             f.save_info(info)
                         else:
-                            await session.send(f'您剩余en已不足\n\n您还有{info["money"]}en，每100en可以抽一张卡{f.guide["info"]}', auto_escape=True)
+                            await session.send(f'您剩余en已不足\n\n您还有{info["money"]}en，每100en可以抽一张卡{f.guide["info"]}{f.guide["wish"]}', auto_escape=True)
                             config.logger.card << f'【LOG】用户{qq} en数不足'
                             return
                 elif info['time'] < num:
@@ -431,6 +437,7 @@ async def card_draw(session: CommandSession):
 @on_command(('card', 'draw5'), aliases=('五连抽卡',), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_draw_5(session: CommandSession):
     if session.current_arg_text == "":
         await call_command(get_bot(), session.ctx, ('card', 'draw'), current_arg="")
@@ -440,6 +447,7 @@ async def card_draw_5(session: CommandSession):
 @on_command(('card', 'check'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_check(session: CommandSession):
     qq = session.ctx['user_id']
     if session.current_arg_text == "":
@@ -460,6 +468,7 @@ async def card_check(session: CommandSession):
 @on_command(('card', 'check_card'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_check_card(session: CommandSession):
     c = card_find(session.current_arg_text)
     if c is None:
@@ -473,6 +482,7 @@ async def card_check_card(session: CommandSession):
 @on_command(('card', 'add'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_add(session: CommandSession):
     if session.get('name') is None:
         await session.send(guide['add'])
@@ -519,7 +529,7 @@ async def card_add(session: CommandSession):
                 f1.save_info(info)
                 config.logger.card << f"【LOG】用户{qq} 提交卡片名 {name} ，{num}张，待审核"
                 config.logger.card << f'【LOG】用户{qq} 获得了{20 * num}en 剩余{info["money"]}en'
-                strout = f"已提交卡片 {name} ，待审核，审核成功后会将通知发送至消息箱（默认为私聊）~\n您已获得{20 * num}en\n{f1.guide['check']}{f1.guide['info']}".strip()
+                strout = f"已提交卡片 {name} ，待审核，审核成功后会将通知发送至消息箱（默认为私聊）~\n您已获得{20 * num}en{f1.guide['check']}{f1.guide['info']}{f1.guide['wish']}".strip()
                 async def _f():
                     for group in config.group_id_dict['card_verify']:
                         await get_bot().send_group_msg(group_id=group, message=f'{qq}提交\n{name}\n{num}张 id:{id_max}', auto_escape=True)
@@ -531,7 +541,7 @@ async def card_add(session: CommandSession):
                 f1.save_info(info)
                 config.logger.card << f"【LOG】用户{qq} 创造卡片{c['id']}，{num}张"
                 config.logger.card << f'【LOG】用户{qq} 获得了{20 * num}en 剩余{info["money"]}en'
-                strout = f"成功放入卡片 {c['name']} {num}张，欢迎明日查看新卡卡池\n您已获得{20 * num}en\n{f1.guide['check']}{f1.guide['info']}".strip()
+                strout = f"成功放入卡片 {c['name']} {num}张，欢迎明日查看新卡卡池\n您已获得{20 * num}en\n{f1.guide['check']}{f1.guide['info']}{f1.guide['wish']}".strip()
             f1.close('add')
     await session.send(strout, auto_escape=True)
     await _f()
@@ -539,6 +549,7 @@ async def card_add(session: CommandSession):
 @on_command(('card', 'userinfo'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_userinfo(session: CommandSession):
     qq = session.ctx['user_id']
     with open_user_storage(qq) as f:
@@ -550,6 +561,7 @@ async def card_userinfo(session: CommandSession):
 @on_command(('card', 'wishlist'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_wishlist(session: CommandSession):
     if session.current_arg_text != '':
         page = int(session.current_arg_text)
@@ -574,6 +586,7 @@ async def card_wishlist(session: CommandSession):
 @on_command(('card', 'fav'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_fav(session: CommandSession):
     name = session.current_arg_text.strip()
     qq = session.ctx['user_id']
@@ -598,6 +611,7 @@ async def card_fav(session: CommandSession):
 @on_command(('card', 'wish'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_wish(session: CommandSession):
     name = session.current_arg_text.strip()
     qq = session.ctx['user_id']
@@ -620,6 +634,7 @@ async def card_wish(session: CommandSession):
 @on_command(('card', 'set', 'unconfirm'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_unconfirm(session: CommandSession):
     with open_user_storage(session.ctx['user_id']) as f:
         f.close('confirm')
@@ -632,6 +647,7 @@ async def card_unconfirm(session: CommandSession):
 @on_command(('card', 'set', 'message'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_set_message(session: CommandSession):
     if session.current_arg_text in {'0', '1', '2'}:
         qq = session.ctx['user_id']
@@ -648,6 +664,7 @@ async def card_set_message(session: CommandSession):
 @on_command(('card', 'set', 'guide'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_set_guide(session: CommandSession):
     if session.current_arg_text == 'off':
         off = 255
@@ -668,6 +685,7 @@ async def card_set_guide(session: CommandSession):
 @on_command(('card', 'storage'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_storage(session: CommandSession):
     if session.current_arg_text != '':
         page = int(session.current_arg_text)
@@ -701,6 +719,7 @@ async def card_storage(session: CommandSession):
 @on_command(('card', 'discard'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_discard(session: CommandSession):
     if session.get('name') is None:
         await session.send('请输入想分解的卡名')
@@ -751,6 +770,7 @@ async def name_num_parser(session: CommandSession):
 @on_command(('card', 'message'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_check(session: CommandSession):
     with open_user_storage(session.ctx['user_id']) as f:
         message = f.check_message()
@@ -764,6 +784,7 @@ async def card_check(session: CommandSession):
 @on_command(('card', 'comment'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_comment(session: CommandSession):
     with open(config.rel(r'games\card\comment.json'), encoding='utf-8') as f:
         comments = json.load(f)
@@ -781,6 +802,7 @@ async def card_comment(session: CommandSession):
 @on_command(('card', 'help'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
 @config.maintain('card')
+@c1
 async def card_help(session: CommandSession):
     await call_command(get_bot(), session.ctx, ('help',), current_arg="card")
     with open_user_storage(session.ctx["user_id"]) as f:

@@ -3,7 +3,7 @@ import functools
 import json
 import datetime
 from os import path
-from typing import Awaitable, Generator
+from typing import Awaitable, Generator, Set, Callable
 from nonebot import CommandSession, get_bot, on_command
 import traceback
 from collections import UserDict
@@ -131,3 +131,18 @@ def maintain(s):
                     await kwargs['session'].send(maintain_str[s], auto_escape=True)
         return _f
     return _
+
+class Constraint:
+    def __init__(self, id_s: Set[int], can_respond: Callable[..., bool], ret: str=""):
+        self.id_s = id_s
+        self._f = can_respond
+        self.ret = ret
+    def __call__(self, f: Awaitable):
+        @functools.wraps(f)
+        async def _f(session: CommandSession, *args, **kwargs):
+            if session.ctx['group_id'] in self.id_s and not self._f():
+                if self.ret != "":
+                    await session.send(self.ret, auto_escape=True)
+            else:
+                await f(session, *args, **kwargs)
+        return _f
