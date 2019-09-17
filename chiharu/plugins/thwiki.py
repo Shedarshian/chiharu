@@ -901,6 +901,15 @@ async def thwiki_maintain(session: CommandSession):
         #if await permission.check_permission(get_bot(), session.ctx, permission.GROUP_OWNER | permission.SUPERUSER):
         await session.send('已解除维护状态')
 
+@on_command(('thwiki', 'shutdown'), only_to_me=False, permission=permission.GROUP_ADMIN)
+@config.ErrorHandle
+async def thwiki_shutdown(session: CommandSession):
+    group_id = session.ctx['group_id']
+    if group_id not in config.group_id_dict['thwiki_live']:
+        return
+    await th_open(is_open=False)
+    await session.send('已关闭直播间')
+
 @on_command(('thwiki', 'blacklist'), only_to_me=False, permission=permission.GROUP_ADMIN)
 @config.ErrorHandle
 async def thwiki_blacklist(session: CommandSession):
