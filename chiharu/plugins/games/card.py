@@ -342,14 +342,18 @@ def add_cardname(arg: Iterable[Tuple[str, int, Union[str, None]]], **kwargs):
     global card_info, pool
     with open(config.rel(r"games\card\pool"), 'ab') as f:
         for name, num, des in arg:
-            if card_find(name) is not None:
-                continue
-            if des is not None:
-                card_info.append(dict(name=name, id=len(card_info), des=des, **kwargs))
+            c = card_find(name)
+            if c is None:
+                if des is not None:
+                    card_info.append(dict(name=name, id=len(card_info), des=des, **kwargs))
+                else:
+                    card_info.append(dict(name=name, id=len(card_info), **kwargs))
+                pool.append(num)
+                f.write(to_byte(num)) # 每个卡最多65535张
             else:
-                card_info.append(dict(name=name, id=len(card_info), **kwargs))
-            pool.append(num)
-            f.write(to_byte(num)) # 每个卡最多65535张
+                f.seek(2 * c['id'])
+                pool[c['id']] += num
+                f.write(to_byte(pool[c['id']]))
     save_card_info()
 def add_card(arg: Iterable[Tuple[int, int]]):
     global pool
@@ -608,6 +612,7 @@ async def card_add_des(session: CommandSession):
     with open_user_storage(qq) as f1, open_user_create(qq) as f2:
         if not f2.check_created(card_name):
             strout = '此卡片不是您首次创造，无法添加描述文本'
+            out = True
         else:
             verify = read_verify()
             id_max = max(-1, -1, *[x['id'] for x in verify]) + 1
@@ -617,9 +622,11 @@ async def card_add_des(session: CommandSession):
             strout = f"已提交卡片 {c['name']} 的描述 {des}，待审核，审核成功后会将通知发送至消息箱（默认为私聊）~{f1.guide['check_card']}{f1.guide['wish']}".strip()
             config.logger.card << f"【LOG】用户{qq} 提交卡牌 {c['name']} 的描述 {des}"
             f1.close('add_des')
+            out = False
     await session.send(strout, auto_escape=True)
-    for group in config.group_id_dict['card_verify']:
-        await get_bot().send_group_msg(group_id=group, message=f"{qq} 提交卡牌 {c['name']} 的描述 {des}\nid:{id_max}", auto_escape=True)
+    if out:
+        for group in config.group_id_dict['card_verify']:
+            await get_bot().send_group_msg(group_id=group, message=f"{qq} 提交卡牌 {c['name']} 的描述 {des}\nid:{id_max}", auto_escape=True)
 
 @on_command(('card', 'userinfo'), only_to_me=False)
 @config.ErrorHandle(config.logger.card)
