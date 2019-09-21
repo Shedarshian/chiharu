@@ -123,12 +123,22 @@ def maintain(s):
         @functools.wraps(f)
         async def _f(*args, **kwargs):
             if s not in maintain_str or maintain_str[s] == "":
-                return await f(*args, **kwargs)
+                await f(*args, **kwargs)
             else:
                 if len(args) >= 1 and isinstance(args[0], CommandSession):
-                    await args[0].send(maintain_str[s], auto_escape=True)
+                    session = args[0]
                 elif 'session' in kwargs and isinstance(kwargs['session'], CommandSession):
-                    await kwargs['session'].send(maintain_str[s], auto_escape=True)
+                    session = kwargs['session']
+                else:
+                    return
+                try:
+                    group_id = session.ctx['group_id']
+                except KeyError:
+                    return
+                if group_id in group_id_dict['aaa']:
+                    await f(*args, **kwargs)
+                else:
+                    await session.send(maintain_str[s], auto_escape=True)
         return _f
     return _
 
@@ -140,7 +150,12 @@ class Constraint:
     def __call__(self, f: Awaitable):
         @functools.wraps(f)
         async def _f(session: CommandSession, *args, **kwargs):
-            if session.ctx['group_id'] in self.id_s and not self._f():
+            try:
+                group_id = session.ctx['group_id']
+            except KeyError:
+                await f(session, *args, **kwargs)
+                return
+            if group_id in self.id_s and not self._f():
                 if self.ret != "":
                     await session.send(self.ret, auto_escape=True)
             else:
