@@ -350,7 +350,11 @@ async def _(session: CommandSession):
             hours = int(hours)
             minute = _default(minute, 0)
             try:
-                begin = datetime(year, month, day, hours, minute, tzinfo=tz)
+                if 24 <= hours <= 30:
+                    hours -= 24
+                    begin = datetime(year, month, day, hours, minute, tzinfo=tz) + timedelta(days=1)
+                else:
+                    begin = datetime(year, month, day, hours, minute, tzinfo=tz)
                 if tz is not None:
                     session.args['begin'] = begin.astimezone(timezone(timedelta(hours=8))).replace(tzinfo=None)
                 else:
@@ -375,7 +379,11 @@ async def _(session: CommandSession):
             hours = int(hours)
             minute = _default(minute, 0)
             try:
-                end = datetime(year, month, day, hours, minute, tzinfo=tz)
+                if 24 <= hours <= 30:
+                    hours -= 24
+                    end = datetime(year, month, day, hours, minute, tzinfo=tz) + timedelta(days=1)
+                else:
+                    end = datetime(year, month, day, hours, minute, tzinfo=tz)
                 if tz is not None:
                     session.args['end'] = end.astimezone(timezone(timedelta(hours=8))).replace(tzinfo=None)
                 else:
