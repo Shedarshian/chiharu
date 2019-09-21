@@ -933,6 +933,14 @@ async def thwiki_blacklist(session: CommandSession):
             f.write('\n')
     await session.send('successfully added to blacklist')
 
+@on_command(('thwiki', 'check_user'), only_to_me=False, permission=permission.GROUP_ADMIN)
+@config.ErrorHandle
+async def thwiki_check_user(session: CommandSession):
+    group_id = session.ctx['group_id']
+    if group_id not in config.group_id_dict['thwiki_live']:
+        return
+    await session.send(str(len([node for node in whiteforest if 'time' in node and node['time'] > 0])))
+
 @on_notice('group_increase')
 @config.maintain('thwiki')
 async def thwiki_greet(session: NoticeSession):
