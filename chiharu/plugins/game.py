@@ -1,7 +1,32 @@
 from typing import Callable, Iterable, Tuple, Any, Awaitable, List, Dict
+from abc import ABC, abstractmethod
 import chiharu.plugins.config as config
 import chiharu.plugins.games.card as card
 from nonebot import on_command, CommandSession, get_bot, permission, on_natural_language, NLPSession, IntentCommand
+
+# example usage for GameSameGroup:
+# xiangqi = GameSameGroup('xiangqi')
+#
+# @xiangqi.begin_uncomplete(('play', 'xiangqi', 'begin'), (2, 2))
+# async def chess_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):
+#     # data: {'players': [qq], 'anything': anything}
+#     await session.send('已为您安排红方，等候黑方')
+#
+# @xiangqi.begin_complete(('play', 'xiangqi', 'confirm'))
+# async def chess_begin_complete(session: CommandSession, data: Dict[str, Any]):
+#     # data: {'players': [qq], 'game': GameSameGroup instance, 'anything': anything}
+#     await session.send('已为您安排黑方')
+#     #开始游戏
+#     #data['board'] = board
+#
+# @xiangqi.end(('play', 'xiangqi', 'end'))
+# async def chess_end(session: CommandSession, data: Dict[str, Any]):
+#     await session.send('已删除')
+#
+# @xiangqi.process(only_short_message=True)
+# async def chess_process(session: NLPSession, data: Dict[str, Any], delete_func: Callable[[], None]):
+#     pass
+#
 
 class ChessError(BaseException):
     def __init__(self, arg):
@@ -136,6 +161,9 @@ class GameSameGroup:
             return _g
         return _
 
+class GamePrivate:
+    pass
+
 @on_command('game', only_to_me=False)
 @config.ErrorHandle
 async def game_center(session: CommandSession):
@@ -144,24 +172,3 @@ async def game_center(session: CommandSession):
     elif session.current_arg_text == 'card':
         await session.send(card.center_card())
 
-# xiangqi = GameSameGroup('xiangqi')
-
-# @xiangqi.begin_uncomplete(('play', 'xiangqi', 'begin'), (2, 2))
-# async def chess_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):
-#     # data: {'players': [qq], 'anything': anything}
-#     await session.send('已为您安排红方，等候黑方')
-
-# @xiangqi.begin_complete(('play', 'xiangqi', 'confirm'))
-# async def chess_begin_complete(session: CommandSession, data: Dict[str, Any]):
-#     # data: {'players': [qq], 'game': GameSameGroup instance, 'anything': anything}
-#     await session.send('已为您安排黑方')
-#     #开始游戏
-#     #data['board'] = board
-
-# @xiangqi.end(('play', 'xiangqi', 'end'))
-# async def chess_end(session: CommandSession, data: Dict[str, Any]):
-#     await session.send('已删除')
-
-# @xiangqi.process(only_short_message=True)
-# async def chess_process(session: NLPSession, data: Dict[str, Any], delete_func: Callable[[], None]):
-#     pass
