@@ -549,11 +549,11 @@ async def card_add(session: CommandSession):
             if c is None:
                 # new card 加入审核
                 f1.save_info(info)
-                f2.new_created_type_checked(name)
                 verify = read_verify()
                 a = more_itertools.only(filter(lambda x: x.get('name', '') == name, verify))
                 des = None
                 if a is None:
+                    f2.new_created_type_checked(name)
                     id_max = max(-1, -1, *[x['id'] for x in verify]) + 1
                     verify.append({'name': name, 'id': id_max, 'user': [{'qq': qq, 'num': num}]})
                     if session.get('des') is not None:
@@ -612,7 +612,7 @@ async def card_add_des(session: CommandSession):
     with open_user_storage(qq) as f1, open_user_create(qq) as f2:
         if not f2.check_created(card_name):
             strout = '此卡片不是您首次创造，无法添加描述文本'
-            out = True
+            out = False
         else:
             verify = read_verify()
             id_max = max(-1, -1, *[x['id'] for x in verify]) + 1
@@ -622,7 +622,7 @@ async def card_add_des(session: CommandSession):
             strout = f"已提交卡片 {c['name']} 的描述 {des}，待审核，审核成功后会将通知发送至消息箱（默认为私聊）~{f1.guide['check_card']}{f1.guide['wish']}".strip()
             config.logger.card << f"【LOG】用户{qq} 提交卡牌 {c['name']} 的描述 {des}"
             f1.close('add_des')
-            out = False
+            out = True
     await session.send(strout, auto_escape=True)
     if out:
         for group in config.group_id_dict['card_verify']:
