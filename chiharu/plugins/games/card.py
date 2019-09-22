@@ -506,9 +506,9 @@ async def card_check_card(session: CommandSession):
         pools = [x['name'] for x in daily_pool if c['id'] in x['cards']]
         with open_user_storage(session.ctx['user_id']) as f, open_user_create(session.ctx['user_id']) as f2:
             f.close('check_card')
-            strout = (f"卡牌 {c['name']}：余量{pool[c['id']]}张" + '\n' + (f"出现于卡池：{'，'.join(pools)}" if len(pools) > 0 else "未出现在今日卡池") + '\n' + f"{f.guide['check']}").strip()
-            if 'des' in c:
-                strout += '\n' + c['des']
+            f.check()
+            check = f.read_nocheck(c['id'])['num'] > 0 or f2.check_created(c['name'])
+            strout = (f"卡牌 {c['name']}：余量{pool[c['id']]}张" + '\n' + (f"出现于卡池：{'，'.join(pools)}" if len(pools) > 0 else "未出现在今日卡池") + (('\n' + c['des'] if check else '\n描述文本已因您未拥有此卡牌而隐藏') if 'des' in c else '\n') + f"{f.guide['check']}").strip()
             if f2.check_created(c['name']):
                 strout += '\n此卡牌是您首次创造'
         await session.send(strout, auto_escape=True)
@@ -538,7 +538,7 @@ async def card_add(session: CommandSession):
             strout = f"您今日创造卡片的剩余张数不足，上限为10种30张，您只剩{info['create_type']}种{info['create_num']}张。{f1.guide['info']}"
         elif '\n' in name or '\t' in name or '\r' in name or name.startswith(' ') or name.endswith(' '):
             strout = "卡片名中含有非法字符，未通过"
-        elif len(name) >= 60:
+        elif len(name) >= 17:
             strout = "卡片名过长"
         else:
             name = name.replace('，', ',')
@@ -1115,8 +1115,23 @@ async def card_oshirase(session: CommandSession):
 @on_command(('card', 'test'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
 async def card_test(session: CommandSession):
-    with open_user_storage(1569603950) as f:
-        info = f.read_info()
-        info['create_type'] += 3
-        info['create_num'] += 3
-        f.save_info(info)
+    to_send = {}
+    for qq in os.listdir(config.rel(r'games\card\user_create')):
+        if qq.endswith('.txt'):
+            send = []
+            with open(config.rel('games\\card\\user_create\\' + qq), 'r', encoding='utf-8') as f:
+                c = list(map(lambda x: x.strip(), f.readlines()))
+            for name in c:
+                if len(name) >= 17:
+                    card = card_find(name)
+                    if card is not None:
+                        card['name'] = name[:16]
+                        send.append(name)
+            if len(send) > 0:
+                to_send[int(qq[:-4])] = f'【更新公告】版本更新后，卡牌名长度限制为16字符，您创建的卡牌 {"，".join(send)} 因超过限制已被截断至前16字符。'
+    save_card_info()
+    for qq, s in to_send.items():
+        with open_user_storage(qq) as f:
+            await f.send(s)
+    await session.send(str(to_send))
+
