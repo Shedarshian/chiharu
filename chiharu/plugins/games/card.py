@@ -1112,6 +1112,74 @@ async def card_oshirase(session: CommandSession):
             await f.send('【抽卡游戏公告】' + session.current_arg_text)
     await session.send('成功发送')
 
+@on_command(('card', 'update'), only_to_me=False, permission=permission.SUPERUSER)
+@config.ErrorHandle
+async def card_update(session: CommandSession):
+    global daily_pool_all, daily_pool
+    #new card pool
+    new_card = read_new_card()
+    all_new = list(itertools.chain(*new_card))
+    all_new.sort()
+    all_new = list(more_itertools.unique_justseen(all_new))
+    pool_info = more_itertools.only(filter(lambda x: x['id'] == 0, daily_pool))
+    num = functools.reduce(lambda x, y: x + y, map(lambda x: pool[x], pool_info['cards']), 0)
+    if pool_info is None:
+        daily_pool_all.append({"type": "new", "name": "新卡卡池", "id": 0, "status": 3 if num == 0 else 1, "cards": all_new})
+    else:
+        pool_info['cards'] = all_new
+        if num == 0:
+            pool_info['status'] = 3
+        else:
+            pool_info['status'] = 1
+    new_card.pop(0)
+    new_card.append([])
+    save_new_card(new_card)
+    #daily pool
+    for i in range(1, daily_pool_num + 1):
+        #generate
+        num = 0
+        all = list(range(len(card_info)))
+        pool_now = []
+        while num < daily_pool_cap:
+            p = random.choice(all)
+            all.remove(p)
+            if num + pool[p] >= daily_pool_exceed:
+                config.logger.card << f'【WARNING】在生成每日卡池时出现超额，卡池为{pool_now}共{num}张，试图加入{p}共{pool[p]}张失败'
+                continue
+            pool_now.append(p)
+            num += pool[p]
+            if len(all) == 0:
+                break
+        pool_info = more_itertools.only(filter(lambda x: x['id'] == i, daily_pool))
+        pool_now.sort()
+        if pool_info is None:
+            daily_pool_all.append({"type": "daily", "name": "每日卡池" + str(i), "id": i, "status": 1, "cards": pool_now})
+        else:
+            pool_info['cards'] = pool_now
+            pool_info['status'] = 1
+    #event pool
+    for p in daily_pool:
+        if p['type'] == 'event':
+            if date.fromisoformat(p['end_date']) <= date.today():
+                p['status'] = 0
+            elif p['status'] == 2 and date.fromisoformat(p['begin_date']) <= date.today():
+                p['status'] = 1
+    save_daily_pool()
+    #person info
+    for qq in os.listdir(config.rel(r'games\card\user_storage')):
+        with open_user_storage(int(qq)) as f:
+            info = f.read_info()
+            info['time'] = daily_draw
+            info['create_type'] = daily_create_type
+            info['create_num'] = daily_create
+            info['confirm'] = False
+            f.save_info(info)
+            if info['message'] == 2:
+                message = f.check_message()
+                if message != []:
+                    config.logger.card << f'【LOG】已定时向用户{f.qq}发送消息：\n' + '\n'.join(message)
+                    await get_bot().send_private_msg(user_id=f.qq, message='\n'.join(message), auto_escape=True)
+
 @on_command(('card', 'test'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
 async def card_test(session: CommandSession):
