@@ -17,3 +17,7 @@ class YingLi(ActionCard, num=4):
 class ZhuBoard(Zhu.Board):
     def __init__(self):
         pass
+
+class ZhuPlayer(Zhu.Player):
+    def __init__(self):
+        pass

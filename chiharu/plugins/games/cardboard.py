@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Awaitable
-import asyncio
+from asyncio import Queue
 import functools
 import random
 
@@ -82,6 +82,9 @@ class Deck:
 class CardGame:
     def __init__(self):
         class _board(ABC):
+            def __init_subclass__(cls):
+                self._board_class = cls
+                cls._game = self
             @abstractmethod
             def __init__(self, *args, **kwargs):
                 '''need to shuffle decks and something.'''
@@ -94,6 +97,10 @@ class CardGame:
         self.Board = _board
         class _player(ABC):
             response_dict = {}
+            queue = Queue(1)
+            def __init_subclass__(cls):
+                self._player_class = cls
+                cls._game = self
             @abstractmethod
             def __init__(self, *args, **kwargs):
                 '''need i/o set.'''
@@ -117,8 +124,7 @@ class CardGame:
             _game = self
             deck = self._deck
             _deck_name = deck_name
-            def __init_subclass__(child, **kwargs):
-                super().__init_subclass__(**kwargs)
+            def __init_subclass__(child):
                 @classmethod
                 def _(grandchild, num=0):
                     _card.deck[_card._deck_name]._add_init_card(grandchild, num)
