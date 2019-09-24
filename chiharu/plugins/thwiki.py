@@ -953,7 +953,7 @@ async def thwiki_greet(session: NoticeSession):
 async def thwiki_decrease(session: NoticeSession):
     qq = session.ctx['user_id']
     node = find_whiteforest(qq=qq)
-    if node is not None and node['trail'] == 0 and node['parent'] != -1:
+    if node is not None and node['trail'] == 0:
         node_parent = find_whiteforest(id=node['parent'])
         if node_parent is not None:
             node_parent['child'].remove(node['id'])
