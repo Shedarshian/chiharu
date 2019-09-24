@@ -1183,23 +1183,5 @@ async def card_update(session: CommandSession):
 @on_command(('card', 'test'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
 async def card_test(session: CommandSession):
-    to_send = {}
-    for qq in os.listdir(config.rel(r'games\card\user_create')):
-        if qq.endswith('.txt'):
-            send = []
-            with open(config.rel('games\\card\\user_create\\' + qq), 'r', encoding='utf-8') as f:
-                c = list(map(lambda x: x.strip(), f.readlines()))
-            for name in c:
-                if len(name) >= 17:
-                    card = card_find(name)
-                    if card is not None:
-                        card['name'] = name[:16]
-                        send.append(name)
-            if len(send) > 0:
-                to_send[int(qq[:-4])] = f'【更新公告】版本更新后，卡牌名长度限制为16字符，您创建的卡牌 {"，".join(send)} 因超过限制已被截断至前16字符。'
-    save_card_info()
-    for qq, s in to_send.items():
-        with open_user_storage(qq) as f:
-            await f.send(s)
-    await session.send(str(to_send))
+    await session.send(str(functools.reduce(lambda x, y: x + y, pool)))
 

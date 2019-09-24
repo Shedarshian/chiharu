@@ -9,12 +9,12 @@ from nonebot import on_command, CommandSession, get_bot, permission, on_natural_
 #
 # @xiangqi.begin_uncomplete(('play', 'xiangqi', 'begin'), (2, 2))
 # async def chess_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):
-#     # data: {'players': [qq], 'anything': anything}
+#     # data: {'players': [qq], 'args': [args], 'anything': anything}
 #     await session.send('已为您安排红方，等候黑方')
 #
 # @xiangqi.begin_complete(('play', 'xiangqi', 'confirm'))
 # async def chess_begin_complete(session: CommandSession, data: Dict[str, Any]):
-#     # data: {'players': [qq], 'game': GameSameGroup instance, 'anything': anything}
+#     # data: {'players': [qq], 'game': GameSameGroup instance, 'args': [args], 'anything': anything}
 #     await session.send('已为您安排黑方')
 #     #开始游戏
 #     #data['board'] = board
@@ -73,8 +73,10 @@ class GameSameGroup:
                         await session.send('您已参加本游戏匹配，请耐心等待')
                         return
                     self.uncomplete[group_id]['players'].append(qq)
+                    self.uncomplete[group_id]['args'].append(session.current_arg_text)
                     if len(self.uncomplete[group_id]['players']) == self.begin_player[1]: # 已达上限，开始游戏
-                        dct = {'players': self.uncomplete.pop(group_id)['players'], 'game': self}
+                        dct = self.uncomplete.pop(group_id)
+                        dct['game'] = self
                         await _f(session, dct) # add data to dct
                         if group_id in self.center:
                             self.center[group_id].append(dct)
@@ -85,7 +87,7 @@ class GameSameGroup:
                             await bot.send_group_msg(group_id=group, message='%s begin in group %s' % (self.name, group_id))
                         return
                 else:
-                    self.uncomplete[group_id] = {'players': [qq]}
+                    self.uncomplete[group_id] = {'players': [qq], 'args': [session.current_arg_text]}
                 await self.uncomplete_func(session, self.uncomplete[group_id])
             @on_command(confirm_command, only_to_me=False)
             @config.ErrorHandle
