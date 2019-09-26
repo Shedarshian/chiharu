@@ -3,12 +3,21 @@ import itertools
 import more_itertools
 import functools
 from copy import copy, deepcopy
+from PIL import Image, ImageDraw
 # from nonebot import on_command, CommandSession
 # import chiharu.plugins.config as config
 # from .. import game
 
+class config:
+    @staticmethod
+    def rel(rel_path):
+        from os import path
+        return path.join("C:\\coolq_data\\", rel_path)
+    
 def add(l: Tuple[int, int], r: Tuple[int, int]):
     return (l[0] + r[0], l[1] + r[1])
+def sub(l: Tuple[int, int], r: Tuple[int, int]):
+    return (l[0] - r[0], l[1] - r[1])
 def in_border(pos: Tuple[int, int], border: Tuple[Tuple[int, int], Tuple[int, int]]):
     return border[0][0] <= pos[0] < border[0][1] and border[1][0] <= pos[1] < border[1][1]
 def methdispatch(func):
@@ -27,9 +36,9 @@ class SnakeWin(Exception):
     pass
 class SnakeBird:
     dir = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+    color = {'0': (159, 223, 255), 'A': (191, 0, 0), 'a': (255, 95, 95), 'B': (0, 0, 191), 'b': (95, 95, 255), 'C': (0, 191, 0), 'c': (95, 255, 95), 'bound': (63, 63, 63), '1': (191, 95, 53), 'grass': (121, 191, 75), 'block': (234, 128, 21), 'bar': (194, 106, 18), '2': (191, 0, 191), '3': (127, 127, 127), 'p1': (0, 255, 0), 'p2': (255, 255, 0), 'grid': (175, 207, 223)}
     def __init__(self, id):
-        #with open(config.rel(f'games\\snakebird\\{id}.txt')) as f:
-        with open(f'C:\\\coolq_data\\games\\snakebird\\{id}.txt') as f:
+        with open(config.rel(f'games\\snakebird\\{id}.txt')) as f:
             self.board = [list(line.strip()) for line in f.readlines()]
         self.border = ((0, len(self.board)), (0, len(self.board[0])))
         # 0: blank 1: wall 2: food 3: spike 8: portal 9: end Aaa: snake IIIJJ: block Z: void T: tail
@@ -52,13 +61,44 @@ class SnakeBird:
         self.cal_food()
         self.win = more_itertools.only([(i, line.index('9')) for i, line in enumerate(self.board) if '9' in line])
         self[self.win] = '0'
-        self.portal = functools.reduce(lambda x, y: x + y, [[(i, j) for j in more_itertools.locate(line, lambda x: x == '8')] for i, line in enumerate(self.board)])
+        self.portal = functools.reduce(lambda x, y: x + y, [
+            [(i, j) for j in more_itertools.locate(line, lambda x: x == '8')] for i, line in enumerate(self.board)])
         assert(len(self.portal) in {0, 2})
         if len(self.portal) == 2:
             self[self.portal[0]] = self[self.portal[1]] = '0'
-        self.block = {} # TODO
+        self.block = dict([
+            (x, functools.reduce(lambda y, z: y + z, [
+                [(i, j) for j in more_itertools.locate(line, lambda y: y == x)]
+                    for i, line in enumerate(self.board)
+                ])
+            ) for x in 'IJKLMN'])
+        # divide
+        self.bar = {}
+        for id, body in self.block.items():
+            divide = []
+            b = set(body)
+            while len(b):
+                pos = b.pop()
+                divide.append({pos})
+                todo = {pos}
+                while len(todo):
+                    p = todo.pop()
+                    for dir in self.dir:
+                        q = add(p, dir)
+                        if q in b:
+                            b -= {q}
+                            divide[-1].add(q)
+                            todo.add(q)
+            if len(divide) <= 1:
+                continue
+            self.bar[id] = []
+            m = min(body)
+            for l1, l2 in itertools.combinations(divide, 2):
+                for p, q in itertools.product(l1, l2):
+                    if p[0] == q[0] or p[1] == q[1] and not (add(p, (0, 1)) in l1 and add(p, (0, -1)) in l1 and add(q, (0, 1)) in l2 and add(q, (0, -1)) in l2):
+                        self.bar[id].append(tuple(sorted((sub(p, m), sub(q, m)))))
         self.stack = []
-        self.activate = 'A'
+        self.activate = sorted(self.snake.keys())[0]
     def cal_food(self):
         self.food = 0
         for line in self.board:
@@ -108,7 +148,7 @@ class SnakeBird:
         snake = self.snake[snake_id]
         pos = add(snake[-1], dir)
         try:
-            self.stack.append((deepcopy(self.board), deepcopy(self.snake)))
+            self.stack.append((deepcopy(self.board), deepcopy(self.snake), deepcopy(self.block)))
             if not in_border(pos, self.border):
                 return '不能超出边界', False
             elif self[pos] in set('AaBbCcIJKLMN0') - {snake_id, snake_id.lower()}:
@@ -148,8 +188,8 @@ class SnakeBird:
         if t in 'ABC':
             for p in self[t]:
                 self[p] = '0'
-            self[t] = None
-            if functools.reduce(lambda x, y: x and y, [val is None for id, val in self.snake.items()]):
+            self.snake.pop(t)
+            if self.snake == {}:
                 raise SnakeWin()
     def support(self, dir: Tuple[int, int], snake_id, tail=None):
         snake = self[snake_id]
@@ -225,6 +265,9 @@ class SnakeBird:
                 self[self[s][-1]] = s
             else:
                 for body in self[s]:
+                    if not in_border(body, self.border):
+                        self.block.pop(s)
+                        break
                     self[body] = s
     def undo(self):
         if len(self.stack) == 0:
@@ -232,6 +275,96 @@ class SnakeBird:
         self.board, self.snake = self.stack.pop()
         self.cal_food()
         return True
+    def image(self):
+        img = Image.new('RGB', (16 * len(self.board[0]), 16 * len(self.board)), self.color['0'])
+        draw = ImageDraw.Draw(img)
+        # first grid
+        for i in range(len(self.board)):
+            draw.line([0, 16 * i, 16 * len(self.board[0]), 16 * i], self.color['grid'])
+            draw.line([0, 16 * i + 15, 16 * len(self.board[0]), 16 * i + 15], self.color['grid'])
+        for j in range(len(self.board[0])):
+            draw.line([16 * j, 0, 16 * j, 16 * len(self.board)], self.color['grid'])
+            draw.line([16 * j + 15, 0, 16 * j + 15, 16 * len(self.board)], self.color['grid'])
+        # next '9' and '8'
+        if self.food == 0:
+            i, j = self.win
+            f = Image.open(config.rel(f'games\\snakebird\\91.png'))
+            img.paste(f, (16 * j - 8, 16 * i - 8), f)
+        else:
+            i, j = self.win
+            f = Image.open(config.rel(f'games\\snakebird\\90.png'))
+            img.paste(f, (16 * j + 2, 16 * i + 2), f)
+        for pos in self.portal:
+            i, j = pos
+            draw.arc([16 * j + 4, 16 * i + 4, 16 * j + 12, 16 * i + 12], 0, 360, self.color['p1'], 10)
+            draw.arc([16 * j + 6, 16 * i + 6, 16 * j + 10, 16 * i + 10], 0, 360, self.color['p2'], 10)
+        # next block bar
+        for id, bars in self.bar.items():
+            for bar in bars:
+                m = min(self.block[id])
+                draw.rectangle([16 * (bar[0][1] + m[1]) + 5, 16 * (bar[0][0] + m[0]) + 5, 16 * (bar[1][1] + m[1]) + 10, 16 * (bar[1][0] + m[0]) + 10], self.color['bar'])
+        # next 123 in board
+        for i, line in enumerate(self.board):
+            for j, block in enumerate(line):
+                if block == '1':
+                    if i == 0 or self[(i - 1, j)] != '1':
+                        draw.rectangle([16 * j, 16 * i, 16 * j + 15, 16 * i + 3], self.color['grass'])
+                        draw.rectangle([16 * j, 16 * i + 4, 16 * j + 15, 16 * i + 15], self.color['1'])
+                    else:
+                        draw.rectangle([16 * j, 16 * i, 16 * j + 15, 16 * i + 15], self.color['1'])
+                elif block == '2':
+                    draw.arc([16 * j + 4, 16 * i + 4, 16 * j + 12, 16 * i + 12], 0, 360, self.color['2'], 10)
+                elif block == '3':
+                    pass
+        # next snake
+        d = {(-1, 0): [3, 0, 12, 2], (0, 1): [13, 3, 15, 12], (1, 0): [3, 13, 12, 15], (0, -1): [0, 3, 2, 12]}
+        d4 = {(-1, 0): [5, 0, 10, 4], (0, 1): [11, 5, 15, 10], (1, 0): [5, 11, 10, 15], (0, -1): [0, 5, 4, 10], (-1, -1): [0, 0, 4, 4], (-1, 1): [11, 0, 15, 4], (1, -1): [0, 11, 4, 15], (1, 1): [11, 11, 15, 15]}
+        for id, body in self.snake.items():
+            b = list(reversed(body))
+            for i_b, pos in enumerate(b):
+                i, j = pos
+                color = self.color[id if i_b % 2 == 0 else id.lower()]
+                draw.rectangle([16 * j, 16 * i, 16 * j + 15, 16 * i + 15], self.color['bound'])
+                draw.rectangle([16 * j + 3, 16 * i + 3, 16 * j + 12, 16 * i + 12], color)
+                if i_b != 0:
+                    draw.rectangle(list(
+                        itertools.starmap(lambda x, y: x + y,
+                            zip([16 * j, 16 * i, 16 * j, 16 * i],
+                                d[sub(b[i_b - 1], pos)]
+                            ))
+                    ), color)
+                else:
+                    # draw eye on head
+                    if self.activate == id:
+                        pass
+                    else:
+                        pass
+                if i_b != len(b) - 1:
+                    draw.rectangle(list(
+                        itertools.starmap(lambda x, y: x + y,
+                            zip([16 * j, 16 * i, 16 * j, 16 * i],
+                                d[sub(b[i_b + 1], pos)]
+                            ))
+                    ), color)
+        # next block
+        for id, body in self.block.items():
+            for pos in body:
+                i, j = pos
+                for r, dr in d4.items():
+                    if add(pos, r) not in body or (r[0] != 0 and r[1] != 0 and (add(pos, (r[0], 0)) not in body or add(pos, (0, r[1])) not in body)):
+                        draw.rectangle(list(
+                            itertools.starmap(lambda x, y: x + y,
+                                zip([16 * j, 16 * i, 16 * j, 16 * i], dr))
+                        ), self.color['block'])
+        return img
+
+# board = None
+
+# @on_command(('snake', 'begin'), only_to_me=False)
+# @config.ErrorHandle
+# async def test(session: CommandSession):
+#     board = SnakeBird(int(session.current_arg_text))
+#     pass
 
 # @on_command(('snake', 'test'), only_to_me=False)
 # @config.ErrorHandle

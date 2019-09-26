@@ -38,7 +38,7 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
 -card.set.message 1：手动收取
 -card.set.message 2：凌晨定时发送私聊
 -card.set.guide on或off：开启或关闭全部指令引导。指令引导会在使用一次该指令后自动关闭""",
-    "me": "こんにちは～七海千春です～\n维护者：小大圣\n鸣谢：Python®  酷Q®  nonebot®  阿里云®",
+    "me": "こんにちは～七海千春です～\n维护者：小大圣\n友情协助：Randolph（snakebird关卡信息）\n鸣谢：Python®  酷Q®  nonebot®  阿里云®",
     "default": "指令："
         #"\n-eclins：查询ecl的instruction"
         "\n-seiyuu：查询声优信息"

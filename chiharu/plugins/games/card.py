@@ -602,7 +602,7 @@ async def card_add_des(session: CommandSession):
     if n == -1:
         await session.send('请在卡片名换行后输入描述文本')
         return
-    card_name = session.current_arg_text[:n].strip()
+    card_name = session.current_arg_text[:n].strip().replace('，', ',')
     des = session.current_arg_text[n + 1:].strip()
     c = card_find(card_name)
     if c is None:
