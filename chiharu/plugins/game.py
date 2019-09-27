@@ -1,5 +1,6 @@
-from typing import Callable, Iterable, Tuple, Any, Awaitable, List, Dict
+from typing import Callable, Iterable, Tuple, Any, Awaitable, List, Dict, Awaitable
 from abc import ABC, abstractmethod
+import json
 import chiharu.plugins.config as config
 import chiharu.plugins.games.card as card
 from nonebot import on_command, CommandSession, get_bot, permission, on_natural_language, NLPSession, IntentCommand
@@ -24,16 +25,16 @@ from nonebot import on_command, CommandSession, get_bot, permission, on_natural_
 #     await session.send('已删除')
 #
 # @xiangqi.process(only_short_message=True)
-# async def chess_process(session: NLPSession, data: Dict[str, Any], delete_func: Callable[[], None]):
+# async def chess_process(session: NLPSession, data: Dict[str, Any], delete_func: Awaitable):
 #     pass
 #
 
 class ChessError(BaseException):
     def __init__(self, arg):
         self.args = [arg]
-
 class ChessWin(ChessError):
     pass
+
 
 class GameSameGroup:
     center = {} # group_id: [{'players': [qq], 'game': GameSameGroup instance, 'anything': anything}]
@@ -74,20 +75,20 @@ class GameSameGroup:
                         return
                     self.uncomplete[group_id]['players'].append(qq)
                     self.uncomplete[group_id]['args'].append(session.current_arg_text)
-                    if len(self.uncomplete[group_id]['players']) == self.begin_player[1]: # 已达上限，开始游戏
-                        dct = self.uncomplete.pop(group_id)
-                        dct['game'] = self
-                        await _f(session, dct) # add data to dct
-                        if group_id in self.center:
-                            self.center[group_id].append(dct)
-                        else:
-                            self.center[group_id] = [dct]
-                        bot = get_bot()
-                        for group in config.group_id_dict['log']:
-                            await bot.send_group_msg(group_id=group, message='%s begin in group %s' % (self.name, group_id))
-                        return
                 else:
                     self.uncomplete[group_id] = {'players': [qq], 'args': [session.current_arg_text]}
+                if len(self.uncomplete[group_id]['players']) == self.begin_player[1]: # 已达上限，开始游戏
+                    dct = self.uncomplete.pop(group_id)
+                    dct['game'] = self
+                    await _f(session, dct) # add data to dct
+                    if group_id in self.center:
+                        self.center[group_id].append(dct)
+                    else:
+                        self.center[group_id] = [dct]
+                    bot = get_bot()
+                    for group in config.group_id_dict['log']:
+                        await bot.send_group_msg(group_id=group, message='%s begin in group %s' % (self.name, group_id))
+                    return
                 await self.uncomplete_func(session, self.uncomplete[group_id])
             @on_command(confirm_command, only_to_me=False)
             @config.ErrorHandle
@@ -114,6 +115,7 @@ class GameSameGroup:
                         await bot.send_group_msg(group_id=group, message='%s begin in group %s' % (self.name, group_id))
         return _
     def end(self, end_command: Iterable[str]):
+        self.end_command = end_command
         def _(_f: Awaitable) -> Awaitable:
             @on_command(end_command, only_to_me=False)
             @config.ErrorHandle
@@ -162,7 +164,24 @@ class GameSameGroup:
                 return await _f(session, l[0], _h)
             return _g
         return _
-
+    def open_data(self, qq):
+        try:
+            with open(config.rel(f'games\\user_data\\{qq}.json'), encoding='utf-8') as f:
+                data = json.load(f)
+                if self.name not in data:
+                    return {}
+                return data[self.name]
+        except FileNotFoundError:
+            return {}
+    def save_data(self, qq, data_given):
+        try:
+            with open(config.rel(f'games\\user_data\\{qq}.json'), encoding='utf-8') as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            data = {}
+        data[self.name] = data_given
+        with open(config.rel(f'games\\user_data\\{qq}.json'), 'w', encoding='utf-8') as f:
+            f.write(json.dumps(data, ensure_ascii=False, indent=4, separators=(',', ': ')))
 class GamePrivate:
     pass
 
