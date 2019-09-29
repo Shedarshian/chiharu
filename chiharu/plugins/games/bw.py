@@ -29,7 +29,7 @@ class BwBoard:
         if self.board[i][j] != 0:
             raise ChessError('此处已有棋子')
         todo_all = [(i, j)]
-        black_need = 2 - int(isBlack)
+        black_need = 2 - int(isBlack) # 己方
         for (di, dj) in ((-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)):
             i2, j2 = i + di, j + dj
             todo = []
@@ -47,7 +47,7 @@ class BwBoard:
             raise ChessError('行棋必须吃掉对方的子')
         for i2, j2 in todo_all:
             self.board[i2][j2] = black_need
-        white_need = 3 - black_need
+        white_need = 3 - black_need # 对方
         safe = [False, False]
         for i, x in enumerate(self.board):
             for j, y in enumerate(x):
@@ -95,9 +95,8 @@ class BwBoard:
                 raise ChessWin("白方胜出")
             else:
                 raise ChessWin("平局！")
-        if not safe[black_need - 1]:
-            raise ChessCantMove("黑白"[2 - black_need] + "方无法移动，" + "黑白"[black_need - 1] + "方继续移动")
-
+        if not safe[1]:
+            raise ChessCantMove("黑白"[int(not isBlack)] + "方无法移动，" + "白黑"[int(isBlack)] + "方继续移动")
 
 bw = GameSameGroup('bw')
 
