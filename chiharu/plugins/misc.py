@@ -144,17 +144,18 @@ async def maj_train(session: CommandSession):
                 if i > 4:
                     _continue = True
         if p:
-            tehai = ''.join(map(str, stack)) + random.choice(['m', 's', 'p']) + '5z'
-            d = Maj.search_for('')
-            s = Maj.compile(tehai, **d)
-            loop = asyncio.get_event_loop()
-            u = 'http://mjv.jp/2/img/n%s.png' % s
-            url2 = await loop.run_in_executor(None, functools.partial(requests.get, u,
-                headers={'Referer': 'http://tenhou.net/2/img/'}))
-            name = str(hash((s, group_id, session.ctx['user_id'])))
-            with open(config.img(name + '.png'), 'wb') as f:
-                f.write(url2.content)
-            await session.send([config.cq.text(str_title), config.cq.img(name + '.png')], auto_escape=True)
+            pass
+            # tehai = ''.join(map(str, stack)) + random.choice(['m', 's', 'p']) + '5z'
+            # d = Maj.search_for('')
+            # s = Maj.compile(tehai, **d)
+            # loop = asyncio.get_event_loop()
+            # u = 'http://mjv.jp/2/img/n%s.png' % s
+            # url2 = await loop.run_in_executor(None, functools.partial(requests.get, u,
+            #     headers={'Referer': 'http://tenhou.net/2/img/'}))
+            # name = str(hash((s, group_id, session.ctx['user_id'])))
+            # with open(config.img(name + '.png'), 'wb') as f:
+            #     f.write(url2.content)
+            # await session.send([config.cq.text(str_title), config.cq.img(name + '.png')], auto_escape=True)
         else:
             strout = str_title + ''.join(map(str, stack))
             await session.send(strout, auto_escape=True)
@@ -191,7 +192,7 @@ async def maj_train(session: CommandSession):
         else:
             await session.send(daan.pop(group_id))
     else:
-        await session.send('支持参数：\n0或p0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）\n2：清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）\n-1：返回上次的答案')
+        await session.send('支持参数：\n0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）\n2：清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）\n-1：返回上次的答案')
 
 class MajException(Exception):
     def __init__(self, arg):
@@ -455,8 +456,8 @@ async def maj_voice(session: CommandSession):
     else:
         voicer_str = '1'
         content = session.current_arg_text
-    voicer_dict = {'一姬': 1, '1': 1, '二阶堂': 2, '二阶堂美树': 2, '2': 2, '千织': 3, '三上千织': 3, '3': 3, '四宫夏生': 4, '夏生': 4, '4': 4, '相原舞': 5, '抚子': 6, '佳奈': 7, '藤田佳奈': 7, '八木唯': 8, '八木': 8, '8': 8, '九条': 9, '九条璃雨': 9, '9': 9, '泽尼娅': 10, '卡维': 11, '汪次郎': 12, '汪': 12, '一之濑空': 13, '明智英树': 14}
-    voicer_name = {1: 'yiji', 2: 'erjietang', 3: 'qianzhi', 4: 'sigongxiasheng', 5: 'xiangyuan', 6: 'fuzi', 7: 'jianai', 8: 'bamuwei', 9: 'jiutiao', 10: 'zeniya', 11: 'kawei', 12: 'wangcilang', 13: 'yizhilaikong', 14: 'mingzhiyingshu'}
+    voicer_dict = {'一姬': 1, '1': 1, '二阶堂': 2, '二阶堂美树': 2, '2': 2, '千织': 3, '三上千织': 3, '3': 3, '四宫夏生': 4, '夏生': 4, '4': 4, '相原舞': 5, '抚子': 6, '佳奈': 7, '藤田佳奈': 7, '八木唯': 8, '八木': 8, '8': 8, '九条': 9, '九条璃雨': 9, '9': 9, '泽尼娅': 10, '卡维': 11, '汪次郎': 12, '汪': 12, '一之濑空': 13, '明智英树': 14, '轻库娘': 15, '莎拉': 16, '二之宫花': 17, '二之宫': 17}
+    voicer_name = {1: 'yiji', 2: 'erjietang', 3: 'qianzhi', 4: 'sigongxiasheng', 5: 'xiangyuan', 6: 'fuzi', 7: 'jianai', 8: 'bamuwei', 9: 'jiutiao', 10: 'zeniya', 11: 'kawei', 12: 'wangcilang', 13: 'yizhilaikong', 14: 'mingzhiyingshu', 15: 'qingkuniang', 16: 'shala', 17: 'erzhigonghua'}
     if voicer_str in voicer_dict:
         voicer = voicer_name[voicer_dict[voicer_str]]
     else:
@@ -475,7 +476,7 @@ async def maj_voice(session: CommandSession):
         for audio in l:
             if not os.path.isfile(config.rel(f'Cache\\majsoul_voice\\{voicer}\\{audio}.mp3')):
                 url = await loop.run_in_executor(None, functools.partial(requests.get,
-                    f'https://majsoul.union-game.com/0/v0.5.1.w/audio/sound/{voicer}/{audio}.mp3'))
+                    f'https://majsoul.union-game.com/0/v0.6.1.w/audio/sound/{voicer}/{audio}.mp3'))
                 if url.status_code != 200:
                     raise maj.MajErr(f"{voicer}/{audio}.mp3 can't download")
                 with open(config.rel(f'Cache\\majsoul_voice\\{voicer}\\{audio}.mp3'), 'wb') as f:
