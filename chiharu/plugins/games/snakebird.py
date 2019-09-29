@@ -156,9 +156,9 @@ class SnakeBird:
             elif self[pos] in set('AaBbCcIJKLMN0') - {snake_id, snake_id.lower()}:
                 if self[pos] != '0':
                     ret = self.push(dir, self[pos].upper(), snake_id)
-                    assert(snake_id not in ret)
                     if ret is None:
                         return '蛇被阻挡，无法前进', False
+                    assert(snake_id not in ret)
                 self[snake[0]] = '0'
                 self.check_portal_activate()
                 if self[pos] != '0':
@@ -177,7 +177,8 @@ class SnakeBird:
                 self[pos] = snake_id
                 snake.append(pos)
                 self.food -= 1
-                return '', True
+                ret = self.fall()
+                return '传送失败，目标被阻挡' if ret == False else '', True
             else:
                 return '蛇被阻挡，无法前进', False
         except SnakeSpike:
@@ -206,15 +207,14 @@ class SnakeBird:
             return True
         if self[self.portal[0]] == '0' and self[self.portal[1]] == '0':
             return True
+        self.portal_activate = False
         _from, _to = self.portal if self[self.portal[0]] != '0' else reversed(self.portal)
         delta = sub(_to, _from)
-        print(_from, _to, delta)
         body = self[self[_from].upper()]
         for pos in body:
             t = add(pos, delta)
             if not in_border(t, self.border) or self[t] != '0':
                 return False
-        print(body)
         # fine
         self[self[_from].upper()] = [add(pos, delta) for pos in body]
         for pos in body:
@@ -222,7 +222,6 @@ class SnakeBird:
             self[pos] = '0'
         self.check_win()
         self.fall()
-        self.portal_activate = False
         return True
     def check_portal_activate(self):
         if not self.portal_activate and len(self.portal) == 2 and self[self.portal[0]] == '0' and self[self.portal[1]] == '0':
@@ -257,7 +256,7 @@ class SnakeBird:
             r -= s
             t = r
             s |= t
-        if (set('123Z') | {pusher_id, pusher_id.lower()}) & t:
+        if (set('123Z') | {pusher_id, pusher_id.lower()}) & s:
             return None
         else:
             return s & set('ABCIJKLMN')
@@ -436,7 +435,7 @@ async def sbegin(session: CommandSession):
     board.image().save(config.img('snake.png'))
     await session.send([config.cq.img('snake.png')])
 
-snakebird = game.GameSameGroup('snakebird')
+snakebird = game.GameSameGroup('snakebird', can_private=True)
 
 @snakebird.begin_uncomplete(('play', 'snakebird', 'begin'), (1, 1))
 async def sb_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):
@@ -458,7 +457,7 @@ async def sb_begin_complete(session: CommandSession, data: Dict[str, Any]):
         board.image().save(config.img('snake.png'))
         await session.send([config.cq.img('snake.png')])
 
-@snakebird.process(only_short_message=True)
+@snakebird.process(only_short_message=False)
 async def sb_process(session: NLPSession, data: Dict[str, Any], delete_func: Awaitable):
     arg = session.msg_text.strip()
     if len(arg) == 0 or arg[0] not in '红蓝绿上下左右撤':
@@ -477,8 +476,10 @@ async def sb_process(session: NLPSession, data: Dict[str, Any], delete_func: Awa
                 return
             else:
                 raise CommandError('未知字符：' + s)
-            if st != '':
+            if not ret:
                 raise CommandError(st + '，指令：' + s)
+            elif st != '':
+                await session.send(st + '，指令：' + s)
     except CommandError as e:
         await session.send(e.args[0])
         board.image().save(config.img('snake.png'))

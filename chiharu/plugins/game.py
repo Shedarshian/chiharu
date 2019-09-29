@@ -38,9 +38,10 @@ class ChessWin(ChessError):
 
 class GameSameGroup:
     center = {} # group_id: [{'players': [qq], 'game': GameSameGroup instance, 'anything': anything}]
-    def __init__(self, name: str):
+    def __init__(self, name: str, can_private=False):
         self.uncomplete = {} # group_id: {'players': [qq], 'anything': anything}
         self.name = name
+        self.can_private = can_private
     def begin_uncomplete(self, command: Iterable[str], player: Tuple[int, int]):
         self.begin_command = command
         self.begin_player = player
@@ -58,8 +59,11 @@ class GameSameGroup:
                 try:
                     group_id = int(session.ctx['group_id'])
                 except KeyError:
-                    await session.send("请在群里玩")
-                    return
+                    if self.can_private:
+                        group_id = int(session.ctx['user_id'])
+                    else:
+                        await session.send("请在群里玩")
+                        return
                 qq = int(session.ctx['user_id'])
                 if group_id in self.center:
                     for dct in self.center[group_id]:
@@ -96,8 +100,11 @@ class GameSameGroup:
                 try:
                     group_id = int(session.ctx['group_id'])
                 except KeyError:
-                    await session.send("请在群里玩")
-                    return
+                    if self.can_private:
+                        group_id = int(session.ctx['user_id'])
+                    else:
+                        await session.send("请在群里玩")
+                        return
                 qq = int(session.ctx['user_id'])
                 if group_id not in self.uncomplete:
                     return
@@ -123,8 +130,11 @@ class GameSameGroup:
                 try:
                     group_id = int(session.ctx['group_id'])
                 except KeyError:
-                    await session.send("请在群里玩")
-                    return
+                    if self.can_private:
+                        group_id = int(session.ctx['user_id'])
+                    else:
+                        await session.send("请在群里玩")
+                        return
                 qq = int(session.ctx['user_id'])
                 is_admin = await permission.check_permission(get_bot(), session.ctx, permission.GROUP_ADMIN)
                 if_in = False
@@ -149,7 +159,10 @@ class GameSameGroup:
                 try:
                     group_id = int(session.ctx['group_id'])
                 except KeyError:
-                    return
+                    if self.can_private:
+                        group_id = int(session.ctx['user_id'])
+                    else:
+                        return
                 qq = int(session.ctx['user_id'])
                 if group_id not in self.center:
                     return
