@@ -183,10 +183,10 @@ class SnakeBird:
                 return '蛇被阻挡，无法前进', False
         except SnakeSpike:
             self.undo()
-            return '蛇掉到刺上死亡了！自动撤销一步', True
+            return '蛇掉到刺上死亡了！自动撤销一步', False
         except SnakeVoid:
             self.undo()
-            return '蛇掉入虚空死亡了！自动撤销一步', True
+            return '蛇掉入虚空死亡了！自动撤销一步', False
     def check_win(self):
         if self.food != 0:
             return

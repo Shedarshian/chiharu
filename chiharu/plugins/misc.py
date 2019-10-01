@@ -303,7 +303,7 @@ async def maj_ting(session: CommandSession):
             raise MajException('unknown end')
     try:
         tehai = list(map(maj.MajHai, expand(session.current_arg_text)))
-        if len(tehai) % 3 != 1:
+        if len(tehai) % 3 != 1 or len(tehai) >= 40:
             await session.send('INVALID TEHAI LENGTH')
             return
         result = maj.MajHai.ten(tehai)
@@ -345,7 +345,7 @@ async def maj_ting_ex(session: CommandSession):
             raise MajException('unknown end')
     try:
         tehai = list(map(maj.MajHai, expand(session.current_arg_text)))
-        if len(tehai) % 3 != 1:
+        if len(tehai) % 3 != 1 or len(tehai) >= 40:
             await session.send('INVALID TEHAI LENGTH')
             return
         result = maj.MajHai.ten(tehai)
