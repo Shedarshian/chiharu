@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Awaitable
+from typing import Awaitable, Dict, Any
+import asyncio
 from asyncio import Queue
 import functools
 import random
@@ -12,11 +13,22 @@ import random
 #
 # class ActionCard(Zhu.Card('Action')):
 #     pass
-#     # can get card deck by deck = ActionCard.deck or Zhu.Deck('Action')
+#     # need to implement usage(), use(**args)
+#     # can get card deck by deck = ActionCard.deck or Zhu.Deck('Action') or ZhuBoard.Deck(self, 'Action')
 #     # can use deck.draw(), deck.shuffle(), can set deck.on_empty = _f or more
 #
 # class GuaBiao(ActionCard, name='挂裱', num=1):
 #     pass # need to implement property(description()), usage(), use()
+#
+# class ZhuPlayer(Zhu.Player):
+#     response = ['on_scale_up'] # need to be inited after Board
+#     # so can use board.on_scale_up() to call players' on_scale_up()
+#     # so player need to implement/assign on_scale_up() ※IMPORTANT: need to except asyncio.CancelledError
+#     pass # need to implement player.round()
+#     # can use player.wait()
+
+async def Nothing(*args, **kwargs):
+    pass
 
 class Deck:
     def __init__(self, card_cls):
@@ -79,6 +91,7 @@ class Deck:
             self._deck = [card._id] + self._deck
         else:
             self._deck.append(card._id)
+
 class CardGame:
     def __init__(self):
         class _board(ABC):
@@ -86,59 +99,93 @@ class CardGame:
                 self._board_class = cls
                 cls._game = self
             @abstractmethod
-            def __init__(self, *args, **kwargs):
+            def __init__(self2, player_num, *args, **kwargs):
                 '''need to shuffle decks and something.'''
-                #TODO player assign
+                self2.players = [self2._game._player_class(id=i, board=self) for i in range(player_num)]
+                self2.current_player_id = 0
+            def Deck(self2, name):
+                return self2._game._deck[name]
+            @property
+            def current_player(self2):
+                return self2.players[self2.current_player_id]
+            def next_player(self2, *args, **kwargs):
+                '''default behaviour.'''
+                self2.current_player_id += 1
+                if self2.current_player_id == len(self2.players):
+                    self2.current_player_id = 0
             @abstractmethod
-            async def process(self, *args, **kwargs):
+            async def process(self2, *args, **kwargs):
                 '''write it yourself.'''
-            def next_player(self):
-                pass # TODO default behaviour
         self.Board = _board
         class _player(ABC):
-            response_dict = {}
-            queue = Queue(1)
             def __init_subclass__(cls):
                 self._player_class = cls
                 cls._game = self
+                try:
+                    responses = cls.responses
+                except AttributeError:
+                    responses = []
+                for s in responses:
+                    async def _(self, *args, **kwargs):
+                        tasks = []
+                        for player in self.players:
+                            tasks.append(asyncio.create_task(player.__getattr__(s)(*args, **kwargs)))
+                        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
+                        for task in pending:
+                            task.cancel()
+                    _.__name__ = s
+                    setattr(self._board_class, s, _)
+                    if s not in cls.__dict__:
+                        setattr(cls, s, Nothing)
+                try:
+                    responses = cls.self_responses
+                except AttributeError:
+                    responses = []
+                for s in responses:
+                    if s not in cls.__dict__:
+                        setattr(cls, s, Nothing)
             @abstractmethod
-            def __init__(self, *args, **kwargs):
+            def __init__(self2, id, board, *args, **kwargs):
                 '''need i/o set.'''
-            @abstractmethod
-            async def round(self, *args, **kwargs):
-                '''player's round. generally need to call some other stages.'''
-            def response(self, name):
+                self2.id = id
+                self2.board = board
+                self2.queue_in = Queue(1)
+                self2.queue_out = Queue(1)
+            def response(self2, name):
                 def _(f: Awaitable):
                     @functools.wraps(f)
                     async def _f():
                         return await f() # TODO something need to be done?
-                    self.response_dict[name] = _f
                     return _f
                 return _
-            async def wait(self, name):
-                return await self.response_dict[name]()
+            async def wait(self2, data: Dict[str, Any]):
+                self2.queue_out.put_nowait(data)
+                return await self2.queue_in.get()
+            @abstractmethod
+            async def round(self2, *args, **kwargs):
+                '''player's round. generally need to call some other stages.'''
         self.Player = _player
         self._deck = {}
     def Card(self, deck_name):
         class _card(ABC):
             _game = self
-            deck = self._deck
             _deck_name = deck_name
             def __init_subclass__(child):
                 @classmethod
                 def _(grandchild, num=0):
-                    _card.deck[_card._deck_name]._add_init_card(grandchild, num)
+                    _card.deck._add_init_card(grandchild, num)
                 child.__init_subclass__ = _
             name = 'NoName'
             description = 'NoDescription'
             @abstractmethod
-            def usage(self):
+            def usage(self2):
                 '''return the args needed to be assigned'''
             @abstractmethod
-            def use(self, player, **kwargs):
+            async def use(self2, player, **kwargs):
                 '''use the card on kwargs which is given by self.usage()'''
         _deck = Deck(_card)
         self._deck[deck_name] = _deck
+        _card.deck = _deck
         return _card
     def Deck(self, name):
         return self._deck[name]
