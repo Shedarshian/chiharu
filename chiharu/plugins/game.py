@@ -195,8 +195,73 @@ class GameSameGroup:
         data[self.name] = data_given
         with open(config.rel(f'games\\user_data\\{qq}.json'), 'w', encoding='utf-8') as f:
             f.write(json.dumps(data, ensure_ascii=False, indent=4, separators=(',', ': ')))
+
+# example usage for GamePrivate:
+# maj = GamePrivate('maj')
+#
+# @maj.begin_uncomplete(('play', 'maj', 'begin'), (4, 4))
+# async def chess_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):
+#     # data: {'players': [qq], 'args': [args], 'anything': anything}
+#     # args: -play.maj.begin 'type_str/友人房id' '自由/友人'
+#     await session.send('已为您参与匹配')
+
 class GamePrivate:
-    pass
+    def __init__(self, name: str, allow_group_live: bool=True):
+        self.center = {}
+        self.free = {}
+        self.room = {}
+        self.players_status = {}
+        self.allow_group_live = allow_group_live
+        self.name = name
+        self.types = ['']
+    def set_types(self, types: Iterable[str]):
+        self.types = types
+    def begin_uncomplete(self, command: Iterable[str], player: Tuple[int, int]):
+        self.begin_command = command
+        self.begin_player = player
+        def _(_i: Awaitable) -> Awaitable:
+            self.uncomplete_func = _i
+            return _i
+        return _
+    def begin_complete(self, confirm_command: Iterable[str]):
+        self.confirm_command = confirm_command
+        def _(_f: Awaitable) -> Awaitable:
+            self.complete_func = _f
+            @on_command(self.begin_command, only_to_me=False)
+            @config.ErrorHandle
+            async def _g(session: CommandSession):
+                qq = int(session.ctx['user_id'])
+                n = session.current_arg_text.rfind(' ')
+                if n == -1:
+                    if session.current_arg_text.isdigit():
+                        free = 2 # 0: 自由匹配 1: 开始友人 2: 参与友人
+                        room_id = int(session.current_arg_text)
+                        # if room_id in self.room:
+                        #     if qq in self.players_status:
+                        #         await session.send('不能同时参与两场相同游戏')
+                        #         return
+                        #     else:
+                        #         dct = self.room[room_id]
+                        #         dct['players'].append(qq)
+                        # else:
+                        #     for type_str, d in self.center:
+                        #         if room_id in d:
+                        #             await session.send('此房间对局已开始')
+                        #             break
+                        #     else:
+                        #         await session.send('未找到此房间')
+                        #     return
+                    elif self.types == ['']:
+                        free = 1 if session.current_arg_text.strip() == '友人' else 0
+                        type_str = ''
+                    else:
+                        free = 0
+                        type_str = session.current_arg_text
+                else:
+                    free = 1 if session.current_arg_text[n + 1:].strip() == '友人' else 0
+                    type_str = session.current_arg_text[:n].strip()
+
+
 
 @on_command('game', only_to_me=False)
 @config.ErrorHandle

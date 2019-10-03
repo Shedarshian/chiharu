@@ -951,6 +951,8 @@ async def thwiki_greet(session: NoticeSession):
 @on_notice('group_decrease')
 @config.maintain('thwiki')
 async def thwiki_decrease(session: NoticeSession):
+    if session.ctx['group_id'] not in config.group_id_dict['thwiki_live']:
+        return
     qq = session.ctx['user_id']
     node = find_whiteforest(qq=qq)
     if node is not None and node['trail'] == 0:
