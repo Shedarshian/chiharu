@@ -3,6 +3,7 @@ import math
 import requests
 import re
 import asyncio
+import functools
 from wand.image import Image
 from wand.drawing import Drawing
 from wand.color import Color
@@ -19,9 +20,9 @@ async def latex(s, hsh=()):
     name = str(hash((s,) + hsh))
     with open(config.img(name + '.svg'), 'wb') as f:
         f.write(url.content)
-    with wand.image.Image(filename=config.img(name + '.svg')) as image:
+    with Image(filename=config.img(name + '.svg')) as image:
         with image.convert('png') as converted:
-            converted.background_color = wand.color.Color('white')
+            converted.background_color = Color('white')
             converted.alpha_channel = 'remove'
             converted.save(filename=config.img(name + '.png'))
     return name + '.png'
