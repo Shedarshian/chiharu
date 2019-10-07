@@ -21,13 +21,13 @@ class EventCard(Zhu.Card('Event')):
 class DaBingYiChang(EventCard, num=1):
     name = '大病一场'
     description = '跳过你的回合。'
-    def use(self, player):
+    async def use(self, player):
         pass
 
 class WenHuaZiXin(EventCard, num=1):
     name = '文化自信'
     description = '使社群规模归零。'
-    def use(self, player):
+    async def use(self, player):
         player.board.scale = 0
 
 class ZhuBoard(Zhu.Board):
@@ -37,8 +37,6 @@ class ZhuBoard(Zhu.Board):
         self.max = 10
         self.min = -10
         self.Deck('Action').shuffle()
-        for player in self.players:
-            player.draw_action(2)
     async def scale_up(self, num, player):
         if self.scale + num > self.max:
             num = self.max - self.scale
@@ -50,6 +48,9 @@ class ZhuBoard(Zhu.Board):
         self.scale -= num
         await self.on_scale_down(num, player)
     async def process(self):
+        # 选人物
+        for player in self.players:
+            player.draw_action(2)
         while 1:
             if self.current_player_id == 0:
                 # if self2.round_count == 5: #TODO deck!!!

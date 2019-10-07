@@ -1,6 +1,7 @@
-from typing import Callable, Iterable, Tuple, Any, Awaitable, List, Dict, Awaitable
+from typing import Callable, Iterable, Tuple, Any, Awaitable, List, Dict
 from abc import ABC, abstractmethod
 import json
+import random
 import chiharu.plugins.config as config
 import chiharu.plugins.games.card as card
 from nonebot import on_command, CommandSession, get_bot, permission, on_natural_language, NLPSession, IntentCommand
@@ -202,23 +203,23 @@ class GameSameGroup:
 # @maj.begin_uncomplete(('play', 'maj', 'begin'), (4, 4))
 # async def chess_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):
 #     # data: {'players': [qq], 'args': [args], 'anything': anything}
-#     # args: -play.maj.begin 'type_str/友人房id' '自由/友人'
+#     # args: -play.maj.begin 'type_str public/private+password' or '友人房id+password(optional)'
 #     await session.send('已为您参与匹配')
 
 class GamePrivate:
     def __init__(self, name: str, allow_group_live: bool=True):
-        self.center = {}
-        self.free = {}
-        self.room = {}
-        self.players_status = {}
+        self.center = {} # room_id: {'players': [qq], 'public': bool, 'type': type_str, 'game': GamePrivate instance, 'group': group, 'anything': anything}
+        self.uncomplete = {} # room_id: dct
+        self.players_status = {} # qq: [bool: Complete, ptr to dct]
         self.allow_group_live = allow_group_live
         self.name = name
-        self.types = ['']
-    def set_types(self, types: Iterable[str]):
+        self.types = {'': (0, 32767)}
+    def set_types(self, types: Dict[str, Tuple[int, int]]):
         self.types = types
-    def begin_uncomplete(self, command: Iterable[str], player: Tuple[int, int]):
+    def begin_uncomplete(self, command: Iterable[str], player: Tuple[int, int]=(0, 32767)):
         self.begin_command = command
-        self.begin_player = player
+        if '' in self.types:
+            self.types[''] = player
         def _(_i: Awaitable) -> Awaitable:
             self.uncomplete_func = _i
             return _i
@@ -231,37 +232,91 @@ class GamePrivate:
             @config.ErrorHandle
             async def _g(session: CommandSession):
                 qq = int(session.ctx['user_id'])
-                n = session.current_arg_text.rfind(' ')
-                if n == -1:
-                    if session.current_arg_text.isdigit():
-                        free = 2 # 0: 自由匹配 1: 开始友人 2: 参与友人
-                        room_id = int(session.current_arg_text)
-                        # if room_id in self.room:
-                        #     if qq in self.players_status:
-                        #         await session.send('不能同时参与两场相同游戏')
-                        #         return
-                        #     else:
-                        #         dct = self.room[room_id]
-                        #         dct['players'].append(qq)
-                        # else:
-                        #     for type_str, d in self.center:
-                        #         if room_id in d:
-                        #             await session.send('此房间对局已开始')
-                        #             break
-                        #     else:
-                        #         await session.send('未找到此房间')
-                        #     return
-                    elif self.types == ['']:
-                        free = 1 if session.current_arg_text.strip() == '友人' else 0
-                        type_str = ''
+                s = session.current_arg_text.strip()
+                n = s.split(' ')
+                room_id = None
+                password = None
+                # args: -play.maj.begin 'type_str public/private+password' or '友人房id+password(optional)'
+                try:
+                    if len(n) == 0:
+                        if '' in self.types:
+                            public = True
+                            typ = ''
+                        else:
+                            raise FileNotFoundError
+                    if len(n) == 1:
+                        if s in {'public', 'private'} and '' in self.types:
+                            public = s == 'public'
+                            typ = ''
+                        elif s in self.types:
+                            public = True
+                            typ = s
+                        elif s.isdigit():
+                            room_id = int(s)
+                            password = None
+                        else:
+                            raise FileNotFoundError
+                    elif len(n) == 2:
+                        if n[0] == 'priavte' and '' in self.types:
+                            public = False
+                            password = n[1]
+                            typ = ''
+                        elif n[0] in self.types and n[1] in {'public', 'private'}:
+                            public = n[1] == 'public'
+                            typ = n[0]
+                        elif n[0].isdigit():
+                            room_id = int(s)
+                            password = n[1]
+                        else:
+                            raise FileNotFoundError
+                    elif len(n) == 3:
+                        if n[0] in self.types and n[1] == 'private':
+                            public = False
+                            typ = n[0]
+                            password = n[2]
                     else:
-                        free = 0
-                        type_str = session.current_arg_text
+                        raise FileNotFoundError
+                except FileNotFoundError:
+                    await session.send('未发现此分类，支持分类：\n' + '，'.join(self.types))
+                    return
+                if not public and password is None:
+                    await session.send('请在private空格后输入房间密码')
+                elif qq in self.players_status:
+                    await session.send('不能同时进行两个同一游戏')
+                elif password is not None and not password.encode('utf-8').isalnum():
+                    await session.send('密码只能包含字母与数字！')
+                elif room_id is not None:
+                    # 加入房间
+                    room = self.uncomplete.get(room_id, default=None)
+                    if room is None:
+                        if room_id in self.center:
+                            await session.send('此房间对战已开始')
+                        else:
+                            await session.send('未发现此房间')
+                    elif not room['public'] and password is None:
+                        await session.send('此房间为private房间，请输入密码')
+                    elif not room['public'] and password != room['password']:
+                        await session.send('密码错误！')
+                    elif len(room['players']) == self.types[room['type']][1]:
+                        await session.send('房间已满！')
+                    else:
+                        room['players'].append(qq)
+                        self.players_status[qq] = [False, room]
+                        msg = f'玩家{qq}已加入房间{room_id}，现有{len(room["players"])}人' + ('，已满' if len(room["players"]) == self.types[room['type']][1] else '')
+                        for qqq in room['players']:
+                            await get_bot().send_private_msg(user_id=qqq, message=msg)
                 else:
-                    free = 1 if session.current_arg_text[n + 1:].strip() == '友人' else 0
-                    type_str = session.current_arg_text[:n].strip()
-
-
+                    prefix = 0
+                    while 1:
+                        r = [i for i in range(prefix, prefix + 1000) if i not in self.center and i not in self.uncomplete]
+                        if len(r) == 0: prefix += 1000
+                        else: break
+                    room_id = random.choice(r)
+                    room = self.uncomplete[room_id] = {'players': [qq], 'public': public, 'type': typ, 'game': self}
+                    if not public:
+                        room['password'] = password
+                    self.players_status[qq] = [False, room]
+                    await session.send(f'已创建{"公开" if public else "非公开"}房间 {room_id}')
 
 @on_command('game', only_to_me=False)
 @config.ErrorHandle
