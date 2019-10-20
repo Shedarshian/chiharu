@@ -14,8 +14,11 @@ seiyuu = CommandGroup('seiyuu', only_to_me=False)
 @seiyuu.command('today')
 @config.ErrorHandle
 async def GetSeiyuuToday(session: CommandSession):
-    strout = await _GetSeiyuuToday()
-    await session.send(strout, auto_escape=True)
+    try:
+        strout = await _GetSeiyuuToday()
+        await session.send(strout, auto_escape=True)
+    except asyncio.TimeoutError:
+        await session.send("timeout!", auto_escape=True)
 
 @seiyuu.command('check')
 @config.ErrorHandle
@@ -111,9 +114,13 @@ async def BirthToday(session: CommandSession):
 @scheduler.scheduled_job('cron', hour='23', minute='01')
 async def DailySeiyuu():
     bot = get_bot()
-    strout = await _GetSeiyuuToday()
-    for id in config.group_id_dict['seiyuu']:
-        await bot.send_group_msg(group_id=id, message=strout)
+    try:
+        strout = await _GetSeiyuuToday()
+        for id in config.group_id_dict['seiyuu']:
+            await bot.send_group_msg(group_id=id, message=strout)
+    except asyncio.TimeoutError:
+        for id in config.group_id_dict['seiyuu']:
+            await bot.send_group_msg(group_id=id, message="timeout!")
 
 @scheduler.scheduled_job('cron', hour='23', minute='01')
 async def DailyBirth():
@@ -215,7 +222,7 @@ def _GetBirth(*args):
 
 async def _GetSeiyuuToday():
     loop = asyncio.get_event_loop()
-    seiyuu_url = await loop.run_in_executor(None, requests.get, 'https://sakuhindb.com/')
+    seiyuu_url = await asyncio.wait_for(loop.run_in_executor(None, requests.get, 'https://sakuhindb.com/'), timeout=60)
     seiyuu = seiyuu_url.text.encode(seiyuu_url.encoding).decode(errors='ignore')
     begin_pos = re.search("本日が誕生日", seiyuu).span()[1]
     end_pos = re.search("論客目録", seiyuu).span()[0]
@@ -224,14 +231,17 @@ async def _GetSeiyuuToday():
         match = re.search("<a href\\=(/tj/[A-Za-z0-9_]*/)><span class\\=(man|female)>([^<]*)</span></a>\\(([^\\)]*)\\)", seiyuu[begin_pos:end_pos])
         if match:
             if "声優" in match.group(4):
-                url = await loop.run_in_executor(None, requests.get, "https://sakuhindb.com" + match.group(1))
-                seiyuu_this = url.text.encode(url.encoding).decode("utf-8")
-                match2 = re.search("出生国", seiyuu_this)
-                if match2:
-                    match2_pos = match2.span()[1]
-                    seiyuu_kuni = re.search("<td>([^<]*)</td>", seiyuu_this[match2_pos:]).group(1)
-                    if seiyuu_kuni == "日本":
-                        seiyuu_list.append(("男" if match.group(2) == "man" else "女") + "\t" + match.group(3))
+                try:
+                    url = await asyncio.wait_for(loop.run_in_executor(None, requests.get, "https://sakuhindb.com" + match.group(1)), timeout=60)
+                    seiyuu_this = url.text.encode(url.encoding).decode("utf-8")
+                    match2 = re.search("出生国", seiyuu_this)
+                    if match2:
+                        match2_pos = match2.span()[1]
+                        seiyuu_kuni = re.search("<td>([^<]*)</td>", seiyuu_this[match2_pos:]).group(1)
+                        if seiyuu_kuni == "日本":
+                            seiyuu_list.append(("男" if match.group(2) == "man" else "女") + "\t" + match.group(3))
+                except asyncio.TimeoutError:
+                    pass
             begin_pos += match.span()[1]
         else:
             break
