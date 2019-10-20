@@ -10,7 +10,7 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
     "birth": "使用格式：-birth.today bandori或LL或imas：查询今天生日的角色",
     "seiyuu": "使用格式：\n-seiyuu.today：查询今天生日的声优列表\n-seiyuu.check seiyuu_name[, count]：返回声优的基本信息，找到多个时可以使用count指明第几个。声优名以日语原文键入，允许假名甚至罗马音。\n-seiyuu.list string[, bound=15]：查询包含string的声优名列表，超过bound时返回前bound个，顺序未指定",
     "game": "欢迎使用-game 指令访问七海千春游戏大厅~",
-    "tools": "-tools.Julia [c的x坐标] [c的y坐标]：绘制Julia集\n-tools.oeis：查询oeis（整数序列在线百科全书），支持查询数列前几项（只返回第一个结果），或oeis的编号如A036057",
+    "tools": "-tools.Julia [c的x坐标] [c的y坐标]：绘制Julia集\n-tools.oeis：查询oeis（整数序列在线百科全书），支持查询数列前几项（只返回第一个结果），或oeis的编号如A036057\n-tools.quiz：每月趣题",
     "misc": "-misc.asc.check str：转换str的所有字符到ascii码\n-misc.asc.trans numbers：转换数字到字符\n-misc.bandori.news：查询bandori新闻\n-misc.maj.ten：日麻算点器\n-misc.maj.train：麻将训练\n-misc.maj.ting：听牌计算器\n-misc.maj.voice：雀魂报番语音，第一行番种，换行后为指定角色名\n-misc.token：将输入文本中大括号包含的token转换成latex中包含的unicode字符，使用https://github.com/joom/latex-unicoder.vim/blob/master/autoload/unicoder.vim, https://pastebin.com/jxHsjQK0\n  例：-misc.token f(0)={\\aleph}_0,f({\\alpha}+1)={\\aleph}_{\\alpha}\n-misc.latex：渲染latex公式\n-misc.money：面基算钱小助手 请单独-help misc.money\n-misc.roll.lyric：随机抽歌词，默认从全歌单中抽取，支持参数：vocalo kon imas ml cgss sphere aki bandori ll mu's Aqours starlight mh\n-event year month day [max_note=100]：按日期在eventernote.com查询该日发生的event，筛选条件为eventernote登录数大于max_note，默认为100，调低时请一定要注意避免刷屏！",
     "misc.money": "每行为一条指令。指令：\nclear: 清除所有数据。\nadd [人名]: 增加一个人。\nbill [人名] [金额] [可选：需付费的人名列表]: 增加一个需付费账单，人名列表为空则默认【包括自己的】所有人。\noutput [策略] [参数]: 输出金额交换。策略目前有：\n\toneman [参数：人名]: 所有金额交换全部支付给此人/由此人支付。",
     #"event": "使用格式：\n-event year month day [max_note = 100]：按日期在eventernote.com查询该日发生的event，筛选条件为eventernote登录数大于max_note，默认为100，调低时请一定要注意避免刷屏！",
@@ -38,7 +38,7 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
 -card.set.message 1：手动收取
 -card.set.message 2：凌晨定时发送私聊
 -card.set.guide on或off：开启或关闭全部指令引导。指令引导会在使用一次该指令后自动关闭""",
-    "snakebird": "snakebird是一款类贪吃蛇的单机解谜游戏，不同的是它引入了重力，每行走一步蛇都会受到重力的限制而下落。游戏目标是吃完所有食物后所有蛇都到达开启的出口处。游戏本身也有刺、方块、传送门等多个机制，解谜性满载哦~游戏本身目前在【安卓】上有免费版本，在steam上也有，欢迎使用-play.snakebird.begin 关卡号(目前包含关卡：0~45, *1~*6, final) 游玩这里的副本关卡，使用-play.snakebird.check查看自己已通过的关卡~\n游戏操作：直接输入上下左右移动以及红蓝绿切换蛇即可，输入撤可撤销一步\n欢迎向维护者提交自定义关卡【bushi",
+    "snakebird": "snakebird是一款类贪吃蛇的单机解谜游戏，不同的是它引入了重力，每行走一步蛇都会受到重力的限制而下落。游戏目标是吃完所有食物后所有蛇都到达开启的出口处。游戏本身也有刺、方块、传送门等多个机制，解谜性满载哦~游戏本身目前在【安卓】上和steam上都有，欢迎使用-play.snakebird.begin 关卡号(目前包含关卡：0~45, *1~*6, final) 游玩这里的副本关卡，使用-play.snakebird.check查看自己已通过的关卡~\n游戏操作：直接输入上下左右移动以及红蓝绿切换蛇即可，输入撤可撤销一步\n欢迎向维护者提交自定义关卡【bushi",
     "me": "こんにちは～七海千春です～\n维护者：小大圣\n友情协助：Randolph（snakebird关卡信息）\n鸣谢：Python®  酷Q®  nonebot®  阿里云®",
     "default": "指令："
         #"\n-eclins：查询ecl的instruction"

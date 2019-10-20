@@ -96,7 +96,7 @@ class BwBoard:
             else:
                 raise ChessWin("平局！")
         if not safe[1]:
-            raise ChessCantMove("黑白"[int(not isBlack)] + "方无法移动，" + "白黑"[int(isBlack)] + "方继续移动")
+            raise ChessCantMove("黑白"[int(isBlack)] + "方无法移动，" + "白黑"[int(isBlack)] + "方继续移动")
 
 bw = GameSameGroup('bw')
 
