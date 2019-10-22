@@ -2,6 +2,7 @@
 import json
 import random
 import asyncio
+import concurrent.futures
 from nonebot import on_command, CommandSession, permission
 import chiharu.plugins.config as config
 
@@ -15,7 +16,7 @@ async def SaveSub(session: CommandSession):
     if not token.islower() and not await permission.check_permission(session.bot, session.ctx, permission.SUPERUSER):
         await session.send('小写字母子程序可随意使用，欲存入非小写字母子程序请联系维护者~')
         return
-    await _SaveSub(token, session.get('content'))
+    _SaveSub(token, session.get('content'))
     await session.send("Successfully create sub %s !" % token, auto_escape=True)
 
 @on_command(('mbf', 'str'), only_to_me=False)
@@ -25,7 +26,7 @@ async def SetSubStr(session: CommandSession):
     if not token.islower() and not await permission.check_permission(session.bot, session.ctx, permission.SUPERUSER):
         await session.send('小写字母子程序可随意使用，欲存入非小写字母子程序请联系维护者~')
         return
-    await _SetSubStr(token, session.get('content'))
+    _SetSubStr(token, session.get('content'))
     await session.send("Successfully Saved!")
 
 @SaveSub.args_parser
@@ -51,7 +52,9 @@ async def List(session: CommandSession):
 @config.ErrorHandle
 async def Time(session: CommandSession):
     try:
-        strout, _break, runtime = await asyncio.wait_for(_Run(session.get('strins'), session.get('strin')), timeout=1)
+        loop = asyncio.get_event_loop()
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            strout, _break, runtime = await asyncio.wait_for(loop.run_in_executor(pool, _Run, session.get('strins'), session.get('strin')), timeout=600)
     except asyncio.TimeoutError:
         await session.send("time out!")
         return
@@ -65,7 +68,9 @@ async def Time(session: CommandSession):
 @config.ErrorHandle
 async def Run(session: CommandSession):
     try:
-        strout, _break, runtime = await asyncio.wait_for(_Run(session.get('strins'), session.get('strin')), timeout=600)
+        loop = asyncio.get_event_loop()
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            strout, _break, runtime = await asyncio.wait_for(loop.run_in_executor(pool, _Run, session.get('strins'), session.get('strin')), timeout=600)
     except asyncio.TimeoutError:
         await session.send("time out!")
         return
@@ -92,7 +97,7 @@ async def _(session: CommandSession):
         session.args['strins'] = content[:content.find('\n') + 1]
         session.args['strin'] = content[content.find('\n') + 1:]
 
-async def save():
+def save():
     global mbfSub
     with open(config.rel("mbfSub.json"), "w", encoding='utf-8') as mbffile:
         mbffile.write(json.dumps(mbfSub, ensure_ascii=False, indent=4, separators=(',', ': ')))
@@ -105,7 +110,7 @@ def pop(stack):
 def push(stack, i):
     stack.append(i)
 
-async def parse(liststring):
+def parse(liststring):
     stack_mid = []
     stack_big = []
     map_mid_lr = {}
@@ -139,7 +144,7 @@ async def parse(liststring):
     return map_mid_lr, map_mid_rl, map_big_lr, map_big_rl
 
 #return newpos, strout, break, runtime
-async def mbfChg(pos, listins, listin, char, stack, maps):
+def mbfChg(pos, listins, listin, char, stack, maps):
     strout = ""
     _break = False
     runtime = 0
@@ -247,7 +252,7 @@ async def mbfChg(pos, listins, listin, char, stack, maps):
         j = pop(stack)
         if i >= 0 and i < len(listins[0]):
             listins[i] = chr(j)
-        maps = await parse(listins)
+        maps = parse(listins)
     elif char == "?":
         i = pop(stack)
         if i > 0:
@@ -259,43 +264,43 @@ async def mbfChg(pos, listins, listin, char, stack, maps):
     elif char == "`":
         i = pop(stack)
         char_temp = chr(i)
-        await mbfChg(pos, listins, listin, char_temp, stack, maps)
+        mbfChg(pos, listins, listin, char_temp, stack, maps)
     elif char == "'":
         i = pop(stack)
         if i >= 0 and i < len(listins):
             push(stack, ord(listins[i]))
     elif mbfSub.get(char, ["", ""]) != ["", ""]:
-        strout, _break, runtime = await mbfInterpret(list(mbfSub[char][0]), listin, stack)
+        strout, _break, runtime = mbfInterpret(list(mbfSub[char][0]), listin, stack)
     return pos, strout, _break, runtime
 
 #return strout, break, runtime
-async def mbfInterpret(listins, listin, stack):
-    maps = await parse(listins)
+def mbfInterpret(listins, listin, stack):
+    maps = parse(listins)
     runtime = 0
     _break = False
     pos = 0
     strout = ""
     while pos < len(listins) and runtime < 10000000 and not _break:
-        pos, strout_add, _break, runtime_add = await mbfChg(pos, listins, listin, listins[pos], stack, maps)
+        pos, strout_add, _break, runtime_add = mbfChg(pos, listins, listin, listins[pos], stack, maps)
         strout += strout_add
         runtime += runtime_add + 1
         pos += 1
     return strout, _break, runtime
 
-async def _SaveSub(name, content):
+def _SaveSub(name, content):
     global mbfSub
     if name not in mbfSub:
         mbfSub[name] = [content, ""]
     else:
         mbfSub[name][0] = content
-    await save()
+    save()
     return True
 
-async def _SetSubStr(name, string):
+def _SetSubStr(name, string):
     global mbfSub
     if name in mbfSub:
         mbfSub[name][1] = string
-        await save()
+        save()
         return True
     else:
         return False
@@ -314,7 +319,7 @@ def _ListSub():
     l.sort()
     return l
 
-async def _Run(strins, strin):
-    return await mbfInterpret(list(strins), list(strin), [])
+def _Run(strins, strin):
+    return mbfInterpret(list(strins), list(strin), [])
 
 # vim:fdm=marker:fdc=3

@@ -409,13 +409,13 @@ async def roll_lyric(session: CommandSession):
         await session.send('抽歌词！：\n%s%s\n——《%s》（%s）' % \
                 (d['lyric'], (u"\n翻译：\n" + d['translated'] if d['translated'] != "" else u""), d['name'], d['artists']))
 
-# @scheduler.scheduled_job('cron', minute='00-57/3')
+@scheduler.scheduled_job('cron', minute='00-57/3')
 async def check_bicaf():
     with open(config.rel('bicaf.html'), encoding='utf-8') as f:
         l = f.readlines()
     loop = asyncio.get_event_loop()
     url = await loop.run_in_executor(None, requests.get,
-        "https://bicaf.com.cn/ticket/33")
+        "https://bicaf.com.cn/news")
     text = url.text.splitlines(keepends=True)
     d = list(difflib.ndiff(l, text))
     if any([x.startswith('+ ') or x.startswith('- ') for x in d]):
