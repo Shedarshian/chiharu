@@ -58,6 +58,9 @@ async def Time(session: CommandSession):
     except asyncio.TimeoutError:
         await session.send("time out!")
         return
+    except ZeroDivisionError:
+        await session.send("ZeroDivisionError: integer division or modulo by zero")
+        return
     if runtime >= 10000000:
         await session.send("time out!")
     if _break:
@@ -73,6 +76,9 @@ async def Run(session: CommandSession):
             strout, _break, runtime = await asyncio.wait_for(loop.run_in_executor(pool, _Run, session.get('strins'), session.get('strin')), timeout=600)
     except asyncio.TimeoutError:
         await session.send("time out!")
+        return
+    except ZeroDivisionError:
+        await session.send("ZeroDivisionError: integer division or modulo by zero")
         return
     if runtime >= 10000000:
         await session.send("time out!")
