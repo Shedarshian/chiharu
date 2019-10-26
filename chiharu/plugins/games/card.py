@@ -327,17 +327,6 @@ def pool_des_detail(pool_info: Dict, wish: Set):
 包含卡牌：{'，'.join([f'''{card_info[x]['name']}x{pool[x]}''' for x in not_wish])}""" + (f"""
 【在您的愿望单中的卡牌】：{'，'.join([f'''{card_info[x]['name']}x{pool[x]}''' for x in in_wish])}""" if len(in_wish) != 0 else '')
 
-def center_card(*args):
-    return """欢迎来到抽卡游戏！
-本抽卡游戏是一个【用户可以任意创造卡片放入】且卡池有限的抽卡游戏
-每天呢，有3个随机取出的每日卡池，以及近3天所有新创造的卡的新卡卡池，不定期还会开放活动卡池哦
-玩家每天有10次免费抽卡机会，每分解一张卡以及创造一张都可以获得20en，消耗100en也能够抽一张卡
-每天创造的卡片数和种类数也有上限哦，在凌晨5点会更新每日卡池以及重置上限www
-还有，创造的新的卡片名字需要审核哦~
-使用-card.help或-help card查询全部指令列表
-抽卡时可能会【刷屏】，避免造成群友困扰欢迎加入测试群947279366
-お楽しみに～"""
-
 def add_cardname(arg: Iterable[Tuple[str, int, Union[str, None]]], **kwargs):
     global card_info, pool
     with open(config.rel(r"games\card\pool"), 'ab') as f:

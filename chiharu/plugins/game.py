@@ -324,7 +324,7 @@ async def game_center(session: CommandSession):
     if session.current_arg_text == '':
         await session.send(config.game_center_help)
     elif session.current_arg_text == 'card':
-        await session.send(card.center_card())
+        await session.send(config.center_card)
         print('test')
     else:
         await session.send('game not found')
