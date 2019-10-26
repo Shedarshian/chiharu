@@ -246,8 +246,12 @@ def add_time(qq, time):
 @config.ErrorHandle
 @config.maintain('thwiki')
 async def apply(session: CommandSession):
-    group_id = session.ctx['group_id']
-    if group_id not in config.group_id_dict['thwiki_live']:
+    try:
+        group_id = session.ctx['group_id']
+        if group_id not in config.group_id_dict['thwiki_live']:
+            return
+    except KeyError:
+        await session.send('请在群内使用')
         return
     global l
     begin = session.get('begin')
@@ -303,10 +307,13 @@ async def apply(session: CommandSession):
 @config.ErrorHandle
 async def _(session: CommandSession):
     session.args['qq'] = int(session.ctx['user_id'])
-    if session.ctx['sender']['card'] == '':
+    try:
+        if session.ctx['sender']['card'] == '':
+            session.args['card'] = session.ctx['sender']['nickname']
+        else:
+            session.args['card'] = session.ctx['sender']['card']
+    except KeyError:
         session.args['card'] = session.ctx['sender']['nickname']
-    else:
-        session.args['card'] = session.ctx['sender']['card']
     session.args['float_end'] = False
     check = find_or_new(session.ctx['user_id'])
     if 'timezone' in check and check['timezone'] != 8:
@@ -398,6 +405,13 @@ async def cancel(session: CommandSession):
     global l
     if int(session.ctx['user_id']) in blacklist:
         return
+    try:
+        group_id = session.ctx['group_id']
+        if group_id not in config.group_id_dict['thwiki_live']:
+            return
+    except KeyError:
+        await session.send('请在群内使用')
+        return
     l2 = more_itertools.only([x for x in enumerate(l) if x[1].name == session.current_arg_text])
     if l2 is None:
         l2 = more_itertools.only([x for x in enumerate(l) if str(x[1].id) == session.current_arg_text.strip()])
@@ -461,8 +475,12 @@ async def thlistall(session: CommandSession):
 @config.ErrorHandle
 @config.maintain('thwiki')
 async def term(session: CommandSession):
-    group_id = session.ctx['group_id']
-    if group_id not in config.group_id_dict['thwiki_live']:
+    try:
+        group_id = session.ctx['group_id']
+        if group_id not in config.group_id_dict['thwiki_live']:
+            return
+    except KeyError:
+        await session.send('请在群内使用')
         return
     global l
     if int(session.ctx['user_id']) in blacklist:
@@ -567,8 +585,12 @@ async def check(session: CommandSession):
 @config.ErrorHandle
 @config.maintain('thwiki')
 async def get(session: CommandSession):
-    group_id = session.ctx['group_id']
-    if group_id not in config.group_id_dict['thwiki_live']:
+    try:
+        group_id = session.ctx['group_id']
+        if group_id not in config.group_id_dict['thwiki_live']:
+            return
+    except KeyError:
+        await session.send('请在群内使用')
         return
     #permission check
     now = datetime.now()
@@ -635,8 +657,12 @@ async def get(session: CommandSession):
 @config.ErrorHandle
 @config.maintain('thwiki')
 async def thwiki_grant(session: CommandSession):
-    group_id = session.ctx['group_id']
-    if group_id not in config.group_id_dict['thwiki_live']:
+    try:
+        group_id = session.ctx['group_id']
+        if group_id not in config.group_id_dict['thwiki_live']:
+            return
+    except KeyError:
+        await session.send('请在群内使用')
         return
     sqq = session.ctx['user_id']
     node = find_whiteforest(qq=sqq)
@@ -847,8 +873,12 @@ async def thwiki_open(session: CommandSession):
 @config.ErrorHandle
 @config.maintain('thwiki')
 async def thwiki_change(session: CommandSession):
-    group_id = session.ctx['group_id']
-    if group_id not in config.group_id_dict['thwiki_live']:
+    try:
+        group_id = session.ctx['group_id']
+        if group_id not in config.group_id_dict['thwiki_live']:
+            return
+    except KeyError:
+        await session.send('请在群内使用')
         return
     #permission check
     now = datetime.now()
