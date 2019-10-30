@@ -242,6 +242,9 @@ def add_time(qq, time):
     save_whiteforest()
     return b
 
+class ApplyErr(BaseException):
+    pass
+
 @on_command(('thwiki', 'apply'), aliases=('申请',), only_to_me=False)
 @config.ErrorHandle
 @config.maintain('thwiki')
@@ -263,27 +266,31 @@ async def apply(session: CommandSession):
     tz = session.get('tz')
     if qq in blacklist:
         return
-    if begin == False or (float_end == False and end == False):
-        await session.send('时间格式不正确，请使用' '(\\d+年)?(\\d+月)?(\\d+(日|号))?'
-        '(' '(\\d+(时|点))' '(\\d+分)?' '|' '\\d+:\\d+' ')，且保证时间有效'
-        '\n开始可用now，结束可用float')
-        return
-    if not float_end:
-        if begin > end:
-            await session.send('结束需要比开始晚！')
-            return
-    if begin < datetime.now() - timedelta(minutes=1):
-        await session.send('开始需要比现在晚！')
-        return
-    if len(name) < 1:
-        await session.send('不能没有名字')
-        return
-    if '\n' in name:
-        await session.send('名字不能含有换行符')
-        return
-    t = list(filter(lambda x: x.name == name, l))
-    if len(t) != 0:
-        await session.send('已有重名，请换名字')
+    try:
+        now = datetime.now()
+        if begin == False or (float_end == False and end == False):
+            raise ApplyErr('时间格式不正确，请在 -thwiki.apply 开始时间 结束时间 名字\n的时间处使用正则'
+            '(\\d+年)?(\\d+月)?(\\d+(日|号))?'
+            '(' '(\\d+(时|点))' '(\\d+分)?' '|' '\\d+:\\d+' ')，且保证时间有效'
+            '\n开始可用now，结束可用float')
+        elif not float_end and begin > end:
+            raise ApplyErr('结束需要比开始晚！')
+        elif begin < now - timedelta(minutes=1):
+            raise ApplyErr('开始需要比现在晚！')
+        elif not float_end and begin + timedelta(hours=24) < end:
+            raise ApplyErr('请勿一次申请超过24小时的时段')
+        elif not float_end and now + timedelta(days=60) < end:
+            if end.year >= 2100:
+                raise ApplyErr(f'你能活到{end.year}年吗？我在这里等着你哦')
+            raise ApplyErr('暂不受理60天以外的申请')
+        elif len(name) < 1:
+            raise ApplyErr('不能没有名字')
+        elif '\n' in name:
+            raise ApplyErr('名字不能含有换行符')
+        elif len(list(filter(lambda x: x.name == name, l))) != 0:
+            raise ApplyErr('已有重名，请换名字')
+    except ApplyErr as err:
+        await session.send(err.args[0])
         return
     e = Event(begin, end, qq, card, name, float_end)
     for i in l:
