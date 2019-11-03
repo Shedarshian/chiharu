@@ -33,7 +33,7 @@ async def SetSubStr(session: CommandSession):
 @SetSubStr.args_parser
 async def _(session: CommandSession):
     session.args['token'] = session.current_arg_text[0]
-    session.args['content'] = session.current_arg_text[2:]
+    session.args['content'] = session.current_arg_text[2:].strip().replace('\n', '').replace('\r', '')
 
 @on_command(('mbf', 'check'), only_to_me=False)
 @config.ErrorHandle
@@ -54,7 +54,7 @@ async def Time(session: CommandSession):
     try:
         loop = asyncio.get_event_loop()
         with concurrent.futures.ThreadPoolExecutor() as pool:
-            strout, _break, runtime = await asyncio.wait_for(loop.run_in_executor(pool, _Run, session.get('strins'), session.get('strin')), timeout=600)
+            strout, _break, runtime = await asyncio.wait_for(loop.run_in_executor(pool, _Run, session.get('strins'), session.get('strin')), timeout=600.0)
     except asyncio.TimeoutError:
         await session.send("time out!")
         return
@@ -73,7 +73,7 @@ async def Run(session: CommandSession):
     try:
         loop = asyncio.get_event_loop()
         with concurrent.futures.ThreadPoolExecutor() as pool:
-            strout, _break, runtime = await asyncio.wait_for(loop.run_in_executor(pool, _Run, session.get('strins'), session.get('strin')), timeout=600)
+            strout, _break, runtime = await asyncio.wait_for(loop.run_in_executor(pool, _Run, session.get('strins'), session.get('strin')), timeout=600.0)
     except asyncio.TimeoutError:
         await session.send("time out!")
         return
@@ -270,7 +270,7 @@ def mbfChg(pos, listins, listin, char, stack, maps):
     elif char == "`":
         i = pop(stack)
         char_temp = chr(i)
-        mbfChg(pos, listins, listin, char_temp, stack, maps)
+        pos2, strout, _break, runtime = mbfChg(pos, listins, listin, char_temp, stack, maps)
     elif char == "'":
         i = pop(stack)
         if i >= 0 and i < len(listins):
@@ -319,7 +319,9 @@ def _ListSub():
     global mbfSub
     def _g():
         for key, val in mbfSub.items():
-            if not key.islower() and val[1] != "":
+            if not key.islower():
+                yield key + "  " + (val[1] if val[1] != "" else "无描述")
+            elif key.islower() and val[1] != "":
                 yield key + "  " + val[1]
     l = list(_g())
     l.sort()

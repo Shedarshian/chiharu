@@ -476,13 +476,16 @@ async def maj_voice(session: CommandSession):
         for audio in l:
             if not os.path.isfile(config.rel(f'Cache\\majsoul_voice\\{voicer}\\{audio}.mp3')):
                 url = await loop.run_in_executor(None, functools.partial(requests.get,
-                    f'https://majsoul.union-game.com/0/v0.6.1.w/audio/sound/{voicer}/{audio}.mp3'))
+                    f'https://majsoul.com/1/v0.6.1.w/audio/sound/{voicer}/{audio}.mp3'))
                 if url.status_code != 200:
                     raise maj.MajErr(f"{voicer}/{audio}.mp3 can't download")
                 with open(config.rel(f'Cache\\majsoul_voice\\{voicer}\\{audio}.mp3'), 'wb') as f:
                     f.write(url.content)
     except maj.MajErr as e:
         await session.send(e.args[0], auto_escape=True)
+        return
+    except requests.exceptions.SSLError as e:
+        await session.send("雀魂连接失败！")
         return
     audio_fin = functools.reduce(lambda x, y: x + AudioSegment.silent(duration=200) + y,
         [AudioSegment.silent(duration=400) + AudioSegment.from_mp3(config.rel(f'Cache\\majsoul_voice\\{voicer}\\{audio}.mp3'))

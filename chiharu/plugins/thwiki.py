@@ -909,6 +909,9 @@ async def thwiki_change(session: CommandSession):
         await session.send('请在您预约的时间段前后十五分钟内修改' if r[1] is None or r[1].supervise != 0 else '十分抱歉，您现在的直播尚无监视员，无法直播qwq')
         return
     t = session.current_arg_text.strip()
+    if t == "":
+        await session.send('请填写您要修改的标题')
+        return
     if r[1] is not None:
         r[1].name = t
     if '东方' not in t:
