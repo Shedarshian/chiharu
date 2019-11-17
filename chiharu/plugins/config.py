@@ -2,6 +2,7 @@ import itertools
 import functools
 import json
 import datetime
+import getopt
 from os import path
 from typing import Awaitable, Generator, Set, Callable
 from nonebot import CommandSession, get_bot, on_command
@@ -86,13 +87,20 @@ class logger(metaclass=_logger_meta):
 def ErrorHandle(f):
     @functools.wraps(f)
     async def _f(*args, **kwargs):
+        if len(args) >= 1 and isinstance(args[0], CommandSession):
+            session = args[0]
+        elif 'session' in kwargs and isinstance(kwargs['session'], CommandSession):
+            session = kwargs['session']
+        else:
+            session = None
         try:
             return await f(*args, **kwargs)
+        except getopt.GetoptError as e:
+            if session is not None:
+                await session.send('参数错误！' + str(e.args), auto_escape=True)
         except Exception:
-            if len(args) >= 1 and isinstance(args[0], CommandSession):
+            if session is not None:
                 await args[0].send(traceback.format_exc(), auto_escape=True)
-            elif 'session' in kwargs and isinstance(kwargs['session'], CommandSession):
-                await kwargs['session'].send(traceback.format_exc(), auto_escape=True)
     return _f
 
 @ErrorHandle.register

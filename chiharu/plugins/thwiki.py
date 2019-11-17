@@ -160,17 +160,6 @@ async def _save(t):
     with open(config.rel("thwiki.txt"), 'w', encoding='utf-8') as f:
         f.write('\n'.join(map(repr, t)))
 
-def polish(l):
-    now = datetime.now()
-    def _():
-        for i, e in enumerate(l):
-            if not e.isFloat and e.end < now:
-                continue
-            if e.isFloat and i != len(l) - 1 and l[i + 1].begin < now:
-                continue
-            yield e
-    return list(_())
-
 async def change_des_to_list():
     global l
     fut = datetime.now() + timedelta(days=7)
@@ -299,7 +288,6 @@ async def apply(session: CommandSession):
             return
     l.append(e)
     l.sort(key=lambda x: x.begin)
-    l = polish(l)
     await _save(l)
     check = find_or_new(qq=qq)
     await session.send(f'成功申请，id为{e.id}，您还在试用期，请等待管理员监视，敬请谅解w' if check['trail'] else f'成功申请，id为{e.id}')
@@ -431,7 +419,8 @@ async def cancel(session: CommandSession):
         now = datetime.now()
         e = l.pop(i)
         await _save(l)
-        if e.supervise != 0 and (not e.isFloat and e.begin < now < e.end or e.isFloat and (i == len(l) - 1 or e.begin < now < l[i + 1].begin)):
+        # print((e.isFloat, e.begin, now, e.end, i, len(l)))
+        if e.supervise != 0 and e.begin < now:
             d = ((now - e.begin).total_seconds() - 1) // 60 + 1
             if add_time(e.qq, d):
                 await session.send('您已成功通过试用期转正！')
@@ -449,8 +438,6 @@ async def cancel(session: CommandSession):
 async def thlist(session: CommandSession):
     if_all = session.current_arg_text == 'all'
     global l
-    l = polish(l)
-    await _save(l)
     if len(l) == 0:
         await session.send('列表为空')
     else:
@@ -493,14 +480,6 @@ async def term(session: CommandSession):
     if int(session.ctx['user_id']) in blacklist:
         return
     now = datetime.now()
-    def _():
-        for i, e in enumerate(l):
-            if not e.isFloat and e.end < now:
-                continue
-            if e.isFloat and i != len(l) - 1 and l[i + 1].begin < now:
-                continue
-            yield e
-    l = list(_())
     if len(l) == 0:
         await session.send('现在未在播')
     else:
@@ -556,9 +535,9 @@ async def _():
                 for id in config.group_id_dict['thwiki_supervise']:
                     await bot.send_group_msg(group_id=id, message=[config.cq.text('\n内容: %s\n请监视者就位' % e.name), config.cq.at(e.supervise)])
     for i, e in enumerate(l):
-        if e.isFloat and i != len(l) - 1 and now - timedelta(seconds=59) < l[i + 1].begin < now + timedelta(seconds=1) or not e.isFloat and now - timedelta(seconds=59) < e.end < now + timedelta(seconds=1):
+        if e.isFloat and i != len(l) - 1 and l[i + 1].begin < now + timedelta(seconds=1) or not e.isFloat and e.end < now + timedelta(seconds=1):
             l.pop(i)
-            d = ((now - e.begin).total_seconds() - 1) // 60 + 1
+            d = (((l[i + 1].begin if e.isFloat else e.end) - e.begin).total_seconds() - 1) // 60 + 1
             if e.supervise != 0:
                 if add_time(e.qq, d):
                     for id in config.group_id_dict['thwiki_send']:
@@ -616,7 +595,7 @@ async def get(session: CommandSession):
             else:
                 b = now < e.end + timedelta(minutes=15)
             if qq == e.qq and b and e.begin - timedelta(minutes=15) < now:
-                return (e.supervise != 0), e.supervise
+                return (e.supervise != 0), e
         return False, None
     r = await _()
     if not r[0]:
@@ -650,8 +629,15 @@ async def get(session: CommandSession):
         try:
             area = {'': 235, '单机·其他': 235, '单机·其他单机': 235, '户外': 123, '娱乐·户外': 123, '演奏': 143, '才艺': 143, '娱乐·才艺': 143, '手游': 98, '手游·其他': 98, '手游·其他手游': 98, '网游': 107, '网游·其他': 107, '网游·其他网游': 107, '音乐台': 34, '娱乐·音乐台': 34, '虚拟主播': 199, 'vtb': 199, '娱乐·虚拟主播': 199, '绘画': 94, '同人绘画': 94, '临摹绘画': 95, '绘画·同人绘画': 94, '绘画·临摹绘画': 95}[session.current_arg_text]
         except:
-            await session.send('不支持分区：%s' % session.current_arg_text, auto_escape=True)
+            await session.send('不支持分区：%s，自动转至单机·其他' % session.current_arg_text, auto_escape=True)
             area = 235
+        if r[1] is not None:
+            t = r[1].name
+            if '东方' not in t:
+                t = '【东方】' + t
+            ret = await change(title=t)
+            if json.loads(ret)['code'] != 0:
+                await session.send(f'直播间标题修改失败', auto_escape=True)
         ret = await th_open(area=area)
         if json.loads(ret)['code'] == 0:
             await session.send('检测到直播间未开启，现已开启，分区：%s' % \

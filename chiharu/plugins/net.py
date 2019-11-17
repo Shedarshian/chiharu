@@ -434,3 +434,30 @@ async def roll_lyric(session: CommandSession):
 #             f.write(url.text)
 #         for group in config.group_id_dict['boss']:
 #             await get_bot().send_group_msg(group_id=group, message=''.join([x for x in d if not x.startswith('  ')]))
+
+bibtex_url = {'pra': 'https://journals.aps.org/pra/export/10.1103/PhysRevA.{}.{}', 'prb': 'https://journals.aps.org/prb/export/10.1103/PhysRevB.{}.{}', 'prc': 'https://journals.aps.org/prc/export/10.1103/PhysRevC.{}.{}', 'prd': 'https://journals.aps.org/prd/export/10.1103/PhysRevD.{}.{}', 'pre': 'https://journals.aps.org/pre/export/10.1103/PhysRevE.{}.{}', 'prl': 'https://journals.aps.org/prl/export/10.1103/PhysRevLett.{}.{}', 'cpc': 'https://iopscience.iop.org/export?articleId=1674-1137/{}/{}/{}&exportFormat=iopexport_bib&exportType=abs&navsubmit=Export+abstract', 'cpb': 'https://iopscience.iop.org/export?articleId=1674-1056/{}/{}/{}&exportFormat=iopexport_bib&exportType=abs&navsubmit=Export+abstract'}
+@on_command(('tools', 'bibtex'), only_to_me=False)
+@config.ErrorHandle
+async def bibtex(session: CommandSession):
+    args = session.current_arg_text.split(' ')
+    if len(args) == 0 or args[0].lower() not in bibtex_url:
+        await session.send('支持期刊：pra prb prc prd pre prl cpb cpc')
+        return
+    elif len(args) < 3:
+        await session.send('请使用：-tools.bibtex 期刊名 卷数 首页页码')
+    name = args.pop(0).lower()
+    loop = asyncio.get_event_loop()
+    try:
+        if int(args[0]) <= 0 or int(args[1]) <= 0:
+            raise ValueError
+        if name in ('cpc', 'cpb'):
+            args = args[0], str(int(args[1][0:2])), args[1]
+        url = await asyncio.wait_for(loop.run_in_executor(None, requests.get, bibtex_url[name].format(*args)), timeout=60)
+        if url.status_code != 200:
+            await session.send('not found!')
+        else:
+            await session.send(url.text, auto_escape=True)
+    except ValueError:
+        await session.send('请输入合理的期刊卷数与页码。')
+    except asyncio.TimeoutError:
+        await session.send('time out!')
