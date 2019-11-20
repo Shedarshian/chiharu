@@ -36,24 +36,28 @@ class ChessError(BaseException):
 class ChessWin(ChessError):
     pass
 
-
 class GameSameGroup:
-    center = {} # group_id: [{'players': [qq], 'game': GameSameGroup instance, 'anything': anything}]
+    # group_id: [{'players': [qq], 'game': GameSameGroup instance, 'anything': anything}]
+    center = {}
     def __init__(self, name: str, can_private=False):
-        self.uncomplete = {} # group_id: {'players': [qq], 'anything': anything}
+        # group_id: {'players': [qq], 'anything': anything}
+        self.uncomplete = {}
         self.name = name
         self.can_private = can_private
     def begin_uncomplete(self, command: Iterable[str], player: Tuple[int, int]):
         self.begin_command = command
         self.begin_player = player
+
         def _(_i: Awaitable) -> Awaitable:
             self.uncomplete_func = _i
             return _i
         return _
     def begin_complete(self, confirm_command: Iterable[str]):
         self.confirm_command = confirm_command
+
         def _(_f: Awaitable) -> Awaitable:
             self.complete_func = _f
+
             @on_command(self.begin_command, only_to_me=False)
             @config.ErrorHandle
             async def _g(session: CommandSession):
@@ -79,13 +83,16 @@ class GameSameGroup:
                         await session.send('您已参加本游戏匹配，请耐心等待')
                         return
                     self.uncomplete[group_id]['players'].append(qq)
-                    self.uncomplete[group_id]['args'].append(session.current_arg_text)
+                    self.uncomplete[group_id]['args'].append(
+                        session.current_arg_text)
                 else:
-                    self.uncomplete[group_id] = {'players': [qq], 'args': [session.current_arg_text]}
-                if len(self.uncomplete[group_id]['players']) == self.begin_player[1]: # 已达上限，开始游戏
+                    self.uncomplete[group_id] = {'players': [
+                        qq], 'args': [session.current_arg_text]}
+                # 已达上限，开始游戏
+                if len(self.uncomplete[group_id]['players']) == self.begin_player[1]:
                     dct = self.uncomplete.pop(group_id)
                     dct['game'] = self
-                    await _f(session, dct) # add data to dct
+                    await _f(session, dct)  # add data to dct
                     if group_id in self.center:
                         self.center[group_id].append(dct)
                     else:
@@ -95,6 +102,7 @@ class GameSameGroup:
                         await bot.send_group_msg(group_id=group, message='%s begin in group %s' % (self.name, group_id))
                     return
                 await self.uncomplete_func(session, self.uncomplete[group_id])
+
             @on_command(confirm_command, only_to_me=False)
             @config.ErrorHandle
             async def _h(session: CommandSession):
@@ -112,8 +120,9 @@ class GameSameGroup:
                 if len(self.uncomplete[group_id]['players']) < self.begin_player[0]:
                     await session.send('匹配人数未达下限，请耐心等待')
                 else:
-                    dct = {'players': self.uncomplete.pop(group_id)['players'], 'game': self}
-                    await _f(session, dct) # add data to dct
+                    dct = {'players': self.uncomplete.pop(
+                        group_id)['players'], 'game': self}
+                    await _f(session, dct)  # add data to dct
                     if group_id in self.center:
                         self.center[group_id].append(dct)
                     else:
@@ -124,6 +133,7 @@ class GameSameGroup:
         return _
     def end(self, end_command: Iterable[str]):
         self.end_command = end_command
+
         def _(_f: Awaitable) -> Awaitable:
             @on_command(end_command, only_to_me=False)
             @config.ErrorHandle
@@ -140,11 +150,12 @@ class GameSameGroup:
                 is_admin = await permission.check_permission(get_bot(), session.ctx, permission.GROUP_ADMIN)
                 if_in = False
                 if group_id in self.center:
-                    l = list(filter(lambda x: x['game'] is self, self.center[group_id]))
+                    l = list(
+                        filter(lambda x: x['game'] is self, self.center[group_id]))
                     if_in = is_admin or (len(l) != 0 and qq in l[0]['players'])
                 if if_in and len(l) != 0:
                     await _f(session, l[0])
-                    self.center[group_id].remove(l[0]) # delete 函数？
+                    self.center[group_id].remove(l[0])  # delete 函数？
                     bot = get_bot()
                     for group in config.group_id_dict['log']:
                         await bot.send_group_msg(group_id=group, message='%s end in group %s' % (self.name, group_id))
@@ -153,10 +164,10 @@ class GameSameGroup:
                     self.uncomplete.pop(group_id)
             return _f
         return _
-    def process(self, only_short_message: bool=True):
+    def process(self, only_short_message: bool = True):
         def _(_f: Awaitable) -> Awaitable:
             @on_natural_language(only_to_me=False, only_short_message=only_short_message)
-            async def _g(session: NLPSession): # 以后可能搁到一起？
+            async def _g(session: NLPSession):  # 以后可能搁到一起？
                 try:
                     group_id = int(session.ctx['group_id'])
                 except KeyError:
@@ -167,9 +178,11 @@ class GameSameGroup:
                 qq = int(session.ctx['user_id'])
                 if group_id not in self.center:
                     return
-                l = list(filter(lambda x: x['game'] is self, self.center[group_id]))
+                l = list(filter(lambda x: x['game']
+                                is self, self.center[group_id]))
                 if len(l) == 0 or qq not in l[0]['players']:
                     return
+
                 async def _h():
                     self.center[group_id].remove(l[0])
                     bot = get_bot()
@@ -195,7 +208,8 @@ class GameSameGroup:
             data = {}
         data[self.name] = data_given
         with open(config.rel(f'games\\user_data\\{qq}.json'), 'w', encoding='utf-8') as f:
-            f.write(json.dumps(data, ensure_ascii=False, indent=4, separators=(',', ': ')))
+            f.write(json.dumps(data, ensure_ascii=False,
+                               indent=4, separators=(',', ': ')))
 
 # example usage for GamePrivate:
 # maj = GamePrivate('maj')
@@ -207,27 +221,31 @@ class GameSameGroup:
 #     await session.send('已为您参与匹配')
 
 class GamePrivate:
-    def __init__(self, name: str, allow_group_live: bool=True):
-        self.center = {} # room_id: {'players': [qq], 'public': bool, 'type': type_str, 'game': GamePrivate instance, 'group': group, 'anything': anything}
-        self.uncomplete = {} # room_id: dct
-        self.players_status = {} # qq: [bool: Complete, ptr to dct]
+    def __init__(self, name: str, allow_group_live: bool = True):
+        # room_id: {'players': [qq], 'public': bool, 'type': type_str, 'game': GamePrivate instance, 'group': group, 'anything': anything}
+        self.center = {}
+        self.uncomplete = {}  # room_id: dct
+        self.players_status = {}  # qq: [bool: Complete, ptr to dct]
         self.allow_group_live = allow_group_live
         self.name = name
         self.types = {'': (0, 32767)}
     def set_types(self, types: Dict[str, Tuple[int, int]]):
         self.types = types
-    def begin_uncomplete(self, command: Iterable[str], player: Tuple[int, int]=(0, 32767)):
+    def begin_uncomplete(self, command: Iterable[str], player: Tuple[int, int] = (0, 32767)):
         self.begin_command = command
         if '' in self.types:
             self.types[''] = player
+
         def _(_i: Awaitable) -> Awaitable:
             self.uncomplete_func = _i
             return _i
         return _
     def begin_complete(self, confirm_command: Iterable[str]):
         self.confirm_command = confirm_command
+
         def _(_f: Awaitable) -> Awaitable:
             self.complete_func = _f
+
             @on_command(self.begin_command, only_to_me=False)
             @config.ErrorHandle
             async def _g(session: CommandSession):
@@ -302,17 +320,22 @@ class GamePrivate:
                     else:
                         room['players'].append(qq)
                         self.players_status[qq] = [False, room]
-                        msg = f'玩家{qq}已加入房间{room_id}，现有{len(room["players"])}人' + ('，已满' if len(room["players"]) == self.types[room['type']][1] else '')
+                        msg = f'玩家{qq}已加入房间{room_id}，现有{len(room["players"])}人' + (
+                            '，已满' if len(room["players"]) == self.types[room['type']][1] else '')
                         for qqq in room['players']:
                             await get_bot().send_private_msg(user_id=qqq, message=msg)
                 else:
                     prefix = 0
                     while 1:
-                        r = [i for i in range(prefix, prefix + 1000) if i not in self.center and i not in self.uncomplete]
-                        if len(r) == 0: prefix += 1000
-                        else: break
+                        r = [i for i in range(
+                            prefix, prefix + 1000) if i not in self.center and i not in self.uncomplete]
+                        if len(r) == 0:
+                            prefix += 1000
+                        else:
+                            break
                     room_id = random.choice(r)
-                    room = self.uncomplete[room_id] = {'players': [qq], 'public': public, 'type': typ, 'game': self}
+                    room = self.uncomplete[room_id] = {'players': [
+                        qq], 'public': public, 'type': typ, 'game': self}
                     if not public:
                         room['password'] = password
                     self.players_status[qq] = [False, room]
@@ -328,4 +351,3 @@ async def game_center(session: CommandSession):
         print('test')
     else:
         await session.send('game not found')
-

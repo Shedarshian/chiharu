@@ -187,11 +187,11 @@ async def oeis_id(s):
 async def quiz(session: CommandSession):
     #if session.current_arg_text == 'math':
     with open(config.rel("games\\quiz.json"), encoding='utf-8') as f:
-        await session.send(json.load(f)["math"]["10"][0])
+        await session.send(json.load(f)["math"]["11"][0])
 
 @on_command(('tools', 'quiz_answer'), only_to_me=False)
 @config.ErrorHandle
 async def quiz(session: CommandSession):
     #if session.current_arg_text == 'math':
     with open(config.rel("games\\quiz.json"), encoding='utf-8') as f:
-        await session.send(json.load(f)["math"]["10"][1], ensure_private=True)
+        await session.send(json.load(f)["math"]["11"][1], ensure_private=True)

@@ -20,13 +20,22 @@ def img(rel_path):
 def rec(rel_path):
     return path.join(PATH_REC, rel_path)
 
+group_id_dict = {}
+tiemu_basic = {}
+headers = {}
+user_agent = ''
+csrf_thb = ''
+center_gonggao = ''
+game_center_help = ''
+center_card = ''
 with open(rel('config_data.py'), encoding='utf-8') as f:
     exec(f.read())
 with open(rel('maintain.json'), encoding='utf-8') as f:
     maintain_str = json.load(f)
 def maintain_str_save():
     with open(rel('maintain.json'), 'w', encoding='utf-8') as f:
-        f.write(json.dumps(maintain_str, ensure_ascii=False, indent=4, separators=(',', ': ')))
+        f.write(json.dumps(maintain_str, ensure_ascii=False,
+                           indent=4, separators=(',', ': ')))
 
 class cq:
     @staticmethod
@@ -123,10 +132,10 @@ def _(g: _logger, if_send=True):
                     g << f"【ERR】调用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
         return _f
     return _g
-        
 
 def maintain(s):
     global maintain_str
+
     def _(f):
         @functools.wraps(f)
         async def _f(*args, **kwargs):
@@ -151,7 +160,7 @@ def maintain(s):
     return _
 
 class Constraint:
-    def __init__(self, id_s: Set[int], can_respond: Callable[..., bool], ret: str=""):
+    def __init__(self, id_s: Set[int], can_respond: Callable[..., bool], ret: str = ""):
         self.id_s = id_s
         self._f = can_respond
         self.ret = ret

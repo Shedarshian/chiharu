@@ -104,7 +104,7 @@ async def _(session: CommandSession):
     else:
         session.args['name'] = 'default'
 
-@on_command('reload', only_to_me=False)
+@on_command('reload', only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
 async def reload_plugin(session: CommandSession):
     name = 'chiharu.plugins.' + session.current_arg_text

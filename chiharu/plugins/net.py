@@ -279,8 +279,6 @@ class Line:
             self.valid = False
         else:
             self.valid = True
-    def valid(self):
-        return self.valid
     def empty(self):
         return self.content == ""
     def addTrans(self, string):
