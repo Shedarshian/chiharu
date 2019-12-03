@@ -1,6 +1,7 @@
 import asyncio
 import requests
 import re
+import html
 import paramiko
 import ncmbot
 import json
@@ -14,11 +15,12 @@ import chiharu.plugins.config as config
 async def Event(year, month, day):
     loop = asyncio.get_event_loop()
     url = await loop.run_in_executor(None, requests.get,
-        "https://www.eventernote.com/events/search?year=%s&month=%s&day=%s" % (year, month, day))
+                                     "https://www.eventernote.com/events/search?year=%s&month=%s&day=%s" % (year, month, day))
     text = url.text
     def _f(text):
         class _c:
             pass
+
         class Actor:
             def __init__(self, url, name):
                 self.url = url
@@ -29,18 +31,21 @@ async def Event(year, month, day):
             if not match_pos:
                 break
             begin_pos += match_pos.span()[1]
-            name_match = re.search('<h4><a href="(.*?)">(.*?)</a></h4>', text[begin_pos:], re.S)
+            name_match = re.search(
+                '<h4><a href="(.*?)">(.*?)</a></h4>', text[begin_pos:], re.S)
             if not name_match:
                 break
             m = _c()
             m.url = name_match.group(1)
             m.name = name_match.group(2)
-            place_match = re.search('<div class="place">(.*?)</div>', text[begin_pos:], re.S)
+            place_match = re.search(
+                '<div class="place">(.*?)</div>', text[begin_pos:], re.S)
             if not place_match:
                 m.place = None
             else:
                 begin_pos += place_match.span()[1]
-                m.place = re.sub('\n|\t| ', '', re.sub('<.*?>', '', place_match.group(1)))
+                m.place = re.sub('\n|\t| ', '', re.sub(
+                    '<.*?>', '', place_match.group(1)))
             actors_match = re.search('<div class="actor">', text[begin_pos:])
             m.actor = []
             if actors_match:
@@ -51,12 +56,15 @@ async def Event(year, month, day):
                 else:
                     end_pos = -1
                 while 1:
-                    actor_match = re.search('<li><a href="(.*?)">(.*?)</a></li>', text[begin_pos:end_pos], re.S)
+                    actor_match = re.search(
+                        '<li><a href="(.*?)">(.*?)</a></li>', text[begin_pos:end_pos], re.S)
                     if not actor_match:
                         break
                     begin_pos += actor_match.span()[1]
-                    m.actor.append(Actor(actor_match.group(1), actor_match.group(2)))
-            note_match = re.search('<div class="note_count">.*?<p title=".*?">(.*?)</p>.*?</div>', text[begin_pos:], re.S)
+                    m.actor.append(
+                        Actor(actor_match.group(1), actor_match.group(2)))
+            note_match = re.search(
+                '<div class="note_count">.*?<p title=".*?">(.*?)</p>.*?</div>', text[begin_pos:], re.S)
             if not note_match:
                 m.note = 1
             else:
@@ -64,7 +72,7 @@ async def Event(year, month, day):
                 begin_pos += note_match.span()[1]
             yield m
     return list(_f(text))
-    
+
 @on_command('event', only_to_me=False)
 @config.ErrorHandle
 async def event(session: CommandSession):
@@ -73,7 +81,8 @@ async def event(session: CommandSession):
     def _():
         for m in filter(lambda x: x.note >= max_note, g):
             if len(m.actor) >= 7:
-                actor_str = ', '.join(map(lambda x: x.name, m.actor[:7])) + '...'
+                actor_str = ', '.join(
+                    map(lambda x: x.name, m.actor[:7])) + '...'
             else:
                 actor_str = ', '.join(map(lambda x: x.name, m.actor))
             yield "%s\n%s\n出演者: %s" % (m.name, m.place, actor_str)
@@ -142,7 +151,8 @@ class Status:
             self.valid = False
         else:
             self.valid = True
-            (self.all, self.completed, self.removed, self.idle, self.running, self.held, self.suspended) = map(int, groups)
+            (self.all, self.completed, self.removed, self.idle,
+             self.running, self.held, self.suspended) = map(int, groups)
             if self.all != self.completed + self.removed + self.idle + self.running + self.held + self.suspended:
                 self.valid = False
     def isValid(self):
@@ -170,9 +180,11 @@ async def check_boss():
             told_not_logged_in = True
         return
     def _f():
-        stdin, stdout, stderr = ssh.exec_command('/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin/hep_q -u qity')
+        stdin, stdout, stderr = ssh.exec_command(
+            '/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin/hep_q -u qity')
         output = stdout.readlines()[-1]
-        match = re.match("(\d+) jobs; (\d+) completed, (\d+) removed, (\d+) idle, (\d+) running, (\d+) held, (\d+) suspended", output)
+        match = re.match(
+            "(\d+) jobs; (\d+) completed, (\d+) removed, (\d+) idle, (\d+) running, (\d+) held, (\d+) suspended", output)
         if not match:
             print("Not found")
             return Status(None)
@@ -220,26 +232,26 @@ async def boss_hang(session: CommandSession):
     await session.send('Successfully saved.')
 
 idmap = {'all': 2503049358,
-        'LL': 138461796,
-        'll': 138461796,
-        'lovelive': 138461796,
-        'bandori': 2221214678,
-        "mu's": 423336425,
-        'Aqours': 449636768,
-        'starlight': 2482865249,
-        'sphere': 994322013,
-        'Sphere': 994322013,
-        'aki': 994296036,
-        'ML': 50015591,
-        'ml': 50015591,
-        'KON': 812754,
-        'kon': 812754,
-        'MH': 46568099,
-        'mh': 46568099,
-        'VOCALO': 37258756,
-        'vocalo': 37258756,
-        'cgss': 526680154,
-        'CGSS': 526680154}
+         'LL': 138461796,
+         'll': 138461796,
+         'lovelive': 138461796,
+         'bandori': 2221214678,
+         "mu's": 423336425,
+         'Aqours': 449636768,
+         'starlight': 2482865249,
+         'sphere': 994322013,
+         'Sphere': 994322013,
+         'aki': 994296036,
+         'ML': 50015591,
+         'ml': 50015591,
+         'KON': 812754,
+         'kon': 812754,
+         'MH': 46568099,
+         'mh': 46568099,
+         'VOCALO': 37258756,
+         'vocalo': 37258756,
+         'cgss': 526680154,
+         'CGSS': 526680154}
 
 @functools.total_ordering
 class Time:
@@ -281,6 +293,8 @@ class Line:
             self.valid = True
     def empty(self):
         return self.content == ""
+    def isValid(self):
+        return self.valid
     def addTrans(self, string):
         self.trans = string
     def clearTrans(self):
@@ -302,29 +316,31 @@ class anyErrWithId(Exception):
         return self.err.__class__.__name__ + ": " + str(self.err) + ", song id: " + str(self.id)
 
 def printLyric(idx):
-    lyric = ncmbot.lyric(id = idx).json()
+    lyric = ncmbot.lyric(id=idx).json()
     with open('test.txt', 'w') as f:
-        f.write(json.dumps(lyric, indent = 4, separators = (',', ': ')).decode('unicode_escape').encode('utf-8'))
+        f.write(json.dumps(lyric, indent=4, separators=(',', ': ')
+                           ).decode('unicode_escape').encode('utf-8'))
 
 def getLyric(listid):
-    pl = ncmbot.play_list_detail(id = str(listid)).json()
+    pl = ncmbot.play_list_detail(id=str(listid)).json()
     trks = pl['playlist']['trackIds']
-    #print(len(trks))
+    # print(len(trks))
     while 1:
         ran_trk = random.choice(trks)
-        lyricl = ncmbot.lyric(id = ran_trk['id']).json()
+        lyricl = ncmbot.lyric(id=ran_trk['id']).json()
         if 'lrc' in lyricl:
             break
     song_id = ran_trk['id']
     try:
         lyricstr = lyricl['lrc']['lyric']
         tlyricstr = lyricl['tlyric']['lyric']
-        #klyricstr = lyricl['klyric']['lyric']#???
-        lyric = list(filter(Line.valid, map(Line, lyricstr.split('['))))
-        #print lyric
+        # klyricstr = lyricl['klyric']['lyric']#???
+        lyric = list(filter(Line.isValid, map(Line, lyricstr.split('['))))
+        # print lyric
         if tlyricstr is not None:
             try:
-                tlyric = list(filter(Line.valid, map(Line, tlyricstr.split('['))))
+                tlyric = list(
+                    filter(Line.isValid, map(Line, tlyricstr.split('['))))
                 liter = iter(lyric)
                 titer = iter(tlyric)
                 try:
@@ -362,10 +378,12 @@ def getLyric(listid):
                 blocks[-1] += t
             else:
                 blocks.append(t)
-        #print(blocks)
+        # print(blocks)
+
         def _f(blocks):
             for block in blocks:
                 b = len(block) >= 6
+
                 def _v(string):
                     return '作词' not in string.content and '作曲' not in string.content and '编曲' not in string.content and u'词:' not in string.content and u'曲:' not in string.content
                 if not b:
@@ -374,7 +392,7 @@ def getLyric(listid):
                     block = list(filter(_v, block))
                 if b:
                     for i in range(len(block)):
-                        #print block[i].content.encode('utf-8')
+                        # print block[i].content.encode('utf-8')
                         if len(block[i].content) >= 25:
                             yield (block[i], )
                         elif len(block[i].content) >= 8 and i < len(block) - 1:
@@ -382,17 +400,18 @@ def getLyric(listid):
                         elif len(block[i].content) < 8 and i < len(block) - 2:
                             yield (block[i], block[i + 1], block[i + 2])
         pool = tuple(_f(blocks))
-        #print len(pool)
-        #print(pool)
+        # print len(pool)
+        # print(pool)
         t = random.choice(pool)
         lyricrstr = '\n'.join(map(lambda x: x.content, t))
-        tlyricrstr = '\n'.join(filter(lambda x: x is not None, map(lambda x: x.trans, t)))
+        tlyricrstr = '\n'.join(
+            filter(lambda x: x is not None, map(lambda x: x.trans, t)))
         r = ncmbot.song_detail([ran_trk['id']]).json()
-        #print r['songs']#.encode('utf-8')
-        #print repr(r['songs'])#.encode('utf-8')
+        # print r['songs']#.encode('utf-8')
+        # print repr(r['songs'])#.encode('utf-8')
         trk_name = r['songs'][0]['name']
         trk_ar = ', '.join(map(lambda x: x['name'], r['songs'][0]['ar']))
-        return { 'lyric': lyricrstr, 'translated': tlyricrstr, 'name': trk_name, 'artists': trk_ar }
+        return {'lyric': lyricrstr, 'translated': tlyricrstr, 'name': trk_name, 'artists': trk_ar}
     except Exception as err:
         raise anyErrWithId(err, song_id, traceback.format_exc())
 
@@ -404,8 +423,8 @@ async def roll_lyric(session: CommandSession):
         await session.send('name not found')
     else:
         d = getLyric(idmap[args])
-        await session.send('抽歌词！：\n%s%s\n——《%s》（%s）' % \
-                (d['lyric'], (u"\n翻译：\n" + d['translated'] if d['translated'] != "" else u""), d['name'], d['artists']))
+        await session.send('抽歌词！：\n%s%s\n——《%s》（%s）' %
+                           (d['lyric'], (u"\n翻译：\n" + d['translated'] if d['translated'] != "" else u""), d['name'], d['artists']))
 
 # @scheduler.scheduled_job('cron', minute='00-57/3')
 # async def check_bicaf():
@@ -433,7 +452,8 @@ async def roll_lyric(session: CommandSession):
 #         for group in config.group_id_dict['boss']:
 #             await get_bot().send_group_msg(group_id=group, message=''.join([x for x in d if not x.startswith('  ')]))
 
-bibtex_url = {'pra': 'https://journals.aps.org/pra/export/10.1103/PhysRevA.{}.{}', 'prb': 'https://journals.aps.org/prb/export/10.1103/PhysRevB.{}.{}', 'prc': 'https://journals.aps.org/prc/export/10.1103/PhysRevC.{}.{}', 'prd': 'https://journals.aps.org/prd/export/10.1103/PhysRevD.{}.{}', 'pre': 'https://journals.aps.org/pre/export/10.1103/PhysRevE.{}.{}', 'prl': 'https://journals.aps.org/prl/export/10.1103/PhysRevLett.{}.{}', 'cpc': 'https://iopscience.iop.org/export?articleId=1674-1137/{}/{}/{}&exportFormat=iopexport_bib&exportType=abs&navsubmit=Export+abstract', 'cpb': 'https://iopscience.iop.org/export?articleId=1674-1056/{}/{}/{}&exportFormat=iopexport_bib&exportType=abs&navsubmit=Export+abstract'}
+bibtex_url = {'pra': 'https://journals.aps.org/pra/export/10.1103/PhysRevA.{}.{}', 'prb': 'https://journals.aps.org/prb/export/10.1103/PhysRevB.{}.{}', 'prc': 'https://journals.aps.org/prc/export/10.1103/PhysRevC.{}.{}', 'prd': 'https://journals.aps.org/prd/export/10.1103/PhysRevD.{}.{}', 'pre': 'https://journals.aps.org/pre/export/10.1103/PhysRevE.{}.{}',
+              'prl': 'https://journals.aps.org/prl/export/10.1103/PhysRevLett.{}.{}', 'cpc': 'https://iopscience.iop.org/export?articleId=1674-1137/{}/{}/{}&exportFormat=iopexport_bib&exportType=abs&navsubmit=Export+abstract', 'cpb': 'https://iopscience.iop.org/export?articleId=1674-1056/{}/{}/{}&exportFormat=iopexport_bib&exportType=abs&navsubmit=Export+abstract'}
 @on_command(('tools', 'bibtex'), only_to_me=False)
 @config.ErrorHandle
 async def bibtex(session: CommandSession):
@@ -457,5 +477,59 @@ async def bibtex(session: CommandSession):
             await session.send(url.text, auto_escape=True)
     except ValueError:
         await session.send('请输入合理的期刊卷数与页码。')
+    except asyncio.TimeoutError:
+        await session.send('time out!')
+
+@on_command(('steam', 'price'), only_to_me=False)
+@config.ErrorHandle
+async def steam_price(session: CommandSession):
+    name = session.current_arg_text.strip()
+    loop = asyncio.get_event_loop()
+    try:
+        headers = {'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36'
+                    ,'Cookies':'__cfduid=d86e702d95c9f19d5f33c5ae30ded8d881572688847; _ga=GA1.2.940923473.1572688859; __Host-cc=cn; cf_clearance=e13ec0c58bb63cfa52ea085e2424466fdc3213c3-1574825182-0-150; _gid=GA1.2.1066487208.1574825186'
+                    ,'Sec-Fetch-Mode': 'navigate'
+                    ,'Sec-Fetch-Site': 'none'
+                    ,'Sec-Fetch-User': '?1'
+                    ,'Upgrade-Insecure-Requests': '1'
+                    ,'Accept-Language': 'zh-CN,zh;q=0.9'
+                    ,'Cache-Control': 'max-age=0'
+                    }
+        cookies = {'__cfduid':'d86e702d95c9f19d5f33c5ae30ded8d881572688847','_ga':'GA1.2.940923473.1572688859','__Host-cc':'cn','cf_clearance':'e13ec0c58bb63cfa52ea085e2424466fdc3213c3-1574825182-0-150','_gid':'GA1.2.1066487208.1574825186'}
+        url = await asyncio.wait_for(loop.run_in_executor(None, functools.partial(requests.get, 'https://steamdb.info/search/?a=app&q=' + name, cookies=cookies)), timeout=60)
+        if url.status_code != 200:
+            await session.send('url error!')
+            return
+        begin = re.search('<tbody hidden>', url.text)
+        if not begin:
+            await session.send('url error!')
+            return
+        begin_pos = begin.span()[1]
+        match = re.search(
+            '<tr class="app" data-appid="(\d+)">', url.text[begin_pos:])
+        if not match:
+            await session.send('未找到此游戏。')
+        else:
+            app_id = match.group(1)
+            url = await asyncio.wait_for(loop.run_in_executor(None, functools.partial(requests.get, f'https://steamdb.info/app/{app_id}/', headers=headers)), timeout=60)
+            if url.status_code != 200:
+                await session.send('url error!')
+                return
+            title = re.search(
+                '<td>Name</td>\s*<td itemprop="name">([^<>]+?)</td>', url.text)
+            if not title:
+                await session.send('url error!')
+                return
+            name = html.unescape(title.group(1))
+            store = f'https://store.steampowered.com/app/{app_id}/'
+            price_match = re.search(
+                'Chinese Yuan Renminbi\s*</td>\s*¥ (\d+)(?: at <span class="price-discount">-(\d+)%</span>)?</td>\s*<td [^<>]*?>.*?</td>\s*<td data-sort=".*?">¥ (\d+)</td>', url.text)
+            if not price_match:
+                await session.send('未找到价格信息。')
+                return
+            price, discount, price_lowest = price_match.groups()
+            await session.send(f'游戏名称：{name}\nSteam store链接：{store}\n现价：¥ {price}{f"(-{discount}%)" if discount is not None else ""}\n史低：¥ {price_lowest}')
     except asyncio.TimeoutError:
         await session.send('time out!')

@@ -9,6 +9,7 @@ import random
 from copy import copy
 from urllib import parse
 from nonebot import on_command, CommandSession, get_bot, permission, scheduler, on_notice, NoticeSession
+from nonebot.command import call_command
 import aiocqhttp
 import chiharu.plugins.config as config
 import chiharu.plugins.help as Help
@@ -105,25 +106,25 @@ class Event:
             end = '自由'
         else:
             end = format_date(self.end)
-        return f'id: {self.id} {begin}-{end}\n投稿人: {self.card}' + \
-            (('\n监视人' + ('尚无' if self.supervise == 0 else '已有')) if self.supervise >= 0 else '') + \
-            f'\n内容: {self.name}'
+        return f'id: {self.id} {begin}-{end} 投稿人: {self.card}\n' + \
+            ((('【监视人尚无】\n' if self.supervise == 0 else '监视人已有\n')) if self.supervise >= 0 else '') + \
+            f'内容: {self.name}'
     def str_tz(self, tz):
         begin = format_date(datetime.combine(self.begin.date(), self.begin.time(), timezone(timedelta(hours=8))).astimezone(tz).replace(tzinfo=None), tz)
         if self.isFloat:
             end = '自由'
         else:
             end = format_date(datetime.combine(self.end.date(), self.end.time(), timezone(timedelta(hours=8))).astimezone(tz).replace(tzinfo=None), tz)
-        return f'id: {self.id} {begin}-{end}\n投稿人: {self.card}' + \
-            (('\n监视人' + ('尚无' if self.supervise == 0 else '已有')) if self.supervise >= 0 else '') + \
-            f'\n内容: {self.name}'
+        return f'id: {self.id} {begin}-{end} 投稿人: {self.card}\n' + \
+            ((('【监视人尚无】\n' if self.supervise == 0 else '监视人已有\n')) if self.supervise >= 0 else '') + \
+            f'内容: {self.name}'
     def str_url(self):
         begin = format_date(self.begin)
         if self.isFloat:
             end = '自由'
         else:
             end = format_date(self.end)
-        return f'{begin}-{end}<br />投稿人: {self.card}<br />内容: {self.name}'
+        return f'{begin}-{end} 投稿人: {self.card}<br />内容: {self.name}'
     def str_with_at(self):
         begin = format_date(self.begin)
         if self.isFloat:
@@ -223,11 +224,11 @@ def add_time(qq, time):
     b = False
     if node['time'] >= TRAIL_TIME:
         b = node['trail'] != 0
-        if not node['trail'] and node['parent'] != -1:
+        if node['trail'] != 0 and node['parent'] != -1:
             find_whiteforest(id=node['parent'])['child'].remove(node['id'])
         node['parent'] = -1
         node['trail'] = 0
-        node['child'] = []
+        # node['child'] = []
     save_whiteforest()
     return b
 
@@ -613,7 +614,7 @@ async def get(session: CommandSession):
         cookies=cookie_jar))
     response = json.loads(url.text)
     if response['code'] != 0:
-        await session.send([config.cq.text('无法获取rtmp与key，可能是cookie过期，已将缓存数据发送，如无法推流请联系'),
+        await session.send([config.cq.text('无法获取rtmp与key，已将缓存数据发送，如无法推流请联系'),
             config.cq.at('1569603950'), config.cq.text('更新')])
         await session.send('rtmp:\n%s\nkey:\n%s' % (rtmp, key), ensure_private=True, auto_escape=True)
     else:
@@ -990,3 +991,13 @@ async def thwiki_decrease(session: NoticeSession):
         if if_send:
             for group in config.group_id_dict['thwiki_send']:
                 await get_bot().send_group_msg(group_id=group, message=[config.cq.text(f"{node['card']} 退群，已自动退回推荐")] + updated + [config.cq.text("！试用期直播时间从0开始计算。\n")])
+
+@on_command(('thwiki', 'test'), only_to_me=False, permission=permission.GROUP_ADMIN)
+@config.ErrorHandle
+async def thwiki_test(session: CommandSession):
+    for node in whiteforest:
+        if 'parent' in node:
+            parent = find_whiteforest(id=node['parent'])
+            if parent is not None and node['id'] not in parent['child']:
+                parent['child'].append(node['id'])
+    save_whiteforest()
