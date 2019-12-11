@@ -14,7 +14,13 @@ import aiocqhttp
 import chiharu.plugins.config as config
 import chiharu.plugins.help as Help
 
-version = "2.2.1"
+version = "2.2.6"
+changelog = """New version Changelog:
+Change:
+-thwiki.grant 推荐需要被推荐人同意，被推荐人可通过指令-thwiki.confirm_grant True或False来同意或拒绝推荐
+Add:
+-thwiki.depart 自行安全脱离推荐树，会保留时间
+-thwiki.confirm_grant T/F 同意或拒绝推荐"""
 
 TRAIL_TIME = 36 * 60
 async def change(title=None, description=None):
@@ -200,7 +206,7 @@ def find_or_new(qq):
         whiteforest.append(ret)
         save_whiteforest()
     return ret
-def deprive(node, if_save=True):
+def deprive(node, if_save=True, clear_time=True):
     global whiteforest
     updated = []
     to_do = [node]
@@ -211,7 +217,8 @@ def deprive(node, if_save=True):
             f = find_whiteforest(id=i)
             to_do.append(f)
         r['trail'] = 1
-        r['time'] = 0
+        if clear_time:
+            r['time'] = 0
         updated.append(config.cq.at(r['qq']))
     if if_save:
         save_whiteforest()
@@ -236,8 +243,8 @@ class ApplyErr(BaseException):
     pass
 
 @on_command(('thwiki', 'apply'), aliases=('申请',), only_to_me=False)
-@config.ErrorHandle
 @config.maintain('thwiki')
+@config.ErrorHandle
 async def apply(session: CommandSession):
     try:
         group_id = session.ctx['group_id']
@@ -263,7 +270,7 @@ async def apply(session: CommandSession):
             '(\\d+年)?(\\d+月)?(\\d+(日|号))?'
             '(' '(\\d+(时|点))' '(\\d+分)?' '|' '\\d+:\\d+' ')，且保证时间有效'
             '\n开始可用now，结束可用float')
-        elif not float_end and begin > end:
+        elif not float_end and begin >= end:
             raise ApplyErr('结束需要比开始晚！')
         elif begin < now - timedelta(minutes=1):
             raise ApplyErr('开始需要比现在晚！')
@@ -395,8 +402,8 @@ async def _(session: CommandSession):
                 session.args['end'] = False
 
 @on_command(('thwiki', 'cancel'), aliases=('取消',), only_to_me=False)
-@config.ErrorHandle
 @config.maintain('thwiki')
+@config.ErrorHandle
 async def cancel(session: CommandSession):
     global l
     if int(session.ctx['user_id']) in blacklist:
@@ -434,8 +441,8 @@ async def cancel(session: CommandSession):
         await session.send('非管理员不可删除别人的')
 
 @on_command(('thwiki', 'list'), only_to_me=False)
-@config.ErrorHandle
 @config.maintain('thwiki')
+@config.ErrorHandle
 async def thlist(session: CommandSession):
     if_all = session.current_arg_text == 'all'
     global l
@@ -461,14 +468,14 @@ async def thlist(session: CommandSession):
                 await session.send(f"您的时区为{tz.tzname(datetime.now())}\n" + '\n'.join([x.str_tz(tz) for x in l if x.begin < end]) + (f'\n{len(l) - len(l_show)}条五天以后的预约已被折叠' if len(l) != len(l_show) else ""), auto_escape=True)
 
 @on_command(('thwiki', 'listall'), only_to_me=False)
-@config.ErrorHandle
 @config.maintain('thwiki')
+@config.ErrorHandle
 async def thlistall(session: CommandSession):
     await call_command(get_bot(), session.ctx, ('thwiki', 'list'), current_arg="all")
 
 @on_command(('thwiki', 'term'), only_to_me=False)
-@config.ErrorHandle
 @config.maintain('thwiki')
+@config.ErrorHandle
 async def term(session: CommandSession):
     try:
         group_id = session.ctx['group_id']
@@ -553,8 +560,8 @@ async def _():
             break
 
 @on_command(('thwiki', 'check'), only_to_me=False)
-@config.ErrorHandle
 @config.maintain('thwiki')
+@config.ErrorHandle
 async def check(session: CommandSession):
     loop = asyncio.get_event_loop()
     url = await loop.run_in_executor(None, requests.get, 'https://api.live.bilibili.com/room/v1/Room/room_init?id=14055253')
@@ -569,8 +576,8 @@ async def check(session: CommandSession):
         await session.send('没有人直播' + random.choice(('qwq', '♪～(´ε｀　)', '.(*´▽`*).', 'ヾ(Ő∀Ő๑)ﾉ', '(≧ڡ≦*)', '(╯‵□′)╯︵┻━┻', '(╬ﾟдﾟ)▄︻┻┳═一', 'QAQ', '(╥╯^╰╥)', '(´；ω；`)', '(╥﹏╥)', '(-_-;)')))
 
 @on_command(('thwiki', 'get'), only_to_me=False)
-@config.ErrorHandle
 @config.maintain('thwiki')
+@config.ErrorHandle
 async def get(session: CommandSession):
     try:
         group_id = session.ctx['group_id']
@@ -648,8 +655,8 @@ async def get(session: CommandSession):
             await session.send('检测到直播间未开启，开启直播间失败')
 
 @on_command(('thwiki', 'grant'), only_to_me=False)
-@config.ErrorHandle
 @config.maintain('thwiki')
+@config.ErrorHandle
 async def thwiki_grant(session: CommandSession):
     try:
         group_id = session.ctx['group_id']
@@ -702,33 +709,83 @@ async def thwiki_grant(session: CommandSession):
         to_card = []
         for qq in qqs:
             ret_c = find_or_new(qq)
-            if not ret_c['trail']:
+            if not ret_c['trail'] or 'to_confirm' in ret_c:
                 if ret_c['card'] is None:
                     to_card.append(ret_c)
                 not_update.append(config.cq.at(ret_c['qq']))
             else:
                 if ret_c['card'] is None:
                     to_card.append(ret_c)
-                ret_c['parent'] = node['id']
-                ret_c['child'] = []
-                ret_c['trail'] = 0
-                node['child'].append(ret_c['id'])
+                ret_c['to_confirm'] = node['id']
                 updated.append(config.cq.at(ret_c['qq']))
                 updated_qq.append(ret_c['qq'])
         save_whiteforest()
-        for e in l:
-            if e.qq in updated_qq and e.supervise >= 0:
-                e.supervise = -1
         for r in to_card:
             c = await get_card(r['qq'])
             r['card'] = c
         if len(to_card) > 0:
             save_whiteforest()
-        await session.send(updated + ([config.cq.text(" 已成功推荐！")] if len(updated) > 0 else []) + ([config.cq.text("\n")] if len(updated) > 0 and len(not_update) > 0 else []) + ((not_update + [config.cq.text(" 是已推荐用户，推荐失败")]) if len(not_update) > 0 else []), auto_escape=True)
+        await session.send(updated + ([config.cq.text(" 请确认推荐，输入-thwiki.confirm_grant True为同意，False拒绝")] if len(updated) > 0 else []) + ([config.cq.text("\n")] if len(updated) > 0 and len(not_update) > 0 else []) + ((not_update + [config.cq.text(" 是已推荐用户，推荐失败")]) if len(not_update) > 0 else []), auto_escape=True)
+
+@on_command(('thwiki', 'confirm_grant'), only_to_me=False)
+@config.maintain('thwiki')
+@config.ErrorHandle
+async def thwiki_confirm_grant(session: CommandSession):
+    try:
+        group_id = session.ctx['group_id']
+        if group_id not in config.group_id_dict['thwiki_live']:
+            return
+    except KeyError:
+        await session.send('请在群内使用')
+        return
+    qq = session.ctx['user_id']
+    node = find_whiteforest(qq=qq)
+    if node is None or 'to_confirm' not in node:
+        await session.send('没有需要确认的内容')
+    elif session.current_arg_text in {'True', 'T', 't', 'true'}:
+        id = node.pop('to_confirm')
+        parent = find_whiteforest(id=id)
+        if parent is None or parent['trail'] == 1:
+            await session.send('原推荐人已失去推荐权！')
+        node['parent'] = id
+        node['child'] = []
+        node['trail'] = 0
+        parent['child'].append(node['id'])
+        for e in l:
+            if e.qq == qq and e.supervise >= 0:
+                e.supervise = -1
+        save_whiteforest()
+        await session.send('已接受推荐！')
+    else:
+        id = node.pop('to_confirm')
+        save_whiteforest()
+        await session.send('已拒绝推荐！')
+
+@on_command(('thwiki', 'depart'), only_to_me=False)
+@config.maintain('thwiki')
+@config.ErrorHandle
+async def thwiki_depart(session: CommandSession):
+    try:
+        group_id = session.ctx['group_id']
+        if group_id not in config.group_id_dict['thwiki_live']:
+            return
+    except KeyError:
+        await session.send('请在群内使用')
+        return
+    qq = session.ctx['user_id']
+    node = find_whiteforest(qq=qq)
+    if node is None or node['trail'] == 1:
+        await session.send("您还处在试用期，无需脱离")
+    elif node['parent'] == -1:
+        await session.send("您已超过试用期所需时间，无需脱离")
+    else:
+        find_whiteforest(id=node['parent'])['child'].remove(node['id'])
+        updated = deprive(node, True, False)
+    await session.send([config.cq.text('已成功安全脱离')] + updated)
 
 @on_command(('thwiki', 'deprive'), only_to_me=False, permission=permission.GROUP_ADMIN)
-@config.ErrorHandle
 @config.maintain('thwiki')
+@config.ErrorHandle
 async def thwiki_deprive(session: CommandSession):
     group_id = session.ctx['group_id']
     if group_id not in config.group_id_dict['thwiki_live']:
@@ -752,8 +809,8 @@ async def thwiki_deprive(session: CommandSession):
     await session.send([config.cq.text('已成功删除')] + updated)
 
 @on_command(('thwiki', 'supervise'), only_to_me=False)
-@config.ErrorHandle
 @config.maintain('thwiki')
+@config.ErrorHandle
 async def thwiki_supervise(session: CommandSession):
     group_id = session.ctx['group_id']
     if group_id not in config.group_id_dict['thwiki_supervise']:
@@ -795,8 +852,8 @@ async def thwiki_supervise(session: CommandSession):
                 await get_bot().send_group_msg(group_id=group, message=ret.str_with_at())
 
 @on_command(('thwiki', 'time'), only_to_me=False)
-@config.ErrorHandle
 @config.maintain('thwiki')
+@config.ErrorHandle
 async def thwiki_time(session: CommandSession):
     match = re.search('qq=(\d+)', session.current_arg)
     if match:
@@ -809,8 +866,8 @@ async def thwiki_time(session: CommandSession):
     await session.send(f'您{"查询的人" if match else ""}的直播总时长为：{node["time"]}分钟。（2019年8月开始）', auto_escape=True)
 
 @on_command(('thwiki', 'timezone'), only_to_me=False)
-@config.ErrorHandle
 @config.maintain('thwiki')
+@config.ErrorHandle
 async def thwiki_timezone(session: CommandSession):
     match = re.search('qq=(\d+)', session.current_arg)
     if match:
@@ -837,8 +894,8 @@ async def thwiki_timezone(session: CommandSession):
         await session.send(("您查询的用户" if other else "您") + f"的时区为{timezone(timedelta(hours=tz)).tzname(datetime.today())}")
 
 @on_command(('thwiki', 'grantlist'), only_to_me=False)
-@config.ErrorHandle
 @config.maintain('thwiki')
+@config.ErrorHandle
 async def thwiki_grantlist(session: CommandSession):
     for node in whiteforest:
         if node['card'] is None:
@@ -846,8 +903,8 @@ async def thwiki_grantlist(session: CommandSession):
     await session.send('\n'.join([f"id: {node['id']} qq: {node['qq']} 名片: {node['card']}\nparent id: {node['parent']}" + (f" 名片: {find_whiteforest(id=node['parent'])['card']}" if node['parent'] != -1 else '') + (f"\nchilds id: {' '.join(map(str, node['child']))}" if len(node['child']) > 0 else "") for node in whiteforest if node['trail'] == 0]), auto_escape=True, ensure_private=True)
 
 @on_command(('thwiki', 'leaderboard'), only_to_me=False)
-@config.ErrorHandle
 @config.maintain('thwiki')
+@config.ErrorHandle
 async def thwiki_leaderboard(session: CommandSession):
     for node in whiteforest:
         if node['card'] is None:
@@ -864,8 +921,8 @@ async def thwiki_open(session: CommandSession):
         await session.send('成功开启直播')
 
 @on_command(('thwiki', 'change'), only_to_me=False)
-@config.ErrorHandle
 @config.maintain('thwiki')
+@config.ErrorHandle
 async def thwiki_change(session: CommandSession):
     try:
         group_id = session.ctx['group_id']
@@ -910,10 +967,13 @@ async def thwiki_change(session: CommandSession):
         await session.send(ret, auto_escape=True)
 
 @on_command(('thwiki', 'version'), only_to_me=False)
-@config.ErrorHandle
 @config.maintain('thwiki')
+@config.ErrorHandle
 async def thwiki_version(session: CommandSession):
-    await session.send(f"七海千春 THBWiki直播小助手 ver.{version} 为您服务")
+    if session.current_arg_text == '-c':
+        await session.send(f"七海千春 THBWiki直播小助手 ver.{version} 为您服务\n{changelog}")
+    else:
+        await session.send(f"七海千春 THBWiki直播小助手 ver.{version} 为您服务")
 
 @on_command(('thwiki', 'des'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
