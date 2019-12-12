@@ -39,7 +39,7 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
 -card.set.message 2：凌晨定时发送私聊
 -card.set.guide on或off：开启或关闭全部指令引导。指令引导会在使用一次该指令后自动关闭""",
     "snakebird": "snakebird是一款类贪吃蛇的单机解谜游戏，不同的是它引入了重力，每行走一步蛇都会受到重力的限制而下落。游戏目标是吃完所有食物后所有蛇都到达开启的出口处。游戏本身也有刺、方块、传送门等多个机制，解谜性满载哦~游戏本身目前在【安卓】上和steam上都有，欢迎使用-play.snakebird.begin 关卡号(目前包含关卡：0~45, *1~*6, final) 游玩这里的副本关卡，使用-play.snakebird.check查看自己已通过的关卡~\n游戏操作：直接输入上下左右移动以及红蓝绿切换蛇即可，输入撤可撤销一步\n欢迎向维护者提交自定义关卡【bushi",
-    "me": "こんにちは～七海千春です～\n维护者：小大圣\n友情协助：Randolph（snakebird关卡信息）\n鸣谢：Python®  酷Q®  nonebot®  阿里云®",
+    "me": "こんにちは～七海千春です～\n维护者：小大圣\n友情协助：小石，Randolph（snakebird关卡信息）\n鸣谢：Python®  酷Q®  nonebot®  阿里云®",
     "default": "指令："
         #"\n-eclins：查询ecl的instruction"
         "\n-seiyuu：查询声优信息"
@@ -57,7 +57,7 @@ sp = {"thwiki_live": {"default": "%s\n-thwiki：thwiki直播申请相关",
 -thwiki.cancel [直播项目名称或id]或者-取消 [直播项目名称或id]
 -thwiki.get 获取rtmp与流密码，会以私聊形式发送，若直播间未开启则会自动开启，可以后跟想开启的直播分区如绘画，演奏，户外，vtb等，不指定则默认是单机·其他
 -thwiki.change 更改当前直播标题，只可在自己直播时间段内，同样会修改列表里的名字
--thwiki.term 提前下播
+-thwiki.term 或terminate提前下播
 -thwiki.grant @别人 可多个@ 可加false 推荐别人进入推荐列表，需要对方同意，请慎重推荐！结尾加false代表撤回推荐，撤回推荐会一同撤回被推荐人推荐的所有人
 -thwiki.depart 自行安全脱离推荐树，会保留直播时间
 apply cancel get term grant change depart只能用于群内"""},
