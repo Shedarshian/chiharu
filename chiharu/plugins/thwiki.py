@@ -13,13 +13,15 @@ from nonebot.command import call_command
 import aiocqhttp
 import chiharu.plugins.config as config
 import chiharu.plugins.help as Help
+config.logger.open('thwiki')
 
 # Version information and changelog
-version = "2.2.7"
-changelog = """2.2.6 & 2.2.7 Changelog:
+version = "2.2.8"
+changelog = """2.2.6-8 Changelog:
 Change:
 -thwiki.grant 推荐需要被推荐人同意，被推荐人可通过指令-thwiki.confirm_grant True或False来同意或拒绝推荐
 -thwiki.deprive 会将列表里的相关Event更新状态并推送至监视群，并且会使目标人无法再次被推荐
+退群者子节点时间保留
 Add:
 -thwiki.terminate 同thwiki.term
 -thwiki.depart 自行安全脱离推荐树，会保留时间
@@ -314,6 +316,7 @@ def deprive(node, if_save=True, clear_time=True):
         r['trail'] = 1
         if clear_time:
             r['time'] = 0
+        config.logger.thwiki << f'用户{r["qq"]} 已被deprive，时间{"清零" if clear_time else ("保留为" + str(r["time"]))}'
         updated.append(config.cq.at(r['qq']))
 
     if if_save:
@@ -331,11 +334,13 @@ def add_time(qq, time):
     if 'time' not in node:
         node['time'] = 0
     node['time'] += int(time)
+    config.logger.thwiki << f'【LOG】用户{qq} 积累时间{time}，目前时间{node["time"]}'
 
     b = False # What is the purpose??
     if node['time'] >= TRAIL_TIME:
         b = node['trail'] != 0
         if node['trail'] != 0 and node['parent'] != -1:
+            config.logger.thwiki << f'【LOG】用户{qq} 已通过试用期转正'
             find_whiteforest(id=node['parent'])['child'].remove(node['id'])
             node['parent'] = -1
             node['trail'] = 0
@@ -353,7 +358,7 @@ class ApplyErr(BaseException):
 # Handler for '-thwiki.apply'
 @on_command(('thwiki', 'apply'), aliases=('申请',), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def apply(session: CommandSession):
     # Check environment
     try:
@@ -417,6 +422,7 @@ async def apply(session: CommandSession):
     # Append current event to the list and sort
     l.append(e)
     l.sort(key=lambda x: x.begin)
+    config.logger.thwiki << f'【LOG】用户{qq}成功申请：{e}'
     
     # Save new application list
     await _save(l)
@@ -426,6 +432,7 @@ async def apply(session: CommandSession):
     # Try to change description in livestream room
     ret = await change_des_to_list()
     if json.loads(ret)['code'] != 0:
+        config.logger.thwiki << '【LOG】更新到直播间失败'
         await session.send('更新到直播间失败')
 
     # Send notification to supervisors
@@ -435,7 +442,7 @@ async def apply(session: CommandSession):
 
 # Argument interpretor for '-thwiki.apply'
 @apply.args_parser
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def _(session: CommandSession):
     session.args['qq'] = int(session.ctx['user_id'])
     try:
@@ -536,7 +543,7 @@ async def _(session: CommandSession):
 # Handler for '-thwiki.cancel'
 @on_command(('thwiki', 'cancel'), aliases=('取消',), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def cancel(session: CommandSession):
     global l
     
@@ -571,7 +578,7 @@ async def cancel(session: CommandSession):
         now = datetime.now()
         e = l.pop(i)
         await _save(l)
-        # print((e.isFloat, e.begin, now, e.end, i, len(l)))
+        config.logger.thwiki << f"【LOG】用户{session.ctx['user_id']} 成功删除：{e}"
         
         # In this case, a shutdown of room should be performed...?
         if e.supervise != 0 and e.begin < now:
@@ -584,6 +591,7 @@ async def cancel(session: CommandSession):
 
         ret = await change_des_to_list()
         if json.loads(ret)['code'] != 0:
+            config.logger.thwiki << '【LOG】更新到直播间失败'
             await session.send('更新到直播间失败')
     else:
         await session.send('非管理员不可删除')
@@ -591,7 +599,7 @@ async def cancel(session: CommandSession):
 # Handler for '-thwiki.list'
 @on_command(('thwiki', 'list'), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thlist(session: CommandSession):
     if_all = session.current_arg_text == 'all'
     global l
@@ -622,14 +630,14 @@ async def thlist(session: CommandSession):
 # Handler for '-thwiki.listall', equivalent to '-thwiki.listall'
 @on_command(('thwiki', 'listall'), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thlistall(session: CommandSession):
     await call_command(get_bot(), session.ctx, ('thwiki', 'list'), current_arg = "all")
 
 # Handler for '-thwiki.term'
 @on_command(('thwiki', 'term'), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def term(session: CommandSession):
     # Check environment
     try:
@@ -669,6 +677,7 @@ async def term(session: CommandSession):
 
             ret = await th_open(is_open=False)
             if json.loads(ret)['code'] != 0:
+                config.logger.thwiki << '【LOG】断流失败'
                 await session.send('成功删除，断流失败' + s)
             else:
                 await session.send('成功断流' + s)
@@ -680,7 +689,7 @@ async def term(session: CommandSession):
 # Handler for '-thwiki.terminate', equivalent to '-thwiki.term'
 @on_command(('thwiki', 'terminate'), only_to_me = False)
 @config.maintain
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thterminate(session: CommandSession):
     await call_command(get_bot(), session.ctx, ('thwiki', 'term'), current_arg = "")
 
@@ -733,7 +742,7 @@ async def _():
 # Handler for command '-thwiki.check'
 @on_command(('thwiki', 'check'), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def check(session: CommandSession):
     # Query Bilibili livestream room
     loop = asyncio.get_event_loop()
@@ -751,7 +760,7 @@ async def check(session: CommandSession):
 # Handler for command '-thwiki.get'
 @on_command(('thwiki', 'get'), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def get(session: CommandSession):
     # Check environment
     try:
@@ -804,6 +813,7 @@ async def get(session: CommandSession):
 
     r = await _()
     if not r[0]:
+        config.logger.thwiki << f'【LOG】用户{qq} ' + ('于申请时间外get' if r[1] != 0 else '无监视员get') + '失败'
         await session.send('请在您预约的时间段前后十五分钟内申请获取rtmp' if r[1] != 0 else '十分抱歉，您现在的直播尚无监视员，无法直播qwq')
         return
 
@@ -822,12 +832,14 @@ async def get(session: CommandSession):
         cookies=cookie_jar))
     response = json.loads(url.text)
     if response['code'] != 0:
+        config.logger.thwiki << f'【LOG】用户{qq} get 无法获取rtmp与key'
         await session.send([config.cq.text('无法获取rtmp与key，已将缓存数据发送，如无法推流请联系'),
             config.cq.at('1569603950'), config.cq.text('更新')])
         await session.send('rtmp:\n%s\nkey:\n%s' % (rtmp, key), ensure_private=True, auto_escape=True)
     else:
         rtmp = response['data']['rtmp']
         strout = 'rtmp:\n%s\nkey:\n%s' % (rtmp['addr'], rtmp['code'])
+        config.logger.thwiki << f'【LOG】用户{qq} 成功get'
         await session.send(strout, ensure_private=True, auto_escape=True)
         with open(config.rel('cookie.txt'), 'w') as f:
             f.write(value + '\n')
@@ -851,21 +863,24 @@ async def get(session: CommandSession):
                 t = '【东方】' + t
             ret = await change(title=t)
             if json.loads(ret)['code'] != 0:
+                config.logger.thwiki << '【LOG】直播间标题修改失败'
                 await session.send(f'直播间标题修改失败', auto_escape=True)
 
         # Send request
         ret = await th_open(area=area)
         if json.loads(ret)['code'] == 0:
-            await session.send('检测到直播间未开启，现已开启，分区：%s' % \
-                {235: '单机·其他', 123: '娱乐·户外', 143: '娱乐·才艺', 34: '娱乐·音乐台', 199: '娱乐·虚拟主播', 98: '手游·其他', 107: '网游·其他', 94: '绘画：同人绘画', 95: '绘画·临摹绘画'} \
-                [area])
+            fenqu = {235: '单机·其他', 123: '娱乐·户外', 143: '娱乐·才艺', 34: '娱乐·音乐台', 199: '娱乐·虚拟主播', 98: '手游·其他', 107: '网游·其他', 94: '绘画：同人绘画', 95: '绘画·临摹绘画'}[area]
+            config.logger.thwiki << f'【LOG】用户{qq} 开启直播间，分区：{fenqu}'
+            await session.send('检测到直播间未开启，现已开启，分区：%s' % fenqu
+                )
         else:
+            config.logger.thwiki << f'【LOG】用户{qq} 开启直播间失败'
             await session.send('检测到直播间未开启，开启直播间失败')
 
 # Handler for '-thwiki.grant'
 @on_command(('thwiki', 'grant'), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_grant(session: CommandSession):
     # Check environment
     try:
@@ -917,19 +932,25 @@ async def thwiki_grant(session: CommandSession):
             node_c = find_whiteforest(qq=qq)
             # Bugfix at here must be checked!!
             if node_c is None:
+                config.logger.thwiki << f'【LOG】用户{sqq} 撤回推荐{qq} 因未被推荐或不存在 失败'
                 partial_failed.append(config.cq.at(qq))
             elif 'to_confirm' not in node_c and node_c['parent'] != node['id']:
+                config.logger.thwiki << f'【LOG】用户{sqq} 撤回推荐{qq} 因不是您推荐的用户 失败'
                 not_update.append(config.cq.at(node_c['qq']))
             elif node_c['trail'] == 1:
                 if 'to_confirm' in node_c:
                     if node_c['to_confirm'] == node['id']:
+                        config.logger.thwiki << f'【LOG】用户{sqq} 撤回推荐{qq} 成功'
                         partial_updated.append(config.cq.at(node_c['qq']))
                         node_c.pop('to_confirm')
                     else:
+                        config.logger.thwiki << f'【LOG】用户{sqq} 撤回推荐{qq} 因不是您推荐的用户 失败'
                         not_update.append(config.cq.at(node_c['qq']))
                 else:
+                    config.logger.thwiki << f'【LOG】用户{sqq} 撤回推荐{qq} 因未被推荐或不存在 失败'
                     partial_failed.append(config.cq.at(node_c['qq']))
             else:
+                config.logger.thwiki << f'【LOG】用户{sqq} 撤回推荐{qq} 成功'
                 node['child'].remove(node_c['id'])
                 u, u2 = deprive(node_c, False)
                 updated += u
@@ -937,6 +958,7 @@ async def thwiki_grant(session: CommandSession):
                 updated_qq.append(node_c['qq'])
         save_whiteforest()
         for e in updated_event:
+            config.logger.thwiki << f'【LOG】事件权限更新：{e}'
             for group in config.group_id_dict['thwiki_supervise']:
                 await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
         await session.send((updated + [config.cq.text(" 已成功退回推荐！试用期直播时间从0开始计算。")] if len(updated) > 0 else []) + ([config.cq.text("\n")] if len(updated) > 0 and len(partial_updated) > 0 else []) + ((partial_updated + [config.cq.text(" 已成功退回推荐！")]) if len(partial_updated) > 0 else []) + ([config.cq.text("\n")] if len(partial_updated) > 0 and len(partial_failed) > 0 else []) + ((partial_failed + [config.cq.text(" 未被推荐或不存在，删除失败")]) if len(partial_failed) > 0 else []) + ([config.cq.text("\n")] if len(partial_failed) > 0 and len(not_update) > 0 else []) + ((not_update + [config.cq.text(" 不是您推荐的用户，删除失败")]) if len(not_update) > 0 else []), auto_escape=True)
@@ -944,22 +966,25 @@ async def thwiki_grant(session: CommandSession):
         not_update = []
         update_failed = []
         updated = []
-        updated_qq = []
+        # updated_qq = []
         to_card = []
         for qq in qqs:
             ret_c = find_or_new(qq)
             if not ret_c['trail'] or 'to_confirm' in ret_c:
                 if ret_c['card'] is None:
                     to_card.append(ret_c)
+                config.logger.thwiki << f"【LOG】用户{sqq} 推荐{qq} 因是已推荐用户 失败"
                 not_update.append(config.cq.at(ret_c['qq']))
             elif qq in blacklist or qq in weak_blacklist:
+                config.logger.thwiki << f"【LOG】用户{sqq} 推荐{qq} 因不可被推荐 失败"
                 update_failed.append(config.cq.at(ret_c['qq']))
             else:
                 if ret_c['card'] is None:
                     to_card.append(ret_c)
                 ret_c['to_confirm'] = node['id']
+                config.logger.thwiki << f"【LOG】用户{sqq} 推荐{qq} 成功"
                 updated.append(config.cq.at(ret_c['qq']))
-                updated_qq.append(ret_c['qq'])
+                # updated_qq.append(ret_c['qq'])
         save_whiteforest()
         for r in to_card:
             c = await get_card(r['qq'])
@@ -972,7 +997,7 @@ async def thwiki_grant(session: CommandSession):
 # As this involves underscore and is very long, consider add '-thwiki.confirm' for same function
 @on_command(('thwiki', 'confirm_grant'), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_confirm_grant(session: CommandSession):
     # Check environment
     try:
@@ -996,19 +1021,23 @@ async def thwiki_confirm_grant(session: CommandSession):
         id = node.pop('to_confirm')
         parent = find_whiteforest(id = id)
         if parent is None or parent['trail'] == 1:
+            config.logger.thwiki << f'【LOG】用户{qq} 因原推荐人已失去推荐权 接受{parent["qq"]}推荐失败'
             await session.send('原推荐人已失去推荐权！')
-        node['parent'] = id
-        node['child'] = []
-        node['trail'] = 0
-        parent['child'].append(node['id'])
-        for e in l:
-            if e.qq == qq and e.supervise >= 0:
-                e.supervise = -1
-        save_whiteforest()
-        await session.send('已接受推荐！')
+        else:
+            node['parent'] = id
+            node['child'] = []
+            node['trail'] = 0
+            parent['child'].append(node['id'])
+            for e in l:
+                if e.qq == qq and e.supervise >= 0:
+                    e.supervise = -1
+            save_whiteforest()
+            config.logger.thwiki << f'【LOG】用户{qq} 接受{parent["qq"]}推荐'
+            await session.send('已接受推荐！')
     elif arg in { 'false', 'f' }:
         id = node.pop('to_confirm')
         save_whiteforest()
+        config.logger.thwiki << f'【LOG】用户{qq} 拒绝推荐'
         await session.send('已拒绝推荐！')
     elif arg in { 'ture', 'flase' }:
         await session.send('噗，手残了？') # Easter egg
@@ -1023,14 +1052,14 @@ async def thwiki_confirm_grant(session: CommandSession):
 # Handler for command '-thwiki.confirm'
 @on_command(('thwiki', 'confirm'), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_confirm(session: CommandSession):
-    await call_command(get_bot(), session.ctx, ('thwiki', 'confirm_grant'), current_arg = "")
+    await call_command(get_bot(), session.ctx, ('thwiki', 'confirm_grant'), current_arg=session.current_arg)
 
 # Handler for command '-thwiki.depart'
 @on_command(('thwiki', 'depart'), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_depart(session: CommandSession):
     # Check environment
     try:
@@ -1049,13 +1078,17 @@ async def thwiki_depart(session: CommandSession):
         await session.send("您已超过试用期所需时间，无需脱离")
     else:
         find_whiteforest(id=node['parent'])['child'].remove(node['id'])
-        updated = deprive(node, True, False) # TODO
+        updated, updated_event = deprive(node, True, False)
+        for e in updated_event:
+            config.logger.thwiki << f'【LOG】事件权限更新：{e}'
+            for group in config.group_id_dict['thwiki_supervise']:
+                await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
     await session.send([config.cq.text('已成功安全脱离')] + updated)
 
 # Handler for command '-thwiki.deprive'
 @on_command(('thwiki', 'deprive'), only_to_me=False, permission=permission.GROUP_ADMIN)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_deprive(session: CommandSession):
     # Check environment, since this requires elevated permission no exception handling is required
     group_id = session.ctx['group_id']
@@ -1093,16 +1126,19 @@ async def thwiki_deprive(session: CommandSession):
                 if node['card'] is None:
                     node['card'] = await get_card(qq)
                 # Consider swap to PM
+                config.logger.thwiki << f'【LOG】{session.ctx["user_id"]} deprive {qq}失败'
                 not_updated.append(config.cq.at(qq))
                 #return
-            node_parent = find_whiteforest(id = node['parent'])
-            if node_parent is not None:
-                node_parent['child'].remove(node['id'])
+            else:
+                node_parent = find_whiteforest(id = node['parent'])
+                if node_parent is not None:
+                    node_parent['child'].remove(node['id'])
+                u, u2 = deprive(node)
+                updated += u
+                updated_event += u2
             if qq not in weak_blacklist:
+                config.logger.thwiki << f'【LOG】{qq}加入weak_blacklist'
                 weak_blacklist.append(qq)
-            u, u2 = deprive(node)
-            updated += u
-            updated_event += u2
     
     save_whiteforest()
     # Save weak blacklist
@@ -1112,6 +1148,7 @@ async def thwiki_deprive(session: CommandSession):
             f.write('\n')
 
     for e in updated_event:
+        config.logger.thwiki << f'【LOG】事件权限更新：{e}'
         for group in config.group_id_dict['thwiki_supervise']:
             await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
 
@@ -1121,7 +1158,7 @@ async def thwiki_deprive(session: CommandSession):
 # Handler for command '-thwiki.supervise'
 @on_command(('thwiki', 'supervise'), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_supervise(session: CommandSession):
     # Check environment, since this requires elevated permission no exception handling is required
     group_id = session.ctx['group_id']
@@ -1155,12 +1192,14 @@ async def thwiki_supervise(session: CommandSession):
             ret.supervise = qq
             if ret.begin < datetime.now():
                 ret.begin = datetime.now()
+            config.logger.thwiki << f'【LOG】监视者{qq} 已监视事件：{ret}'
             await _save(l)
             await session.send('成功提交监视')
             for group in config.group_id_dict['thwiki_send']:
                 await get_bot().send_group_msg(group_id=group, message=ret.str_with_at())
         else:
             ret.supervise = 0
+            config.logger.thwiki << f'【LOG】监视者{qq} 已删除监视事件：{ret}'
             await _save(l)
             await session.send('成功删除监视')
             for group in config.group_id_dict['thwiki_send']:
@@ -1169,7 +1208,7 @@ async def thwiki_supervise(session: CommandSession):
 # Handler for command '-thwiki.time'
 @on_command(('thwiki', 'time'), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_time(session: CommandSession):
     match = re.search('qq=(\d+)', session.current_arg)
     if match:
@@ -1184,7 +1223,7 @@ async def thwiki_time(session: CommandSession):
 # Handler for command '-thwiki.timezone'
 @on_command(('thwiki', 'timezone'), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_timezone(session: CommandSession):
     match = re.search('qq=(\d+)', session.current_arg)
     if match:
@@ -1204,6 +1243,7 @@ async def thwiki_timezone(session: CommandSession):
     node = find_or_new(qq = qq)
     if tz_new is not None:
         node['timezone'] = tz_new
+        config.logger.thwiki << f'【LOG】用户{qq} 已修改时区为{tz_new}'
         await session.send(f"您的时区已修改为{timezone(timedelta(hours=tz_new)).tzname(datetime.today())}")
         save_whiteforest()
     else:
@@ -1214,7 +1254,7 @@ async def thwiki_timezone(session: CommandSession):
 # Again, what is card??? Also permission???
 @on_command(('thwiki', 'grantlist'), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_grantlist(session: CommandSession):
     # Consideration: where is the environment check?
     group_id = session.ctx['group_id']
@@ -1229,7 +1269,7 @@ async def thwiki_grantlist(session: CommandSession):
 # Handler for command '-thwiki.leaderboard'
 @on_command(('thwiki', 'leaderboard'), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_leaderboard(session: CommandSession):
     for node in whiteforest:
         if node['card'] is None:
@@ -1238,7 +1278,7 @@ async def thwiki_leaderboard(session: CommandSession):
 
 # Handler for command '-thwiki.open'
 @on_command(('thwiki', 'open'), only_to_me=False, permission=permission.SUPERUSER)
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_open(session: CommandSession):
     ret = await th_open()
     if json.loads(ret)['code'] != 0:
@@ -1249,7 +1289,7 @@ async def thwiki_open(session: CommandSession):
 # Handler for command '-thwiki.change'
 @on_command(('thwiki', 'change'), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_change(session: CommandSession):
     # Check environment
     try:
@@ -1279,6 +1319,7 @@ async def thwiki_change(session: CommandSession):
         return False, None
     r = await _()
     if not r[0]:
+        config.logger.thwiki << f'【LOG】用户{qq} ' + ('于申请时间外get' if r[1] != 0 else '无监视员get') + '失败'
         await session.send('请在您预约的时间段前后十五分钟内修改' if r[1] is None or r[1].supervise != 0 else '十分抱歉，您现在的直播尚无监视员，无法直播qwq')
         return
     t = session.current_arg_text.strip()
@@ -1290,16 +1331,18 @@ async def thwiki_change(session: CommandSession):
     if '东方' not in t:
         t = '【东方】' + t
     ret = await change(title=t)
+    config.logger.thwiki << f'【LOG】用户{qq} 修改标题至"{t}"'
     if json.loads(ret)['code'] == 0:
         await session.send(f'成功修改标题至"{t}"', auto_escape=True)
     else:
+        config.logger.thwiki << f'【LOG】修改标题失败{ret}'
         await session.send(ret, auto_escape=True)
 
 # Handler for command '-thwiki.version'
 # This is almost useless to normal users, add permission requirement?
 @on_command(('thwiki', 'version'), only_to_me=False)
 @config.maintain('thwiki')
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_version(session: CommandSession):
     if session.current_arg_text == '-c':
         await session.send(f"七海千春 THBWiki 直播小助手 ver.{version} 为您服务\n{changelog}")
@@ -1308,14 +1351,14 @@ async def thwiki_version(session: CommandSession):
 
 # Handler for command '-thwiki.des'
 @on_command(('thwiki', 'des'), only_to_me=False, permission=permission.SUPERUSER)
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_changedes(session: CommandSession):
     ret = await change(description=session.current_arg_text)
     await session.send(ret, auto_escape=True)
 
 # Handler for command '-thwiki.maintain'
 @on_command(('thwiki', 'maintain'), only_to_me=False, permission=permission.GROUP_ADMIN)
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_maintain(session: CommandSession):
     group_id = session.ctx['group_id']
     if group_id not in config.group_id_dict['thwiki_live']:
@@ -1324,24 +1367,27 @@ async def thwiki_maintain(session: CommandSession):
     config.maintain_str_save()
     if session.current_arg_text != "":
         await th_open(is_open=False)
+        config.logger.thwiki << f'【LOG】管理者{session.ctx["user_id"]}开启维护状态：{session.current_arg_text}'
         await session.send('已进入维护状态，再次输入空字符串解除')
     else:
+        config.logger.thwiki << f'【LOG】管理者{session.ctx["user_id"]}解除维护状态'
         #if await permission.check_permission(get_bot(), session.ctx, permission.GROUP_OWNER | permission.SUPERUSER):
         await session.send('已解除维护状态')
 
 # Handler for command '-thwiki.shutdown'
 @on_command(('thwiki', 'shutdown'), only_to_me=False, permission=permission.GROUP_ADMIN)
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_shutdown(session: CommandSession):
     group_id = session.ctx['group_id']
     if group_id not in config.group_id_dict['thwiki_live']:
         return
     await th_open(is_open=False)
+    config.logger.thwiki << f'【LOG】管理者{session.ctx["user_id"]}关闭直播间'
     await session.send('已关闭直播间')
 
 # Handler for command '-thwiki.blacklist'
 @on_command(('thwiki', 'blacklist'), only_to_me=False, permission=permission.GROUP_ADMIN)
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_blacklist(session: CommandSession):
     group_id = session.ctx['group_id']
     if group_id not in config.group_id_dict['thwiki_live']:
@@ -1366,6 +1412,7 @@ async def thwiki_blacklist(session: CommandSession):
     updated_event = []
     for qq in qqs:
         if qq not in blacklist:
+            config.logger.thwiki << f'【LOG】管理{session.ctx["user_id"]} 将{qq}加入blacklist'
             blacklist.append(qq)
             node_current = find_whiteforest(qq = qq)
             u, u2 = deprive(node_current, True, True)
@@ -1387,6 +1434,7 @@ async def thwiki_blacklist(session: CommandSession):
             f.write('\n')
     
     for e in updated_event:
+        config.logger.thwiki << f'【LOG】事件权限更新：{e}'
         for group in config.group_id_dict['thwiki_supervise']:
             await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
 
@@ -1395,7 +1443,7 @@ async def thwiki_blacklist(session: CommandSession):
 # Handler for command '-thwiki.check_user'
 # Well, did Shedarshian tell us about the existance of this command? I (vegetable) think not...
 @on_command(('thwiki', 'check_user'), only_to_me=False, permission=permission.GROUP_ADMIN)
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_check_user(session: CommandSession):
     group_id = session.ctx['group_id']
     if group_id not in config.group_id_dict['thwiki_live']:
@@ -1421,18 +1469,25 @@ async def thwiki_decrease(session: NoticeSession):
         if node_parent is not None:
             node_parent['child'].remove(node['id'])
         if_send = len(node['child']) != 0
-        updated, updated_event = deprive(node)
+        updated, updated_event = deprive(node, True, False)
+        node['time'] = 0
         if if_send:
             for group in config.group_id_dict['thwiki_send']:
-                await get_bot().send_group_msg(group_id=group, message=[config.cq.text(f"{node['card']} 退群，已自动退回推荐")] + updated + [config.cq.text("！试用期直播时间从0开始计算。\n")])
+                await get_bot().send_group_msg(group_id=group, message=[config.cq.text(f"{node['card']} 退群，已自动安全脱离")] + updated)
             for e in updated_event:
+                config.logger.thwiki << f'【LOG】事件权限更新：{e}'
                 for group in config.group_id_dict['thwiki_supervise']:
                     await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
-                
+
+@on_command(('thwiki', 'help'), only_to_me=False)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_help(session: CommandSession):
+    await call_command(get_bot(), session.ctx, ('help',), current_arg="thwiki")
+
 # Handler for command '-thwiki.test'
 # Yet another undocumented command...?
 @on_command(('thwiki', 'test'), only_to_me=False, permission=permission.SUPERUSER)
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.thwiki)
 async def thwiki_test(session: CommandSession):
     for node in whiteforest:
         if 'parent' in node:
