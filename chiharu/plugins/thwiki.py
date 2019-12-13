@@ -337,12 +337,11 @@ def add_time(qq, time):
         b = node['trail'] != 0
         if node['trail'] != 0 and node['parent'] != -1:
             find_whiteforest(id=node['parent'])['child'].remove(node['id'])
-        # Why we need to set these every time?
-        node['parent'] = -1
-        node['trail'] = 0
-        # Also check this fix
-        if 'to_confirm' in node:
-            node.pop('to_confirm')
+            node['parent'] = -1
+            node['trail'] = 0
+            # Also check this fix
+            if 'to_confirm' in node:
+                node.pop('to_confirm')
         # node['child'] = []
 
     save_whiteforest()
@@ -919,7 +918,7 @@ async def thwiki_grant(session: CommandSession):
             # Bugfix at here must be checked!!
             if node_c is None:
                 partial_failed.append(config.cq.at(qq))
-            elif node_c['parent'] != node['id']:
+            elif 'to_confirm' not in node_c and node_c['parent'] != node['id']:
                 not_update.append(config.cq.at(node_c['qq']))
             elif node_c['trail'] == 1:
                 if 'to_confirm' in node_c:

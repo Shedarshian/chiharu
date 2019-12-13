@@ -7,7 +7,7 @@ class AtomBlocked(Exception):
     pass
 
 class Atom(IBox):
-    def __init_subclass__(cls, name: str, bond: int):
+    def __init_subclass__(cls, bond: int):
         cls.name = cls.__name__
         cls.bond_max = bond
         return super().__init_subclass__()
