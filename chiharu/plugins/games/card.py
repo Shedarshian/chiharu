@@ -1085,6 +1085,8 @@ async def update():
                 if message != []:
                     config.logger.card << f'【LOG】已定时向用户{f.qq}发送消息：\n' + '\n'.join(message)
                     await get_bot().send_private_msg(user_id=f.qq, message='\n'.join(message), auto_escape=True)
+    for group in config.group_id_dict['card_verify']:
+        await get_bot().send_group_msg(group_id=group, message='card updated')
 
 @on_command(('card', 'maintain'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle

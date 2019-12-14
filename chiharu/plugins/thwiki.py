@@ -1013,7 +1013,7 @@ async def thwiki_confirm_grant(session: CommandSession):
     node = find_whiteforest(qq=qq)
     arg = session.current_arg_text
     # This approach is safe since CQ code does not contain something like ' false '
-    arg.tolower()
+    arg = arg.lower()
     if node is None or 'to_confirm' not in node:
         await session.send('没有需要确认的内容')
     elif arg in { 't', 'true' }:
