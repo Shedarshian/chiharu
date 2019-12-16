@@ -24,7 +24,6 @@ group_id_dict = {}
 tiemu_basic = {}
 headers = {}
 user_agent = ''
-csrf_thb = ''
 center_gonggao = ''
 game_center_help = ''
 center_card = ''

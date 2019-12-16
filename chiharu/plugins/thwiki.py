@@ -38,11 +38,12 @@ async def change(title = None, description = None):
     cookie_jar = requests.cookies.RequestsCookieJar()
     with open(config.rel('cookie.txt')) as f:
         value = f.readline().strip()
+        csrf = f.readline().strip()
     cookie_jar.set(name="SESSDATA", value=value)
-    cookie_jar.set(name="bili_jct", value=config.csrf_thb)
+    cookie_jar.set(name="bili_jct", value=csrf)
 
     # Construct and encode data
-    value = {'room_id': 14055253, 'title': title, 'description': description, 'csrf': config.csrf_thb, 'csrf_token': config.csrf_thb}
+    value = {'room_id': 14055253, 'title': title, 'description': description, 'csrf': csrf, 'csrf_token': csrf}
     length = len(parse.urlencode(value))
     print('length: ' + str(length))
     headers = copy(config.headers)
@@ -63,11 +64,12 @@ async def th_open(is_open=True, area=235):
     cookie_jar = requests.cookies.RequestsCookieJar()
     with open(config.rel('cookie.txt')) as f:
         value = f.readline().strip()
+        csrf = f.readline().strip()
     cookie_jar.set(name="SESSDATA", value=value)
-    cookie_jar.set(name="bili_jct", value=config.csrf_thb)
+    cookie_jar.set(name="bili_jct", value=csrf)
     
     # Construct and encode information
-    value = {'room_id': 14055253, 'platform': 'pc', 'csrf': config.csrf_thb, 'csrf_token': config.csrf_thb}
+    value = {'room_id': 14055253, 'platform': 'pc', 'csrf': csrf, 'csrf_token': csrf}
     if is_open:
         value['area_v2'] = area
     length = len(parse.urlencode(value))
@@ -821,6 +823,7 @@ async def get(session: CommandSession):
     cookie_jar = requests.cookies.RequestsCookieJar()
     with open(config.rel('cookie.txt')) as f:
         value = f.readline().strip()
+        csrf = f.readline().strip()
         rtmp = f.readline().strip()
         key = f.readline().strip()
     cookie_jar.set(name="SESSDATA", value=value)
@@ -843,6 +846,7 @@ async def get(session: CommandSession):
         await session.send(strout, ensure_private=True, auto_escape=True)
         with open(config.rel('cookie.txt'), 'w') as f:
             f.write(value + '\n')
+            f.write(csrf + '\n')
             f.write(rtmp['addr'] + '\n')
             f.write(rtmp['code'] + '\n')
 
@@ -1483,6 +1487,37 @@ async def thwiki_decrease(session: NoticeSession):
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_help(session: CommandSession):
     await call_command(get_bot(), session.ctx, ('help',), current_arg="thwiki")
+
+# Handler for command '-thwiki.cookie'
+@on_command(('thwiki', 'cookie'), only_to_me=False)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_cookie(session: CommandSession):
+    try:
+        group_id = session.ctx['group_id']
+        await session.send('请私聊使用')
+        return
+    except KeyError:
+        pass
+    qq = session.ctx['user_id']
+    if qq not in config.group_id_dict['thwiki_cookie']:
+        return
+
+    try:
+        ses, jct = session.current_arg_text.strip().split('\n')
+        ses = ses.strip()
+        jct = jct.strip()
+        if not (re.match('.+%2C.+%2C.+', ses) and re.match('[0-9a-f]+', jct)):
+            raise ValueError
+    except ValueError:
+        await session.send('请用-thwiki.cookie SESSDATA 换行 csrf_token(bili_jct)')
+        return
+    with open(config.rel('cookie.txt')) as f:
+        value = f.readlines()
+    value[0] = ses + '\n'
+    value[1] = jct + '\n'
+    with open(config.rel('cookie.txt'), 'w') as f:
+        f.write(''.join(value))
+    await session.send('成功写入')
 
 # Handler for command '-thwiki.test'
 # Yet another undocumented command...?
