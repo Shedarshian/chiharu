@@ -16,8 +16,8 @@ import chiharu.plugins.help as Help
 config.logger.open('thwiki')
 
 # Version information and changelog
-version = "2.2.8"
-changelog = """2.2.6-8 Changelog:
+version = "2.2.9"
+changelog = """2.2.6-9 Changelog:
 Change:
 -thwiki.grant 推荐需要被推荐人同意，被推荐人可通过指令-thwiki.confirm_grant True或False来同意或拒绝推荐
 -thwiki.deprive 会将列表里的相关Event更新状态并推送至监视群，并且会使目标人无法再次被推荐
@@ -341,15 +341,18 @@ def add_time(qq, time):
     b = False # What is the purpose??
     if node['time'] >= TRAIL_TIME:
         b = node['trail'] != 0
-        if node['trail'] != 0 and node['parent'] != -1:
-            config.logger.thwiki << f'【LOG】用户{qq} 已通过试用期转正'
-            find_whiteforest(id=node['parent'])['child'].remove(node['id'])
+        if 'parent' not in node or node['parent'] != -1:
+            if node['trail'] != 0:
+                config.logger.thwiki << f'【LOG】用户{qq} 已通过试用期转正'
+                node['trail'] = 0
+            else:
+                config.logger.thwiki << f'【LOG】用户{qq} 已通过试用期，节点独立'
+            if 'parent' in node:
+                find_whiteforest(id=node['parent'])['child'].remove(node['id'])
             node['parent'] = -1
-            node['trail'] = 0
             # Also check this fix
-            if 'to_confirm' in node:
-                node.pop('to_confirm')
-        # node['child'] = []
+        if 'to_confirm' in node:
+            node.pop('to_confirm')
 
     save_whiteforest()
     return b
@@ -584,7 +587,7 @@ async def cancel(session: CommandSession):
         
         # In this case, a shutdown of room should be performed...?
         if e.supervise != 0 and e.begin < now:
-            d = ((now - e.begin).total_seconds() - 1) // 60 + 1
+            d = int((now - e.begin).total_seconds() - 1) // 60 + 1
             if add_time(e.qq, d):
                 await session.send('您已成功通过试用期转正！')
 
@@ -671,7 +674,7 @@ async def term(session: CommandSession):
             e = l.pop(0)
             s = ""
             if e.supervise != 0:
-                d = ((now - e.begin).total_seconds() - 1) // 60 + 1
+                d = int((now - e.begin).total_seconds() - 1) // 60 + 1
                 if add_time(e.qq, d):
                     await session.send('您已成功通过试用期转正！')
                 s = f"，已为您累积直播时间{d}分钟"
@@ -726,8 +729,8 @@ async def _():
                     await bot.send_group_msg(group_id=id, message=[config.cq.at(e.supervise), config.cq.text('\n内容: %s\n请监视者就位' % e.name)])
     for i, e in enumerate(l):
         if e.isFloat and i != len(l) - 1 and l[i + 1].begin < now + timedelta(seconds=1) or not e.isFloat and e.end < now + timedelta(seconds=1):
-            l.pop(i)
             d = int(((l[i + 1].begin if e.isFloat else e.end) - e.begin).total_seconds() - 1) // 60 + 1
+            l.pop(i)
             if e.supervise != 0:
                 if add_time(e.qq, d):
                     for id in config.group_id_dict['thwiki_send']:
@@ -900,6 +903,9 @@ async def thwiki_grant(session: CommandSession):
     node = find_whiteforest(qq=sqq)
     if node is None or node['trail'] == 1:
         await session.send("您还处在试用期，无法推荐")
+        return
+    if sqq in weak_blacklist:
+        await session.send("您不可推荐他人")
         return
 
     # Construct list of QQ ID from @s
@@ -1275,10 +1281,17 @@ async def thwiki_grantlist(session: CommandSession):
 @config.maintain('thwiki')
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_leaderboard(session: CommandSession):
+    # try:
+    #     max = int(session.current_arg_text)
+    # except ValueError:
+    max = 10
+    # if max <= 0 or max >= 20:
+    #     await session.send('超出范围')
+    #     return
     for node in whiteforest:
         if node['card'] is None:
             node['card'] = await get_card(node['qq'])
-    await session.send('\n'.join([f"{i + 1} 直播时长：{node['time']}min 用户：{node['card']} {node['qq']}" for i, node in enumerate(more_itertools.take(10, sorted(whiteforest, key=lambda node: (0 if 'time' not in node else node['time']), reverse=True)))]), auto_escape=True)
+    await session.send('\n'.join([f"{i + 1} 直播时长：{node['time']}min 用户：{node['card']} {node['qq']}" for i, node in enumerate(more_itertools.take(max, sorted(whiteforest, key=lambda node: (0 if 'time' not in node else node['time']), reverse=True)))]), auto_escape=True)
 
 # Handler for command '-thwiki.open'
 @on_command(('thwiki', 'open'), only_to_me=False, permission=permission.SUPERUSER)
@@ -1524,9 +1537,5 @@ async def thwiki_cookie(session: CommandSession):
 @on_command(('thwiki', 'test'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_test(session: CommandSession):
-    for node in whiteforest:
-        if 'parent' in node:
-            parent = find_whiteforest(id=node['parent'])
-            if parent is not None and node['id'] not in parent['child']:
-                parent['child'].append(node['id'])
+    add_time(2859457368, 0)
     save_whiteforest()
