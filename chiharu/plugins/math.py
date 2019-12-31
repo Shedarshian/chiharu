@@ -4,6 +4,8 @@ import requests
 import re
 import asyncio
 import functools
+import datetime
+import getopt
 from wand.image import Image
 from wand.drawing import Drawing
 from wand.color import Color
@@ -182,16 +184,34 @@ async def oeis_id(s):
     result = {'Id': Id, 'description': description, 'numbers': numbers, 'example': example}
     return result
 
-@on_command(('tools', 'quiz'), only_to_me=False)
+@on_command(('tools', 'quiz'), only_to_me=False, shell_like=True)
 @config.ErrorHandle
 async def quiz(session: CommandSession):
-    #if session.current_arg_text == 'math':
-    with open(config.rel("games\\quiz.json"), encoding='utf-8') as f:
-        await session.send(json.load(f)["math"]["11"][0])
+    opts, args = getopt.gnu_getopt(session.args['argv'], 't:a', ['time=', 'answer'])
+    d = datetime.date.today()
+    s, ans = None, False
+    for o, a in opts:
+        if o in ('-t', '--time'):
+            s = a
+            if not re.match('\d{6}', s):
+                await session.send('请使用YYYYMM（四位年份加两位月份）来获取往年试题')
+                return
+            if int(s[0:4]) > d.year or int(s[0:4]) == d.year and int(s[4:6]) > d.month:
+                await session.send('未发现该月题目，题目自201910开始')
+                return
+        elif o in ('-a', '--answer'):
+            ans = True
+    if s is None:
+        s = f'{d.year}{d.month}'
+    try:
+        with open(config.rel("games\\quiz.json"), encoding='utf-8') as f:
+            await session.send(json.load(f)["math"][s][int(ans)], ensure_private=ans)
+    except KeyError:
+        await session.send('未发现该月题目，题目自201910开始')
 
-@on_command(('tools', 'quiz_answer'), only_to_me=False)
+@on_command(('tools', 'quiz_submit'), only_to_me=False, shell_like=True)
 @config.ErrorHandle
-async def quiz(session: CommandSession):
-    #if session.current_arg_text == 'math':
-    with open(config.rel("games\\quiz.json"), encoding='utf-8') as f:
-        await session.send(json.load(f)["math"]["11"][1], ensure_private=True)
+async def quiz_submit(session: CommandSession):
+    for group in config.group_id_dict['aaa']:
+        await get_bot().send_group_msg(group_id=group, message=f'用户{session.ctx["user_id"]} 提交答案：\n{session.current_arg}', auto_escape=True)
+    await session.send('您已成功提交答案')
