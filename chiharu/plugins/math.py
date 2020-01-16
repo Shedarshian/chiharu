@@ -31,8 +31,12 @@ async def latex(s, hsh=()):
     return name + '.png'
 
 @on_command(('tools', 'Julia'), only_to_me=False)
+@config.description("绘制Julia集。", ("x y"))
 @config.ErrorHandle
 async def Julia(session: CommandSession):
+    """绘制以c=x+yi为参数，z→z^2+c的Julia集。
+    Julia集为在复平面上，使得无限迭代z→z^2+c不发散的初值z_0的集合。
+    Ref：https://en.wikipedia.org/wiki/Julia_set"""
     c = session.current_arg_text.split(' ')
     if len(c) != 2:
         await session.send("使用格式：-tools.Julia x y\n绘制Julia set，使得c=x+yi")
@@ -67,8 +71,12 @@ async def Julia(session: CommandSession):
     await session.send(config.cq.img(name))
 
 @on_command(('tools', 'Mandelbrot'), only_to_me=False)
+@config.description("绘制Mandelbrot集。", ("x y"), hide=True)
 @config.ErrorHandle
 async def Mandelbrot(session: CommandSession):
+    """绘制以z_0=x+yi为初值，z→z^2+c的Mandelbrot集。
+    Mandelbrot集为在复平面上，使得无限迭代z→z^2+c不发散的参数c的集合。
+    Ref：https://en.wikipedia.org/wiki/Mandelbrot_set"""
     c = session.current_arg_text.split(' ')
     if len(c) != 2:
         await session.send("使用格式：-tools.Mandelbrot x y\n绘制Mandelbrot set，使得z0=x+yi")
@@ -106,6 +114,8 @@ async def Mandelbrot(session: CommandSession):
 @on_command(('tools', 'oeis'), only_to_me=False)
 @config.ErrorHandle
 async def oeis(session: CommandSession):
+    """查询oeis（整数序列在线百科全书）。
+    参数为序列中的几项，使用逗号分隔。或为oeis编号如A036057。"""
     if re.match('A\d+', session.current_arg_text):
         result = await oeis_id(session.current_arg_text)
         if type(result) == str:
@@ -185,8 +195,14 @@ async def oeis_id(s):
     return result
 
 @on_command(('tools', 'quiz'), only_to_me=False, shell_like=True)
+@config.description("每月趣题。", ("[-t YYYYMM]", "[-a]"))
 @config.ErrorHandle
 async def quiz(session: CommandSession):
+    """每月趣题。
+    可用选项：
+        -t, --time 接六位月份码查看历史趣题。
+        -a, --answer 查看答案。
+    欢迎提交好的东方化（或其他IP化也欢迎~）的趣题至维护者邮箱shedarshian@gmail.com（难度至少让维护者能看懂解答）"""
     opts, args = getopt.gnu_getopt(session.args['argv'], 't:a', ['time=', 'answer'])
     d = datetime.date.today()
     s, ans = None, False
@@ -202,8 +218,9 @@ async def quiz(session: CommandSession):
         elif o in ('-a', '--answer'):
             ans = True
     if s is None:
-        s = f'{d.year}{d.month}'
+        s = f'{d.year}{d.month:02}'
     try:
+        print(s)
         with open(config.rel("games\\quiz.json"), encoding='utf-8') as f:
             await session.send(json.load(f)["math"][s][int(ans)], ensure_private=ans)
     except KeyError:
@@ -212,6 +229,7 @@ async def quiz(session: CommandSession):
 @on_command(('tools', 'quiz_submit'), only_to_me=False, shell_like=True)
 @config.ErrorHandle
 async def quiz_submit(session: CommandSession):
+    """提交每月趣题答案。"""
     for group in config.group_id_dict['aaa']:
         await get_bot().send_group_msg(group_id=group, message=f'用户{session.ctx["user_id"]} 提交答案：\n{session.current_arg}', auto_escape=True)
     await session.send('您已成功提交答案')

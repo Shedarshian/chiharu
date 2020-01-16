@@ -6,38 +6,73 @@ import re
 import json
 import datetime
 import asyncio
+import getopt
 import chiharu.plugins.config as config
 from nonebot import on_command, CommandSession, CommandGroup, scheduler, get_bot
 
-seiyuu = CommandGroup('seiyuu', only_to_me=False)
-
-@seiyuu.command('today')
+@on_command(('seiyuu', 'today'), only_to_me=False)
+@config.description("查询今天生日的声优列表。")
 @config.ErrorHandle
 async def GetSeiyuuToday(session: CommandSession):
+    """查询今天生日的声优列表。
+    数据来自https://sakuhindb.com/"""
     try:
         strout = await _GetSeiyuuToday()
         await session.send(strout, auto_escape=True)
     except asyncio.TimeoutError:
         await session.send("timeout!", auto_escape=True)
 
-@seiyuu.command('check')
+@on_command(('seiyuu', 'check'), only_to_me=False, shell_like=True)
+@config.description("查询声优信息。", ("name", "[count]", "[-m max=15]"))
 @config.ErrorHandle
 async def CheckSeiyuu(session: CommandSession):
-    name = session.get('name')
-    count = session.get('count')
+    """查询声优信息。不止一个时返回列表第count个。不给出count则列出max个供选择。
+    可用选项：
+        -m, --max：声优不止一个时最多列出的个数。默认为15。"""
+    opts, args = getopt.gnu_getopt(session.args['argv'], 'm:', ['max='])
+    max_count = 15
+    for o, a in opts:
+        if o in ('-m', '--max'):
+            max_count = int(a)
+    name, *els = args
+    try:
+        count = -1 if len(els) == 0 else int(els[0])
+    except ValueError:
+        await session.send('数字无法识别。')
+        return
     loop = asyncio.get_event_loop()
     url = await loop.run_in_executor(None, requests.get, "https://sakuhindb.com/anime/search.asp?S_iC=%E6%96%87%E5%AD%97&ocs=euc&key=" + name + "&todo=%E6%83%85%E5%A0%B1DB")
     seiyuu = url.text.encode(url.encoding).decode("utf-8")
     pos = re.search("検索時間", seiyuu).span()[1]
-    match = re.search("<a href\\=\"(https://sakuhindb.com/tj/[A-Za-z0-9_]*/)\">", seiyuu[pos:])
-    if match:
-        if re.search("<a href\\=\"(https://sakuhindb.com/tj/[A-Za-z0-9_]*/)\">((?!CV|Cv).)*?</a>", seiyuu[pos + match.span()[1]:]):
-            if count == -1:
-                await session.send("Too Many!")
-                return
-        if count != -1:
-            match = re.search("<hr />" + str(count) + "\\.\\s*<a href\\=\"(https://sakuhindb.com/tj/[A-Za-z0-9_]*/)\">.*?</a>", seiyuu[pos:])
-        url = await loop.run_in_executor(None, requests.get, match.group(1))
+    if count == -1:
+        match = re.search("<a href\\=\"(https://sakuhindb.com/tj/[A-Za-z0-9_]*/)\">((?!CV|Cv).)*?</a>", seiyuu[pos:])
+    else:
+        match = re.search("<hr />" + str(count) + "\\.\\s*<a href\\=\"(https://sakuhindb.com/tj/[A-Za-z0-9_]*/)\">((?!CV|Cv).)*?</a>", seiyuu[pos:])
+    if not match:
+        await session.send("未找到声优")
+        return
+    path = match.group(1)
+    find = count != -1
+    if count == -1:
+        list_seiyuu = []
+        begin_pos = pos
+        while 1:
+            match = re.search("<hr />(\\d+\\.)\\s*<a href\\=\"https://sakuhindb.com/tj/[A-Za-z0-9_]*/\">(((?!CV|Cv).)*?)</a>", seiyuu[begin_pos:])
+            if match:
+                list_seiyuu.append(match.group(1) + "\t" + re.sub("<.*?>", "", match.group(2)))
+                begin_pos += match.span()[1]
+            else:
+                break
+        if len(list_seiyuu) == 1:
+            find = True
+    if not find:
+        if len(list_seiyuu) <= max_count:
+            await session.send("\n".join(list_seiyuu), auto_escape=True)
+        else:
+            ret = min(len(list_seiyuu), max_count)
+            await session.send("Too Many! These are first %s:\n" % ret + "\n".join(list_seiyuu[:ret]), auto_escape=True)
+    else:
+        url = await loop.run_in_executor(None, requests.get, path)
         seiyuu_this = url.text.encode(url.encoding).decode("utf-8")
         begin_pos = re.search("<b>総合</b>", seiyuu_this).span()[1]
         end_pos = re.search("階位", seiyuu_this).span()[0]
@@ -62,48 +97,13 @@ async def CheckSeiyuu(session: CommandSession):
             else:
                 break
         await session.send("\n".join(liststr), auto_escape=True)
-    else:
-        await session.send("Not Found!")
-
-@seiyuu.command('list')
-@config.ErrorHandle
-async def ListSeiyuu(session: CommandSession):
-    name = session.get('name')
-    count = session.get('count')
-    loop = asyncio.get_event_loop()
-    url = await loop.run_in_executor(None, requests.get, "https://sakuhindb.com/anime/search.asp?S_iC=%E6%96%87%E5%AD%97&ocs=euc&key=" + name + "&todo=%E6%83%85%E5%A0%B1DB")
-    seiyuu = url.text.encode(url.encoding).decode("utf-8")
-    begin_pos = re.search("検索時間", seiyuu).span()[1]
-    list_seiyuu = []
-    while 1:
-        match = re.search("<hr />(\\d+\\.)\\s*<a href\\=\"https://sakuhindb.com/tj/[A-Za-z0-9_]*/\">(.*?)</a>", seiyuu[begin_pos:])
-        if match:
-            list_seiyuu.append(match.group(1) + "\t" + re.sub("<.*?>", "", match.group(2)))
-            begin_pos += match.span()[1]
-        else:
-            break
-    if count == -1 and len(list_seiyuu) > 15:
-        await session.send("Too Many! These are first 15:\n" + "\n".join(list_seiyuu[0:15]), auto_escape=True)
-    elif count != -1 and len(list_seiyuu) > count:
-        await session.send("Too Many! These are first %s:\n" % count + "\n".join(list_seiyuu[0:count]), auto_escape=True)
-    elif len(list_seiyuu) == 0:
-        await session.send("Not Found!")
-    else:
-        await session.send("\n".join(list_seiyuu), auto_escape=True)
-
-@CheckSeiyuu.args_parser
-@ListSeiyuu.args_parser
-async def _(session: CommandSession):
-    t = list(map(lambda x: x.strip(), session.current_arg_text.split(',')))
-    session.args['name'] = t[0]
-    if len(t) == 1:
-        session.args['count'] = -1
-    else:
-        session.args['count'] = int(t[1])
 
 @on_command(('birth', 'today'), only_to_me=False)
+@config.description("查询今天生日的角色。")
 @config.ErrorHandle
 async def BirthToday(session: CommandSession):
+    """查询今天生日的角色。
+    可用范围：LL, imas, bandori"""
     which = session.current_arg_text.strip()
     dictout = _GetBirth(which)
     if len(dictout[which]) != 0:

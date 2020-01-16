@@ -73,9 +73,11 @@ async def Event(year, month, day):
             yield m
     return list(_f(text))
 
-@on_command('event', only_to_me=False)
+@on_command(('misc', 'event'), only_to_me=False)
+@config.description("查询Event。", hide=True)
 @config.ErrorHandle
 async def event(session: CommandSession):
+    """查询Event。"""
     g = await Event(session.get('year'), session.get('month'), session.get('day'))
     max_note = session.get('max_note')
     def _():
@@ -114,6 +116,7 @@ except:
 told_not_logged_in = False
 
 @on_command(('boss', 'login'), only_to_me=False, permission=permission.SUPERUSER)
+@config.description(hide=True)
 @config.ErrorHandle
 async def login(session: CommandSession):
     ssh.connect("lxslc6.ihep.ac.cn", 22, 'qity', session.current_arg_text)
@@ -122,6 +125,7 @@ async def login(session: CommandSession):
     await session.send('Successfully logged in')
 
 @on_command(('boss', 'begin'), only_to_me=False)
+@config.description(hide=True)
 @config.ErrorHandle
 async def boss_begin(session: CommandSession):
     if not isLoggedin:
@@ -133,6 +137,7 @@ async def boss_begin(session: CommandSession):
     await session.send('boss check begin!')
 
 @on_command(('boss', 'process'), only_to_me=False, permission=permission.SUPERUSER)
+@config.description(hide=True)
 @config.ErrorHandle
 async def boss_process(session: CommandSession):
     if not isLoggedin:
@@ -223,6 +228,7 @@ async def check_boss():
                 await bot.send_group_msg(group_id=group, message='Running job found! Begin boss check')
 
 @on_command(('boss', 'hang'), only_to_me=False, permission=permission.SUPERUSER)
+@config.description(hide=True)
 @config.ErrorHandle
 async def boss_hang(session: CommandSession):
     with open(config.rel('boss_check.txt'), 'w') as f:
@@ -416,8 +422,12 @@ def getLyric(listid):
         raise anyErrWithId(err, song_id, traceback.format_exc())
 
 @on_command(('misc', 'roll', 'lyric'), only_to_me=False)
+@config.description("随机歌词。")
 @config.ErrorHandle
 async def roll_lyric(session: CommandSession):
+    """随机歌词。
+    不加参数则为从全曲库中随机。
+    支持曲库：vocalo kon imas ml cgss sphere aki bandori ll mu's Aqours starlight mh"""
     args = 'all' if session.current_arg_text == '' else session.current_arg_text
     if args not in idmap:
         await session.send('name not found')
@@ -455,8 +465,11 @@ async def roll_lyric(session: CommandSession):
 bibtex_url = {'pra': 'https://journals.aps.org/pra/export/10.1103/PhysRevA.{}.{}', 'prb': 'https://journals.aps.org/prb/export/10.1103/PhysRevB.{}.{}', 'prc': 'https://journals.aps.org/prc/export/10.1103/PhysRevC.{}.{}', 'prd': 'https://journals.aps.org/prd/export/10.1103/PhysRevD.{}.{}', 'pre': 'https://journals.aps.org/pre/export/10.1103/PhysRevE.{}.{}',
               'prl': 'https://journals.aps.org/prl/export/10.1103/PhysRevLett.{}.{}', 'cpc': 'https://iopscience.iop.org/export?articleId=1674-1137/{}/{}/{}&exportFormat=iopexport_bib&exportType=abs&navsubmit=Export+abstract', 'cpb': 'https://iopscience.iop.org/export?articleId=1674-1056/{}/{}/{}&exportFormat=iopexport_bib&exportType=abs&navsubmit=Export+abstract'}
 @on_command(('tools', 'bibtex'), only_to_me=False)
+@config.description("查询文章的bibtex。", ("journal", "volume", "pages"))
 @config.ErrorHandle
 async def bibtex(session: CommandSession):
+    """查询文章的bibtex。
+    目前支持期刊：pra prb prc prd pre prl cpb cpc"""
     args = session.current_arg_text.split(' ')
     if len(args) == 0 or args[0].lower() not in bibtex_url:
         await session.send('支持期刊：pra prb prc prd pre prl cpb cpc')
@@ -481,6 +494,7 @@ async def bibtex(session: CommandSession):
         await session.send('time out!')
 
 @on_command(('steam', 'price'), only_to_me=False)
+@config.description(hide=True)
 @config.ErrorHandle
 async def steam_price(session: CommandSession):
     name = session.current_arg_text.strip()

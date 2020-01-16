@@ -59,6 +59,7 @@ class GameSameGroup:
             self.complete_func = _f
 
             @on_command(self.begin_command, only_to_me=False)
+            @config.description(hide=True)
             @config.ErrorHandle
             async def _g(session: CommandSession):
                 try:
@@ -92,7 +93,10 @@ class GameSameGroup:
                 if len(self.uncomplete[group_id]['players']) == self.begin_player[1]:
                     dct = self.uncomplete.pop(group_id)
                     dct['game'] = self
-                    await _f(session, dct)  # add data to dct
+                    try:
+                        await _f(session, dct)  # add data to dct
+                    except ChessError:
+                        return
                     if group_id in self.center:
                         self.center[group_id].append(dct)
                     else:
@@ -104,6 +108,7 @@ class GameSameGroup:
                 await self.uncomplete_func(session, self.uncomplete[group_id])
 
             @on_command(confirm_command, only_to_me=False)
+            @config.description(hide=True)
             @config.ErrorHandle
             async def _h(session: CommandSession):
                 try:
@@ -122,7 +127,10 @@ class GameSameGroup:
                 else:
                     dct = {'players': self.uncomplete.pop(
                         group_id)['players'], 'game': self}
-                    await _f(session, dct)  # add data to dct
+                    try:
+                        await _f(session, dct)  # add data to dct
+                    except ChessError:
+                        return
                     if group_id in self.center:
                         self.center[group_id].append(dct)
                     else:
@@ -136,6 +144,7 @@ class GameSameGroup:
 
         def _(_f: Awaitable) -> Awaitable:
             @on_command(end_command, only_to_me=False)
+            @config.description(hide=True)
             @config.ErrorHandle
             async def _g(session: CommandSession):
                 try:
@@ -247,6 +256,7 @@ class GamePrivate:
             self.complete_func = _f
 
             @on_command(self.begin_command, only_to_me=False)
+            @config.description(hide=True)
             @config.ErrorHandle
             async def _g(session: CommandSession):
                 qq = int(session.ctx['user_id'])
@@ -342,8 +352,10 @@ class GamePrivate:
                     await session.send(f'已创建{"公开" if public else "非公开"}房间 {room_id}')
 
 @on_command('game', only_to_me=False)
+@config.description("\U0001F6AA七海千春游戏大厅\U0001F6AA")
 @config.ErrorHandle
 async def game_center(session: CommandSession):
+    """欢迎使用-game 指令访问七海千春游戏大厅~"""
     if session.current_arg_text == '':
         await session.send(config.game_center_help)
     elif session.current_arg_text == 'card':

@@ -7,6 +7,9 @@ import random
 import functools
 import asyncio
 import requests
+import json
+import getopt
+from datetime import date, timedelta
 import wand.image, wand.color
 from io import StringIO
 from string import Formatter
@@ -18,6 +21,7 @@ import chiharu.plugins.maj as maj, chiharu.plugins.math as cmath
 @on_command(('misc', 'asc', 'check'), only_to_me=False)
 @config.ErrorHandle
 async def AscCheck(session: CommandSession):
+    '''转换输入字符串的所有字符到unicode码。'''
     strin = session.current_arg_text.strip()
     strout = ' '.join(map(str, map(ord, strin)))
     await session.send('对应数字是：\n' + strout, auto_escape=True)
@@ -25,6 +29,7 @@ async def AscCheck(session: CommandSession):
 @on_command(('misc', 'asc', 'trans'), only_to_me=False)
 @config.ErrorHandle
 async def AscTrans(session: CommandSession):
+    '''转换多个数字到unicode字符。'''
     strin = session.current_arg_text.split(' ')
     strout = ''.join(map(chr, map(int, strin)))
     await session.send('对应字符是：\n' + strout, auto_escape=True)
@@ -46,12 +51,22 @@ async def PythonExec(session: CommandSession):
     await session.send(s.getvalue()[:-1], auto_escape=True)
 
 @on_command(('misc', 'maj', 'ten'), only_to_me=False)
+@config.description("日麻算点器。")
 @config.ErrorHandle
-async def Maj(session: CommandSession):
-    pu = session.get('pu')
-    han = session.get('han')
-    qin = session.get('qin')
-    zi = session.get('zi')
+async def maj_ten(session: CommandSession):
+    """日麻算点器。
+    输入几番几符，可计算得点。可额外指定亲家或子家。"""
+    pu_match = re.search('(\\d+)符', session.current_arg_text)
+    han_match = re.search('(\\d+)番', session.current_arg_text)
+    qin_match = re.search('亲家|親家', session.current_arg_text)
+    zi_match = re.search('子家', session.current_arg_text)
+    if not pu_match or not han_match:
+        await session.send('输入格式有误。请输入几番几符。')
+        return
+    pu = int(pu_match.group(1))
+    han = int(han_match.group(1))
+    qin = qin_match is not None
+    zi = zi_match is not None
     if not qin and not zi:
         qin = True
         zi = True
@@ -87,35 +102,48 @@ async def Maj(session: CommandSession):
     elif zi:
         await session.send(str_zi)
 
-@Maj.args_parser
-async def _(session: CommandSession):
-    pu = re.search('(\\d+)符', session.current_arg_text)
-    han = re.search('(\\d+)番', session.current_arg_text)
-    qin = re.search('亲家|親家', session.current_arg_text)
-    zi = re.search('子家', session.current_arg_text)
-    if pu is None or han is None:
-        pass
-    session.args['pu'] = int(pu.group(1))
-    session.args['han'] = int(han.group(1))
-    session.args['qin'] = qin is not None
-    session.args['zi'] = zi is not None
+async def GetMajImg(s):
+    loop = asyncio.get_event_loop()
+    u = 'http://mjv.jp/2/img/n%s.png' % s
+    url2 = await loop.run_in_executor(None, functools.partial(requests.get, u,
+        headers={'Referer': 'http://tenhou.net/2/img/'}))
+    name = str(hash(s))
+    with open(config.img(name + '.png'), 'wb') as f:
+        f.write(url2.content)
+    return name
 
 daan = {}
 
-@on_command(('misc', 'maj', 'train'), only_to_me=False)
+@on_command(('misc', 'maj', 'train'), only_to_me=False, shell_like=True)
+@config.description("麻将训练。", ("number", '[-a]', '[-p]'))
 @config.ErrorHandle
 async def maj_train(session: CommandSession):
+    """麻将训练。
+    使用数字指定练习题，-1为查看上题答案。
+    0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）
+    2：清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）
+    可用选项：
+    -a：查看上题答案。
+    -p：使用天凤图。"""
     global daan
-    text = session.current_arg_text
-    p = False
     try:
         group_id = session.ctx['group_id']
     except:
         group_id = session.ctx['user_id']
-    if text.startswith('p'):
-        text = text[1:]
-        p = True
-    if text == '0':
+    p, a = False, False
+    opts, args = getopt.gnu_getopt(session.args['argv'], 'p', [])
+    for o, a in opts:
+        if o == '-p':
+            p = True
+        if o == '-a':
+            a = True
+    text = args[0]
+    if a:
+        if group_id not in daan:
+            await session.send('没有当前题目')
+        else:
+            await session.send('答案为：' + str(daan.pop(group_id)))
+    elif text == '0':
         str_title = '清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）\n'
         _continue = True
         while _continue:
@@ -144,18 +172,12 @@ async def maj_train(session: CommandSession):
                 if i > 4:
                     _continue = True
         if p:
-            pass
-            # tehai = ''.join(map(str, stack)) + random.choice(['m', 's', 'p']) + '5z'
-            # d = Maj.search_for('')
-            # s = Maj.compile(tehai, **d)
-            # loop = asyncio.get_event_loop()
-            # u = 'http://mjv.jp/2/img/n%s.png' % s
-            # url2 = await loop.run_in_executor(None, functools.partial(requests.get, u,
-            #     headers={'Referer': 'http://tenhou.net/2/img/'}))
-            # name = str(hash((s, group_id, session.ctx['user_id'])))
-            # with open(config.img(name + '.png'), 'wb') as f:
-            #     f.write(url2.content)
-            # await session.send([config.cq.text(str_title), config.cq.img(name + '.png')], auto_escape=True)
+            tehai = ''.join(map(str, stack)) + random.choice(['m', 's', 'p']) + '5z'
+            d = Maj.search_for('')
+            s = Maj.compile(tehai, **d)
+            loop = asyncio.get_event_loop()
+            name = await GetMajImg(s)
+            await session.send([config.cq.text(str_title), config.cq.img(name + '.png')], auto_escape=True)
         else:
             strout = str_title + ''.join(map(str, stack))
             await session.send(strout, auto_escape=True)
@@ -186,17 +208,12 @@ async def maj_train(session: CommandSession):
         result = maj.MajHai._ting(map(lambda x: x - 1, stack))
         daan[group_id] = \
             ''.join(map(lambda x: str(x[0] + 1), filter(lambda x: x[1] > 0, enumerate(map(len, result)))))
-    elif text == '-1':
-        if group_id not in daan:
-            await session.send('没有题目')
-        else:
-            await session.send(daan.pop(group_id))
     else:
-        await session.send('支持参数：\n0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）\n2：清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）\n-1：返回上次的答案')
+        await session.send('使用数字指定练习题，-1为查看上题答案。\n0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）\n2：清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）')
 
 class MajException(Exception):
     def __init__(self, arg):
-        self.args = arg
+        self.args[0] = arg
 
 class Maj:
     @staticmethod
@@ -260,34 +277,22 @@ class Maj:
 @on_command(('misc', 'maj', 'img'), only_to_me=False)
 @config.ErrorHandle
 async def maj_img(session: CommandSession):
-    test = session.get('arg')
-    if test == False:
-        await session.send(''.join(session.get('except').args), auto_escape=True)
-        return
-    loop = asyncio.get_event_loop()
-    u = 'http://mjv.jp/2/img/n%s.png' % test
-    url2 = await loop.run_in_executor(None, functools.partial(requests.get, u,
-        headers={'Referer': 'http://tenhou.net/2/img/'}))
-    name = str(hash((test, session.ctx['group_id'], session.ctx['user_id'])))
-    with open(config.img(name + '.png'), 'wb') as f:
-        f.write(url2.content)
-    await session.send(config.cq.img(name + '.png'), auto_escape=True)
-
-@maj_img.args_parser
-@config.ErrorHandle
-async def _(session: CommandSession):
+    """天凤牌图。"""
     try:
         l = session.current_arg_text.split(' ')
         tehai = l[0]
         d = Maj.search_for(' '.join(l[1:]))
-        session.args['arg'] = Maj.compile(tehai, **d)
+        test = Maj.compile(tehai, **d)
     except MajException as e:
-        session.args['arg'] = False
-        session.args['except'] = e
+        await session.send(e.args[0], auto_escape=True)
+        return
+    name = await GetMajImg(test)
+    await session.send(config.cq.img(name + '.png'), auto_escape=True)
 
 @on_command(('misc', 'maj', 'ting'), only_to_me=False)
 @config.ErrorHandle
 async def maj_ting(session: CommandSession):
+    """麻将听牌计算器。"""
     def expand(s):
         l = []
         for char in s:
@@ -327,7 +332,7 @@ async def maj_ting(session: CommandSession):
     except maj.MajErr as e:
         await session.send(str(e))
 
-@on_command(('misc', 'maj', 'ting_ex'), only_to_me=False)
+@on_command(('misc', 'maj', 'ting_ex'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
 async def maj_ting_ex(session: CommandSession):
     def expand(s):
@@ -374,13 +379,16 @@ async def maj_ting_ex(session: CommandSession):
                     yield s
             await session.send('\n'.join(_()))
     except MajException as e:
-        await session.send(''.join(e.args))
+        await session.send(e.args[0])
     except maj.MajErr as e:
         await session.send(str(e))
 
 @on_command(('misc', 'maj', 'zj'), only_to_me=False)
+@config.description("中庸麻将点数计算器。")
 @config.ErrorHandle
 async def maj_zj_ten(session: CommandSession):
+    """中庸麻将点数计算器。
+    输入格式为：手牌（如12s33p3s，荣和最后一张牌） 副露（如吃123s暗杠2222p） 其余状态（如南家岭上河底荣和）"""
     try:
         tehai = []
         fuuros = []
@@ -442,13 +450,16 @@ async def maj_zj_ten(session: CommandSession):
     except maj.Not14 as e:
         await session.send(str(e))
     except MajException as e:
-        await session.send(''.join(e.args))
+        await session.send(e.args[0])
     except maj.MajErr as e:
         await session.send(str(e))
 
 @on_command(('misc', 'maj', 'voice'), only_to_me=False)
+@config.description("雀魂报番语音。")
 @config.ErrorHandle
 async def maj_voice(session: CommandSession):
+    """雀魂报番语音。
+    输入番种名，换行后输入雀士名。不输入雀士名默认为一姬。"""
     if '\n' in session.current_arg_text:
         content, voicer_str = session.current_arg_text.split('\n')
         content = content.strip()
@@ -456,8 +467,8 @@ async def maj_voice(session: CommandSession):
     else:
         voicer_str = '1'
         content = session.current_arg_text
-    voicer_dict = {'一姬': 1, '1': 1, '二阶堂': 2, '二阶堂美树': 2, '2': 2, '千织': 3, '三上千织': 3, '3': 3, '四宫夏生': 4, '夏生': 4, '4': 4, '相原舞': 5, '抚子': 6, '佳奈': 7, '藤田佳奈': 7, '八木唯': 8, '八木': 8, '8': 8, '九条': 9, '九条璃雨': 9, '9': 9, '泽尼娅': 10, '卡维': 11, '汪次郎': 12, '汪': 12, '一之濑空': 13, '明智英树': 14, '轻库娘': 15, '莎拉': 16, '二之宫花': 17, '二之宫': 17}
-    voicer_name = {1: 'yiji', 2: 'erjietang', 3: 'qianzhi', 4: 'sigongxiasheng', 5: 'xiangyuan', 6: 'fuzi', 7: 'jianai', 8: 'bamuwei', 9: 'jiutiao', 10: 'zeniya', 11: 'kawei', 12: 'wangcilang', 13: 'yizhilaikong', 14: 'mingzhiyingshu', 15: 'qingkuniang', 16: 'shala', 17: 'erzhigonghua'}
+    voicer_dict = {'一姬': 1, '1': 1, '二阶堂': 2, '二阶堂美树': 2, '2': 2, '千织': 3, '三上千织': 3, '3': 3, '四宫夏生': 4, '夏生': 4, '4': 4, '相原舞': 5, '抚子': 6, '佳奈': 7, '藤田佳奈': 7, '八木唯': 8, '八木': 8, '8': 8, '九条': 9, '九条璃雨': 9, '9': 9, '泽尼娅': 10, '卡维': 11, '汪次郎': 12, '汪': 12, '一之濑空': 13, '明智英树': 14, '轻库娘': 15, '莎拉': 16, '二之宫花': 17, '二之宫': 17, '白石奈奈': 18, '奈奈': 18, '小鸟游雏田': 19, '五十岚阳菜': 20, '凉宫杏树': 21, '约瑟夫': 22, '斋藤治': 23}
+    voicer_name = {1: 'yiji', 2: 'erjietang', 3: 'qianzhi', 4: 'sigongxiasheng', 5: 'xiangyuan', 6: 'fuzi', 7: 'jianai', 8: 'bamuwei', 9: 'jiutiao', 10: 'zeniya', 11: 'kawei', 12: 'wangcilang', 13: 'yizhilaikong', 14: 'mingzhiyingshu', 15: 'qingkuniang', 16: 'shala', 17: 'erzhigonghua', 18: 'baishinainai', 19: 'xiaoniaoyouchutian', 20: 'wushilanyangcai', 21: 'lianggongxingshu', 22: 'yuesefu', 23: 'zhaitengzhi'}
     if voicer_str in voicer_dict:
         voicer = voicer_name[voicer_dict[voicer_str]]
     else:
@@ -476,7 +487,7 @@ async def maj_voice(session: CommandSession):
         for audio in l:
             if not os.path.isfile(config.rel(f'Cache\\majsoul_voice\\{voicer}\\{audio}.mp3')):
                 url = await loop.run_in_executor(None, functools.partial(requests.get,
-                    f'https://majsoul.com/1/v0.6.1.w/audio/sound/{voicer}/{audio}.mp3'))
+                    f'https://majsoul.com/1/v0.6.74.w/audio/sound/{voicer}/{audio}.mp3'))
                 if url.status_code != 200:
                     raise maj.MajErr(f"{voicer}/{audio}.mp3 can't download")
                 with open(config.rel(f'Cache\\majsoul_voice\\{voicer}\\{audio}.mp3'), 'wb') as f:
@@ -611,24 +622,25 @@ with open(config.rel('unicode.txt'), encoding='utf-16') as f:
             token[re.sub('\\\\\\\\', '\\\\', match2.group(1))] = re.sub('\\\\\\\\', '\\\\', match2.group(2))
 
 @on_command(('misc', 'token'), only_to_me=False)
+@config.description("Unicode字符翻译。")
 @config.ErrorHandle
 async def token_alpha(session: CommandSession):
+    """Unicode字符翻译。
+    将输入文本中大括号包含的token转换成latex中包含的unicode字符。
+    使用的替换为：https://github.com/joom/latex-unicoder.vim/blob/master/autoload/unicoder.vim, https://pastebin.com/jxHsjQK0
+    例：-misc.token f(0)={\\aleph}_0,f({\\alpha}+1)={\\aleph}_{\\alpha}"""
     try:
         global token
         strout = myFormatter().vformat(session.current_arg_text, (), token)
         await session.send('对应字符是：\n' + strout, auto_escape=True)
-    except KeyError:
-        await session.send('KeyError')
+    except KeyError as e:
+        await session.send(f'{e.args[0]}未能识别')
 
 @on_command(('misc', 'latex'), only_to_me=False)
 @config.ErrorHandle
 async def latex(session: CommandSession):
+    """渲染latex公式。"""
     await session.send(config.cq.img(await cmath.latex(session.current_arg_text, hsh=(session.ctx['group_id'], session.ctx['user_id']))))
-
-@on_command(('misc', 'shuru'), only_to_me=False)
-@config.ErrorHandle
-async def shuru(session: CommandSession):
-    pass
 
 class MoneyComputer:
     class Man:
@@ -690,6 +702,33 @@ class MoneyComputer:
                 return ret
 
 @on_command(('misc', 'money'), only_to_me=False)
+@config.description("面基算钱小助手。")
 @config.ErrorHandle
 async def shuru(session: CommandSession):
+    """面基算钱小助手。\n\n每个行为一条指令。指令：\nclear: 清除所有数据。\nadd [人名]: 增加一个人。\nbill [人名] [金额] [可选：需付费的人名列表]: 增加一个需付费账单，人名列表为空则默认【包括自己的】所有人。\noutput [策略] [参数]: 输出金额交换。策略目前有：\n\toneman [参数：人名]: 所有金额交换全部支付给此人/由此人支付。"""
     await session.send(MoneyComputer().processLines(session.current_arg_text.split('\r\n')))
+
+@on_command(('misc', 'omikuji'), only_to_me=False)
+@config.description("千春酱御神签~")
+@config.ErrorHandle
+async def omikuji(session: CommandSession):
+    """千春酱御神签~
+    每周只能抽一次哦~"""
+    version = "チハルちゃんおみくじ ver0.0.1"
+    qq = session.ctx['user_id']
+    today = date.today()
+    with open(config.rel('omikuji.json'), encoding='utf-8') as f:
+        m = json.load(f)
+    o = m[0]['obfuscate']
+    state = random.getstate()
+    random.seed((o, (today - timedelta(days=today.weekday())).isoformat(), str(qq)))
+    h = random.randint(0, 999)
+    random.setstate(state)
+    def pick(m, h):
+        for i in m:
+            h -= i["weight"]
+            if h < 0:
+                return i
+    d = pick(m, h)
+    await session.send(f"{version}\n{d['ji']}    {d['name']}\n\n{d['des']}", auto_escape=True)
+    

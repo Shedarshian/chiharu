@@ -13,6 +13,7 @@ async def save():
         f.write(json.dumps(tiemu_g, ensure_ascii=False, indent=4, separators=(',', ': ')))
 
 @on_command(('ic', 'activate'), only_to_me=False, permission=permission.GROUP_ADMIN)
+@config.description(hide=True)
 @config.ErrorHandle
 async def activate(session: CommandSession):
     global tiemu_g
@@ -40,6 +41,7 @@ async def activate(session: CommandSession):
     await save()
 
 @on_command(('ic', 'deactivate'), only_to_me=False, permission=permission.GROUP_ADMIN)
+@config.description(hide=True)
 @config.ErrorHandle
 async def deactivate(session: CommandSession):
     global tiemu_g
@@ -64,6 +66,7 @@ async def _(session: CommandSession):
         session.args['qq'] = False
 
 @on_command(('ic', 'change'), only_to_me=False, aliases=('银幕尊享',))
+@config.description(hide=True)
 @config.ErrorHandle
 async def change(session: CommandSession):
     global tiemu_g
@@ -85,6 +88,7 @@ async def tiemu_lengjing_time():
     await tiemu_lengjing()
 
 @on_command(('tiemu', 'lengjing'), only_to_me=False)
+@config.description(hide=True)
 async def tiemu_lengjing_cmd(session: CommandSession):
     await tiemu_lengjing()
 

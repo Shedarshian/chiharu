@@ -4,8 +4,8 @@ import json
 import datetime
 import getopt
 from os import path
-from typing import Awaitable, Generator, Set, Callable
-from nonebot import CommandSession, get_bot, on_command
+from typing import Awaitable, Generator, Set, Callable, Tuple
+from nonebot import CommandSession, get_bot, on_command, permission
 import traceback
 from collections import UserDict
 
@@ -131,6 +131,53 @@ def _(g: _logger, if_send=True):
                     g << f"【ERR】调用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
         return _f
     return _g
+
+class Admin:
+    def __init__(self, s):
+        self.name = s
+
+class Environment:
+    def __init__(self, *args, private=False, ret=""):
+        self.group = set()
+        self.admin = set()
+        self.private = private
+        for s in args:
+            if type(s) == str:
+                self.group |= set(group_id_dict[s])
+            elif isinstance(s, Admin):
+                self.admin |= set(group_id_dict[s.name])
+        self.ret = ret
+    async def test(self, session: CommandSession):
+        try:
+            group_id = session.ctx['group_id']
+            if group_id in self.group:
+                return True
+            elif group_id in self.admin:
+                return await permission.check_permission(get_bot(), session.ctx, permission.GROUP_ADMIN)
+            else:
+                return False
+        except KeyError:
+            if not self.private:
+                if self.ret != "":
+                    await session.send(self.ret)
+                return False
+            else:
+                return True
+
+def description(s: str="", args: Tuple[str]=(), environment: Environment=None, hide=False):
+    def _(f):
+        f.description = s
+        f.args = args
+        f.environment = environment
+        f.hide = hide
+        if environment is not None:
+            @functools.wraps(f)
+            async def _f(session, *args, **kwargs):
+                if await environment.test(session):
+                    return await f(session, *args, **kwargs)
+            return _f
+        return f
+    return _
 
 def maintain(s):
     global maintain_str

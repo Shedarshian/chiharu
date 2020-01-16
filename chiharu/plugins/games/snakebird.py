@@ -477,7 +477,7 @@ async def sb_begin_complete(session: CommandSession, data: Dict[str, Any]):
         board = SnakeBird(data['level'])
     except FileNotFoundError:
         await session.send('关卡未发现')
-        await call_command(get_bot(), session.ctx, data['game'].end_command, current_arg="")
+        raise game.ChessError('')
     else:
         data['board'] = board
         board.image().save(config.img('snake.png'))

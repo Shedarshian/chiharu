@@ -9,8 +9,10 @@ REDIRECT_URI = 'https://api.weibo.com/oauth2/default.html'
 token = {'access_token': '2.00JWktUGsWviQE35d4be257etIM3ME', 'remind_in': '157679999', 'uid': '5953373929', 'isRealName': 'true', 'expires_at': 1705125469}
 
 @on_command(('misc', 'bandori', 'manga'), only_to_me=False)
+@config.description("查询Bangdream漫画。", hide=True)
 @config.ErrorHandle
 async def GetBandoriManga(session: CommandSession):
+    """查询Bangdream漫画。"""
     listout = await _GetBandoriManga()
     if len(listout) == 0:
         await session.send("No newer manga!")

@@ -41,7 +41,7 @@ async def guess_solver(session: CommandSession):
                 strategy = int(a)
             elif o in ('-s', '--space'):
                 space = True
-        except ValueError as e:
+        except ValueError:
             await session.send('请输入十进制数。')
             return
     if base > 36:

@@ -722,6 +722,7 @@ from nonebot import on_command, CommandSession, on_natural_language, NLPSession,
 # duizhan_uncomplete = {}
 
 @on_command(('chess', 'begin'), only_to_me=False, aliases=('chessbegin',))
+@config.description(hide=True)
 @config.ErrorHandle
 async def chess_begin(session: CommandSession):
     await session.send('chess.begin deprecated\n请使用-play.xiangqi.begin\n欢迎使用-game 访问七海千春游戏大厅内测版')
@@ -747,6 +748,7 @@ async def chess_begin(session: CommandSession):
 #         await session.send('已为您安排红方，等候黑方')
 
 @on_command(('chess', 'end'), only_to_me=False, aliases=('chessend',))
+@config.description(hide=True)
 @config.ErrorHandle
 async def chess_end(session: CommandSession):
     await session.send('chess.end deprecated\n请使用-play.xiangqi.end\n欢迎使用-game 访问七海千春游戏大厅内测版')
