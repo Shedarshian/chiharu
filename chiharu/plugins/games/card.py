@@ -151,6 +151,7 @@ class user_storage(user_info, path=r"games\card\user_storage\%i", if_binary=True
         return {'money': a * 256 + b, 'confirm': bool(c & 128), 'time': c % 128, 'create_type': d, 'create_num': e * 256 + f, 'message': g % 32, 'guide1': h, 'guide2': i, 'guide3': j}
     def save_info(self, val):
         self.file.seek(0)
+        val['money'] = min(val['money'], 65535)
         self.file.write(bytes([val['money'] // 256, val['money'] % 256, val['confirm'] * 128 + val['time'], val['create_type'], val['create_num'] // 256, val['create_num'] % 256, val['message'], val['guide1'], val['guide2'], val['guide3'], 0, 0, 0, 0, 0, 0]))
         self.file.flush()
     def read_nocheck(self, id):
@@ -344,13 +345,14 @@ def add_cardname(arg: Iterable[Tuple[str, int, Union[str, None]]], **kwargs):
                 pool[c['id']] += num
                 f.write(to_byte(pool[c['id']]))
     save_card_info()
-def add_card(arg: Iterable[Tuple[int, int]]):
+def add_card(arg: Iterable[Tuple[int, int]], qq: int=-1):
     global pool
     with open(config.rel(r"games\card\pool"), 'rb+') as f:
         for id, num in arg:
             f.seek(2 * id)
             pool[id] += num
             f.write(to_byte(pool[id]))
+            config.logger.card << f"【LOG】用户{qq} 创造卡片{id}，{num}张，现有{pool[id]}张"
 
 @on_command(('card', 'draw'), only_to_me=False, aliases=('抽卡',))
 @c1
@@ -436,7 +438,7 @@ async def card_draw(session: CommandSession):
             await session.send(f"""{'''您已把卡池抽空！
 ''' if data['empty'] else ''}恭喜您抽中：
 {get_card_names(*get)}{f'''
-{card_info[get[0]]['des']}''' if len(get) == 1 and 'des' in card_info[get[0]] else ''}{f'''
+{card_info[get[0]]['des']}''' if len(get) == 1 and 'des' in card_info[get[0]] and card_info[get[0]]['name'] not in config.card else ''}{f'''
 库存 {get_card_names(*ret['max'])} 已达到上限''' if len(ret['max']) != 0 else ''}{f'''
 {get_card_names(*ret['wish_reset'])} 已自动取消愿望单''' if len(ret['wish_reset']) != 0 else ''}{f'''
 您还剩余{data['money']}en''' if data['payed'] else ''}""", auto_escape=True)
@@ -496,7 +498,7 @@ async def card_check_card(session: CommandSession):
         with open_user_storage(session.ctx['user_id']) as f, open_user_create(session.ctx['user_id']) as f2:
             f.close('check_card')
             f.check()
-            check = f.read_nocheck(c['id'])['num'] > 0 or f2.check_created(c['name'])
+            check = f.read_nocheck(c['id'])['num'] > 0 or f2.check_created(c['name']) or c['name'] in config.card
             strout = (f"卡牌 {c['name']}：余量{pool[c['id']]}张" + '\n' + (f"出现于卡池：{'，'.join(pools)}" if len(pools) > 0 else "未出现在今日卡池") + (('\n' + c['des'] if check else '\n描述文本已因您未拥有此卡牌而隐藏') if 'des' in c else '\n') + f"{f.guide['check']}").strip()
             if f2.check_created(c['name']):
                 strout += '\n此卡牌是您首次创造'
@@ -570,11 +572,10 @@ async def card_add(session: CommandSession):
                 if session.get('des') is not None:
                     strout += "该卡片不是您首次创造，已忽略描述文本\n"
                 add_new_card(c['id'])
-                add_card(((c['id'], num),))
+                add_card(((c['id'], num),), qq)
                 f2.create(c['id'], num, False)
                 info['money'] += 20 * num
                 f1.save_info(info)
-                config.logger.card << f"【LOG】用户{qq} 创造卡片{c['id']}，{num}张"
                 config.logger.card << f'【LOG】用户{qq} 获得了{20 * num}en 剩余{info["money"]}en'
                 strout += f"成功放入卡片 {c['name']} {num}张，欢迎明日查看新卡卡池\n您已获得{20 * num}en\n{f1.guide['add_des']}{f1.guide['info']}{f1.guide['wish']}".strip()
             f1.close('add')
@@ -1174,5 +1175,5 @@ async def card_update(session: CommandSession):
 @on_command(('card', 'test'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle
 async def card_test(session: CommandSession):
-    await session.send(str(functools.reduce(lambda x, y: x + y, pool)))
+    pass
 

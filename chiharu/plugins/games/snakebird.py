@@ -1,4 +1,4 @@
-from typing import Dict, Any, Tuple, List, Set, Any, Awaitable
+from typing import Dict, Any, Tuple, List, Set, Any, Awaitable, Callable
 import itertools
 import more_itertools
 import functools
@@ -7,10 +7,12 @@ import json
 from PIL import Image, ImageDraw
 import base64
 from io import BytesIO
+import re
 from nonebot import on_command, CommandSession, permission, get_bot, NLPSession
 from nonebot.command import call_command
 import chiharu.plugins.config as config
 import chiharu.plugins.game as game
+from .achievement import achievement
 
 def add(l: Tuple[int, int], r: Tuple[int, int]):
     return (l[0] + r[0], l[1] + r[1])
@@ -520,6 +522,9 @@ async def sb_process(session: NLPSession, data: Dict[str, Any], delete_func: Awa
             d['win'].append(data['level'])
         data['game'].save_data(qq, d)
         await session.send('Level clear!')
+        if len([l for l in d['win'] if re.match('^(☆?\d+|final)$', l)]) == 53:
+            if achievement.snakebird.get(qq):
+                await session.send(achievement.snakebird.get_str())
         await delete_func()
     else:
         board.image().save(config.img('snake.png'))
@@ -540,3 +545,11 @@ async def sb_check(session: CommandSession):
             await session.send('您已通过关卡：' + ', '.join([str(x) for x in sorted(data['snakebird']['win'])]))
     except FileNotFoundError:
         await session.send('您还未通过任何一关')
+
+@achievement.snakebird.progress
+def sb_progress(qq: int):
+    data = snakebird.open_data(qq)
+    if 'win' not in data:
+        return 0.0
+    else:
+        return len([l for l in data['win'] if re.match('^(☆?\d+|final)$', l)]) / 53

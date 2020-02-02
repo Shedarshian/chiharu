@@ -146,8 +146,11 @@ async def oeis(session: CommandSession):
 
 async def oeis_id(s):
     loop = asyncio.get_event_loop()
-    response = await loop.run_in_executor(None, requests.get,
-            'http://oeis.org/' + s)
+    try:
+        response = await asyncio.wait_for(loop.run_in_executor(None, requests.get,
+            'http://oeis.org/' + s), timeout=600.0)
+    except asyncio.TimeoutError:
+        return "time out!"
     if response.status_code != 200:
         return 'Name not found!'
     text = response.text
@@ -209,7 +212,7 @@ async def quiz(session: CommandSession):
     for o, a in opts:
         if o in ('-t', '--time'):
             s = a
-            if not re.match('\d{6}', s):
+            if not re.match('\d{6+}', s):
                 await session.send('请使用YYYYMM（四位年份加两位月份）来获取往年试题')
                 return
             if int(s[0:4]) > d.year or int(s[0:4]) == d.year and int(s[4:6]) > d.month:

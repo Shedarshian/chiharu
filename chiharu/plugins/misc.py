@@ -731,4 +731,3 @@ async def omikuji(session: CommandSession):
                 return i
     d = pick(m, h)
     await session.send(f"{version}\n{d['ji']}    {d['name']}\n\n{d['des']}", auto_escape=True)
-    

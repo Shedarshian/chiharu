@@ -27,6 +27,7 @@ user_agent = ''
 center_gonggao = ''
 game_center_help = ''
 center_card = ''
+card = set()
 with open(rel('config_data.py'), encoding='utf-8') as f:
     exec(f.read())
 with open(rel('maintain.json'), encoding='utf-8') as f:
