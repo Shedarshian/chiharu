@@ -9,10 +9,11 @@ import getopt
 from wand.image import Image
 from wand.drawing import Drawing
 from wand.color import Color
-import chiharu.plugins.config as config
-from nonebot import on_command, CommandSession, get_bot, permission
 import os
 import json
+import chiharu.plugins.config as config
+from nonebot import on_command, CommandSession, get_bot, permission
+from .helper.function import parser, ParserError
 
 async def latex(s, hsh=()):
     loop = asyncio.get_event_loop()
@@ -236,3 +237,37 @@ async def quiz_submit(session: CommandSession):
     for group in config.group_id_dict['aaa']:
         await get_bot().send_group_msg(group_id=group, message=f'用户{session.ctx["user_id"]} 提交答案：\n{session.current_arg}', auto_escape=True)
     await session.send('您已成功提交答案')
+
+@on_command(('tools', 'calculator'), only_to_me=False, aliases=('cal',))
+@config.description("计算器。别名：-cal")
+@config.ErrorHandle
+async def calculator(session: CommandSession):
+    """计算器。计算给定式子的结果。别名：-cal
+    运算过程中只有浮点与布尔两种类型，计算结果必须为浮点数。
+    可以使用的运算符：
+        C++中的一元与二元运算符 + - * / ^ == != < <= > >= && || !
+        括号 ( )
+        C++中的三目运算符 ? :
+        定义临时变量的运算符 := （使用例：(t:=2^3+1)*(t^2-2)
+    可以使用的函数名：
+        指数函数exp 自然对数ln 常用对数lg 绝对值abs 开根号sqrt 向下取整floor
+        六种三角函数（sin等） 六种反三角函数（asin等） 六种双曲三角函数（sinh等） 六种反双曲三角函数（asinh等）
+        误差函数erf 伽马函数Gamma 贝塔函数Beta 双伽马函数psi 不完全伽马函数Gammainc
+        黎曼zeta函数或赫尔维茨zeta函数zeta（重载）
+        雅克比椭圆函数ellipse_sn ellipse_cn ellipse_dn
+        贝塞尔函数BesselJ BesselY BesselK BesselI
+        球贝塞尔函数Besselj Bessely Besselk Besseli
+        艾里函数Airy Biry
+    可以使用的常量：
+        圆周率pi 自然对数的底e 欧拉常数gamma"""
+    parser.reset()
+    try:
+        result = parser.parse(session.current_arg_text)
+        if type(result) is float:
+            await session.send(str(result), auto_escape=True)
+        else:
+            await session.send('TypeError ' + str(result), auto_escape=True)
+    except ParserError as e:
+        await session.send('SyntaxError: ' + str(e), auto_escape=True)
+    except Exception as e:
+        await session.send(type(e).__name__ + ': ' + str(e), auto_escape=True)
