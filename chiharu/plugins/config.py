@@ -92,51 +92,6 @@ class logger(metaclass=_logger_meta):
     def open(name):
         logger._l[name] = _logger(name)
 
-@functools.singledispatch
-def ErrorHandle(f):
-    @functools.wraps(f)
-    async def _f(*args, **kwargs):
-        if len(args) >= 1 and isinstance(args[0], CommandSession):
-            session = args[0]
-        elif 'session' in kwargs and isinstance(kwargs['session'], CommandSession):
-            session = kwargs['session']
-        else:
-            session = None
-        try:
-            return await f(*args, **kwargs)
-        except getopt.GetoptError as e:
-            if session is not None:
-                await session.send('参数错误！' + str(e.args), auto_escape=True)
-        except Exception:
-            if session is not None:
-                await args[0].send(traceback.format_exc(), auto_escape=True)
-    return _f
-
-@ErrorHandle.register
-def _(g: _logger, if_send=True):
-    def _g(f: Awaitable):
-        @functools.wraps(f)
-        async def _f(*args, **kwargs):
-            try:
-                return await f(*args, **kwargs)
-            except Exception:
-                if len(args) >= 1 and isinstance(args[0], CommandSession):
-                    g << f"【ERR】用户{args[0].ctx['user_id']} 使用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
-                    if if_send:
-                        await args[0].send(traceback.format_exc(), auto_escape=True)
-                elif 'session' in kwargs and isinstance(kwargs['session'], CommandSession):
-                    g << f"【ERR】用户{kwargs['session'].ctx['user_id']} 使用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
-                    if if_send:
-                        await kwargs['session'].send(traceback.format_exc(), auto_escape=True)
-                else:
-                    g << f"【ERR】调用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
-        return _f
-    return _g
-
-class Admin:
-    def __init__(self, s):
-        self.name = s
-
 class Environment:
     def __init__(self, *args, private=False, ret=""):
         self.group = set()
@@ -179,6 +134,62 @@ def description(s: str="", args: Tuple[str]=(), environment: Environment=None, h
             return _f
         return f
     return _
+
+from .games.achievement import achievement
+
+@functools.singledispatch
+def ErrorHandle(f):
+    @functools.wraps(f)
+    async def _f(*args, **kwargs):
+        if len(args) >= 1 and isinstance(args[0], CommandSession):
+            session = args[0]
+        elif 'session' in kwargs and isinstance(kwargs['session'], CommandSession):
+            session = kwargs['session']
+        else:
+            session = None
+        try:
+            return await f(*args, **kwargs)
+        except getopt.GetoptError as e:
+            if session is not None:
+                await session.send('参数错误！' + str(e.args), auto_escape=True)
+        except Exception:
+            if session is not None:
+                await args[0].send(traceback.format_exc(), auto_escape=True)
+                qq = session.ctx['user_id']
+                if achievement.bug.get(qq):
+                    await args[0].send(achievement.bug.get_str())
+    return _f
+
+@ErrorHandle.register
+def _(g: _logger, if_send=True):
+    def _g(f: Awaitable):
+        @functools.wraps(f)
+        async def _f(*args, **kwargs):
+            try:
+                return await f(*args, **kwargs)
+            except Exception:
+                if len(args) >= 1 and isinstance(args[0], CommandSession):
+                    g << f"【ERR】用户{args[0].ctx['user_id']} 使用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
+                    if if_send:
+                        await args[0].send(traceback.format_exc(), auto_escape=True)
+                        qq = session.ctx['user_id']
+                        if achievement.bug.get(qq):
+                            await args[0].send(achievement.bug.get_str())
+                elif 'session' in kwargs and isinstance(kwargs['session'], CommandSession):
+                    g << f"【ERR】用户{kwargs['session'].ctx['user_id']} 使用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
+                    if if_send:
+                        await kwargs['session'].send(traceback.format_exc(), auto_escape=True)
+                        qq = session.ctx['user_id']
+                        if achievement.bug.get(qq):
+                            await kwargs['session'].send(achievement.bug.get_str())
+                else:
+                    g << f"【ERR】调用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
+        return _f
+    return _g
+
+class Admin:
+    def __init__(self, s):
+        self.name = s
 
 def maintain(s):
     global maintain_str

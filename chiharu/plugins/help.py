@@ -10,7 +10,7 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
     "birth": "使用格式：-birth.today bandori或LL或imas：查询今天生日的角色",
     "seiyuu": "使用格式：\n-seiyuu.today：查询今天生日的声优列表\n-seiyuu.check seiyuu_name [count] [-m max=15]：返回声优的基本信息，找到多个时可以使用count指明第几个。声优名以日语原文键入，允许假名甚至罗马音，包含空格请带上引号。可以使用max指定列出的最大数量。",
     "game": "欢迎使用-game 指令访问七海千春游戏大厅~",
-    "tools": "-tools.Julia [c的x坐标] [c的y坐标]：绘制Julia集\n-tools.oeis：查询oeis（整数序列在线百科全书），支持查询数列前几项（只返回第一个结果），或oeis的编号如A036057\n-tools.quiz：每月趣题，-t YYYYMM 查看历史趣题\n-tools.quiz_submit：提交答案",
+    "tools": "-tools.Julia [c的x坐标] [c的y坐标]：绘制Julia集\n-tools.oeis：查询oeis（整数序列在线百科全书），支持查询数列前几项（只返回第一个结果），或oeis的编号如A036057\n-tools.quiz：每月趣题，-t YYYYMM 查看历史趣题\n-tools.quiz_submit：提交答案\n-tools.calculator：计算器。别名：-cal",
     "tools.Julia": "-tools.Julia [c的x坐标] [c的y坐标]\n绘制以c=x+yi为参数，z→z^2+c的Julia集。\nJulia集为在复平面上，使得无限迭代z→z^2+c不发散的初值z_0的集合。\nRef：https://en.wikipedia.org/wiki/Julia_set",
     "tools.quiz": "每月趣题。可用选项：\n-t, --time 接六位月份码查看历史趣题。\n-a, --answer 查看答案。\n欢迎提交好的东方化（或其他IP化也欢迎~）的趣题至维护者邮箱shedarshian@gmail.com（难度至少让维护者能看懂解答）",
     "misc": "-misc.asc.check str：转换str的所有字符到ascii码\n-misc.asc.trans numbers：转换数字到字符\n-misc.maj.ten：日麻算点器\n-misc.maj.train：麻将训练\n-misc.maj.ting：听牌计算器\n-misc.maj.voice：雀魂报番语音，第一行番种，换行后为指定角色名\n-misc.token：将输入文本中大括号包含的token转换成latex中包含的unicode字符，使用https://github.com/joom/latex-unicoder.vim/blob/master/autoload/unicoder.vim, https://pastebin.com/jxHsjQK0\n  例：-misc.token f(0)={\\aleph}_0,f({\\alpha}+1)={\\aleph}_{\\alpha}\n-misc.latex：渲染latex公式\n-misc.money：面基算钱小助手 请单独-help misc.money\n-misc.roll.lyric：随机抽歌词，默认从全歌单中抽取，支持参数：vocalo kon imas ml cgss sphere aki bandori ll mu's Aqours starlight mh\n-misc.omikuji：千春酱御神签，每周只能抽一次哦~\n-misc.event year month day [max_note=100]：按日期在eventernote.com查询该日发生的event，筛选条件为eventernote登录数大于max_note，默认为100，调低时请一定要注意避免刷屏！",
@@ -50,7 +50,25 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
         "\n-code：语言解释器"
         #"\n-event：按日期查询event"
         "\n-misc：隐藏指令"
-        "\n-help：展示本帮助\n-help 指令名：查看该命令帮助\n例：-help tools：查看tools指令的帮助\n欢迎加入测试群947279366避免刷屏"}
+        "\n-help：展示本帮助\n-help 指令名：查看该命令帮助\n例：-help tools：查看tools指令的帮助\n欢迎加入测试群947279366避免刷屏",
+    "tools.calculator": """计算器。计算给定式子的结果。别名：-cal
+    运算过程中只有浮点与布尔两种类型，计算结果必须为浮点数。
+    可以使用的运算符：
+        C++中的一元与二元运算符 + - * / ^ == != < <= > >= && || !
+        括号 ( )
+        C++中的三目运算符 ? :
+        定义临时变量的运算符 := （使用例：(t:=2^3+1)*(t^2-2)
+    可以使用的函数名：
+        指数函数exp 自然对数ln 常用对数lg 绝对值abs 开根号sqrt 向下取整floor
+        六种三角函数（sin等） 六种反三角函数（asin等） 六种双曲三角函数（sinh等） 六种反双曲三角函数（asinh等）
+        误差函数erf 伽马函数Gamma 贝塔函数Beta 双伽马函数psi 不完全伽马函数Gammainc
+        黎曼zeta函数或赫尔维茨zeta函数zeta（重载）
+        雅克比椭圆函数ellipse_sn ellipse_cn ellipse_dn
+        贝塞尔函数BesselJ BesselY BesselK BesselI
+        球贝塞尔函数Besselj Bessely Besselk Besseli
+        艾里函数Airy Biry
+    可以使用的常量：
+        圆周率pi 自然对数的底e 欧拉常数gamma"""}
 
 sp = {"thwiki_live": {"default": "%s\n-thwiki：thwiki直播申请相关",
     "thwiki": """%s

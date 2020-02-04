@@ -17,6 +17,7 @@ from nonebot import on_command, CommandSession, permission
 import chiharu.plugins.config as config
 from chiharu.plugins.birth import myFormatter
 import chiharu.plugins.maj as maj, chiharu.plugins.math as cmath
+from .games.achievement import achievement
 
 @on_command(('misc', 'asc', 'check'), only_to_me=False)
 @config.ErrorHandle
@@ -731,3 +732,9 @@ async def omikuji(session: CommandSession):
                 return i
     d = pick(m, h)
     await session.send(f"{version}\n{d['ji']}    {d['name']}\n\n{d['des']}", auto_escape=True)
+    if d['ji'] == '大大吉':
+        if achievement.omikuji.get(qq):
+            await session.send(achievement.omikuji.get_str())
+    elif d['ji'] in ('大凶', '大大凶'):
+        if achievement.omikuji2.get(qq):
+            await session.send(achievement.omikuji2.get_str())

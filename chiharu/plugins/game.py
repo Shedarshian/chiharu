@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 import json
 import random
 import chiharu.plugins.config as config
-import chiharu.plugins.games.card as card
 from nonebot import on_command, CommandSession, get_bot, permission, on_natural_language, NLPSession, IntentCommand
 
 # example usage for GameSameGroup:
@@ -350,16 +349,3 @@ class GamePrivate:
                         room['password'] = password
                     self.players_status[qq] = [False, room]
                     await session.send(f'已创建{"公开" if public else "非公开"}房间 {room_id}')
-
-@on_command('game', only_to_me=False)
-@config.description("\U0001F6AA七海千春游戏大厅\U0001F6AA")
-@config.ErrorHandle
-async def game_center(session: CommandSession):
-    """欢迎使用-game 指令访问七海千春游戏大厅~"""
-    if session.current_arg_text == '':
-        await session.send(config.game_center_help)
-    elif session.current_arg_text == 'card':
-        await session.send(config.center_card)
-        print('test')
-    else:
-        await session.send('game not found')
