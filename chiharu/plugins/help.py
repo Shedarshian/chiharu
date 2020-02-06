@@ -10,7 +10,7 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
     "birth": "使用格式：-birth.today bandori或LL或imas：查询今天生日的角色",
     "seiyuu": "使用格式：\n-seiyuu.today：查询今天生日的声优列表\n-seiyuu.check seiyuu_name [count] [-m max=15]：返回声优的基本信息，找到多个时可以使用count指明第几个。声优名以日语原文键入，允许假名甚至罗马音，包含空格请带上引号。可以使用max指定列出的最大数量。",
     "game": "欢迎使用-game 指令访问七海千春游戏大厅~",
-    "tools": "-tools.Julia [c的x坐标] [c的y坐标]：绘制Julia集\n-tools.oeis：查询oeis（整数序列在线百科全书），支持查询数列前几项（只返回第一个结果），或oeis的编号如A036057\n-tools.quiz：每月趣题，-t YYYYMM 查看历史趣题\n-tools.quiz_submit：提交答案\n-tools.calculator：计算器。别名：-cal",
+    "tools": "-tools.Julia [c的x坐标] [c的y坐标]：绘制Julia集\n-tools.oeis：查询oeis（整数序列在线百科全书），支持查询数列前几项（只返回第一个结果），或oeis的编号如A036057\n-tools.quiz：每月趣题，-t YYYYMM 查看历史趣题\n-tools.quiz_submit：提交答案\n-tools.calculator：计算器。别名：-cal\n-tools.function：绘制函数。",
     "tools.Julia": "-tools.Julia [c的x坐标] [c的y坐标]\n绘制以c=x+yi为参数，z→z^2+c的Julia集。\nJulia集为在复平面上，使得无限迭代z→z^2+c不发散的初值z_0的集合。\nRef：https://en.wikipedia.org/wiki/Julia_set",
     "tools.quiz": "每月趣题。可用选项：\n-t, --time 接六位月份码查看历史趣题。\n-a, --answer 查看答案。\n欢迎提交好的东方化（或其他IP化也欢迎~）的趣题至维护者邮箱shedarshian@gmail.com（难度至少让维护者能看懂解答）",
     "misc": "-misc.asc.check str：转换str的所有字符到ascii码\n-misc.asc.trans numbers：转换数字到字符\n-misc.maj.ten：日麻算点器\n-misc.maj.train：麻将训练\n-misc.maj.ting：听牌计算器\n-misc.maj.voice：雀魂报番语音，第一行番种，换行后为指定角色名\n-misc.token：将输入文本中大括号包含的token转换成latex中包含的unicode字符，使用https://github.com/joom/latex-unicoder.vim/blob/master/autoload/unicoder.vim, https://pastebin.com/jxHsjQK0\n  例：-misc.token f(0)={\\aleph}_0,f({\\alpha}+1)={\\aleph}_{\\alpha}\n-misc.latex：渲染latex公式\n-misc.money：面基算钱小助手 请单独-help misc.money\n-misc.roll.lyric：随机抽歌词，默认从全歌单中抽取，支持参数：vocalo kon imas ml cgss sphere aki bandori ll mu's Aqours starlight mh\n-misc.omikuji：千春酱御神签，每周只能抽一次哦~\n-misc.event year month day [max_note=100]：按日期在eventernote.com查询该日发生的event，筛选条件为eventernote登录数大于max_note，默认为100，调低时请一定要注意避免刷屏！",
@@ -68,7 +68,16 @@ _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到as
         球贝塞尔函数Besselj Bessely Besselk Besseli
         艾里函数Airy Biry
     可以使用的常量：
-        圆周率pi 自然对数的底e 欧拉常数gamma"""}
+        圆周率pi 自然对数的底e 欧拉常数gamma""",
+    'tools.function': """绘制函数。语法见-tools.calculator的帮助。
+    可用选项：
+        -b, --begin: 起始范围，默认为0。
+        -e, --end: 结束范围，默认为10。
+        -s, --step: 步长，默认为0.01。
+        以上三个选项均可以输入表达式，但是在包含空格时需要用引号包裹。
+    函数自变量符号为x。
+    函数不可包含换行符。在函数包含空格时，请用引号包裹函数体部分。
+    也可以在第一行输入选项，换行后输入函数体。"""}
 
 sp = {"thwiki_live": {"default": "%s\n-thwiki：thwiki直播申请相关",
     "thwiki": """%s

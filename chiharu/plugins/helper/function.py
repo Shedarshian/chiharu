@@ -184,6 +184,4 @@ class ExpressionParser:
     def __init__(self):
         self.reset()
 parser = ExpressionParser()
-import sys
-sys.path.append(r"C:\pythonworkspace\calculator")
-parser.build(outputdir=r"C:\pythonworkspace\calculator")
+parser.build()

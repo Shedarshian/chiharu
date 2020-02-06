@@ -32,8 +32,11 @@ async def AscCheck(session: CommandSession):
 async def AscTrans(session: CommandSession):
     '''转换多个数字到unicode字符。'''
     strin = session.current_arg_text.split(' ')
-    strout = ''.join(map(chr, map(int, strin)))
-    await session.send('对应字符是：\n' + strout, auto_escape=True)
+    try:
+        strout = ''.join(map(chr, map(int, strin)))
+        await session.send('对应字符是：\n' + strout, auto_escape=True)
+    except ValueError:
+        await session.send('请输入十进制数字。')
 
 @contextlib.contextmanager
 def stdoutIO(stdout=None):

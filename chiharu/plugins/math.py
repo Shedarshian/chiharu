@@ -5,12 +5,15 @@ import re
 import asyncio
 import functools
 import datetime
+import shlex
 import getopt
 from wand.image import Image
 from wand.drawing import Drawing
 from wand.color import Color
 import os
 import json
+from matplotlib import pyplot
+import numpy
 import chiharu.plugins.config as config
 from nonebot import on_command, CommandSession, get_bot, permission
 from .helper.function import parser, ParserError
@@ -238,6 +241,15 @@ async def quiz_submit(session: CommandSession):
         await get_bot().send_group_msg(group_id=group, message=f'用户{session.ctx["user_id"]} 提交答案：\n{session.current_arg}', auto_escape=True)
     await session.send('您已成功提交答案')
 
+def calculate(s):
+    parser.reset()
+    try:
+        return parser.parse(s)
+    except ParserError as e:
+        return 'SyntaxError: ' + str(e)
+    except Exception as e:
+        return type(e).__name__ + ': ' + str(e)
+
 @on_command(('tools', 'calculator'), only_to_me=False, aliases=('cal',))
 @config.description("计算器。别名：-cal")
 @config.ErrorHandle
@@ -260,14 +272,89 @@ async def calculator(session: CommandSession):
         艾里函数Airy Biry
     可以使用的常量：
         圆周率pi 自然对数的底e 欧拉常数gamma"""
+    result = calculate(session.current_arg_text)
+    if type(result) is float:
+        await session.send(str(result), auto_escape=True)
+    elif type(result) is str:
+        await session.send(result, auto_escape=True)
+    else:
+        await session.send('TypeError ' + str(result), auto_escape=True)
+
+@on_command(('tools', 'function'), only_to_me=False)
+@config.description("绘制函数。", ("[-b begin=0]", "[-e end=10]", "[-s step=0.01]"))
+@config.ErrorHandle
+async def plot_function(session: CommandSession):
+    """绘制函数。语法见-tools.calculator的帮助。
+    可用选项：
+        -b, --begin: 起始范围，默认为0。
+        -e, --end: 结束范围，默认为10。
+        -s, --step: 步长，默认为0.01。
+        以上三个选项均可以输入表达式，但是在包含空格时需要用引号包裹。
+    函数自变量符号为x。
+    函数不可包含换行符。在函数包含空格时，请用引号包裹函数体部分。
+    也可以在第一行输入选项，换行后输入函数体。"""
+    opt_str, *els = session.current_arg_text.split('\n')
+    if len(els) >= 2:
+        await session.send('函数不可包含换行符。')
+        return
+    begin, end, step = 0, 10, 0.01
+    opts, args = getopt.gnu_getopt(shlex.split(opt_str), 'b:e:s:', ['begin=', 'end=', 'step='])
+    for o, a in opts:
+        if o in ('-b', '--begin'):
+            begin = calculate(a)
+            if type(begin) is str:
+                await session.send(begin, auto_escape=True)
+                return
+        elif o in ('-e', '--end'):
+            end = calculate(a)
+            if type(end) is str:
+                await session.send(end, auto_escape=True)
+                return
+        elif o in ('-s', '--step'):
+            step = calculate(a)
+            if type(step) is str:
+                await session.send(step, auto_escape=True)
+                return
+    if len(els) == 1:
+        func_str = els[0]
+    elif len(args) != 0:
+        func_str = args[0]
+    else:
+        await session.send('请输入函数。')
     parser.reset()
+    parser.setstate('x')
     try:
-        result = parser.parse(session.current_arg_text)
-        if type(result) is float:
-            await session.send(str(result), auto_escape=True)
-        else:
-            await session.send('TypeError ' + str(result), auto_escape=True)
+        result = parser.parse(func_str)
     except ParserError as e:
         await session.send('SyntaxError: ' + str(e), auto_escape=True)
+        return
     except Exception as e:
         await session.send(type(e).__name__ + ': ' + str(e), auto_escape=True)
+        return
+    if type(result) is float:
+        result2 = result
+        result = lambda *args: result2
+    try:
+        result(begin)
+    except IndexError:
+        await session.send('请输入一元函数。')
+        return
+    num = math.ceil((end - begin) / step)
+    if num > 10000:
+        await session.send('点数不能大于10000。')
+        return
+    x = numpy.linspace(begin, end, num)
+    ufunc = numpy.frompyfunc(result, 1, 1)
+    try:
+        y = ufunc(x)
+    except ValueError as e:
+        await session.send(type(e).__name__ + ': ' + str(e), auto_escape=True)
+        return
+    except OverflowError as e:
+        await session.send(type(e).__name__ + ': ' + str(e), auto_escape=True)
+        return
+    pyplot.clf()
+    pyplot.plot(x, y)
+    name = f'func_{hash(session.current_arg_text)}.png'
+    pyplot.savefig(config.img(name))
+    await session.send(config.cq.img(name))
