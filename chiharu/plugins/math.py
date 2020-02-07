@@ -294,11 +294,12 @@ async def plot_function(session: CommandSession):
     函数不可包含换行符。在函数包含空格时，请用引号包裹函数体部分。
     也可以在第一行输入选项，换行后输入函数体。"""
     opt_str, *els = session.current_arg_text.split('\n')
+    print(session.current_arg_text, session.current_arg_text[0])
     if len(els) >= 2:
         await session.send('函数不可包含换行符。')
         return
     begin, end, step = 0, 10, 0.01
-    opts, args = getopt.gnu_getopt(shlex.split(opt_str), 'b:e:s:', ['begin=', 'end=', 'step='])
+    opts, args = getopt.gnu_getopt(shlex.split(opt_str.strip()), 'b:e:s:', ['begin=', 'end=', 'step='])
     for o, a in opts:
         if o in ('-b', '--begin'):
             begin = calculate(a)
@@ -316,41 +317,33 @@ async def plot_function(session: CommandSession):
                 await session.send(step, auto_escape=True)
                 return
     if len(els) == 1:
-        func_str = els[0]
+        func_str = els[0].strip()
     elif len(args) != 0:
-        func_str = args[0]
+        func_str = args[0].strip()
     else:
         await session.send('请输入函数。')
-    parser.reset()
-    parser.setstate('x')
-    try:
-        result = parser.parse(func_str)
-    except ParserError as e:
-        await session.send('SyntaxError: ' + str(e), auto_escape=True)
-        return
-    except Exception as e:
-        await session.send(type(e).__name__ + ': ' + str(e), auto_escape=True)
-        return
-    if type(result) is float:
-        result2 = result
-        result = lambda *args: result2
-    try:
-        result(begin)
-    except IndexError:
-        await session.send('请输入一元函数。')
-        return
     num = math.ceil((end - begin) / step)
     if num > 10000:
         await session.send('点数不能大于10000。')
         return
-    x = numpy.linspace(begin, end, num)
-    ufunc = numpy.frompyfunc(result, 1, 1)
+    parser.reset()
+    parser.setstate('x')
     try:
+        result = parser.parse(func_str)
+        if type(result) is float:
+            result2 = result
+            result = lambda *args: result2
+        result(begin)
+        x = numpy.linspace(begin, end, num)
+        ufunc = numpy.frompyfunc(result, 1, 1)
         y = ufunc(x)
-    except ValueError as e:
-        await session.send(type(e).__name__ + ': ' + str(e), auto_escape=True)
+    except IndexError:
+        await session.send('请输入一元函数。')
         return
-    except OverflowError as e:
+    except ParserError as e:
+        await session.send('SyntaxError: ' + str(e), auto_escape=True)
+        return
+    except Exception as e:
         await session.send(type(e).__name__ + ': ' + str(e), auto_escape=True)
         return
     pyplot.clf()

@@ -20,21 +20,22 @@ Rule 14    logic -> ! logic
 Rule 15    expression -> - expression
 Rule 16    expression -> logic ? expression : expression
 Rule 17    expression -> ( expression )
-Rule 18    expression -> ID
-Rule 19    expression -> NUMBER
-Rule 20    expression -> ID ( list )
-Rule 21    expression -> ID DEFINE expression
-Rule 22    list -> expression
-Rule 23    list -> expression , list
+Rule 18    logic -> ( logic )
+Rule 19    expression -> ID
+Rule 20    expression -> NUMBER
+Rule 21    expression -> ID ( list )
+Rule 22    expression -> ID DEFINE expression
+Rule 23    list -> expression
+Rule 24    list -> expression , list
 
 Terminals, with rules where they appear
 
 !                    : 14
-(                    : 17 20
-)                    : 17 20
+(                    : 17 18 21
+)                    : 17 18 21
 *                    : 3
 +                    : 1
-,                    : 23
+,                    : 24
 -                    : 2 15
 /                    : 4
 :                    : 16
@@ -42,22 +43,22 @@ Terminals, with rules where they appear
 >                    : 11
 ?                    : 16
 AND                  : 12
-DEFINE               : 21
+DEFINE               : 22
 EQ                   : 6
 GE                   : 9
-ID                   : 18 20 21
+ID                   : 19 21 22
 LE                   : 8
 NEQ                  : 7
-NUMBER               : 19
+NUMBER               : 20
 OR                   : 13
 ^                    : 5
 error                : 
 
 Nonterminals, with rules where they appear
 
-expression           : 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 15 16 16 17 21 22 23 0
-list                 : 20 23
-logic                : 12 12 13 13 14 16
+expression           : 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 15 16 16 17 22 23 24 0
+list                 : 21 24
+logic                : 12 12 13 13 14 16 18
 
 Parsing method: LALR
 
@@ -72,10 +73,10 @@ state 0
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -85,6 +86,7 @@ state 0
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -134,10 +136,10 @@ state 2
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -147,6 +149,7 @@ state 2
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -171,6 +174,7 @@ state 3
 state 4
 
     (17) expression -> ( . expression )
+    (18) logic -> ( . logic )
     (1) expression -> . expression + expression
     (2) expression -> . expression - expression
     (3) expression -> . expression * expression
@@ -179,10 +183,10 @@ state 4
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -192,6 +196,7 @@ state 4
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -200,58 +205,58 @@ state 4
     !               shift and go to state 7
 
     expression                     shift and go to state 23
-    logic                          shift and go to state 3
+    logic                          shift and go to state 24
 
 state 5
 
-    (18) expression -> ID .
-    (20) expression -> ID . ( list )
-    (21) expression -> ID . DEFINE expression
+    (19) expression -> ID .
+    (21) expression -> ID . ( list )
+    (22) expression -> ID . DEFINE expression
 
-    +               reduce using rule 18 (expression -> ID .)
-    -               reduce using rule 18 (expression -> ID .)
-    *               reduce using rule 18 (expression -> ID .)
-    /               reduce using rule 18 (expression -> ID .)
-    ^               reduce using rule 18 (expression -> ID .)
-    EQ              reduce using rule 18 (expression -> ID .)
-    NEQ             reduce using rule 18 (expression -> ID .)
-    LE              reduce using rule 18 (expression -> ID .)
-    GE              reduce using rule 18 (expression -> ID .)
-    <               reduce using rule 18 (expression -> ID .)
-    >               reduce using rule 18 (expression -> ID .)
-    $end            reduce using rule 18 (expression -> ID .)
-    )               reduce using rule 18 (expression -> ID .)
-    ?               reduce using rule 18 (expression -> ID .)
-    AND             reduce using rule 18 (expression -> ID .)
-    OR              reduce using rule 18 (expression -> ID .)
-    :               reduce using rule 18 (expression -> ID .)
-    ,               reduce using rule 18 (expression -> ID .)
-    (               shift and go to state 24
-    DEFINE          shift and go to state 25
+    +               reduce using rule 19 (expression -> ID .)
+    -               reduce using rule 19 (expression -> ID .)
+    *               reduce using rule 19 (expression -> ID .)
+    /               reduce using rule 19 (expression -> ID .)
+    ^               reduce using rule 19 (expression -> ID .)
+    EQ              reduce using rule 19 (expression -> ID .)
+    NEQ             reduce using rule 19 (expression -> ID .)
+    LE              reduce using rule 19 (expression -> ID .)
+    GE              reduce using rule 19 (expression -> ID .)
+    <               reduce using rule 19 (expression -> ID .)
+    >               reduce using rule 19 (expression -> ID .)
+    $end            reduce using rule 19 (expression -> ID .)
+    )               reduce using rule 19 (expression -> ID .)
+    ?               reduce using rule 19 (expression -> ID .)
+    AND             reduce using rule 19 (expression -> ID .)
+    OR              reduce using rule 19 (expression -> ID .)
+    :               reduce using rule 19 (expression -> ID .)
+    ,               reduce using rule 19 (expression -> ID .)
+    (               shift and go to state 25
+    DEFINE          shift and go to state 26
 
 
 state 6
 
-    (19) expression -> NUMBER .
+    (20) expression -> NUMBER .
 
-    +               reduce using rule 19 (expression -> NUMBER .)
-    -               reduce using rule 19 (expression -> NUMBER .)
-    *               reduce using rule 19 (expression -> NUMBER .)
-    /               reduce using rule 19 (expression -> NUMBER .)
-    ^               reduce using rule 19 (expression -> NUMBER .)
-    EQ              reduce using rule 19 (expression -> NUMBER .)
-    NEQ             reduce using rule 19 (expression -> NUMBER .)
-    LE              reduce using rule 19 (expression -> NUMBER .)
-    GE              reduce using rule 19 (expression -> NUMBER .)
-    <               reduce using rule 19 (expression -> NUMBER .)
-    >               reduce using rule 19 (expression -> NUMBER .)
-    $end            reduce using rule 19 (expression -> NUMBER .)
-    )               reduce using rule 19 (expression -> NUMBER .)
-    ?               reduce using rule 19 (expression -> NUMBER .)
-    AND             reduce using rule 19 (expression -> NUMBER .)
-    OR              reduce using rule 19 (expression -> NUMBER .)
-    :               reduce using rule 19 (expression -> NUMBER .)
-    ,               reduce using rule 19 (expression -> NUMBER .)
+    +               reduce using rule 20 (expression -> NUMBER .)
+    -               reduce using rule 20 (expression -> NUMBER .)
+    *               reduce using rule 20 (expression -> NUMBER .)
+    /               reduce using rule 20 (expression -> NUMBER .)
+    ^               reduce using rule 20 (expression -> NUMBER .)
+    EQ              reduce using rule 20 (expression -> NUMBER .)
+    NEQ             reduce using rule 20 (expression -> NUMBER .)
+    LE              reduce using rule 20 (expression -> NUMBER .)
+    GE              reduce using rule 20 (expression -> NUMBER .)
+    <               reduce using rule 20 (expression -> NUMBER .)
+    >               reduce using rule 20 (expression -> NUMBER .)
+    $end            reduce using rule 20 (expression -> NUMBER .)
+    )               reduce using rule 20 (expression -> NUMBER .)
+    ?               reduce using rule 20 (expression -> NUMBER .)
+    AND             reduce using rule 20 (expression -> NUMBER .)
+    OR              reduce using rule 20 (expression -> NUMBER .)
+    :               reduce using rule 20 (expression -> NUMBER .)
+    ,               reduce using rule 20 (expression -> NUMBER .)
 
 
 state 7
@@ -266,6 +271,7 @@ state 7
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
     (1) expression -> . expression + expression
     (2) expression -> . expression - expression
     (3) expression -> . expression * expression
@@ -274,19 +280,19 @@ state 7
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
 
     !               shift and go to state 7
+    (               shift and go to state 29
     -               shift and go to state 2
-    (               shift and go to state 4
     ID              shift and go to state 5
     NUMBER          shift and go to state 6
 
-    logic                          shift and go to state 26
-    expression                     shift and go to state 27
+    logic                          shift and go to state 27
+    expression                     shift and go to state 28
 
 state 8
 
@@ -299,10 +305,10 @@ state 8
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -312,6 +318,7 @@ state 8
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -319,7 +326,7 @@ state 8
     NUMBER          shift and go to state 6
     !               shift and go to state 7
 
-    expression                     shift and go to state 28
+    expression                     shift and go to state 30
     logic                          shift and go to state 3
 
 state 9
@@ -333,10 +340,10 @@ state 9
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -346,6 +353,7 @@ state 9
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -353,7 +361,7 @@ state 9
     NUMBER          shift and go to state 6
     !               shift and go to state 7
 
-    expression                     shift and go to state 29
+    expression                     shift and go to state 31
     logic                          shift and go to state 3
 
 state 10
@@ -367,10 +375,10 @@ state 10
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -380,6 +388,7 @@ state 10
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -387,7 +396,7 @@ state 10
     NUMBER          shift and go to state 6
     !               shift and go to state 7
 
-    expression                     shift and go to state 30
+    expression                     shift and go to state 32
     logic                          shift and go to state 3
 
 state 11
@@ -401,10 +410,10 @@ state 11
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -414,6 +423,7 @@ state 11
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -421,7 +431,7 @@ state 11
     NUMBER          shift and go to state 6
     !               shift and go to state 7
 
-    expression                     shift and go to state 31
+    expression                     shift and go to state 33
     logic                          shift and go to state 3
 
 state 12
@@ -435,10 +445,10 @@ state 12
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -448,6 +458,7 @@ state 12
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -455,7 +466,7 @@ state 12
     NUMBER          shift and go to state 6
     !               shift and go to state 7
 
-    expression                     shift and go to state 32
+    expression                     shift and go to state 34
     logic                          shift and go to state 3
 
 state 13
@@ -469,10 +480,10 @@ state 13
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -482,6 +493,7 @@ state 13
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -489,7 +501,7 @@ state 13
     NUMBER          shift and go to state 6
     !               shift and go to state 7
 
-    expression                     shift and go to state 33
+    expression                     shift and go to state 35
     logic                          shift and go to state 3
 
 state 14
@@ -503,10 +515,10 @@ state 14
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -516,6 +528,7 @@ state 14
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -523,7 +536,7 @@ state 14
     NUMBER          shift and go to state 6
     !               shift and go to state 7
 
-    expression                     shift and go to state 34
+    expression                     shift and go to state 36
     logic                          shift and go to state 3
 
 state 15
@@ -537,10 +550,10 @@ state 15
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -550,6 +563,7 @@ state 15
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -557,7 +571,7 @@ state 15
     NUMBER          shift and go to state 6
     !               shift and go to state 7
 
-    expression                     shift and go to state 35
+    expression                     shift and go to state 37
     logic                          shift and go to state 3
 
 state 16
@@ -571,10 +585,10 @@ state 16
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -584,6 +598,7 @@ state 16
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -591,7 +606,7 @@ state 16
     NUMBER          shift and go to state 6
     !               shift and go to state 7
 
-    expression                     shift and go to state 36
+    expression                     shift and go to state 38
     logic                          shift and go to state 3
 
 state 17
@@ -605,10 +620,10 @@ state 17
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -618,6 +633,7 @@ state 17
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -625,7 +641,7 @@ state 17
     NUMBER          shift and go to state 6
     !               shift and go to state 7
 
-    expression                     shift and go to state 37
+    expression                     shift and go to state 39
     logic                          shift and go to state 3
 
 state 18
@@ -639,10 +655,10 @@ state 18
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -652,6 +668,7 @@ state 18
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -659,7 +676,7 @@ state 18
     NUMBER          shift and go to state 6
     !               shift and go to state 7
 
-    expression                     shift and go to state 38
+    expression                     shift and go to state 40
     logic                          shift and go to state 3
 
 state 19
@@ -720,10 +737,10 @@ state 20
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -733,6 +750,7 @@ state 20
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -741,7 +759,7 @@ state 20
     !               shift and go to state 7
 
     logic                          shift and go to state 3
-    expression                     shift and go to state 39
+    expression                     shift and go to state 41
 
 state 21
 
@@ -755,6 +773,7 @@ state 21
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
     (1) expression -> . expression + expression
     (2) expression -> . expression - expression
     (3) expression -> . expression * expression
@@ -763,19 +782,19 @@ state 21
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
 
     !               shift and go to state 7
+    (               shift and go to state 29
     -               shift and go to state 2
-    (               shift and go to state 4
     ID              shift and go to state 5
     NUMBER          shift and go to state 6
 
-    logic                          shift and go to state 40
-    expression                     shift and go to state 27
+    logic                          shift and go to state 42
+    expression                     shift and go to state 28
 
 state 22
 
@@ -789,6 +808,7 @@ state 22
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
     (1) expression -> . expression + expression
     (2) expression -> . expression - expression
     (3) expression -> . expression * expression
@@ -797,19 +817,19 @@ state 22
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
 
     !               shift and go to state 7
+    (               shift and go to state 29
     -               shift and go to state 2
-    (               shift and go to state 4
     ID              shift and go to state 5
     NUMBER          shift and go to state 6
 
-    logic                          shift and go to state 41
-    expression                     shift and go to state 27
+    logic                          shift and go to state 43
+    expression                     shift and go to state 28
 
 state 23
 
@@ -826,7 +846,7 @@ state 23
     (10) logic -> expression . < expression
     (11) logic -> expression . > expression
 
-    )               shift and go to state 42
+    )               shift and go to state 44
     +               shift and go to state 8
     -               shift and go to state 9
     *               shift and go to state 10
@@ -842,44 +862,22 @@ state 23
 
 state 24
 
-    (20) expression -> ID ( . list )
-    (22) list -> . expression
-    (23) list -> . expression , list
-    (1) expression -> . expression + expression
-    (2) expression -> . expression - expression
-    (3) expression -> . expression * expression
-    (4) expression -> . expression / expression
-    (5) expression -> . expression ^ expression
-    (15) expression -> . - expression
-    (16) expression -> . logic ? expression : expression
-    (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
-    (6) logic -> . expression EQ expression
-    (7) logic -> . expression NEQ expression
-    (8) logic -> . expression LE expression
-    (9) logic -> . expression GE expression
-    (10) logic -> . expression < expression
-    (11) logic -> . expression > expression
-    (12) logic -> . logic AND logic
-    (13) logic -> . logic OR logic
-    (14) logic -> . ! logic
+    (18) logic -> ( logic . )
+    (16) expression -> logic . ? expression : expression
+    (12) logic -> logic . AND logic
+    (13) logic -> logic . OR logic
 
-    -               shift and go to state 2
-    (               shift and go to state 4
-    ID              shift and go to state 5
-    NUMBER          shift and go to state 6
-    !               shift and go to state 7
+    )               shift and go to state 45
+    ?               shift and go to state 20
+    AND             shift and go to state 21
+    OR              shift and go to state 22
 
-    list                           shift and go to state 43
-    expression                     shift and go to state 44
-    logic                          shift and go to state 3
 
 state 25
 
-    (21) expression -> ID DEFINE . expression
+    (21) expression -> ID ( . list )
+    (23) list -> . expression
+    (24) list -> . expression , list
     (1) expression -> . expression + expression
     (2) expression -> . expression - expression
     (3) expression -> . expression * expression
@@ -888,10 +886,10 @@ state 25
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -901,6 +899,7 @@ state 25
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -908,10 +907,46 @@ state 25
     NUMBER          shift and go to state 6
     !               shift and go to state 7
 
-    expression                     shift and go to state 45
+    list                           shift and go to state 46
+    expression                     shift and go to state 47
     logic                          shift and go to state 3
 
 state 26
+
+    (22) expression -> ID DEFINE . expression
+    (1) expression -> . expression + expression
+    (2) expression -> . expression - expression
+    (3) expression -> . expression * expression
+    (4) expression -> . expression / expression
+    (5) expression -> . expression ^ expression
+    (15) expression -> . - expression
+    (16) expression -> . logic ? expression : expression
+    (17) expression -> . ( expression )
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
+    (6) logic -> . expression EQ expression
+    (7) logic -> . expression NEQ expression
+    (8) logic -> . expression LE expression
+    (9) logic -> . expression GE expression
+    (10) logic -> . expression < expression
+    (11) logic -> . expression > expression
+    (12) logic -> . logic AND logic
+    (13) logic -> . logic OR logic
+    (14) logic -> . ! logic
+    (18) logic -> . ( logic )
+
+    -               shift and go to state 2
+    (               shift and go to state 4
+    ID              shift and go to state 5
+    NUMBER          shift and go to state 6
+    !               shift and go to state 7
+
+    expression                     shift and go to state 48
+    logic                          shift and go to state 3
+
+state 27
 
     (14) logic -> ! logic .
     (12) logic -> logic . AND logic
@@ -921,13 +956,14 @@ state 26
     ?               reduce using rule 14 (logic -> ! logic .)
     AND             reduce using rule 14 (logic -> ! logic .)
     OR              reduce using rule 14 (logic -> ! logic .)
+    )               reduce using rule 14 (logic -> ! logic .)
 
   ! AND             [ shift and go to state 21 ]
   ! OR              [ shift and go to state 22 ]
   ! ?               [ shift and go to state 20 ]
 
 
-state 27
+state 28
 
     (6) logic -> expression . EQ expression
     (7) logic -> expression . NEQ expression
@@ -954,7 +990,43 @@ state 27
     ^               shift and go to state 12
 
 
-state 28
+state 29
+
+    (18) logic -> ( . logic )
+    (17) expression -> ( . expression )
+    (6) logic -> . expression EQ expression
+    (7) logic -> . expression NEQ expression
+    (8) logic -> . expression LE expression
+    (9) logic -> . expression GE expression
+    (10) logic -> . expression < expression
+    (11) logic -> . expression > expression
+    (12) logic -> . logic AND logic
+    (13) logic -> . logic OR logic
+    (14) logic -> . ! logic
+    (18) logic -> . ( logic )
+    (1) expression -> . expression + expression
+    (2) expression -> . expression - expression
+    (3) expression -> . expression * expression
+    (4) expression -> . expression / expression
+    (5) expression -> . expression ^ expression
+    (15) expression -> . - expression
+    (16) expression -> . logic ? expression : expression
+    (17) expression -> . ( expression )
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
+
+    !               shift and go to state 7
+    (               shift and go to state 29
+    -               shift and go to state 2
+    ID              shift and go to state 5
+    NUMBER          shift and go to state 6
+
+    logic                          shift and go to state 49
+    expression                     shift and go to state 50
+
+state 30
 
     (1) expression -> expression + expression .
     (1) expression -> expression . + expression
@@ -1001,7 +1073,7 @@ state 28
   ! >               [ shift and go to state 18 ]
 
 
-state 29
+state 31
 
     (2) expression -> expression - expression .
     (1) expression -> expression . + expression
@@ -1048,7 +1120,7 @@ state 29
   ! >               [ shift and go to state 18 ]
 
 
-state 30
+state 32
 
     (3) expression -> expression * expression .
     (1) expression -> expression . + expression
@@ -1095,7 +1167,7 @@ state 30
   ! >               [ shift and go to state 18 ]
 
 
-state 31
+state 33
 
     (4) expression -> expression / expression .
     (1) expression -> expression . + expression
@@ -1142,7 +1214,7 @@ state 31
   ! >               [ shift and go to state 18 ]
 
 
-state 32
+state 34
 
     (5) expression -> expression ^ expression .
     (1) expression -> expression . + expression
@@ -1189,7 +1261,7 @@ state 32
   ! >               [ shift and go to state 18 ]
 
 
-state 33
+state 35
 
     (6) logic -> expression EQ expression .
     (1) expression -> expression . + expression
@@ -1207,6 +1279,7 @@ state 33
     ?               reduce using rule 6 (logic -> expression EQ expression .)
     AND             reduce using rule 6 (logic -> expression EQ expression .)
     OR              reduce using rule 6 (logic -> expression EQ expression .)
+    )               reduce using rule 6 (logic -> expression EQ expression .)
     +               shift and go to state 8
     -               shift and go to state 9
     *               shift and go to state 10
@@ -1220,7 +1293,7 @@ state 33
     >               shift and go to state 18
 
 
-state 34
+state 36
 
     (7) logic -> expression NEQ expression .
     (1) expression -> expression . + expression
@@ -1238,6 +1311,7 @@ state 34
     ?               reduce using rule 7 (logic -> expression NEQ expression .)
     AND             reduce using rule 7 (logic -> expression NEQ expression .)
     OR              reduce using rule 7 (logic -> expression NEQ expression .)
+    )               reduce using rule 7 (logic -> expression NEQ expression .)
     +               shift and go to state 8
     -               shift and go to state 9
     *               shift and go to state 10
@@ -1251,7 +1325,7 @@ state 34
     >               shift and go to state 18
 
 
-state 35
+state 37
 
     (8) logic -> expression LE expression .
     (1) expression -> expression . + expression
@@ -1269,6 +1343,7 @@ state 35
     ?               reduce using rule 8 (logic -> expression LE expression .)
     AND             reduce using rule 8 (logic -> expression LE expression .)
     OR              reduce using rule 8 (logic -> expression LE expression .)
+    )               reduce using rule 8 (logic -> expression LE expression .)
     +               shift and go to state 8
     -               shift and go to state 9
     *               shift and go to state 10
@@ -1282,7 +1357,7 @@ state 35
     >               shift and go to state 18
 
 
-state 36
+state 38
 
     (9) logic -> expression GE expression .
     (1) expression -> expression . + expression
@@ -1300,6 +1375,7 @@ state 36
     ?               reduce using rule 9 (logic -> expression GE expression .)
     AND             reduce using rule 9 (logic -> expression GE expression .)
     OR              reduce using rule 9 (logic -> expression GE expression .)
+    )               reduce using rule 9 (logic -> expression GE expression .)
     +               shift and go to state 8
     -               shift and go to state 9
     *               shift and go to state 10
@@ -1313,7 +1389,7 @@ state 36
     >               shift and go to state 18
 
 
-state 37
+state 39
 
     (10) logic -> expression < expression .
     (1) expression -> expression . + expression
@@ -1331,6 +1407,7 @@ state 37
     ?               reduce using rule 10 (logic -> expression < expression .)
     AND             reduce using rule 10 (logic -> expression < expression .)
     OR              reduce using rule 10 (logic -> expression < expression .)
+    )               reduce using rule 10 (logic -> expression < expression .)
     +               shift and go to state 8
     -               shift and go to state 9
     *               shift and go to state 10
@@ -1344,7 +1421,7 @@ state 37
     >               shift and go to state 18
 
 
-state 38
+state 40
 
     (11) logic -> expression > expression .
     (1) expression -> expression . + expression
@@ -1362,6 +1439,7 @@ state 38
     ?               reduce using rule 11 (logic -> expression > expression .)
     AND             reduce using rule 11 (logic -> expression > expression .)
     OR              reduce using rule 11 (logic -> expression > expression .)
+    )               reduce using rule 11 (logic -> expression > expression .)
     +               shift and go to state 8
     -               shift and go to state 9
     *               shift and go to state 10
@@ -1375,7 +1453,7 @@ state 38
     >               shift and go to state 18
 
 
-state 39
+state 41
 
     (16) expression -> logic ? expression . : expression
     (1) expression -> expression . + expression
@@ -1390,7 +1468,7 @@ state 39
     (10) logic -> expression . < expression
     (11) logic -> expression . > expression
 
-    :               shift and go to state 46
+    :               shift and go to state 51
     +               shift and go to state 8
     -               shift and go to state 9
     *               shift and go to state 10
@@ -1404,7 +1482,7 @@ state 39
     >               shift and go to state 18
 
 
-state 40
+state 42
 
     (12) logic -> logic AND logic .
     (12) logic -> logic . AND logic
@@ -1414,13 +1492,14 @@ state 40
     ?               reduce using rule 12 (logic -> logic AND logic .)
     AND             reduce using rule 12 (logic -> logic AND logic .)
     OR              reduce using rule 12 (logic -> logic AND logic .)
+    )               reduce using rule 12 (logic -> logic AND logic .)
 
   ! AND             [ shift and go to state 21 ]
   ! OR              [ shift and go to state 22 ]
   ! ?               [ shift and go to state 20 ]
 
 
-state 41
+state 43
 
     (13) logic -> logic OR logic .
     (12) logic -> logic . AND logic
@@ -1429,6 +1508,7 @@ state 41
 
     ?               reduce using rule 13 (logic -> logic OR logic .)
     OR              reduce using rule 13 (logic -> logic OR logic .)
+    )               reduce using rule 13 (logic -> logic OR logic .)
     AND             shift and go to state 21
 
   ! AND             [ reduce using rule 13 (logic -> logic OR logic .) ]
@@ -1436,7 +1516,7 @@ state 41
   ! ?               [ shift and go to state 20 ]
 
 
-state 42
+state 44
 
     (17) expression -> ( expression ) .
 
@@ -1460,92 +1540,144 @@ state 42
     ,               reduce using rule 17 (expression -> ( expression ) .)
 
 
-state 43
-
-    (20) expression -> ID ( list . )
-
-    )               shift and go to state 47
-
-
-state 44
-
-    (22) list -> expression .
-    (23) list -> expression . , list
-    (1) expression -> expression . + expression
-    (2) expression -> expression . - expression
-    (3) expression -> expression . * expression
-    (4) expression -> expression . / expression
-    (5) expression -> expression . ^ expression
-    (6) logic -> expression . EQ expression
-    (7) logic -> expression . NEQ expression
-    (8) logic -> expression . LE expression
-    (9) logic -> expression . GE expression
-    (10) logic -> expression . < expression
-    (11) logic -> expression . > expression
-
-    )               reduce using rule 22 (list -> expression .)
-    ,               shift and go to state 48
-    +               shift and go to state 8
-    -               shift and go to state 9
-    *               shift and go to state 10
-    /               shift and go to state 11
-    ^               shift and go to state 12
-    EQ              shift and go to state 13
-    NEQ             shift and go to state 14
-    LE              shift and go to state 15
-    GE              shift and go to state 16
-    <               shift and go to state 17
-    >               shift and go to state 18
-
-
 state 45
 
-    (21) expression -> ID DEFINE expression .
-    (1) expression -> expression . + expression
-    (2) expression -> expression . - expression
-    (3) expression -> expression . * expression
-    (4) expression -> expression . / expression
-    (5) expression -> expression . ^ expression
-    (6) logic -> expression . EQ expression
-    (7) logic -> expression . NEQ expression
-    (8) logic -> expression . LE expression
-    (9) logic -> expression . GE expression
-    (10) logic -> expression . < expression
-    (11) logic -> expression . > expression
+    (18) logic -> ( logic ) .
 
-    $end            reduce using rule 21 (expression -> ID DEFINE expression .)
-    )               reduce using rule 21 (expression -> ID DEFINE expression .)
-    ?               reduce using rule 21 (expression -> ID DEFINE expression .)
-    AND             reduce using rule 21 (expression -> ID DEFINE expression .)
-    OR              reduce using rule 21 (expression -> ID DEFINE expression .)
-    :               reduce using rule 21 (expression -> ID DEFINE expression .)
-    ,               reduce using rule 21 (expression -> ID DEFINE expression .)
-    +               shift and go to state 8
-    -               shift and go to state 9
-    *               shift and go to state 10
-    /               shift and go to state 11
-    ^               shift and go to state 12
-    EQ              shift and go to state 13
-    NEQ             shift and go to state 14
-    LE              shift and go to state 15
-    GE              shift and go to state 16
-    <               shift and go to state 17
-    >               shift and go to state 18
-
-  ! +               [ reduce using rule 21 (expression -> ID DEFINE expression .) ]
-  ! -               [ reduce using rule 21 (expression -> ID DEFINE expression .) ]
-  ! *               [ reduce using rule 21 (expression -> ID DEFINE expression .) ]
-  ! /               [ reduce using rule 21 (expression -> ID DEFINE expression .) ]
-  ! ^               [ reduce using rule 21 (expression -> ID DEFINE expression .) ]
-  ! EQ              [ reduce using rule 21 (expression -> ID DEFINE expression .) ]
-  ! NEQ             [ reduce using rule 21 (expression -> ID DEFINE expression .) ]
-  ! LE              [ reduce using rule 21 (expression -> ID DEFINE expression .) ]
-  ! GE              [ reduce using rule 21 (expression -> ID DEFINE expression .) ]
-  ! <               [ reduce using rule 21 (expression -> ID DEFINE expression .) ]
-  ! >               [ reduce using rule 21 (expression -> ID DEFINE expression .) ]
+    ?               reduce using rule 18 (logic -> ( logic ) .)
+    AND             reduce using rule 18 (logic -> ( logic ) .)
+    OR              reduce using rule 18 (logic -> ( logic ) .)
+    )               reduce using rule 18 (logic -> ( logic ) .)
 
 
 state 46
+
+    (21) expression -> ID ( list . )
+
+    )               shift and go to state 52
+
+
+state 47
+
+    (23) list -> expression .
+    (24) list -> expression . , list
+    (1) expression -> expression . + expression
+    (2) expression -> expression . - expression
+    (3) expression -> expression . * expression
+    (4) expression -> expression . / expression
+    (5) expression -> expression . ^ expression
+    (6) logic -> expression . EQ expression
+    (7) logic -> expression . NEQ expression
+    (8) logic -> expression . LE expression
+    (9) logic -> expression . GE expression
+    (10) logic -> expression . < expression
+    (11) logic -> expression . > expression
+
+    )               reduce using rule 23 (list -> expression .)
+    ,               shift and go to state 53
+    +               shift and go to state 8
+    -               shift and go to state 9
+    *               shift and go to state 10
+    /               shift and go to state 11
+    ^               shift and go to state 12
+    EQ              shift and go to state 13
+    NEQ             shift and go to state 14
+    LE              shift and go to state 15
+    GE              shift and go to state 16
+    <               shift and go to state 17
+    >               shift and go to state 18
+
+
+state 48
+
+    (22) expression -> ID DEFINE expression .
+    (1) expression -> expression . + expression
+    (2) expression -> expression . - expression
+    (3) expression -> expression . * expression
+    (4) expression -> expression . / expression
+    (5) expression -> expression . ^ expression
+    (6) logic -> expression . EQ expression
+    (7) logic -> expression . NEQ expression
+    (8) logic -> expression . LE expression
+    (9) logic -> expression . GE expression
+    (10) logic -> expression . < expression
+    (11) logic -> expression . > expression
+
+    $end            reduce using rule 22 (expression -> ID DEFINE expression .)
+    )               reduce using rule 22 (expression -> ID DEFINE expression .)
+    ?               reduce using rule 22 (expression -> ID DEFINE expression .)
+    AND             reduce using rule 22 (expression -> ID DEFINE expression .)
+    OR              reduce using rule 22 (expression -> ID DEFINE expression .)
+    :               reduce using rule 22 (expression -> ID DEFINE expression .)
+    ,               reduce using rule 22 (expression -> ID DEFINE expression .)
+    +               shift and go to state 8
+    -               shift and go to state 9
+    *               shift and go to state 10
+    /               shift and go to state 11
+    ^               shift and go to state 12
+    EQ              shift and go to state 13
+    NEQ             shift and go to state 14
+    LE              shift and go to state 15
+    GE              shift and go to state 16
+    <               shift and go to state 17
+    >               shift and go to state 18
+
+  ! +               [ reduce using rule 22 (expression -> ID DEFINE expression .) ]
+  ! -               [ reduce using rule 22 (expression -> ID DEFINE expression .) ]
+  ! *               [ reduce using rule 22 (expression -> ID DEFINE expression .) ]
+  ! /               [ reduce using rule 22 (expression -> ID DEFINE expression .) ]
+  ! ^               [ reduce using rule 22 (expression -> ID DEFINE expression .) ]
+  ! EQ              [ reduce using rule 22 (expression -> ID DEFINE expression .) ]
+  ! NEQ             [ reduce using rule 22 (expression -> ID DEFINE expression .) ]
+  ! LE              [ reduce using rule 22 (expression -> ID DEFINE expression .) ]
+  ! GE              [ reduce using rule 22 (expression -> ID DEFINE expression .) ]
+  ! <               [ reduce using rule 22 (expression -> ID DEFINE expression .) ]
+  ! >               [ reduce using rule 22 (expression -> ID DEFINE expression .) ]
+
+
+state 49
+
+    (18) logic -> ( logic . )
+    (12) logic -> logic . AND logic
+    (13) logic -> logic . OR logic
+    (16) expression -> logic . ? expression : expression
+
+    )               shift and go to state 45
+    AND             shift and go to state 21
+    OR              shift and go to state 22
+    ?               shift and go to state 20
+
+
+state 50
+
+    (17) expression -> ( expression . )
+    (6) logic -> expression . EQ expression
+    (7) logic -> expression . NEQ expression
+    (8) logic -> expression . LE expression
+    (9) logic -> expression . GE expression
+    (10) logic -> expression . < expression
+    (11) logic -> expression . > expression
+    (1) expression -> expression . + expression
+    (2) expression -> expression . - expression
+    (3) expression -> expression . * expression
+    (4) expression -> expression . / expression
+    (5) expression -> expression . ^ expression
+
+    )               shift and go to state 44
+    EQ              shift and go to state 13
+    NEQ             shift and go to state 14
+    LE              shift and go to state 15
+    GE              shift and go to state 16
+    <               shift and go to state 17
+    >               shift and go to state 18
+    +               shift and go to state 8
+    -               shift and go to state 9
+    *               shift and go to state 10
+    /               shift and go to state 11
+    ^               shift and go to state 12
+
+
+state 51
 
     (16) expression -> logic ? expression : . expression
     (1) expression -> . expression + expression
@@ -1556,10 +1688,10 @@ state 46
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -1569,6 +1701,7 @@ state 46
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -1577,37 +1710,37 @@ state 46
     !               shift and go to state 7
 
     logic                          shift and go to state 3
-    expression                     shift and go to state 49
+    expression                     shift and go to state 54
 
-state 47
+state 52
 
-    (20) expression -> ID ( list ) .
+    (21) expression -> ID ( list ) .
 
-    +               reduce using rule 20 (expression -> ID ( list ) .)
-    -               reduce using rule 20 (expression -> ID ( list ) .)
-    *               reduce using rule 20 (expression -> ID ( list ) .)
-    /               reduce using rule 20 (expression -> ID ( list ) .)
-    ^               reduce using rule 20 (expression -> ID ( list ) .)
-    EQ              reduce using rule 20 (expression -> ID ( list ) .)
-    NEQ             reduce using rule 20 (expression -> ID ( list ) .)
-    LE              reduce using rule 20 (expression -> ID ( list ) .)
-    GE              reduce using rule 20 (expression -> ID ( list ) .)
-    <               reduce using rule 20 (expression -> ID ( list ) .)
-    >               reduce using rule 20 (expression -> ID ( list ) .)
-    $end            reduce using rule 20 (expression -> ID ( list ) .)
-    )               reduce using rule 20 (expression -> ID ( list ) .)
-    ?               reduce using rule 20 (expression -> ID ( list ) .)
-    AND             reduce using rule 20 (expression -> ID ( list ) .)
-    OR              reduce using rule 20 (expression -> ID ( list ) .)
-    :               reduce using rule 20 (expression -> ID ( list ) .)
-    ,               reduce using rule 20 (expression -> ID ( list ) .)
+    +               reduce using rule 21 (expression -> ID ( list ) .)
+    -               reduce using rule 21 (expression -> ID ( list ) .)
+    *               reduce using rule 21 (expression -> ID ( list ) .)
+    /               reduce using rule 21 (expression -> ID ( list ) .)
+    ^               reduce using rule 21 (expression -> ID ( list ) .)
+    EQ              reduce using rule 21 (expression -> ID ( list ) .)
+    NEQ             reduce using rule 21 (expression -> ID ( list ) .)
+    LE              reduce using rule 21 (expression -> ID ( list ) .)
+    GE              reduce using rule 21 (expression -> ID ( list ) .)
+    <               reduce using rule 21 (expression -> ID ( list ) .)
+    >               reduce using rule 21 (expression -> ID ( list ) .)
+    $end            reduce using rule 21 (expression -> ID ( list ) .)
+    )               reduce using rule 21 (expression -> ID ( list ) .)
+    ?               reduce using rule 21 (expression -> ID ( list ) .)
+    AND             reduce using rule 21 (expression -> ID ( list ) .)
+    OR              reduce using rule 21 (expression -> ID ( list ) .)
+    :               reduce using rule 21 (expression -> ID ( list ) .)
+    ,               reduce using rule 21 (expression -> ID ( list ) .)
 
 
-state 48
+state 53
 
-    (23) list -> expression , . list
-    (22) list -> . expression
-    (23) list -> . expression , list
+    (24) list -> expression , . list
+    (23) list -> . expression
+    (24) list -> . expression , list
     (1) expression -> . expression + expression
     (2) expression -> . expression - expression
     (3) expression -> . expression * expression
@@ -1616,10 +1749,10 @@ state 48
     (15) expression -> . - expression
     (16) expression -> . logic ? expression : expression
     (17) expression -> . ( expression )
-    (18) expression -> . ID
-    (19) expression -> . NUMBER
-    (20) expression -> . ID ( list )
-    (21) expression -> . ID DEFINE expression
+    (19) expression -> . ID
+    (20) expression -> . NUMBER
+    (21) expression -> . ID ( list )
+    (22) expression -> . ID DEFINE expression
     (6) logic -> . expression EQ expression
     (7) logic -> . expression NEQ expression
     (8) logic -> . expression LE expression
@@ -1629,6 +1762,7 @@ state 48
     (12) logic -> . logic AND logic
     (13) logic -> . logic OR logic
     (14) logic -> . ! logic
+    (18) logic -> . ( logic )
 
     -               shift and go to state 2
     (               shift and go to state 4
@@ -1636,11 +1770,11 @@ state 48
     NUMBER          shift and go to state 6
     !               shift and go to state 7
 
-    expression                     shift and go to state 44
-    list                           shift and go to state 50
+    expression                     shift and go to state 47
+    list                           shift and go to state 55
     logic                          shift and go to state 3
 
-state 49
+state 54
 
     (16) expression -> logic ? expression : expression .
     (1) expression -> expression . + expression
@@ -1687,9 +1821,9 @@ state 49
   ! >               [ reduce using rule 16 (expression -> logic ? expression : expression .) ]
 
 
-state 50
+state 55
 
-    (23) list -> expression , list .
+    (24) list -> expression , list .
 
-    )               reduce using rule 23 (list -> expression , list .)
+    )               reduce using rule 24 (list -> expression , list .)
 

@@ -117,12 +117,9 @@ class ExpressionParser:
         """expression : logic '?' expression ':' expression"""
         p[0] = ExpressionParser.optimize(lambda x, y, z: (y if x else z), p[1], p[3], p[5], typ=float)
     def p_paren(self, p):
-        """expression : '(' expression ')'"""
+        """expression : '(' expression ')'
+           logic : '(' logic ')'"""
         p[0] = p[2]
-    # def p_paren_error(self, p):
-    #     """expression : '(' error ')'
-    #                   | ID '(' error ')'"""
-    #     p[0] = 0
     def p_id(self, p):
         """expression : ID"""
         if p[1] in self.define_dict:
