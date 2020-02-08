@@ -42,6 +42,8 @@ class SnakeBird:
     color = {'0': (159, 223, 255), 'A': (191, 0, 0), 'a': (255, 95, 95), 'B': (0, 0, 191), 'b': (95, 95, 255), 'C': (0, 191, 0), 'c': (95, 255, 95), 'bound': (63, 63, 63), '1': (
         191, 95, 53), 'grass': (121, 191, 75), 'block': (234, 128, 21), 'bar': (194, 106, 18), '2': (191, 0, 191), '3': (127, 127, 127), 'p1': (0, 255, 0), 'p2': (255, 255, 0), 'grid': (175, 207, 223)}
     def __init__(self, id):
+        if '\\' in id or '/' in id or '.' in id:
+            raise FileNotFoundError
         with open(config.rel(f'games\\snakebird\\{id}.txt')) as f:
             self.board = [list(line.strip()) for line in f.readlines()]
         self.border = ((0, len(self.board)), (0, len(self.board[0])))

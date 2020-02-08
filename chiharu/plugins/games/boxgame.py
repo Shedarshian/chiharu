@@ -11,7 +11,7 @@ __all__ = {'IPos', 'Grid2D', 'Grid2DSquare', 'Grid2DHexagonH', 'Grid2DHexagonV',
 
 class IPos(ABC):
     '''Interface for position.'''
-    class Directions(Enum):
+    class Directions:
         pass
     @abstractmethod
     def __add__(self, other):
@@ -34,13 +34,15 @@ class Grid2D(IPos):
     class Directions:
         pass
     def __add__(self, other):
-        return Grid2D(self.x + other.x, self.y + other.y)
+        return self.__class__(self.x + other.x, self.y + other.y)
     def __iadd__(self, other):
-        return Grid2D(self.x + other.x, self.y + other.y)
+        return self.__class__(self.x + other.x, self.y + other.y)
     def __sub__(self, other):
-        return Grid2D(self.x - other.x, self.y - other.y)
+        return self.__class__(self.x - other.x, self.y - other.y)
     def __isub__(self, other):
-        return Grid2D(self.x - other.x, self.y - other.y)
+        return self.__class__(self.x - other.x, self.y - other.y)
+    def __neg__(self):
+        return self.__class__(-self.x, -self.y)
 
 class Grid2DSquare(Grid2D):
     pass
@@ -73,13 +75,13 @@ class Grid3D(IPos):
     y: int
     z: int
     def __add__(self, other):
-        return Grid3D(self.x + other.x, self.y + other.y, self.z + other.z)
+        return self.__class__(self.x + other.x, self.y + other.y, self.z + other.z)
     def __iadd__(self, other):
-        return Grid3D(self.x + other.x, self.y + other.y, self.z + other.z)
+        return self.__class__(self.x + other.x, self.y + other.y, self.z + other.z)
     def __sub__(self, other):
-        return Grid3D(self.x - other.x, self.y - other.y, self.z - other.z)
+        return self.__class__(self.x - other.x, self.y - other.y, self.z - other.z)
     def __isub__(self, other):
-        return Grid3D(self.x - other.x, self.y - other.y, self.z - other.z)
+        return self.__class__(self.x - other.x, self.y - other.y, self.z - other.z)
 
 class IBox(ABC):
     pos_type = None
@@ -104,10 +106,11 @@ class ISpace(ABC):
     @abstractmethod
     def _add(self, box: TBox):
         pass
-    def move(self, box: TBox, dir: TPos):
-        self._pop(box)
-        box.pos += dir
-        self._add(box)
+    def move_bunch(self, boxes: Dict[TBox, TPos]):
+        map(boxes.keys(), self._pop)
+        for box, dir in boxes.items():
+            box.pos += dir
+            self._add(box)
     @abstractmethod
     def getObjs(self, pos: TPos) -> Tuple[TBox, ...]:
         pass
@@ -158,4 +161,6 @@ class ISpaceNoOverlap(ISpace):
         return pos not in self.data
 
 class IBoxGame(ABC):
-    pass
+    def __init_subclass__(cls, space_cls):
+        cls.space_cls = space_cls
+    
