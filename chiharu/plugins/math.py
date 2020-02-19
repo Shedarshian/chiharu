@@ -243,6 +243,7 @@ async def quiz_submit(session: CommandSession):
 
 def calculate(s):
     parser.reset()
+    parser.max_sum = 10000
     try:
         return parser.parse(s)
     except ParserError as e:
@@ -261,6 +262,7 @@ async def calculator(session: CommandSession):
         括号 ( )
         C++中的三目运算符 ? :
         定义临时变量的运算符 := （使用例：(t:=2^3+1)*(t^2-2)
+        求和 sum[变量名](下限，上限，表达式) （使用例：sum[t](1,100,sum[n](1,t,2^n/Gamma(n+1))))
     可以使用的函数名：
         指数函数exp 自然对数ln 常用对数lg 绝对值abs 开根号sqrt 向下取整floor
         六种三角函数（sin等） 六种反三角函数（asin等） 六种双曲三角函数（sinh等） 六种反双曲三角函数（asinh等）

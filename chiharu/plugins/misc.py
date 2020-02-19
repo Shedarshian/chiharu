@@ -725,7 +725,7 @@ async def omikuji(session: CommandSession):
         m = json.load(f)
     o = m[0]['obfuscate']
     state = random.getstate()
-    random.seed((o, (today - timedelta(days=today.weekday())).isoformat(), str(qq)))
+    random.seed((o + (today - timedelta(days=today.weekday())).isoformat() + str(qq)))
     h = random.randint(0, 999)
     random.setstate(state)
     def pick(m, h):
@@ -741,3 +741,70 @@ async def omikuji(session: CommandSession):
     elif d['ji'] in ('大凶', '大大凶'):
         if achievement.omikuji2.get(qq):
             await session.send(achievement.omikuji2.get_str())
+
+def load_todo(qq):
+    with open(config.rel('todo.json'), encoding='utf-8') as f:
+        return json.load(f)[qq]
+def save_todo(qq, todo):
+    with open(config.rel('todo.json'), encoding='utf-8') as f:
+        all = json.load(f)
+    all[qq] = todo
+    with open(config.rel('todo.json'), 'w', encoding='utf-8') as f:
+        f.write(json.dumps(all, ensure_ascii=False, indent=4, separators=(',', ': ')))
+
+def to_str(dct):
+    return dct['name'] + (f"\n    progress: {dct['progress']}" if 'progress' in dct else '')
+todo_modes = {'progress', 'new', 'move'}
+from .helper.function import parser, ParserError
+
+@on_command(('todo',), only_to_me=False, permission=permission.SUPERUSER)
+@config.description("", hide=True)
+@config.ErrorHandle
+async def todo(session: CommandSession):
+    qq = str(session.ctx['user_id'])
+    todo_l = load_todo(qq)
+    mode = ''
+    pointer = None
+    for command in session.current_arg_text.split(' '):
+        if command == 'remove':
+            if pointer is None:
+                await session.send('pointer is None')
+            else:
+                todo_l.pop(pointer)
+        elif command in todo_modes:
+            mode = command
+        elif mode == '':
+            # find name/id
+            try:
+                pointer = [i for i, b in enumerate(todo_l) if str(i) == command or b['name'] == command][0]
+            except IndexError:
+                await session.send(command + ' not found')
+        elif mode == 'new':
+            todo_l.append({'name': command})
+            mode = ''
+        elif pointer is None:
+            await session.send('pointer is None')
+        elif mode == 'progress':
+            if 'progress' not in todo_l[pointer]:
+                todo_l[pointer]['progress'] = 0
+            parser.reset()
+            parser.setstate('x')
+            try:
+                f = parser.parse(command)
+                if type(f) is float:
+                    todo_l[pointer]['progress'] = f
+                else:
+                    todo_l[pointer]['progress'] = f(todo_l[pointer]['progress'])
+            except IndexError:
+                await session.send('请输入一元函数。')
+            except ParserError as e:
+                await session.send('SyntaxError: ' + str(e), auto_escape=True)
+            except Exception as e:
+                await session.send(type(e).__name__ + ': ' + str(e), auto_escape=True)
+            mode = ''
+        elif mode == 'move':
+            end = int(command)
+            todo_l.insert(end, todo_l.pop(pointer))
+            mode = ''
+    save_todo(qq, todo_l)
+    await session.send('\n'.join([f'{i} {to_str(b)}' for i, b in enumerate(todo_l)]))
