@@ -8,7 +8,7 @@ import more_itertools
 import random
 from copy import copy
 from urllib import parse
-from nonebot import on_command, CommandSession, get_bot, permission, scheduler, on_notice, NoticeSession
+from nonebot import on_command, CommandSession, get_bot, permission, scheduler, on_notice, NoticeSession, RequestSession, on_request
 from nonebot.command import call_command
 import aiocqhttp
 import chiharu.plugins.config as config
@@ -18,8 +18,8 @@ env = config.Environment('thwiki_live', ret='请在直播群内使用')
 env_supervise = config.Environment('thwiki_supervise', config.Admin('thwiki_live'), ret='请在监视群内或直播群管理使用')
 
 # Version information and changelog
-version = "2.2.10"
-changelog = """2.2.6-10 Changelog:
+version = "2.2.11"
+changelog = """2.2.6-11 Changelog:
 Change:
 -thwiki.grant 推荐需要被推荐人同意，被推荐人可通过指令-thwiki.confirm_grant True或False来同意或拒绝推荐
 -thwiki.deprive 会将列表里的相关Event更新状态并推送至监视群，并且会使目标人无法再次被推荐
@@ -351,6 +351,8 @@ def add_time(qq, time):
                 config.logger.thwiki << f'【LOG】用户{qq} 已通过试用期，节点独立'
             if 'parent' in node:
                 find_whiteforest(id=node['parent'])['child'].remove(node['id'])
+            if 'child' not in node:
+                node['child'] = []
             node['parent'] = -1
             # Also check this fix
         if 'to_confirm' in node:
@@ -1243,7 +1245,12 @@ async def thwiki_grantlist(session: CommandSession):
     for node in whiteforest:
         if node['card'] is None:
             node['card'] = await get_card(node['qq'])
-    await session.send('\n'.join([f"id: {node['id']} qq: {node['qq']} 名片: {node['card']}\nparent id: {node['parent']}" + (f" 名片: {find_whiteforest(id=node['parent'])['card']}" if node['parent'] != -1 else '') + (f"\nchilds id: {' '.join(map(str, node['child']))}" if len(node['child']) > 0 else "") for node in whiteforest if node['trail'] == 0]), auto_escape=True, ensure_private=True)
+    await session.send('\n'.join(
+        [f"id: {node['id']} qq: {node['qq']} 名片: {node['card']}\nparent id: {node['parent']}" +
+            (f" 名片: {find_whiteforest(id=node['parent'])['card']}" if node['parent'] != -1 else '') +
+            (f"\nchilds id: {' '.join(map(str, node['child']))}" if 'child' in node and len(node['child']) > 0 else "")
+            for node in whiteforest if node['trail'] == 0]
+        ), auto_escape=True, ensure_private=True)
 
 # Handler for command '-thwiki.leaderboard'
 @on_command(('thwiki', 'leaderboard'), only_to_me=False)
@@ -1492,6 +1499,31 @@ async def thwiki_cookie(session: CommandSession):
     with open(config.rel('cookie.txt'), 'w') as f:
         f.write(''.join(value))
     await session.send('成功写入')
+
+@on_request('group.add')
+async def thwiki_group_request(session: RequestSession):
+    # [2020-02-16 11:53:53,681 nonebot] INFO: Request: {'comment': '问题：在哪里得知七海千春\n答案：test', 'flag': '1932695', 'group_id': 947279366, 'post_type': 'request', 'request_type': 'group', 'self_id': 2711644761, 'sub_type': 'add', 'time': 1581825233, 'user_id': 3335928706}
+    if session.ctx['group_id'] not in config.group_id_dict['thwiki_send']:
+        return
+    qq = session.ctx["user_id"]
+    match = re.search('答案：\s*(\d+).*?(\d+)\s*', session.ctx['comment'])
+    if not match:
+        for group in config.group_id_dict['thwiki_supervise']:
+            await get_bot().send_group_msg(group_id=group, message=f'用户{qq}答案不满足格式')
+        return
+    user, answer = match.groups()
+    if int(answer) != config.thwiki_answer:
+        await session.reject(reason='答案错误')
+        for group in config.group_id_dict['thwiki_supervise']:
+            await get_bot().send_group_msg(group_id=group, message=f'用户{qq}答案错误，已拒绝')
+    else:
+        for group in config.group_id_dict['thwiki_supervise']:
+            await get_bot().send_group_msg(group_id=group, message=f'用户{qq}：https://space.bilibili.com/{user}')
+        with open(config.rel('thwiki_bilispace.json')) as f:
+            a = json.load(f)
+        a[str(qq)] = f'https://space.bilibili.com/{user}'
+        with open(config.rel('thwiki_bilispace.json'), 'w') as f:
+            f.write(json.dumps(a, indent=4, separators=(',', ': ')))
 
 # Handler for command '-thwiki.test'
 # Yet another undocumented command...?
