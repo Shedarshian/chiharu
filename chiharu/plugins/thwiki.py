@@ -6,9 +6,10 @@ import asyncio
 import functools
 import more_itertools
 import random
+from collections import namedtuple
 from copy import copy
 from urllib import parse
-from nonebot import on_command, CommandSession, get_bot, permission, scheduler, on_notice, NoticeSession, RequestSession, on_request
+from nonebot import on_command, CommandSession, get_bot, permission, scheduler, on_notice, NoticeSession, RequestSession, on_request, message_preprocessor
 from nonebot.command import call_command
 import aiocqhttp
 import chiharu.plugins.config as config
@@ -18,8 +19,8 @@ env = config.Environment('thwiki_live', ret='请在直播群内使用')
 env_supervise = config.Environment('thwiki_supervise', config.Admin('thwiki_live'), ret='请在监视群内或直播群管理使用')
 
 # Version information and changelog
-version = "2.2.11"
-changelog = """2.2.6-11 Changelog:
+version = "2.2.12"
+changelog = """2.2.6-12 Changelog:
 Change:
 -thwiki.grant 推荐需要被推荐人同意，被推荐人可通过指令-thwiki.confirm_grant True或False来同意或拒绝推荐
 -thwiki.deprive 会将列表里的相关Event更新状态并推送至监视群，并且会使目标人无法再次被推荐
@@ -310,11 +311,13 @@ def deprive(node, if_save=True, clear_time=True):
                 i.supervise = 0
                 updated_event.append(i)
 
-        r.pop('parent')
-        for i in r.pop('child'):
-            f = find_whiteforest(id=i)
-            # Add child nodes to the list
-            to_do.append(f)
+        if 'parent' in r:
+            r.pop('parent')
+        if 'child' in r:
+            for i in r.pop('child'):
+                f = find_whiteforest(id=i)
+                # Add child nodes to the list
+                to_do.append(f)
 
         # Why use trail as key? You mean 'trial' or 'trace'??
         r['trail'] = 1
@@ -363,6 +366,22 @@ def add_time(qq, time):
 
 class ApplyErr(BaseException):
     pass
+
+record_file = open(config.rel(r'log\thwiki_record.txt'), 'a', encoding='utf-8')
+
+class Record(namedtuple('Record', ['qq', 'time', 'msg_id', 'msg'])):
+    def __str__(self):
+        return f"{self.qq}【{self.time.isoformat(sep=' ')}】{self.msg_id}: {self.msg}"
+    @staticmethod
+    def construct(line):
+        match = re.match('^(\d+)【(.*?)】(\d+): (.*)$', line)
+        if not match:
+            return None
+        qq, time, msg_id, msg = match.groups()
+        return Record(int(qq), datetime.fromisoformat(time), int(msg_id), msg.replace('\\', '\\\\').replace('\r', '').replace('\n', '\\n'))
+
+def load_record(lines):
+    return [Record.construct(line.strip('\r\n')) for line in lines]
 
 # Handler for '-thwiki.apply'
 @on_command(('thwiki', 'apply'), aliases=('申请',), only_to_me=False)
@@ -413,15 +432,13 @@ async def thwiki_apply(session: CommandSession):
             raise ApplyErr('已有重名，请换名字')
     except ApplyErr as err:
         # An invalid argument takes place
-        await session.send(err.args[0])
-        return
+        session.finish(err.args[0])
     e = Event(begin, end, qq, card, name, float_end)
 
     # Time overlapping check
     for i in l:
         if i.overlap(e):
-            await session.send('这个时间段已经有人了\n' + (str(i) if tz is None else f"时区：{tz.tzname(datetime.now())}\n{i.str_tz(tz)}"), auto_escape=True)
-            return
+            session.finish('这个时间段已经有人了\n' + (str(i) if tz is None else f"时区：{tz.tzname(datetime.now())}\n{i.str_tz(tz)}"), auto_escape=True)
     
     # Append current event to the list and sort
     l.append(e)
@@ -565,8 +582,7 @@ async def thwiki_cancel(session: CommandSession):
     if l2 is None:
         l2 = more_itertools.only([x for x in enumerate(l) if str(x[1].id) == session.current_arg_text.strip()])
         if l2 is None:
-            await session.send('未找到')
-            return
+            session.finish('未找到')
 
     # Check for authority
     i = l2[0]
@@ -653,32 +669,30 @@ async def thwiki_term(session: CommandSession):
 
     now = datetime.now()
     if len(l) == 0:
-        await session.send('现在未在播')
+        session.finish('现在未在播')
+    if now < l[0].begin:
+        session.finish('现在未在播')
+    if l[0].qq != session.ctx['user_id']:
+        session.finish('现在不是你在播')
+    e = l.pop(0)
+    s = ""
+    if e.supervise != 0:
+        d = int((now - e.begin).total_seconds() - 1) // 60 + 1
+        if add_time(e.qq, d):
+            await session.send('您已成功通过试用期转正！')
+        s = f"，已为您累积直播时间{d}分钟"
+    await _save(l)
+
+    ret = await th_open(is_open=False)
+    if json.loads(ret)['code'] != 0:
+        config.logger.thwiki << '【LOG】断流失败'
+        await session.send('成功删除，断流失败' + s)
     else:
-        if now < l[0].begin:
-            await session.send('现在未在播')
-        elif l[0].qq != session.ctx['user_id']:
-            await session.send('现在不是你在播')
-        else:
-            e = l.pop(0)
-            s = ""
-            if e.supervise != 0:
-                d = int((now - e.begin).total_seconds() - 1) // 60 + 1
-                if add_time(e.qq, d):
-                    await session.send('您已成功通过试用期转正！')
-                s = f"，已为您累积直播时间{d}分钟"
-            await _save(l)
+        await session.send('成功断流' + s)
 
-            ret = await th_open(is_open=False)
-            if json.loads(ret)['code'] != 0:
-                config.logger.thwiki << '【LOG】断流失败'
-                await session.send('成功删除，断流失败' + s)
-            else:
-                await session.send('成功断流' + s)
-
-            ret = await change_des_to_list()
-            if json.loads(ret)['code'] != 0:
-                await session.send('更新到直播间失败')
+    ret = await change_des_to_list()
+    if json.loads(ret)['code'] != 0:
+        await session.send('更新到直播间失败')
 
 # Handler for '-thwiki.terminate', equivalent to '-thwiki.term'
 @on_command(('thwiki', 'terminate'), only_to_me = False)
@@ -692,7 +706,6 @@ async def thwiki_terminate(session: CommandSession):
 @scheduler.scheduled_job('cron', hour='00')
 @config.maintain('thwiki')
 async def _():
-    global l
     ret = await change_des_to_list()
     if json.loads(ret)['code'] != 0:
         for id in config.group_id_dict['thwiki_send']:
@@ -700,6 +713,23 @@ async def _():
     for r in whiteforest:
         r['card'] = await get_card(r['qq'])
     save_whiteforest()
+
+    global record_file
+    record_file.close()
+    record_file = open(config.rel(r'log\thwiki_record.txt'), encoding='utf-8')
+    try:
+        yesterday = datetime.now() - timedelta(hours=24)
+        _l = filter(lambda x: x is not None and x.time >= yesterday, load_record(record_file.readlines()))
+    except Exception:
+        record_file.close()
+        record_file = open(config.rel(r'log\thwiki_record.txt'), 'a', encoding='utf-8')
+        for group in config.group_id_dict['log']:
+            group.send_group_msg(message='thwiki record delete failed', group_id=group)
+        raise
+    else:
+        record_file.close()
+        record_file = open(config.rel(r'log\thwiki_record.txt'), 'w', encoding='utf-8')
+        record_file.write('\n'.join([str(r) for r in _l]))
 
 @scheduler.scheduled_job('cron', second='00')
 @config.maintain('thwiki')
@@ -807,8 +837,7 @@ async def thwiki_get(session: CommandSession):
     r = await _()
     if not r[0]:
         config.logger.thwiki << f'【LOG】用户{qq} ' + ('于申请时间外get' if r[1] != 0 else '无监视员get') + '失败'
-        await session.send('请在您预约的时间段前后十五分钟内申请获取rtmp' if r[1] != 0 else '十分抱歉，您现在的直播尚无监视员，无法直播qwq')
-        return
+        session.finish('请在您预约的时间段前后十五分钟内申请获取rtmp' if r[1] != 0 else '十分抱歉，您现在的直播尚无监视员，无法直播qwq')
 
     # Retrieve cookie
     cookie_jar = requests.cookies.RequestsCookieJar()
@@ -885,11 +914,9 @@ async def thwiki_grant(session: CommandSession):
     sqq = session.ctx['user_id']
     node = find_whiteforest(qq=sqq)
     if node is None or node['trail'] == 1:
-        await session.send("您还处在试用期，无法推荐")
-        return
+        session.finish("您还处在试用期，无法推荐")
     if sqq in weak_blacklist:
-        await session.send("您不可推荐他人")
-        return
+        session.finish("您不可推荐他人")
 
     # Construct list of QQ ID from @s
     def _(s):
@@ -902,8 +929,7 @@ async def thwiki_grant(session: CommandSession):
             yield int(match.group(1))
     qqs = list(_(str(session.current_arg)))
     if len(qqs) == 0:
-        await session.send('没有@人')
-        return
+        session.finish('没有@人')
 
     # Consideration: what would happen if someone types '-thwiki.grant @A @B false @C @D?
     # s = session.current_arg[session.current_arg.rfind(' ') + 1:]
@@ -1054,16 +1080,15 @@ async def thwiki_depart(session: CommandSession):
     qq = session.ctx['user_id']
     node = find_whiteforest(qq=qq)
     if node is None or node['trail'] == 1:
-        await session.send("您还处在试用期，无需脱离")
+        session.finish("您还处在试用期，无需脱离")
     elif node['parent'] == -1:
-        await session.send("您已超过试用期所需时间，无需脱离")
-    else:
-        find_whiteforest(id=node['parent'])['child'].remove(node['id'])
-        updated, updated_event = deprive(node, True, False)
-        for e in updated_event:
-            config.logger.thwiki << f'【LOG】事件权限更新：{e}'
-            for group in config.group_id_dict['thwiki_supervise']:
-                await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
+        session.finish("您已超过试用期所需时间，无需脱离")
+    find_whiteforest(id=node['parent'])['child'].remove(node['id'])
+    updated, updated_event = deprive(node, True, False)
+    for e in updated_event:
+        config.logger.thwiki << f'【LOG】事件权限更新：{e}'
+        for group in config.group_id_dict['thwiki_supervise']:
+            await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
     await session.send([config.cq.text('已成功安全脱离')] + updated)
 
 # Handler for command '-thwiki.deprive'
@@ -1087,8 +1112,7 @@ async def thwiki_deprive(session: CommandSession):
 
     if len(qqs) == 0:
         # Consider swap to PM
-        await session.send('没有@人')
-        return
+        session.finish('没有@人')
 
     global blacklist
     global weak_blacklist
@@ -1153,8 +1177,7 @@ async def thwiki_supervise(session: CommandSession):
         id = int(i[0])
         t = not (i[1] == 'false' or i[1] == 'False' or i[1] == 'f' or i[1] == 'F')
     else:
-        await session.send('使用-thwiki.supervise 直播id [可选：True/False]')
-        return
+        session.finish('使用-thwiki.supervise 直播id [可选：True/False]')
 
     ret = more_itertools.only([x for x in l if x.id == id])
     if ret is None:
@@ -1221,8 +1244,7 @@ async def thwiki_timezone(session: CommandSession):
     if match and not other:
         tz_new = int(match.group(2))
         if tz_new <= -15 or tz_new >= 15:
-            await session.send("UTC时区必须在(-15, +15)以内")
-            return
+            session.finish("UTC时区必须在(-15, +15)以内")
     else:
         tz_new = None
     node = find_or_new(qq = qq)
@@ -1308,12 +1330,10 @@ async def thwiki_change(session: CommandSession):
     r = await _()
     if not r[0]:
         config.logger.thwiki << f'【LOG】用户{qq} ' + ('于申请时间外get' if r[1] != 0 else '无监视员get') + '失败'
-        await session.send('请在您预约的时间段前后十五分钟内修改' if r[1] is None or r[1].supervise != 0 else '十分抱歉，您现在的直播尚无监视员，无法直播qwq')
-        return
+        session.finish('请在您预约的时间段前后十五分钟内修改' if r[1] is None or r[1].supervise != 0 else '十分抱歉，您现在的直播尚无监视员，无法直播qwq')
     t = session.current_arg_text.strip()
     if t == "":
-        await session.send('请填写您要修改的标题')
-        return
+        session.finish('请填写您要修改的标题')
     if r[1] is not None:
         r[1].name = t
     if '东方' not in t:
@@ -1490,8 +1510,7 @@ async def thwiki_cookie(session: CommandSession):
         if not (re.match('.+%2C.+%2C.+', ses) and re.match('[0-9a-f]+', jct)):
             raise ValueError
     except ValueError:
-        await session.send('请用-thwiki.cookie SESSDATA 换行 csrf_token(bili_jct)')
-        return
+        session.finish('请用-thwiki.cookie SESSDATA 换行 csrf_token(bili_jct)')
     with open(config.rel('cookie.txt')) as f:
         value = f.readlines()
     value[0] = ses + '\n'
@@ -1502,11 +1521,10 @@ async def thwiki_cookie(session: CommandSession):
 
 @on_request('group.add')
 async def thwiki_group_request(session: RequestSession):
-    # [2020-02-16 11:53:53,681 nonebot] INFO: Request: {'comment': '问题：在哪里得知七海千春\n答案：test', 'flag': '1932695', 'group_id': 947279366, 'post_type': 'request', 'request_type': 'group', 'self_id': 2711644761, 'sub_type': 'add', 'time': 1581825233, 'user_id': 3335928706}
     if session.ctx['group_id'] not in config.group_id_dict['thwiki_send']:
         return
     qq = session.ctx["user_id"]
-    match = re.search('答案：\s*(\d+).*?(\d+)\s*', session.ctx['comment'])
+    match = re.search('答案：[^\d]*?(\d+)[^\d]+?(\d+)\s*', session.ctx['comment'])
     if not match:
         for group in config.group_id_dict['thwiki_supervise']:
             await get_bot().send_group_msg(group_id=group, message=f'用户{qq}答案不满足格式')
@@ -1525,10 +1543,103 @@ async def thwiki_group_request(session: RequestSession):
         with open(config.rel('thwiki_bilispace.json'), 'w') as f:
             f.write(json.dumps(a, indent=4, separators=(',', ': ')))
 
+@message_preprocessor
+async def thwiki_record(bot, ctx):
+    try:
+        if ctx['group_id'] not in config.group_id_dict['thwiki_live']:
+            return
+    except KeyError:
+        return
+    r = Record(ctx['user_id'], datetime.now(), ctx['message_id'], ctx['raw_message'])
+    record_file.write(str(r) + '\n')
+    record_file.flush()
+
+@on_command(('thwiki', 'punish'), only_to_me=False)
+@config.description("惩罚不当发言。", environment=env_supervise)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_punish(session: CommandSession):
+    """惩罚不当发言。
+    格式为：-thwiki.punish qq 换行 YYYY-MM-DD HH:MM[:SS] [换行 关键词]
+    检索给定时间前后1分钟内距离该时间最近的包含关键词的发言。（可不给关键字）
+    如确认，则将该发言撤回，并依已触发次数惩罚发言者。第一次不做禁言，第二次禁言20分钟，第三次禁言1小时，第四次踢出。
+    并告知此为第几次。"""
+    if session.get('confirmed'):
+        record = session.get('record')
+        await get_bot().delete_msg(message_id=record.msg_id)
+        node = find_or_new(record.qq)
+        if 'punish' not in node:
+            node['punish'] = 1
+        else:
+            node['punish'] += 1
+        save_whiteforest()
+        group = list(config.group_id_dict['thwiki_punish'])[0]
+        if node['punish'] == 1:
+            ret = '管理员认为此为不妥当的发言，警告一次'
+        elif node['punish'] == 2:
+            await get_bot().set_group_ban(group_id=group, user_id=node['qq'], duration=1200)
+            ret = '管理员认为此为不妥当的发言，此为第二次'
+        elif node['punish'] == 3:
+            await get_bot().set_group_ban(group_id=group, user_id=node['qq'], duration=3600)
+            ret = '管理员认为此为不妥当的发言，此为第三次'
+        elif node['punish'] >= 4:
+            await get_bot().set_group_kick(group_id=group, user_id=node['qq'])
+            ret = '管理员认为此为不妥当的发言，此为第四次，已移出群聊'
+        await get_bot().send_group_msg(group_id=group, message=ret)
+        session.finish('已撤回')
+    global record_file
+    record_file.close()
+    record_file = open(config.rel(r'log\thwiki_record.txt'), encoding='utf-8')
+    qq, word, time = session.get('qq'), session.get('word'), session.get('time')
+    try:
+        if word is None:
+            l = [record for record in load_record(record_file.readlines()) if record is not None and abs(record.time - time) < timedelta(minutes=1) and record.qq == qq]
+        else:
+            l = [record for record in load_record(record_file.readlines()) if record is not None and abs(record.time - time) < timedelta(minutes=1) and record.qq == qq and word in record.msg]
+    finally:
+        record_file.close()
+        record_file = open(config.rel(r'log\thwiki_record.txt'), 'a', encoding='utf-8')
+    if len(l) == 0:
+        session.finish('未找到消息。')
+    session.args['record'] = r = min(l, key=lambda record: abs(record.time - time))
+    session.pause(f'消息内容为：{r.msg}，输入“确认”确认此发言', auto_escape=True)
+    
+
+@thwiki_punish.args_parser
+async def _(session: CommandSession):
+    if session.current_arg == '确认':
+        session.args['confirmed'] = True
+        return
+    session.args['confirmed'] = False
+    l = list(map(str.strip, session.current_arg_text.split('\n')))
+    if len(l) == 2:
+        qq_str, time_str = l
+        session.args['word'] = None
+    elif len(l) == 3:
+        qq_str, time_str, word = l
+        session.args['word'] = word.strip()
+    else:
+        session.finish('格式为：-thwiki.punish qq 换行 YYYY-MM-DD HH:MM[:SS] [换行 关键词]')
+    session.args['qq'] = int(qq_str)
+    try:
+        session.args['time'] = datetime.fromisoformat(time_str)
+    except ValueError:
+        session.finish('时间不符合格式')
+
 # Handler for command '-thwiki.test'
 # Yet another undocumented command...?
 @on_command(('thwiki', 'test'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_test(session: CommandSession):
-    add_time(2859457368, 0)
-    save_whiteforest()
+    global record_file
+    record_file.close()
+    record_file = open(config.rel(r'log\thwiki_record.txt'), encoding='utf-8')
+    try:
+        yesterday = datetime.now() - timedelta(hours=24)
+        l = filter(lambda x: x is not None and x.time >= yesterday, load_record(record_file.readlines()))
+    except Exception:
+        record_file.close()
+        record_file = open(config.rel(r'log\thwiki_record.txt'), 'a', encoding='utf-8')
+    else:
+        record_file.close()
+        record_file = open(config.rel(r'log\thwiki_record.txt'), 'w', encoding='utf-8')
+        record_file.write('\n'.join([str(r) for r in l]))

@@ -6,6 +6,8 @@ import getopt
 from os import path
 from typing import Awaitable, Generator, Set, Callable, Tuple
 from nonebot import CommandSession, get_bot, on_command, permission
+from nonebot.session import BaseSession
+from nonebot.command import _PauseException, _FinishException, SwitchException
 import traceback
 from collections import UserDict
 
@@ -103,7 +105,7 @@ class Environment:
             elif isinstance(s, Admin):
                 self.admin |= set(group_id_dict[s.name])
         self.ret = ret
-    async def test(self, session: CommandSession):
+    async def test(self, session: BaseSession):
         try:
             group_id = session.ctx['group_id']
             if group_id in self.group:
@@ -141,9 +143,9 @@ from .games.achievement import achievement
 def ErrorHandle(f):
     @functools.wraps(f)
     async def _f(*args, **kwargs):
-        if len(args) >= 1 and isinstance(args[0], CommandSession):
+        if len(args) >= 1 and isinstance(args[0], BaseSession):
             session = args[0]
-        elif 'session' in kwargs and isinstance(kwargs['session'], CommandSession):
+        elif 'session' in kwargs and isinstance(kwargs['session'], BaseSession):
             session = kwargs['session']
         else:
             session = None
@@ -152,6 +154,8 @@ def ErrorHandle(f):
         except getopt.GetoptError as e:
             if session is not None:
                 await session.send('参数错误！' + str(e.args), auto_escape=True)
+        except (_PauseException, _FinishException, SwitchException):
+            raise
         except Exception:
             if session is not None:
                 await args[0].send(traceback.format_exc(), auto_escape=True)
@@ -167,19 +171,21 @@ def _(g: _logger, if_send=True):
         async def _f(*args, **kwargs):
             try:
                 return await f(*args, **kwargs)
+            except (_PauseException, _FinishException, SwitchException):
+                raise
             except Exception:
-                if len(args) >= 1 and isinstance(args[0], CommandSession):
+                if len(args) >= 1 and isinstance(args[0], BaseSession):
                     g << f"【ERR】用户{args[0].ctx['user_id']} 使用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
                     if if_send:
                         await args[0].send(traceback.format_exc(), auto_escape=True)
-                        qq = session.ctx['user_id']
+                        qq = args[0].ctx['user_id']
                         if achievement.bug.get(qq):
                             await args[0].send(achievement.bug.get_str())
-                elif 'session' in kwargs and isinstance(kwargs['session'], CommandSession):
+                elif 'session' in kwargs and isinstance(kwargs['session'], BaseSession):
                     g << f"【ERR】用户{kwargs['session'].ctx['user_id']} 使用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
                     if if_send:
                         await kwargs['session'].send(traceback.format_exc(), auto_escape=True)
-                        qq = session.ctx['user_id']
+                        qq = kwargs['session'].ctx['user_id']
                         if achievement.bug.get(qq):
                             await kwargs['session'].send(achievement.bug.get_str())
                 else:
@@ -200,9 +206,9 @@ def maintain(s):
             if s not in maintain_str or maintain_str[s] == "":
                 await f(*args, **kwargs)
             else:
-                if len(args) >= 1 and isinstance(args[0], CommandSession):
+                if len(args) >= 1 and isinstance(args[0], BaseSession):
                     session = args[0]
-                elif 'session' in kwargs and isinstance(kwargs['session'], CommandSession):
+                elif 'session' in kwargs and isinstance(kwargs['session'], BaseSession):
                     session = kwargs['session']
                 else:
                     return
@@ -224,7 +230,7 @@ class Constraint:
         self.ret = ret
     def __call__(self, f: Awaitable):
         @functools.wraps(f)
-        async def _f(session: CommandSession, *args, **kwargs):
+        async def _f(session: BaseSession, *args, **kwargs):
             try:
                 group_id = session.ctx['group_id']
             except KeyError:
