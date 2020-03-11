@@ -8,28 +8,26 @@ import more_itertools
 import random
 from collections import namedtuple
 from copy import copy
+from typing import Optional
 from urllib import parse
+# from quart import websocket
+# from quart.wrappers.request import Websocket
 from nonebot import on_command, CommandSession, get_bot, permission, scheduler, on_notice, NoticeSession, RequestSession, on_request, message_preprocessor
 from nonebot.command import call_command
 import aiocqhttp
-import chiharu.plugins.config as config
-import chiharu.plugins.help as Help
+from . import config, help
 config.logger.open('thwiki')
 env = config.Environment('thwiki_live', ret='请在直播群内使用')
 env_supervise = config.Environment('thwiki_supervise', config.Admin('thwiki_live'), ret='请在监视群内或直播群管理使用')
+print(config.group_id_dict['thwiki_supervise'])
+print(env_supervise.group)
 
 # Version information and changelog
-version = "2.2.12"
-changelog = """2.2.6-12 Changelog:
-Change:
--thwiki.grant 推荐需要被推荐人同意，被推荐人可通过指令-thwiki.confirm_grant True或False来同意或拒绝推荐
--thwiki.deprive 会将列表里的相关Event更新状态并推送至监视群，并且会使目标人无法再次被推荐
-退群者子节点时间保留
+version = "2.2.14"
+changelog = """2.2.14 Changelog:
 Add:
--thwiki.terminate 同thwiki.term
--thwiki.depart 自行安全脱离推荐树，会保留时间
--thwiki.confirm_grant T/F 同意或拒绝推荐
--thwiki.confirm 同-thwiki.confirm_grant"""
+-thwiki.bookmark av12345678 提交视频加入轮播清单，需管理员审核。
+-thwiki.recommend av12345678 提交视频加入推荐列表。"""
 
 TRAIL_TIME = 36 * 60
 
@@ -224,18 +222,36 @@ def _open():
 l = _open()
 
 # Writes current list of applications to the file
+# Updates the "occupied_time.json" and alarm OLC's bot
 async def _save(t):
     with open(config.rel("thwiki.txt"), 'w', encoding='utf-8') as f:
         f.write('\n'.join(map(repr, t)))
+    _3dayslater = date.today() + timedelta(days=3)
+    occupied_time = []
+    for i, event in enumerate(t):
+        if event.begin.date() <= _3dayslater:
+            begin = event.begin.isoformat(' ')
+            end = 'float' if event.isFloat else event.end.isoformat(' ')
+            if len(occupied_time) != 0 and (occupied_time[-1]['end'] == begin or occupied_time[-1]['end'] == 'float'):
+                occupied_time[-1]['end'] = end
+            else:
+                occupied_time.append({'begin': begin, 'end': end})
+    with open(r"C:\thwiki_connect\thwiki\occupied_time.json", 'w') as f:
+        f.write(json.dumps(occupied_time))
+    await get_bot().send_private_msg(user_id=config.OLC_bot, message='live occupied time updated')
 
 # Generates an description and update to Bilibili livestream room
 # Suggestion: create a new function that encapsulates _save and change_des_to_list as
 #   they are almost always called together
-async def change_des_to_list():
+async def change_des_to_list(lunbo=False):
     global l
     fut = datetime.now() + timedelta(days=7)
-    s = '<h2>THBWiki电视台（大雾）</h2><p>基本上会以直播<strong>东方Project</strong>的游戏为主。日常进行直播的主播不定。</p><h3><strong>本直播间欢迎大家使用，但需要直播的内容为东方Project相关且遵守直播者所在国家与中国相关法律与条约及平台条约。</strong><br />具体使用方法以及粉丝群请戳QQ群 <strong>807894304</strong> 【THBWiki直播】</h3><p>节目单：%s</p>' % \
+    s = 'THBWiki电视台（大雾）</h2><p>基本上会以直播<strong>东方Project</strong>的游戏为主。日常进行直播的主播不定。</p><h3><strong>本直播间欢迎大家使用，但需要直播的内容为东方Project相关且遵守直播者所在国家与中国相关法律与条约及平台条约。</strong><br />具体使用方法以及粉丝群请戳QQ群 <strong>807894304</strong> 【THBWiki直播】</h3><p>节目单：%s</p>' % \
         '<br />'.join(map(Event.str_url, filter(lambda x: x.begin < fut, l)))
+    if lunbo:
+        s = '<h2>当前轮播中，欢迎查看收藏夹https://space.bilibili.com/362841475/favlist?fid=853928275，轮播视频均在收藏夹中，在直播群（下述）中可以添加轮播视频或推荐视频哦~<br />' + s
+    else:
+        s = '<h2>' + s
     return await change(description=s)
 
 # Initializes blacklist (blocks user from applying)
@@ -382,6 +398,43 @@ class Record(namedtuple('Record', ['qq', 'time', 'msg_id', 'msg'])):
 
 def load_record(lines):
     return [Record.construct(line.strip('\r\n')) for line in lines]
+
+async def add_fav(av, fav):
+    # Retrieve cookie
+    cookie_jar = requests.cookies.RequestsCookieJar()
+    with open(config.rel('cookie.txt')) as f:
+        value = f.readline().strip()
+        csrf = f.readline().strip()
+    cookie_jar.set(name="SESSDATA", value=value)
+    cookie_jar.set(name="bili_jct", value=csrf)
+
+    # Construct and encode data
+    value = {'rid': av, 'type': 2, 'add_media_ids': fav, 'del_media_ids': '', 'jsonp': 'jsonp', 'csrf': csrf}
+    length = len(parse.urlencode(value))
+    print('length: ' + str(length))
+    headers = copy(config.headers)
+    headers['Content-Length'] = str(length)
+    headers['Host'] = 'api.bilibili.com'
+    headers['Referer'] = f'https://www.bilibili.com/video/av{av}/?spm_id_from=333.788.videocard.0'
+
+    # Send request
+    loop = asyncio.get_event_loop()
+    url = await loop.run_in_executor(None, functools.partial(requests.post,
+        'https://api.bilibili.com/medialist/gateway/coll/resource/deal',
+        data=value, cookies=cookie_jar, headers=headers))
+    return url.text
+
+# ws_connected: Optional[Websocket] = None
+# from quart import app
+# @websocket('/ws/thwiki')
+# async def thwiki_communicate():
+#     global ws_connected
+#     if ws_connected is None:
+#         ws_connected = websocket._get_current_object()
+#     msg = await websocket.receive()
+#     await websocket.send(msg)
+# get_bot()._server_app.add_websocket('/ws/thwiki', strict_slashes=False, view_func=thwiki_communicate)
+# await ws_connected.send('begin')
 
 # Handler for '-thwiki.apply'
 @on_command(('thwiki', 'apply'), aliases=('申请',), only_to_me=False)
@@ -590,7 +643,6 @@ async def thwiki_cancel(session: CommandSession):
             await permission.check_permission(get_bot(), session.ctx, permission.GROUP_ADMIN):
         now = datetime.now()
         e = l.pop(i)
-        await _save(l)
         config.logger.thwiki << f"【LOG】用户{session.ctx['user_id']} 成功删除：{e}"
         
         # In this case, a shutdown of room should be performed...?
@@ -602,7 +654,7 @@ async def thwiki_cancel(session: CommandSession):
         await _save(l)
         await session.send('成功删除')
 
-        ret = await change_des_to_list()
+        ret = await change_des_to_list(lunbo=True)
         if json.loads(ret)['code'] != 0:
             config.logger.thwiki << '【LOG】更新到直播间失败'
             await session.send('更新到直播间失败')
@@ -683,14 +735,19 @@ async def thwiki_term(session: CommandSession):
         s = f"，已为您累积直播时间{d}分钟"
     await _save(l)
 
-    ret = await th_open(is_open=False)
+    # ret = await th_open(is_open=False)
+    # if json.loads(ret)['code'] != 0:
+    #     config.logger.thwiki << '【LOG】断流失败'
+    #     await session.send('成功删除，断流失败' + s)
+    # else:
+    #     await session.send('成功断流' + s)
+    await session.send('已终止，请您将obs断流，将开始空闲时间轮播。')
+    ret = await change(title='【东方】轮播中')
     if json.loads(ret)['code'] != 0:
-        config.logger.thwiki << '【LOG】断流失败'
-        await session.send('成功删除，断流失败' + s)
-    else:
-        await session.send('成功断流' + s)
+        config.logger.thwiki << f'【LOG】修改标题失败{ret}'
+        await session.send('修改标题失败', auto_escape=True)
 
-    ret = await change_des_to_list()
+    ret = await change_des_to_list(lunbo=True)
     if json.loads(ret)['code'] != 0:
         await session.send('更新到直播间失败')
 
@@ -706,6 +763,8 @@ async def thwiki_terminate(session: CommandSession):
 @scheduler.scheduled_job('cron', hour='00')
 @config.maintain('thwiki')
 async def _():
+    global l
+    await _save(l)
     ret = await change_des_to_list()
     if json.loads(ret)['code'] != 0:
         for id in config.group_id_dict['thwiki_send']:
@@ -745,6 +804,10 @@ async def _():
             if json.loads(ret)['code'] != 0:
                 for id in config.group_id_dict['thwiki_send']:
                     await bot.send_group_msg(group_id=id, message='直播间标题修改失败')
+            ret = await change_des_to_list()
+            if json.loads(ret)['code'] != 0:
+                for id in config.group_id_dict['thwiki_send']:
+                    await bot.send_group_msg(group_id=id, message='直播间简介更新失败')
             if e.supervise > 0:
                 for id in config.group_id_dict['thwiki_supervise']:
                     await bot.send_group_msg(group_id=id, message=[config.cq.at(e.supervise), config.cq.text('\n内容: %s\n请监视者就位' % e.name)])
@@ -759,7 +822,7 @@ async def _():
                 await _save(l)
                 for id in config.group_id_dict['thwiki_send']:
                     await bot.send_group_msg(group_id=id, message=[config.cq.text("已为"), config.cq.at(e.qq), config.cq.text(f"累积直播时间{d}分钟")], auto_escape=True)
-                ret = await change_des_to_list()
+                ret = await change_des_to_list(lunbo=True)
                 if json.loads(ret)['code'] != 0:
                     for id in config.group_id_dict['thwiki_send']:
                         await bot.send_group_msg(group_id=id, message='直播间简介更新失败')
@@ -1555,13 +1618,13 @@ async def thwiki_record(bot, ctx):
     record_file.flush()
 
 @on_command(('thwiki', 'punish'), only_to_me=False)
-@config.description("惩罚不当发言。", environment=env_supervise)
+@config.description("惩罚不当发言。", environment=env_supervise, hide=True)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_punish(session: CommandSession):
     """惩罚不当发言。
     格式为：-thwiki.punish qq 换行 YYYY-MM-DD HH:MM[:SS] [换行 关键词]
     检索给定时间前后1分钟内距离该时间最近的包含关键词的发言。（可不给关键字）
-    如确认，则将该发言撤回，并依已触发次数惩罚发言者。第一次不做禁言，第二次禁言20分钟，第三次禁言1小时，第四次踢出。
+    如确认，则将该发言撤回，并依已触发次数惩罚发言者。第一次不做禁言，第二次禁言20分钟，第四次踢出。
     并告知此为第几次。"""
     if session.get('confirmed'):
         record = session.get('record')
@@ -1579,9 +1642,6 @@ async def thwiki_punish(session: CommandSession):
             await get_bot().set_group_ban(group_id=group, user_id=node['qq'], duration=1200)
             ret = '管理员认为此为不妥当的发言，此为第二次'
         elif node['punish'] == 3:
-            await get_bot().set_group_ban(group_id=group, user_id=node['qq'], duration=3600)
-            ret = '管理员认为此为不妥当的发言，此为第三次'
-        elif node['punish'] >= 4:
             await get_bot().set_group_kick(group_id=group, user_id=node['qq'])
             ret = '管理员认为此为不妥当的发言，此为第四次，已移出群聊'
         await get_bot().send_group_msg(group_id=group, message=ret)
@@ -1602,7 +1662,6 @@ async def thwiki_punish(session: CommandSession):
         session.finish('未找到消息。')
     session.args['record'] = r = min(l, key=lambda record: abs(record.time - time))
     session.pause(f'消息内容为：{r.msg}，输入“确认”确认此发言', auto_escape=True)
-    
 
 @thwiki_punish.args_parser
 async def _(session: CommandSession):
@@ -1625,21 +1684,61 @@ async def _(session: CommandSession):
     except ValueError:
         session.finish('时间不符合格式')
 
+@on_command(('thwiki', 'kick'), only_to_me=False)
+@config.description("踢出群聊。", environment=env_supervise, hide=True)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_kick(session: CommandSession):
+    qq = int(session.current_arg_text)
+    group = list(config.group_id_dict['thwiki_punish'])[0]
+    await get_bot().set_group_kick(group_id=group, user_id=qq)
+    await session.send('已踢出。')
+
+@on_command(('thwiki', 'bookmark'), only_to_me=False)
+@config.description("将视频加入轮播列表。", environment=env|env_supervise)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_bookmark(session: CommandSession):
+    """提交视频加入轮播列表。
+    需经过管理审核。"""
+    qq = session.ctx['user_id']
+    match = re.match('^av(\d+)', session.current_arg_text)
+    if not match:
+        session.finish('请输入视频av号。')
+    av = int(match.group(1))
+    if await env_supervise.test(session):
+        ret = await add_fav(av, 853928275)
+        if json.loads(ret)['code'] == 0:
+            config.logger.thwiki << f'【LOG】用户{qq}添加书签av{av}'
+            await session.send('成功增加视频')
+        else:
+            config.logger.thwiki << f'【LOG】用户{qq}添加书签av{av}失败'
+            await session.send('视频增加失败')
+    else:
+        config.logger.thwiki << f'【LOG】用户{qq}提交书签av{av}，待审核'
+        for group in config.group_id_dict['thwiki_supervise']:
+            await get_bot().send_group_msg(group_id=group, message=f"-thwiki.bookmark av{av}\n用户{qq}试图添加 b23.tv/av{av}，同意请+1，不同意请忽略")
+            await get_bot().send_group_msg(group_id=group, message=f"-thwiki.bookmark av{av}\n用户{qq}试图添加 b23.tv/av{av}，同意请+1，不同意请忽略")
+        await session.send('已提交，请等待管理审核')
+
+@on_command(('thwiki', 'recommend'), only_to_me=False)
+@config.description("提交视频加入推荐列表。", environment=env)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_bookmark(session: CommandSession):
+    qq = session.ctx['user_id']
+    match = re.match('^av(\d+)', session.current_arg_text)
+    if not match:
+        session.finish('请输入视频av号。')
+    av = int(match.group(1))
+    ret = await add_fav(av, 426047475)
+    if json.loads(ret)['code'] == 0:
+        config.logger.thwiki << f'【LOG】用户{qq}添加推荐av{av}'
+        await session.send('成功加入推荐视频列表')
+    else:
+        config.logger.thwiki << f'【LOG】用户{qq}添加推荐av{av}失败'
+        await session.send('推荐视频列表加入失败')
+
 # Handler for command '-thwiki.test'
 # Yet another undocumented command...?
 @on_command(('thwiki', 'test'), only_to_me=False, permission=permission.SUPERUSER)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_test(session: CommandSession):
-    global record_file
-    record_file.close()
-    record_file = open(config.rel(r'log\thwiki_record.txt'), encoding='utf-8')
-    try:
-        yesterday = datetime.now() - timedelta(hours=24)
-        l = filter(lambda x: x is not None and x.time >= yesterday, load_record(record_file.readlines()))
-    except Exception:
-        record_file.close()
-        record_file = open(config.rel(r'log\thwiki_record.txt'), 'a', encoding='utf-8')
-    else:
-        record_file.close()
-        record_file = open(config.rel(r'log\thwiki_record.txt'), 'w', encoding='utf-8')
-        record_file.write('\n'.join([str(r) for r in l]))
+    await _save(l)
