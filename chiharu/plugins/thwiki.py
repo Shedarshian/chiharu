@@ -10,8 +10,6 @@ from collections import namedtuple
 from copy import copy
 from typing import Optional
 from urllib import parse
-# from quart import websocket
-# from quart.wrappers.request import Websocket
 from nonebot import on_command, CommandSession, get_bot, permission, scheduler, on_notice, NoticeSession, RequestSession, on_request, message_preprocessor
 from nonebot.command import call_command
 import aiocqhttp
@@ -19,8 +17,6 @@ from . import config, help
 config.logger.open('thwiki')
 env = config.Environment('thwiki_live', ret='请在直播群内使用')
 env_supervise = config.Environment('thwiki_supervise', config.Admin('thwiki_live'), ret='请在监视群内或直播群管理使用')
-print(config.group_id_dict['thwiki_supervise'])
-print(env_supervise.group)
 
 # Version information and changelog
 version = "2.2.14"
@@ -1426,6 +1422,7 @@ async def thwiki_version(session: CommandSession):
 
 # Handler for command '-thwiki.des'
 @on_command(('thwiki', 'des'), only_to_me=False, permission=permission.SUPERUSER)
+@config.description(hide=True)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_changedes(session: CommandSession):
     ret = await change(description=session.current_arg_text)
@@ -1527,7 +1524,7 @@ async def thwiki_check_user(session: CommandSession):
 @config.maintain('thwiki')
 async def thwiki_greet(session: NoticeSession):
     if session.ctx['group_id'] in config.group_id_dict['thwiki_live']:
-        message = '欢迎来到THBWiki直播群！我是直播小助手，在群里使用指令即可申请直播时间~\n现在群内直播使用推荐，有人推荐可以直接直播，没有推荐的用户直播时需有管理监视，总直播时长36小时之后可以转正。\n不要忘记阅读群文件里的本群须知哦~\n以下为指令列表，欢迎在群里使用与提问~\n' + Help.sp['thwiki_live']['thwiki'] % Help._dict['thwiki']
+        message = ('欢迎来到THBWiki直播群！我是直播小助手，在群里使用指令即可申请直播时间~\n现在群内直播使用推荐，有人推荐可以直接直播，没有推荐的用户直播时需有管理监视，总直播时长36小时之后可以转正。\n不要忘记阅读群文件里的本群须知哦~\n以下为指令列表，欢迎在群里使用与提问~\n' + help.sp['thwiki_live']['thwiki']) % help._dict['thwiki']
         await get_bot().send_private_msg(user_id=session.ctx['user_id'], message=message, auto_escape=True)
 
 @on_notice('group_decrease')
@@ -1553,6 +1550,7 @@ async def thwiki_decrease(session: NoticeSession):
                     await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
 
 @on_command(('thwiki', 'help'), only_to_me=False)
+@config.description(hide=True)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_help(session: CommandSession):
     await call_command(get_bot(), session.ctx, ('help',), current_arg="thwiki")

@@ -157,6 +157,7 @@ from nonebot.command import _registry, Command
 @config.description(hide=True)
 @config.ErrorHandle
 async def help_reflection(session: CommandSession):
+    """查询指令帮助。"""
     cmd_name = session.current_arg_text.split('.')
     cmd_tree = _registry
     for part in cmd_name[:-1]:
