@@ -75,7 +75,7 @@ atom_dict = {'e': He, 'H': H, 'O': O, 'N': N, 'C': C}
 class Space(ISpaceNoOverlap):
     color = {' ': (255, 255, 255), '0': (223, 223, 223)}
     scheme = [(255, 223, 0)]
-    font = [None, ImageFont(None, 16), ImageFont(None, 12)]
+    font = [None, ImageFont.truetype("arial.ttf", 16), ImageFont.truetype("arial.ttf", 12)]
     def __init__(self, width: int, height: int, blank: Iterable[Grid], wall: Iterable[Grid], extra: Iterable[Tuple[Grid, int]]):
         self.width = width
         self.height = height
