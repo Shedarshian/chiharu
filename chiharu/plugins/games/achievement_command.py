@@ -21,8 +21,7 @@ async def check(session: CommandSession):
     qq = session.ctx['user_id']
     for key, val in _all.items():
         if session.current_arg_text == val.val['name'] and ('hide' not in val.val or val.check(qq)):
-            await session.send(val.get_des(qq))
-            return
+            session.finish(val.get_des(qq))
     else:
         await session.send('未发现此成就。')
 

@@ -7,6 +7,8 @@ import functools
 import datetime
 import shlex
 import getopt
+from pebble import concurrent, ThreadPool
+from concurrent.futures import TimeoutError, ThreadPoolExecutor, _base
 from wand.image import Image
 from wand.drawing import Drawing
 from wand.color import Color
@@ -241,6 +243,7 @@ async def quiz_submit(session: CommandSession):
         await get_bot().send_group_msg(group_id=group, message=f'用户{session.ctx["user_id"]} 提交答案：\n{session.current_arg}', auto_escape=True)
     await session.send('您已成功提交答案')
 
+@concurrent.process(timeout=30)
 def calculate(s):
     parser.reset()
     parser.max_sum = 10000
@@ -274,7 +277,13 @@ async def calculator(session: CommandSession):
         艾里函数Airy Biry
     可以使用的常量：
         圆周率pi 自然对数的底e 欧拉常数gamma"""
-    result = calculate(session.current_arg_text)
+    try:
+        loop = asyncio.get_event_loop()
+        future = calculate(session.current_arg_text)
+        with ThreadPoolExecutor() as pool:
+            result = await loop.run_in_executor(pool, future.result)
+    except (TimeoutError, _base.CancelledError):
+        session.finish("time out!")
     if type(result) is float:
         await session.send(str(result), auto_escape=True)
     elif type(result) is str:
@@ -302,22 +311,27 @@ async def plot_function(session: CommandSession):
         return
     begin, end, step = 0, 10, 0.01
     opts, args = getopt.gnu_getopt(shlex.split(opt_str.strip()), 'b:e:s:', ['begin=', 'end=', 'step='])
-    for o, a in opts:
-        if o in ('-b', '--begin'):
-            begin = calculate(a)
-            if type(begin) is str:
-                await session.send(begin, auto_escape=True)
-                return
-        elif o in ('-e', '--end'):
-            end = calculate(a)
-            if type(end) is str:
-                await session.send(end, auto_escape=True)
-                return
-        elif o in ('-s', '--step'):
-            step = calculate(a)
-            if type(step) is str:
-                await session.send(step, auto_escape=True)
-                return
+    loop = asyncio.get_event_loop()
+    try:
+        with ThreadPoolExecutor() as pool:
+            for o, a in opts:
+                if o in ('-b', '--begin'):
+                    future = calculate(a)
+                    begin = await loop.run_in_executor(pool, future.result)
+                    if type(begin) is str:
+                        session.finish(begin, auto_escape=True)
+                elif o in ('-e', '--end'):
+                    future = calculate(a)
+                    end = await loop.run_in_executor(pool, future.result)
+                    if type(end) is str:
+                        session.finish(end, auto_escape=True)
+                elif o in ('-s', '--step'):
+                    step = calculate(a)
+                    begin = await loop.run_in_executor(pool, future.result)
+                    if type(step) is str:
+                        session.finish(step, auto_escape=True)
+    except (TimeoutError, _base.CancelledError):
+        session.finish("time out!")
     if len(els) == 1:
         func_str = els[0].strip()
     elif len(args) != 0:
@@ -326,8 +340,7 @@ async def plot_function(session: CommandSession):
         await session.send('请输入函数。')
     num = math.ceil((end - begin) / step)
     if num > 10000:
-        await session.send('点数不能大于10000。')
-        return
+        session.finish('点数不能大于10000。')
     parser.reset()
     parser.setstate('x')
     try:
@@ -337,17 +350,20 @@ async def plot_function(session: CommandSession):
             result = lambda *args: result2
         result(begin)
         x = numpy.linspace(begin, end, num)
-        ufunc = numpy.frompyfunc(result, 1, 1)
-        y = ufunc(x)
+        loop = asyncio.get_event_loop()
+        # ufunc = numpy.frompyfunc(result, 1, 1)
+        # future = _f(ufunc, x)
+        with ThreadPool() as pool:
+            future = pool.map(result, x, timeout=30)
+            y = await loop.run_in_executor(None, lambda: list(future.result()))
+    except (TimeoutError, _base.CancelledError):
+        session.finish("time out!")
     except IndexError:
-        await session.send('请输入一元函数。')
-        return
+        session.finish('请输入一元函数。')
     except ParserError as e:
-        await session.send('SyntaxError: ' + str(e), auto_escape=True)
-        return
+        session.finish('SyntaxError: ' + str(e), auto_escape=True)
     except Exception as e:
-        await session.send(type(e).__name__ + ': ' + str(e), auto_escape=True)
-        return
+        session.finish(type(e).__name__ + ': ' + str(e), auto_escape=True)
     pyplot.clf()
     pyplot.plot(x, y)
     name = f'func_{hash(session.current_arg_text)}.png'

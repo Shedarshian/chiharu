@@ -2,7 +2,8 @@
 import json
 import random
 import asyncio
-import concurrent.futures
+from pebble import concurrent
+from concurrent.futures import TimeoutError, ThreadPoolExecutor, _base
 import getopt
 from nonebot import on_command, CommandSession, permission
 import chiharu.plugins.config as config
@@ -52,11 +53,11 @@ async def Time(session: CommandSession):
     """返回mbf程序的运行时间。输入第二行内容作为standard input。"""
     try:
         loop = asyncio.get_event_loop()
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            strout, _break, runtime = await asyncio.wait_for(loop.run_in_executor(pool, _Run, session.get('strins'), session.get('strin')), timeout=600.0)
-    except asyncio.TimeoutError:
-        await session.send("time out!")
-        return
+        future = _Run(session.get('strins'), session.get('strin'))
+        with ThreadPoolExecutor() as pool:
+            strout, _break, runtime = await loop.run_in_executor(pool, future.result)
+    except (TimeoutError, _base.CancelledError):
+        session.finish("time out!")
     except ZeroDivisionError:
         await session.send("ZeroDivisionError: integer division or modulo by zero")
         return
@@ -73,14 +74,13 @@ async def Run(session: CommandSession):
     """运行mbf程序。输入第二行内容作为standard input。\n\n脚本语言modified brainf**k帮助：\n有一个由整数组成的堆栈。从左到右依次读取instruction。堆栈为空时欲取出任何数均为0。\n.\t向堆栈中塞入一个0\n0-9\t堆栈顶数乘以10加输入数。即比如输入一个十进制数135可以使用.135\n+-*/%\t弹出堆栈顶两个数并塞入计算后的数。除法取整数除\n&|^\t按位运算\n><=\t比较栈顶两个数，true视为1，false视为0\n_\t栈顶数取负，即比如输入一个数-120可以使用.120_\n!\t0变为1，非0变为0\n(\t栈顶数+1\n)\t栈顶数-1\n:\t输入stdin的char至栈顶\n;\t输出栈顶的char至stdout，并消耗，超出范围则弹出后不做任何事\n[\t如果堆栈顶数为0则跳转至配对的]，并消耗掉栈顶数\n{\t与[相反，堆栈顶数非0则跳转至配对的}，并消耗掉栈顶数\n]\t如果堆栈顶数非0则跳转回匹配的[，并消耗掉栈顶数\n}\t与]相反，堆栈顶数为0则跳转回配对的{，并消耗掉栈顶数\n\\\t交换栈顶两数\n,\t弹出栈顶数n，并复制栈顶下数第n个数塞回栈顶，n超出范围则弹出n后不做任何事\n$\t塞入当前栈包含的整数总数\n~\tpop掉栈顶数\n\"\t弹出栈顶数n，删除栈顶下数第n个数，n超出范围则弹出n后不做任何事\n@\t弹出栈顶数n1之后n2，将输入序列的第n1个字符修改成n2对应的char，n1或n2超出范围则弹出两数后不做任何事\n?\t弹出栈顶数n，生成一个0至n-1的随机整数塞回堆栈，n非正则弹出n后不做任何事\n#\t复制栈顶数\n`\t弹出栈顶数，执行栈顶数对应的char对应的指令。超出范围则弹出后不做任何事\n'\t弹出栈顶数n，将输入序列第n个字符对应的ascii塞入堆栈\n字母为子程序，子程序与主程序共用堆栈。"""
     try:
         loop = asyncio.get_event_loop()
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            strout, _break, runtime = await asyncio.wait_for(loop.run_in_executor(pool, _Run, session.get('strins'), session.get('strin')), timeout=600.0)
-    except asyncio.TimeoutError:
-        await session.send("time out!")
-        return
+        future = _Run(session.get('strins'), session.get('strin'))
+        with ThreadPoolExecutor() as pool:
+            strout, _break, runtime = await loop.run_in_executor(pool, future.result)
+    except (TimeoutError, _base.CancelledError):
+        session.finish("time out!")
     except ZeroDivisionError:
-        await session.send("ZeroDivisionError: integer division or modulo by zero")
-        return
+        session.finish("ZeroDivisionError: integer division or modulo by zero")
     if runtime >= 10000000:
         await session.send("time out!")
     if _break:
@@ -328,6 +328,7 @@ def _ListSub():
     l.sort()
     return l
 
+@concurrent.process(timeout=15)
 def _Run(strins, strin):
     return mbfInterpret(list(strins), list(strin), [])
 

@@ -90,6 +90,8 @@ sp = {"thwiki_live": {"default": "%s\n-thwiki：thwiki直播申请相关",
 -thwiki.term 或terminate提前下播
 -thwiki.grant @别人 可多个@ 可加false 推荐别人进入推荐列表，需要对方同意，请慎重推荐！结尾加false代表撤回推荐，撤回推荐会一同撤回被推荐人推荐的所有人
 -thwiki.depart 自行安全脱离推荐树，会保留直播时间
+-thwiki.bookmark av号 提交视频加入轮播清单，需管理员审核
+-thwiki.recommend av号 提交视频加入推荐列表
 apply cancel get term grant change depart只能用于群内"""},
     "thwiki_supervise": {"thwiki": """%s
 -thwiki.deprive @别人 剥夺别人的推荐/转正，管理员在直播群使用
@@ -104,6 +106,7 @@ async def help_code(session: CommandSession):
 @on_command(name='help', only_to_me=False)
 @config.ErrorHandle
 async def help(session: CommandSession):
+    """查询指令帮助。"""
     global _dict, sp
     name = session.get('name')
     try:
@@ -136,6 +139,7 @@ async def _(session: CommandSession):
         session.args['name'] = 'default'
 
 @on_command('reload', only_to_me=False, permission=permission.SUPERUSER)
+@config.description(hide=True)
 @config.ErrorHandle
 async def reload_plugin(session: CommandSession):
     name = 'chiharu.plugins.' + session.current_arg_text
@@ -146,3 +150,28 @@ async def reload_plugin(session: CommandSession):
     else:
         l[0].module = importlib.reload(l[0].module)
         await session.send('Successfully reloaded ' + session.current_arg_text, auto_escape=True)
+
+from nonebot.command import _registry, Command
+
+@on_command('helptest', only_to_me=False)
+@config.description(hide=True)
+@config.ErrorHandle
+async def help_reflection(session: CommandSession):
+    cmd_name = session.current_arg_text.split('.')
+    cmd_tree = _registry
+    for part in cmd_name[:-1]:
+        if part not in cmd_tree or not isinstance(cmd_tree[part], dict):
+            session.finish('未发现指令。')
+        cmd_tree = cmd_tree[part]
+
+    cmd = cmd_tree.get(cmd_name[-1])
+    if cmd is None:
+        session.finish('未发现指令。')
+    if isinstance(cmd, Command):
+        # command
+        has_des = 'has_des' in cmd.func.__dict__
+        if not has_des or not cmd.func.hide and (cmd.func.environment is None or await cmd.func.environment.test(session)):
+            await session.send(f"-{'.'.join(cmd_name)}{' ' + ' '.join(cmd.func.args) if has_des and cmd.func.args != () else ''}\n{cmd.func.__doc__}")
+    else:
+        # command group
+        pass

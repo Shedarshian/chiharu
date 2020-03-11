@@ -94,10 +94,13 @@ class logger(metaclass=_logger_meta):
     def open(name):
         logger._l[name] = _logger(name)
 
+from copy import copy
+
 class Environment:
-    def __init__(self, *args, private=False, ret=""):
-        self.group = set()
-        self.admin = set()
+    def __init__(self, *args, private=False, ret="", group=None, admin=None):
+        print(args)
+        self.group = group if group is not None else set()
+        self.admin = admin if admin is not None else set()
         self.private = private
         for s in args:
             if type(s) == str:
@@ -105,6 +108,11 @@ class Environment:
             elif isinstance(s, Admin):
                 self.admin |= set(group_id_dict[s.name])
         self.ret = ret
+        print(self.group, self.admin)
+    def __or__(self, other):
+        if self.private != other.private:
+            raise TypeError
+        return Environment(private=self.private, group=self.group | other.group, admin=self.admin | other.admin, ret=self.ret)
     async def test(self, session: BaseSession):
         try:
             group_id = session.ctx['group_id']
@@ -124,6 +132,7 @@ class Environment:
 
 def description(s: str="", args: Tuple[str]=(), environment: Environment=None, hide=False):
     def _(f):
+        f.has_des = True
         f.description = s
         f.args = args
         f.environment = environment
