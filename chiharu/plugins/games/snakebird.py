@@ -536,7 +536,7 @@ async def sb_process(session: NLPSession, data: Dict[str, Any], delete_func: Awa
 async def sb_end(session: CommandSession, data: Dict[str, Any]):
     await session.send('已删除')
 
-@on_command(('play', 'snakebird', 'check'), only_to_me=False)
+@on_command(('play', 'snakebird', 'check'), only_to_me=False, hide=True)
 @config.ErrorHandle
 async def sb_check(session: CommandSession):
     try:

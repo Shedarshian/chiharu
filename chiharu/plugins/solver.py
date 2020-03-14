@@ -26,7 +26,7 @@ def changeab(i):
     b = i.index('b')
     return (int(i[:a]), int(i[a+1:b]))
 
-@on_command(('solver', 'guess'), only_to_me=False, permission=permission.SUPERUSER, shell_like=True)
+@on_command(('solver', 'guess'), only_to_me=False, permission=permission.SUPERUSER, shell_like=True, hide=True)
 @config.ErrorHandle
 async def guess_solver(session: CommandSession):
     opts, args = getopt.gnu_getopt(session.args['argv'], 'b:d:s', ['base=', 'digits=', 'strategy=', 'space'])

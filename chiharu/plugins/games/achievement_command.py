@@ -2,8 +2,7 @@ from .achievement import _all
 from .. import config
 from nonebot import on_command, CommandSession, get_bot, permission
 
-@on_command('game', only_to_me=False)
-@config.description("\U0001F6AA七海千春游戏大厅\U0001F6AA")
+@on_command('game', only_to_me=False, short_des="\U0001F6AA七海千春游戏大厅\U0001F6AA")
 @config.ErrorHandle
 async def game_center(session: CommandSession):
     """欢迎使用-game 指令访问七海千春游戏大厅~"""

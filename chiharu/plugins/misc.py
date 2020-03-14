@@ -47,15 +47,14 @@ def stdoutIO(stdout=None):
     yield stdout
     sys.stdout = old
 
-@on_command(('python', 'exec'), only_to_me=False, permission=permission.SUPERUSER)
+@on_command(('python', 'exec'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def PythonExec(session: CommandSession):
     with stdoutIO() as s:
         exec(session.current_arg_text, {}, {})
     await session.send(s.getvalue()[:-1], auto_escape=True)
 
-@on_command(('misc', 'maj', 'ten'), only_to_me=False)
-@config.description("日麻算点器。")
+@on_command(('misc', 'maj', 'ten'), only_to_me=False, short_des="日麻算点器。")
 @config.ErrorHandle
 async def maj_ten(session: CommandSession):
     """日麻算点器。
@@ -118,8 +117,7 @@ async def GetMajImg(s):
 
 daan = {}
 
-@on_command(('misc', 'maj', 'train'), only_to_me=False, shell_like=True)
-@config.description("麻将训练。", ("number", '[-a]', '[-p]'))
+@on_command(('misc', 'maj', 'train'), only_to_me=False, shell_like=True, short_des="麻将训练。", args=("number", '[-a]', '[-p]'))
 @config.ErrorHandle
 async def maj_train(session: CommandSession):
     """麻将训练。
@@ -387,8 +385,7 @@ async def maj_ting_ex(session: CommandSession):
     except maj.MajErr as e:
         await session.send(str(e))
 
-@on_command(('misc', 'maj', 'zj'), only_to_me=False)
-@config.description("中庸麻将点数计算器。")
+@on_command(('misc', 'maj', 'zj'), only_to_me=False, short_des="中庸麻将点数计算器。", args=('tehai', '[fuuro]', '[others]'))
 @config.ErrorHandle
 async def maj_zj_ten(session: CommandSession):
     """中庸麻将点数计算器。
@@ -458,8 +455,7 @@ async def maj_zj_ten(session: CommandSession):
     except maj.MajErr as e:
         await session.send(str(e))
 
-@on_command(('misc', 'maj', 'voice'), only_to_me=False)
-@config.description("雀魂报番语音。")
+@on_command(('misc', 'maj', 'voice'), only_to_me=False, short_des="雀魂报番语音。")
 @config.ErrorHandle
 async def maj_voice(session: CommandSession):
     """雀魂报番语音。
@@ -625,8 +621,7 @@ with open(config.rel('unicode.txt'), encoding='utf-16') as f:
         else:
             token[re.sub('\\\\\\\\', '\\\\', match2.group(1))] = re.sub('\\\\\\\\', '\\\\', match2.group(2))
 
-@on_command(('misc', 'token'), only_to_me=False)
-@config.description("Unicode字符翻译。")
+@on_command(('misc', 'token'), only_to_me=False, short_des="Unicode字符翻译。")
 @config.ErrorHandle
 async def token_alpha(session: CommandSession):
     """Unicode字符翻译。
@@ -705,15 +700,13 @@ class MoneyComputer:
             if ret is not None:
                 return ret
 
-@on_command(('misc', 'money'), only_to_me=False)
-@config.description("面基算钱小助手。")
+@on_command(('misc', 'money'), only_to_me=False, short_des="面基算钱小助手。")
 @config.ErrorHandle
 async def shuru(session: CommandSession):
     """面基算钱小助手。\n\n每个行为一条指令。指令：\nclear: 清除所有数据。\nadd [人名]: 增加一个人。\nbill [人名] [金额] [可选：需付费的人名列表]: 增加一个需付费账单，人名列表为空则默认【包括自己的】所有人。\noutput [策略] [参数]: 输出金额交换。策略目前有：\n\toneman [参数：人名]: 所有金额交换全部支付给此人/由此人支付。"""
     await session.send(MoneyComputer().processLines(session.current_arg_text.split('\r\n')))
 
-@on_command(('misc', 'omikuji'), only_to_me=False)
-@config.description("千春酱御神签~")
+@on_command(('misc', 'omikuji'), only_to_me=False, short_des="千春酱御神签~")
 @config.ErrorHandle
 async def omikuji(session: CommandSession):
     """千春酱御神签~
@@ -757,8 +750,7 @@ def to_str(dct):
 todo_modes = {'progress', 'new', 'move'}
 from .helper.function import parser, ParserError
 
-@on_command(('todo',), only_to_me=False, permission=permission.SUPERUSER)
-@config.description("", hide=True)
+@on_command(('todo',), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def todo(session: CommandSession):
     qq = str(session.ctx['user_id'])

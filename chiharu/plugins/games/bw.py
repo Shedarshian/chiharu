@@ -144,7 +144,7 @@ async def chess_process(session: NLPSession, data: Dict[str, Any], delete_func: 
             args={'args': (c2 % 8, c1 % 8), 'isBlack': data['nowBlack'], 'board': data['board'],
             'ifSuccess': _not_black, 'ifWin': delete_func})
 
-@on_command(('play', 'bw', 'process'), only_to_me=False)
+@on_command(('play', 'bw', 'process'), only_to_me=False, hide=True)
 @config.ErrorHandle
 async def chess_test(session: CommandSession):
     board = session.get('board')

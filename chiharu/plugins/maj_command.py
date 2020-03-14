@@ -13,8 +13,7 @@ B = TypeVar('B', bound=maj.MajBoard)
 async def maj_test(board: B):
     pass
 
-@on_command(('maj', 'test', 'begin'), only_to_me=False)
-@config.description(hide=True)
+@on_command(('maj', 'test', 'begin'), only_to_me=False, hide=True)
 @config.ErrorHandle
 async def maj_test_begin(session: CommandSession):
     typ_name = session.current_arg_text

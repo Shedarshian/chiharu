@@ -755,7 +755,7 @@ async def chess_process(session: NLPSession, data: Dict[str, Any], delete_func: 
                 args={'args': command, 'isRed': data['nowRed'], 'board': data['board'],
                 'ifSuccess': _not_red, 'ifWin': delete_func})
 
-@on_command(('play', 'xiangqi', 'process'), only_to_me=False)
+@on_command(('play', 'xiangqi', 'process'), only_to_me=False, hide=True)
 @config.ErrorHandle
 async def chess_test(session: CommandSession):
     board = session.get('board')
@@ -769,7 +769,7 @@ async def chess_test(session: CommandSession):
     except ChessError as e:
         await session.send(e.args[0], auto_escape=True)
 
-@on_command(('xiangqi', 'check'), only_to_me=False)
+@on_command(('xiangqi', 'check'), only_to_me=False, hide=True)
 @config.ErrorHandle
 async def chess_check(session: CommandSession):
     await session.send(' '.join(map(str, filter(lambda x: xiangqi.center[x]['game'] is xiangqi, xiangqi.center.keys()))), auto_escape=True)

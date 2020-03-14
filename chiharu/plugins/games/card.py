@@ -15,7 +15,8 @@ config.logger.open('card')
 def _time():
     h = datetime.now().hour
     return h < 6 or 11 <= h < 13 or h >= 23
-c1 = config.Constraint(config.group_id_dict['card_constraint'], _time, "现时段本群功能管制，开放时段为11～13 23～30点，欢迎加入bot测试群947279366刷屏")
+c1 = config.Constraint('card_constraint', can_respond=_time, ret="现时段本群功能管制，开放时段为11～13 23～30点，欢迎加入bot测试群947279366刷屏")
+env = config.Environment('all', c1)
 
 # -game card 引导至card的指令列表
 # √抽卡指令（参数：卡池，张数） 参数为空时引导至查看卡池 限额抽完时引导至查看个人信息 再次输入确认使用资源抽卡
@@ -354,11 +355,11 @@ def add_card(arg: Iterable[Tuple[int, int]], qq: int=-1):
             f.write(to_byte(pool[id]))
             config.logger.card << f"【LOG】用户{qq} 创造卡片{id}，{num}张，现有{pool[id]}张"
 
-@on_command(('card', 'draw'), only_to_me=False, aliases=('抽卡',))
-@c1
+@on_command(('card', 'draw'), only_to_me=False, aliases=('抽卡',), args=('卡池id/名字', '[抽卡次数=1]'), environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_draw(session: CommandSession):
+    '''抽卡。'''
     if session.get('name') is None:
         # 卡池介绍
         with open_user_storage(session.ctx['user_id']) as f:
@@ -454,21 +455,21 @@ async def card_draw(session: CommandSession):
             if data['empty']:
                 config.logger.card << f'【LOG】卡池{p["id"]}已空'
 
-@on_command(('card', 'draw5'), aliases=('五连抽卡',), only_to_me=False)
-@c1
+@on_command(('card', 'draw5'), aliases=('五连抽卡',), only_to_me=False, args='卡池id/名字', environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_draw_5(session: CommandSession):
+    """五连抽卡。"""
     if session.current_arg_text == "":
         await call_command(get_bot(), session.ctx, ('card', 'draw'), current_arg="")
     else:
         await call_command(get_bot(), session.ctx, ('card', 'draw'), current_arg=session.current_arg_text.strip() + ' 5')
 
-@on_command(('card', 'check'), only_to_me=False)
-@c1
+@on_command(('card', 'check'), only_to_me=False, args='[卡池id/名字]', environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_check(session: CommandSession):
+    '''查询卡池具体信息，包含具体卡牌（刷屏预警，建议私聊）。不带参数可查询卡池列表。'''
     qq = session.ctx['user_id']
     if session.current_arg_text == "":
         with open_user_storage(qq) as f:
@@ -485,11 +486,11 @@ async def card_check(session: CommandSession):
                 wish = set(i for i, data in enumerate(f.yield_all()) if data['wish'])
                 await session.send((pool_des_detail(p, wish) + f'\n{f.guide["draw"]}{f.guide["check_card"]}').strip(), auto_escape=True)
 
-@on_command(('card', 'check_card'), only_to_me=False)
-@c1
+@on_command(('card', 'check_card'), only_to_me=False, args='卡牌名', environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_check_card(session: CommandSession):
+    '''查询卡牌信息。'''
     c = card_find(session.current_arg_text.replace('，', ','))
     if c is None:
         await session.send('未发现此卡牌')
@@ -504,11 +505,11 @@ async def card_check_card(session: CommandSession):
                 strout += '\n此卡牌是您首次创造'
         await session.send(strout, auto_escape=True)
 
-@on_command(('card', 'add'), only_to_me=False)
-@c1
+@on_command(('card', 'add'), only_to_me=False, args=('卡牌名', '[张数]', '[\\n 描述文本]'), environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_add(session: CommandSession):
+    '''创造卡片加入卡池。'''
     if session.get('name') is None:
         await session.send(guide['add'])
         return
@@ -582,11 +583,11 @@ async def card_add(session: CommandSession):
     await session.send(strout, auto_escape=True)
     await _f()
 
-@on_command(('card', 'add_des'), only_to_me=False)
-@c1
+@on_command(('card', 'add_des'), only_to_me=False, args=('卡牌名', '\\n', '描述文本'), environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_add_des(session: CommandSession):
+    '''为自己首次创造的卡牌增加描述文本，会在单抽时显示。'''
     qq = session.ctx['user_id']
     n = session.current_arg_text.find('\n')
     if n == -1:
@@ -618,11 +619,11 @@ async def card_add_des(session: CommandSession):
         for group in config.group_id_dict['card_verify']:
             await get_bot().send_group_msg(group_id=group, message=f"{qq} 提交卡牌 {c['name']} 的描述 {des}\nid:{id_max}", auto_escape=True)
 
-@on_command(('card', 'userinfo'), only_to_me=False)
-@c1
+@on_command(('card', 'userinfo'), only_to_me=False, environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_userinfo(session: CommandSession):
+    '''查看个人信息，包含en数，剩余免费抽卡次数等等'''
     qq = session.ctx['user_id']
     with open_user_storage(qq) as f:
         f.close('info')
@@ -630,11 +631,11 @@ async def card_userinfo(session: CommandSession):
         await session.send(f"""剩余en数：{info['money']}\n今日剩余：免费抽卡次数{info['time']} 创造卡片种类{info['create_type']} 创造卡片张数{info['create_num']}{'''
 今日已确认使用en抽卡''' if info['confirm'] else ''}\n消息箱设置：{ {0: '立即私聊', 1: '手动收取', 2: '凌晨定时发送私聊'}[info['message']] }{f'''{f.guide['check_message']}''' if info['message'] == 1 else ''}{f.guide['message']}{f.guide['storage']}{f.guide['confirm'] if info['confirm'] else ''}{f.guide['guide']}{f.guide['comment']}""")
 
-@on_command(('card', 'wishlist'), only_to_me=False)
-@c1
+@on_command(('card', 'wishlist'), only_to_me=False, environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_wishlist(session: CommandSession):
+    '''查看愿望单。'''
     if session.current_arg_text != '':
         page = int(session.current_arg_text)
     else:
@@ -655,11 +656,11 @@ async def card_wishlist(session: CommandSession):
         f.close('wishlist')
         await session.send(f'您的愿望单包含：\n{strout}{f.guide["storage"]}', auto_escape=True)
 
-@on_command(('card', 'fav'), only_to_me=False)
-@c1
+@on_command(('card', 'fav'), only_to_me=False, args='卡牌名', environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_fav(session: CommandSession):
+    '''将卡片加入特别喜欢。'''
     name = session.current_arg_text.strip()
     qq = session.ctx['user_id']
     card = card_find(name)
@@ -680,11 +681,11 @@ async def card_fav(session: CommandSession):
                 config.logger.card << f"【LOG】用户{qq} 将卡片{card['name']}加入特别喜欢"
                 await session.send(f'已成功将卡片{card["name"]}加入特别喜欢{f.guide["storage"]}')
 
-@on_command(('card', 'wish'), only_to_me=False)
-@c1
+@on_command(('card', 'wish'), only_to_me=False, args='卡牌名', environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_wish(session: CommandSession):
+    '''将卡片加入愿望单。'''
     name = session.current_arg_text.strip()
     qq = session.ctx['user_id']
     card = card_find(name)
@@ -703,11 +704,13 @@ async def card_wish(session: CommandSession):
                 config.logger.card << f"【LOG】用户{qq} 将{'未' if data['num'] == 0 else '已'}拥有的卡片{card['name']}加入愿望单"
                 await session.send(f"已成功将{'未' if data['num'] == 0 else '已'}拥有的卡片{card['name']}加入愿望单{f.guide['storage']}{f.guide['wishlist']}")
 
-@on_command(('card', 'set', 'unconfirm'), only_to_me=False)
-@c1
+config.CommandGroup(('card', 'set'), des='改变用户设置。')
+
+@on_command(('card', 'set', 'unconfirm'), only_to_me=False, environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_unconfirm(session: CommandSession):
+    '''取消今日确认使用en抽卡。'''
     with open_user_storage(session.ctx['user_id']) as f:
         f.close('confirm')
         info = f.read_info()
@@ -716,11 +719,13 @@ async def card_unconfirm(session: CommandSession):
         config.logger.card << f'【LOG】用户{session.ctx["user_id"]} 取消今日自动使用en抽卡'
         await session.send("已成功取消自动使用en抽卡")
 
-@on_command(('card', 'set', 'message'), only_to_me=False)
-@c1
+@on_command(('card', 'set', 'message'), only_to_me=False, short_des='设置消息箱提醒。', environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_set_message(session: CommandSession):
+    '''设置消息箱提醒。支持参数：-card.set.message 0：立即私聊
+-card.set.message 1：手动收取
+-card.set.message 2：凌晨定时发送私聊'''
     if session.current_arg_text in {'0', '1', '2'}:
         qq = session.ctx['user_id']
         with open_user_storage(qq) as f:
@@ -733,11 +738,11 @@ async def card_set_message(session: CommandSession):
     else:
         await session.send("支持参数：\n-card.set.message 0：立即私聊\n-card.set.message 1：手动收取\n-card.set.message 2：凌晨定时发送私聊")
 
-@on_command(('card', 'set', 'guide'), only_to_me=False)
-@c1
+@on_command(('card', 'set', 'guide'), only_to_me=False, args='on/off', environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_set_guide(session: CommandSession):
+    '''开启或关闭全部指令引导。'''
     if session.current_arg_text == 'off':
         off = 255
     elif session.current_arg_text == 'on':
@@ -754,11 +759,11 @@ async def card_set_guide(session: CommandSession):
         config.logger.card << f'用户{session.ctx["user_id"]} 已{"关闭" if off else "开启"}全部指令引导'
         await session.send(f'您已成功{"关闭" if off else "开启"}全部指令引导')
 
-@on_command(('card', 'storage'), only_to_me=False)
-@c1
+@on_command(('card', 'storage'), only_to_me=False, environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_storage(session: CommandSession):
+    '''查看库存卡片。'''
     if session.current_arg_text != '':
         page = int(session.current_arg_text)
     else:
@@ -788,11 +793,11 @@ async def card_storage(session: CommandSession):
         f.close('storage')
         await session.send(strout + f'{f.guide["add"]}{f.guide["discard"]}{f.guide["fav&wish"]}', auto_escape=True)
 
-@on_command(('card', 'discard'), only_to_me=False)
-@c1
+@on_command(('card', 'discard'), only_to_me=False, args=('卡片名', '[数量=1]'), environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_discard(session: CommandSession):
+    '''分解卡片获得en。'''
     if session.get('name') is None:
         await session.send('请输入想分解的卡名')
         return
@@ -867,11 +872,11 @@ async def add_parser(session: CommandSession):
             except ValueError:
                 session.state['num'] = -1
 
-@on_command(('card', 'message'), only_to_me=False)
-@c1
+@on_command(('card', 'message'), only_to_me=False, environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_check(session: CommandSession):
+    '''手动查看消息箱。'''
     with open_user_storage(session.ctx['user_id']) as f:
         message = f.check_message()
         if message == []:
@@ -881,11 +886,11 @@ async def card_check(session: CommandSession):
             config.logger.card << f'【LOG】用户{session.ctx["user_id"]} 已接收消息：\n' + '\n'.join(message)
             await session.send('您的消息箱包含以下消息：\n' + '\n'.join(message))
 
-@on_command(('card', 'comment'), only_to_me=False)
-@c1
+@on_command(('card', 'comment'), only_to_me=False, environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_comment(session: CommandSession):
+    '''给维护者留言~想说的话，想更新的功能，想开启的活动卡池都可以哦~'''
     with open(config.rel(r'games\card\comment.json'), encoding='utf-8') as f:
         comments = json.load(f)
     import datetime
@@ -899,8 +904,7 @@ async def card_comment(session: CommandSession):
     for group in config.group_id_dict['card_verify']:
         await get_bot().send_group_msg(group_id=group, message=f'用户{session.ctx["user_id"]} 留言：\n{session.current_arg}', auto_escape=True)
 
-@on_command(('card', 'help'), only_to_me=False)
-@c1
+@on_command(('card', 'help'), only_to_me=False, hide=True, environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
 async def card_help(session: CommandSession):
@@ -908,7 +912,7 @@ async def card_help(session: CommandSession):
     with open_user_storage(session.ctx["user_id"]) as f:
         f.close('message')
 
-@on_command(('card', 'add_group'), only_to_me=False, permission=permission.SUPERUSER)
+@on_command(('card', 'add_group'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def card_add_group(session: CommandSession):
     lst = session.current_arg_text.split('\n')
@@ -921,7 +925,7 @@ async def card_add_group(session: CommandSession):
     await session.send("successfully added cards")
     config.logger.card << f'【LOG】卡池新增{group}卡组共{len(lst) - 2}种，每种{num}张'
 
-@on_command(('card', 'vlist'), only_to_me=False, aliases=('cvl',), permission=permission.SUPERUSER)
+@on_command(('card', 'vlist'), only_to_me=False, aliases=('cvl',), permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def card_vlist(session: CommandSession):
     verify = read_verify()
@@ -930,7 +934,7 @@ async def card_vlist(session: CommandSession):
     else:
         await session.send('\n'.join([(f"""id:{x['id']} {x['name']}\n\t{' '.join([f"{a['qq']}的{a['num']}张" for a in x['user']])}""" if 'name' in x else f"""id:{x['id']} {card_info[x['card_id']]['name']} 的描述\n{x['des']}\n\t{x['user']}""") for x in verify]))
 
-@on_command(('card', 'verify'), only_to_me=False, aliases=('cvf',), permission=permission.SUPERUSER)
+@on_command(('card', 'verify'), only_to_me=False, aliases=('cvf',), permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def card_verify(session: CommandSession):
     verify = read_verify()
@@ -974,7 +978,7 @@ async def card_verify(session: CommandSession):
     verify.remove(a)
     save_verify(verify)
 
-@on_command(('card', 'verify_all'), only_to_me=False, aliases=('cva',), permission=permission.SUPERUSER)
+@on_command(('card', 'verify_all'), only_to_me=False, aliases=('cva',), permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def card_verify_all(session: CommandSession):
     verify = read_verify()
@@ -1009,7 +1013,7 @@ async def card_verify_all(session: CommandSession):
     verify = []
     save_verify(verify)
 
-@on_command(('card', 'reply'), only_to_me=False, permission=permission.SUPERUSER)
+@on_command(('card', 'reply'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def card_reply(session: CommandSession):
     n = session.current_arg_text.find('\n')
@@ -1089,14 +1093,14 @@ async def update():
     for group in config.group_id_dict['card_verify']:
         await get_bot().send_group_msg(group_id=group, message='card updated')
 
-@on_command(('card', 'maintain'), only_to_me=False, permission=permission.SUPERUSER)
+@on_command(('card', 'maintain'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def card_maintain(session: CommandSession):
     config.maintain_str['card'] = session.current_arg_text
     config.maintain_str_save()
     await session.send('已进入维护状态')
 
-@on_command(('card', 'oshirase'), only_to_me=False, permission=permission.SUPERUSER)
+@on_command(('card', 'oshirase'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def card_oshirase(session: CommandSession):
     for qq in os.listdir(config.rel(r'games\card\user_storage')):
@@ -1104,7 +1108,7 @@ async def card_oshirase(session: CommandSession):
             await f.send('【抽卡游戏公告】' + session.current_arg_text)
     await session.send('成功发送')
 
-@on_command(('card', 'update'), only_to_me=False, permission=permission.SUPERUSER)
+@on_command(('card', 'update'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def card_update(session: CommandSession):
     global daily_pool_all, daily_pool
@@ -1172,7 +1176,7 @@ async def card_update(session: CommandSession):
                     config.logger.card << f'【LOG】已定时向用户{f.qq}发送消息：\n' + '\n'.join(message)
                     await get_bot().send_private_msg(user_id=f.qq, message='\n'.join(message), auto_escape=True)
 
-@on_command(('card', 'test'), only_to_me=False, permission=permission.SUPERUSER)
+@on_command(('card', 'test'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def card_test(session: CommandSession):
     pass

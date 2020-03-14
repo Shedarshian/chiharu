@@ -2,9 +2,8 @@ from typing import Callable, Iterable, Tuple, Any, Awaitable, List, Dict
 from abc import ABC, abstractmethod
 import json
 import random
-import chiharu.plugins.config as config
+from . import config
 from nonebot import on_command, CommandSession, get_bot, permission, on_natural_language, NLPSession, IntentCommand
-
 # example usage for GameSameGroup:
 # xiangqi = GameSameGroup('xiangqi')
 #
@@ -57,8 +56,7 @@ class GameSameGroup:
         def _(_f: Awaitable) -> Awaitable:
             self.complete_func = _f
 
-            @on_command(self.begin_command, only_to_me=False)
-            @config.description(hide=True)
+            @on_command(self.begin_command, only_to_me=False, hide=True)
             @config.ErrorHandle
             async def _g(session: CommandSession):
                 try:
@@ -106,8 +104,7 @@ class GameSameGroup:
                     return
                 await self.uncomplete_func(session, self.uncomplete[group_id])
 
-            @on_command(confirm_command, only_to_me=False)
-            @config.description(hide=True)
+            @on_command(confirm_command, only_to_me=False, hide=True)
             @config.ErrorHandle
             async def _h(session: CommandSession):
                 try:
@@ -142,8 +139,7 @@ class GameSameGroup:
         self.end_command = end_command
 
         def _(_f: Awaitable) -> Awaitable:
-            @on_command(end_command, only_to_me=False)
-            @config.description(hide=True)
+            @on_command(end_command, only_to_me=False, hide=True)
             @config.ErrorHandle
             async def _g(session: CommandSession):
                 try:
@@ -254,8 +250,7 @@ class GamePrivate:
         def _(_f: Awaitable) -> Awaitable:
             self.complete_func = _f
 
-            @on_command(self.begin_command, only_to_me=False)
-            @config.description(hide=True)
+            @on_command(self.begin_command, only_to_me=False, hide=True)
             @config.ErrorHandle
             async def _g(session: CommandSession):
                 qq = int(session.ctx['user_id'])

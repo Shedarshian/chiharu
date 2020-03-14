@@ -73,8 +73,7 @@ async def Event(year, month, day):
             yield m
     return list(_f(text))
 
-@on_command(('misc', 'event'), only_to_me=False)
-@config.description("查询Event。", hide=True)
+@on_command(('misc', 'event'), only_to_me=False, short_des="查询Event。", hide=True)
 @config.ErrorHandle
 async def event(session: CommandSession):
     """查询Event。"""
@@ -115,8 +114,7 @@ except:
     isLoggedin = False
 told_not_logged_in = False
 
-@on_command(('boss', 'login'), only_to_me=False, permission=permission.SUPERUSER)
-@config.description(hide=True)
+@on_command(('boss', 'login'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def login(session: CommandSession):
     ssh.connect("lxslc6.ihep.ac.cn", 22, 'qity', session.current_arg_text)
@@ -124,8 +122,7 @@ async def login(session: CommandSession):
     isLoggedin = True
     await session.send('Successfully logged in')
 
-@on_command(('boss', 'begin'), only_to_me=False)
-@config.description(hide=True)
+@on_command(('boss', 'begin'), only_to_me=False, hide=True)
 @config.ErrorHandle
 async def boss_begin(session: CommandSession):
     if not isLoggedin:
@@ -136,8 +133,7 @@ async def boss_begin(session: CommandSession):
         f.write('1')
     await session.send('boss check begin!')
 
-@on_command(('boss', 'process'), only_to_me=False, permission=permission.SUPERUSER)
-@config.description(hide=True)
+@on_command(('boss', 'process'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def boss_process(session: CommandSession):
     if not isLoggedin:
@@ -227,8 +223,7 @@ async def check_boss():
             for group in config.group_id_dict['boss']:
                 await bot.send_group_msg(group_id=group, message='Running job found! Begin boss check')
 
-@on_command(('boss', 'hang'), only_to_me=False, permission=permission.SUPERUSER)
-@config.description(hide=True)
+@on_command(('boss', 'hang'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def boss_hang(session: CommandSession):
     with open(config.rel('boss_check.txt'), 'w') as f:
@@ -421,8 +416,7 @@ def getLyric(listid):
     except Exception as err:
         raise anyErrWithId(err, song_id, traceback.format_exc())
 
-@on_command(('misc', 'roll', 'lyric'), only_to_me=False)
-@config.description("随机歌词。")
+@on_command(('misc', 'roll', 'lyric'), only_to_me=False, short_des="随机歌词。")
 @config.ErrorHandle
 async def roll_lyric(session: CommandSession):
     """随机歌词。
@@ -464,8 +458,7 @@ async def roll_lyric(session: CommandSession):
 
 bibtex_url = {'pra': 'https://journals.aps.org/pra/export/10.1103/PhysRevA.{}.{}', 'prb': 'https://journals.aps.org/prb/export/10.1103/PhysRevB.{}.{}', 'prc': 'https://journals.aps.org/prc/export/10.1103/PhysRevC.{}.{}', 'prd': 'https://journals.aps.org/prd/export/10.1103/PhysRevD.{}.{}', 'pre': 'https://journals.aps.org/pre/export/10.1103/PhysRevE.{}.{}',
               'prl': 'https://journals.aps.org/prl/export/10.1103/PhysRevLett.{}.{}', 'cpc': 'https://iopscience.iop.org/export?articleId=1674-1137/{}/{}/{}&exportFormat=iopexport_bib&exportType=abs&navsubmit=Export+abstract', 'cpb': 'https://iopscience.iop.org/export?articleId=1674-1056/{}/{}/{}&exportFormat=iopexport_bib&exportType=abs&navsubmit=Export+abstract'}
-@on_command(('tools', 'bibtex'), only_to_me=False)
-@config.description("查询文章的bibtex。", ("journal", "volume", "pages"))
+@on_command(('tools', 'bibtex'), only_to_me=False, short_des="查询文章的bibtex。", args=("journal", "volume", "pages"))
 @config.ErrorHandle
 async def bibtex(session: CommandSession):
     """查询文章的bibtex。
@@ -493,8 +486,7 @@ async def bibtex(session: CommandSession):
     except asyncio.TimeoutError:
         await session.send('time out!')
 
-@on_command(('steam', 'price'), only_to_me=False)
-@config.description(hide=True)
+@on_command(('steam', 'price'), only_to_me=False, hide=True)
 @config.ErrorHandle
 async def steam_price(session: CommandSession):
     name = session.current_arg_text.strip()

@@ -10,8 +10,7 @@ import getopt
 import chiharu.plugins.config as config
 from nonebot import on_command, CommandSession, CommandGroup, scheduler, get_bot
 
-@on_command(('seiyuu', 'today'), only_to_me=False)
-@config.description("查询今天生日的声优列表。")
+@on_command(('seiyuu', 'today'), only_to_me=False, short_des="查询今天生日的声优列表。")
 @config.ErrorHandle
 async def GetSeiyuuToday(session: CommandSession):
     """查询今天生日的声优列表。
@@ -22,8 +21,7 @@ async def GetSeiyuuToday(session: CommandSession):
     except asyncio.TimeoutError:
         await session.send("timeout!", auto_escape=True)
 
-@on_command(('seiyuu', 'check'), only_to_me=False, shell_like=True)
-@config.description("查询声优信息。", ("name", "[count]", "[-m max=15]"))
+@on_command(('seiyuu', 'check'), only_to_me=False, shell_like=True, short_des="查询声优信息。", args=("name", "[count]", "[-m max=15]"))
 @config.ErrorHandle
 async def CheckSeiyuu(session: CommandSession):
     """查询声优信息。不止一个时返回列表第count个。不给出count则列出max个供选择。
@@ -98,8 +96,7 @@ async def CheckSeiyuu(session: CommandSession):
                 break
         await session.send("\n".join(liststr), auto_escape=True)
 
-@on_command(('birth', 'today'), only_to_me=False)
-@config.description("查询今天生日的角色。")
+@on_command(('birth', 'today'), only_to_me=False, short_des="查询今天生日的角色。")
 @config.ErrorHandle
 async def BirthToday(session: CommandSession):
     """查询今天生日的角色。

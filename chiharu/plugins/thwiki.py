@@ -19,18 +19,21 @@ env = config.Environment('thwiki_live', ret='请在直播群内使用')
 env_supervise = config.Environment('thwiki_supervise', config.Admin('thwiki_live'), ret='请在监视群内或直播群管理使用')
 
 # Version information and changelog
-version = "2.2.14"
-changelog = """2.2.14 Changelog:
+version = "2.2.16"
+changelog = """2.2.14-16 Changelog:
 Add:
 -thwiki.bookmark av12345678 提交视频加入轮播清单，需管理员审核。
--thwiki.recommend av12345678 提交视频加入推荐列表。"""
+-thwiki.recommend av12345678 提交视频加入推荐列表。
+Change:
+-thwiki.get 可以在已有直播时修改分区。
+-thwiki.term 结束时自动进入轮播，发送轮播申请，修改直播间分区。"""
 
 TRAIL_TIME = 36 * 60
 
 # Change title and description on Bilibili livestream room
 # title: self-explanatory
 # description: self-explanatory
-async def change(title = None, description = None): 
+async def change(title=None, description=None, area=None): 
     # Retrieve cookie
     cookie_jar = requests.cookies.RequestsCookieJar()
     with open(config.rel('cookie.txt')) as f:
@@ -40,7 +43,10 @@ async def change(title = None, description = None):
     cookie_jar.set(name="bili_jct", value=csrf)
 
     # Construct and encode data
-    value = {'room_id': 14055253, 'title': title, 'description': description, 'csrf': csrf, 'csrf_token': csrf}
+    if area is None:
+        value = {'room_id': 14055253, 'title': title, 'description': description, 'csrf': csrf, 'csrf_token': csrf}
+    else:
+        value = {'room_id': 14055253, 'area': area, 'csrf': csrf, 'csrf_token': csrf}
     length = len(parse.urlencode(value))
     print('length: ' + str(length))
     headers = copy(config.headers)
@@ -433,9 +439,8 @@ async def add_fav(av, fav):
 # await ws_connected.send('begin')
 
 # Handler for '-thwiki.apply'
-@on_command(('thwiki', 'apply'), aliases=('申请',), only_to_me=False)
+@on_command(('thwiki', 'apply'), aliases=('申请',), only_to_me=False, short_des='申请直播时段。', args=('begintime', 'endtime', 'title'), environment=env)
 @config.maintain('thwiki')
-@config.description('申请直播时段。', ('begintime', 'endtime', 'title'), env)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_apply(session: CommandSession):
     """申请直播时段。只能在直播群内使用。
@@ -611,9 +616,8 @@ async def _(session: CommandSession):
                 session.args['end'] = False
 
 # Handler for '-thwiki.cancel'
-@on_command(('thwiki', 'cancel'), aliases=('取消',), only_to_me=False)
+@on_command(('thwiki', 'cancel'), aliases=('取消',), only_to_me=False, short_des='删除直播申请。', args=('id|title'), environment=env)
 @config.maintain('thwiki')
-@config.description('删除直播申请。', ('id|title'), env)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_cancel(session: CommandSession):
     """删除直播申请。只能在直播群内使用。"""
@@ -654,13 +658,16 @@ async def thwiki_cancel(session: CommandSession):
         if json.loads(ret)['code'] != 0:
             config.logger.thwiki << '【LOG】更新到直播间失败'
             await session.send('更新到直播间失败')
+        ret = await change(area=33)
+        if json.loads(ret)['code'] != 0:
+            for id in config.group_id_dict['thwiki_send']:
+                await bot.send_group_msg(group_id=id, message='轮播分区修改失败')
     else:
         await session.send('非管理员不可删除')
 
 # Handler for '-thwiki.list'
-@on_command(('thwiki', 'list'), only_to_me=False)
+@on_command(('thwiki', 'list'), only_to_me=False, short_des='显示预定直播列表。', args=('["all"]',))
 @config.maintain('thwiki')
-@config.description('显示预定直播列表。', ('["all"]'))
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_list(session: CommandSession):
     """显示预定直播列表。
@@ -692,17 +699,15 @@ async def thwiki_list(session: CommandSession):
                 await session.send(f"您的时区为{tz.tzname(datetime.now())}\n" + '\n'.join([x.str_tz(tz) for x in l if x.begin < end]) + (f'\n{len(l) - len(l_show)}条五天以后的预约已被折叠' if len(l) != len(l_show) else ""), auto_escape=True)
 
 # Handler for '-thwiki.listall', equivalent to '-thwiki.listall'
-@on_command(('thwiki', 'listall'), only_to_me=False)
+@on_command(('thwiki', 'listall'), only_to_me=False, short_des='显示全部预定直播列表。', args=('["all"]'), hide=True)
 @config.maintain('thwiki')
-@config.description('显示全部预定直播列表。', ('["all"]'), hide=True)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_listall(session: CommandSession):
     await call_command(get_bot(), session.ctx, ('thwiki', 'list'), current_arg = "all")
 
 # Handler for '-thwiki.term'
-@on_command(('thwiki', 'term'), only_to_me=False)
+@on_command(('thwiki', 'term'), only_to_me=False, short_des='提前终止直播，进入轮播。', environment=env)
 @config.maintain('thwiki')
-@config.description('提前终止直播。', environment=env)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_term(session: CommandSession):
     '''提前终止直播。只能在直播群内使用。'''
@@ -746,11 +751,14 @@ async def thwiki_term(session: CommandSession):
     ret = await change_des_to_list(lunbo=True)
     if json.loads(ret)['code'] != 0:
         await session.send('更新到直播间失败')
+    ret = await change(area=33)
+    if json.loads(ret)['code'] != 0:
+        for id in config.group_id_dict['thwiki_send']:
+            await bot.send_group_msg(group_id=id, message='轮播分区修改失败')
 
 # Handler for '-thwiki.terminate', equivalent to '-thwiki.term'
-@on_command(('thwiki', 'terminate'), only_to_me = False)
+@on_command(('thwiki', 'terminate'), only_to_me=False, short_des='提前终止直播，进入轮播。', environment=env, hide=True)
 @config.maintain
-@config.description('提前终止直播。', environment=env, hide=True)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_terminate(session: CommandSession):
     """提前终止直播。只能在直播群内使用。"""
@@ -822,12 +830,15 @@ async def _():
                 if json.loads(ret)['code'] != 0:
                     for id in config.group_id_dict['thwiki_send']:
                         await bot.send_group_msg(group_id=id, message='直播间简介更新失败')
+                ret = await change(area=33)
+                if json.loads(ret)['code'] != 0:
+                    for id in config.group_id_dict['thwiki_send']:
+                        await bot.send_group_msg(group_id=id, message='轮播分区修改失败')
             break
 
 # Handler for command '-thwiki.check'
-@on_command(('thwiki', 'check'), only_to_me=False)
+@on_command(('thwiki', 'check'), only_to_me=False, short_des='查询THBWiki的Bilibili账户当前直播状态。')
 @config.maintain('thwiki')
-@config.description('查询THBWiki的Bilibili账户当前直播状态。')
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_check(session: CommandSession):
     """查询THBWiki的Bilibili账户当前直播状态。"""
@@ -845,14 +856,14 @@ async def thwiki_check(session: CommandSession):
         await session.send('没有人直播' + random.choice(('qwq', '♪～(´ε｀　)', '.(*´▽`*).', 'ヾ(Ő∀Ő๑)ﾉ', '(≧ڡ≦*)', '(╯‵□′)╯︵┻━┻', '(╬ﾟдﾟ)▄︻┻┳═一', 'QAQ', '(╥╯^╰╥)', '(´；ω；`)', '(╥﹏╥)', '(-_-;)')))
 
 # Handler for command '-thwiki.get'
-@on_command(('thwiki', 'get'), only_to_me=False)
+@on_command(('thwiki', 'get'), only_to_me=False, short_des="获取推流码，开启直播间。", args=("[area=单机·其他]",), environment=env)
 @config.maintain('thwiki')
-@config.description("获取推流码，开启直播间。", ("[area=单机·其他]",), env)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_get(session: CommandSession):
     """获取rtmp与流密码，会以私聊形式发送。只能在直播群内使用。
     只能在自己申请的时段内使用。管理员可随时使用。若直播间未开启则会自动开启。
-    可选参数为想开启的直播分区如绘画，演奏，户外，vtb等，默认为单机·其他。"""
+    可选参数为想开启的直播分区：
+    户外，绘画，演奏，手游，网游，音乐台，vtb，同人绘画，临摹绘画，唱见。默认为单机·其他。"""
     # Check permission
     now = datetime.now()
     qq = int(session.ctx['user_id'])
@@ -931,7 +942,22 @@ async def thwiki_get(session: CommandSession):
 
     # Check if the livestream room is already open
     url2 = await loop.run_in_executor(None, requests.get, 'https://api.live.bilibili.com/room/v1/Room/room_init?id=14055253')
-    if url2.json()['data']['live_status'] != 1:
+    if url2.json()['data']['live_status'] == 1:
+        # Categorize
+        try:
+            area = {'': 235, '单机·其他': 235, '单机·其他单机': 235, '户外': 123, '娱乐·户外': 123, '演奏': 143, '才艺': 143, '娱乐·才艺': 143, '手游': 98, '手游·其他': 98, '手游·其他手游': 98, '网游': 107, '网游·其他': 107, '网游·其他网游': 107, '音乐台': 34, '娱乐·音乐台': 34, '虚拟主播': 199, 'vtb': 199, '娱乐·虚拟主播': 199, '绘画': 94, '同人绘画': 94, '临摹绘画': 95, '绘画·同人绘画': 94, '绘画·临摹绘画': 95, '唱见': 190, '唱见电台': 190, '电台·唱见电台': 190}[session.current_arg_text]
+        except:
+            await session.send('不支持分区：%s，自动转至单机·其他' % session.current_arg_text, auto_escape=True)
+            area = 235
+        ret = await change(area=area)
+        if json.loads(ret)['code'] != 0:
+            config.logger.thwiki << '【LOG】直播间分区修改失败'
+            await session.send(f'直播间分区修改失败', auto_escape=True)
+        else:
+            fenqu = {235: '单机·其他', 123: '娱乐·户外', 143: '娱乐·才艺', 34: '娱乐·音乐台', 199: '娱乐·虚拟主播', 98: '手游·其他', 107: '网游·其他', 94: '绘画：同人绘画', 95: '绘画·临摹绘画'}[area]
+            config.logger.thwiki << f'【LOG】用户{qq}修改分区至{fenqu}'
+            await session.send(f'已修改直播间分区至{fenqu}', auto_escape=True)
+    else:
         # Categorize
         try:
             area = {'': 235, '单机·其他': 235, '单机·其他单机': 235, '户外': 123, '娱乐·户外': 123, '演奏': 143, '才艺': 143, '娱乐·才艺': 143, '手游': 98, '手游·其他': 98, '手游·其他手游': 98, '网游': 107, '网游·其他': 107, '网游·其他网游': 107, '音乐台': 34, '娱乐·音乐台': 34, '虚拟主播': 199, 'vtb': 199, '娱乐·虚拟主播': 199, '绘画': 94, '同人绘画': 94, '临摹绘画': 95, '绘画·同人绘画': 94, '绘画·临摹绘画': 95, '唱见': 190, '唱见电台': 190, '电台·唱见电台': 190}[session.current_arg_text]
@@ -961,9 +987,8 @@ async def thwiki_get(session: CommandSession):
             await session.send('检测到直播间未开启，开启直播间失败')
 
 # Handler for '-thwiki.grant'
-@on_command(('thwiki', 'grant'), only_to_me=False)
+@on_command(('thwiki', 'grant'), only_to_me=False, short_des="推荐别人进入推荐列表。", args=("[@'s]", '["False"]'), environment=env)
 @config.maintain('thwiki')
-@config.description("推荐别人进入推荐列表。", ("[@'s]", '["False"]'), env)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_grant(session: CommandSession):
     """推荐别人进入推荐列表。需要被推荐人同意。只能在直播群内使用。
@@ -1073,9 +1098,8 @@ async def thwiki_grant(session: CommandSession):
 
 # Handler for command '-thwiki.confirm_grant'
 # As this involves underscore and is very long, consider add '-thwiki.confirm' for same function
-@on_command(('thwiki', 'confirm_grant'), only_to_me=False)
+@on_command(('thwiki', 'confirm_grant'), only_to_me=False, short_des="确认别人的推荐。", args=("True|False",), environment=env)
 @config.maintain('thwiki')
-@config.description("确认别人的推荐。", ("True|False",), env)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_confirm_grant(session: CommandSession):
     """接受或拒绝别人的推荐。只能在直播群内使用。"""
@@ -1121,18 +1145,16 @@ async def thwiki_confirm_grant(session: CommandSession):
     #   await session.send('已拒绝推荐！')
 
 # Handler for command '-thwiki.confirm'
-@on_command(('thwiki', 'confirm'), only_to_me=False)
+@on_command(('thwiki', 'confirm'), only_to_me=False, short_des="确认别人的推荐。", args=("True|False",), environment=env, hide=True)
 @config.maintain('thwiki')
-@config.description("确认别人的推荐。", ("True|False",), env, hide=True)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_confirm(session: CommandSession):
     """接受或拒绝别人的推荐。只能在直播群内使用。"""
     await call_command(get_bot(), session.ctx, ('thwiki', 'confirm_grant'), current_arg=session.current_arg)
 
 # Handler for command '-thwiki.depart'
-@on_command(('thwiki', 'depart'), only_to_me=False)
+@on_command(('thwiki', 'depart'), only_to_me=False, short_des="从推荐树中安全脱离。", environment=env)
 @config.maintain('thwiki')
-@config.description("从推荐树中安全脱离。", environment=env)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_depart(session: CommandSession):
     """从推荐树中安全脱离。只能在直播群内使用。"""
@@ -1151,9 +1173,8 @@ async def thwiki_depart(session: CommandSession):
     await session.send([config.cq.text('已成功安全脱离')] + updated)
 
 # Handler for command '-thwiki.deprive'
-@on_command(('thwiki', 'deprive'), only_to_me=False)
+@on_command(('thwiki', 'deprive'), only_to_me=False, short_des="强制退回推荐。", args=("[@'s]",), environment=env_supervise)
 @config.maintain('thwiki')
-@config.description("强制退回推荐。", ("[@'s]",), env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_deprive(session: CommandSession):
     """强制退回推荐。直播群管理可用。
@@ -1218,9 +1239,8 @@ async def thwiki_deprive(session: CommandSession):
     await session.send((([config.cq.text('已成功剥夺')] + updated + [config.cq.text('直播权限并加至不可推荐列表')]) if len(updated) > 0 else []) + (([config.cq.text('\n')]) if len(updated) > 0 and len(not_updated) > 0 else []) + ((not_updated + config.cq.text(' 没有直播权限，剥夺失败！')) if len(not_updated) > 0 else []))
 
 # Handler for command '-thwiki.supervise'
-@on_command(('thwiki', 'supervise'), only_to_me=False)
+@on_command(('thwiki', 'supervise'), only_to_me=False, short_des="提交或取消监视。", args=("id", '["False"]'), environment=env_supervise)
 @config.maintain('thwiki')
-@config.description("提交或取消监视。", ("id", '["False"]'), env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_supervise(session: CommandSession):
     """提交或取消监视。监视群可用。
@@ -1266,9 +1286,8 @@ async def thwiki_supervise(session: CommandSession):
                 await get_bot().send_group_msg(group_id=group, message=ret.str_with_at())
 
 # Handler for command '-thwiki.time'
-@on_command(('thwiki', 'time'), only_to_me=False)
+@on_command(('thwiki', 'time'), only_to_me=False, short_des="查询直播时长（2019年8月至今）。", args=("[@s]",))
 @config.maintain('thwiki')
-@config.description("查询直播时长（2019年8月至今）。", ("[@s]"))
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_time(session: CommandSession):
     """查询直播时长（2019年8月至今）。
@@ -1284,9 +1303,8 @@ async def thwiki_time(session: CommandSession):
     await session.send(f'您{"查询的人" if match else ""}的直播总时长为：{node["time"]}分钟。（2019年8月开始）', auto_escape=True)
 
 # Handler for command '-thwiki.timezone'
-@on_command(('thwiki', 'timezone'), only_to_me=False)
+@on_command(('thwiki', 'timezone'), only_to_me=False, short_des="查询或修改时区。", args=("[UTC+time]", "[@s]"))
 @config.maintain('thwiki')
-@config.description("查询或修改时区。", ("[UTC+time]", "[@s]"))
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_timezone(session: CommandSession):
     """查询或修改时区。
@@ -1317,9 +1335,8 @@ async def thwiki_timezone(session: CommandSession):
         await session.send(("您查询的用户" if other else "您") + f"的时区为{timezone(timedelta(hours=tz)).tzname(datetime.today())}")
 
 # Handler for command '-thwiki.grantlist'
-@on_command(('thwiki', 'grantlist'), only_to_me=False)
+@on_command(('thwiki', 'grantlist'), only_to_me=False, short_des="查询推荐树。", environment=env_supervise)
 @config.maintain('thwiki')
-@config.description("查询推荐树。", environment=env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_grantlist(session: CommandSession):
     """查询推荐树。监视群可用。"""
@@ -1362,9 +1379,8 @@ async def thwiki_open(session: CommandSession):
         await session.send('成功开启直播')
 
 # Handler for command '-thwiki.change'
-@on_command(('thwiki', 'change'), only_to_me=False)
+@on_command(('thwiki', 'change'), only_to_me=False, short_des='修改直播间标题。', args=("title",), environment=env)
 @config.maintain('thwiki')
-@config.description('修改直播间标题。', ("title",), env)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_change(session: CommandSession):
     """修改直播间标题。只能在直播群内使用。"""
@@ -1407,9 +1423,8 @@ async def thwiki_change(session: CommandSession):
 
 # Handler for command '-thwiki.version'
 # This is almost useless to normal users, add permission requirement?
-@on_command(('thwiki', 'version'), only_to_me=False)
+@on_command(('thwiki', 'version'), only_to_me=False, short_des="查看直播小助手版本。", args=("[-c]",))
 @config.maintain('thwiki')
-@config.description("查看直播小助手版本。", ("[-c]",))
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_version(session: CommandSession):
     """查看直播小助手版本。
@@ -1421,16 +1436,14 @@ async def thwiki_version(session: CommandSession):
         await session.send(f"七海千春 THBWiki 直播小助手 ver.{version} 为您服务")
 
 # Handler for command '-thwiki.des'
-@on_command(('thwiki', 'des'), only_to_me=False, permission=permission.SUPERUSER)
-@config.description(hide=True)
+@on_command(('thwiki', 'des'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_changedes(session: CommandSession):
     ret = await change(description=session.current_arg_text)
     await session.send(ret, auto_escape=True)
 
 # Handler for command '-thwiki.maintain'
-@on_command(('thwiki', 'maintain'), only_to_me=False)
-@config.description("开启或关闭维护状态。", "[description]", env_supervise)
+@on_command(('thwiki', 'maintain'), only_to_me=False, short_des="开启或关闭维护状态。", args="[description]", environment=env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_maintain(session: CommandSession):
     """开启或关闭维护状态。直播群管理或监视群可用。
@@ -1447,8 +1460,7 @@ async def thwiki_maintain(session: CommandSession):
         await session.send('已解除维护状态')
 
 # Handler for command '-thwiki.shutdown'
-@on_command(('thwiki', 'shutdown'), only_to_me=False)
-@config.description("强制关闭直播间。", environment=env_supervise)
+@on_command(('thwiki', 'shutdown'), only_to_me=False, short_des="强制关闭直播间。", environment=env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_shutdown(session: CommandSession):
     """强制关闭直播间。直播群管理或监视群可用。"""
@@ -1460,8 +1472,7 @@ async def thwiki_shutdown(session: CommandSession):
     await session.send('已关闭直播间')
 
 # Handler for command '-thwiki.blacklist'
-@on_command(('thwiki', 'blacklist'), only_to_me=False)
-@config.description("添加用户至黑名单。", ("[@s]",), env_supervise)
+@on_command(('thwiki', 'blacklist'), only_to_me=False, short_des="添加用户至黑名单。", args=("[@s]",), environment=env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_blacklist(session: CommandSession):
     """添加用户至黑名单。直播群管理或监视群可用。"""
@@ -1513,8 +1524,7 @@ async def thwiki_blacklist(session: CommandSession):
     await session.send('已加入黑名单')
 
 # Handler for command '-thwiki.check_user'
-@on_command(('thwiki', 'check_user'), only_to_me=False)
-@config.description("查询直播过的用户数量。", environment=env_supervise)
+@on_command(('thwiki', 'check_user'), only_to_me=False, short_des="查询直播过的用户数量。", environment=env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_check_user(session: CommandSession):
     """查询直播过的用户数量。直播群管理或监视群可用。"""
@@ -1549,15 +1559,13 @@ async def thwiki_decrease(session: NoticeSession):
                 for group in config.group_id_dict['thwiki_supervise']:
                     await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
 
-@on_command(('thwiki', 'help'), only_to_me=False)
-@config.description(hide=True)
+@on_command(('thwiki', 'help'), only_to_me=False, hide=True)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_help(session: CommandSession):
     await call_command(get_bot(), session.ctx, ('help',), current_arg="thwiki")
 
 # Handler for command '-thwiki.cookie'
-@on_command(('thwiki', 'cookie'), only_to_me=False)
-@config.description("修改直播cookie。", environment=config.Environment(private=True), hide=True)
+@on_command(('thwiki', 'cookie'), only_to_me=False, short_des="修改直播cookie。", environment=config.Environment(private=True), hide=True)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_cookie(session: CommandSession):
     qq = session.ctx['user_id']
@@ -1615,8 +1623,7 @@ async def thwiki_record(bot, ctx):
     record_file.write(str(r) + '\n')
     record_file.flush()
 
-@on_command(('thwiki', 'punish'), only_to_me=False)
-@config.description("惩罚不当发言。", environment=env_supervise, hide=True)
+@on_command(('thwiki', 'punish'), only_to_me=False, short_des="惩罚不当发言。", environment=env_supervise, hide=True)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_punish(session: CommandSession):
     """惩罚不当发言。
@@ -1682,8 +1689,7 @@ async def _(session: CommandSession):
     except ValueError:
         session.finish('时间不符合格式')
 
-@on_command(('thwiki', 'kick'), only_to_me=False)
-@config.description("踢出群聊。", environment=env_supervise, hide=True)
+@on_command(('thwiki', 'kick'), only_to_me=False, short_des="踢出群聊。", environment=env_supervise, hide=True)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_kick(session: CommandSession):
     qq = int(session.current_arg_text)
@@ -1691,8 +1697,7 @@ async def thwiki_kick(session: CommandSession):
     await get_bot().set_group_kick(group_id=group, user_id=qq)
     await session.send('已踢出。')
 
-@on_command(('thwiki', 'bookmark'), only_to_me=False)
-@config.description("将视频加入轮播列表。", environment=env|env_supervise)
+@on_command(('thwiki', 'bookmark'), only_to_me=False, short_des="将视频加入轮播列表。", environment=env|env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_bookmark(session: CommandSession):
     """提交视频加入轮播列表。
@@ -1717,8 +1722,7 @@ async def thwiki_bookmark(session: CommandSession):
             await get_bot().send_group_msg(group_id=group, message=f"-thwiki.bookmark av{av}\n用户{qq}试图添加 b23.tv/av{av}，同意请+1，不同意请忽略")
         await session.send('已提交，请等待管理审核')
 
-@on_command(('thwiki', 'recommend'), only_to_me=False)
-@config.description("提交视频加入推荐列表。", environment=env)
+@on_command(('thwiki', 'recommend'), only_to_me=False, short_des="提交视频加入推荐列表。", environment=env)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_bookmark(session: CommandSession):
     qq = session.ctx['user_id']
@@ -1736,7 +1740,7 @@ async def thwiki_bookmark(session: CommandSession):
 
 # Handler for command '-thwiki.test'
 # Yet another undocumented command...?
-@on_command(('thwiki', 'test'), only_to_me=False, permission=permission.SUPERUSER)
+@on_command(('thwiki', 'test'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_test(session: CommandSession):
     await _save(l)

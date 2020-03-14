@@ -1,7 +1,7 @@
 from nonebot import on_command, CommandSession, get_bot, permission, plugin, command
 import nonebot
 import importlib
-import chiharu.plugins.config as config
+from . import config
 from os import path
 
 _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到ascii码\n-asc trans numbers：转换数字到字符",
@@ -138,8 +138,7 @@ async def _(session: CommandSession):
     else:
         session.args['name'] = 'default'
 
-@on_command('reload', only_to_me=False, permission=permission.SUPERUSER)
-@config.description(hide=True)
+@on_command('reload', only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def reload_plugin(session: CommandSession):
     name = 'chiharu.plugins.' + session.current_arg_text
@@ -151,28 +150,24 @@ async def reload_plugin(session: CommandSession):
         l[0].module = importlib.reload(l[0].module)
         await session.send('Successfully reloaded ' + session.current_arg_text, auto_escape=True)
 
-from nonebot.command import _registry, Command
+from nonebot.command import Command
+from .config import _registry, _find_command
 
-@on_command('helptest', only_to_me=False)
-@config.description(hide=True)
+@on_command('helptest', only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def help_reflection(session: CommandSession):
     """查询指令帮助。"""
     cmd_name = session.current_arg_text.split('.')
     cmd_tree = _registry
-    for part in cmd_name[:-1]:
-        if part not in cmd_tree or not isinstance(cmd_tree[part], dict):
+    for part in cmd_name:
+        if part not in cmd_tree:
             session.finish('未发现指令。')
-        cmd_tree = cmd_tree[part]
+        cmd_tree = cmd_tree.leaf[part]
 
-    cmd = cmd_tree.get(cmd_name[-1])
-    if cmd is None:
-        session.finish('未发现指令。')
-    if isinstance(cmd, Command):
+    if cmd_tree.command is not None and not cmd_tree.is_help:
         # command
-        has_des = 'has_des' in cmd.func.__dict__
-        if not has_des or not cmd.func.hide and (cmd.func.environment is None or await cmd.func.environment.test(session)):
-            await session.send(f"-{'.'.join(cmd_name)}{' ' + ' '.join(cmd.func.args) if has_des and cmd.func.args != () else ''}\n{cmd.func.__doc__}")
+        if not cmd_tree.hide and (cmd_tree.environment is None or await cmd_tree.environment.test(session)):
+            await session.send(f"-{'.'.join(cmd_name)}{''.join(' ' + x for x in cmd_tree.args)}\n{cmd_tree.des}")
     else:
         # command group
         pass

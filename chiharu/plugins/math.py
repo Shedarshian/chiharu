@@ -36,8 +36,7 @@ async def latex(s, hsh=()):
             converted.save(filename=config.img(name + '.png'))
     return name + '.png'
 
-@on_command(('tools', 'Julia'), only_to_me=False)
-@config.description("绘制Julia集。", ("x y"))
+@on_command(('tools', 'Julia'), only_to_me=False, short_des="绘制Julia集。", args=("x", "y"))
 @config.ErrorHandle
 async def Julia(session: CommandSession):
     """绘制以c=x+yi为参数，z→z^2+c的Julia集。
@@ -76,8 +75,7 @@ async def Julia(session: CommandSession):
                 image.save(filename=config.img(name))
     await session.send(config.cq.img(name))
 
-@on_command(('tools', 'Mandelbrot'), only_to_me=False)
-@config.description("绘制Mandelbrot集。", ("x y"), hide=True)
+@on_command(('tools', 'Mandelbrot'), only_to_me=False, short_des="绘制Mandelbrot集。", args=("x", "y"), hide=True)
 @config.ErrorHandle
 async def Mandelbrot(session: CommandSession):
     """绘制以z_0=x+yi为初值，z→z^2+c的Mandelbrot集。
@@ -117,7 +115,7 @@ async def Mandelbrot(session: CommandSession):
                 image.save(filename=config.img(name))
     await session.send(config.cq.img(name))
 
-@on_command(('tools', 'oeis'), only_to_me=False)
+@on_command(('tools', 'oeis'), only_to_me=False, args=("[Anumber]", "[a_1, a_2, ...]"))
 @config.ErrorHandle
 async def oeis(session: CommandSession):
     """查询oeis（整数序列在线百科全书）。
@@ -203,8 +201,7 @@ async def oeis_id(s):
     result = {'Id': Id, 'description': description, 'numbers': numbers, 'example': example}
     return result
 
-@on_command(('tools', 'quiz'), only_to_me=False, shell_like=True)
-@config.description("每月趣题。", ("[-t YYYYMM]", "[-a]"))
+@on_command(('tools', 'quiz'), only_to_me=False, shell_like=True, short_des="每月趣题。", args=("[-t YYYYMM]", "[-a]"))
 @config.ErrorHandle
 async def quiz(session: CommandSession):
     """每月趣题。
@@ -235,7 +232,7 @@ async def quiz(session: CommandSession):
     except KeyError:
         await session.send('未发现该月题目，题目自201910开始')
 
-@on_command(('tools', 'quiz_submit'), only_to_me=False, shell_like=True)
+@on_command(('tools', 'quiz_submit'), only_to_me=False, shell_like=True, args=("content",))
 @config.ErrorHandle
 async def quiz_submit(session: CommandSession):
     """提交每月趣题答案。"""
@@ -254,8 +251,7 @@ def calculate(s):
     except Exception as e:
         return type(e).__name__ + ': ' + str(e)
 
-@on_command(('tools', 'calculator'), only_to_me=False, aliases=('cal',))
-@config.description("计算器。别名：-cal")
+@on_command(('tools', 'calculator'), only_to_me=False, aliases=('cal',), short_des="计算器。别名：-cal")
 @config.ErrorHandle
 async def calculator(session: CommandSession):
     """计算器。计算给定式子的结果。别名：-cal
@@ -291,8 +287,7 @@ async def calculator(session: CommandSession):
     else:
         await session.send('TypeError ' + str(result), auto_escape=True)
 
-@on_command(('tools', 'function'), only_to_me=False)
-@config.description("绘制函数。", ("[-b begin=0]", "[-e end=10]", "[-s step=0.01]"))
+@on_command(('tools', 'function'), only_to_me=False, short_des="绘制函数。", args=("[-b begin=0]", "[-e end=10]", "[-s step=0.01]"))
 @config.ErrorHandle
 async def plot_function(session: CommandSession):
     """绘制函数。语法见-tools.calculator的帮助。
