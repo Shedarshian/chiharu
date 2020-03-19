@@ -17,12 +17,13 @@ import json
 from matplotlib import pyplot
 import numpy
 import chiharu.plugins.config as config
-from nonebot import on_command, CommandSession, get_bot, permission
+from nonebot import CommandSession, get_bot, permission
 from .helper.function import parser, ParserError
+from .config import on_command
 
 async def latex(s, hsh=()):
     loop = asyncio.get_event_loop()
-    ipt = re.sub('\+', '%2B', s)
+    ipt = re.sub('&', '%26', re.sub('\+', '%2B', s))
     url = await loop.run_in_executor(None, functools.partial(requests.get,
         'https://www.zhihu.com/equation?tex=' + ipt,
         headers={'user-agent': config.user_agent}))
@@ -35,6 +36,8 @@ async def latex(s, hsh=()):
             converted.alpha_channel = 'remove'
             converted.save(filename=config.img(name + '.png'))
     return name + '.png'
+
+config.CommandGroup('tools', short_des='数理小工具。')
 
 @on_command(('tools', 'Julia'), only_to_me=False, short_des="绘制Julia集。", args=("x", "y"))
 @config.ErrorHandle
@@ -115,7 +118,7 @@ async def Mandelbrot(session: CommandSession):
                 image.save(filename=config.img(name))
     await session.send(config.cq.img(name))
 
-@on_command(('tools', 'oeis'), only_to_me=False, args=("[Anumber]", "[a_1, a_2, ...]"))
+@on_command(('tools', 'oeis'), only_to_me=False, short_des="查询oeis（整数序列在线百科全书）。", args=("[Anumber]", "[a_1, a_2, ...]"))
 @config.ErrorHandle
 async def oeis(session: CommandSession):
     """查询oeis（整数序列在线百科全书）。

@@ -12,6 +12,8 @@ async def save():
     with open(config.rel('tiemu.json'), 'w', encoding='utf-8') as f:
         f.write(json.dumps(tiemu_g, ensure_ascii=False, indent=4, separators=(',', ': ')))
 
+config.CommandGroup('ic', hide=True)
+
 @on_command(('ic', 'activate'), only_to_me=False, permission=permission.GROUP_ADMIN, hide=True)
 @config.ErrorHandle
 async def activate(session: CommandSession):
@@ -83,6 +85,8 @@ async def change(session: CommandSession):
 @scheduler.scheduled_job('cron', hour='06-07/1')
 async def tiemu_lengjing_time():
     await tiemu_lengjing()
+
+config.CommandGroup('tiemu', hide=True)
 
 @on_command(('tiemu', 'lengjing'), only_to_me=False, hide=True)
 async def tiemu_lengjing_cmd(session: CommandSession):

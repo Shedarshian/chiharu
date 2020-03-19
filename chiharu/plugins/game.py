@@ -34,6 +34,8 @@ class ChessError(BaseException):
 class ChessWin(ChessError):
     pass
 
+config.CommandGroup('play', hide=True)
+
 class GameSameGroup:
     # group_id: [{'players': [qq], 'game': GameSameGroup instance, 'anything': anything}]
     center = {}

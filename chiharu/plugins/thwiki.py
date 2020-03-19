@@ -17,15 +17,19 @@ from . import config, help
 config.logger.open('thwiki')
 env = config.Environment('thwiki_live', ret='请在直播群内使用')
 env_supervise = config.Environment('thwiki_supervise', config.Admin('thwiki_live'), ret='请在监视群内或直播群管理使用')
+env_all_can_private = env|env_supervise
+env_all_can_private.private = True
+
+config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.2.16"
-changelog = """2.2.14-16 Changelog:
+version = "2.2.17"
+changelog = """2.2.14-17 Changelog:
 Add:
 -thwiki.bookmark av12345678 提交视频加入轮播清单，需管理员审核。
 -thwiki.recommend av12345678 提交视频加入推荐列表。
 Change:
--thwiki.get 可以在已有直播时修改分区。
+-thwiki.get 可以在已有直播时修改分区。增加东方大战争分区。
 -thwiki.term 结束时自动进入轮播，发送轮播申请，修改直播间分区。"""
 
 TRAIL_TIME = 36 * 60
@@ -862,8 +866,8 @@ async def thwiki_check(session: CommandSession):
 async def thwiki_get(session: CommandSession):
     """获取rtmp与流密码，会以私聊形式发送。只能在直播群内使用。
     只能在自己申请的时段内使用。管理员可随时使用。若直播间未开启则会自动开启。
-    可选参数为想开启的直播分区：
-    户外，绘画，演奏，手游，网游，音乐台，vtb，同人绘画，临摹绘画，唱见。默认为单机·其他。"""
+    可选参数为想开启或修改至的直播分区：
+    东方大战争，户外，绘画，演奏，手游，网游，音乐台，vtb，同人绘画，临摹绘画，唱见。默认为单机·其他。"""
     # Check permission
     now = datetime.now()
     qq = int(session.ctx['user_id'])
@@ -942,10 +946,12 @@ async def thwiki_get(session: CommandSession):
 
     # Check if the livestream room is already open
     url2 = await loop.run_in_executor(None, requests.get, 'https://api.live.bilibili.com/room/v1/Room/room_init?id=14055253')
+    areas = {'': 235, '单机·其他': 235, '单机·其他单机': 235, '户外': 123, '娱乐·户外': 123, '演奏': 143, '才艺': 143, '娱乐·才艺': 143, '手游': 98, '手游·其他': 98, '手游·其他手游': 98, '网游': 107, '网游·其他': 107, '网游·其他网游': 107, '音乐台': 34, '娱乐·音乐台': 34, '虚拟主播': 199, 'vtb': 199, '娱乐·虚拟主播': 199, '绘画': 94, '同人绘画': 94, '临摹绘画': 95, '绘画·同人绘画': 94, '绘画·临摹绘画': 95, '唱见': 190, '唱见电台': 190, '电台·唱见电台': 190, '东方大战争': 319, '大战争': 319}
+    areas_rev = {235: '单机·其他', 123: '娱乐·户外', 143: '娱乐·才艺', 34: '娱乐·音乐台', 199: '娱乐·虚拟主播', 98: '手游·其他', 107: '网游·其他', 94: '绘画：同人绘画', 95: '绘画·临摹绘画', 319: '单机·东方大战争'}
     if url2.json()['data']['live_status'] == 1:
         # Categorize
         try:
-            area = {'': 235, '单机·其他': 235, '单机·其他单机': 235, '户外': 123, '娱乐·户外': 123, '演奏': 143, '才艺': 143, '娱乐·才艺': 143, '手游': 98, '手游·其他': 98, '手游·其他手游': 98, '网游': 107, '网游·其他': 107, '网游·其他网游': 107, '音乐台': 34, '娱乐·音乐台': 34, '虚拟主播': 199, 'vtb': 199, '娱乐·虚拟主播': 199, '绘画': 94, '同人绘画': 94, '临摹绘画': 95, '绘画·同人绘画': 94, '绘画·临摹绘画': 95, '唱见': 190, '唱见电台': 190, '电台·唱见电台': 190}[session.current_arg_text]
+            area = areas[session.current_arg_text]
         except:
             await session.send('不支持分区：%s，自动转至单机·其他' % session.current_arg_text, auto_escape=True)
             area = 235
@@ -954,13 +960,13 @@ async def thwiki_get(session: CommandSession):
             config.logger.thwiki << '【LOG】直播间分区修改失败'
             await session.send(f'直播间分区修改失败', auto_escape=True)
         else:
-            fenqu = {235: '单机·其他', 123: '娱乐·户外', 143: '娱乐·才艺', 34: '娱乐·音乐台', 199: '娱乐·虚拟主播', 98: '手游·其他', 107: '网游·其他', 94: '绘画：同人绘画', 95: '绘画·临摹绘画'}[area]
+            fenqu = areas_rev[area]
             config.logger.thwiki << f'【LOG】用户{qq}修改分区至{fenqu}'
             await session.send(f'已修改直播间分区至{fenqu}', auto_escape=True)
     else:
         # Categorize
         try:
-            area = {'': 235, '单机·其他': 235, '单机·其他单机': 235, '户外': 123, '娱乐·户外': 123, '演奏': 143, '才艺': 143, '娱乐·才艺': 143, '手游': 98, '手游·其他': 98, '手游·其他手游': 98, '网游': 107, '网游·其他': 107, '网游·其他网游': 107, '音乐台': 34, '娱乐·音乐台': 34, '虚拟主播': 199, 'vtb': 199, '娱乐·虚拟主播': 199, '绘画': 94, '同人绘画': 94, '临摹绘画': 95, '绘画·同人绘画': 94, '绘画·临摹绘画': 95, '唱见': 190, '唱见电台': 190, '电台·唱见电台': 190}[session.current_arg_text]
+            area = areas[session.current_arg_text]
         except:
             await session.send('不支持分区：%s，自动转至单机·其他' % session.current_arg_text, auto_escape=True)
             area = 235
@@ -978,7 +984,7 @@ async def thwiki_get(session: CommandSession):
         # Send request
         ret = await th_open(area=area)
         if json.loads(ret)['code'] == 0:
-            fenqu = {235: '单机·其他', 123: '娱乐·户外', 143: '娱乐·才艺', 34: '娱乐·音乐台', 199: '娱乐·虚拟主播', 98: '手游·其他', 107: '网游·其他', 94: '绘画：同人绘画', 95: '绘画·临摹绘画'}[area]
+            fenqu = areas_rev[area]
             config.logger.thwiki << f'【LOG】用户{qq} 开启直播间，分区：{fenqu}'
             await session.send('检测到直播间未开启，现已开启，分区：%s' % fenqu
                 )
@@ -1369,7 +1375,7 @@ async def thwiki_leaderboard(session: CommandSession):
     await session.send('\n'.join([f"{i + 1} 直播时长：{node['time']}min 用户：{node['card']} {node['qq']}" for i, node in enumerate(more_itertools.take(max, sorted(whiteforest, key=lambda node: (0 if 'time' not in node else node['time']), reverse=True)))]), auto_escape=True)
 
 # Handler for command '-thwiki.open'
-@on_command(('thwiki', 'open'), only_to_me=False, permission=permission.SUPERUSER)
+@on_command(('thwiki', 'open'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_open(session: CommandSession):
     ret = await th_open()
@@ -1623,7 +1629,7 @@ async def thwiki_record(bot, ctx):
     record_file.write(str(r) + '\n')
     record_file.flush()
 
-@on_command(('thwiki', 'punish'), only_to_me=False, short_des="惩罚不当发言。", environment=env_supervise, hide=True)
+@on_command(('thwiki', 'punish'), only_to_me=False, short_des="惩罚不当发言。", environment=env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_punish(session: CommandSession):
     """惩罚不当发言。
@@ -1642,14 +1648,15 @@ async def thwiki_punish(session: CommandSession):
         save_whiteforest()
         group = list(config.group_id_dict['thwiki_punish'])[0]
         if node['punish'] == 1:
-            ret = '管理员认为此为不妥当的发言，警告一次'
+            ret = '做出了不妥当的发言，警告一次'
         elif node['punish'] == 2:
             await get_bot().set_group_ban(group_id=group, user_id=node['qq'], duration=1200)
-            ret = '管理员认为此为不妥当的发言，此为第二次'
+            ret = '做出了不妥当的发言，此为第二次'
         elif node['punish'] == 3:
+            ret = '做出了不妥当的发言，此为第三次，已移出群聊'
+        await get_bot().send_group_msg(group_id=group, message=[config.cq.text('管理员认为'), config.cq.at(record.qq), config.cq.text(ret)])
+        if node['punish'] == 3:
             await get_bot().set_group_kick(group_id=group, user_id=node['qq'])
-            ret = '管理员认为此为不妥当的发言，此为第四次，已移出群聊'
-        await get_bot().send_group_msg(group_id=group, message=ret)
         session.finish('已撤回')
     global record_file
     record_file.close()
@@ -1666,13 +1673,15 @@ async def thwiki_punish(session: CommandSession):
     if len(l) == 0:
         session.finish('未找到消息。')
     session.args['record'] = r = min(l, key=lambda record: abs(record.time - time))
-    session.pause(f'消息内容为：{r.msg}，输入“确认”确认此发言', auto_escape=True)
+    session.pause(f'消息内容为：{r.msg}，输入“确认”确认此发言，输入“返回”取消')
 
 @thwiki_punish.args_parser
 async def _(session: CommandSession):
     if session.current_arg == '确认':
         session.args['confirmed'] = True
         return
+    elif session.current_arg == '返回':
+        session.finish('已取消')
     session.args['confirmed'] = False
     l = list(map(str.strip, session.current_arg_text.split('\n')))
     if len(l) == 2:
@@ -1689,7 +1698,7 @@ async def _(session: CommandSession):
     except ValueError:
         session.finish('时间不符合格式')
 
-@on_command(('thwiki', 'kick'), only_to_me=False, short_des="踢出群聊。", environment=env_supervise, hide=True)
+@on_command(('thwiki', 'kick'), only_to_me=False, short_des="踢出群聊。", environment=env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_kick(session: CommandSession):
     qq = int(session.current_arg_text)
@@ -1722,9 +1731,10 @@ async def thwiki_bookmark(session: CommandSession):
             await get_bot().send_group_msg(group_id=group, message=f"-thwiki.bookmark av{av}\n用户{qq}试图添加 b23.tv/av{av}，同意请+1，不同意请忽略")
         await session.send('已提交，请等待管理审核')
 
-@on_command(('thwiki', 'recommend'), only_to_me=False, short_des="提交视频加入推荐列表。", environment=env)
+@on_command(('thwiki', 'recommend'), only_to_me=False, environment=env)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_bookmark(session: CommandSession):
+    """提交视频加入推荐列表。"""
     qq = session.ctx['user_id']
     match = re.match('^av(\d+)', session.current_arg_text)
     if not match:
@@ -1744,3 +1754,4 @@ async def thwiki_bookmark(session: CommandSession):
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_test(session: CommandSession):
     await _save(l)
+

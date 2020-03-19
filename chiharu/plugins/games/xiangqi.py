@@ -769,6 +769,7 @@ async def chess_test(session: CommandSession):
     except ChessError as e:
         await session.send(e.args[0], auto_escape=True)
 
+config.CommandGroup('xiangqi', hide=True)
 @on_command(('xiangqi', 'check'), only_to_me=False, hide=True)
 @config.ErrorHandle
 async def chess_check(session: CommandSession):

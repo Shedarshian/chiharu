@@ -13,6 +13,9 @@ B = TypeVar('B', bound=maj.MajBoard)
 async def maj_test(board: B):
     pass
 
+config.CommandGroup('maj', hide=True)
+config.CommandGroup(('maj', 'test'), hide=True)
+
 @on_command(('maj', 'test', 'begin'), only_to_me=False, hide=True)
 @config.ErrorHandle
 async def maj_test_begin(session: CommandSession):

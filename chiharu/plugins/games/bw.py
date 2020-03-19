@@ -99,6 +99,7 @@ class BwBoard:
             raise ChessCantMove("黑白"[int(isBlack)] + "方无法移动，" + "白黑"[int(isBlack)] + "方继续移动")
 
 bw = GameSameGroup('bw')
+config.CommandGroup(('play', 'bw'), hide=True)
 
 @bw.begin_uncomplete(('play', 'bw', 'begin'), (2, 2))
 async def chess_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):

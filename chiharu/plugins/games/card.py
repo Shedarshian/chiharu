@@ -355,6 +355,8 @@ def add_card(arg: Iterable[Tuple[int, int]], qq: int=-1):
             f.write(to_byte(pool[id]))
             config.logger.card << f"【LOG】用户{qq} 创造卡片{id}，{num}张，现有{pool[id]}张"
 
+config.CommandGroup('card', short_des='抽卡游戏。', hide_in_parent=True, display_parents='game')
+
 @on_command(('card', 'draw'), only_to_me=False, aliases=('抽卡',), args=('卡池id/名字', '[抽卡次数=1]'), environment=env)
 @config.maintain('card')
 @config.ErrorHandle(config.logger.card)
@@ -704,7 +706,7 @@ async def card_wish(session: CommandSession):
                 config.logger.card << f"【LOG】用户{qq} 将{'未' if data['num'] == 0 else '已'}拥有的卡片{card['name']}加入愿望单"
                 await session.send(f"已成功将{'未' if data['num'] == 0 else '已'}拥有的卡片{card['name']}加入愿望单{f.guide['storage']}{f.guide['wishlist']}")
 
-config.CommandGroup(('card', 'set'), des='改变用户设置。')
+config.CommandGroup(('card', 'set'), short_des='改变用户设置。')
 
 @on_command(('card', 'set', 'unconfirm'), only_to_me=False, environment=env)
 @config.maintain('card')

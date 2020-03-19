@@ -7,8 +7,11 @@ import json
 import datetime
 import asyncio
 import getopt
-import chiharu.plugins.config as config
-from nonebot import on_command, CommandSession, CommandGroup, scheduler, get_bot
+from . import config
+from nonebot import on_command, CommandSession, scheduler, get_bot
+
+config.CommandGroup('seiyuu', short_des='查询声优信息。')
+config.CommandGroup('birth', short_des='查询角色生日信息。')
 
 @on_command(('seiyuu', 'today'), only_to_me=False, short_des="查询今天生日的声优列表。")
 @config.ErrorHandle

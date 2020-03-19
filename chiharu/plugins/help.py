@@ -98,15 +98,15 @@ apply cancel get term grant change depart只能用于群内"""},
 -thwiki.supervise id号 可加false 监视别人的直播申请，结尾加false代表撤回监视
 -thwiki.grantlist 输出推荐树"""}}
 
-@on_command('code', only_to_me=False)
+@on_command('helpold', only_to_me=False, hide=True)
 @config.ErrorHandle
-async def help_code(session: CommandSession):
-    await command.call_command(get_bot(), session.ctx, 'help', current_arg='code')
-
-@on_command(name='help', only_to_me=False)
-@config.ErrorHandle
-async def help(session: CommandSession):
+async def help_f(session: CommandSession):
     """查询指令帮助。"""
+    stripped_arg = session.current_arg_text.strip()
+    if stripped_arg:
+        session.args['name'] = stripped_arg
+    else:
+        session.args['name'] = 'default'
     global _dict, sp
     name = session.get('name')
     try:
@@ -130,20 +130,11 @@ async def help(session: CommandSession):
     else:
         await session.send(strout, auto_escape=True)
 
-@help.args_parser
-async def _(session: CommandSession):
-    stripped_arg = session.current_arg_text.strip()
-    if stripped_arg:
-        session.args['name'] = stripped_arg
-    else:
-        session.args['name'] = 'default'
-
 @on_command('reload', only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def reload_plugin(session: CommandSession):
     name = 'chiharu.plugins.' + session.current_arg_text
     l = list(filter(lambda x: x.module.__name__ == name, plugin._plugins))
-    print(list(map(lambda x: x.module.__name__, plugin._plugins)))
     if len(l) == 0:
         await session.send('no plugin named ' + session.current_arg_text, auto_escape=True)
     else:
@@ -151,23 +142,21 @@ async def reload_plugin(session: CommandSession):
         await session.send('Successfully reloaded ' + session.current_arg_text, auto_escape=True)
 
 from nonebot.command import Command
-from .config import _registry, _find_command
+from .config import find_help
 
-@on_command('helptest', only_to_me=False, permission=permission.SUPERUSER, hide=True)
+@on_command('help', only_to_me=False, args='指令名', short_des='查看该命令帮助。\n例：-help tools：查看tools指令的帮助。\n欢迎加入测试群947279366避免刷屏', display_id=999)
 @config.ErrorHandle
 async def help_reflection(session: CommandSession):
-    """查询指令帮助。"""
-    cmd_name = session.current_arg_text.split('.')
-    cmd_tree = _registry
-    for part in cmd_name:
-        if part not in cmd_tree:
-            session.finish('未发现指令。')
-        cmd_tree = cmd_tree.leaf[part]
-
-    if cmd_tree.command is not None and not cmd_tree.is_help:
-        # command
-        if not cmd_tree.hide and (cmd_tree.environment is None or await cmd_tree.environment.test(session)):
-            await session.send(f"-{'.'.join(cmd_name)}{''.join(' ' + x for x in cmd_tree.args)}\n{cmd_tree.des}")
+    """查询指令帮助。指令名不需要前缀"-"。"""
+    if session.current_arg_text != '':
+        cmd_name = session.current_arg_text.split('.')
     else:
-        # command group
-        pass
+        cmd_name = ()
+    ret = await find_help(cmd_name, session)
+    if ret:
+        await session.send(ret, ensure_private=('.'.join(cmd_name) == 'thwiki' and session.ctx['group_id'] in config.group_id_dict['thwiki_send']))
+    else:
+        await session.send('未发现指令。')
+
+config.CommandGroup('me', short_des='关于我®', des='こんにちは～七海千春です～\n维护者：小大圣\n友情协助：Randolph（snakebird关卡信息），小石\n鸣谢：Python®  酷Q®  nonebot®  阿里云®\nContact me：shedarshian@gmail.com', display_id=998)
+config.CommandGroup((), des="指令：")

@@ -721,6 +721,8 @@ from nonebot import on_command, CommandSession, on_natural_language, NLPSession,
 # duizhan = {}
 # duizhan_uncomplete = {}
 
+config.CommandGroup('chess', hide=True)
+
 @on_command(('chess', 'begin'), only_to_me=False, aliases=('chessbegin',), hide=True)
 @config.ErrorHandle
 async def chess_begin(session: CommandSession):

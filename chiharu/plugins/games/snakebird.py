@@ -466,6 +466,8 @@ class SnakeBird:
         return 'base64://' + base64.b64encode(buffered.getvalue()).decode()
 
 snakebird = game.GameSameGroup('snakebird', can_private=True)
+config.CommandGroup(('play', 'snakebird'), hide=True)
+config.CommandGroup('snakebird', des='snakebird是一款类贪吃蛇的单机解谜游戏，不同的是它引入了重力，每行走一步蛇都会受到重力的限制而下落。游戏目标是吃完所有食物后所有蛇都到达开启的出口处。游戏本身也有刺、方块、传送门等多个机制，解谜性满载哦~游戏本身目前在【安卓】上和steam上都有，欢迎使用-play.snakebird.begin 关卡号(目前包含关卡：0~45, *1~*6, final) 游玩这里的副本关卡，使用-play.snakebird.check查看自己已通过的关卡~\n游戏操作：直接输入上下左右移动以及红蓝绿切换蛇即可，输入撤可撤销一步\n欢迎向维护者提交自定义关卡【bushi', short_des='解谜游戏蛇鸟。', hide_in_parent=True, display_parents='game')
 
 @snakebird.begin_uncomplete(('play', 'snakebird', 'begin'), (1, 1))
 async def sb_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):

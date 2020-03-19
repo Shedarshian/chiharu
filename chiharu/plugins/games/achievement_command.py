@@ -13,7 +13,9 @@ async def game_center(session: CommandSession):
     else:
         await session.send('game not found')
 
-@on_command(('achievement', 'check'), only_to_me=False)
+config.CommandGroup('achievement', short_des='成就系统。')
+
+@on_command(('achievement', 'check'), only_to_me=False, args='[name]')
 @config.ErrorHandle
 async def check(session: CommandSession):
     """查看成就信息。"""

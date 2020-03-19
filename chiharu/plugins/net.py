@@ -114,6 +114,8 @@ except:
     isLoggedin = False
 told_not_logged_in = False
 
+config.CommandGroup('boss', hide=True)
+
 @on_command(('boss', 'login'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def login(session: CommandSession):
@@ -416,7 +418,9 @@ def getLyric(listid):
     except Exception as err:
         raise anyErrWithId(err, song_id, traceback.format_exc())
 
-@on_command(('misc', 'roll', 'lyric'), only_to_me=False, short_des="随机歌词。")
+config.CommandGroup(('misc', 'roll'), hide=True)
+
+@on_command(('misc', 'roll', 'lyric'), only_to_me=False, short_des="随机歌词。", display_parents='misc')
 @config.ErrorHandle
 async def roll_lyric(session: CommandSession):
     """随机歌词。
@@ -485,6 +489,8 @@ async def bibtex(session: CommandSession):
         await session.send('请输入合理的期刊卷数与页码。')
     except asyncio.TimeoutError:
         await session.send('time out!')
+
+config.CommandGroup('steam', hide=True)
 
 @on_command(('steam', 'price'), only_to_me=False, hide=True)
 @config.ErrorHandle

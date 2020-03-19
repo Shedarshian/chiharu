@@ -19,6 +19,9 @@ from chiharu.plugins.birth import myFormatter
 import chiharu.plugins.maj as maj, chiharu.plugins.math as cmath
 from .games.achievement import achievement
 
+config.CommandGroup('misc', short_des='隐藏指令。')
+config.CommandGroup(('misc', 'asc'), short_des='asc/Unicode字符翻译。')
+
 @on_command(('misc', 'asc', 'check'), only_to_me=False)
 @config.ErrorHandle
 async def AscCheck(session: CommandSession):
@@ -47,12 +50,16 @@ def stdoutIO(stdout=None):
     yield stdout
     sys.stdout = old
 
+config.CommandGroup('python', hide=True)
+
 @on_command(('python', 'exec'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def PythonExec(session: CommandSession):
     with stdoutIO() as s:
         exec(session.current_arg_text, {}, {})
     await session.send(s.getvalue()[:-1], auto_escape=True)
+
+config.CommandGroup(('misc', 'maj'), short_des='麻将小助手。')
 
 @on_command(('misc', 'maj', 'ten'), only_to_me=False, short_des="日麻算点器。")
 @config.ErrorHandle
@@ -121,7 +128,7 @@ daan = {}
 @config.ErrorHandle
 async def maj_train(session: CommandSession):
     """麻将训练。
-    使用数字指定练习题，-1为查看上题答案。
+    使用数字指定练习题，-a为查看上题答案。
     0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）
     2：清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）
     可用选项：
@@ -133,7 +140,7 @@ async def maj_train(session: CommandSession):
     except:
         group_id = session.ctx['user_id']
     p, a = False, False
-    opts, args = getopt.gnu_getopt(session.args['argv'], 'p', [])
+    opts, args = getopt.gnu_getopt(session.args['argv'], 'pa', [])
     for o, a in opts:
         if o == '-p':
             p = True
@@ -211,7 +218,7 @@ async def maj_train(session: CommandSession):
         daan[group_id] = \
             ''.join(map(lambda x: str(x[0] + 1), filter(lambda x: x[1] > 0, enumerate(map(len, result)))))
     else:
-        await session.send('使用数字指定练习题，-1为查看上题答案。\n0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）\n2：清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）')
+        await session.send('使用数字指定练习题，-a为查看上题答案。\n0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）\n2：清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）')
 
 class MajException(Exception):
     def __init__(self, arg):
@@ -334,7 +341,7 @@ async def maj_ting(session: CommandSession):
     except maj.MajErr as e:
         await session.send(str(e))
 
-@on_command(('misc', 'maj', 'ting_ex'), only_to_me=False, permission=permission.SUPERUSER)
+@on_command(('misc', 'maj', 'ting_ex'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def maj_ting_ex(session: CommandSession):
     def expand(s):
