@@ -7,8 +7,9 @@ import json
 import datetime
 import asyncio
 import getopt
+import more_itertools
 from . import config
-from nonebot import on_command, CommandSession, scheduler, get_bot
+from nonebot import on_command, CommandSession, scheduler, get_bot, permission
 
 config.CommandGroup('seiyuu', short_des='查询声优信息。')
 config.CommandGroup('birth', short_des='查询角色生日信息。')
@@ -99,17 +100,41 @@ async def CheckSeiyuu(session: CommandSession):
                 break
         await session.send("\n".join(liststr), auto_escape=True)
 
-@on_command(('birth', 'today'), only_to_me=False, short_des="查询今天生日的角色。")
+@on_command(('birth', 'today'), only_to_me=False, short_des="查询今天生日的角色。", shell_like=True, args=("range", "[-d date=today]"))
 @config.ErrorHandle
 async def BirthToday(session: CommandSession):
     """查询今天生日的角色。
-    可用范围：LL, imas, bandori"""
-    which = session.current_arg_text.strip()
-    dictout = _GetBirth(which)
+    可用范围：lovelive, imas, bandori, 227
+    可用选项：
+        -d, --date：指定日期，格式为MMDD。"""
+    opts, args = getopt.gnu_getopt(session.args['argv'], 'd:', ['date='])
+    date = None
+    for o, a in opts:
+        if o in ('-d', '--date'):
+            date = (int(a[0:2]), int(a[2:4]))
+    which = args[0]
+    dictout = _GetBirth(which, date=date)
     if len(dictout[which]) != 0:
         await session.send("今天是：\n%s的生日\nお誕生日おめでとう~" % u"，\n".join(dictout[which]), auto_escape=True)
     else:
         await session.send("今天没有%s的角色过生日哦~" % which, auto_escape=True)
+
+@on_command(('birth', 'add'), only_to_me=False, hide=True, permission=permission.SUPERUSER, shell_like=True)
+@config.ErrorHandle
+async def BirthAdd(session: CommandSession):
+    month, day, *args = session.args['argv']
+    with open(config.rel("birth.json"), encoding='utf-8') as birth_file:
+        birth = json.load(birth_file)
+    t = {}
+    for key, val in more_itertools.chunked(args, 2):
+        t[key] = val
+    if day not in birth[month]:
+        birth[month][day] = [t]
+    else:
+        birth[month][day].append(t)
+    with open(config.rel("birth.json"), 'w', encoding='utf-8') as birth_file:
+        birth_file.write(json.dumps(birth, ensure_ascii=False, indent=4, separators=(',', ': ')))
+    await session.send('Successfully saved!')
 
 @scheduler.scheduled_job('cron', hour='23', minute='01')
 async def DailySeiyuu():
@@ -125,7 +150,7 @@ async def DailySeiyuu():
 @scheduler.scheduled_job('cron', hour='23', minute='01')
 async def DailyBirth():
     bot = get_bot()
-    l = ['imas', 'lovelive', 'bandori']
+    l = ['imas', 'lovelive', 'bandori', '227']
     dictout = _GetBirth(*l)
     for s in l:
         if len(dictout[s]) != 0:
@@ -185,13 +210,17 @@ class Birth(UserDict):
     def __getattr__(self, attr):
         return self.data[attr]
 
-def _GetBirth(*args):
+def _GetBirth(*args, date=None):
     with open(config.rel("birth.json"), encoding='utf-8') as birth_file:
         birth = json.load(birth_file)
-    today = datetime.datetime.now()
-    today += datetime.timedelta(hours=1)
-    month = str(today.month)
-    day = str(today.day)
+    if date is None:
+        today = datetime.datetime.now()
+        today += datetime.timedelta(hours=1)
+        month = str(today.month)
+        day = str(today.day)
+    else:
+        month = str(date[0])
+        day = str(date[1])
     f = myFormatter()
     dict_ret = {}
     for group in args:
@@ -215,6 +244,12 @@ def _GetBirth(*args):
                 elif obj.group == "imas":
                     dict_ret["imas"].append(f.vformat(
                         '{office}事务所的{name}{name@zh/（{name@zh}）}'
+                        '{cv/【CV：{cv}{cv@zh/（{cv@zh}）}】}'
+                        #.format_map(obj))
+                        , (), obj))
+                elif obj.group == "227":
+                    dict_ret["227"].append(f.vformat(
+                        '22/7的成员{name}{name@zh/（{name@zh}）}'
                         '{cv/【CV：{cv}{cv@zh/（{cv@zh}）}】}'
                         #.format_map(obj))
                         , (), obj))
