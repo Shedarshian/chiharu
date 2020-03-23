@@ -218,12 +218,11 @@ async def quiz(session: CommandSession):
     for o, a in opts:
         if o in ('-t', '--time'):
             s = a
-            if not re.match('\d{6+}', s):
-                await session.send('请使用YYYYMM（四位年份加两位月份）来获取往年试题')
-                return
+            print(a)
+            if not re.match('\d{6,}', s):
+                session.finish('请使用YYYYMM（四位年份加两位月份）来获取往年试题')
             if int(s[0:4]) > d.year or int(s[0:4]) == d.year and int(s[4:6]) > d.month:
-                await session.send('未发现该月题目，题目自201910开始')
-                return
+                session.finish('未发现该月题目，题目自201910开始')
         elif o in ('-a', '--answer'):
             ans = True
     if s is None:
