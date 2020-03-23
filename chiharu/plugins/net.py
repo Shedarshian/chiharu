@@ -9,6 +9,7 @@ import random
 import traceback
 import functools
 import difflib
+from datetime import datetime
 from nonebot import on_command, CommandSession, permission, get_bot, scheduler
 import chiharu.plugins.config as config
 
@@ -108,7 +109,7 @@ try:
         BossCheck = bool(int(f.readline().strip('\n')))
     with open(config.rel("QAQ.txt")) as f:
         p = f.readline().strip('\n')
-        ssh.connect("lxslc6.ihep.ac.cn", 22, 'qity', p)
+        ssh.connect("lxslc7.ihep.ac.cn", 22, 'qity', p)
     isLoggedin = True
 except:
     isLoggedin = False
@@ -182,6 +183,11 @@ async def check_boss():
                 await bot.send_group_msg(group_id=group, message='please login: -boss.login password')
             told_not_logged_in = True
         return
+    stdin, stdout, stderr = ssh.exec_command('/workfs/bes/qity/shell/script/submit -c')
+    output = ''.join(stdout.readlines()).strip()
+    if output != '':
+        for group in config.group_id_dict['boss']:
+            await bot.send_group_msg(group_id=group, message=output)
     def _f():
         stdin, stdout, stderr = ssh.exec_command(
             '/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin/hep_q -u qity')
@@ -545,3 +551,23 @@ async def steam_price(session: CommandSession):
             await session.send(f'游戏名称：{name}\nSteam store链接：{store}\n现价：¥ {price}{f"(-{discount}%)" if discount is not None else ""}\n史低：¥ {price_lowest}')
     except asyncio.TimeoutError:
         await session.send('time out!')
+
+with open(config.rel('thtk_github_last_update.txt')) as f:
+    thtk_time = datetime.fromisoformat(f.read())
+
+@scheduler.scheduled_job('cron', minute='00-40/20')
+async def check_github_thtk():
+    global thtk_time
+    loop = asyncio.get_event_loop()
+    ret = await loop.run_in_executor(None, functools.partial(requests.get, 'https://api.github.com/repos/thpatch/thtk/commits'))
+    j = ret.json()
+    for i, d in enumerate(j):
+        if datetime.fromisoformat(d['commit']['committer']['date'][:-1]) <= thtk_time:
+            break
+    if i != 0:
+        t = j[0]['commit']['committer']['date'][:-1]
+        thtk_time = datetime.fromisoformat(t)
+        with open(config.rel('thtk_github_last_update.txt'), 'w') as f:
+            f.write(t)
+        for group in config.group_id_dict['thtk_update']:
+            await get_bot().send_group_msg(message='Thtk commit detected.\n' + '\n'.join(f"Commit in {d['commit']['committer']['date']}:\n{d['commit']['message']}" for d in j[:i]), group_id=group, auto_escape=True)
