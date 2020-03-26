@@ -23,14 +23,10 @@ env_all_can_private.private = True
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.2.17"
-changelog = """2.2.14-17 Changelog:
+version = "2.2.18"
+changelog = """2.2.18 Changelog:
 Add:
--thwiki.bookmark av12345678 提交视频加入轮播清单，需管理员审核。
--thwiki.recommend av12345678 提交视频加入推荐列表。
-Change:
--thwiki.get 可以在已有直播时修改分区。增加东方大战争分区。
--thwiki.term 结束时自动进入轮播，发送轮播申请，修改直播间分区。"""
+-thwiki.leaderboard me：查询自己排位。"""
 
 TRAIL_TIME = 36 * 60
 
@@ -768,7 +764,7 @@ async def thwiki_terminate(session: CommandSession):
     """提前终止直播。只能在直播群内使用。"""
     await call_command(get_bot(), session.ctx, ('thwiki', 'term'), current_arg = "")
 
-@scheduler.scheduled_job('cron', hour='00')
+@scheduler.scheduled_job('cron', id="thwiki_daily", hour='00')
 @config.maintain('thwiki')
 async def _():
     global l
@@ -798,7 +794,7 @@ async def _():
         record_file = open(config.rel(r'log\thwiki_record.txt'), 'w', encoding='utf-8')
         record_file.write('\n'.join([str(r) for r in _l]))
 
-@scheduler.scheduled_job('cron', second='00')
+@scheduler.scheduled_job('cron', id="thwiki_minute", second='00')
 @config.maintain('thwiki')
 async def _():
     global l
@@ -1357,22 +1353,30 @@ async def thwiki_grantlist(session: CommandSession):
         ), auto_escape=True, ensure_private=True)
 
 # Handler for command '-thwiki.leaderboard'
-@on_command(('thwiki', 'leaderboard'), only_to_me=False)
+@on_command(('thwiki', 'leaderboard'), only_to_me=False, short_des="查看直播排行榜。", args="[me]")
 @config.maintain('thwiki')
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_leaderboard(session: CommandSession):
-    """查看直播排行榜。"""
-    # try:
-    #     max = int(session.current_arg_text)
-    # except ValueError:
-    max = 10
-    # if max <= 0 or max >= 20:
-    #     await session.send('超出范围')
-    #     return
-    for node in whiteforest:
-        if node['card'] is None:
-            node['card'] = await get_card(node['qq'])
-    await session.send('\n'.join([f"{i + 1} 直播时长：{node['time']}min 用户：{node['card']} {node['qq']}" for i, node in enumerate(more_itertools.take(max, sorted(whiteforest, key=lambda node: (0 if 'time' not in node else node['time']), reverse=True)))]), auto_escape=True)
+    """查看直播排行榜。
+    可选参数：me，查询自己排位。"""
+    # for node in whiteforest:
+    #     if node['card'] is None:
+    #         node['card'] = await get_card(node['qq'])
+    if session.current_arg_text == "me":
+        node = find_or_new(qq=session.ctx['user_id'])
+        if 'time' not in node:
+            node['time'] = 0
+        al = list(sorted(whiteforest, key=lambda node: ((0 if 'time' not in node else -node['time']), str(node['card']))))
+        index = al.index(node)
+        print(index)
+        await session.send('\n'.join([f"{i + 1} 直播时长：{al[i]['time']}min 用户：{al[i]['card']} {al[i]['qq']}"
+            for i in range(max(0, index - 2), min(len(al) - 1, index + 3))]), auto_escape=True)
+        return
+    _max = 10
+    await session.send('\n'.join([f"{i + 1} 直播时长：{node['time']}min 用户：{node['card']} {node['qq']}"
+        for i, node in enumerate(more_itertools.take(_max, sorted(whiteforest,
+            key=lambda node: (0 if 'time' not in node else node['time']), reverse=True
+        )))]), auto_escape=True)
 
 # Handler for command '-thwiki.open'
 @on_command(('thwiki', 'open'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
