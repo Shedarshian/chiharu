@@ -176,20 +176,3 @@ def maintain(s):
                     await session.send(maintain_str[s], auto_escape=True)
         return _f
     return _
-
-def description(s: str="", args: Tuple[str]=(), environment: Environment=None, hide=False):
-    raise ImportError
-    def _(f):
-        f.has_des = True
-        f.description = s
-        f.args = args
-        f.environment = environment
-        f.hide = hide
-        if environment is not None:
-            @functools.wraps(f)
-            async def _f(session, *args, **kwargs):
-                if await environment.test(session):
-                    return await f(session, *args, **kwargs)
-            return _f
-        return f
-    return _
