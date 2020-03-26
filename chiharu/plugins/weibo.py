@@ -20,7 +20,7 @@ async def GetBandoriManga(session: CommandSession):
     else:
         await session.send(listout, auto_escape=True)
 
-@scheduler.scheduled_job('cron', hour='00-21/3')
+@scheduler.scheduled_job('cron', id="bandori_manga", hour='00-21/3')
 async def CheckBandoriManga():
     bot = get_bot()
     listout = await _GetBandoriManga()

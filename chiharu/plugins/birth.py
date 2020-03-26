@@ -128,15 +128,23 @@ async def BirthAdd(session: CommandSession):
     t = {}
     for key, val in more_itertools.chunked(args, 2):
         t[key] = val
+    new = True
     if day not in birth[month]:
         birth[month][day] = [t]
     else:
-        birth[month][day].append(t)
+        for c in birth[month][day]:
+            if t['name'] == c['name']:
+                c.update(t)
+                new = False
+                t = c
+                break
+        else:
+            birth[month][day].append(t)
     with open(config.rel("birth.json"), 'w', encoding='utf-8') as birth_file:
         birth_file.write(json.dumps(birth, ensure_ascii=False, indent=4, separators=(',', ': ')))
-    await session.send('Successfully saved!')
+    await session.send(str(t))
 
-@scheduler.scheduled_job('cron', hour='23', minute='01')
+@scheduler.scheduled_job('cron', id="daily_seiyuu", hour='23', minute='01')
 async def DailySeiyuu():
     bot = get_bot()
     try:
@@ -147,7 +155,7 @@ async def DailySeiyuu():
         for id in config.group_id_dict['seiyuu']:
             await bot.send_group_msg(group_id=id, message="timeout!")
 
-@scheduler.scheduled_job('cron', hour='23', minute='01')
+@scheduler.scheduled_job('cron', id="daily_birth", hour='23', minute='01')
 async def DailyBirth():
     bot = get_bot()
     l = ['imas', 'lovelive', 'bandori', '227']
@@ -228,6 +236,8 @@ def _GetBirth(*args, date=None):
     if day in birth[month]:
         for obj2 in birth[month][day]:
             obj = Birth(obj2)
+            if 'group' not in obj:
+                raise KeyError(obj)
             if obj.group in args:
                 if obj.group == "bandori":
                     dict_ret["bandori"].append(f.vformat(
