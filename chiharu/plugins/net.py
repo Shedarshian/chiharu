@@ -2,14 +2,14 @@ import asyncio
 import requests
 import re
 import html
-import paramiko
+import paramiko, paramiko_expect
 import ncmbot
 import json
 import random
 import traceback
 import functools
 import difflib
-from datetime import datetime
+from datetime import datetime, timedelta
 from nonebot import on_command, CommandSession, permission, get_bot, scheduler
 import chiharu.plugins.config as config
 
@@ -102,17 +102,22 @@ async def _(session: CommandSession):
         session.args['year'], session.args['month'], session.args['day'], max_note_str = tup
         session.args['max_note'] = int(max_note_str)
 
-try:
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    with open(config.rel("boss_check.txt")) as f:
-        BossCheck = bool(int(f.readline().strip('\n')))
-    with open(config.rel("QAQ.txt")) as f:
-        p = f.readline().strip('\n')
-        ssh.connect("lxslc7.ihep.ac.cn", 22, 'qity', p)
+interact = None
+PROMPT = '.*qity@.*>\s*'
+isLoggedin = False
+ssh = paramiko.SSHClient()
+ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+with open(config.rel("boss_check.txt")) as f:
+    BossCheck = bool(int(f.readline().strip('\n')))
+with open(config.rel("QAQ.txt")) as f:
+    p = f.readline().strip('\n')
+    ssh.connect("lxslc7.ihep.ac.cn", 22, 'qity', p)
+interact = paramiko_expect.SSHClientInteraction(ssh, timeout=10)
+@scheduler.scheduled_job('date', id='boss_login', run_date=datetime.now() + timedelta(seconds=15))
+async def login():
+    global isLoggedin
+    interact.expect(PROMPT)
     isLoggedin = True
-except:
-    isLoggedin = False
 told_not_logged_in = False
 
 config.CommandGroup('boss', hide=True)
@@ -120,12 +125,17 @@ config.CommandGroup('boss', hide=True)
 @on_command(('boss', 'login'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def login(session: CommandSession):
+    global interact, ssh
     ssh.connect("lxslc6.ihep.ac.cn", 22, 'qity', session.current_arg_text)
-    global isLoggedin
-    isLoggedin = True
+    interact = paramiko_expect.SSHClientInteraction(ssh, timeout=10)
+    async def login():
+        global isLoggedin
+        interact.expect(PROMPT)
+        isLoggedin = True
+    await asyncio.get_event_loop().run_in_executor(None, login)
     await session.send('Successfully logged in')
 
-@on_command(('boss', 'begin'), only_to_me=False, hide=True)
+# @on_command(('boss', 'begin'), only_to_me=False, hide=True)
 @config.ErrorHandle
 async def boss_begin(session: CommandSession):
     if not isLoggedin:
@@ -136,7 +146,7 @@ async def boss_begin(session: CommandSession):
         f.write('1')
     await session.send('boss check begin!')
 
-@on_command(('boss', 'process'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
+# @on_command(('boss', 'process'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def boss_process(session: CommandSession):
     if not isLoggedin:
@@ -162,7 +172,7 @@ class Status:
     def isValid(self):
         return self.valid
     def Running(self):
-        return self.idle + self.running != 0
+        return self.valid and (self.idle + self.running != 0)
     def process(self, f):
         if self.held != 0:
             f()
@@ -173,7 +183,7 @@ class Status:
         else:
             return ""
 
-@scheduler.scheduled_job('cron', minute='00-57/3')
+@scheduler.scheduled_job('cron', id='check_boss', minute='00-57/3')
 async def check_boss():
     global BossCheck, isLoggedin, told_not_logged_in
     bot = get_bot()
@@ -183,15 +193,18 @@ async def check_boss():
                 await bot.send_group_msg(group_id=group, message='please login: -boss.login password')
             told_not_logged_in = True
         return
-    stdin, stdout, stderr = ssh.exec_command('/workfs/bes/qity/shell/script/submit -c')
-    output = ''.join(stdout.readlines()).strip()
+    interact.send('submit -c')
+    interact.expect(PROMPT)
+    output = interact.current_output_clean
+    # stdin, stdout, stderr = ssh.exec_command('/workfs/bes/qity/shell/script/submit -c')
+    # output = ''.join(stdout.readlines()).strip()
     if output != '':
         for group in config.group_id_dict['boss']:
             await bot.send_group_msg(group_id=group, message=output)
     def _f():
-        stdin, stdout, stderr = ssh.exec_command(
-            '/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin/hep_q -u qity')
-        output = stdout.readlines()[-1]
+        interact.send('hep_q -u qity')
+        interact.expect(PROMPT)
+        output = interact.current_output_clean
         match = re.match(
             "(\d+) jobs; (\d+) completed, (\d+) removed, (\d+) idle, (\d+) running, (\d+) held, (\d+) suspended", output)
         if not match:
@@ -214,8 +227,8 @@ async def check_boss():
                         f.write('0')
             else:
                 def _g():
-                    stdin, stdout, stderr = ssh.exec_command(command)
-                    print((stdout.readlines(), stderr.readlines()))
+                    # stdin, stdout, stderr = ssh.exec_command(command)
+                    # print((stdout.readlines(), stderr.readlines()))
                     with open(config.rel("boss_check.txt"), 'w') as f:
                         f.write('1')
                         f.write('\n')
@@ -555,7 +568,7 @@ async def steam_price(session: CommandSession):
 with open(config.rel('thtk_github_last_update.txt')) as f:
     thtk_time = datetime.fromisoformat(f.read())
 
-@scheduler.scheduled_job('cron', minute='00-40/20')
+# @scheduler.scheduled_job('cron', minute='00-40/20')
 async def check_github_thtk():
     global thtk_time
     loop = asyncio.get_event_loop()
