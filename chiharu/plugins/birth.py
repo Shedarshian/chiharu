@@ -267,7 +267,7 @@ def _GetBirth(*args, date=None):
 
 async def _GetSeiyuuToday():
     loop = asyncio.get_event_loop()
-    seiyuu_url = await asyncio.wait_for(loop.run_in_executor(None, requests.get, 'https://sakuhindb.com/'), timeout=60)
+    seiyuu_url = await asyncio.wait_for(loop.run_in_executor(None, requests.get, 'https://sakuhindb.com/'), timeout=30)
     seiyuu = seiyuu_url.text.encode(seiyuu_url.encoding).decode(errors='ignore')
     begin_pos = re.search("本日が誕生日", seiyuu).span()[1]
     end_pos = re.search("論客目録", seiyuu).span()[0]
@@ -277,7 +277,7 @@ async def _GetSeiyuuToday():
         if match:
             if "声優" in match.group(4):
                 try:
-                    url = await asyncio.wait_for(loop.run_in_executor(None, requests.get, "https://sakuhindb.com" + match.group(1)), timeout=60)
+                    url = await asyncio.wait_for(loop.run_in_executor(None, requests.get, "https://sakuhindb.com" + match.group(1)), timeout=10)
                     seiyuu_this = url.text.encode(url.encoding).decode("utf-8")
                     match2 = re.search("出生国", seiyuu_this)
                     if match2:

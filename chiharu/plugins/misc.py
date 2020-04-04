@@ -648,7 +648,11 @@ async def latex(session: CommandSession):
     """渲染latex公式。"""
     if session.current_arg_text == "":
         session.finish('输入不可为空。')
-    await session.send(config.cq.img(await cmath.latex(session.current_arg_text, hsh=(session.ctx['group_id'], session.ctx['user_id']))))
+    try:
+        group = session.ctx['group_id']
+    except KeyError:
+        group = None
+    await session.send(config.cq.img(await cmath.latex(session.current_arg_text, hsh=(group, session.ctx['user_id']))))
 
 class MoneyComputer:
     class Man:

@@ -118,13 +118,14 @@ async def login():
     global isLoggedin
     interact.expect(PROMPT)
     isLoggedin = True
+    print('boss logged in!')
 told_not_logged_in = False
 
 config.CommandGroup('boss', hide=True)
 
 @on_command(('boss', 'login'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
-async def login(session: CommandSession):
+async def boss_login(session: CommandSession):
     global interact, ssh
     ssh.connect("lxslc6.ihep.ac.cn", 22, 'qity', session.current_arg_text)
     interact = paramiko_expect.SSHClientInteraction(ssh, timeout=10)
@@ -185,7 +186,7 @@ class Status:
 
 @scheduler.scheduled_job('cron', id='check_boss', minute='00-57/3')
 async def check_boss():
-    global BossCheck, isLoggedin, told_not_logged_in
+    global BossCheck, isLoggedin, told_not_logged_in, interact
     bot = get_bot()
     if not isLoggedin:
         if not told_not_logged_in:
@@ -202,11 +203,12 @@ async def check_boss():
         for group in config.group_id_dict['boss']:
             await bot.send_group_msg(group_id=group, message=output)
     def _f():
+        global interact
         interact.send('hep_q -u qity')
         interact.expect(PROMPT)
         output = interact.current_output_clean
-        match = re.match(
-            "(\d+) jobs; (\d+) completed, (\d+) removed, (\d+) idle, (\d+) running, (\d+) held, (\d+) suspended", output)
+        match = re.search(
+            "(\d*) jobs; (\d*) completed, (\d*) removed, (\d*) idle, (\d*) running, (\d*) held, (\d*) suspended", output)
         if not match:
             print("Not found")
             return Status(None)

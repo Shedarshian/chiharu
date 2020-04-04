@@ -23,10 +23,12 @@ env_all_can_private.private = True
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.2.18"
-changelog = """2.2.18 Changelog:
+version = "2.2.19"
+changelog = """2.2.18-19 Changelog:
 Add:
--thwiki.leaderboard me：查询自己排位。"""
+-thwiki.leaderboard me：查询自己排位。
+-thwiki.bookmark BV
+-thwiki.recommend BV"""
 
 TRAIL_TIME = 36 * 60
 
@@ -401,7 +403,7 @@ class Record(namedtuple('Record', ['qq', 'time', 'msg_id', 'msg'])):
 def load_record(lines):
     return [Record.construct(line.strip('\r\n')) for line in lines]
 
-async def add_fav(av, fav):
+async def add_fav(fav, av=None, bv=None):
     # Retrieve cookie
     cookie_jar = requests.cookies.RequestsCookieJar()
     with open(config.rel('cookie.txt')) as f:
@@ -410,6 +412,10 @@ async def add_fav(av, fav):
     cookie_jar.set(name="SESSDATA", value=value)
     cookie_jar.set(name="bili_jct", value=csrf)
 
+    if bv is None:
+        bv = config.AvBvConverter.enc(av)
+    if av is None:
+        av = config.AvBvConverter.dec(bv)
     # Construct and encode data
     value = {'rid': av, 'type': 2, 'add_media_ids': fav, 'del_media_ids': '', 'jsonp': 'jsonp', 'csrf': csrf}
     length = len(parse.urlencode(value))
@@ -417,12 +423,12 @@ async def add_fav(av, fav):
     headers = copy(config.headers)
     headers['Content-Length'] = str(length)
     headers['Host'] = 'api.bilibili.com'
-    headers['Referer'] = f'https://www.bilibili.com/video/av{av}/?spm_id_from=333.788.videocard.0'
+    headers['Referer'] = f'https://www.bilibili.com/video/{bv}'
 
     # Send request
     loop = asyncio.get_event_loop()
     url = await loop.run_in_executor(None, functools.partial(requests.post,
-        'https://api.bilibili.com/medialist/gateway/coll/resource/deal',
+        'https://api.bilibili.com/x/v3/fav/resource/deal',
         data=value, cookies=cookie_jar, headers=headers))
     return url.text
 
@@ -758,7 +764,7 @@ async def thwiki_term(session: CommandSession):
 
 # Handler for '-thwiki.terminate', equivalent to '-thwiki.term'
 @on_command(('thwiki', 'terminate'), only_to_me=False, short_des='提前终止直播，进入轮播。', environment=env, hide=True)
-@config.maintain
+@config.maintain('thwiki')
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_terminate(session: CommandSession):
     """提前终止直播。只能在直播群内使用。"""
@@ -1541,14 +1547,12 @@ async def thwiki_check_user(session: CommandSession):
     await session.send(str(len([node for node in whiteforest if 'time' in node and node['time'] > 0])))
 
 @on_notice('group_increase')
-@config.maintain('thwiki')
 async def thwiki_greet(session: NoticeSession):
     if session.ctx['group_id'] in config.group_id_dict['thwiki_live']:
         message = ('欢迎来到THBWiki直播群！我是直播小助手，在群里使用指令即可申请直播时间~\n现在群内直播使用推荐，有人推荐可以直接直播，没有推荐的用户直播时需有管理监视，总直播时长36小时之后可以转正。\n不要忘记阅读群文件里的本群须知哦~\n以下为指令列表，欢迎在群里使用与提问~\n' + help.sp['thwiki_live']['thwiki']) % help._dict['thwiki']
         await get_bot().send_private_msg(user_id=session.ctx['user_id'], message=message, auto_escape=True)
 
 @on_notice('group_decrease')
-@config.maintain('thwiki')
 async def thwiki_decrease(session: NoticeSession):
     if session.ctx['group_id'] not in config.group_id_dict['thwiki_live']:
         return
@@ -1716,41 +1720,54 @@ async def thwiki_bookmark(session: CommandSession):
     """提交视频加入轮播列表。
     需经过管理审核。"""
     qq = session.ctx['user_id']
-    match = re.match('^av(\d+)', session.current_arg_text)
-    if not match:
-        session.finish('请输入视频av号。')
-    av = int(match.group(1))
+    av = session.get('av')
+    bv = session.get('bv')
     if await env_supervise.test(session):
-        ret = await add_fav(av, 853928275)
+        ret = await add_fav(bv=bv, fav=853928275)
         if json.loads(ret)['code'] == 0:
-            config.logger.thwiki << f'【LOG】用户{qq}添加书签av{av}'
+            config.logger.thwiki << f'【LOG】用户{qq}添加书签{bv}'
             await session.send('成功增加视频')
         else:
-            config.logger.thwiki << f'【LOG】用户{qq}添加书签av{av}失败'
+            config.logger.thwiki << f'【LOG】用户{qq}添加书签{bv}失败'
             await session.send('视频增加失败')
     else:
-        config.logger.thwiki << f'【LOG】用户{qq}提交书签av{av}，待审核'
+        config.logger.thwiki << f'【LOG】用户{qq}提交书签{bv}，待审核'
         for group in config.group_id_dict['thwiki_supervise']:
-            await get_bot().send_group_msg(group_id=group, message=f"-thwiki.bookmark av{av}\n用户{qq}试图添加 b23.tv/av{av}，同意请+1，不同意请忽略")
-            await get_bot().send_group_msg(group_id=group, message=f"-thwiki.bookmark av{av}\n用户{qq}试图添加 b23.tv/av{av}，同意请+1，不同意请忽略")
+            await get_bot().send_group_msg(group_id=group, message=f"-thwiki.bookmark {bv}\n用户{qq}试图添加 b23.tv/{bv}，同意请+1，不同意请忽略")
+            await get_bot().send_group_msg(group_id=group, message=f"-thwiki.bookmark {bv}\n用户{qq}试图添加 b23.tv/{bv}，同意请+1，不同意请忽略")
         await session.send('已提交，请等待管理审核')
 
 @on_command(('thwiki', 'recommend'), only_to_me=False, environment=env)
 @config.ErrorHandle(config.logger.thwiki)
-async def thwiki_bookmark(session: CommandSession):
+async def thwiki_recommend(session: CommandSession):
     """提交视频加入推荐列表。"""
     qq = session.ctx['user_id']
-    match = re.match('^av(\d+)', session.current_arg_text)
-    if not match:
-        session.finish('请输入视频av号。')
-    av = int(match.group(1))
-    ret = await add_fav(av, 426047475)
+    av = session.get('av')
+    bv = session.get('bv')
+    ret = await add_fav(bv=bv, fav=426047475)
     if json.loads(ret)['code'] == 0:
-        config.logger.thwiki << f'【LOG】用户{qq}添加推荐av{av}'
+        config.logger.thwiki << f'【LOG】用户{qq}添加推荐{bv}'
         await session.send('成功加入推荐视频列表')
     else:
-        config.logger.thwiki << f'【LOG】用户{qq}添加推荐av{av}失败'
+        config.logger.thwiki << f'【LOG】用户{qq}添加推荐{bv}失败'
         await session.send('推荐视频列表加入失败')
+
+@thwiki_bookmark.args_parser
+@thwiki_recommend.args_parser
+@config.ErrorHandle(config.logger.thwiki)
+async def _(session: CommandSession):
+    match = re.match('^av(\d+)', session.current_arg_text)
+    if not match:
+        match = re.match('^(?:bv|BV)([0-9A-Za-z]+)', session.current_arg_text)
+        if not match:
+            session.finish('请输入视频av号或BV号。')
+        bv = 'BV' + match.group(1)
+        av = config.AvBvConverter.dec(bv)
+    else:
+        av = int(match.group(1))
+        bv = config.AvBvConverter.enc(av)
+    session.args['av'] = av
+    session.args['bv'] = bv
 
 # Handler for command '-thwiki.test'
 # Yet another undocumented command...?

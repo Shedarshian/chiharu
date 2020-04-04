@@ -1,9 +1,9 @@
 # hack `on_command` and `handle_command` in order to insert custom behaviour
 # namely, allow sub-command, and insert `short_des`, `args`, `environment`, `hide` args.
 from typing import Union, Iterable, Callable, Optional, Tuple, Awaitable
-import warnings, shlex
+import warnings, shlex, itertools
 import functools
-from nonebot import permission as perm
+from nonebot import permission
 from nonebot.command import CommandHandler_T, Command, CommandFunc
 from nonebot.typing import CommandName_T
 from nonebot.session import BaseSession
@@ -147,7 +147,7 @@ def CommandGroup(name: Union[str, CommandName_T],
 
 def on_command(name: Union[str, CommandName_T], *,
                aliases: Union[Iterable[str], str] = (),
-               permission: int = perm.EVERYBODY,
+               permission: int = permission.EVERYBODY,
                only_to_me: bool = True,
                privileged: bool = False,
                shell_like: bool = False,
@@ -258,7 +258,7 @@ def _find_command(name: Union[str, CommandName_T]) -> Optional[Command]:
             if ret:
                 await session.send(ret)
             # await call_command(get_bot(), session.ctx, ('help',), current_arg='.'.join(cmd_name))
-        cmd_tree.command = Command(name=cmd_name, func=_, permission=perm.EVERYBODY,
+        cmd_tree.command = Command(name=cmd_name, func=_, permission=permission.EVERYBODY,
                       only_to_me=False, privileged=False)
         cmd_tree.is_help = True
     return cmd_tree.command
