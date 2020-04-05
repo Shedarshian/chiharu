@@ -761,7 +761,7 @@ def save_todo(qq, todo):
 def to_str(dct):
     return dct['name'] + (f"\n    progress: {dct['progress']}" if 'progress' in dct else '')
 todo_modes = {'progress', 'new', 'move'}
-from .helper.function import parser, ParserError
+from .helper.function.function import parser, ParserError
 
 @on_command(('todo',), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle

@@ -18,7 +18,7 @@ from matplotlib import pyplot
 import numpy
 import chiharu.plugins.config as config
 from nonebot import CommandSession, get_bot, permission
-from .helper.function import parser, ParserError
+from .helper.function.function import parser, ParserError
 from .config import on_command
 
 async def latex(s, hsh=()):
