@@ -1,6 +1,6 @@
 import json
 import pypinyin
-from pypinyin import pinyin
+# from pypinyin import pinyin
 from abc import ABC, abstractmethod
 from nonebot import on_command, CommandSession, permission, get_bot, NLPSession
 from nonebot.command import call_command

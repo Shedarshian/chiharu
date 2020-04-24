@@ -118,7 +118,8 @@ async def login():
     global isLoggedin
     interact.expect(PROMPT)
     isLoggedin = True
-    print('boss logged in!')
+    for group in config.group_id_dict['boss']:
+        await get_bot().send_group_msg(group_id=group, message='boss logged in!')
 told_not_logged_in = False
 
 config.CommandGroup('boss', hide=True)
@@ -201,7 +202,7 @@ async def check_boss():
     # output = ''.join(stdout.readlines()).strip()
     if output != '':
         for group in config.group_id_dict['boss']:
-            await bot.send_group_msg(group_id=group, message=output)
+            await bot.send_group_msg(group_id=group, message=output.strip())
     def _f():
         global interact
         interact.send('hep_q -u qity')

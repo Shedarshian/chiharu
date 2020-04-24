@@ -1613,6 +1613,8 @@ async def thwiki_group_request(session: RequestSession):
             await get_bot().send_group_msg(group_id=group, message=f'用户{qq}答案不满足格式')
         return
     user, answer = match.groups()
+    if int(user) == config.thwiki_answer:
+        user, answer = answer, user
     if int(answer) != config.thwiki_answer:
         await session.reject(reason='答案错误')
         for group in config.group_id_dict['thwiki_supervise']:

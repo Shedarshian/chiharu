@@ -13,7 +13,7 @@ from datetime import date, timedelta
 import wand.image, wand.color
 from io import StringIO
 from string import Formatter
-from nonebot import on_command, CommandSession, permission
+from nonebot import on_command, CommandSession, permission, on_natural_language, NLPSession
 import chiharu.plugins.config as config
 from chiharu.plugins.birth import myFormatter
 import chiharu.plugins.maj as maj, chiharu.plugins.math as cmath
@@ -813,3 +813,12 @@ async def todo(session: CommandSession):
             mode = ''
     save_todo(qq, todo_l)
     await session.send('\n'.join([f'{i} {to_str(b)}' for i, b in enumerate(todo_l)]))
+
+from .config import Environment
+env = Environment('link_converter', private=True)
+@on_natural_language(only_to_me=False)
+async def linkconverter(session: NLPSession):
+    if await env.test(session):
+        match = re.match("\[CQ:rich,content=.*http://www\.bilibili\.com/video/(BV[0-9a-zA-Z]+).*\]", session.msg)
+        if match:
+            await session.send('http://b23.tv/' + match.group(1))
