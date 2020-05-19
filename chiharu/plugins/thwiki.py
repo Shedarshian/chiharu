@@ -450,7 +450,7 @@ async def add_fav(fav, av=None, bv=None):
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_apply(session: CommandSession):
     """申请直播时段。只能在直播群内使用。
-    时间格式：x年x月x日x点x分或者xx:xx，今日或今年可以省。开始可以用now，结束可以用float
+    时间格式：x年x月x日x点x分或者xx:xx，今日或今年可以省。开始可以用now，结束可以用float。可使用30小时制。
     例：-thwiki.apply 19:00 21:00 东方STG"""
     global l
     

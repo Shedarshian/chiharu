@@ -22,12 +22,20 @@ from .games.achievement import achievement
 config.CommandGroup('misc', short_des='隐藏指令。')
 config.CommandGroup(('misc', 'asc'), short_des='asc/Unicode字符翻译。')
 
-@on_command(('misc', 'asc', 'check'), only_to_me=False)
+@on_command(('misc', 'asc', 'check'), only_to_me=False, short_des="转换输入字符串的所有字符到unicode码。", shell_like=True, args=['-h'])
 @config.ErrorHandle
 async def AscCheck(session: CommandSession):
-    '''转换输入字符串的所有字符到unicode码。'''
-    strin = session.current_arg_text.strip()
-    strout = ' '.join(map(str, map(ord, strin)))
+    '''转换输入字符串的所有字符到unicode码。
+    可用选项：
+        -h/--hex，转换至U+xxxxx十六进制输出'''
+    opts, args = getopt.gnu_getopt(session.args['argv'], 'h', ['hex'])
+    h = False
+    for o, a in opts:
+        if o in ('-h', '--hex'):
+            h = True
+    strin = args[0]
+    format_string = "U+{:x}" if h else "{}"
+    strout = ' '.join([format_string.format(ord(x)) for x in strin])
     await session.send('对应数字是：\n' + strout, auto_escape=True)
 
 @on_command(('misc', 'asc', 'trans'), only_to_me=False)
@@ -35,11 +43,15 @@ async def AscCheck(session: CommandSession):
 async def AscTrans(session: CommandSession):
     '''转换多个数字到unicode字符。'''
     strin = session.current_arg_text.split(' ')
+    def _(x):
+        if x.startswith('U+'):
+            return int(x[2:], 16)
+        return int(x)
     try:
-        strout = ''.join(map(chr, map(int, strin)))
+        strout = ''.join([chr(_(i)) for i in strin])
         await session.send('对应字符是：\n' + strout, auto_escape=True)
     except ValueError:
-        await session.send('请输入十进制数字。')
+        await session.send('请输入十进制数字或U+xxx十六进制数字。')
 
 @contextlib.contextmanager
 def stdoutIO(stdout=None):
@@ -819,6 +831,6 @@ env = Environment('link_converter', private=True)
 @on_natural_language(only_to_me=False)
 async def linkconverter(session: NLPSession):
     if await env.test(session):
-        match = re.match("\[CQ:rich,content=.*http://www\.bilibili\.com/video/(BV[0-9a-zA-Z]+).*\]", session.msg)
+        match = re.match("\[CQ:rich,content=.*(?:https?://www\.bilibili\.com/video/|https?://b23\.tv/)([0-9a-zA-Z]+).*\]", session.msg)
         if match:
             await session.send('http://b23.tv/' + match.group(1))

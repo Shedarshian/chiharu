@@ -491,10 +491,9 @@ async def bibtex(session: CommandSession):
     目前支持期刊：pra prb prc prd pre prl cpb cpc"""
     args = session.current_arg_text.split(' ')
     if len(args) == 0 or args[0].lower() not in bibtex_url:
-        await session.send('支持期刊：pra prb prc prd pre prl cpb cpc')
-        return
+        session.finish('支持期刊：pra prb prc prd pre prl cpb cpc')
     elif len(args) < 3:
-        await session.send('请使用：-tools.bibtex 期刊名 卷数 首页页码')
+        session.finish('请使用：-tools.bibtex 期刊名 卷数 首页页码')
     name = args.pop(0).lower()
     loop = asyncio.get_event_loop()
     try:
@@ -506,7 +505,11 @@ async def bibtex(session: CommandSession):
         if url.status_code != 200:
             await session.send('not found!')
         else:
-            await session.send(url.text, auto_escape=True)
+            if len(url.text) >= 2000:
+                await session.send(url.text[0:2000], auto_escape=True)
+                await session.send(url.text[2000:], auto_escape=True)
+            else:
+                await session.send(url.text, auto_escape=True)
     except ValueError:
         await session.send('请输入合理的期刊卷数与页码。')
     except asyncio.TimeoutError:

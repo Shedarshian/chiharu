@@ -46,7 +46,9 @@ class Environment:
     async def test(self, session: BaseSession, no_reply: bool=False):
         try:
             group_id = session.ctx['group_id']
-            if group_id in self.constraint:
+            if group_id in self.block:
+                return False
+            elif group_id in self.constraint:
                 ret = self.constraint[group_id]._f()
                 if not ret and self.constraint[group_id].ret and not no_reply:
                     await session.send(self.constraint[group_id].ret)
@@ -64,6 +66,8 @@ class Environment:
                 return False
             else:
                 return True
+# register a 'Environment.all' object in 'config_data.py'
+# and add a 'block' class property in 'config_data.py'
 
 class Constraint:
     def __init__(self, *args, can_respond: Callable[..., bool], ret: str = ""):
@@ -145,6 +149,7 @@ def CommandGroup(name: Union[str, CommandName_T],
                 c = c.get(parent_key)
             c.help_addition.add(current_parent)
 
+from . import config
 def on_command(name: Union[str, CommandName_T], *,
                aliases: Union[Iterable[str], str] = (),
                permission: int = permission.EVERYBODY,
@@ -184,14 +189,14 @@ def on_command(name: Union[str, CommandName_T], *,
 
         cmd_name = (name,) if isinstance(name, str) else name
         
-        if environment is not None:
-            @functools.wraps(func_original)
-            async def _f(session, *args, **kwargs):
-                if await environment.test(session):
-                    return await func_original(session, *args, **kwargs)
-            func = _f
-        else:
-            func = func_original
+        nonlocal environment
+        if environment is None:
+            environment = Environment.all
+        @functools.wraps(func_original)
+        async def _f(session, *args, **kwargs):
+            if await environment.test(session):
+                return await func_original(session, *args, **kwargs)
+        func = _f
 
         cmd = Command(name=cmd_name, func=func, permission=permission,
                       only_to_me=only_to_me, privileged=privileged)
