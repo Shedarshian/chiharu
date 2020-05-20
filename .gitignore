@@ -490,3 +490,6 @@ MigrationBackup/
 
 # Local History for Visual Studio Code
 .history/
+
+parser.out
+parsetab.py
