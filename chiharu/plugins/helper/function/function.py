@@ -193,13 +193,14 @@ class ExpressionParser:
         c = str(p[3])
         rg = p[7]
         def result(*a, **ka):
-            range = rg if isinstance(rg, list) else rg(*a, **ka)
+            #range = rg if isinstance(rg, list) else rg(*a, **ka)
+            range = rg
             if len(range) >= self.max_sum:
                 raise ValueError("sum range could not exceed %i" % self.max_sum)
             if type(func) is float:
                 return func * len(range)
             else:
-                return sum((func(*a, **{c: t, **ka}) if isinstance(t, float) else func(*a, **{c: t(), **ka})) for t in range)
+                return sum((func(*a, **{c: t, **ka}) if isinstance(t, float) else func(*a, **{c: t(*a, **ka), **ka})) for t in range)
         try:
             p[0] = float(result())
         except KeyError:
