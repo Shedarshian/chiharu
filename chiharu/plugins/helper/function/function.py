@@ -4,8 +4,10 @@ import ply.lex as lex, ply.yacc as yacc
 
 re_x = re.compile(r'^x(\d*)$')
 re_dy = re.compile(r'^(?:(?:D|d)(\d+)|((?:D|d)*))y(\d*)$')
-tokens = ('NUMBER', 'ID', 'EQ', 'NEQ', 'GE', 'LE', 'AND', 'OR', 'DEFINE', 'SUM')
-literals = '+-*/^(),<>?:[]'
+tokens = ('NUMBER', 'ID', 'EQ', 'NEQ', 'GE', 'LE', 'AND', 'OR', 'DEFINE', 'SUM', 'ARRAYNAME')
+literals = '+-*/^(),<>?:[]{}'
+
+array_dict = {}
 
 class ParserError(Exception):
     pass
@@ -27,6 +29,8 @@ def ExpressionLexer():
         r'[a-zA-Z_][a-zA-Z_0-9]*'
         if t.value.lower() == 'sum':
             t.type = 'SUM'
+        elif t.value in array_dict:
+            t.type = 'ARRAYNAME'
         return t
     def t_newline(t):
         r'\n+'
@@ -111,11 +115,14 @@ class ExpressionParser:
         """expression : '-' expression    %prec UMINUS"""
         p[0] = ExpressionParser.optimize(lambda x: -x, p[2], typ=float)
     def p_whether(self, p):
-        """expression : logic '?' expression ':' expression"""
+        """expression : logic '?' expression ':' expression
+           array : logic '?' array ':' array"""
         p[0] = ExpressionParser.optimize(lambda x, y, z: (y if x else z), p[1], p[3], p[5], typ=float)
     def p_paren(self, p):
         """expression : '(' expression ')'
-           logic : '(' logic ')'"""
+           logic : '(' logic ')'
+           array : '(' array ')'
+                 | '{' list '}'"""
         p[0] = p[2]
     def p_id(self, p):
         """expression : ID"""
@@ -161,8 +168,8 @@ class ExpressionParser:
         b, e, func = p[7]
         c = str(p[3])
         def result(*a, **ka):
-            begin = b if type(b) is float else b(*a, **ka)
-            end = e if type(e) is float else e(*a, **ka)
+            begin = b if isinstance(b, float) else b(*a, **ka)
+            end = e if isinstance(e, float) else e(*a, **ka)
             if end - begin >= self.max_sum:
                 raise ValueError("sum range could not exceed %i" % self.max_sum)
             if type(func) is float:
@@ -178,14 +185,36 @@ class ExpressionParser:
         except TypeError:
             p[0] = result
         self.temp_var.remove(p[3])
+    def p_sum_array(self, p):
+        """expression : SUM '[' ID ']' seen_sum '(' array ',' expression ')'"""
+        func = p[9]
+        c = str(p[3])
+        rg = p[7]
+        def result(*a, **ka):
+            range = rg if isinstance(rg, list) else rg(*a, **ka)
+            if len(range) >= self.max_sum:
+                raise ValueError("sum range could not exceed %i" % self.max_sum)
+            if type(func) is float:
+                return func * len(range)
+            else:
+                return sum((func(*a, **{c: t, **ka}) if isinstance(t, float) else func(*a, **{c: t(), **ka})) for t in range)
+        try:
+            p[0] = float(result())
+        except KeyError:
+            p[0] = result
+        except IndexError:
+            p[0] = result
+        except TypeError:
+            p[0] = result
+        self.temp_var.remove(p[3])
     def p_seen_sum(self, p):
         """seen_sum : """
-        if p[-2] in self.temp_var or p[-2] in self.define_dict:
+        if p[-2] in self.temp_var or p[-2] in self.define_dict or p[-2] in array_dict:
             raise ParserError(p[-2] + ' repeated')
         self.temp_var.add(p[-2])
     def p_define(self, p):
         """expression : ID DEFINE expression"""
-        if p[1] in self.define_dict or p[1] in self.temp_var:
+        if p[1] in self.define_dict or p[1] in self.temp_var or p[1] in array_dict:
             raise ParserError(p[1] + ' already defined')
         self.define_dict[p[1]] = p[3]
         p[0] = p[3]
@@ -196,6 +225,16 @@ class ExpressionParser:
             p[0] = [p[1]]
         else:
             p[0] = [p[1], *p[3]]
+    def p_array_var(self, p):
+        """array : ARRAYNAME"""
+        # ARRAYNAME must be in global array_dict
+        p[0] = array_dict[p[1]]
+    def p_array_define(self, p):
+        """array : ID DEFINE array"""
+        if p[1] in self.define_dict or p[1] in self.temp_var or p[1] in array_dict:
+            raise ParserError(p[1] + ' already defined')
+        array_dict[p[1]] = p[3]
+        p[0] = p[3]
     def p_error(self, p):
         # logger += "Error"
         raise ParserError('')
@@ -204,6 +243,8 @@ class ExpressionParser:
         self.temp_var = set()
         self.state = ''
         self.max_sum = 1000
+        global array_dict
+        array_dict = {}
     def setstate(self, s):
         self.state = s
     def build(self, **kwargs):
