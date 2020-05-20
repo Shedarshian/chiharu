@@ -115,8 +115,7 @@ class ExpressionParser:
         """expression : '-' expression    %prec UMINUS"""
         p[0] = ExpressionParser.optimize(lambda x: -x, p[2], typ=float)
     def p_whether(self, p):
-        """expression : logic '?' expression ':' expression
-           array : logic '?' array ':' array"""
+        """expression : logic '?' expression ':' expression"""
         p[0] = ExpressionParser.optimize(lambda x, y, z: (y if x else z), p[1], p[3], p[5], typ=float)
     def p_whether_array(self, p):
         """array : logic '?' array ':' array"""
