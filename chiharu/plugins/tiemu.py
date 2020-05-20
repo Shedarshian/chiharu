@@ -1,8 +1,9 @@
 import json
 import re
 import hashlib
-import chiharu.plugins.config as config
-from nonebot import on_command, CommandSession, on_natural_language, scheduler, NLPSession, IntentCommand, get_bot, permission
+from . import config
+from nonebot import CommandSession, on_natural_language, scheduler, NLPSession, IntentCommand, get_bot, permission
+from .inject import on_command
 
 with open(config.rel('tiemu.json'), encoding='utf-8') as f:
     tiemu_g = json.load(f)

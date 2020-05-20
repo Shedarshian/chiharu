@@ -1,3 +1,4 @@
 from . import config
-from nonebot import on_command, CommandSession, permission
+from .inject import on_command
+from nonebot import CommandSession, permission
 

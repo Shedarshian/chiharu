@@ -1,8 +1,8 @@
 import asyncio
-import chiharu.plugins.config as config
-import chiharu.plugins.maj as maj
+from . import maj, config
 from typing import Type, TypeVar
-from nonebot import on_command, CommandSession, get_bot, permission
+from .inject import on_command
+from nonebot import CommandSession, get_bot, permission
 
 players = {}
 boards_test = {"zj": {}}

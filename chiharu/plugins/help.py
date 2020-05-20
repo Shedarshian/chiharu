@@ -1,7 +1,8 @@
-from nonebot import on_command, CommandSession, get_bot, permission, plugin, command
+from nonebot import CommandSession, get_bot, permission, plugin, command
 import nonebot
 import importlib
 from . import config
+from .inject import on_command
 from os import path
 
 _dict = {"asc": "使用格式：\n-asc check str：转换str的所有字符到ascii码\n-asc trans numbers：转换数字到字符",

@@ -1,9 +1,10 @@
 import random
 import itertools
 from typing import Dict, Any, Callable, Awaitable
-import chiharu.plugins.config as config
-from chiharu.plugins.game import GameSameGroup, ChessError, ChessWin
-from nonebot import on_command, CommandSession, get_bot, permission, NLPSession, IntentCommand
+from .. import config
+from ..game import GameSameGroup, ChessError, ChessWin
+from nonebot import CommandSession, get_bot, permission, NLPSession, IntentCommand
+from ..inject import on_command
 
 class ChessCantMove(ChessError):
     pass

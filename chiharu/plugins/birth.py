@@ -9,7 +9,8 @@ import asyncio
 import getopt
 import more_itertools
 from . import config
-from nonebot import on_command, CommandSession, scheduler, get_bot, permission
+from .inject import on_command
+from nonebot import CommandSession, scheduler, get_bot, permission
 
 config.CommandGroup('seiyuu', short_des='查询声优信息。')
 config.CommandGroup('birth', short_des='查询角色生日信息。')

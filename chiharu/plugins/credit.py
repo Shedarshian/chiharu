@@ -1,7 +1,7 @@
 import datetime
 import json
 #import config
-import chiharu.plugins.config as config
+from . import config
 #from nonebot import on_command, CommandSession, on_natural_language, NLPSession, IntentCommand, get_bot, permission
 
 is12to6 = 1#(datetime.time.now().hour < 5)

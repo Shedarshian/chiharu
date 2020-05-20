@@ -14,9 +14,9 @@ import wand.image, wand.color
 from io import StringIO
 from string import Formatter
 from nonebot import on_command, CommandSession, permission, on_natural_language, NLPSession
-import chiharu.plugins.config as config
-from chiharu.plugins.birth import myFormatter
-import chiharu.plugins.maj as maj, chiharu.plugins.math as cmath
+from . import config
+from .birth import myFormatter
+from . import maj, math as cmath
 from .games.achievement import achievement
 
 config.CommandGroup('misc', short_des='隐藏指令。')

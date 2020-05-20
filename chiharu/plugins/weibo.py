@@ -1,7 +1,7 @@
 import re
 from nonebot import on_command, CommandSession, scheduler, get_bot
 from weibo import Client
-import chiharu.plugins.config as config
+from . import config
 
 API_KEY = '3911660282'
 API_SECRET = 'aa56e2454428fe39f9af7365cdf07734'

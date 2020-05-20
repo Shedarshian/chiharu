@@ -16,10 +16,10 @@ import os
 import json
 from matplotlib import pyplot
 import numpy
-import chiharu.plugins.config as config
+from . import config
 from nonebot import CommandSession, get_bot, permission
 from .helper.function.function import parser, ParserError
-from .config import on_command
+from .inject import on_command
 
 async def latex(s, hsh=()):
     loop = asyncio.get_event_loop()

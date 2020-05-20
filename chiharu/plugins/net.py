@@ -11,7 +11,8 @@ import functools
 import difflib
 from datetime import datetime, timedelta
 from nonebot import on_command, CommandSession, permission, get_bot, scheduler
-import chiharu.plugins.config as config
+from . import config
+from .inject import on_command
 
 async def Event(year, month, day):
     loop = asyncio.get_event_loop()

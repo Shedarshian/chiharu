@@ -1,6 +1,7 @@
 from .achievement import _all
 from .. import config
-from nonebot import on_command, CommandSession, get_bot, permission
+from ..inject import on_command
+from nonebot import CommandSession, get_bot, permission
 
 @on_command('game', only_to_me=False, short_des="\U0001F6AA七海千春游戏大厅\U0001F6AA")
 @config.ErrorHandle

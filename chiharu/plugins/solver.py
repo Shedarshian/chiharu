@@ -1,8 +1,9 @@
 import getopt
 import more_itertools
 from . import config
-from nonebot import on_command, CommandSession, get_bot, permission, on_natural_language, NLPSession, IntentCommand
+from nonebot import CommandSession, get_bot, permission, on_natural_language, NLPSession, IntentCommand
 from .solvers import guess
+from .inject import on_command
 
 def change(a):
     if type(a) is str:

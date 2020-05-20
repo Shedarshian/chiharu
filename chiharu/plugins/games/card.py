@@ -8,7 +8,7 @@ import contextlib
 import os
 from typing import Dict, Iterable, Tuple, Awaitable, List, Set, Union
 from datetime import date, datetime
-import chiharu.plugins.config as config
+from .. import config
 from nonebot import on_command, CommandSession, get_bot, permission, scheduler
 from nonebot.command import call_command
 config.logger.open('card')

@@ -7,7 +7,7 @@ from concurrent.futures import TimeoutError, ThreadPoolExecutor, _base
 import getopt
 from nonebot import CommandSession, permission
 from . import config
-from .config import on_command
+from .inject import on_command
 
 with open(config.rel("mbfSub.json"), encoding='utf-8') as mbffile:
     mbfSub = json.load(mbffile)

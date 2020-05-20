@@ -3,7 +3,8 @@ from abc import ABC, abstractmethod
 import json
 import random
 from . import config
-from nonebot import on_command, CommandSession, get_bot, permission, on_natural_language, NLPSession, IntentCommand
+from .inject import on_command
+from nonebot import CommandSession, get_bot, permission, on_natural_language, NLPSession, IntentCommand
 # example usage for GameSameGroup:
 # xiangqi = GameSameGroup('xiangqi')
 #

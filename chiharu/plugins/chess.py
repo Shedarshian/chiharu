@@ -1,8 +1,9 @@
 # import abc
 # import itertools
 # import functools
-import chiharu.plugins.config as config
-from nonebot import on_command, CommandSession, on_natural_language, NLPSession, IntentCommand, get_bot, permission, command
+from . import config
+from .inject import on_command
+from nonebot import CommandSession, on_natural_language, NLPSession, IntentCommand, get_bot, permission, command
 
 # name_dict = {}
 

@@ -2,8 +2,8 @@ import abc
 import itertools
 import functools
 from typing import Dict, Any, Callable, Awaitable
-import chiharu.plugins.config as config
-from chiharu.plugins.game import GameSameGroup, ChessError, ChessWin
+from .. import config
+from ..game import GameSameGroup, ChessError, ChessWin
 from nonebot import on_command, CommandSession, get_bot, permission, NLPSession, IntentCommand
 
 name_dict = {}

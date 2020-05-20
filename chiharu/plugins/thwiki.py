@@ -10,10 +10,11 @@ from collections import namedtuple
 from copy import copy
 from typing import Optional
 from urllib import parse
-from nonebot import on_command, CommandSession, get_bot, permission, scheduler, on_notice, NoticeSession, RequestSession, on_request, message_preprocessor
+from nonebot import CommandSession, get_bot, permission, scheduler, on_notice, NoticeSession, RequestSession, on_request, message_preprocessor
 from nonebot.command import call_command
 import aiocqhttp
 from . import config, help
+from .inject import on_command
 config.logger.open('thwiki')
 env = config.Environment('thwiki_live', ret='请在直播群内使用')
 env_supervise = config.Environment('thwiki_supervise', config.Admin('thwiki_live'), ret='请在监视群内或直播群管理使用')

@@ -4,8 +4,7 @@ import pypinyin
 from abc import ABC, abstractmethod
 from nonebot import on_command, CommandSession, permission, get_bot, NLPSession
 from nonebot.command import call_command
-import chiharu.plugins.config as config
-from .. import game
+from .. import game, config
 
 class BlackBox(ABC):
     _dict = None

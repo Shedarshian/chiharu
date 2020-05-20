@@ -1,2 +1,2 @@
-0. 在本地增加调试手段
-1. function增加lambda
+0. 璋冭瘯
+1. function sum for list
