@@ -44,6 +44,7 @@ def get(f, i):
     return lambda *args: f(*args)[i]
 
 def _func():
+    #pylint: disable=no-name-in-module
     from math import exp, log, log10, fabs, sqrt, sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, asinh, acosh, atanh, erf, floor
     from scipy.special import gamma, beta, psi, gammainc, airy, ellipj, jv, yv, kv, iv, spherical_jn, spherical_yn, spherical_in, spherical_kn, zeta
 
