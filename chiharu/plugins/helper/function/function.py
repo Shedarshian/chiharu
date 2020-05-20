@@ -86,10 +86,10 @@ class ExpressionParser:
     binary_operator = {'+': lambda x, y: x + y, '-': lambda x, y: x - y, '*': lambda x, y: x * y, '/': lambda x, y: x / y, '^': lambda x, y: x ** y, '==': lambda x, y: x == y, '!=': lambda x, y: x != y, '>=': lambda x, y: x >= y, '<=': lambda x, y: x <= y, '>': lambda x, y: x > y, '<': lambda x, y: x < y, '&&': lambda x, y: x and y, '||': lambda x, y: x or y}
     @staticmethod
     def optimize(f, *args, typ=float):
-        if all([type(x) is float or type(x) is bool for x in args]):
+        if all([isinstance(x, (float, bool, list)) for x in args]):
             return typ(f(*args))
         else:
-            return lambda *a, **ka: f(*[(x if type(x) is float or type(x) is bool else x(*a, **ka)) for x in args])
+            return lambda *a, **ka: f(*[(x if isinstance(x, (float, bool, list)) else x(*a, **ka)) for x in args])
     start = 'expression'
     def p_binary_operator(self, p):
         """expression : expression '+' expression
