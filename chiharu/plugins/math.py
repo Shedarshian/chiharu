@@ -20,6 +20,7 @@ from . import config
 from nonebot import CommandSession, get_bot, permission
 from .helper.function.function import parser, ParserError
 from .inject import on_command
+#pylint: disable=no-member
 
 async def latex(s, hsh=()):
     loop = asyncio.get_event_loop()
@@ -260,7 +261,7 @@ async def calculator(session: CommandSession):
     运算过程中有浮点布尔列表三种类型，计算结果必须为浮点数。
     可以使用的运算符：
         列表 {1,2,3,4}
-        C++中的一元与二元运算符 + - * / ^ == != < <= > >= && || !
+        C++中的一元与二元运算符 + - * / ^ == != < <= > >= && || ! 下标[]
         括号 ( )
         C++中的三目运算符 ? :
         定义临时变量的运算符 := （使用例：(t:=2^3+1)*(t^2-2)

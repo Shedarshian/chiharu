@@ -237,6 +237,9 @@ class ExpressionParser:
             raise ParserError(p[1] + ' already defined')
         array_dict[p[1]] = p[3]
         p[0] = p[3]
+    def p_array_index(self, p):
+        """expression : array '[' expression ']'"""
+        p[0] = ExpressionParser.optimize(lambda x, y: x[y], p[1], p[3], typ=float)
     def p_error(self, p):
         # logger += "Error"
         raise ParserError('')
