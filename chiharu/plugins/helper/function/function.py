@@ -4,7 +4,7 @@ import ply.lex as lex, ply.yacc as yacc
 
 re_x = re.compile(r'^x(\d*)$')
 re_dy = re.compile(r'^(?:(?:D|d)(\d+)|((?:D|d)*))y(\d*)$')
-tokens = ('NUMBER', 'ID', 'EQ', 'NEQ', 'GE', 'LE', 'AND', 'OR', 'DEFINE', 'SUM', 'ARRAYNAME')
+tokens = ('NUMBER', 'ID', 'EQ', 'NEQ', 'GE', 'LE', 'AND', 'OR', 'DEFINE', 'SUM', 'ARRAYNAME', 'EOF')
 literals = '+-*/^(),<>?:[]{}'
 
 array_dict = {}
@@ -35,10 +35,33 @@ def ExpressionLexer():
     def t_newline(t):
         r'\n+'
         t.lexer.lineno += len(t.value)
+    def t_EOF(t):
+        return None
     def t_error(t):
         raise ParserError('Illegal character ' + t.value)
     return lex.lex()
-lexer = ExpressionLexer()
+
+class ProxyLexer(object):
+    def __init__(self, lexer, eoftoken):
+        self.end = False
+        self.lexer = lexer
+        self.eof = eoftoken
+    def token(self):
+        tok = self.lexer.token()
+        if tok is None:
+            if self.end :
+                self.end = False
+            else:
+                self.end = True
+                tok = lex.LexToken()
+                tok.type = self.eof
+                tok.value = None
+                tok.lexpos = self.lexer.lexpos
+                tok.lineno = self.lexer.lineno
+        return tok
+    def __getattr__(self, name):
+        return getattr(self.lexer, name)
+lexer = ProxyLexer(ExpressionLexer(), 'EOF')
 
 def inv(f):
     return lambda x: 1 / f(x)
@@ -90,7 +113,10 @@ class ExpressionParser:
             return typ(f(*args))
         else:
             return lambda *a, **ka: f(*[(x if isinstance(x, (float, bool, list)) else x(*a, **ka)) for x in args])
-    start = 'expression'
+    start = 'final'
+    def p_start(self, p):
+        """final : expression EOF"""
+        p[0] = p[1]
     def p_binary_operator(self, p):
         """expression : expression '+' expression
                       | expression '-' expression
@@ -240,12 +266,16 @@ class ExpressionParser:
     def p_array_index(self, p):
         """expression : array '[' expression ']'"""
         p[0] = ExpressionParser.optimize(lambda x, y: x[int(y)], p[1], p[3], typ=float)
+    def p_start_error(self, p):
+        """final : array EOF
+                 | logic EOF"""
+        raise SyntaxError("Final expression must be a float.")
     def p_error(self, p):
         # logger += "Error"
         if p:
             raise ParserError('')
         else:
-            raise ParserError("Unexpected end of file. May because of final expression not being a float.")
+            raise ParserError("Unexpected end of file.")
     def reset(self):
         self.define_dict = {}
         self.temp_var = set()
