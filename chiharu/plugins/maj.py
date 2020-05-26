@@ -641,7 +641,7 @@ class Player:
             return []
     def tsumo_do(self, n: None) -> Generator[PlayerStatus, PlayerOption, None]:
         raise Win(self, None)
-        yield PlayerStatus.NOTHING
+        yield PlayerStatus.DAHAI
     def kiri_check(self) -> List[H]:
         l = []
         for hai in self.tehai:
@@ -654,7 +654,7 @@ class Player:
         self.sort()
         self.ten_gen()
         self.ho.append((hai, status))
-        ret = yield PlayerStatus.NOTHING
+        ret = yield PlayerStatus.DAHAI
         if not ret:
             self.ho[-1][1] |= HaiHoStatus.NAKARERU
         else:
@@ -672,7 +672,7 @@ class Player:
             self.tehai.remove(i)
         self.fuuro.append(FuuRo(FuuRoStatus.ANKAN, tpl))
         yield PlayerStatus.QIANANKAN
-        self.board.playerstatus |= PlayerStatus.rinshan
+        self.board.playerstatus |= PlayerStatus.RINSHAN
         self.give(self.board.rinshan())
     def kakan_check(self) -> List[Tuple[H, FuuRo]]:
         def _():
@@ -690,7 +690,7 @@ class Player:
             fuuro.status ^= (FuuRoStatus.PON | FuuRoStatus.KAKAN)
             fuuro.hai += (hai,)
             fuuro.sorted = tuple(sorted(map(lambda x: x.num, fuuro.hai)))
-        self.board.playerstatus |= PlayerStatus.rinshan
+        self.board.playerstatus |= PlayerStatus.RINSHAN
         self.give(self.board.rinshan())
     def qi_check(self, hai) -> List[Tuple[H, H]]:
         l = []
@@ -771,7 +771,7 @@ class MajBoard:
         cls.Player = Player
     def __init__(self):
         self.yama = None
-        self.players = [self.Player(self, PlayerPos.TON), self.Player(self, PlayerPos.NAN), self.Player(self, PlayerPos.SHA), self.Player(self, PlayerPos.PEI)]
+        self.players = [self.Player(self, PlayerPos.TON), self.Player(self, PlayerPos.NAN), self.Player(self, PlayerPos.SHA), self.Player(self, PlayerPos.PE)]
         self.toncha = 0
         self.chiicha = 0
         self.isBegin = False
