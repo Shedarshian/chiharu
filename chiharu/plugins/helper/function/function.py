@@ -270,10 +270,10 @@ class ExpressionParser:
         raise ParserError("Final expression must be a float.")
     def p_error(self, p):
         # logger += "Error"
-        if p:
-            raise ParserError('')
-        else:
+        if not p or p.type == "EOF":
             raise ParserError("Unexpected end of file.")
+        else:
+            raise ParserError('')
     def reset(self):
         self.define_dict = {}
         self.temp_var = set()
