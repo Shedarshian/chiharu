@@ -35,8 +35,6 @@ def ExpressionLexer():
     def t_newline(t):
         r'\n+'
         t.lexer.lineno += len(t.value)
-    def t_EOF(t):
-        return None
     def t_error(t):
         raise ParserError('Illegal character ' + t.value)
     return lex.lex()
@@ -269,7 +267,7 @@ class ExpressionParser:
     def p_start_error(self, p):
         """final : array EOF
                  | logic EOF"""
-        raise SyntaxError("Final expression must be a float.")
+        raise ParserError("Final expression must be a float.")
     def p_error(self, p):
         # logger += "Error"
         if p:
