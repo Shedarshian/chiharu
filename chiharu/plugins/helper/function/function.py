@@ -244,7 +244,7 @@ class ExpressionParser:
         """expression : array '[' expression ']'"""
         p[0] = ExpressionParser.optimize(lambda x, y: x[int(y)], p[1], p[3], typ=float)
     def p_final_error(self, p):
-        """final : array | bool"""
+        """final : array | logic"""
         raise SyntaxError("Final expression must be a float.")
     def p_error(self, p):
         # logger += "Error"
