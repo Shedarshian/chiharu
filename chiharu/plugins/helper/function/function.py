@@ -90,10 +90,7 @@ class ExpressionParser:
             return typ(f(*args))
         else:
             return lambda *a, **ka: f(*[(x if isinstance(x, (float, bool, list)) else x(*a, **ka)) for x in args])
-    start = 'final'
-    def p_start(self, p):
-        """final : expression"""
-        p[0] = p[1]
+    start = 'expression'
     def p_binary_operator(self, p):
         """expression : expression '+' expression
                       | expression '-' expression
@@ -243,12 +240,12 @@ class ExpressionParser:
     def p_array_index(self, p):
         """expression : array '[' expression ']'"""
         p[0] = ExpressionParser.optimize(lambda x, y: x[int(y)], p[1], p[3], typ=float)
-    def p_final_error(self, p):
-        """final : array | logic"""
-        raise SyntaxError("Final expression must be a float.")
     def p_error(self, p):
         # logger += "Error"
-        raise ParserError('')
+        if p:
+            raise ParserError('')
+        else:
+            raise ParserError("Unexpected end of file. May because of final expression not being a float.")
     def reset(self):
         self.define_dict = {}
         self.temp_var = set()
