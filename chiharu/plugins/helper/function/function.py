@@ -22,7 +22,7 @@ def ExpressionLexer():
     t_DEFINE = r':='
     t_ignore = ' \t'
     def t_NUMBER(t):
-        r'\d+(\.\d+)?'
+        r'\d+(\.\d+)?(e\d+(\.\d+)?)?'
         t.value = float(t.value)
         return t
     def t_ID(t):
