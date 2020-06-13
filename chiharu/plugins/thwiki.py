@@ -1646,7 +1646,7 @@ async def thwiki_punish(session: CommandSession):
     """惩罚不当发言。
     格式为：-thwiki.punish qq 换行 YYYY-MM-DD HH:MM[:SS] [换行 关键词]
     检索给定时间前后1分钟内距离该时间最近的包含关键词的发言。（可不给关键字）
-    如确认，则将该发言撤回，并依已触发次数惩罚发言者。第一次不做禁言，第二次禁言20分钟，第四次踢出。
+    如确认，则将该发言撤回，并依已触发次数惩罚发言者。第一次不做禁言，第二次禁言20分钟，第三次踢出。
     并告知此为第几次。"""
     if session.get('confirmed'):
         record = session.get('record')
@@ -1708,6 +1708,22 @@ async def _(session: CommandSession):
         session.args['time'] = datetime.fromisoformat(time_str)
     except ValueError:
         session.finish('时间不符合格式')
+
+@on_command(('thwiki', 'punish_check'), only_to_me=False, short_des="查询用户被惩罚次数。", args=('qq=qq号'), environment=env_supervise)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_punish_check(session: CommandSession):
+    match = re.search('qq=(\d+)', session.current_arg)
+    if match:
+        qq = int(match.group(1))
+    else:
+        session.finish('请输入如qq=1569603950')
+    def _(qq):
+        node = find_or_new(qq)
+        if 'punish' not in node:
+            return 0
+        else:
+            return node['punish']
+    await session.send(f'此用户已被惩罚{_(qq)}次。')
 
 @on_command(('thwiki', 'kick'), only_to_me=False, short_des="踢出群聊。", environment=env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
