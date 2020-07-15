@@ -113,6 +113,7 @@ with open(config.rel("boss_check.txt")) as f:
 with open(config.rel("QAQ.txt")) as f:
     p = f.readline().strip('\n')
     ssh.connect("lxslc7.ihep.ac.cn", 22, 'qity', p)
+    del p
 interact = paramiko_expect.SSHClientInteraction(ssh, timeout=10)
 @scheduler.scheduled_job('date', id='boss_login', run_date=datetime.now() + timedelta(seconds=15))
 async def login():
@@ -137,6 +138,21 @@ async def boss_login(session: CommandSession):
         isLoggedin = True
     await asyncio.get_event_loop().run_in_executor(None, login)
     await session.send('Successfully logged in')
+
+@on_command(('boss', 'reboot'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
+@config.ErrorHandle
+async def boss_reboot(session: CommandSession):
+    global interact, ssh, isLoggedin
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    with open(config.rel("QAQ.txt")) as f:
+        p = f.readline().strip('\n')
+        ssh.connect("lxslc7.ihep.ac.cn", 22, 'qity', p)
+        del p
+    interact = paramiko_expect.SSHClientInteraction(ssh, timeout=10)
+    interact.expect(PROMPT)
+    isLoggedin = True
+    await session.send('boss rebooted!')
 
 # @on_command(('boss', 'begin'), only_to_me=False, hide=True)
 @config.ErrorHandle
