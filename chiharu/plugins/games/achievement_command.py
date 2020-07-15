@@ -29,7 +29,7 @@ async def check(session: CommandSession):
 
 @on_command(('achievement', 'list'), only_to_me=False)
 @config.ErrorHandle
-async def check(session: CommandSession):
+async def achievement_list(session: CommandSession):
     """列出已获得成就。"""
     qq = session.ctx['user_id']
     await session.send('成就列表：\n\t' + '\n\t'.join(val.get_brief(qq) for key, val in sorted(_all.items(), key=lambda x: x[1].val['id'])))
