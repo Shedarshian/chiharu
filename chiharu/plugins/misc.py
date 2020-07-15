@@ -652,7 +652,7 @@ async def token_alpha(session: CommandSession):
         strout = myFormatter().vformat(session.current_arg_text, (), token)
         await session.send('对应字符是：\n' + strout, auto_escape=True)
     except KeyError as e:
-        await session.send(f'{e.args[0]}未能识别')
+        await session.send(f'字符{e.args[0]}未能识别')
 
 @on_command(('misc', 'latex'), only_to_me=False)
 @config.ErrorHandle
@@ -729,7 +729,7 @@ class MoneyComputer:
 @config.ErrorHandle
 async def shuru(session: CommandSession):
     """面基算钱小助手。\n\n每个行为一条指令。指令：\nclear: 清除所有数据。\nadd [人名]: 增加一个人。\nbill [人名] [金额] [可选：需付费的人名列表]: 增加一个需付费账单，人名列表为空则默认【包括自己的】所有人。\noutput [策略] [参数]: 输出金额交换。策略目前有：\n\toneman [参数：人名]: 所有金额交换全部支付给此人/由此人支付。"""
-    await session.send(MoneyComputer().processLines(session.current_arg_text.split('\r\n')))
+    await session.send("结果为：" + MoneyComputer().processLines(session.current_arg_text.split('\r\n')))
 
 @on_command(('misc', 'omikuji'), only_to_me=False, short_des="千春酱御神签~")
 @config.ErrorHandle
@@ -834,3 +834,11 @@ async def linkconverter(session: NLPSession):
         match = re.match("\[CQ:rich,content=.*(?:https?://www\.bilibili\.com/video/|https?://b23\.tv/)([0-9a-zA-Z]+).*\]", session.msg)
         if match:
             await session.send('http://b23.tv/' + match.group(1))
+
+@on_command(('misc', 'avtobv'), hide=True, only_to_me=False)
+async def avtobv(session: CommandSession):
+    text = session.current_arg_text
+    if text.startswith('av'):
+        await session.send(config.AvBvConverter.enc(text))
+    else:
+        await session.send('av' + str(config.AvBvConverter.dec(text)))
