@@ -1653,20 +1653,16 @@ async def thwiki_punish(session: CommandSession):
         await get_bot().delete_msg(message_id=record.msg_id)
         node = find_or_new(record.qq)
         if 'punish' not in node:
-            node['punish'] = 1
+            node['punish'] = session.get('severity')
         else:
-            node['punish'] += 1
+            node['punish'] += session.get('severity')
         save_whiteforest()
         group = list(config.group_id_dict['thwiki_punish'])[0]
-        if node['punish'] == 1:
-            ret = '做出了不妥当的发言，警告一次'
-        elif node['punish'] == 2:
+        if node['punish'] == 2:
             await get_bot().set_group_ban(group_id=group, user_id=node['qq'], duration=1200)
-            ret = '做出了不妥当的发言，此为第二次'
-        elif node['punish'] == 3:
-            ret = '做出了不妥当的发言，此为第三次，已移出群聊'
-        await get_bot().send_group_msg(group_id=group, message=[config.cq.text('管理员认为'), config.cq.at(record.qq), config.cq.text(ret)])
-        if node['punish'] == 3:
+        reason = session.get('reason')
+        await get_bot().send_group_msg(group_id=group, message=[config.cq.text('管理员认为'), config.cq.at(record.qq), config.cq.text(f'于{record.time.strftime("%H:%M:%S")} CST{ret}作出了不妥当的发言，扣除该群员{session.get("severity")}点友善度' + ('，理由为：' + reason if reason else '') + f'剩余{min(0, 3 - node["punish"])}友善度' + ('，已移出群聊。' if node['punish'] >= 3 else '。'))])
+        if node['punish'] >= 3:
             await get_bot().set_group_kick(group_id=group, user_id=node['qq'])
         session.finish('已撤回')
     global record_file
@@ -1684,12 +1680,22 @@ async def thwiki_punish(session: CommandSession):
     if len(l) == 0:
         session.finish('未找到消息。')
     session.args['record'] = r = min(l, key=lambda record: abs(record.time - time))
-    session.pause(f'消息内容为：{r.msg}，输入“确认”确认此发言，输入“返回”取消')
+    session.pause(f'消息内容为：{r.msg}，输入“确认 [\严重等级] [理由]”确认此发言（如：确认 \\1 不要迫害），输入“返回”取消')
 
 @thwiki_punish.args_parser
 async def _(session: CommandSession):
-    if session.current_arg == '确认':
+    if session.current_arg.startswith('确认'):
         session.args['confirmed'] = True
+        severity, *els = session.current_arg[3:].split(' ')
+        if severity.startswith('\\'):
+            try:
+                session.args['severity'] = int(severity[1:])
+            except:
+                session.finish('严重等级读取失败，请输入数字。')
+            session.args['reason'] = ' '.join(els).strip()
+        else:
+            session.args['severity'] = 1
+            session.args['reason'] = session.current_arg[3:].strip()
         return
     elif session.current_arg == '返回':
         session.finish('已取消')
@@ -1709,9 +1715,10 @@ async def _(session: CommandSession):
     except ValueError:
         session.finish('时间不符合格式')
 
-@on_command(('thwiki', 'punish_check'), only_to_me=False, short_des="查询用户被惩罚次数。", args=('qq=qq号'), environment=env_supervise)
+@on_command(('thwiki', 'punish_check'), only_to_me=False, args=('qq=qq号'), environment=env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_punish_check(session: CommandSession):
+    "查询用户被惩罚次数。"
     match = re.search('qq=(\d+)', session.current_arg)
     if match:
         qq = int(match.group(1))
