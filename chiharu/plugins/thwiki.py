@@ -25,7 +25,7 @@ config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", de
 
 # Version information and changelog
 version = "2.2.20"
-changelog = """2.2.2 Changelog:
+changelog = """2.2.20 Changelog:
 Change:
 -thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。"""
 
@@ -1816,7 +1816,7 @@ async def thwiki_test(session: CommandSession):
                     u = deprive(find_whiteforest(id=c), False, False)
                     updated += u[0]
                     updated_event += u[1]
-            node.pop('child')
+                node.pop('child')
     save_whiteforest()
     await _save(l)
     for e in updated_event:
