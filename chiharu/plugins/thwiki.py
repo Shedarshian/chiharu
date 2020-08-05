@@ -668,7 +668,7 @@ async def thwiki_cancel(session: CommandSession):
         ret = await change(area=33)
         if json.loads(ret)['code'] != 0:
             for id in config.group_id_dict['thwiki_send']:
-                await bot.send_group_msg(group_id=id, message='轮播分区修改失败')
+                await get_bot().send_group_msg(group_id=id, message='轮播分区修改失败')
     else:
         await session.send('非管理员不可删除')
 
@@ -761,7 +761,7 @@ async def thwiki_term(session: CommandSession):
     ret = await change(area=33)
     if json.loads(ret)['code'] != 0:
         for id in config.group_id_dict['thwiki_send']:
-            await bot.send_group_msg(group_id=id, message='轮播分区修改失败')
+            await get_bot().send_group_msg(group_id=id, message='轮播分区修改失败')
 
 # Handler for '-thwiki.terminate', equivalent to '-thwiki.term'
 @on_command(('thwiki', 'terminate'), only_to_me=False, short_des='提前终止直播，进入轮播。', environment=env, hide=True)
@@ -1661,7 +1661,7 @@ async def thwiki_punish(session: CommandSession):
         if node['punish'] == 2:
             await get_bot().set_group_ban(group_id=group, user_id=node['qq'], duration=1200)
         reason = session.get('reason')
-        await get_bot().send_group_msg(group_id=group, message=[config.cq.text('管理员认为'), config.cq.at(record.qq), config.cq.text(f'于{record.time.strftime("%H:%M:%S")} CST{ret}作出了不妥当的发言，扣除该群员{session.get("severity")}点友善度' + ('，理由为：' + reason if reason else '') + f'剩余{min(0, 3 - node["punish"])}友善度' + ('，已移出群聊。' if node['punish'] >= 3 else '。'))])
+        await get_bot().send_group_msg(group_id=group, message=[config.cq.text('管理员认为'), config.cq.at(record.qq), config.cq.text(f'于{record.time.strftime("%H:%M:%S")} CST{node["card"]}作出了不妥当的发言，扣除该群员{session.get("severity")}点友善度' + ('，理由为：' + reason if reason else '') + f'剩余{min(0, 3 - node["punish"])}友善度' + ('，已移出群聊。' if node['punish'] >= 3 else '。'))])
         if node['punish'] >= 3:
             await get_bot().set_group_kick(group_id=group, user_id=node['qq'])
         session.finish('已撤回')
