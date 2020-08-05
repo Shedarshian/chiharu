@@ -24,12 +24,10 @@ env_all_can_private.private = True
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.2.19"
-changelog = """2.2.18-19 Changelog:
-Add:
--thwiki.leaderboard me：查询自己排位。
--thwiki.bookmark BV
--thwiki.recommend BV"""
+version = "2.2.20"
+changelog = """2.2.2 Changelog:
+Change:
+-thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。"""
 
 TRAIL_TIME = 36 * 60
 
@@ -1002,13 +1000,14 @@ async def thwiki_get(session: CommandSession):
 async def thwiki_grant(session: CommandSession):
     """推荐别人进入推荐列表。需要被推荐人同意。只能在直播群内使用。
     参数为@群里的人。如参数给False则意为撤回推荐。
-    撤回推荐会一同撤回被推荐人推荐的所有人。"""
+    撤回推荐会一同撤回被推荐人推荐的所有人。
+    推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。群号请在直播群公告里寻找。"""
     # Check for permission
     sqq = session.ctx['user_id']
     node = find_whiteforest(qq=sqq)
-    if node is None or node['trail'] == 1:
-        session.finish("您还处在试用期，无法推荐")
-    if sqq in weak_blacklist:
+    if node is None or node['trail'] == 1 or 'supervisor' not in node or not node['supervisor']:
+        session.finish("您没有推荐权，无法推荐")
+    elif sqq in weak_blacklist:
         session.finish("您不可推荐他人")
 
     # Construct list of QQ ID from @s
@@ -1605,29 +1604,38 @@ async def thwiki_cookie(session: CommandSession):
 
 @on_request('group.add')
 async def thwiki_group_request(session: RequestSession):
-    if session.ctx['group_id'] not in config.group_id_dict['thwiki_send']:
-        return
-    qq = session.ctx["user_id"]
-    match = re.search('答案：[^\d]*?(\d+)[^\d]+?(\d+)\s*', session.ctx['comment'])
-    if not match:
-        for group in config.group_id_dict['thwiki_supervise']:
-            await get_bot().send_group_msg(group_id=group, message=f'用户{qq}答案不满足格式')
-        return
-    user, answer = match.groups()
-    if int(user) == config.thwiki_answer:
-        user, answer = answer, user
-    if int(answer) != config.thwiki_answer:
-        await session.reject(reason='答案错误')
-        for group in config.group_id_dict['thwiki_supervise']:
-            await get_bot().send_group_msg(group_id=group, message=f'用户{qq}答案错误，已拒绝')
-    else:
-        for group in config.group_id_dict['thwiki_supervise']:
-            await get_bot().send_group_msg(group_id=group, message=f'用户{qq}：https://space.bilibili.com/{user}')
+    if session.ctx['group_id'] in config.group_id_dict['thwiki_send']:
+        qq = session.ctx["user_id"]
+        match = re.search('答案：[^\d]*?(\d+)[^\d]+?(\d+)\s*', session.ctx['comment'])
+        if not match:
+            for group in config.group_id_dict['thwiki_supervise']:
+                await get_bot().send_group_msg(group_id=group, message=f'用户{qq}答案不满足格式')
+            return
+        user, answer = match.groups()
+        if int(user) == config.thwiki_answer:
+            user, answer = answer, user
+        if int(answer) != config.thwiki_answer:
+            await session.reject(reason='答案错误')
+            for group in config.group_id_dict['thwiki_supervise']:
+                await get_bot().send_group_msg(group_id=group, message=f'用户{qq}答案错误，已拒绝')
+        else:
+            for group in config.group_id_dict['thwiki_supervise']:
+                await get_bot().send_group_msg(group_id=group, message=f'用户{qq}：https://space.bilibili.com/{user}')
+            with open(config.rel('thwiki_bilispace.json')) as f:
+                a = json.load(f)
+            a[str(qq)] = f'https://space.bilibili.com/{user}'
+            with open(config.rel('thwiki_bilispace.json'), 'w') as f:
+                f.write(json.dumps(a, indent=4, separators=(',', ': ')))
+    elif session.ctx['group_id'] in config.group_id_dict['thwiki_supervise']:
+        qq = session.ctx["user_id"]
+        node = find_or_new(qq)
+        if node['card'] is None:
+            node['card'] = await get_card(qq)
         with open(config.rel('thwiki_bilispace.json')) as f:
             a = json.load(f)
-        a[str(qq)] = f'https://space.bilibili.com/{user}'
-        with open(config.rel('thwiki_bilispace.json'), 'w') as f:
-            f.write(json.dumps(a, indent=4, separators=(',', ': ')))
+        c = a[str(qq)] if str(qq) in a else "未记录"
+        for group in config.group_id_dict['thwiki_supervise']:
+            await get_bot().send_group_msg(group_id=group, message=f'收到审核群加群申请。qq：{qq}，名片：{node["card"]}，直播时间：{node["time"]}min，b站空间：{c}')
 
 @message_preprocessor
 async def thwiki_record(bot, ctx):
@@ -1680,7 +1688,7 @@ async def thwiki_punish(session: CommandSession):
     if len(l) == 0:
         session.finish('未找到消息。')
     session.args['record'] = r = min(l, key=lambda record: abs(record.time - time))
-    session.pause(f'消息内容为：{r.msg}，输入“确认 [\严重等级] [理由]”确认此发言（如：确认 \\1 不要迫害），输入“返回”取消')
+    session.pause(f'消息内容为：{r.msg}，输入“确认 [\\严重等级] [理由]”确认此发言（如：确认 \\1 不要迫害），输入“返回”取消')
 
 @thwiki_punish.args_parser
 async def _(session: CommandSession):
@@ -1800,5 +1808,20 @@ async def _(session: CommandSession):
 @on_command(('thwiki', 'test'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_test(session: CommandSession):
+    updated, updated_event = [], []
+    for node in whiteforest:
+        if 'supervisor' not in node or not node['supervisor']:
+            if 'child' in node:
+                for c in node['child']:
+                    u = deprive(find_whiteforest(id=c), False, False)
+                    updated += u[0]
+                    updated_event += u[1]
+            node.pop('child')
+    save_whiteforest()
     await _save(l)
-
+    for e in updated_event:
+        config.logger.thwiki << f'【LOG】事件权限更新：{e}'
+        for group in config.group_id_dict['thwiki_supervise']:
+            await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
+    for group in config.group_id_dict['thwiki_send']:
+        await get_bot().send_group_msg(group_id=group, message=[config.cq.text('已成功安全脱离')] + updated)
