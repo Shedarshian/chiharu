@@ -1551,6 +1551,10 @@ async def thwiki_greet(session: NoticeSession):
     if session.ctx['group_id'] in config.group_id_dict['thwiki_live']:
         message = ('欢迎来到THBWiki直播群！我是直播小助手，在群里使用指令即可申请直播时间~\n现在群内直播使用推荐，有人推荐可以直接直播，没有推荐的用户直播时需有管理监视，总直播时长36小时之后可以转正。\n不要忘记阅读群文件里的本群须知哦~\n以下为指令列表，欢迎在群里使用与提问~\n' + help.sp['thwiki_live']['thwiki']) % help._dict['thwiki']
         await get_bot().send_private_msg(user_id=session.ctx['user_id'], message=message, auto_escape=True)
+    elif session.ctx['group_id'] in config.group_id_dict['thwiki_supervise']:
+        node = find_or_new(session.ctx['user_id'])
+        node['supervisor'] = True
+        save_whiteforest()
 
 @on_notice('group_decrease')
 async def thwiki_decrease(session: NoticeSession):
@@ -1803,15 +1807,15 @@ async def _(session: CommandSession):
     session.args['av'] = av
     session.args['bv'] = bv
 
-@on_command(('thwiki', 'supervisor_add'), only_to_me=False, permission=permission.SUPERUSER, environment=env_supervise, hide=True)
-@config.ErrorHandle(config.logger.thwiki)
-async def thwiki_supervisor_add(session: CommandSession):
-    match = re.search('qq=(\d+)', session.current_arg)
-    qq = int(match.group(1))
-    node = find_or_new(qq)
-    node['supervisor'] = True
-    save_whiteforest()
-    await session.send('已赋予推荐权与监视权。')
+# @on_command(('thwiki', 'supervisor_add'), only_to_me=False, permission=permission.SUPERUSER, environment=env_supervise, hide=True)
+# @config.ErrorHandle(config.logger.thwiki)
+# async def thwiki_supervisor_add(session: CommandSession):
+#     match = re.search('qq=(\d+)', session.current_arg)
+#     qq = int(match.group(1))
+#     node = find_or_new(qq)
+#     node['supervisor'] = True
+#     save_whiteforest()
+#     await session.send('已赋予推荐权与监视权。')
 
 # Handler for command '-thwiki.test'
 # Yet another undocumented command...?
