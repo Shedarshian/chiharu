@@ -646,7 +646,7 @@ async def thwiki_cancel(session: CommandSession):
     i = l2[0]
     uqq = int(session.ctx['user_id'])
     node = find_or_new(qq=uqq)
-    if uqq == l[i].qq or 'supervisor' in node and node['supervisor']
+    if uqq == l[i].qq or 'supervisor' in node and node['supervisor']:
     #        await permission.check_permission(get_bot(), session.ctx, permission.GROUP_ADMIN):
         now = datetime.now()
         e = l.pop(i)
