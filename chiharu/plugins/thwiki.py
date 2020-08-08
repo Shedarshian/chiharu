@@ -644,8 +644,10 @@ async def thwiki_cancel(session: CommandSession):
 
     # Check for authority
     i = l2[0]
-    if int(session.ctx['user_id']) == l[i].qq or \
-            await permission.check_permission(get_bot(), session.ctx, permission.GROUP_ADMIN):
+    uqq = int(session.ctx['user_id'])
+    node = find_or_new(qq=uqq)
+    if uqq == l[i].qq or 'supervisor' in node and node['supervisor']
+    #        await permission.check_permission(get_bot(), session.ctx, permission.GROUP_ADMIN):
         now = datetime.now()
         e = l.pop(i)
         config.logger.thwiki << f"【LOG】用户{session.ctx['user_id']} 成功删除：{e}"
