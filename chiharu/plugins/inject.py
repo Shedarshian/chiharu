@@ -261,7 +261,7 @@ def _find_command(name: Union[str, CommandName_T]) -> Optional[Command]:
         async def _(session: CommandSession):
             ret = await find_help(cmd_name, session)
             if ret:
-                await session.send(ret)
+                await session.send(ret, ensure_private=('.'.join(cmd_name) == 'thwiki' and session.ctx['group_id'] in config.group_id_dict['thwiki_send']))
             # await call_command(get_bot(), session.ctx, ('help',), current_arg='.'.join(cmd_name))
         cmd_tree.command = Command(name=cmd_name, func=_, permission=permission.EVERYBODY,
                       only_to_me=False, privileged=False)
