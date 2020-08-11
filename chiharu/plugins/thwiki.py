@@ -24,12 +24,14 @@ env_all_can_private.private = True
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.3.1"
-changelog = """2.3.0-1 Changelog:
+version = "2.3.2"
+changelog = """2.3.0-2 Changelog:
 Change:
--thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。"""
+-thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。
+若开播后半小时仍未有人监视，则申请会被自动取消。"""
 
 TRAIL_TIME = 36 * 60
+TIME_OUT = 30
 
 # Change title and description on Bilibili livestream room
 # title: self-explanatory
@@ -203,7 +205,7 @@ class Event:
         if self.supervise != 0:
             return [config.cq.text('开播提醒！\n'), config.cq.at(self.qq), config.cq.text('\n内容: %s' % self.name)]
         else:
-            return [config.cq.text('开播提醒！\n'), config.cq.at(self.qq), config.cq.text('\n内容: %s\n十分抱歉，您现在的直播尚无监视员，无法直播qwq' % self.name)]
+            return [config.cq.text('开播提醒！\n'), config.cq.at(self.qq), config.cq.text('\n内容: %s\n十分抱歉，您现在的直播尚无监视员，无法直播qwq，如半小时之后仍无人监视则会被自动取消' % self.name)]
     def overlap(self, other):
         if self.isFloat and other.isFloat:
             return self.begin == other.begin
@@ -807,7 +809,7 @@ async def _():
     global l
     now = datetime.now()
     bot = get_bot()
-    for e in l:
+    for i, e in enumerate(l):
         if now - timedelta(seconds=59) < e.begin < now + timedelta(seconds=1):
             for id in config.group_id_dict['thwiki_send']:
                 await bot.send_group_msg(group_id=id, message=e.output_with_at())
@@ -822,6 +824,11 @@ async def _():
             if e.supervise > 0:
                 for id in config.group_id_dict['thwiki_supervise']:
                     await bot.send_group_msg(group_id=id, message=[config.cq.at(e.supervise), config.cq.text('\n内容: %s\n请监视者就位' % e.name)])
+        elif now - timedelta(seconds=59) < e.begin + timedelta(minutes=30) < now + timedelta(seconds=1) < e.end and e.supervise == 0:
+            l.pop(i)
+            for id in config.group_id_dict['thwiki_send']:
+                await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('您的直播无人监视，已被自动取消')])
+            break
     for i, e in enumerate(l):
         if e.isFloat and i != len(l) - 1 and l[i + 1].begin < now + timedelta(seconds=1) or not e.isFloat and e.end < now + timedelta(seconds=1):
             d = int(((l[i + 1].begin if e.isFloat else e.end) - e.begin).total_seconds() - 1) // 60 + 1
