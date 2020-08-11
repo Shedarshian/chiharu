@@ -666,6 +666,7 @@ async def thwiki_cancel(session: CommandSession):
                 await session.send('您已成功通过试用期转正！')
 
         if e.msg_id != -1:
+            config.logger.thwiki << f"【LOG】撤回消息：{e.msg_id}"
             await get_bot().delete_msg(message_id=e.msg_id)
 
         await _save(l)
