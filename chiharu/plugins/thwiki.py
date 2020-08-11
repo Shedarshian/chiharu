@@ -509,8 +509,6 @@ async def thwiki_apply(session: CommandSession):
     l.sort(key=lambda x: x.begin)
     config.logger.thwiki << f'【LOG】用户{qq}成功申请：{e}'
     
-    # Save new application list
-    await _save(l)
     check = find_or_new(qq=qq)
     await session.send(f'成功申请，id为{e.id}，您还在试用期，请等待管理员监视，敬请谅解w' if check['trail'] else f'成功申请，id为{e.id}')
     
@@ -525,6 +523,9 @@ async def thwiki_apply(session: CommandSession):
         for group in config.group_id_dict['thwiki_supervise']:
             msg_id = (await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视'))['message_id']
         e.msg_id = msg_id
+    
+    # Save new application list
+    await _save(l)
 
 # Argument interpretor for '-thwiki.apply'
 @thwiki_apply.args_parser
