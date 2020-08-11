@@ -24,8 +24,8 @@ env_all_can_private.private = True
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.3.2"
-changelog = """2.3.0-2 Changelog:
+version = "2.3.3"
+changelog = """2.3.0-3 Changelog:
 Change:
 -thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。
 若开播后半小时仍未有人监视，则申请会被自动取消。"""
@@ -365,7 +365,7 @@ def add_time(qq, time):
     config.logger.thwiki << f'【LOG】用户{qq} 积累时间{time}，目前时间{node["time"]}'
 
     b = False # What is the purpose??
-    if node['time'] >= TRAIL_TIME:
+    if node['time'] >= TRAIL_TIME and qq not in weak_blacklist:
         b = node['trail'] != 0
         if 'parent' not in node or node['parent'] != -1:
             if node['trail'] != 0:
