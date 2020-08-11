@@ -157,7 +157,7 @@ class Event:
                 self.isFloat = False
                 self.begin, self.end, self.qq = datetime.fromtimestamp(float(begin)), datetime.fromtimestamp(float(end)), int(qq)
             self.supervise = int(supervise)
-            self.msg_id = msg_id
+            self.msg_id = int(msg_id)
             self.card = args[1]
             self.name = args[2]
         else:
