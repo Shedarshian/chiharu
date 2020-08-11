@@ -168,7 +168,7 @@ class Event:
             end = 'float'
         else:
             end = str(self.end.timestamp())
-        return f'{self.id} {begin} {end} {self.qq} {self.supervise}\n{self.card}\n{self.name}'
+        return f'{self.id} {begin} {end} {self.qq} {self.supervise} {self.msg_id}\n{self.card}\n{self.name}'
     def __str__(self):
         begin = format_date(self.begin)
         if self.isFloat:
