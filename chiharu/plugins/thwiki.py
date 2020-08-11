@@ -24,8 +24,8 @@ env_all_can_private.private = True
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.3.3"
-changelog = """2.3.0-3 Changelog:
+version = "2.3.4"
+changelog = """2.3.0-4 Changelog:
 Change:
 -thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。
 若开播后半小时仍未有人监视，则申请会被自动取消。"""
@@ -126,6 +126,7 @@ def format_date(dat: datetime, tz=None):
 #   supervise: status of application, -1 indicates that the applicant is authorized, 
 #     0 indicates that this application is waiting for supervise, other positive value
 #     indicates that this application is under supervise
+#   msg_id: supervise message_id
 class Event:
     def __init__(self, *args):
         if len(args) == 6:
@@ -141,9 +142,10 @@ class Event:
                 self.supervise = -1
             else:
                 self.supervise = 0 # -1: 有权限，0: 无权限
+            self.msg_id = -1
         elif len(args) == 3:
             # On read from file, fill fields with the first argument 
-            id, begin, end, qq, supervise = args[0].split(' ')
+            id, begin, end, qq, supervise, msg_id = args[0].split(' ')
             self.id = int(id)
 
             # Check for endtime
@@ -155,6 +157,7 @@ class Event:
                 self.isFloat = False
                 self.begin, self.end, self.qq = datetime.fromtimestamp(float(begin)), datetime.fromtimestamp(float(end)), int(qq)
             self.supervise = int(supervise)
+            self.msg_id = msg_id
             self.card = args[1]
             self.name = args[2]
         else:
@@ -520,7 +523,8 @@ async def thwiki_apply(session: CommandSession):
     # Send notification to supervisors
     if check['trail']:
         for group in config.group_id_dict['thwiki_supervise']:
-            await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
+            msg_id = (await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视'))['message_id']
+        e.msg_id = msg_id
 
 # Argument interpretor for '-thwiki.apply'
 @thwiki_apply.args_parser
@@ -659,6 +663,9 @@ async def thwiki_cancel(session: CommandSession):
             d = int((now - e.begin).total_seconds() - 1) // 60 + 1
             if add_time(e.qq, d):
                 await session.send('您已成功通过试用期转正！')
+
+        if e.msg_id != -1:
+            await get_bot().delete_msg(message_id=e.msg_id)
 
         await _save(l)
         await session.send('成功删除')
@@ -824,7 +831,7 @@ async def _():
             if e.supervise > 0:
                 for id in config.group_id_dict['thwiki_supervise']:
                     await bot.send_group_msg(group_id=id, message=[config.cq.at(e.supervise), config.cq.text('\n内容: %s\n请监视者就位' % e.name)])
-        elif now - timedelta(seconds=59) < e.begin + timedelta(minutes=30) < now + timedelta(seconds=1) < e.end and e.supervise == 0:
+        elif now - timedelta(seconds=59) < e.begin + timedelta(minutes=TIME_OUT) < now + timedelta(seconds=1) < e.end and e.supervise == 0:
             l.pop(i)
             for id in config.group_id_dict['thwiki_send']:
                 await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('您的直播无人监视，已被自动取消')])
