@@ -1494,16 +1494,16 @@ async def thwiki_maintain(session: CommandSession):
         await session.send('已解除维护状态')
 
 # Handler for command '-thwiki.shutdown'
-@on_command(('thwiki', 'shutdown'), only_to_me=False, short_des="强制关闭直播间。", environment=env_supervise)
+@on_command(('thwiki', 'shutdown'), only_to_me=False, short_des="强制关闭直播间。", environment=env)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_shutdown(session: CommandSession):
-    """强制关闭直播间。直播群管理或监视群可用。"""
-    group_id = session.ctx['group_id']
-    if group_id not in config.group_id_dict['thwiki_live']:
-        return
-    await th_open(is_open=False)
-    config.logger.thwiki << f'【LOG】管理者{session.ctx["user_id"]}关闭直播间'
-    await session.send('已关闭直播间')
+    """强制关闭直播间。直播群管理可用。"""
+    qq = session.ctx['user_id']
+    node = find_or_new(qq=qq)
+    if 'supervisor' in node and node['supervisor']:
+        await th_open(is_open=False)
+        config.logger.thwiki << f'【LOG】管理者{qq}关闭直播间'
+        await session.send('已关闭直播间')
 
 # Handler for command '-thwiki.blacklist'
 @on_command(('thwiki', 'blacklist'), only_to_me=False, short_des="添加用户至黑名单。", args=("[@s]",), environment=env_supervise)
