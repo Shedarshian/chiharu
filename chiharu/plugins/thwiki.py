@@ -24,8 +24,8 @@ env_all_can_private.private = True
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.3.4"
-changelog = """2.3.0-4 Changelog:
+version = "2.3.5"
+changelog = """2.3.0-5 Changelog:
 Change:
 -thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。
 若开播后半小时仍未有人监视，则申请会被自动取消。"""
@@ -1531,7 +1531,7 @@ async def thwiki_blacklist(session: CommandSession):
         if qq not in blacklist:
             config.logger.thwiki << f'【LOG】管理{session.ctx["user_id"]} 将{qq}加入blacklist'
             blacklist.append(qq)
-            node_current = find_whiteforest(qq = qq)
+            node_current = find_or_new(qq = qq)
             u, u2 = deprive(node_current, True, True)
             updated_event += u2
             if qq in weak_blacklist:
@@ -1556,6 +1556,49 @@ async def thwiki_blacklist(session: CommandSession):
             await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
 
     await session.send('已加入黑名单')
+
+# Handler for command '-thwiki.weak_blacklist'
+@on_command(('thwiki', 'weak_blacklist'), only_to_me=False, short_des="添加用户至弱黑名单。", args=("[@s]",), environment=env_supervise)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_weak_blacklist(session: CommandSession):
+    """添加用户至弱黑名单。直播群管理或监视群可用。"""
+    global weak_blacklist
+    global whiteforest
+    global l
+
+    # Construct QQ list from @s
+    def _tmp(s):
+        begin = 0
+        while 1:
+            match = re.search('qq=(\\d+)', s[begin:])
+            if not match:
+                return
+            begin += match.span()[1]
+            yield int(match.group(1))
+    qqs = list(_tmp(session.current_arg_text))
+
+    updated_event = []
+    for qq in qqs:
+        if qq not in weak_blacklist:
+            config.logger.thwiki << f'【LOG】管理{session.ctx["user_id"]} 将{qq}加入weak_blacklist'
+            weak_blacklist.append(qq)
+            node_current = find_or_new(qq = qq)
+            u, u2 = deprive(node_current, True, False)
+            updated_event += u2
+
+    weak_blacklist.sort()
+
+    with open(config.rel('thwiki_weak_blacklist.txt'), 'w') as f:
+        for qq in weak_blacklist:
+            f.write(str(qq))
+            f.write('\n')
+
+    for e in updated_event:
+        config.logger.thwiki << f'【LOG】事件权限更新：{e}'
+        for group in config.group_id_dict['thwiki_supervise']:
+            await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
+
+    await session.send('已加入弱黑名单')
 
 # Handler for command '-thwiki.check_user'
 @on_command(('thwiki', 'check_user'), only_to_me=False, short_des="查询直播过的用户数量。", environment=env_supervise)
