@@ -49,7 +49,7 @@ async def change(title=None, description=None, area=None):
     if area is None:
         value = {'room_id': 14055253, 'title': title, 'description': description, 'csrf': csrf, 'csrf_token': csrf}
     else:
-        value = {'room_id': 14055253, 'area': area, 'csrf': csrf, 'csrf_token': csrf}
+        value = {'room_id': 14055253, 'area_v2': area, 'csrf': csrf, 'csrf_token': csrf}
     length = len(parse.urlencode(value))
     print('length: ' + str(length))
     headers = copy(config.headers)
