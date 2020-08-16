@@ -1629,7 +1629,7 @@ async def thwiki_weak_blacklist(session: CommandSession):
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_print_weak_blacklist(session: CommandSession):
     "列出弱黑名单。"
-    await session.send('\n'.join(weak_blacklist))
+    await session.send('\n'.join(str(i) for i in weak_blacklist))
 
 # Handler for command '-thwiki.check_user'
 @on_command(('thwiki', 'check_user'), only_to_me=False, short_des="查询直播过的用户数量。", environment=env_supervise)
