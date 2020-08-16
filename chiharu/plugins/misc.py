@@ -724,8 +724,7 @@ class MoneyComputer:
             ret = self.process(line)
             if ret is not None:
                 return ret
-            else:
-                return ''
+        return ''
 
 @on_command(('misc', 'money'), only_to_me=False, short_des="面基算钱小助手。")
 @config.ErrorHandle
