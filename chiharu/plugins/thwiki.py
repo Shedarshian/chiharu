@@ -25,14 +25,14 @@ env_all_can_private.private = True
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.3.6"
-changelog = """2.3.0-6 Changelog:
+version = "2.3.7"
+changelog = """2.3.0-7 Changelog:
 Change:
 -thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。
-若开播后半小时仍未有人监视，则申请会被自动取消。"""
+若开播后15分钟仍未有人监视，则申请会被自动取消。"""
 
 TRAIL_TIME = 36 * 60
-TIME_OUT = 30
+TIME_OUT = 15
 
 # Change title and description on Bilibili livestream room
 # title: self-explanatory
@@ -1513,7 +1513,7 @@ async def thwiki_shutdown(session: CommandSession):
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_deduct(session: CommandSession):
     """扣除用户直播时间。
-    输入"qq=用户qq号"，并可以换行后加扣除原因。扣除后会在直播群给予用户通知。"""
+    格式为-thwiki.deduct 时间 qq号，并可以换行后加扣除原因。扣除后会在直播群给予用户通知。"""
     qq_text, *els = session.current_arg.split('\n')
     try:
         time_str, qq_str = qq_text.split(' ')
@@ -1624,6 +1624,12 @@ async def thwiki_weak_blacklist(session: CommandSession):
             await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
 
     await session.send('已加入弱黑名单')
+
+@on_command(('thwiki', 'print_weak_blacklist'), only_to_me=False, environment=env_supervise_only)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_print_weak_blacklist(session: CommandSession):
+    "列出弱黑名单。"
+    await session.send('\n'.join(weak_blacklist))
 
 # Handler for command '-thwiki.check_user'
 @on_command(('thwiki', 'check_user'), only_to_me=False, short_des="查询直播过的用户数量。", environment=env_supervise)
