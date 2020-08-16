@@ -17,6 +17,7 @@ from . import config, help
 from .inject import on_command
 config.logger.open('thwiki')
 env = config.Environment('thwiki_live', ret='请在直播群内使用')
+env_supervise_only = config.Environment('thwiki_supervise', ret='请在监视群内使用')
 env_supervise = config.Environment('thwiki_supervise', config.Admin('thwiki_live'), ret='请在监视群内或直播群管理使用')
 env_all_can_private = env|env_supervise
 env_all_can_private.private = True
@@ -24,8 +25,8 @@ env_all_can_private.private = True
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.3.5"
-changelog = """2.3.0-5 Changelog:
+version = "2.3.6"
+changelog = """2.3.0-6 Changelog:
 Change:
 -thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。
 若开播后半小时仍未有人监视，则申请会被自动取消。"""
@@ -361,11 +362,12 @@ def deprive(node, if_save=True, clear_time=True):
 def add_time(qq, time):
     # Get the node associated with the QQ ID
     node = find_or_new(qq)
-    
+
+    time = int(time)
     if 'time' not in node:
         node['time'] = 0
-    node['time'] += int(time)
-    config.logger.thwiki << f'【LOG】用户{qq} 积累时间{time}，目前时间{node["time"]}'
+    node['time'] += time
+    config.logger.thwiki << f'【LOG】用户{qq} {"积累" if time > 0 else "扣除"}时间{abs(time)}，目前时间{node["time"]}'
 
     b = False # What is the purpose??
     if node['time'] >= TRAIL_TIME and qq not in weak_blacklist:
@@ -384,7 +386,9 @@ def add_time(qq, time):
             # Also check this fix
         if 'to_confirm' in node:
             node.pop('to_confirm')
-
+    elif node['time'] < TRAIL_TIME and node['time'] - time > TRAIL_TIME:
+        config.logger.thwiki << f'【LOG】用户{qq} 已退回试用期'
+        node['trail'] = 1
     save_whiteforest()
     return b
 
@@ -1505,6 +1509,27 @@ async def thwiki_shutdown(session: CommandSession):
         config.logger.thwiki << f'【LOG】管理者{qq}关闭直播间'
         await session.send('已关闭直播间')
 
+@on_command(('thwiki', 'deduct'), only_to_me=False, short_des="扣除直播时间。", args=("time", "qq", "[\\n desc]"), environment=env_supervise_only)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_deduct(session: CommandSession):
+    """扣除用户直播时间。
+    输入"qq=用户qq号"，并可以换行后加扣除原因。扣除后会在直播群给予用户通知。"""
+    qq_text, *els = session.current_arg.split('\n')
+    try:
+        time_str, qq_str = qq_text.split(' ')
+        time = int(time_str)
+        qq = int(qq_str)
+    except ValueError:
+        session.finish("格式为-thwiki.deduct 时间 qq号 换行 扣除原因")
+    ret = add_time(qq, -time)
+    if ret:
+        await session.send('用户已通过试用期转正')
+    else:
+        await session.send('已成功扣除时间')
+    des = '\n'.join(els)
+    for group in config.group_id_dict['thwiki_send']:
+        await get_bot().send_group_msg(group_id=group, message=[config.cq.at(qq), config.cq.text(f"已{'扣除' if time > 0 else '增加'}您的直播时间{abs(time)}min，理由为：\n{des}")])
+
 # Handler for command '-thwiki.blacklist'
 @on_command(('thwiki', 'blacklist'), only_to_me=False, short_des="添加用户至黑名单。", args=("[@s]",), environment=env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
@@ -1867,16 +1892,6 @@ async def _(session: CommandSession):
         bv = config.AvBvConverter.enc(av)
     session.args['av'] = av
     session.args['bv'] = bv
-
-# @on_command(('thwiki', 'supervisor_add'), only_to_me=False, permission=permission.SUPERUSER, environment=env_supervise, hide=True)
-# @config.ErrorHandle(config.logger.thwiki)
-# async def thwiki_supervisor_add(session: CommandSession):
-#     match = re.search('qq=(\d+)', session.current_arg)
-#     qq = int(match.group(1))
-#     node = find_or_new(qq)
-#     node['supervisor'] = True
-#     save_whiteforest()
-#     await session.send('已赋予推荐权与监视权。')
 
 # Handler for command '-thwiki.test'
 # Yet another undocumented command...?
