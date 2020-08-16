@@ -1092,7 +1092,7 @@ async def thwiki_grant(session: CommandSession):
         not_update = []
         update_failed = []
         updated = []
-        # updated_qq = []
+        updated_qq = []
         to_card = []
         for qq in qqs:
             ret_c = find_or_new(qq)
