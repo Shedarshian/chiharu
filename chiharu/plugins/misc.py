@@ -709,7 +709,7 @@ class MoneyComputer:
     def process(self, command):
         t = command.split(" ")
         if len(t) == 0:
-            return
+            return ''
         if t[0] == "clear":
             self.clear()
         elif t[0] == "add":
@@ -724,6 +724,8 @@ class MoneyComputer:
             ret = self.process(line)
             if ret is not None:
                 return ret
+            else:
+                return ''
 
 @on_command(('misc', 'money'), only_to_me=False, short_des="面基算钱小助手。")
 @config.ErrorHandle
