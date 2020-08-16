@@ -25,11 +25,13 @@ env_all_can_private.private = True
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.3.7"
-changelog = """2.3.0-7 Changelog:
+version = "2.3.8"
+changelog = """2.3.0-8 Changelog:
 Change:
--thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。
-若开播后15分钟仍未有人监视，则申请会被自动取消。"""
+-thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。并且不需要被推荐人同意。
+若开播后15分钟仍未有人监视，则申请会被自动取消。
+Remove:
+-thwiki.confirm_grant"""
 
 TRAIL_TIME = 36 * 60
 TIME_OUT = 15
@@ -1067,21 +1069,12 @@ async def thwiki_grant(session: CommandSession):
             if node_c is None:
                 config.logger.thwiki << f'【LOG】用户{sqq} 撤回推荐{qq} 因未被推荐或不存在 失败'
                 partial_failed.append(config.cq.at(qq))
-            elif 'to_confirm' not in node_c and node_c['parent'] != node['id']:
+            elif node_c['parent'] != node['id']:
                 config.logger.thwiki << f'【LOG】用户{sqq} 撤回推荐{qq} 因不是您推荐的用户 失败'
                 not_update.append(config.cq.at(node_c['qq']))
             elif node_c['trail'] == 1:
-                if 'to_confirm' in node_c:
-                    if node_c['to_confirm'] == node['id']:
-                        config.logger.thwiki << f'【LOG】用户{sqq} 撤回推荐{qq} 成功'
-                        partial_updated.append(config.cq.at(node_c['qq']))
-                        node_c.pop('to_confirm')
-                    else:
-                        config.logger.thwiki << f'【LOG】用户{sqq} 撤回推荐{qq} 因不是您推荐的用户 失败'
-                        not_update.append(config.cq.at(node_c['qq']))
-                else:
-                    config.logger.thwiki << f'【LOG】用户{sqq} 撤回推荐{qq} 因未被推荐或不存在 失败'
-                    partial_failed.append(config.cq.at(node_c['qq']))
+                config.logger.thwiki << f'【LOG】用户{sqq} 撤回推荐{qq} 因未被推荐或不存在 失败'
+                partial_failed.append(config.cq.at(node_c['qq']))
             else:
                 config.logger.thwiki << f'【LOG】用户{sqq} 撤回推荐{qq} 成功'
                 node['child'].remove(node_c['id'])
@@ -1103,7 +1096,7 @@ async def thwiki_grant(session: CommandSession):
         to_card = []
         for qq in qqs:
             ret_c = find_or_new(qq)
-            if not ret_c['trail'] or 'to_confirm' in ret_c:
+            if not ret_c['trail']:
                 if ret_c['card'] is None:
                     to_card.append(ret_c)
                 config.logger.thwiki << f"【LOG】用户{sqq} 推荐{qq} 因是已推荐用户 失败"
@@ -1114,73 +1107,23 @@ async def thwiki_grant(session: CommandSession):
             else:
                 if ret_c['card'] is None:
                     to_card.append(ret_c)
-                ret_c['to_confirm'] = node['id']
+                ret_c['parent'] = node['id']
+                ret_c['child'] = []	
+                ret_c['trail'] = 0	
+                node['child'].append(ret_c['id'])
                 config.logger.thwiki << f"【LOG】用户{sqq} 推荐{qq} 成功"
                 updated.append(config.cq.at(ret_c['qq']))
-                # updated_qq.append(ret_c['qq'])
+                updated_qq.append(ret_c['qq'])
         save_whiteforest()
+        for e in l:
+            if e.qq in updated_qq and e.supervise >= 0:
+                e.supervise = -1
         for r in to_card:
             c = await get_card(r['qq'])
             r['card'] = c
         if len(to_card) > 0:
             save_whiteforest()
-        await session.send(updated + ([config.cq.text(" 请确认推荐，输入-thwiki.confirm_grant True为同意，False拒绝")] if len(updated) > 0 else []) + ([config.cq.text("\n")] if len(updated) > 0 and len(not_update) > 0 else []) + ((not_update + [config.cq.text(" 是已推荐用户，推荐失败")]) if len(not_update) > 0 else []) + ([config.cq.text("\n")] if len(not_update) > 0 and len(update_failed) > 0 else []) + ((update_failed + [config.cq.text(" 不可被推荐，推荐失败")]) if len(update_failed) > 0 else []), auto_escape=True)
-
-# Handler for command '-thwiki.confirm_grant'
-# As this involves underscore and is very long, consider add '-thwiki.confirm' for same function
-@on_command(('thwiki', 'confirm_grant'), only_to_me=False, short_des="确认别人的推荐。", args=("True|False",), environment=env)
-@config.maintain('thwiki')
-@config.ErrorHandle(config.logger.thwiki)
-async def thwiki_confirm_grant(session: CommandSession):
-    """接受或拒绝别人的推荐。只能在直播群内使用。"""
-    # Check availability
-    qq = session.ctx['user_id']
-    node = find_whiteforest(qq=qq)
-    arg = session.current_arg_text
-    # This approach is safe since CQ code does not contain something like ' false '
-    arg = arg.lower()
-    if node is None or 'to_confirm' not in node:
-        await session.send('没有需要确认的内容')
-    elif arg in { 't', 'true' }:
-        # True case
-        id = node.pop('to_confirm')
-        parent = find_whiteforest(id = id)
-        if parent is None or parent['trail'] == 1:
-            config.logger.thwiki << f'【LOG】用户{qq} 因原推荐人已失去推荐权 接受{parent["qq"]}推荐失败'
-            await session.send('原推荐人已失去推荐权！')
-        else:
-            node['parent'] = id
-            node['child'] = []
-            node['trail'] = 0
-            parent['child'].append(node['id'])
-            for e in l:
-                if e.qq == qq and e.supervise >= 0:
-                    e.supervise = -1
-            save_whiteforest()
-            config.logger.thwiki << f'【LOG】用户{qq} 接受{parent["qq"]}推荐'
-            await session.send('已接受推荐！')
-    elif arg in { 'false', 'f' }:
-        id = node.pop('to_confirm')
-        save_whiteforest()
-        config.logger.thwiki << f'【LOG】用户{qq} 拒绝推荐'
-        await session.send('已拒绝推荐！')
-    elif arg in { 'ture', 'flase' }:
-        await session.send('噗，手残了？') # Easter egg
-    else:
-        await session.send('参数错误，请使用\'T\'或\'True\'来接受推荐或使用\'F\'或\'False\'来拒绝推荐')
-    # Consideration: if the recommendee makes a typo like 'ture', we should not pop the confirmation
-    #else:
-    #   id = node.pop('to_confirm')
-    #   save_whiteforest()
-    #   await session.send('已拒绝推荐！')
-
-# Handler for command '-thwiki.confirm'
-@on_command(('thwiki', 'confirm'), only_to_me=False, short_des="确认别人的推荐。", args=("True|False",), environment=env, hide=True)
-@config.maintain('thwiki')
-@config.ErrorHandle(config.logger.thwiki)
-async def thwiki_confirm(session: CommandSession):
-    """接受或拒绝别人的推荐。只能在直播群内使用。"""
-    await call_command(get_bot(), session.ctx, ('thwiki', 'confirm_grant'), current_arg=session.current_arg)
+        await session.send(updated + ([config.cq.text(" 已成功推荐！")] if len(updated) > 0 else []) + ([config.cq.text("\n")] if len(updated) > 0 and len(not_update) > 0 else []) + ((not_update + [config.cq.text(" 是已推荐用户，推荐失败")]) if len(not_update) > 0 else []) + ([config.cq.text("\n")] if len(not_update) > 0 and len(update_failed) > 0 else []) + ((update_failed + [config.cq.text(" 不可被推荐，推荐失败")]) if len(update_failed) > 0 else []), auto_escape=True)
 
 # Handler for command '-thwiki.depart'
 @on_command(('thwiki', 'depart'), only_to_me=False, short_des="从推荐树中安全脱离。", environment=env)
