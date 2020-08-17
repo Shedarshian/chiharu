@@ -216,9 +216,9 @@ class Event:
         if self.isFloat and other.isFloat:
             return self.begin == other.begin
         elif self.isFloat:
-            return other.begin < self.begin < other.end
+            return other.begin <= self.begin < other.end
         elif other.isFloat:
-            return self.begin < other.begin < self.end
+            return self.begin <= other.begin < self.end
         return self.begin < other.end and other.begin < self.end # None of them end with uncertain time
 
 # Read from the file and returns a list of applications
@@ -257,7 +257,7 @@ async def _save(t):
 async def change_des_to_list(lunbo=False):
     global l
     fut = datetime.now() + timedelta(days=7)
-    s = 'THBWiki电视台（大雾）</h2><p>基本上会以直播<strong>东方Project</strong>的游戏为主。日常进行直播的主播不定。</p><h3><strong>本直播间欢迎大家使用，但需要直播的内容为东方Project相关且遵守直播者所在国家与中国相关法律与条约及平台条约。</strong><br />具体使用方法以及粉丝群请戳QQ群 <strong>807894304</strong> 【THBWiki直播】</h3><p>节目单：%s</p>' % \
+    s = 'THBWiki电视台（大雾）</h2><p>基本上会以直播<strong>东方Project</strong>的游戏为主。日常进行直播的主播不定。</p><h3><strong>本直播间欢迎大家使用，但需要直播的内容为东方Project相关且遵守直播者所在国家与中国相关法律与条约及平台条约。</strong><br />具体使用方法以及粉丝群请戳QQ群 <strong>807894304</strong> 【THBWiki直播】</h3><p>节目单：<br />%s</p>' % \
         '<br />'.join(map(Event.str_url, filter(lambda x: x.begin < fut, l)))
     if lunbo:
         s = '<h2>当前轮播中，欢迎查看收藏夹https://space.bilibili.com/362841475/favlist?fid=853928275，轮播视频均在收藏夹中，在直播群（下述）中可以添加轮播视频或推荐视频哦~<br />' + s
@@ -1239,7 +1239,7 @@ async def thwiki_supervise(session: CommandSession):
     elif ret.supervise > 0 and t:
         await session.send('此直播提交已有监视者')
     elif ret.supervise != qq and not t:
-        await session.send('删除失败')
+        await session.send('本直播监视人不是您，删除失败')
     else:
         if t:
             ret.supervise = qq
@@ -1441,7 +1441,7 @@ async def thwiki_maintain(session: CommandSession):
         await session.send('已解除维护状态')
 
 # Handler for command '-thwiki.shutdown'
-@on_command(('thwiki', 'shutdown'), only_to_me=False, short_des="强制关闭直播间。", environment=env)
+@on_command(('thwiki', 'shutdown'), only_to_me=False, short_des="强制关闭直播间。", environment=env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_shutdown(session: CommandSession):
     """强制关闭直播间。直播群管理可用。"""
@@ -1530,6 +1530,7 @@ async def thwiki_blacklist(session: CommandSession):
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_weak_blacklist(session: CommandSession):
     """添加用户至弱黑名单。直播群管理或监视群可用。"""
+    global blacklist
     global weak_blacklist
     global whiteforest
     global l
@@ -1548,11 +1549,14 @@ async def thwiki_weak_blacklist(session: CommandSession):
     updated_event = []
     for qq in qqs:
         if qq not in weak_blacklist:
-            config.logger.thwiki << f'【LOG】管理{session.ctx["user_id"]} 将{qq}加入weak_blacklist'
-            weak_blacklist.append(qq)
-            node_current = find_or_new(qq = qq)
-            u, u2 = deprive(node_current, True, False)
-            updated_event += u2
+            if qq in blacklist:
+                await session.send('{qq}已在黑名单内，不再被加入弱黑名单')
+            else:
+                config.logger.thwiki << f'【LOG】管理{session.ctx["user_id"]} 将{qq}加入weak_blacklist'
+                weak_blacklist.append(qq)
+                node_current = find_or_new(qq = qq)
+                u, u2 = deprive(node_current, True, False)
+                updated_event += u2
 
     weak_blacklist.sort()
 
@@ -1568,11 +1572,17 @@ async def thwiki_weak_blacklist(session: CommandSession):
 
     await session.send('已加入弱黑名单')
 
+@on_command(('thwiki', 'print_blacklist'), only_to_me=False, env=env_supervise_only)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_print_blacklist(session: CommandSession):
+    """列出黑名单"""
+    await session.send('\n'.join((get_card(i) + str(i)) for i in blacklist))
+
 @on_command(('thwiki', 'print_weak_blacklist'), only_to_me=False, environment=env_supervise_only)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_print_weak_blacklist(session: CommandSession):
-    "列出弱黑名单。"
-    await session.send('\n'.join(str(i) for i in weak_blacklist))
+    """列出弱黑名单。"""
+    await session.send('\n'.join((get_card(i) + str(i)) for i in weak_blacklist))
 
 # Handler for command '-thwiki.check_user'
 @on_command(('thwiki', 'check_user'), only_to_me=False, short_des="查询直播过的用户数量。", environment=env_supervise)
