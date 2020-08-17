@@ -1789,7 +1789,7 @@ async def thwiki_punish_check(session: CommandSession):
             return node['punish']
     await session.send(f'此用户已被惩罚{_(qq)}次。')
 
-@on_command(('thwiki', 'kick'), only_to_me=False, short_des="踢出群聊。", environment=env_supervise)
+@on_command(('thwiki', 'kick'), only_to_me=False, short_des="踢出群聊。", environment=env_supervise_only)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_kick(session: CommandSession):
     qq = int(session.current_arg_text)
