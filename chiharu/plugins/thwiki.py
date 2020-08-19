@@ -394,6 +394,16 @@ def add_time(qq, time):
     save_whiteforest()
     return b
 
+def add_supervise_time(qq, time):
+    node = find_or_new(qq)
+
+    time = int(time)
+    if 'supervise_time' not in node:
+        node['supervise_time'] = 0
+    node['supervise_time'] += time
+    config.logger.thwiki << f'【LOG】监视者{qq} {"积累" if time > 0 else "扣除"}监视时间{abs(time)}，目前监视时间{node["time"]}'
+    save_whiteforest()
+
 class ApplyErr(BaseException):
     pass
 
@@ -668,6 +678,8 @@ async def thwiki_cancel(session: CommandSession):
         # In this case, a shutdown of room should be performed...?
         if e.supervise != 0 and e.begin < now:
             d = int((now - e.begin).total_seconds() - 1) // 60 + 1
+            if e.supervise > 0:
+                add_supervise_time(e.supervise, d)
             if add_time(e.qq, d):
                 await session.send('您已成功通过试用期转正！')
 
@@ -755,6 +767,8 @@ async def thwiki_term(session: CommandSession):
     s = ""
     if e.supervise != 0:
         d = int((now - e.begin).total_seconds() - 1) // 60 + 1
+        if e.supervise > 0:
+            add_supervise_time(e.supervise, d)
         if add_time(e.qq, d):
             await session.send('您已成功通过试用期转正！')
         s = f"，已为您累积直播时间{d}分钟"
@@ -849,6 +863,8 @@ async def _():
             d = int(((l[i + 1].begin if e.isFloat else e.end) - e.begin).total_seconds() - 1) // 60 + 1
             l.pop(i)
             if e.supervise != 0:
+                if e.supervise > 0:
+                    add_supervise_time(e.supervise, d)
                 if add_time(e.qq, d):
                     for id in config.group_id_dict['thwiki_send']:
                         await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('已成功通过试用期转正！')], auto_escape=True)
