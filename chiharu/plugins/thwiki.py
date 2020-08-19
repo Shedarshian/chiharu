@@ -25,8 +25,8 @@ env_all_can_private.private = True
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.3.8"
-changelog = """2.3.0-8 Changelog:
+version = "2.3.9"
+changelog = """2.3.0-9 Changelog:
 Change:
 -thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。并且不需要被推荐人同意。
 若开播后15分钟仍未有人监视，则申请会被自动取消。
@@ -1731,11 +1731,11 @@ async def thwiki_punish(session: CommandSession):
             node['punish'] += session.get('severity')
         save_whiteforest()
         group = list(config.group_id_dict['thwiki_punish'])[0]
-        if node['punish'] == 2:
+        if node['punish'] in {3, 4}:
             await get_bot().set_group_ban(group_id=group, user_id=node['qq'], duration=1200)
         reason = session.get('reason')
-        await get_bot().send_group_msg(group_id=group, message=[config.cq.text('管理员认为'), config.cq.at(record.qq), config.cq.text(f'于{record.time.strftime("%H:%M:%S")} CST{node["card"]}作出了不妥当的发言，扣除该群员{session.get("severity")}点友善度' + ('，理由为：' + reason + '\n' if reason else '') + f'剩余{max(0, 3 - node["punish"])}友善度' + ('，已移出群聊。' if node['punish'] >= 3 else '。'))])
-        if node['punish'] >= 3:
+        await get_bot().send_group_msg(group_id=group, message=[config.cq.text('管理员认为'), config.cq.at(record.qq), config.cq.text(f'于{record.time.strftime("%H:%M:%S")} CST{node["card"]}作出了不妥当的发言，扣除该群员{session.get("severity")}点友善度' + ('，理由为：' + reason + '\n' if reason else '') + f'剩余{max(0, 5 - node["punish"])}友善度' + ('，已移出群聊。' if node['punish'] >= 5 else '。'))])
+        if node['punish'] >= 5:
             await get_bot().set_group_kick(group_id=group, user_id=node['qq'])
         session.finish('已撤回')
     global record_file
