@@ -35,6 +35,7 @@ Remove:
 
 TRAIL_TIME = 36 * 60
 TIME_OUT = 15
+FRIENDLY_MAX = 5
 
 # Change title and description on Bilibili livestream room
 # title: self-explanatory
@@ -1719,8 +1720,8 @@ async def thwiki_punish(session: CommandSession):
     """惩罚不当发言。
     格式为：-thwiki.punish qq 换行 YYYY-MM-DD HH:MM[:SS] [换行 关键词]
     检索给定时间前后1分钟内距离该时间最近的包含关键词的发言。（可不给关键字）
-    如确认，则将该发言撤回，并依已触发次数惩罚发言者。第一次不做禁言，第二次禁言20分钟，第三次踢出。
-    并告知此为第几次。"""
+    如确认，则将该发言撤回，并扣除友善度。友善度上限为5，扣至1或2点则禁言1h，扣至零则踢出。
+    并告知友善度剩余几点。"""
     if session.get('confirmed'):
         record = session.get('record')
         await get_bot().delete_msg(message_id=record.msg_id)
@@ -1731,11 +1732,11 @@ async def thwiki_punish(session: CommandSession):
             node['punish'] += session.get('severity')
         save_whiteforest()
         group = list(config.group_id_dict['thwiki_punish'])[0]
-        if node['punish'] in {3, 4}:
-            await get_bot().set_group_ban(group_id=group, user_id=node['qq'], duration=1200)
+        if 3 <= node['punish'] < FRIENDLY_MAX:
+            await get_bot().set_group_ban(group_id=group, user_id=node['qq'], duration=3600)
         reason = session.get('reason')
-        await get_bot().send_group_msg(group_id=group, message=[config.cq.text('管理员认为'), config.cq.at(record.qq), config.cq.text(f'于{record.time.strftime("%H:%M:%S")} CST{node["card"]}作出了不妥当的发言，扣除该群员{session.get("severity")}点友善度' + ('，理由为：' + reason + '\n' if reason else '') + f'剩余{max(0, 5 - node["punish"])}友善度' + ('，已移出群聊。' if node['punish'] >= 5 else '。'))])
-        if node['punish'] >= 5:
+        await get_bot().send_group_msg(group_id=group, message=[config.cq.text('管理员认为'), config.cq.at(record.qq), config.cq.text(f'于{record.time.strftime("%H:%M:%S")} CST{node["card"]}作出了不妥当的发言，扣除该群员{session.get("severity")}点友善度' + ('，理由为：' + reason + '\n' if reason else '') + f'剩余{max(0, FRIENDLY_MAX - node["punish"])}友善度' + ('，已移出群聊。' if node['punish'] >= FRIENDLY_MAX else '。'))])
+        if node['punish'] >= FRIENDLY_MAX:
             await get_bot().set_group_kick(group_id=group, user_id=node['qq'])
         session.finish('已撤回')
     global record_file
@@ -1803,7 +1804,7 @@ async def thwiki_punish_check(session: CommandSession):
             return 0
         else:
             return node['punish']
-    await session.send(f'此用户已被惩罚{_(qq)}次。')
+    await session.send(f'此用户友善度剩余{FRIENDLY_MAX - _(qq)}点。')
 
 @on_command(('thwiki', 'kick'), only_to_me=False, short_des="踢出群聊。", environment=env_supervise_only)
 @config.ErrorHandle(config.logger.thwiki)
