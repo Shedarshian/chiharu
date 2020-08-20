@@ -1561,7 +1561,7 @@ async def thwiki_weak_blacklist(session: CommandSession):
                 return
             begin += match.span()[1]
             yield int(match.group(1))
-    qqs = list(_tmp(session.current_arg_text))
+    qqs = list(_tmp(session.current_arg))
 
     updated_event = []
     for qq in qqs:
