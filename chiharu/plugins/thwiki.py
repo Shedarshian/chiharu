@@ -24,14 +24,15 @@ def is_supervisor(session):
     return 'supervisor' in node and node['supervisor']
 constraint_supervisor = config.Constraint('thwiki_live', can_respond=is_supervisor)
 env_supervise = config.Environment('thwiki_supervise', 'thwiki_live', constraint_supervisor, ret='请在监视群内或直播群管理使用')
-env_all_can_private = env|env_supervise
+env_all_thwiki_live = config.Environment('thwiki_supervise', 'thwiki_live')
+env_all_can_private = config.Environment('thwiki_supervise', 'thwiki_live')
 env_all_can_private.private = True
 
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.3.9"
-changelog = """2.3.0-9 Changelog:
+version = "2.3.10"
+changelog = """2.3.0-10 Changelog:
 Change:
 -thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。并且不需要被推荐人同意。
 若开播后15分钟仍未有人监视，则申请会被自动取消。
@@ -1819,7 +1820,7 @@ async def thwiki_kick(session: CommandSession):
     await get_bot().set_group_kick(group_id=group, user_id=qq)
     await session.send('已踢出。')
 
-@on_command(('thwiki', 'bookmark'), only_to_me=False, short_des="将视频加入轮播列表。", environment=env|env_supervise)
+@on_command(('thwiki', 'bookmark'), only_to_me=False, short_des="将视频加入轮播列表。", environment=env_all_thwiki_live)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_bookmark(session: CommandSession):
     """提交视频加入轮播列表。
