@@ -49,7 +49,7 @@ class Environment:
             if group_id in self.block:
                 return False
             elif group_id in self.constraint:
-                ret = self.constraint[group_id]._f()
+                ret = self.constraint[group_id]._f(session)
                 if not ret and self.constraint[group_id].ret and not no_reply:
                     await session.send(self.constraint[group_id].ret)
                 return ret
