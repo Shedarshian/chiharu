@@ -12,7 +12,7 @@ from .. import config
 from nonebot import on_command, CommandSession, get_bot, permission, scheduler
 from nonebot.command import call_command
 config.logger.open('card')
-def _time():
+def _time(session):
     h = datetime.now().hour
     return h < 6 or 11 <= h < 13 or h >= 23
 c1 = config.Constraint('card_constraint', can_respond=_time, ret="现时段本群功能管制，开放时段为11～13 23～30点，欢迎加入bot测试群947279366刷屏")

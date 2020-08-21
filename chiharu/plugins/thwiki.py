@@ -18,7 +18,8 @@ from .inject import on_command
 config.logger.open('thwiki')
 env = config.Environment('thwiki_live', ret='请在直播群内使用')
 env_supervise_only = config.Environment('thwiki_supervise', ret='请在监视群内使用')
-def is_supervisor(qq):
+def is_supervisor(session):
+    qq = session.ctx['user_id']
     node = find_or_new(qq)
     return 'supervisor' in node and node['supervisor']
 constraint_supervisor = config.Constraint('thwiki_live', can_respond=is_supervisor)

@@ -88,7 +88,7 @@ class Constraint:
             except KeyError:
                 await f(session, *args, **kwargs)
                 return
-            if group_id in self.group and not self._f():
+            if group_id in self.group and not self._f(session):
                 if self.ret != "":
                     await session.send(self.ret, auto_escape=True)
             else:
