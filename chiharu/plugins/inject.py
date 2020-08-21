@@ -31,7 +31,7 @@ class Environment:
         for s in args:
             if s == 'all':
                 self.group = AllGroup()
-            elif type(s) == str:
+            elif isinstance(s, str):
                 self.group |= set(group_id_dict[s])
             elif isinstance(s, Admin):
                 self.admin |= set(group_id_dict[s.name])
