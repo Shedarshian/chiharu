@@ -4,7 +4,7 @@ import requests
 import json
 import asyncio
 import functools
-import more_itertools
+import itertools, more_itertools
 import random
 from collections import namedtuple
 from copy import copy
@@ -31,8 +31,8 @@ env_all_can_private.private = True
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.3.10"
-changelog = """2.3.0-10 Changelog:
+version = "2.3.11"
+changelog = """2.3.0-11 Changelog:
 Change:
 -thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。并且不需要被推荐人同意。
 若开播后15分钟仍未有人监视，则申请会被自动取消。
@@ -144,7 +144,7 @@ class Event:
             self.begin, self.end, self.qq, self.card, self.name, self.isFloat = args
 
             # Assign an ID associated with this application
-            self.id = max(-1, -1, *map(lambda e: e.id, l)) + 1
+            self.id = self.gen_id()
 
             # Check whether this applicant has been authorized
             node = find_whiteforest(qq=self.qq)
@@ -227,6 +227,8 @@ class Event:
         elif other.isFloat:
             return self.begin <= other.begin < self.end
         return self.begin < other.end and other.begin < self.end # None of them end with uncertain time
+    def gen_id(self):
+        return more_itertools.first((i2 for i1, i2 in zip(itertools.chain(sorted(e.id for e in l), (-1,)), itertools.count()) if i1 != i2), 0)
 
 # Read from the file and returns a list of applications
 def _open():
