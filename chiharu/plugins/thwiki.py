@@ -4,7 +4,7 @@ import requests
 import json
 import asyncio
 import functools
-import more_itertools
+import itertools, more_itertools
 import random
 from collections import namedtuple
 from copy import copy
@@ -144,7 +144,7 @@ class Event:
             self.begin, self.end, self.qq, self.card, self.name, self.isFloat = args
 
             # Assign an ID associated with this application
-            self.id = max(-1, -1, *map(lambda e: e.id, l)) + 1
+            self.id = self.gen_id()
 
             # Check whether this applicant has been authorized
             node = find_whiteforest(qq=self.qq)
@@ -227,6 +227,8 @@ class Event:
         elif other.isFloat:
             return self.begin <= other.begin < self.end
         return self.begin < other.end and other.begin < self.end # None of them end with uncertain time
+    def gen_id(self):
+        return more_itertools.first((i2 for i1, i2 in zip(itertools.chain(sorted(e.id for e in l), (-1,)), itertools.count()) if i1 != i2), 0)
 
 # Read from the file and returns a list of applications
 def _open():
