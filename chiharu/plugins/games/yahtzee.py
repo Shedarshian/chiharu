@@ -39,7 +39,7 @@ class Player:
         ss = set(d)
         s = Counter(d)
         s_val = set(s.values())
-        t[Player.Name.快艇] = sum(d, 0) if s_val == {5} else 0
+        t[Player.Name.快艇] = 50 if s_val == {5} else 0
         t[Player.Name.四骰同花] = sum(d, 0) if s_val == {4, 1} or s_val == {5} else 0
         t[Player.Name.葫芦] = sum(d, 0) if s_val == {3, 2} or s_val == {5} else 0
         t[Player.Name.大顺] = 30 if ss == {1, 2, 3, 4, 5} or ss == {2, 3, 4, 5, 6} else 0
