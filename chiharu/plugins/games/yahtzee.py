@@ -134,7 +134,9 @@ async def yahtzee_begin_complete(session: CommandSession, data: Dict[str, Any]):
             data['names'].append(name)
         else:
             data['names'] = [name]
-    await session.send(f'玩家{name}已参与匹配，游戏开始，任何时候输入"查看分数"可以查看全部玩家当前分数')
+        await session.send(f'玩家{name}已参与匹配，游戏开始，任何时候输入"查看分数"可以查看全部玩家当前分数')
+    else:
+        await session.send(f'游戏开始，任何时候输入"查看分数"可以查看全部玩家当前分数')
     #开始游戏
     data['boards'] = [Player() for qq in data['players']]
     data['current_player'] = 0
