@@ -13,7 +13,8 @@ from datetime import date, timedelta
 import wand.image, wand.color
 from io import StringIO
 from string import Formatter
-from nonebot import on_command, CommandSession, permission, on_natural_language, NLPSession
+from nonebot import CommandSession, permission, on_natural_language, NLPSession
+from .inject import on_command
 from . import config
 from .birth import myFormatter
 from . import maj, math as cmath
@@ -843,3 +844,21 @@ async def avtobv(session: CommandSession):
         await session.send(config.AvBvConverter.enc(text))
     else:
         await session.send('av' + str(config.AvBvConverter.dec(text)))
+
+@on_command(('misc', 'r'), only_to_me=False)
+async def roll(session: CommandSession):
+    l = session.current_arg_text.split('+')
+    ret = []
+    for c in l:
+        match = re.match(r'^(\d*)d(\d*)$', c)
+        if not match:
+            session.finish('语法错误')
+        n = match.group(1) or 1
+        d = match.group(2) or 100
+        if n >= 100:
+            session.finish('骰子过多')
+        for i in range(n):
+            ret.append(random.randint(1, d))
+        if len(ret) >= 100:
+            session.finish('骰子过多')
+    await session.send('+'.join(str(c) for c in ret) + '=' + str(sum(ret)))
