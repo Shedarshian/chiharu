@@ -70,7 +70,7 @@ class Player:
         self.rolled_count = 3
         self._fixed_dice = []
         self._float_dice = []
-        self.scoreboard[name]
+        return self.scoreboard[name]
     @property
     def final_score(self):
         if len(self.scoreboard) != 12:
@@ -169,6 +169,6 @@ async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func
                 await delete_func()
         p = data['boards'][data['current_player']]
         p.roll()
-        await session.send(f'\n轮到玩家{data["names"][data["current_player"]]}，扔出骰子{p.float_dice}，已固定骰子{p.fixed_dice}\n剩余重扔次数：{p.rolled_count}\n输入如"重扔 5,5,6"重扔，如"计分 快艇"计分')
+        await session.send(f'轮到玩家{data["names"][data["current_player"]]}，扔出骰子{p.float_dice}，已固定骰子{p.fixed_dice}\n剩余重扔次数：{p.rolled_count}\n输入如"重扔 5,5,6"重扔，如"计分 快艇"计分')
     elif command == '查看分数':
         await session.send('\n'.join(f'玩家{name}分数：\n{board.str_scoreboard}' for (name, board) in zip(data['names'], data['boards'])))
