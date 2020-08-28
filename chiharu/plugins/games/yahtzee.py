@@ -71,7 +71,7 @@ class Player:
         return self.scoreboard[name]
     @property
     def final_score(self):
-        if sum(self.scoreboard[Player.Name.__members__[x]] for x in ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX'] if Player.Name.__members__[x] in self.scoreboard) >= 63:
+        if sum(self.scoreboard[Player.Name.__members__[x]] for x in ['一', '二', '三', '四', '五', '六'] if Player.Name.__members__[x] in self.scoreboard) >= 63:
             return sum(self.scoreboard.values()) + 35
         else:
             return sum(self.scoreboard.values())
