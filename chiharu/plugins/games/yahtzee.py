@@ -71,7 +71,7 @@ class Player:
         return self.scoreboard[name]
     @property
     def final_score(self):
-        if sum(self.scoreboard[Player.Name.__members__[x]] for x in ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX']) >= 63:
+        if sum(self.scoreboard[Player.Name.__members__[x]] for x in ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX'] if Player.Name.__members__[x] in self.scoreboard) >= 63:
             return sum(self.scoreboard.values()) + 35
         else:
             return sum(self.scoreboard.values())
@@ -159,7 +159,11 @@ async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func
         if c not in Player.Name.__members__:
             await session.send('未发现此计分项，请重新输入')
             return
-        await session.send(f'玩家{data["names"][data["current_player"]]}计分 {c}，{p.score(Player.Name.__members__[c])}点。')
+        ret = p.score(Player.Name.__members__[c])
+        if ret == -1:
+            await session.send(f'计分项{c}已计过，请重新输入')
+            return
+        await session.send(f'玩家{data["names"][data["current_player"]]}计分 {c}，{ret}点。')
         data['current_player'] += 1
         if data['current_player'] >= len(data['players']):
             data['current_player'] = 0
