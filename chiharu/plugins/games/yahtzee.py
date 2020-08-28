@@ -42,7 +42,7 @@ class Player:
         t[Player.Name.快艇] = sum(d, 0) if s_val == {5} else 0
         t[Player.Name.四骰同花] = sum(d, 0) if s_val == {4, 1} or s_val == {5} else 0
         t[Player.Name.葫芦] = sum(d, 0) if s_val == {3, 2} or s_val == {5} else 0
-        t[Player.Name.大顺] = 30 if ss == [1, 2, 3, 4, 5] or ss == [2, 3, 4, 5, 6] else 0
+        t[Player.Name.大顺] = 30 if ss == {1, 2, 3, 4, 5} or ss == {2, 3, 4, 5, 6} else 0
         t[Player.Name.小顺] = 15 if {1, 2, 3, 4} <= ss or {2, 3, 4, 5} <= ss or {3, 4, 5, 6} <= ss else 0
         return t
     def roll(self):
@@ -71,8 +71,6 @@ class Player:
         return self.scoreboard[name]
     @property
     def final_score(self):
-        if len(self.scoreboard) != 12:
-            return 0
         if sum(self.scoreboard[Player.Name.__members__[x]] for x in ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX']) >= 63:
             return sum(self.scoreboard.values()) + 35
         else:
@@ -87,7 +85,7 @@ class Player:
         return '无' if len(self._float_dice) == 0 else ",".join(map(str, self._float_dice))
     @property
     def str_scoreboard(self):
-        return '  '.join(f'{name.name}：{self.scoreboard[name]}分' for name in Player.Name if name in self.scoreboard)
+        return '  '.join(f'{name.name}：{self.scoreboard[name]}分' for name in Player.Name if name in self.scoreboard) + f'\n总分：{self.final_score}分'
     @property
     def str_temp_scoreboard(self):
         t = self.temp_scoreboard
@@ -149,7 +147,8 @@ async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func
     command = session.msg_text.strip()
     if command.startswith('重扔') and session.ctx['user_id'] == data['players'][data['current_player']]:
         if p.unfix([int(c) for c in command[2:].strip().split(',')]) == -1:
-            session.finish('未发现骰子，请重新输入')
+            await session.send('未发现骰子，请重新输入')
+            return
         p.roll()
         if p.rolled_count == 0:
             await session.send(f'玩家{data["names"][data["current_player"]]}骰子为{p.fixed_dice}\n可选计分项为：{p.str_temp_scoreboard}，\n输入如"计分 快艇"计分')
@@ -158,17 +157,19 @@ async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func
     elif command.startswith('计分') and session.ctx['user_id'] == data['players'][data['current_player']]:
         c = command[2:].strip()
         if c not in Player.Name.__members__:
-            session.finish('未发现此计分项，请重新输入')
+            await session.send('未发现此计分项，请重新输入')
+            return
         await session.send(f'玩家{data["names"][data["current_player"]]}计分 {c}，{p.score(Player.Name.__members__[c])}点。')
         data['current_player'] += 1
         if data['current_player'] >= len(data['players']):
             data['current_player'] = 0
             if len(data['boards'][data['current_player']].scoreboard) == 12:
-                await session.send('游戏结束，计分板如下：\n' + '\n'.join(f'玩家{name}分数：\n{board.str_scoreboard}\n总分为：{board.final_score}' for (name, board) in zip(data['names'], data['boards'])))
+                await session.send('游戏结束，计分板如下：\n' + '\n'.join(f'玩家{name}分数：\n{board.str_scoreboard}\n总分为：{board.final_score}分' for (name, board) in zip(data['names'], data['boards'])))
                 f = [board.final_score for board in data['boards']]
                 m = max(f)
                 await session.send('玩家' + '，'.join([data['names'][i] for i, x in enumerate(f) if x == m]) + '胜出！')
                 await delete_func()
+                return
         p = data['boards'][data['current_player']]
         p.roll()
         await session.send(f'轮到玩家{data["names"][data["current_player"]]}，扔出骰子{p.float_dice}，已固定骰子{p.fixed_dice}\n剩余重扔次数：{p.rolled_count}\n输入如"重扔 5,5,6"重扔，如"计分 快艇"计分')
