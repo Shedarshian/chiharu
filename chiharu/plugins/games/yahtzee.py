@@ -102,6 +102,14 @@ async def yahtzee_begin_uncomplete(session: CommandSession, data: Dict[str, Any]
     # data: {'players': [qq], 'args': [args], 'anything': anything}
     qq = session.ctx['user_id']
     group = session.ctx['group_id']
+    try:
+        c = await get_bot().get_group_member_info(group_id=group, user_id=qq)
+        if c['card'] == '':
+            name = c['nickname']
+        else:
+            name = c['card']
+    except aiocqhttp.exceptions.ActionFailed:
+        name = str(qq)
     if 'names' in data:
         data['names'].append(name)
     else:
@@ -113,17 +121,19 @@ async def yahtzee_begin_complete(session: CommandSession, data: Dict[str, Any]):
     # data: {'players': [qq], 'game': GameSameGroup instance, 'args': [args], 'anything': anything}
     qq = session.ctx['user_id']
     group = session.ctx['group_id']
-    async def _f(qq):
-        try:
-            c = await get_bot().get_group_member_info(group_id=group, user_id=qq)
-            if c['card'] == '':
-                return c['nickname']
-            else:
-                return c['card']
-        except aiocqhttp.exceptions.ActionFailed:
-            return str(qq)
-    data['names'] = [await _f(qq) for qq in data['players']]
-    await session.send(f'游戏开始，任何时候输入"查看分数"可以查看全部玩家当前分数')
+    try:
+        c = await get_bot().get_group_member_info(group_id=group, user_id=qq)
+        if c['card'] == '':
+            name = c['nickname']
+        else:
+            name = c['card']
+    except aiocqhttp.exceptions.ActionFailed:
+        name = str(qq)
+    if 'names' in data:
+        data['names'].append(name)
+    else:
+        data['names'] = [name]
+    await session.send(f'玩家{name}已参与匹配，游戏开始，任何时候输入"查看分数"可以查看全部玩家当前分数')
     #开始游戏
     data['boards'] = [Player() for qq in data['players']]
     data['current_player'] = 0
