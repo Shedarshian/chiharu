@@ -130,9 +130,9 @@ async def yahtzee_begin_complete(session: CommandSession, data: Dict[str, Any]):
     except aiocqhttp.exceptions.ActionFailed:
         name = str(qq)
     if 'names' in data:
-        data['names'][qq] = name
+        data['names'].append(name)
     else:
-        data['names'] = {qq: name}
+        data['names'] = [name]
     await session.send(f'玩家{name}已参与匹配，游戏开始，任何时候输入"查看分数"可以查看全部玩家当前分数')
     #开始游戏
     data['boards'] = [Player() for qq in data['players']]
