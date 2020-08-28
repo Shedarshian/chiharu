@@ -845,8 +845,11 @@ async def avtobv(session: CommandSession):
     else:
         await session.send('av' + str(config.AvBvConverter.dec(text)))
 
-@on_command(('misc', 'r'), only_to_me=False)
+@on_command(('misc', 'r'), only_to_me=False, short_des="随机骰子。")
 async def roll(session: CommandSession):
+    """随机骰子。
+    使用例：-misc.r 3d20+d6+2d
+    d前不填默认为1，d后不填默认为100"""
     l = session.current_arg_text.split('+')
     ret = []
     for c in l:
@@ -861,4 +864,4 @@ async def roll(session: CommandSession):
             ret.append(random.randint(1, d))
         if len(ret) >= 100:
             session.finish('骰子过多')
-    await session.send('+'.join(str(c) for c in ret) + '=' + str(sum(ret)))
+    await session.send('骰子结果为：\n' + '+'.join(str(c) for c in ret) + '=' + str(sum(ret)))
