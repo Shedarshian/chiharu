@@ -141,6 +141,10 @@ async def yahtzee_begin_complete(session: CommandSession, data: Dict[str, Any]):
     p.roll()
     await session.send(f'玩家{data["names"][data["current_player"]]}扔出骰子{p.float_dice}，已固定骰子{p.fixed_dice}\n剩余重扔次数：{p.rolled_count}\n输入如"重扔 5,5,6"重扔，如"计分 快艇"计分')
 
+@yahtzee.end(('play', 'yahtzee', 'end'))
+async def yahtzee_end(session: CommandSession, data: Dict[str, Any]):
+    await session.send('已删除')
+
 @yahtzee.process(only_short_message=True)
 async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func: Awaitable):
     p = data['boards'][data['current_player']]
