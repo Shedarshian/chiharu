@@ -89,11 +89,11 @@ class Player:
         return '无' if len(self._float_dice) == 0 else ",".join(map(str, self._float_dice))
     @property
     def str_scoreboard(self):
-        return '  '.join(f'{name}：{self.scoreboard[name]}分' for name in Player.Name if name in self.scoreboard)
+        return '  '.join(f'{name.name}：{self.scoreboard[name]}分' for name in Player.Name if name in self.scoreboard)
     @property
     def str_temp_scoreboard(self):
         t = self.temp_scoreboard
-        return '  '.join(f'{name}：{t[name]}分' for name in Player.Name if name not in self.scoreboard)
+        return '  '.join(f'{name.name}：{t[name]}分' for name in Player.Name if name not in self.scoreboard)
 
 yahtzee = GameSameGroup('yahtzee')
 
@@ -121,18 +121,19 @@ async def yahtzee_begin_complete(session: CommandSession, data: Dict[str, Any]):
     # data: {'players': [qq], 'game': GameSameGroup instance, 'args': [args], 'anything': anything}
     qq = session.ctx['user_id']
     group = session.ctx['group_id']
-    try:
-        c = await get_bot().get_group_member_info(group_id=group, user_id=qq)
-        if c['card'] == '':
-            name = c['nickname']
+    if qq not in data['players']:
+        try:
+            c = await get_bot().get_group_member_info(group_id=group, user_id=qq)
+            if c['card'] == '':
+                name = c['nickname']
+            else:
+                name = c['card']
+        except aiocqhttp.exceptions.ActionFailed:
+            name = str(qq)
+        if 'names' in data:
+            data['names'].append(name)
         else:
-            name = c['card']
-    except aiocqhttp.exceptions.ActionFailed:
-        name = str(qq)
-    if 'names' in data:
-        data['names'].append(name)
-    else:
-        data['names'] = [name]
+            data['names'] = [name]
     await session.send(f'玩家{name}已参与匹配，游戏开始，任何时候输入"查看分数"可以查看全部玩家当前分数')
     #开始游戏
     data['boards'] = [Player() for qq in data['players']]
@@ -150,7 +151,7 @@ async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func
             session.finish('未发现骰子，请重新输入')
         p.roll()
         if p.rolled_count == 0:
-            await session.send(f'玩家{data["names"][data["current_player"]]}骰子为{p.float_dice}\n可选计分项为：{p.str_temp_scoreboard}，\n输入如"计分 快艇"计分')
+            await session.send(f'玩家{data["names"][data["current_player"]]}骰子为{p.fixed_dice}\n可选计分项为：{p.str_temp_scoreboard}，\n输入如"计分 快艇"计分')
         else:
             await session.send(f'玩家{data["names"][data["current_player"]]}扔出骰子{p.float_dice}，已固定骰子{p.fixed_dice}\n剩余重扔次数：{p.rolled_count}\n输入如"重扔 5,5,6"重扔，如"计分 快艇"计分')
     elif command.startswith('计分') and session.ctx['user_id'] == data['players'][data['current_player']]:
