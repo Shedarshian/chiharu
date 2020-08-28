@@ -27,9 +27,7 @@ class Player:
         self.rolled_count = 3
     @property
     def temp_scoreboard(self):
-        if len(self._fixed_dice) != 5:
-            return {name: 0 for name in Player.Name}
-        d = list(sorted(self._fixed_dice))
+        d = list(sorted(self._float_dice + self._fixed_dice))
         t = {}
         t[Player.Name.一] = sum((c for c in d if c == 1), 0)
         t[Player.Name.二] = sum((c for c in d if c == 2), 0)
