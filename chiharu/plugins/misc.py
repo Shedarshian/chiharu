@@ -853,7 +853,7 @@ async def roll(session: CommandSession):
     l = session.current_arg_text.split('+')
     ret = []
     for c in l:
-        match = re.match(r'^(\d*)d(\d*)$', c)
+        match = re.match(r'^(\d*)d(\d*)$', c.strip())
         if not match:
             session.finish('语法错误')
         n = match.group(1) or 1
