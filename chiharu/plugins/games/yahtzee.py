@@ -111,9 +111,9 @@ async def yahtzee_begin_uncomplete(session: CommandSession, data: Dict[str, Any]
     except aiocqhttp.exceptions.ActionFailed:
         name = str(qq)
     if 'names' in data:
-        data['names'][qq] = name
+        data['names'].append(name)
     else:
-        data['names'] = {qq: name}
+        data['names'] = []
     await session.send(f'玩家{name}已参与匹配，人数足够可使用-play.yahtzee.confirm开始比赛。')
 
 @yahtzee.begin_complete(('play', 'yahtzee', 'confirm'))
