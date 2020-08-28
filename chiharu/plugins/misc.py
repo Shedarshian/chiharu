@@ -856,8 +856,8 @@ async def roll(session: CommandSession):
         match = re.match(r'^(\d*)d(\d*)$', c.strip())
         if not match:
             session.finish('语法错误')
-        n = match.group(1) or 1
-        d = match.group(2) or 100
+        n = int(match.group(1) or 1)
+        d = int(match.group(2) or 100)
         if n >= 100:
             session.finish('骰子过多')
         for i in range(n):
