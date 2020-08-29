@@ -862,7 +862,7 @@ async def _():
             if e.supervise > 0:
                 for id in config.group_id_dict['thwiki_supervise']:
                     await bot.send_group_msg(group_id=id, message=[config.cq.at(e.supervise), config.cq.text('\n内容: %s\n请监视者就位' % e.name)])
-        elif now - timedelta(seconds=59) < e.begin + timedelta(minutes=TIME_OUT) < now + timedelta(seconds=1) < e.end and e.supervise == 0:
+        elif now - timedelta(seconds=59) < e.begin + timedelta(minutes=TIME_OUT) < e.end and e.supervise == 0:
             l.pop(i)
             for id in config.group_id_dict['thwiki_send']:
                 await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('您的直播无人监视，已被自动取消')])
