@@ -866,6 +866,7 @@ async def _():
             l.pop(i)
             for id in config.group_id_dict['thwiki_send']:
                 await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('您的直播无人监视，已被自动取消')])
+            await _save(l)
             break
     for i, e in enumerate(l):
         if e.isFloat and i != len(l) - 1 and l[i + 1].begin < now + timedelta(seconds=1) or not e.isFloat and e.end < now + timedelta(seconds=1):
