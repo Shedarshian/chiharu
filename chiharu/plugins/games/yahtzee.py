@@ -4,6 +4,7 @@ from enum import Enum, auto
 from typing import Dict, Any, Awaitable
 from nonebot import get_bot, CommandSession, NLPSession
 import aiocqhttp
+from .. import config
 from ..game import GameSameGroup
 from .achievement import achievement
 
@@ -93,6 +94,8 @@ class Player:
         return '  '.join(f'{name.name}：{t[name]}分' for name in Player.Name if name not in self.scoreboard)
 
 yahtzee = GameSameGroup('yahtzee')
+config.CommandGroup(('play', 'yahtzee'), hide=True)
+config.CommandGroup('yahtzee', des='快艇骰子帮助文档建设中', short_des='快艇骰子。', hide_in_parent=True, display_parents='game')
 
 @yahtzee.begin_uncomplete(('play', 'yahtzee', 'begin'), (2, 4))
 async def yahtzee_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):
@@ -173,7 +176,7 @@ async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func
                 f = [board.final_score for board in data['boards']]
                 m = max(f)
                 await session.send('玩家' + '，'.join([data['names'][i] for i, x in enumerate(f) if x == m]) + '胜出！')
-                if m >= 200:
+                if m > 200:
                     for i, x in enumerate(f):
                         if x == m:
                             if achievement.yahtzee.get(str(data['players'][i])):
