@@ -5,6 +5,7 @@ from typing import Dict, Any, Awaitable
 from nonebot import get_bot, CommandSession, NLPSession
 import aiocqhttp
 from ..game import GameSameGroup
+from .achievement import achievement
 
 class Player:
     class Name(Enum):
@@ -172,6 +173,11 @@ async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func
                 f = [board.final_score for board in data['boards']]
                 m = max(f)
                 await session.send('玩家' + '，'.join([data['names'][i] for i, x in enumerate(f) if x == m]) + '胜出！')
+                if m >= 200:
+                    for i, x in enumerate(f):
+                        if x == m:
+                            if achievement.yahtzee.get(str(data['players'][i])):
+                                await session.send(achievement.yahtzee.get_str())
                 await delete_func()
                 return
         p = data['boards'][data['current_player']]
