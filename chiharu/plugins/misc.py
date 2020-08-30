@@ -846,6 +846,7 @@ async def avtobv(session: CommandSession):
         await session.send('av' + str(config.AvBvConverter.dec(text)))
 
 @on_command(('misc', 'r'), only_to_me=False, short_des="随机骰子。")
+@config.ErrorHandle
 async def roll(session: CommandSession):
     """随机骰子。
     使用例：-misc.r 3d20+d6+2d
