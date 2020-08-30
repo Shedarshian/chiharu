@@ -124,8 +124,8 @@ class GameSameGroup:
                 if len(self.uncomplete[group_id]['players']) < self.begin_player[0]:
                     await session.send('匹配人数未达下限，请耐心等待')
                 else:
-                    dct = {'players': self.uncomplete.pop(
-                        group_id)['players'], 'game': self}
+                    dct = self.uncomplete.pop(group_id)
+                    dct['game'] = self
                     try:
                         await _f(session, dct)  # add data to dct
                     except ChessError:
