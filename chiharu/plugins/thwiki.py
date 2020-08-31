@@ -218,7 +218,7 @@ class Event:
         if self.supervise != 0:
             return [config.cq.text('开播提醒！\n'), config.cq.at(self.qq), config.cq.text('\n内容: %s' % self.name)]
         else:
-            return [config.cq.text('开播提醒！\n'), config.cq.at(self.qq), config.cq.text('\n内容: %s\n十分抱歉，您现在的直播尚无监视员，无法直播qwq，如半小时之后仍无人监视则会被自动取消' % self.name)]
+            return [config.cq.text('开播提醒！\n'), config.cq.at(self.qq), config.cq.text('\n内容: %s\n十分抱歉，您现在的直播尚无监视员，无法直播qwq，如15分钟之后仍无人监视则会被自动取消' % self.name)]
     def overlap(self, other):
         if self.isFloat and other.isFloat:
             return self.begin == other.begin
