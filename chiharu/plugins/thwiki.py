@@ -171,7 +171,7 @@ class Event:
             self.card = args[1]
             self.name = args[2]
         elif len(args) == 1:
-            id, begin, end, qq, supervise, msg_id = args['id'], args['begin'], args['end'], args['qq'], args['supervise'], args['msg_id']
+            id, begin, end, qq, supervise, msg_id = args[0]['id'], args[0]['begin'], args[0]['end'], args[0]['qq'], args[0]['supervise'], args[0]['msg_id']
             self.id = int(id)
             if end == 'float':
                 self.end = False
