@@ -153,9 +153,10 @@ class Event:
             else:
                 self.supervise = 0 # -1: 有权限，0: 无权限
             self.msg_id = -1
-        elif len(args) == 3:
+            self.has_alarmed = False
+        elif len(args) == 1:
             # On read from file, fill fields with the first argument 
-            id, begin, end, qq, supervise, msg_id = args[0].split(' ')
+            id, begin, end, qq, supervise, msg_id = args[0]['id'], args[0]['begin'], args[0]['end'], args[0]['qq'], args[0]['supervise'], args[0]['msg_id']
             self.id = int(id)
 
             # Check for endtime
@@ -168,22 +169,9 @@ class Event:
                 self.begin, self.end, self.qq = datetime.fromtimestamp(float(begin)), datetime.fromtimestamp(float(end)), int(qq)
             self.supervise = int(supervise)
             self.msg_id = int(msg_id)
-            self.card = args[1]
-            self.name = args[2]
-        elif len(args) == 1:
-            id, begin, end, qq, supervise, msg_id = args[0]['id'], args[0]['begin'], args[0]['end'], args[0]['qq'], args[0]['supervise'], args[0]['msg_id']
-            self.id = int(id)
-            if end == 'float':
-                self.end = False
-                self.isFloat = True
-                self.begin, self.qq = datetime.fromtimestamp(float(begin)), int(qq)
-            else:
-                self.isFloat = False
-                self.begin, self.end, self.qq = datetime.fromtimestamp(float(begin)), datetime.fromtimestamp(float(end)), int(qq)
-            self.supervise = int(supervise)
-            self.msg_id = int(msg_id)
             self.card = args[0]['card']
             self.name = args[0]['name']
+            self.has_alarmed = args[0].get('has_alarmed', False)
         else:
             raise TypeError()
     def __repr__(self):
@@ -244,17 +232,12 @@ class Event:
     def gen_id(self):
         return more_itertools.first((i2 for i1, i2 in zip(itertools.chain(sorted(e.id for e in l), (-1,)), itertools.count()) if i1 != i2), 0)
     def dump(self):
-        return {'id': self.id, 'begin': str(self.begin.timestamp()), 'end': 'float' if self.isFloat else str(self.end.timestamp()), 'qq': self.qq, 'supervise': self.supervise, 'msg_id': self.msg_id, 'card': self.card, 'name': self.name}
+        return {'id': self.id, 'begin': str(self.begin.timestamp()), 'end': 'float' if self.isFloat else str(self.end.timestamp()), 'qq': self.qq, 'supervise': self.supervise, 'msg_id': self.msg_id, 'card': self.card, 'name': self.name, 'has_alarmed': self.has_alarmed}
 
 # Read from the file and returns a list of applications
 def _open():
     with open(config.rel("thwiki.json"), encoding='utf-8') as f:
         return [Event(d) for d in json.load(f)]
-    # def _f():
-    #     with open(config.rel("thwiki.txt"), encoding='utf-8') as f:
-    #         for i, j, k in config.group(3, f):
-    #             yield Event(i.strip(), j.strip(), k.strip())
-    # return list(_f())
 
 # Initializes application list
 l = _open()
@@ -264,8 +247,6 @@ l = _open()
 async def _save(t):
     with open(config.rel("thwiki.json"), 'w', encoding='utf-8') as f:
         f.write(json.dumps(list(map(Event.dump, t)), ensure_ascii=False, indent=4))
-    # with open(config.rel("thwiki.txt"), 'w', encoding='utf-8') as f:
-        # f.write('\n'.join(map(repr, t)))
     _3dayslater = date.today() + timedelta(days=3)
     occupied_time = []
     for i, event in enumerate(t):
@@ -868,7 +849,9 @@ async def _():
     now = datetime.now()
     bot = get_bot()
     for i, e in enumerate(l):
-        if now - timedelta(seconds=59) < e.begin < now + timedelta(seconds=1):
+        if e.begin < now + timedelta(seconds=1) and not e.has_alarmed:
+            e.has_alarmed = True
+            await _save(l)
             for id in config.group_id_dict['thwiki_send']:
                 await bot.send_group_msg(group_id=id, message=e.output_with_at())
             ret = await change(title=('【东方】' if '【东方】' not in e.name else '') + e.name)
