@@ -182,8 +182,8 @@ class Event:
                 self.begin, self.end, self.qq = datetime.fromtimestamp(float(begin)), datetime.fromtimestamp(float(end)), int(qq)
             self.supervise = int(supervise)
             self.msg_id = int(msg_id)
-            self.card = args['card']
-            self.name = args['name']
+            self.card = args[0]['card']
+            self.name = args[0]['name']
         else:
             raise TypeError()
     def __repr__(self):
