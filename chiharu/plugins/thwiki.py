@@ -170,6 +170,20 @@ class Event:
             self.msg_id = int(msg_id)
             self.card = args[1]
             self.name = args[2]
+        elif len(args) == 1:
+            id, begin, end, qq, supervise, msg_id = args['id'], args['begin'], args['end'], args['qq'], args['supervise'], args['msg_id']
+            self.id = int(id)
+            if end == 'float':
+                self.end = False
+                self.isFloat = True
+                self.begin, self.qq = datetime.fromtimestamp(float(begin)), int(qq)
+            else:
+                self.isFloat = False
+                self.begin, self.end, self.qq = datetime.fromtimestamp(float(begin)), datetime.fromtimestamp(float(end)), int(qq)
+            self.supervise = int(supervise)
+            self.msg_id = int(msg_id)
+            self.card = args['card']
+            self.name = args['name']
         else:
             raise TypeError()
     def __repr__(self):
@@ -229,14 +243,18 @@ class Event:
         return self.begin < other.end and other.begin < self.end # None of them end with uncertain time
     def gen_id(self):
         return more_itertools.first((i2 for i1, i2 in zip(itertools.chain(sorted(e.id for e in l), (-1,)), itertools.count()) if i1 != i2), 0)
+    def dump(self):
+        return {'id': self.id, 'begin': str(self.begin.timestamp()), 'end': 'float' if self.isFloat else str(self.end.timestamp()), 'qq': self.qq, 'supervise': self.supervise, 'msg_id': self.msg_id, 'card': self.card, 'name': self.name}
 
 # Read from the file and returns a list of applications
 def _open():
-    def _f():
-        with open(config.rel("thwiki.txt"), encoding='utf-8') as f:
-            for i, j, k in config.group(3, f):
-                yield Event(i.strip(), j.strip(), k.strip())
-    return list(_f())
+    with open(config.rel("thwiki.json"), encoding='utf-8') as f:
+        return json.load(f)
+    # def _f():
+    #     with open(config.rel("thwiki.txt"), encoding='utf-8') as f:
+    #         for i, j, k in config.group(3, f):
+    #             yield Event(i.strip(), j.strip(), k.strip())
+    # return list(_f())
 
 # Initializes application list
 l = _open()
@@ -244,8 +262,10 @@ l = _open()
 # Writes current list of applications to the file
 # Updates the "occupied_time.json" and alarm OLC's bot
 async def _save(t):
-    with open(config.rel("thwiki.txt"), 'w', encoding='utf-8') as f:
-        f.write('\n'.join(map(repr, t)))
+    with open(config.rel("thwiki.json"), 'w', encoding='utf-8') as f:
+        f.write(json.dumps(list(map(Event.dump, t)), ensure_ascii=False, indent=4))
+    # with open(config.rel("thwiki.txt"), 'w', encoding='utf-8') as f:
+        # f.write('\n'.join(map(repr, t)))
     _3dayslater = date.today() + timedelta(days=3)
     occupied_time = []
     for i, event in enumerate(t):
