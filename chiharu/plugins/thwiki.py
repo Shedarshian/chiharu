@@ -249,7 +249,7 @@ class Event:
 # Read from the file and returns a list of applications
 def _open():
     with open(config.rel("thwiki.json"), encoding='utf-8') as f:
-        return json.load(f)
+        return [Event(d) for d in json.load(f)]
     # def _f():
     #     with open(config.rel("thwiki.txt"), encoding='utf-8') as f:
     #         for i, j, k in config.group(3, f):
