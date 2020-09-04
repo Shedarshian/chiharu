@@ -626,7 +626,7 @@ async def _(session: CommandSession):
     if m_end is None:
         session.args['end'] = False
     else:
-        year, month, day, hours1, minute1, hours2, minute2, _now, _float = m_end.groups()
+        year_end, month_end, day_end, hours1, minute1, hours2, minute2, _now, _float = m_end.groups()
         if _now is not None:
             session.args['end'] = False
         elif _float is not None:
@@ -635,9 +635,9 @@ async def _(session: CommandSession):
         else:
             hours = hours1 if hours1 is not None else hours2
             minute = minute1 if minute1 is not None else minute2
-            year = _default(year, now.year)
-            month = _default(month, now.month)
-            day = _default(day, now.day)
+            year = _default(year_end, year)
+            month = _default(month_end, month)
+            day = _default(day_end, day)
             hours = int(hours)
             minute = _default(minute, 0)
             try:
