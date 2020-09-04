@@ -591,14 +591,14 @@ async def _(session: CommandSession):
     else:
         time_end = session.current_arg_text[i + 1:j]
         session.args['name'] = session.current_arg_text[j + 1:]
-    r = re.compile('(?:' '(?:(\\d+)年)?' '(?:(\\d+)月)?' '(?:(\\d+)(?:日|号))?'
+    r = re.compile('(?:' '(?:(?:(\\d+)年)?' '(?:(\\d+)月)?' '(?:(\\d+)(?:日|号))?' '|(明|后)(?:天|日))'
         '(?:' '(?:(\\d+)(?:时|点))' '(?:(\\d+)分)?' '|' '(\\d+)(?::|：)(\\d+)' '))|(now)|(float)')
     m_begin = re.match(r, time_begin)
     m_end = re.match(r, time_end)
     if m_begin is None:
         session.args['begin'] = False
     else:
-        year, month, day, hours1, minute1, hours2, minute2, _now, _float = m_begin.groups()
+        year, month, day, special, hours1, minute1, hours2, minute2, _now, _float = m_begin.groups()
         if _now is not None:
             session.args['begin'] = datetime.now()
         elif _float is not None:
@@ -606,9 +606,15 @@ async def _(session: CommandSession):
         else:
             hours = hours1 if hours1 is not None else hours2
             minute = minute1 if minute1 is not None else minute2
-            year = _default(year, now.year)
-            month = _default(month, now.month)
-            day = _default(day, now.day)
+            if special == '明':
+                temp_time = now + timedelta(days=1)
+            elif special == '后':
+                temp_time = now + timedelta(days=2)
+            else:
+                temp_time = now
+            year = _default(year, temp_time.year)
+            month = _default(month, temp_time.month)
+            day = _default(day, temp_time.day)
             hours = int(hours)
             minute = _default(minute, 0)
             try:
@@ -626,7 +632,7 @@ async def _(session: CommandSession):
     if m_end is None:
         session.args['end'] = False
     else:
-        year_end, month_end, day_end, hours1, minute1, hours2, minute2, _now, _float = m_end.groups()
+        year_end, month_end, day_end, special_end, hours1, minute1, hours2, minute2, _now, _float = m_end.groups()
         if _now is not None:
             session.args['end'] = False
         elif _float is not None:
@@ -635,9 +641,20 @@ async def _(session: CommandSession):
         else:
             hours = hours1 if hours1 is not None else hours2
             minute = minute1 if minute1 is not None else minute2
-            year = _default(year_end, year)
-            month = _default(month_end, month)
-            day = _default(day_end, day)
+            if special == '明':
+                temp_time = now + timedelta(days=1)
+                year = _default(year_end, temp_time.year)
+                month = _default(month_end, temp_time.month)
+                day = _default(day_end, temp_time.day)
+            elif special == '后':
+                temp_time = now + timedelta(days=2)
+                year = _default(year_end, temp_time.year)
+                month = _default(month_end, temp_time.month)
+                day = _default(day_end, temp_time.day)
+            else:
+                year = _default(year_end, year)
+                month = _default(month_end, month)
+                day = _default(day_end, day)
             hours = int(hours)
             minute = _default(minute, 0)
             try:
