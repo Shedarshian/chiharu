@@ -592,7 +592,7 @@ async def _(session: CommandSession):
         time_end = session.current_arg_text[i + 1:j]
         session.args['name'] = session.current_arg_text[j + 1:]
     r = re.compile('(?:' '(?:(\\d+)年)?' '(?:(\\d+)月)?' '(?:(\\d+)(?:日|号))?'
-        '(?:' '(?:(\\d+)(?:时|点))' '(?:(\\d+)分)?' '|' '(\\d+):(\\d+)' '))|(now)|(float)')
+        '(?:' '(?:(\\d+)(?:时|点))' '(?:(\\d+)分)?' '|' '(\\d+)(?::|：)(\\d+)' '))|(now)|(float)')
     m_begin = re.match(r, time_begin)
     m_end = re.match(r, time_end)
     if m_begin is None:
