@@ -31,9 +31,12 @@ env_all_can_private.private = True
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.3.11"
-changelog = """2.3.0-11 Changelog:
+version = "2.3.12"
+changelog = """2.3.0-12 Changelog:
 Change:
+-thwiki.apply：1.支持 明天/明日/后天/后日
+2.结束时间默认与起始时间在同一天
+3.支持中文冒号
 -thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。并且不需要被推荐人同意。
 若开播后15分钟仍未有人监视，则申请会被自动取消。
 Remove:
