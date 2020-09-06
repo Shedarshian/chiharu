@@ -885,12 +885,12 @@ async def _():
             if e.supervise > 0:
                 for id in config.group_id_dict['thwiki_supervise']:
                     await bot.send_group_msg(group_id=id, message=[config.cq.at(e.supervise), config.cq.text('\n内容: %s\n请监视者就位' % e.name)])
-        elif e.begin + timedelta(minutes=TIME_OUT) < now + timedelta(seconds=1) < e.end and e.supervise == 0:
+        elif e.begin + timedelta(minutes=TIME_OUT) < now + timedelta(seconds=1) and e.supervise == 0 and (now + timedelta(seconds=1) < e.end or e.isFloat):
             l.pop(i)
             for id in config.group_id_dict['thwiki_send']:
                 await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('您的直播无人监视，已被自动取消')])
             await _save(l)
-            break
+            return
     for i, e in enumerate(l):
         if e.isFloat and i != len(l) - 1 and l[i + 1].begin < now + timedelta(seconds=1) or not e.isFloat and e.end < now + timedelta(seconds=1):
             d = int(((l[i + 1].begin if e.isFloat else e.end) - e.begin).total_seconds() - 1) // 60 + 1
