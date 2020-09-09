@@ -644,12 +644,12 @@ async def _(session: CommandSession):
         else:
             hours = hours1 if hours1 is not None else hours2
             minute = minute1 if minute1 is not None else minute2
-            if special == '明':
+            if special_end == '明':
                 temp_time = now + timedelta(days=1)
                 year = _default(year_end, temp_time.year)
                 month = _default(month_end, temp_time.month)
                 day = _default(day_end, temp_time.day)
-            elif special == '后':
+            elif special_end == '后':
                 temp_time = now + timedelta(days=2)
                 year = _default(year_end, temp_time.year)
                 month = _default(month_end, temp_time.month)
