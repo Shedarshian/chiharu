@@ -594,7 +594,7 @@ async def _(session: CommandSession):
     else:
         time_end = session.current_arg_text[i + 1:j]
         session.args['name'] = session.current_arg_text[j + 1:]
-    r = re.compile('(?:' '(?:(?:(\\d+)年)?' '(?:(\\d+)月)?' '(?:(\\d+)(?:日|号))?' '|(明|后)(?:天|日))'
+    r = re.compile('(?:' '(?:' '(?:(\\d+)年)?' '(?:(\\d+)月)?' '(?:(\\d+)(?:日|号))?' '|(明|后)(?:天|日))'
         '(?:' '(?:(\\d+)(?:时|点))' '(?:(\\d+)分)?' '|' '(\\d+)(?::|：)(\\d+)' '))|(now)|(float)')
     m_begin = re.match(r, time_begin)
     m_end = re.match(r, time_end)
@@ -604,6 +604,9 @@ async def _(session: CommandSession):
         year, month, day, special, hours1, minute1, hours2, minute2, _now, _float = m_begin.groups()
         if _now is not None:
             session.args['begin'] = datetime.now()
+            year = now.year
+            month = now.month
+            day = now.day
         elif _float is not None:
             session.args['begin'] = False
         else:
