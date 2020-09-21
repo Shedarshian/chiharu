@@ -275,7 +275,7 @@ async def calculator(session: CommandSession):
         贝塞尔函数BesselJ BesselY BesselK BesselI
         球贝塞尔函数Besselj Bessely Besselk Besseli
         艾里函数Airy Biry
-        均匀分布随机数rand 高斯分布随机数gauss
+        均匀分布随机数random 高斯分布随机数gauss
     可以使用的常量：
         圆周率pi 自然对数的底e 欧拉常数gamma"""
     try:
