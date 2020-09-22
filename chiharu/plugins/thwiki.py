@@ -600,6 +600,8 @@ async def _(session: CommandSession):
     m_end = re.match(r, time_end)
     if m_begin is None:
         session.args['begin'] = False
+        session.args['end'] = False
+        return
     else:
         year, month, day, special, hours1, minute1, hours2, minute2, _now, _float = m_begin.groups()
         if _now is not None:
