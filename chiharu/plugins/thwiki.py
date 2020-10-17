@@ -1732,13 +1732,14 @@ async def thwiki_group_request(session: RequestSession):
     elif session.ctx['group_id'] in config.group_id_dict['thwiki_supervise']:
         qq = session.ctx["user_id"]
         node = find_or_new(qq)
+        message = session.ctx['comment'] or '无'
         if node['card'] is None:
             node['card'] = await get_card(qq)
         with open(config.rel('thwiki_bilispace.json')) as f:
             a = json.load(f)
         c = a[str(qq)] if str(qq) in a else "未记录"
         for group in config.group_id_dict['thwiki_supervise']:
-            await get_bot().send_group_msg(group_id=group, message=f'收到审核群加群申请。qq：{qq}，名片：{node["card"]}，直播时间：{node["time"]}min，b站空间：{c}')
+            await get_bot().send_group_msg(group_id=group, message=f'收到审核群加群申请。qq：{qq}，名片：{node["card"]}，直播时间：{node["time"]}min，b站空间：{c}，加群申请信息：{message}')
 
 @message_preprocessor
 async def thwiki_record(bot, ctx):
