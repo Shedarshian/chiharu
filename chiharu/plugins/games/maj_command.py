@@ -1,7 +1,7 @@
 import asyncio
 from . import maj, config
 from typing import Type, TypeVar
-from .inject import on_command
+from ..inject import on_command
 from nonebot import CommandSession, get_bot, permission
 
 players = {}
