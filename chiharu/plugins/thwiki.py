@@ -1761,8 +1761,8 @@ async def thwiki_punish(session: CommandSession):
     如确认，则将该发言撤回，并扣除友善度。友善度上限为5，扣至1或2点则禁言1h，扣至零则踢出。
     并告知友善度剩余几点。"""
     if session.get('confirmed'):
+        record = session.get('record')
         if not session.get('deleted'):
-            record = session.get('record')
             try:
                 await get_bot().delete_msg(message_id=record.msg_id)
             except aiocqhttp.exceptions.ActionFailed:
