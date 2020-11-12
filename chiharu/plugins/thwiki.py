@@ -1822,7 +1822,7 @@ async def _(session: CommandSession):
         session.args['deleted'] = True
         return
     session.args['confirmed'] = False
-    l = list(map(str.strip, session.current_arg_text.split('\n')))
+    l = list(map(str.strip, session.current_arg_text.replace('\r', '').split('\n')))
     if len(l) == 2:
         qq_str, time_str = l
         session.args['word'] = None
