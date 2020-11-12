@@ -720,7 +720,10 @@ async def thwiki_cancel(session: CommandSession):
 
         if e.msg_id != -1:
             config.logger.thwiki << f"【LOG】撤回消息：{e.msg_id}"
-            await get_bot().delete_msg(message_id=e.msg_id)
+            try:
+                await get_bot().delete_msg(message_id=e.msg_id)
+            except aiocqhttp.exceptions.ActionFailed:
+                pass
 
         await _save(l)
         await session.send('成功删除')
