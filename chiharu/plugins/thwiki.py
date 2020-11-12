@@ -1761,8 +1761,13 @@ async def thwiki_punish(session: CommandSession):
     如确认，则将该发言撤回，并扣除友善度。友善度上限为5，扣至1或2点则禁言1h，扣至零则踢出。
     并告知友善度剩余几点。"""
     if session.get('confirmed'):
-        record = session.get('record')
-        await get_bot().delete_msg(message_id=record.msg_id)
+        if not session.get('deleted'):
+            record = session.get('record')
+            try:
+                await get_bot().delete_msg(message_id=record.msg_id)
+            except aiocqhttp.exceptions.ActionFailed:
+                session.args['confirmed'] = False
+                session.pause('消息撤回失败，请联系管理员手动撤回消息后，在此处回复“完毕”，以执行下一步指令。回复返回退出。')
         node = find_or_new(record.qq)
         if 'punish' not in node:
             node['punish'] = session.get('severity')
@@ -1798,6 +1803,7 @@ async def thwiki_punish(session: CommandSession):
 async def _(session: CommandSession):
     if session.current_arg.startswith('确认'):
         session.args['confirmed'] = True
+        session.args['deleted'] = False
         severity, *els = session.current_arg[3:].split(' ')
         if severity.startswith('\\'):
             try:
@@ -1811,6 +1817,10 @@ async def _(session: CommandSession):
         return
     elif session.current_arg == '返回':
         session.finish('已取消')
+    elif session.current_arg == '完毕':
+        session.args['confirmed'] = True
+        session.args['deleted'] = True
+        return
     session.args['confirmed'] = False
     l = list(map(str.strip, session.current_arg_text.split('\n')))
     if len(l) == 2:
