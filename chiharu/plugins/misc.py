@@ -17,7 +17,8 @@ from nonebot import CommandSession, permission, on_natural_language, NLPSession
 from .inject import on_command
 from . import config
 from .birth import myFormatter
-from . import maj, math as cmath
+from . import math as cmath
+from .games import maj
 from .games.achievement import achievement
 
 config.CommandGroup('misc', short_des='隐藏指令。')

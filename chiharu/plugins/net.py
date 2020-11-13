@@ -123,6 +123,7 @@ async def login():
     for group in config.group_id_dict['boss']:
         await get_bot().send_group_msg(group_id=group, message='boss logged in!')
 told_not_logged_in = False
+told_permission_denied = False
 
 config.CommandGroup('boss', hide=True)
 
@@ -204,7 +205,7 @@ class Status:
 
 @scheduler.scheduled_job('cron', id='check_boss', minute='00-57/3')
 async def check_boss():
-    global BossCheck, isLoggedin, told_not_logged_in, interact
+    global BossCheck, isLoggedin, told_not_logged_in, interact, told_permission_denied
     bot = get_bot()
     if not isLoggedin:
         if not told_not_logged_in:
@@ -254,8 +255,10 @@ async def check_boss():
                         f.write('\n')
             strout = status.process(_g)
         if strout != "":
-            for group in config.group_id_dict['boss']:
-                await bot.send_group_msg(group_id=group, message=strout)
+            if 'Permission denied' in strout and not told_permission_denied:
+                for group in config.group_id_dict['boss']:
+                    await bot.send_group_msg(group_id=group, message=strout)
+                told_permission_denied = True
     else:
         if status.Running():
             BossCheck = True
