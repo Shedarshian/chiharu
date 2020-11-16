@@ -205,7 +205,7 @@ class Status:
 
 @scheduler.scheduled_job('cron', id='check_boss', minute='00-57/3')
 async def check_boss():
-    global BossCheck, isLoggedin, told_not_logged_in, interact, told_permission_denied
+    global BossCheck, isLoggedin, told_not_logged_in, interact
     bot = get_bot()
     if not isLoggedin:
         if not told_not_logged_in:
@@ -255,9 +255,10 @@ async def check_boss():
                         f.write('\n')
             strout = status.process(_g)
         if strout != "":
+            global told_permission_denied
             if 'Permission denied' in strout and not told_permission_denied:
                 for group in config.group_id_dict['boss']:
-                    await bot.send_group_msg(group_id=group, message=strout)
+                    await bot.send_group_msg(group_id=group, message=strout + '\ntold first time')
                 told_permission_denied = True
     else:
         if status.Running():
