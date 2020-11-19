@@ -218,8 +218,8 @@ async def check_boss():
     output = interact.current_output_clean
     # stdin, stdout, stderr = ssh.exec_command('/workfs/bes/qity/shell/script/submit -c')
     # output = ''.join(stdout.readlines()).strip()
+    global told_permission_denied
     if output != '':
-        global told_permission_denied
         if 'Permission denied' in output and not told_permission_denied:
             for group in config.group_id_dict['boss']:
                 await bot.send_group_msg(group_id=group, message=output.strip() + '\ntold first time')
@@ -261,7 +261,6 @@ async def check_boss():
                         f.write('\n')
             strout = status.process(_g)
         if strout != "":
-            global told_permission_denied
             if 'Permission denied' in strout and not told_permission_denied:
                 for group in config.group_id_dict['boss']:
                     await bot.send_group_msg(group_id=group, message=strout + '\ntold first time')
