@@ -220,10 +220,11 @@ async def check_boss():
     # output = ''.join(stdout.readlines()).strip()
     global told_permission_denied
     if output != '':
-        if 'Permission denied' in output and not told_permission_denied:
-            for group in config.group_id_dict['boss']:
-                await bot.send_group_msg(group_id=group, message=output.strip() + '\ntold first time')
-            told_permission_denied = True
+        if 'Permission denied' in output:
+            if not told_permission_denied:
+                for group in config.group_id_dict['boss']:
+                    await bot.send_group_msg(group_id=group, message=output.strip() + '\ntold first time')
+                told_permission_denied = True
         else:
             for group in config.group_id_dict['boss']:
                 await bot.send_group_msg(group_id=group, message=output.strip())
@@ -261,10 +262,11 @@ async def check_boss():
                         f.write('\n')
             strout = status.process(_g)
         if strout != "":
-            if 'Permission denied' in strout and not told_permission_denied:
-                for group in config.group_id_dict['boss']:
-                    await bot.send_group_msg(group_id=group, message=strout + '\ntold first time')
-                told_permission_denied = True
+            if 'Permission denied' in strout
+                if not told_permission_denied:
+                    for group in config.group_id_dict['boss']:
+                        await bot.send_group_msg(group_id=group, message=strout + '\ntold first time')
+                    told_permission_denied = True
             else:
                 for group in config.group_id_dict['boss']:
                     await bot.send_group_msg(group_id=group, message=strout)
