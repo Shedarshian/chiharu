@@ -270,7 +270,7 @@ async def _save(t):
 async def change_des_to_list(lunbo=False):
     global l
     fut = datetime.now() + timedelta(days=7)
-    s = 'THBWiki电视台（大雾）</h2><p>基本上会以直播<strong>东方Project</strong>的游戏为主。日常进行直播的主播不定。</p><h3><strong>本直播间欢迎大家使用，但需要直播的内容为东方Project相关且遵守直播者所在国家与中国相关法律与条约及平台条约。</strong><br />具体使用方法以及粉丝群请戳QQ群 <strong>807894304</strong> 【THBWiki直播】</h3><p>节目单：<br />%s</p>' % \
+    s = 'THBWiki电视台（大雾）</h2><p>基本上会以直播<strong>东方Project</strong>的游戏为主。日常进行直播的主播不定。</p><h3><strong>本直播间欢迎大家使用，但需要直播的内容为东方Project相关且遵守直播者所在国家与中国相关法律与条约及平台条约。</strong><br />具体使用方法以及粉丝群请戳QQ群： <strong>807894304</strong> 【THBWiki直播】</h3><p>节目单：<br />%s</p>' % \
         '<br />'.join(map(Event.str_url, filter(lambda x: x.begin < fut, l)))
     if lunbo:
         s = '<h2>当前轮播中，欢迎查看收藏夹https://space.bilibili.com/362841475/favlist?fid=853928275，轮播视频均在收藏夹中，在直播群（下述）中可以添加轮播视频或推荐视频哦~<br />' + s
