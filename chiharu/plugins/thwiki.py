@@ -4,7 +4,7 @@ import requests
 import json
 import asyncio
 import functools
-import more_itertools
+import itertools, more_itertools
 import random
 from collections import namedtuple
 from copy import copy
@@ -18,15 +18,21 @@ from .inject import on_command
 config.logger.open('thwiki')
 env = config.Environment('thwiki_live', ret='请在直播群内使用')
 env_supervise_only = config.Environment('thwiki_supervise', ret='请在监视群内使用')
-env_supervise = config.Environment('thwiki_supervise', config.Admin('thwiki_live'), ret='请在监视群内或直播群管理使用')
-env_all_can_private = env|env_supervise
+def is_supervisor(session):
+    qq = session.ctx['user_id']
+    node = find_or_new(qq)
+    return 'supervisor' in node and node['supervisor']
+constraint_supervisor = config.Constraint('thwiki_live', can_respond=is_supervisor)
+env_supervise = config.Environment('thwiki_supervise', 'thwiki_live', constraint_supervisor, ret='请在监视群内或直播群管理使用')
+env_all_thwiki_live = config.Environment('thwiki_supervise', 'thwiki_live')
+env_all_can_private = config.Environment('thwiki_supervise', 'thwiki_live')
 env_all_can_private.private = True
 
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.3.8"
-changelog = """2.3.0-8 Changelog:
+version = "2.3.11"
+changelog = """2.3.0-11 Changelog:
 Change:
 -thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。并且不需要被推荐人同意。
 若开播后15分钟仍未有人监视，则申请会被自动取消。
@@ -35,6 +41,7 @@ Remove:
 
 TRAIL_TIME = 36 * 60
 TIME_OUT = 15
+FRIENDLY_MAX = 5
 
 # Change title and description on Bilibili livestream room
 # title: self-explanatory
@@ -137,7 +144,7 @@ class Event:
             self.begin, self.end, self.qq, self.card, self.name, self.isFloat = args
 
             # Assign an ID associated with this application
-            self.id = max(-1, -1, *map(lambda e: e.id, l)) + 1
+            self.id = self.gen_id()
 
             # Check whether this applicant has been authorized
             node = find_whiteforest(qq=self.qq)
@@ -220,6 +227,8 @@ class Event:
         elif other.isFloat:
             return self.begin <= other.begin < self.end
         return self.begin < other.end and other.begin < self.end # None of them end with uncertain time
+    def gen_id(self):
+        return more_itertools.first((i2 for i1, i2 in zip(itertools.chain(sorted(e.id for e in l), (-1,)), itertools.count()) if i1 != i2), 0)
 
 # Read from the file and returns a list of applications
 def _open():
@@ -393,6 +402,16 @@ def add_time(qq, time):
         node['trail'] = 1
     save_whiteforest()
     return b
+
+def add_supervise_time(qq, time):
+    node = find_or_new(qq)
+
+    time = int(time)
+    if 'supervise_time' not in node:
+        node['supervise_time'] = 0
+    node['supervise_time'] += time
+    config.logger.thwiki << f'【LOG】监视者{qq} {"积累" if time > 0 else "扣除"}监视时间{abs(time)}，目前监视时间{node["time"]}'
+    save_whiteforest()
 
 class ApplyErr(BaseException):
     pass
@@ -668,6 +687,8 @@ async def thwiki_cancel(session: CommandSession):
         # In this case, a shutdown of room should be performed...?
         if e.supervise != 0 and e.begin < now:
             d = int((now - e.begin).total_seconds() - 1) // 60 + 1
+            if e.supervise > 0:
+                add_supervise_time(e.supervise, d)
             if add_time(e.qq, d):
                 await session.send('您已成功通过试用期转正！')
 
@@ -755,6 +776,8 @@ async def thwiki_term(session: CommandSession):
     s = ""
     if e.supervise != 0:
         d = int((now - e.begin).total_seconds() - 1) // 60 + 1
+        if e.supervise > 0:
+            add_supervise_time(e.supervise, d)
         if add_time(e.qq, d):
             await session.send('您已成功通过试用期转正！')
         s = f"，已为您累积直播时间{d}分钟"
@@ -839,16 +862,19 @@ async def _():
             if e.supervise > 0:
                 for id in config.group_id_dict['thwiki_supervise']:
                     await bot.send_group_msg(group_id=id, message=[config.cq.at(e.supervise), config.cq.text('\n内容: %s\n请监视者就位' % e.name)])
-        elif now - timedelta(seconds=59) < e.begin + timedelta(minutes=TIME_OUT) < now + timedelta(seconds=1) < e.end and e.supervise == 0:
+        elif e.begin + timedelta(minutes=TIME_OUT) < now + timedelta(seconds=1) < e.end and e.supervise == 0:
             l.pop(i)
             for id in config.group_id_dict['thwiki_send']:
                 await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('您的直播无人监视，已被自动取消')])
+            await _save(l)
             break
     for i, e in enumerate(l):
         if e.isFloat and i != len(l) - 1 and l[i + 1].begin < now + timedelta(seconds=1) or not e.isFloat and e.end < now + timedelta(seconds=1):
             d = int(((l[i + 1].begin if e.isFloat else e.end) - e.begin).total_seconds() - 1) // 60 + 1
             l.pop(i)
             if e.supervise != 0:
+                if e.supervise > 0:
+                    add_supervise_time(e.supervise, d)
                 if add_time(e.qq, d):
                     for id in config.group_id_dict['thwiki_send']:
                         await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('已成功通过试用期转正！')], auto_escape=True)
@@ -1544,7 +1570,7 @@ async def thwiki_weak_blacklist(session: CommandSession):
                 return
             begin += match.span()[1]
             yield int(match.group(1))
-    qqs = list(_tmp(session.current_arg_text))
+    qqs = list(_tmp(session.current_arg))
 
     updated_event = []
     for qq in qqs:
@@ -1572,17 +1598,17 @@ async def thwiki_weak_blacklist(session: CommandSession):
 
     await session.send('已加入弱黑名单')
 
-@on_command(('thwiki', 'print_blacklist'), only_to_me=False, env=env_supervise_only)
+@on_command(('thwiki', 'print_blacklist'), only_to_me=False, environment=env_supervise_only)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_print_blacklist(session: CommandSession):
     """列出黑名单"""
-    await session.send('\n'.join((get_card(i) + str(i)) for i in blacklist))
+    await session.send('\n'.join((str(find_or_new(i)['card']) + ' ' + str(i)) for i in blacklist))
 
 @on_command(('thwiki', 'print_weak_blacklist'), only_to_me=False, environment=env_supervise_only)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_print_weak_blacklist(session: CommandSession):
     """列出弱黑名单。"""
-    await session.send('\n'.join((get_card(i) + str(i)) for i in weak_blacklist))
+    await session.send('\n'.join((str(find_or_new(i)['card']) + ' ' + str(i)) for i in weak_blacklist))
 
 # Handler for command '-thwiki.check_user'
 @on_command(('thwiki', 'check_user'), only_to_me=False, short_des="查询直播过的用户数量。", environment=env_supervise)
@@ -1703,8 +1729,8 @@ async def thwiki_punish(session: CommandSession):
     """惩罚不当发言。
     格式为：-thwiki.punish qq 换行 YYYY-MM-DD HH:MM[:SS] [换行 关键词]
     检索给定时间前后1分钟内距离该时间最近的包含关键词的发言。（可不给关键字）
-    如确认，则将该发言撤回，并依已触发次数惩罚发言者。第一次不做禁言，第二次禁言20分钟，第三次踢出。
-    并告知此为第几次。"""
+    如确认，则将该发言撤回，并扣除友善度。友善度上限为5，扣至1或2点则禁言1h，扣至零则踢出。
+    并告知友善度剩余几点。"""
     if session.get('confirmed'):
         record = session.get('record')
         await get_bot().delete_msg(message_id=record.msg_id)
@@ -1715,11 +1741,11 @@ async def thwiki_punish(session: CommandSession):
             node['punish'] += session.get('severity')
         save_whiteforest()
         group = list(config.group_id_dict['thwiki_punish'])[0]
-        if node['punish'] == 2:
-            await get_bot().set_group_ban(group_id=group, user_id=node['qq'], duration=1200)
+        if 3 <= node['punish'] < FRIENDLY_MAX:
+            await get_bot().set_group_ban(group_id=group, user_id=node['qq'], duration=3600)
         reason = session.get('reason')
-        await get_bot().send_group_msg(group_id=group, message=[config.cq.text('管理员认为'), config.cq.at(record.qq), config.cq.text(f'于{record.time.strftime("%H:%M:%S")} CST{node["card"]}作出了不妥当的发言，扣除该群员{session.get("severity")}点友善度' + ('，理由为：' + reason if reason else '') + f'剩余{min(0, 3 - node["punish"])}友善度' + ('，已移出群聊。' if node['punish'] >= 3 else '。'))])
-        if node['punish'] >= 3:
+        await get_bot().send_group_msg(group_id=group, message=[config.cq.text('管理员认为'), config.cq.at(record.qq), config.cq.text(f'于{record.time.strftime("%H:%M:%S")} CST{node["card"]}作出了不妥当的发言，扣除该群员{session.get("severity")}点友善度' + ('，理由为：' + reason + '\n' if reason else '') + f'剩余{max(0, FRIENDLY_MAX - node["punish"])}友善度' + ('，已移出群聊。' if node['punish'] >= FRIENDLY_MAX else '。'))])
+        if node['punish'] >= FRIENDLY_MAX:
             await get_bot().set_group_kick(group_id=group, user_id=node['qq'])
         session.finish('已撤回')
     global record_file
@@ -1787,9 +1813,9 @@ async def thwiki_punish_check(session: CommandSession):
             return 0
         else:
             return node['punish']
-    await session.send(f'此用户已被惩罚{_(qq)}次。')
+    await session.send(f'此用户友善度剩余{FRIENDLY_MAX - _(qq)}点。')
 
-@on_command(('thwiki', 'kick'), only_to_me=False, short_des="踢出群聊。", environment=env_supervise)
+@on_command(('thwiki', 'kick'), only_to_me=False, short_des="踢出群聊。", environment=env_supervise_only)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_kick(session: CommandSession):
     qq = int(session.current_arg_text)
@@ -1797,7 +1823,7 @@ async def thwiki_kick(session: CommandSession):
     await get_bot().set_group_kick(group_id=group, user_id=qq)
     await session.send('已踢出。')
 
-@on_command(('thwiki', 'bookmark'), only_to_me=False, short_des="将视频加入轮播列表。", environment=env|env_supervise)
+@on_command(('thwiki', 'bookmark'), only_to_me=False, short_des="将视频加入轮播列表。", environment=env_all_thwiki_live)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_bookmark(session: CommandSession):
     """提交视频加入轮播列表。

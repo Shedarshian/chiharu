@@ -31,7 +31,7 @@ class Environment:
         for s in args:
             if s == 'all':
                 self.group = AllGroup()
-            elif type(s) == str:
+            elif isinstance(s, str):
                 self.group |= set(group_id_dict[s])
             elif isinstance(s, Admin):
                 self.admin |= set(group_id_dict[s.name])
@@ -49,7 +49,7 @@ class Environment:
             if group_id in self.block:
                 return False
             elif group_id in self.constraint:
-                ret = self.constraint[group_id]._f()
+                ret = self.constraint[group_id]._f(session)
                 if not ret and self.constraint[group_id].ret and not no_reply:
                     await session.send(self.constraint[group_id].ret)
                 return ret
@@ -88,7 +88,7 @@ class Constraint:
             except KeyError:
                 await f(session, *args, **kwargs)
                 return
-            if group_id in self.group and not self._f():
+            if group_id in self.group and not self._f(session):
                 if self.ret != "":
                     await session.send(self.ret, auto_escape=True)
             else:

@@ -13,7 +13,8 @@ from datetime import date, timedelta
 import wand.image, wand.color
 from io import StringIO
 from string import Formatter
-from nonebot import on_command, CommandSession, permission, on_natural_language, NLPSession
+from nonebot import CommandSession, permission, on_natural_language, NLPSession
+from .inject import on_command
 from . import config
 from .birth import myFormatter
 from . import maj, math as cmath
@@ -843,3 +844,24 @@ async def avtobv(session: CommandSession):
         await session.send(config.AvBvConverter.enc(text))
     else:
         await session.send('av' + str(config.AvBvConverter.dec(text)))
+
+@on_command(('misc', 'r'), only_to_me=False, short_des="随机骰子。")
+async def roll(session: CommandSession):
+    """随机骰子。
+    使用例：-misc.r 3d20+d6+2d
+    d前不填默认为1，d后不填默认为100"""
+    l = session.current_arg_text.split('+')
+    ret = []
+    for c in l:
+        match = re.match(r'^(\d*)d(\d*)$', c.strip())
+        if not match:
+            session.finish('语法错误')
+        n = int(match.group(1) or 1)
+        d = int(match.group(2) or 100)
+        if n >= 100:
+            session.finish('骰子过多')
+        for i in range(n):
+            ret.append(random.randint(1, d))
+        if len(ret) >= 100:
+            session.finish('骰子过多')
+    await session.send('骰子结果为：\n' + '+'.join(str(c) for c in ret) + '=' + str(sum(ret)))
