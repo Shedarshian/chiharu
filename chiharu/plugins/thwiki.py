@@ -272,8 +272,9 @@ async def _save(t):
 async def change_des_to_list(lunbo=False):
     global l
     fut = datetime.now() + timedelta(days=7)
+    list_in_7_days = [x.str_url() for x in l if x.begin < fut]
     s = 'THBWiki电视台（大雾）</h2><p>直播内容基本上会以<strong>东方Project</strong>的游戏为主，日常进行直播的主播不定。</p><h3><strong>本直播间欢迎大家使用，但需要直播的内容为东方Project相关且遵守直播者所在国家与中国相关法律与条约及平台条约。</strong><br />具体使用方法以及粉丝群请戳QQ群：<strong>807894304</strong> 【THBWiki Live】</h3>' + \
-        '未来一周内暂时没有预定节目哦(╥╯^╰╥)' if len(l) == 0 else '<p>未来一周节目单（时间以北京时间为准，随时更新）：<br />%s</p>' % ''.join(map(Event.str_url, filter(lambda x: x.begin < fut, l)))
+        '未来一周内暂时没有预定节目哦(╥╯^╰╥)' if len(list_in_7_days) == 0 else '<p>未来一周节目单（时间以北京时间为准，随时更新）：<br />%s</p>' % ''.join(list_in_7_days)
     if lunbo:
         s = '<h2>当前轮播中，欢迎点击链接查看<a href="https://space.bilibili.com/362841475/favlist?fid=853928275">轮播视频表</a>，在直播群（下述）中可以添加轮播视频或推荐视频哦~<br />' + s
     else:
@@ -712,6 +713,7 @@ async def thwiki_cancel(session: CommandSession):
         e = l.pop(i)
         config.logger.thwiki << f"【LOG】用户{session.ctx['user_id']} 成功删除：{e}"
         
+        lunbo = False
         # In this case, a shutdown of room should be performed...?
         if e.supervise != 0 and e.begin < now:
             d = int((now - e.begin).total_seconds() - 1) // 60 + 1
@@ -719,6 +721,7 @@ async def thwiki_cancel(session: CommandSession):
                 add_supervise_time(e.supervise, d)
             if add_time(e.qq, d):
                 await session.send('您已成功通过试用期转正！')
+            lunbo = True
 
         if e.msg_id != -1:
             config.logger.thwiki << f"【LOG】撤回消息：{e.msg_id}"
@@ -730,7 +733,7 @@ async def thwiki_cancel(session: CommandSession):
         await _save(l)
         await session.send('成功删除')
 
-        ret = await change_des_to_list(lunbo=True)
+        ret = await change_des_to_list(lunbo=lunbo)
         if json.loads(ret)['code'] != 0:
             config.logger.thwiki << '【LOG】更新到直播间失败'
             await session.send('更新到直播间失败')
