@@ -1907,3 +1907,18 @@ async def thwiki_test(session: CommandSession):
             await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
     for group in config.group_id_dict['thwiki_send']:
         await get_bot().send_group_msg(group_id=group, message=[config.cq.text('已成功安全脱离')] + updated)
+
+# Generate a token for begin_quiz command to use
+@on_command(('thwiki', 'generate_token'), only_to_me=False, hide=True)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_generate_token(session: CommandSession):
+    # TODO
+    return 
+
+# Generate a quiz from question collection and send to evoker if they have provided an valid token
+# Redirect all messages send by the user after a time interval
+@on_command(('thwiki', 'begin_quiz'), only_to_me=False, hide=True)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_begin_quiz(session: CommandSession):
+    # TODO
+    return
