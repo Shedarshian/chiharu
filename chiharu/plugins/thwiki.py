@@ -1285,6 +1285,11 @@ async def thwiki_supervise(session: CommandSession):
             await session.send('成功删除监视')
             for group in config.group_id_dict['thwiki_send']:
                 await get_bot().send_group_msg(group_id=group, message=ret.str_with_at())
+        if x.begin < (datetime.now() + timedelta(days = 7)):
+            ret = await change_des_to_list()
+            if json.loads(ret)['code'] != 0:
+                for id in config.group_id_dict['thwiki_supervise']:
+                    await get_bot().send_group_msg(group_id=id, message='直播间简介更新失败')
 
 # Handler for command '-thwiki.time'
 @on_command(('thwiki', 'time'), only_to_me=False, short_des="查询直播时长（2019年8月至今）。", args=("[@s]",))
