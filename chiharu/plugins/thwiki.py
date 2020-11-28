@@ -31,9 +31,12 @@ env_all_can_private.private = True
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.3.11"
-changelog = """2.3.0-11 Changelog:
+version = "2.3.12"
+changelog = """2.3.0-12 Changelog:
 Change:
+-thwiki.apply：1.支持 明天/明日/后天/后日
+2.结束时间默认与起始时间在同一天
+3.支持中文冒号
 -thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。并且不需要被推荐人同意。
 若开播后15分钟仍未有人监视，则申请会被自动取消。
 Remove:
@@ -153,9 +156,10 @@ class Event:
             else:
                 self.supervise = 0 # -1: 有权限，0: 无权限
             self.msg_id = -1
-        elif len(args) == 3:
+            self.has_alarmed = False
+        elif len(args) == 1:
             # On read from file, fill fields with the first argument 
-            id, begin, end, qq, supervise, msg_id = args[0].split(' ')
+            id, begin, end, qq, supervise, msg_id = args[0]['id'], args[0]['begin'], args[0]['end'], args[0]['qq'], args[0]['supervise'], args[0]['msg_id']
             self.id = int(id)
 
             # Check for endtime
@@ -168,8 +172,9 @@ class Event:
                 self.begin, self.end, self.qq = datetime.fromtimestamp(float(begin)), datetime.fromtimestamp(float(end)), int(qq)
             self.supervise = int(supervise)
             self.msg_id = int(msg_id)
-            self.card = args[1]
-            self.name = args[2]
+            self.card = args[0]['card']
+            self.name = args[0]['name']
+            self.has_alarmed = args[0].get('has_alarmed', False)
         else:
             raise TypeError()
     def __repr__(self):
@@ -220,7 +225,7 @@ class Event:
         if self.supervise != 0:
             return [config.cq.text('开播提醒！\n'), config.cq.at(self.qq), config.cq.text('\n内容: %s' % self.name)]
         else:
-            return [config.cq.text('开播提醒！\n'), config.cq.at(self.qq), config.cq.text('\n内容: %s\n十分抱歉，您现在的直播尚无监视员，无法直播qwq，如半小时之后仍无人监视则会被自动取消' % self.name)]
+            return [config.cq.text('开播提醒！\n'), config.cq.at(self.qq), config.cq.text('\n内容: %s\n十分抱歉，您现在的直播尚无监视员，无法直播qwq，如15分钟之后仍无人监视则会被自动取消' % self.name)]
     def overlap(self, other):
         if self.isFloat and other.isFloat:
             return self.begin == other.begin
@@ -231,14 +236,13 @@ class Event:
         return self.begin < other.end and other.begin < self.end # None of them end with uncertain time
     def gen_id(self):
         return more_itertools.first((i2 for i1, i2 in zip(itertools.chain(sorted(e.id for e in l), (-1,)), itertools.count()) if i1 != i2), 0)
+    def dump(self):
+        return {'id': self.id, 'begin': str(self.begin.timestamp()), 'end': 'float' if self.isFloat else str(self.end.timestamp()), 'qq': self.qq, 'supervise': self.supervise, 'msg_id': self.msg_id, 'card': self.card, 'name': self.name, 'has_alarmed': self.has_alarmed}
 
 # Read from the file and returns a list of applications
 def _open():
-    def _f():
-        with open(config.rel("thwiki.txt"), encoding='utf-8') as f:
-            for i, j, k in config.group(3, f):
-                yield Event(i.strip(), j.strip(), k.strip())
-    return list(_f())
+    with open(config.rel("thwiki.json"), encoding='utf-8') as f:
+        return [Event(d) for d in json.load(f)]
 
 # Initializes application list
 l = _open()
@@ -246,8 +250,8 @@ l = _open()
 # Writes current list of applications to the file
 # Updates the "occupied_time.json" and alarm OLC's bot
 async def _save(t):
-    with open(config.rel("thwiki.txt"), 'w', encoding='utf-8') as f:
-        f.write('\n'.join(map(repr, t)))
+    with open(config.rel("thwiki.json"), 'w', encoding='utf-8') as f:
+        f.write(json.dumps(list(map(Event.dump, t)), ensure_ascii=False, indent=4))
     _3dayslater = date.today() + timedelta(days=3)
     occupied_time = []
     for i, event in enumerate(t):
@@ -268,6 +272,7 @@ async def _save(t):
 async def change_des_to_list(lunbo=False):
     global l
     fut = datetime.now() + timedelta(days=7)
+    list_in_7_days = [x.str_url() for x in l if x.begin < fut]
     s = 'THBWiki电视台（大雾）</h2><p>直播内容基本上会以<strong>东方Project</strong>的游戏为主，日常进行直播的主播不定。</p><h3><strong>本直播间欢迎大家使用，但需要直播的内容为东方Project相关且遵守直播者所在国家与中国相关法律与条约及平台条约。</strong><br />具体使用方法以及粉丝群请戳QQ群：<strong>807894304</strong> 【THBWiki Live】</h3>' + \
         ('未来一周内暂时没有预定节目哦(╥╯^╰╥)' if len(l) == 0 else '<p>未来一周节目单（时间以北京时间为准，随时更新）：<br />%s</p>' % ''.join(map(Event.str_url, filter(lambda x: x.begin < fut, l))))
     if lunbo:
@@ -592,24 +597,35 @@ async def _(session: CommandSession):
     else:
         time_end = session.current_arg_text[i + 1:j]
         session.args['name'] = session.current_arg_text[j + 1:]
-    r = re.compile('(?:' '(?:(\\d+)年)?' '(?:(\\d+)月)?' '(?:(\\d+)(?:日|号))?'
-        '(?:' '(?:(\\d+)(?:时|点))' '(?:(\\d+)分)?' '|' '(\\d+):(\\d+)' '))|(now)|(float)')
+    r = re.compile('(?:' '(?:' '(?:(\\d+)年)?' '(?:(\\d+)月)?' '(?:(\\d+)(?:日|号))?' '|(明|后)(?:天|日))'
+        '(?:' '(?:(\\d+)(?:时|点))' '(?:(\\d+)分)?' '|' '(\\d+)(?::|：)(\\d+)' '))|(now)|(float)')
     m_begin = re.match(r, time_begin)
     m_end = re.match(r, time_end)
     if m_begin is None:
         session.args['begin'] = False
+        session.args['end'] = False
+        return
     else:
-        year, month, day, hours1, minute1, hours2, minute2, _now, _float = m_begin.groups()
+        year, month, day, special, hours1, minute1, hours2, minute2, _now, _float = m_begin.groups()
         if _now is not None:
             session.args['begin'] = datetime.now()
+            year = now.year
+            month = now.month
+            day = now.day
         elif _float is not None:
             session.args['begin'] = False
         else:
             hours = hours1 if hours1 is not None else hours2
             minute = minute1 if minute1 is not None else minute2
-            year = _default(year, now.year)
-            month = _default(month, now.month)
-            day = _default(day, now.day)
+            if special == '明':
+                temp_time = now + timedelta(days=1)
+            elif special == '后':
+                temp_time = now + timedelta(days=2)
+            else:
+                temp_time = now
+            year = _default(year, temp_time.year)
+            month = _default(month, temp_time.month)
+            day = _default(day, temp_time.day)
             hours = int(hours)
             minute = _default(minute, 0)
             try:
@@ -627,7 +643,7 @@ async def _(session: CommandSession):
     if m_end is None:
         session.args['end'] = False
     else:
-        year, month, day, hours1, minute1, hours2, minute2, _now, _float = m_end.groups()
+        year_end, month_end, day_end, special_end, hours1, minute1, hours2, minute2, _now, _float = m_end.groups()
         if _now is not None:
             session.args['end'] = False
         elif _float is not None:
@@ -636,9 +652,20 @@ async def _(session: CommandSession):
         else:
             hours = hours1 if hours1 is not None else hours2
             minute = minute1 if minute1 is not None else minute2
-            year = _default(year, now.year)
-            month = _default(month, now.month)
-            day = _default(day, now.day)
+            if special_end == '明':
+                temp_time = now + timedelta(days=1)
+                year = _default(year_end, temp_time.year)
+                month = _default(month_end, temp_time.month)
+                day = _default(day_end, temp_time.day)
+            elif special_end == '后':
+                temp_time = now + timedelta(days=2)
+                year = _default(year_end, temp_time.year)
+                month = _default(month_end, temp_time.month)
+                day = _default(day_end, temp_time.day)
+            else:
+                year = _default(year_end, year)
+                month = _default(month_end, month)
+                day = _default(day_end, day)
             hours = int(hours)
             minute = _default(minute, 0)
             try:
@@ -686,6 +713,7 @@ async def thwiki_cancel(session: CommandSession):
         e = l.pop(i)
         config.logger.thwiki << f"【LOG】用户{session.ctx['user_id']} 成功删除：{e}"
         
+        lunbo = False
         # In this case, a shutdown of room should be performed...?
         if e.supervise != 0 and e.begin < now:
             d = int((now - e.begin).total_seconds() - 1) // 60 + 1
@@ -693,15 +721,19 @@ async def thwiki_cancel(session: CommandSession):
                 add_supervise_time(e.supervise, d)
             if add_time(e.qq, d):
                 await session.send('您已成功通过试用期转正！')
+            lunbo = True
 
         if e.msg_id != -1:
             config.logger.thwiki << f"【LOG】撤回消息：{e.msg_id}"
-            await get_bot().delete_msg(message_id=e.msg_id)
+            try:
+                await get_bot().delete_msg(message_id=e.msg_id)
+            except aiocqhttp.exceptions.ActionFailed:
+                pass
 
         await _save(l)
         await session.send('成功删除')
 
-        ret = await change_des_to_list(lunbo=True)
+        ret = await change_des_to_list(lunbo=lunbo)
         if json.loads(ret)['code'] != 0:
             config.logger.thwiki << '【LOG】更新到直播间失败'
             await session.send('更新到直播间失败')
@@ -850,7 +882,9 @@ async def _():
     now = datetime.now()
     bot = get_bot()
     for i, e in enumerate(l):
-        if now - timedelta(seconds=59) < e.begin < now + timedelta(seconds=1):
+        if e.begin < now + timedelta(seconds=1) and not e.has_alarmed:
+            e.has_alarmed = True
+            await _save(l)
             for id in config.group_id_dict['thwiki_send']:
                 await bot.send_group_msg(group_id=id, message=e.output_with_at())
             ret = await change(title=('【东方】' if '【东方】' not in e.name else '') + e.name)
@@ -864,12 +898,12 @@ async def _():
             if e.supervise > 0:
                 for id in config.group_id_dict['thwiki_supervise']:
                     await bot.send_group_msg(group_id=id, message=[config.cq.at(e.supervise), config.cq.text('\n内容: %s\n请监视者就位' % e.name)])
-        elif e.begin + timedelta(minutes=TIME_OUT) < now + timedelta(seconds=1) < e.end and e.supervise == 0:
+        elif e.begin + timedelta(minutes=TIME_OUT) < now + timedelta(seconds=1) and e.supervise == 0 and (e.isFloat or now + timedelta(seconds=1) < e.end):
             l.pop(i)
             for id in config.group_id_dict['thwiki_send']:
                 await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('您的直播无人监视，已被自动取消')])
             await _save(l)
-            break
+            return
     for i, e in enumerate(l):
         if e.isFloat and i != len(l) - 1 and l[i + 1].begin < now + timedelta(seconds=1) or not e.isFloat and e.end < now + timedelta(seconds=1):
             d = int(((l[i + 1].begin if e.isFloat else e.end) - e.begin).total_seconds() - 1) // 60 + 1
@@ -920,7 +954,7 @@ async def thwiki_get(session: CommandSession):
     """获取rtmp与流密码，会以私聊形式发送。只能在直播群内使用。
     只能在自己申请的时段内使用。管理员可随时使用。若直播间未开启则会自动开启。
     可选参数为想开启或修改至的直播分区：
-    东方大战争，户外，绘画，演奏，手游，网游，音乐台，vtb，同人绘画，临摹绘画，唱见，视频唱见。默认为单机·其他。"""
+    东方大战争，户外，绘画，手游，网游，vtb，配音，唱见，视频唱见。默认为单机·其他。"""
     # Check permission
     now = datetime.now()
     qq = int(session.ctx['user_id'])
@@ -999,8 +1033,8 @@ async def thwiki_get(session: CommandSession):
 
     # Check if the livestream room is already open
     url2 = await loop.run_in_executor(None, requests.get, 'https://api.live.bilibili.com/room/v1/Room/room_init?id=14055253')
-    areas = {'': 235, '单机·其他': 235, '单机·其他单机': 235, '户外': 123, '娱乐·户外': 123, '演奏': 143, '手艺': 143, '娱乐·手艺': 143, '手游': 98, '手游·其他': 98, '手游·其他手游': 98, '网游': 107, '网游·其他': 107, '网游·其他网游': 107, '音乐台': 34, '娱乐·音乐台': 34, '虚拟主播': 199, 'vtb': 199, '娱乐·虚拟主播': 199, '绘画': 94, '同人绘画': 94, '临摹绘画': 95, '绘画·同人绘画': 94, '绘画·临摹绘画': 95, '唱见': 190, '唱见电台': 190, '电台·唱见电台': 190, '东方大战争': 319, '大战争': 319, '视频唱见': 21, '娱乐·视频唱见': 21}
-    areas_rev = {235: '单机·其他', 123: '娱乐·户外', 143: '娱乐·手艺', 34: '娱乐·音乐台', 199: '娱乐·虚拟主播', 98: '手游·其他', 107: '网游·其他', 94: '绘画：同人绘画', 95: '绘画·临摹绘画', 319: '单机·东方大战争', 21: '娱乐·视频唱见'}
+    areas = {'': 235, '单机·其他': 235, '单机·其他单机': 235, '户外': 368, '生活·户外': 368, '手游': 98, '手游·其他': 98, '手游·其他手游': 98, '网游': 107, '网游·其他': 107, '网游·其他网游': 107, '虚拟主播': 371, 'vtb': 371, '虚拟主播·虚拟主播': 371, '绘画': 373, '学习·绘画': 373, '唱见': 190, '唱见电台': 190, '电台·唱见电台': 190, '东方大战争': 319, '大战争': 319, '视频唱见': 21, '娱乐·视频唱见': 21, '配音': 193, '电台·配音': 193}
+    areas_rev = {235: '单机·其他', 368: '生活·户外', 371: '虚拟主播·虚拟主播', 98: '手游·其他', 107: '网游·其他', 373: '学习：绘画', 190: '电台·唱见电台', 319: '单机·东方大战争', 21: '娱乐·视频唱见', 193: '电台·配音'}
     if url2.json()['data']['live_status'] == 1:
         # Categorize
         try:
@@ -1711,13 +1745,14 @@ async def thwiki_group_request(session: RequestSession):
     elif session.ctx['group_id'] in config.group_id_dict['thwiki_supervise']:
         qq = session.ctx["user_id"]
         node = find_or_new(qq)
+        message = session.ctx['comment'] or '无'
         if node['card'] is None:
             node['card'] = await get_card(qq)
         with open(config.rel('thwiki_bilispace.json')) as f:
             a = json.load(f)
         c = a[str(qq)] if str(qq) in a else "未记录"
         for group in config.group_id_dict['thwiki_supervise']:
-            await get_bot().send_group_msg(group_id=group, message=f'收到审核群加群申请。qq：{qq}，名片：{node["card"]}，直播时间：{node["time"]}min，b站空间：{c}')
+            await get_bot().send_group_msg(group_id=group, message=f'收到审核群加群申请。qq：{qq}，名片：{node["card"]}，直播时间：{node["time"]}min，b站空间：{c}，加群申请信息：{message}')
 
 @message_preprocessor
 async def thwiki_record(bot, ctx):
@@ -1740,7 +1775,12 @@ async def thwiki_punish(session: CommandSession):
     并告知友善度剩余几点。"""
     if session.get('confirmed'):
         record = session.get('record')
-        await get_bot().delete_msg(message_id=record.msg_id)
+        if not session.get('deleted'):
+            try:
+                await get_bot().delete_msg(message_id=record.msg_id)
+            except aiocqhttp.exceptions.ActionFailed:
+                session.args['confirmed'] = False
+                session.pause('消息撤回失败，请联系管理员手动撤回消息后，在此处回复“完毕”，以执行下一步指令。回复返回退出。')
         node = find_or_new(record.qq)
         if 'punish' not in node:
             node['punish'] = session.get('severity')
@@ -1776,6 +1816,7 @@ async def thwiki_punish(session: CommandSession):
 async def _(session: CommandSession):
     if session.current_arg.startswith('确认'):
         session.args['confirmed'] = True
+        session.args['deleted'] = False
         severity, *els = session.current_arg[3:].split(' ')
         if severity.startswith('\\'):
             try:
@@ -1789,8 +1830,12 @@ async def _(session: CommandSession):
         return
     elif session.current_arg == '返回':
         session.finish('已取消')
+    elif session.current_arg == '完毕':
+        session.args['confirmed'] = True
+        session.args['deleted'] = True
+        return
     session.args['confirmed'] = False
-    l = list(map(str.strip, session.current_arg_text.split('\n')))
+    l = list(map(str.strip, session.current_arg_text.replace('\r', '').split('\n')))
     if len(l) == 2:
         qq_str, time_str = l
         session.args['word'] = None

@@ -4,7 +4,9 @@ from enum import Enum, auto
 from typing import Dict, Any, Awaitable
 from nonebot import get_bot, CommandSession, NLPSession
 import aiocqhttp
+from .. import config
 from ..game import GameSameGroup
+from .achievement import achievement
 
 class Player:
     class Name(Enum):
@@ -92,6 +94,8 @@ class Player:
         return '  '.join(f'{name.name}：{t[name]}分' for name in Player.Name if name not in self.scoreboard)
 
 yahtzee = GameSameGroup('yahtzee')
+config.CommandGroup(('play', 'yahtzee'), hide=True)
+config.CommandGroup('yahtzee', des='快艇骰子是一个有趣的骰子游戏。游戏限2~4名玩家，玩家每轮扔5个骰子，并且可以重新扔任意数目的骰子至多三次，以凑出特定形状的组合赢得分数。计分板上共有12项：一到六为记扔出的骰子中所有该点数的总和；全选为全部骰子之和；四骰同花为扔出的五个骰子有四个相同，则记全部骰子之和的分数；葫芦为三个骰子点数相同，另外两个点数也相同的形状，记全部骰子之和的分数；小顺为有四个骰子成顺，记15分；大顺为五个骰子成顺，记30分；快艇为五个骰子全部相等，记50分。不满足形状的组合也可以在该项记0分。游戏共有12回合，每回合玩家扔完骰子后，必须从计分板里选择一项计分。特别的是，一到六这六项的分数总和若大于等于63分，则会额外奖励35分。12回合后计算总分，总分高者胜出。', short_des='快艇骰子。', hide_in_parent=True, display_parents='game')
 
 @yahtzee.begin_uncomplete(('play', 'yahtzee', 'begin'), (2, 4))
 async def yahtzee_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):
@@ -172,6 +176,11 @@ async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func
                 f = [board.final_score for board in data['boards']]
                 m = max(f)
                 await session.send('玩家' + '，'.join([data['names'][i] for i, x in enumerate(f) if x == m]) + '胜出！')
+                if m > 200:
+                    for i, x in enumerate(f):
+                        if x == m:
+                            if achievement.yahtzee.get(str(data['players'][i])):
+                                await session.send(achievement.yahtzee.get_str())
                 await delete_func()
                 return
         p = data['boards'][data['current_player']]

@@ -72,6 +72,7 @@ def _func():
     #pylint: disable=no-name-in-module
     from math import exp, log, log10, fabs, sqrt, sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, asinh, acosh, atanh, erf, floor
     from scipy.special import gamma, beta, psi, gammainc, airy, ellipj, jv, yv, kv, iv, spherical_jn, spherical_yn, spherical_in, spherical_kn, zeta
+    from random import uniform, gauss
 
     return {'exp': exp, 'ln': log, 'lg': log10, 'abs': fabs, 'sqrt': sqrt, 'floor': floor,
         'sin': sin, 'cos': cos, 'tan': tan, 'cot': inv(tan), 'sec': inv(cos), 'csc': inv(sin),
@@ -82,7 +83,8 @@ def _func():
         'Airy': get(airy, 0), 'Biry': get(airy, 2), 'zeta': zeta,
         'ellipse_sn': get(ellipj, 0), 'ellipse_cn': get(ellipj, 1), 'ellipse_dn': get(ellipj, 2),
         'BesselJ': jv, 'BesselY': yv, 'BesselK': kv, 'BesselI': iv,
-        'Besselj': spherical_jn, 'Bessely': spherical_yn, 'Besseli': spherical_in, 'Besselk': spherical_kn
+        'Besselj': spherical_jn, 'Bessely': spherical_yn, 'Besseli': spherical_in, 'Besselk': spherical_kn,
+        'random': uniform, 'gauss': gauss
         }
 functions = _func()
 def _nums():
