@@ -126,10 +126,11 @@ async def help_f(session: CommandSession):
             strout = _dict[name]
     else:
         strout = str_tail
-    if name == 'thwiki' and str_tail != '' and group_id in config.group_id_dict['thwiki_live']:
-        await session.send(strout, auto_escape=True, ensure_private=True)
-    else:
-        await session.send(strout, auto_escape=True)
+    # if name == 'thwiki' and str_tail != '' and group_id in config.group_id_dict['thwiki_live']:
+    #     await session.send(strout, auto_escape=True, ensure_private=True)
+    # else:
+    #     await session.send(strout, auto_escape=True)
+    await session.send(strout, auto_escape=True)
 
 @on_command('reload', only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
@@ -159,5 +160,5 @@ async def help_reflection(session: CommandSession):
     else:
         await session.send('未发现指令。')
 
-config.CommandGroup('me', short_des='关于我®', des='こんにちは～七海千春です～\n维护者：小大圣\n献给：yuyu♥\n友情协助：Randolph（snakebird关卡信息），小石\n鸣谢：Python®  酷Q®  nonebot®  阿里云®\nContact me：shedarshian@gmail.com', display_id=998)
+config.CommandGroup('me', short_des='关于我®', des='こんにちは～七海千春です～\n维护者：小大圣\n献给：yuyu♥\n友情协助：Randolph（snakebird关卡信息），小石\n鸣谢：Python®  c\u0336o\u0336o\u0336l\u0336q\u0336  mirai® cqhttp®  nonebot®  阿里云®\nContact me：shedarshian@gmail.com', display_id=998)
 config.CommandGroup((), des="指令：")
