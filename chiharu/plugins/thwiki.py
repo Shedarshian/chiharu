@@ -1319,7 +1319,7 @@ async def thwiki_supervise(session: CommandSession):
             await session.send('成功删除监视')
             for group in config.group_id_dict['thwiki_send']:
                 await get_bot().send_group_msg(group_id=group, message=ret.str_with_at())
-        if x.begin < (datetime.now() + timedelta(days = 7)):
+        if ret.begin < (datetime.now() + timedelta(days = 7)):
             ret = await change_des_to_list()
             if json.loads(ret)['code'] != 0:
                 for id in config.group_id_dict['thwiki_supervise']:
