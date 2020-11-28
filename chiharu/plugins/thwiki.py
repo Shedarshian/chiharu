@@ -272,10 +272,10 @@ async def _save(t):
 async def change_des_to_list(lunbo=False):
     global l
     fut = datetime.now() + timedelta(days=7)
-    s = 'THBWiki电视台（大雾）</h2><p>基本上会以直播<strong>东方Project</strong>的游戏为主。日常进行直播的主播不定。</p><h3><strong>本直播间欢迎大家使用，但需要直播的内容为东方Project相关且遵守直播者所在国家与中国相关法律与条约及平台条约。</strong><br />具体使用方法以及粉丝群请戳QQ群：<strong>807894304</strong> 【THBWiki Live】</h3><p>节目单（时间以北京时间为准）：<br />%s</p>' % \
-        ''.join(map(Event.str_url, filter(lambda x: x.begin < fut, l)))
+    s = 'THBWiki电视台（大雾）</h2><p>直播内容基本上会以<strong>东方Project</strong>的游戏为主，日常进行直播的主播不定。</p><h3><strong>本直播间欢迎大家使用，但需要直播的内容为东方Project相关且遵守直播者所在国家与中国相关法律与条约及平台条约。</strong><br />具体使用方法以及粉丝群请戳QQ群：<strong>807894304</strong> 【THBWiki Live】</h3>' + \
+        '未来一周内暂时没有预定节目哦(╥╯^╰╥)' if len(l) == 0 else '<p>未来一周节目单（时间以北京时间为准，随时更新）：<br />%s</p>' % ''.join(map(Event.str_url, filter(lambda x: x.begin < fut, l)))
     if lunbo:
-        s = '<h2>当前轮播中，欢迎查看收藏夹https://space.bilibili.com/362841475/favlist?fid=853928275，轮播视频均在收藏夹中，在直播群（下述）中可以添加轮播视频或推荐视频哦~<br />' + s
+        s = '<h2>当前轮播中，欢迎点击链接查看<a href="https://space.bilibili.com/362841475/favlist?fid=853928275">轮播视频表</a>，在直播群（下述）中可以添加轮播视频或推荐视频哦~<br />' + s
     else:
         s = '<h2>' + s
     return await change(description=s)
@@ -1949,3 +1949,18 @@ async def thwiki_test(session: CommandSession):
             await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
     for group in config.group_id_dict['thwiki_send']:
         await get_bot().send_group_msg(group_id=group, message=[config.cq.text('已成功安全脱离')] + updated)
+
+# Generate a token for begin_quiz command to use
+@on_command(('thwiki', 'generate_token'), only_to_me=False, hide=True)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_generate_token(session: CommandSession):
+    # TODO
+    return 
+
+# Generate a quiz from question collection and send to evoker if they have provided an valid token
+# Redirect all messages send by the user after a time interval
+@on_command(('thwiki', 'begin_quiz'), only_to_me=False, hide=True)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_begin_quiz(session: CommandSession):
+    # TODO
+    return
