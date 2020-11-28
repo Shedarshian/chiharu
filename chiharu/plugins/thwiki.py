@@ -712,6 +712,7 @@ async def thwiki_cancel(session: CommandSession):
         e = l.pop(i)
         config.logger.thwiki << f"【LOG】用户{session.ctx['user_id']} 成功删除：{e}"
         
+        lunbo = False
         # In this case, a shutdown of room should be performed...?
         if e.supervise != 0 and e.begin < now:
             d = int((now - e.begin).total_seconds() - 1) // 60 + 1
@@ -719,6 +720,7 @@ async def thwiki_cancel(session: CommandSession):
                 add_supervise_time(e.supervise, d)
             if add_time(e.qq, d):
                 await session.send('您已成功通过试用期转正！')
+            lunbo = True
 
         if e.msg_id != -1:
             config.logger.thwiki << f"【LOG】撤回消息：{e.msg_id}"
@@ -730,7 +732,7 @@ async def thwiki_cancel(session: CommandSession):
         await _save(l)
         await session.send('成功删除')
 
-        ret = await change_des_to_list(lunbo=True)
+        ret = await change_des_to_list(lunbo=lunbo)
         if json.loads(ret)['code'] != 0:
             config.logger.thwiki << '【LOG】更新到直播间失败'
             await session.send('更新到直播间失败')
