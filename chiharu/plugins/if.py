@@ -18,7 +18,7 @@ async def if_gacha(session: CommandSession):
     if session.current_arg_text in ('卡池', 'pool'):
         with open(config.rel('if\\pool.json'), encoding='utf-8') as f:
             pool = json.load(f)
-        await session.send('\n'.join(f'{i}: {l[0]}' for i, l in pool['metainfo']))
+        await session.send('\n'.join(f'{i}: {l[0]}' for i, l in pool['metainfo'].items()))
     else:
         pool_id = '0' if session.current_arg_text == '' else session.current_arg_text.strip()
         with open(config.rel('if\\pool.json'), encoding='utf-8') as f:
