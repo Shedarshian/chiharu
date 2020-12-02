@@ -33,7 +33,7 @@ async def if_draw(session: CommandSession):
             # else:
         distance = 16
         img = Image.new("RGB", (640 + distance * 6, 256 + distance * 3), "#c3e5ff")
-        for i, d in enumerate(l):
+        for i, d in enumerate(r):
             row, column = i // 5, i % 5
             c = Image.open(config.rel(f"if\\img\\{d}卡牌头像.jpg"))
             img.paste(c, (column * (128 + distance), row * (128 + distance)))
