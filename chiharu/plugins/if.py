@@ -16,7 +16,7 @@ async def if_gacha(session: CommandSession):
     使用'-if.gacha 卡池id'抽卡。
     卡池信息请使用'-if.gacha 卡池'或'-if.gacha pool'查询。'''
     if session.current_arg_text in ('卡池', 'pool'):
-        with open(config.rel('if\\pool.json')) as f:
+        with open(config.rel('if\\pool.json'), encoding='utf-8') as f:
             pool = json.load(f)
         await session.send('\n'.join(f'{i}: {l[0]}' for i, l in pool['metainfo']))
     else:
