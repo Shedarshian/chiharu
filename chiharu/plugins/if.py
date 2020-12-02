@@ -37,6 +37,6 @@ async def if_draw(session: CommandSession):
             row, column = i // 5, i % 5
             c = Image.open(config.rel(f"if\\img\\{d}卡牌头像.jpg"))
             img.paste(c, (column * (128 + distance), row * (128 + distance)))
-        h = hash(r)
+        h = hash(tuple(r))
         img.save(config.img(f'if{h}.png'))
         await session.send([config.cq.img(f'if{h}.png')])
