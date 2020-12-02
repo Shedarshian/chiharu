@@ -53,4 +53,4 @@ async def if_gacha(session: CommandSession):
             img.paste(c, (column * (128 + distance) + distance, row * (128 + distance) + distance))
         h = hash(tuple(r))
         img.save(config.img(f'if{h}.png'))
-        await session.send([config.cq.img(f'if{h}.png')])
+        await session.send([config.cq.at(session.ctx['user_id']), config.cq.img(f'if{h}.png')])
