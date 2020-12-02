@@ -32,7 +32,7 @@ async def if_gacha(session: CommandSession):
             pool_id_changed = pool_id
         l = random.choices(pool[pool_id_changed], [d['weight'] for d in pool[pool_id_changed]], k=10)
         if metainfo[1].startswith('ex'):
-            l[-1] = random.choices(pool[metainfo[1]], [d['weight'] for d in pool[metainfo[1]]], k=1)
+            l[-1] = random.choices(pool[metainfo[1]], [d['weight'] for d in pool[metainfo[1]]], k=1)[0]
         r = []
         for i, d in enumerate(l):
             if d['type'] == 'premium':
