@@ -44,7 +44,7 @@ async def if_gacha(session: CommandSession):
             elif d['type'] == 'up':
                 r.append(random.choice(d['card']))
             elif d['type'] == 'mixed':
-                r.append(random.choice(itertools.chain(*[premium_card[a][b] for a, b in d['card'][:-1]], d['card'][-1])))
+                r.append(random.choice(list(itertools.chain(*[premium_card[a][b] for a, b in d['card'][:-1]], d['card'][-1]))))
         distance = 16
         img = Image.new("RGB", (640 + distance * 6, 256 + distance * 3), "#c3e5ff")
         for i, d in enumerate(r):
