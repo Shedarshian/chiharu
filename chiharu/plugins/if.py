@@ -4,12 +4,12 @@ from nonebot import CommandSession, permission
 from . import config
 from .inject import on_command
 
-config.CommandGroup('if', short_des='魔法禁书目录 幻想收束相关指令。', hide=True)
+config.CommandGroup('if', short_des='魔法禁书目录 幻想收束相关指令。')
 
 with open(config.rel('if\\card.json'), encoding='utf-8') as f:
     premium_card = json.load(f)
 
-@on_command(('if', 'gacha'), only_to_me=False, hide=True, args=('[pool=0]'))
+@on_command(('if', 'gacha'), only_to_me=False, args=('[pool=0]'))
 @config.ErrorHandle
 async def if_gacha(session: CommandSession):
     '''幻想收束模拟抽卡。
