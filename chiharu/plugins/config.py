@@ -13,7 +13,7 @@ from collections import UserDict
 from .inject import find_help, CommandGroup, Environment, AllGroup, Admin, Constraint, on_command, _find_command
 
 PATH = "C:\\coolq_data\\"
-PATH_IMG = "C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\image"
+PATH_IMG = "C:\\coolq\\image"
 PATH_REC = "C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\record"
 
 def rel(rel_path):
@@ -52,10 +52,10 @@ class cq:
             return {'type': 'at', 'data': {'qq': str(s)}}
     @staticmethod
     def img(s: str):
-        return {'type': 'image', 'data': {'file': 'file:///' + s}}
+        return {'type': 'image', 'data': {'file': img(s)}}
     @staticmethod
     def rec(s: str):
-        return {'type': 'record', 'data': {'file': 'file:///' + s}}
+        return {'type': 'record', 'data': {'file': rec(s)}}
 
 def group(n, *iterables):
     def _(n, it):
