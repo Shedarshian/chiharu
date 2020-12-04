@@ -1961,10 +1961,14 @@ async def thwiki_set_alias(session: CommandSession):
     save_whiteforest()
     await session.send(f'已成功修改{"该用户" if if_others else "您"}的别名至{alias}。')
     global l
+    changed = False
     for e in l:
         if e.qq == qq:
             e.card = alias
-    await _save(l)
+            changed = True
+    if changed:
+        await _save(l)
+        await change_des_to_list()
 
 # Handler for command '-thwiki.test'
 # Yet another undocumented command...?
