@@ -31,8 +31,10 @@ env_all_can_private.private = True
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.3.12"
-changelog = """2.3.0-12 Changelog:
+version = "2.3.13"
+changelog = """2.3.0-13 Changelog:
+Add:
+-thwiki.set_alias：设置显示在直播列表里的别名。
 Change:
 -thwiki.apply：1.支持 明天/明日/后天/后日
 2.结束时间默认与起始时间在同一天
@@ -580,6 +582,8 @@ async def _(session: CommandSession):
         tz = None
     session.args['tz'] = tz
     now = datetime.now(tz=tz).date()
+    if 'alias' in check:
+        session.args['card'] = check['alias']
 
     def _default(t, t_default):
         if t is None:
@@ -1929,6 +1933,34 @@ async def _(session: CommandSession):
         bv = config.AvBvConverter.enc(av)
     session.args['av'] = av
     session.args['bv'] = bv
+
+@on_command(('thwiki', 'set_alias'), only_to_me=False, short_des='设置自己显示在直播列表中的别名。', environment=env, args=('alias', '[@]'))
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_set_alias(session: CommandSession):
+    """设置自己显示在直播列表中的别名。只能在直播群使用。
+    监视者可@别人设置别人的别名。"""
+    alias, *q = session.current_arg_text.split(' ')
+    if_others = False
+    if len(q) == 0:
+        qq = session.ctx['user_id']
+    else:
+        match = re.search('qq=(\\d+)', ' '.join(q))
+        if not match:
+            qq = session.ctx['user_id']
+        else:
+            if_others = True
+            qq = int(match.group(1))
+    if if_others and not is_supervisor(session):
+        session.finish('非监视者不可修改其他人的别名。')
+    node = find_or_new(qq)
+    node['alias'] = alias
+    save_whiteforest()
+    await session.send(f'已成功修改{"该用户" if if_others else "您"}的别名至{alias}。')
+    global l
+    for e in l:
+        if e.qq == qq:
+            e.card = alias
+    await _save(l)
 
 # Handler for command '-thwiki.test'
 # Yet another undocumented command...?
