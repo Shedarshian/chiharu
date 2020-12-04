@@ -23,7 +23,7 @@ async def if_gacha(session: CommandSession):
             session.finish('请输入正确的卡池id。')
         pool_metainfo = metainfo[pool_id]
         if pool_metainfo[2] is not None: 
-            pool_id_changed = metainfo[2]
+            pool_id_changed = pool_metainfo[2]
         else:
             pool_id_changed = pool_id
         with open(config.rel(f'if\\pools\\{pool_id_changed}.json'), encoding='utf-8') as f:
