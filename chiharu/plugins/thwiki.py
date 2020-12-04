@@ -1940,6 +1940,8 @@ async def thwiki_set_alias(session: CommandSession):
     """设置自己显示在直播列表中的别名。只能在直播群使用。
     监视者可@别人设置别人的别名。"""
     alias, *q = session.current_arg_text.split(' ')
+    if len(alias) >= 30:
+        session.finish('别名过长。')
     if_others = False
     if len(q) == 0:
         qq = session.ctx['user_id']
