@@ -1,6 +1,6 @@
 import json, random, itertools
 from PIL import Image
-from nonebot import CommandSession, permission
+from nonebot import CommandSession, permission, get_bot
 from . import config
 from .inject import on_command
 
@@ -54,3 +54,10 @@ async def if_gacha(session: CommandSession):
         h = hash(tuple(r))
         img.save(config.img(f'if{h}.png'))
         await session.send([config.cq.at(session.ctx['user_id']), config.cq.img(f'if{h}.png')])
+
+@on_command(('if', 'oshirase'), only_to_me=False, hide=True, permission=permission.SUPERUSER)
+@config.ErrorHandle
+async def if_oshirase(session: CommandSession):
+    for group in config.group_id_dict['if_pool_update']:
+        await get_bot().send_group_msg(group_id=group, message=session.current_arg)
+    await session.send('已发送')
