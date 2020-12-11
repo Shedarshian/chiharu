@@ -994,7 +994,8 @@ async def thwiki_get(session: CommandSession):
             if qq == e.qq and b and e.begin - timedelta(minutes = 15) < now:
                 return (e.supervise != 0), e
         
-        if await permission.check_permission(get_bot(), session.ctx, permission.GROUP_ADMIN):
+        node = find_whiteforest(qq)
+        if node is not None and 'supervisor' in node and node['supervisor'] or await permission.check_permission(get_bot(), session.ctx, permission.GROUP_ADMIN):
             return True, None
 
         return False, None
