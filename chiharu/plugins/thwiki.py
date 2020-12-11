@@ -811,14 +811,14 @@ async def thwiki_term(session: CommandSession):
     if l[0].qq != session.ctx['user_id']:
         session.finish('现在不是你在播')
     e = l.pop(0)
-    s = ""
+    s = "。"
     if e.supervise != 0:
         d = int((now - e.begin).total_seconds() - 1) // 60 + 1
         if e.supervise > 0:
             add_supervise_time(e.supervise, d)
         if add_time(e.qq, d):
             await session.send('您已成功通过试用期转正！')
-        s = f"，已为您累积直播时间{d}分钟"
+        s = f"，已为您累积直播时间{d}分钟。"
     await _save(l)
 
     # ret = await th_open(is_open=False)
@@ -827,7 +827,7 @@ async def thwiki_term(session: CommandSession):
     #     await session.send('成功删除，断流失败' + s)
     # else:
     #     await session.send('成功断流' + s)
-    await session.send('已终止，请您将obs断流，将开始空闲时间轮播。')
+    await session.send('已终止，请您将obs断流，将开始空闲时间轮播' + s)
     ret = await change(title='【东方】轮播中')
     if json.loads(ret)['code'] != 0:
         config.logger.thwiki << f'【LOG】修改标题失败{ret}'
@@ -1318,12 +1318,23 @@ async def thwiki_supervise(session: CommandSession):
             for group in config.group_id_dict['thwiki_send']:
                 await get_bot().send_group_msg(group_id=group, message=ret.str_with_at())
         else:
+            now = datetime.now()
+            s = ""
+            if ret.begin < now:
+                ret.begin = now
+                d = int((now - ret.begin).total_seconds() - 1) // 60 + 1
+                add_supervise_time(ret.supervise, d)
+                s = f"已为您累积直播时间{d}分钟。"
+                if add_time(ret.qq, d):
+                    s = s[:-1] + '，您已成功通过试用期转正！'
             ret.supervise = 0
             config.logger.thwiki << f'【LOG】监视者{qq} 已删除监视事件：{ret}'
             await _save(l)
             await session.send('成功删除监视')
             for group in config.group_id_dict['thwiki_send']:
                 await get_bot().send_group_msg(group_id=group, message=ret.str_with_at())
+                if s != "":
+                    await get_bot().send_group_msg(group_id=group, message=s)
         if ret.begin < (datetime.now() + timedelta(days = 7)):
             ret = await change_des_to_list()
             if json.loads(ret)['code'] != 0:
