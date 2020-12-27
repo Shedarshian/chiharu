@@ -1580,10 +1580,13 @@ async def thwiki_deduct(session: CommandSession):
         await get_bot().send_group_msg(group_id=group, message=[config.cq.at(qq), config.cq.text(f"已{'扣除' if time > 0 else '增加'}您的直播时间{abs(time)}min，理由为：\n{des}")])
 
 # Handler for command '-thwiki.blacklist'
-@on_command(('thwiki', 'blacklist'), only_to_me=False, short_des="添加用户至黑名单。", args=("[@s]",), environment=env_supervise)
+@on_command(('thwiki', 'blacklist'), only_to_me=False, short_des="添加用户至黑名单或列出黑名单。", args=("[@s]",), environment=env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_blacklist(session: CommandSession):
-    """添加用户至黑名单。直播群管理或监视群可用。"""
+    """添加用户至黑名单。直播群管理或监视群可用。不加参数即为列出所有黑名单内的人。"""
+    if session.current_arg == '':
+        await session.send('\n'.join((str(find_or_new(i)['card']) + ' ' + str(i)) for i in blacklist))
+        return
     global blacklist
     global weak_blacklist
     global whiteforest
@@ -1632,10 +1635,12 @@ async def thwiki_blacklist(session: CommandSession):
     await session.send('已加入黑名单')
 
 # Handler for command '-thwiki.weak_blacklist'
-@on_command(('thwiki', 'weak_blacklist'), only_to_me=False, short_des="添加用户至弱黑名单。", args=("[@s]",), environment=env_supervise)
+@on_command(('thwiki', 'weak_blacklist'), only_to_me=False, short_des="添加用户至弱黑名单或列出弱黑名单。", args=("[@s]",), environment=env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_weak_blacklist(session: CommandSession):
     """添加用户至弱黑名单。直播群管理或监视群可用。"""
+    if session.current_arg == '':
+        await session.send('\n'.join((str(find_or_new(i)['card']) + ' ' + str(i)) for i in weak_blacklist))
     global blacklist
     global weak_blacklist
     global whiteforest
@@ -1677,18 +1682,6 @@ async def thwiki_weak_blacklist(session: CommandSession):
             await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
 
     await session.send('已加入弱黑名单')
-
-@on_command(('thwiki', 'print_blacklist'), only_to_me=False, environment=env_supervise_only)
-@config.ErrorHandle(config.logger.thwiki)
-async def thwiki_print_blacklist(session: CommandSession):
-    """列出黑名单"""
-    await session.send('\n'.join((str(find_or_new(i)['card']) + ' ' + str(i)) for i in blacklist))
-
-@on_command(('thwiki', 'print_weak_blacklist'), only_to_me=False, environment=env_supervise_only)
-@config.ErrorHandle(config.logger.thwiki)
-async def thwiki_print_weak_blacklist(session: CommandSession):
-    """列出弱黑名单。"""
-    await session.send('\n'.join((str(find_or_new(i)['card']) + ' ' + str(i)) for i in weak_blacklist))
 
 # Handler for command '-thwiki.check_user'
 @on_command(('thwiki', 'check_user'), only_to_me=False, short_des="查询直播过的用户数量。", environment=env_supervise)
