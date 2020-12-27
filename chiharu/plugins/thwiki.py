@@ -740,6 +740,9 @@ async def thwiki_cancel(session: CommandSession):
         e = l.pop(i)
         config.logger.thwiki << f"【LOG】用户{session.ctx['user_id']} 成功删除：{e}"
         
+        await _save(l)
+        await session.send('成功删除')
+        
         lunbo = False
         # In this case, a shutdown of room should be performed...?
         if e.supervise != 0 and e.begin < now:
@@ -749,6 +752,18 @@ async def thwiki_cancel(session: CommandSession):
             if add_time(e.qq, d):
                 await session.send('您已成功通过试用期转正！')
             lunbo = True
+        elif e.supervise == 0 and e.begin < now:
+            today = date.today().isoformat()
+            if 'last_cancel_day' not in node or node['last_cancel_day'] != today:
+                node['last_cancel_day'] = today
+                save_whiteforest()
+            else:
+                new = datetime.now() + timedelta(minutes=60)
+                global banlist
+                if uqq not in banlist or banlist[uqq] < new:
+                    banlist[uqq] = new
+                    save_banlist()
+                await session.send([config.cq.at(e.qq), config.cq.text('您今日已有过待监视预约被取消，已进入冷静期60分钟。')])
 
         if e.msg_id != -1:
             config.logger.thwiki << f"【LOG】撤回消息：{e.msg_id}"
@@ -756,9 +771,6 @@ async def thwiki_cancel(session: CommandSession):
                 await get_bot().delete_msg(message_id=e.msg_id)
             except aiocqhttp.exceptions.ActionFailed:
                 pass
-
-        await _save(l)
-        await session.send('成功删除')
 
         ret = await change_des_to_list(lunbo=lunbo)
         if json.loads(ret)['code'] != 0:
@@ -941,7 +953,7 @@ async def _():
                     banlist[e.qq] = new
                     save_banlist()
                 for id in config.group_id_dict['thwiki_send']:
-                    await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('您的直播无人监视，已被自动取消。您今日已有过预约被自动取消，已进入冷静期60分钟。')])
+                    await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('您的直播无人监视，已被自动取消。您今日已有过待监视预约被自动取消，已进入冷静期60分钟。')])
             await _save(l)
             return
     for i, e in enumerate(l):
