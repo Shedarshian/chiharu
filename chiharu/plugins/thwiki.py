@@ -927,8 +927,21 @@ async def _():
                     await bot.send_group_msg(group_id=id, message=[config.cq.at(e.supervise), config.cq.text('\n内容: %s\n请监视者就位' % e.name)])
         elif e.begin + timedelta(minutes=TIME_OUT) < now + timedelta(seconds=1) and e.supervise == 0 and (e.isFloat or now + timedelta(seconds=1) < e.end):
             l.pop(i)
-            for id in config.group_id_dict['thwiki_send']:
-                await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('您的直播无人监视，已被自动取消')])
+            node = find_or_new(e.qq)
+            today = date.today().isoformat()
+            if 'last_cancel_day' not in node or node['last_cancel_day'] != today:
+                node['last_cancel_day'] = today
+                save_whiteforest()
+                for id in config.group_id_dict['thwiki_send']:
+                    await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('您的直播无人监视，已被自动取消')])
+            else:
+                new = datetime.now() + timedelta(minutes=60)
+                global banlist
+                if e.qq not in banlist or banlist[e.qq] < new:
+                    banlist[e.qq] = new
+                    save_banlist()
+                for id in config.group_id_dict['thwiki_send']:
+                    await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('您的直播无人监视，已被自动取消。您今日已有过预约被自动取消，已进入冷静期60分钟。')])
             await _save(l)
             return
     for i, e in enumerate(l):
