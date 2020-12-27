@@ -45,8 +45,8 @@ env_all_can_private.private = True
 config.CommandGroup('thwiki', short_des="THBWiki官方账户直播相关。", des='THBWiki官方账户直播相关。部分指令只可在直播群内使用。', environment=env_all_can_private)
 
 # Version information and changelog
-version = "2.3.13"
-changelog = """2.3.0-13 Changelog:
+version = "2.3.15"
+changelog = """2.3.0-15 Changelog:
 Add:
 -thwiki.set_alias：设置显示在直播列表里的别名。
 Change:
@@ -54,7 +54,7 @@ Change:
 2.结束时间默认与起始时间在同一天
 3.支持中文冒号
 -thwiki.grant：推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。并且不需要被推荐人同意。
-若开播后15分钟仍未有人监视，则申请会被自动取消。
+若开播后15分钟仍未有人监视，则申请会被自动取消。自动取消超过一定次数后会进入冷静期。
 Remove:
 -thwiki.confirm_grant"""
 
@@ -1638,7 +1638,7 @@ async def thwiki_blacklist(session: CommandSession):
 @on_command(('thwiki', 'weak_blacklist'), only_to_me=False, short_des="添加用户至弱黑名单或列出弱黑名单。", args=("[@s]",), environment=env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_weak_blacklist(session: CommandSession):
-    """添加用户至弱黑名单。直播群管理或监视群可用。"""
+    """添加用户至弱黑名单。直播群管理或监视群可用。参数为空即为列出弱黑名单内的人。"""
     if session.current_arg == '':
         await session.send('\n'.join((str(find_or_new(i)['card']) + ' ' + str(i)) for i in weak_blacklist))
     global blacklist
@@ -1899,13 +1899,35 @@ async def thwiki_punish_check(session: CommandSession):
             return node['punish']
     await session.send(f'此用户友善度剩余{FRIENDLY_MAX - _(qq)}点。')
 
-@on_command(('thwiki', 'kick'), only_to_me=False, short_des="踢出群聊。", environment=env_supervise_only)
+@on_command(('thwiki', 'kick'), only_to_me=False, environment=env_supervise_only)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_kick(session: CommandSession):
+    """踢出群聊。"""
     qq = int(session.current_arg_text)
     group = list(config.group_id_dict['thwiki_punish'])[0]
     await get_bot().set_group_kick(group_id=group, user_id=qq)
     await session.send('已踢出。')
+
+@on_command(('thwiki', 'ban'), only_to_me=False, short_des="手动设置用户进入冷静期或查看冷静期成员。", args=('qq', 'time(min)'), environment=env_supervise_only)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_ban(session: CommandSession):
+    """手动设置用户进入冷静期。格式为-thwiki.ban qq号 时间（单位为分钟）。"""
+    if session.current_arg_text == '':
+        now = datetime.now()
+        session.finish('\n'.join(f'{qq}: {(time - now).minute}分钟' for qq, time in banlist))
+    global banlist
+    try:
+        qq, time = session.current_arg_text.split(' ')
+    except ValueError:
+        session.finish('请使用格式 -thwiki.ban qq号 时间（单位为分钟）。')
+    new = datetime.now() + timedelta(minutes=time)
+    if qq not in banlist or banlist[qq] < new:
+        banlist[qq] = new
+        save_banlist()
+        await get_bot().send_group_msg(group=list(config.group_id_dict['thwiki_punish'])[0], message=f"用户{qq}被加入冷静期{time}分钟。")
+        session.finish('已禁言。')
+    else:
+        session.finish('该用户已在禁言中，且禁言时间大于您设置的时间。')
 
 @on_command(('thwiki', 'bookmark'), only_to_me=False, short_des="将视频加入轮播列表。", environment=env_all_thwiki_live)
 @config.ErrorHandle(config.logger.thwiki)
