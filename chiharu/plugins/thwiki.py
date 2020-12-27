@@ -1912,10 +1912,10 @@ async def thwiki_kick(session: CommandSession):
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_ban(session: CommandSession):
     """手动设置用户进入冷静期。格式为-thwiki.ban qq号 时间（单位为分钟）。"""
+    global banlist
     if session.current_arg_text == '':
         now = datetime.now()
         session.finish('\n'.join(f'{qq}: {(time - now).minute}分钟' for qq, time in banlist))
-    global banlist
     try:
         qq, time = session.current_arg_text.split(' ')
     except ValueError:
