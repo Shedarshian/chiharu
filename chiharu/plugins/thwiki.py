@@ -1584,10 +1584,10 @@ async def thwiki_deduct(session: CommandSession):
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_blacklist(session: CommandSession):
     """添加用户至黑名单。直播群管理或监视群可用。不加参数即为列出所有黑名单内的人。"""
+    global blacklist
     if session.current_arg == '':
         await session.send('\n'.join((str(find_or_new(i)['card']) + ' ' + str(i)) for i in blacklist))
         return
-    global blacklist
     global weak_blacklist
     global whiteforest
     global l
@@ -1639,10 +1639,10 @@ async def thwiki_blacklist(session: CommandSession):
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_weak_blacklist(session: CommandSession):
     """添加用户至弱黑名单。直播群管理或监视群可用。参数为空即为列出弱黑名单内的人。"""
+    global weak_blacklist
     if session.current_arg == '':
         await session.send('\n'.join((str(find_or_new(i)['card']) + ' ' + str(i)) for i in weak_blacklist))
     global blacklist
-    global weak_blacklist
     global whiteforest
     global l
 
