@@ -1911,7 +1911,7 @@ async def thwiki_kick(session: CommandSession):
 @on_command(('thwiki', 'ban'), only_to_me=False, short_des="手动设置用户进入冷静期或查看冷静期成员。", args=('qq', 'time(min)'), environment=env_supervise_only)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_ban(session: CommandSession):
-    """手动设置用户进入冷静期。格式为-thwiki.ban qq号 时间（单位为分钟）。"""
+    """手动设置用户进入冷静期。格式为-thwiki.ban qq号 时间（单位为分钟）。不加参数为查看冷静期成员。"""
     global banlist
     if session.current_arg_text == '':
         now = datetime.now()
@@ -1920,7 +1920,7 @@ async def thwiki_ban(session: CommandSession):
         qq, time = session.current_arg_text.split(' ')
     except ValueError:
         session.finish('请使用格式 -thwiki.ban qq号 时间（单位为分钟）。')
-    new = datetime.now() + timedelta(minutes=time)
+    new = datetime.now() + timedelta(minutes=int(time))
     if qq not in banlist or banlist[qq] < new:
         banlist[qq] = new
         save_banlist()
