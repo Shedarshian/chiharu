@@ -16,7 +16,21 @@ import aiocqhttp
 from . import config, help
 from .inject import on_command
 config.logger.open('thwiki')
-env = config.Environment('thwiki_live', ret='请在直播群内使用')
+def not_banned(session):
+    global banlist
+    qq = session.ctx['user_id']
+    now = datetime.now()
+    if qq in banlist:
+        if banlist[qq] > now:
+            return False, "千春生气了，接下来{0}分钟不会跟你说话了！".format((banlist[qq] - now).minute)
+        else:
+            banlist.pop(qq)
+            save_banlist()
+            return True, ""
+    else:
+        return True, ""
+constraint_banlist = config.Constraint('thwiki_live', can_respond=lambda s: not_banned(s)[0], ret=lambda s: not_banned(s)[1])
+env = config.Environment(constraint_banlist, ret='请在直播群内使用')
 env_supervise_only = config.Environment('thwiki_supervise', ret='请在监视群内使用')
 def is_supervisor(session):
     qq = session.ctx['user_id']
@@ -300,6 +314,10 @@ with open(config.rel("thwiki_whiteforest.json"), encoding = 'utf-8') as f:
 with open(config.rel("thwiki_weak_blacklist.txt"), encoding = 'utf-8') as f:
     weak_blacklist = list(map(lambda x: int(x.strip()), f.readlines()))
 
+# Initializes the ban list
+with open(config.rel("thwiki_banlist.json"), encoding = 'utf-8') as f:
+    banlist = {key: datetime.fromisoformat(val) for key, val in json.load(f).items()}
+
 # Find whether a user is in the authorized user tree
 # id: internal ID, takes priority to qq
 # qq: QQ ID
@@ -312,6 +330,11 @@ def save_whiteforest():
     global whiteforest
     with open(config.rel("thwiki_whiteforest.json"), 'w', encoding='utf-8') as f:
         f.write(json.dumps(whiteforest, ensure_ascii=False, indent=4, separators=(',', ': ')))
+
+def save_banlist():
+    global banlist
+    with open(config.rel("thwiki_whiteforest.json"), 'w', encoding='utf-8') as f:
+        f.write(json.dumps({key: val.isoformat(' ') for key, val in banlist}, ensure_ascii=False, indent=4, separators=(',', ': ')))
 
 # So after all what is card??
 async def get_card(qq):
@@ -994,7 +1017,7 @@ async def thwiki_get(session: CommandSession):
             if qq == e.qq and b and e.begin - timedelta(minutes = 15) < now:
                 return (e.supervise != 0), e
         
-        node = find_whiteforest(qq)
+        node = find_whiteforest(qq=qq)
         if node is not None and 'supervisor' in node and node['supervisor'] or await permission.check_permission(get_bot(), session.ctx, permission.GROUP_ADMIN):
             return True, None
 
