@@ -333,7 +333,7 @@ def save_whiteforest():
 
 def save_banlist():
     global banlist
-    with open(config.rel("thwiki_whiteforest.json"), 'w', encoding='utf-8') as f:
+    with open(config.rel("thwiki_banlist.json"), 'w', encoding='utf-8') as f:
         f.write(json.dumps({key: val.isoformat(' ') for key, val in banlist.items()}, ensure_ascii=False, indent=4, separators=(',', ': ')))
 
 # So after all what is card??
