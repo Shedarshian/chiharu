@@ -30,7 +30,7 @@ def not_banned(session):
     else:
         return True, ""
 constraint_banlist = config.Constraint('thwiki_live', can_respond=lambda s: not_banned(s)[0], ret=lambda s: not_banned(s)[1])
-env = config.Environment(constraint_banlist, ret='请在直播群内使用')
+env = config.Environment('thwiki_live', constraint_banlist, ret='请在直播群内使用')
 env_supervise_only = config.Environment('thwiki_supervise', ret='请在监视群内使用')
 def is_supervisor(session):
     qq = session.ctx['user_id']
