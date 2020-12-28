@@ -1949,7 +1949,8 @@ async def thwiki_ban(session: CommandSession):
     if qq not in banlist or banlist[qq] < new:
         banlist[qq] = new
         save_banlist()
-        await get_bot().send_group_msg(group=list(config.group_id_dict['thwiki_punish'])[0], message=f"用户{qq}被加入冷静期{time}分钟。")
+        for group in group_id_dict['thwiki_send']:
+            await get_bot().send_group_msg(group=group, message=f"用户{qq}被加入冷静期{time}分钟。")
         session.finish('已禁言。')
     else:
         session.finish('该用户已在禁言中，且禁言时间大于您设置的时间。')
