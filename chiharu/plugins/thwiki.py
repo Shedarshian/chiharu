@@ -1940,6 +1940,8 @@ async def thwiki_ban(session: CommandSession):
     global banlist
     if session.current_arg_text == '':
         now = datetime.now()
+        if len(banlist) == 0:
+            session.finish('当前无人在冷静期中。')
         session.finish('\n'.join(f'{qq}: {(time - now).minute}分钟' for qq, time in banlist))
     try:
         qq, time = session.current_arg_text.split(' ')
