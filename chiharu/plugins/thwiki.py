@@ -442,7 +442,7 @@ def add_supervise_time(qq, time):
     if 'supervise_time' not in node:
         node['supervise_time'] = 0
     node['supervise_time'] += time
-    config.logger.thwiki << f'【LOG】监视者{qq} {"积累" if time > 0 else "扣除"}监视时间{abs(time)}，目前监视时间{node["time"]}'
+    config.logger.thwiki << f'【LOG】监视者{qq} {"积累" if time > 0 else "扣除"}监视时间{abs(time)}，目前监视时间{node["supervise_time"]}'
     save_whiteforest()
 
 class ApplyErr(BaseException):
@@ -753,7 +753,7 @@ async def thwiki_cancel(session: CommandSession):
                 await session.send('您已成功通过试用期转正！')
             lunbo = True
         elif e.supervise == 0 and e.begin < now:
-            today = date.today().isoformat()
+            today = str(date.today().isoformat())
             if 'last_cancel_day' not in node or node['last_cancel_day'] != today:
                 node['last_cancel_day'] = today
                 save_whiteforest()
@@ -940,7 +940,7 @@ async def _():
         elif e.begin + timedelta(minutes=TIME_OUT) < now + timedelta(seconds=1) and e.supervise == 0 and (e.isFloat or now + timedelta(seconds=1) < e.end):
             l.pop(i)
             node = find_or_new(e.qq)
-            today = date.today().isoformat()
+            today = str(date.today().isoformat())
             if 'last_cancel_day' not in node or node['last_cancel_day'] != today:
                 node['last_cancel_day'] = today
                 save_whiteforest()
