@@ -54,7 +54,7 @@ class Environment:
                     if isinstance(self.constraint[group_id].ret, str):
                         await session.send(self.constraint[group_id].ret)
                     else:
-                        await session.send(self.constraint[group_id].ret())
+                        await session.send(self.constraint[group_id].ret(session))
                 return ret
             elif group_id in self.group:
                 return True
