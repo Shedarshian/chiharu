@@ -1948,6 +1948,7 @@ async def thwiki_ban(session: CommandSession):
     except ValueError:
         session.finish('请使用格式 -thwiki.ban qq号 时间（单位为分钟）。')
     new = datetime.now() + timedelta(minutes=int(time))
+    qq = int(qq)
     if qq not in banlist or banlist[qq] < new:
         banlist[qq] = new
         save_banlist()
