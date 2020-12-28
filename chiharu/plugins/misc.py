@@ -73,6 +73,15 @@ async def PythonExec(session: CommandSession):
         exec(session.current_arg_text, {}, {})
     await session.send(s.getvalue()[:-1], auto_escape=True)
 
+@on_command(('python', 'await'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
+@config.ErrorHandle
+async def PythonAwait(session: CommandSession):
+    with stdoutIO() as s:
+        local = {}
+        exec('await main():\n  ' + '\n  '.join(session.current_arg_text.split('\n')))
+        await local['main']()
+    await session.send(s.getvalue()[:-1], auto_escape=True)
+
 config.CommandGroup(('misc', 'maj'), short_des='麻将小助手。')
 
 @on_command(('misc', 'maj', 'ten'), only_to_me=False, short_des="日麻算点器。")
