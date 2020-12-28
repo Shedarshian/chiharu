@@ -51,7 +51,10 @@ class Environment:
             elif group_id in self.constraint:
                 ret = self.constraint[group_id]._f(session)
                 if not ret and self.constraint[group_id].ret and not no_reply:
-                    await session.send(self.constraint[group_id].ret)
+                    if isinstance(self.constraint[group_id].ret, str):
+                        await session.send(self.constraint[group_id].ret)
+                    else:
+                        await session.send(self.constraint[group_id].ret())
                 return ret
             elif group_id in self.group:
                 return True
