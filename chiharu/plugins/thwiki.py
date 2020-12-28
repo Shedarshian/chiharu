@@ -316,7 +316,7 @@ with open(config.rel("thwiki_weak_blacklist.txt"), encoding = 'utf-8') as f:
 
 # Initializes the ban list
 with open(config.rel("thwiki_banlist.json"), encoding = 'utf-8') as f:
-    banlist = {key: datetime.fromisoformat(val) for key, val in json.load(f).items()}
+    banlist = {int(key): datetime.fromisoformat(val) for key, val in json.load(f).items()}
 
 # Find whether a user is in the authorized user tree
 # id: internal ID, takes priority to qq
@@ -334,7 +334,7 @@ def save_whiteforest():
 def save_banlist():
     global banlist
     with open(config.rel("thwiki_banlist.json"), 'w', encoding='utf-8') as f:
-        f.write(json.dumps({key: val.isoformat(' ') for key, val in banlist.items()}, ensure_ascii=False, indent=4, separators=(',', ': ')))
+        f.write(json.dumps({str(key): val.isoformat(' ') for key, val in banlist.items()}, ensure_ascii=False, indent=4, separators=(',', ': ')))
 
 # So after all what is card??
 async def get_card(qq):
