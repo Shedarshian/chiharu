@@ -22,13 +22,20 @@ async def if_gacha(session: CommandSession):
         if pool_id not in metainfo:
             session.finish('请输入正确的卡池id。')
         pool_metainfo = metainfo[pool_id]
-        if pool_metainfo[2] is not None: 
+        if pool_metainfo[2] is not None:
             pool_id_changed = pool_metainfo[2]
         else:
             pool_id_changed = pool_id
-        with open(config.rel(f'if\\pools\\{pool_id_changed}.json'), encoding='utf-8') as f:
-            pool = json.load(f)
-        l = random.choices(pool, [d['weight'] for d in pool], k=10)
+        if isinstance(pool_id_changed, list):
+            def _(name):
+                with open(config.rel(f'if\\pools\\{pool_id_changed}.json'), encoding='utf-8') as f:
+                    j = json.load(f)
+                    return j, [d['weight'] for d in j]
+            l = itertools.chain([random.choices(*_(name), k=n) for name, n in pool_id_changed])
+        else:
+            with open(config.rel(f'if\\pools\\{pool_id_changed}.json'), encoding='utf-8') as f:
+                pool = json.load(f)
+            l = random.choices(pool, [d['weight'] for d in pool], k=10)
         if pool_metainfo[1].startswith('ex'):
             with open(config.rel(f'if\\pools\\{pool_metainfo[1]}.json'), encoding='utf-8') as f:
                 pool1 = json.load(f)
