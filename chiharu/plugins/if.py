@@ -28,7 +28,7 @@ async def if_gacha(session: CommandSession):
             pool_id_changed = pool_id
         if isinstance(pool_id_changed, list):
             def _(name):
-                with open(config.rel(f'if\\pools\\{pool_id_changed}.json'), encoding='utf-8') as f:
+                with open(config.rel(f'if\\pools\\{name}.json'), encoding='utf-8') as f:
                     j = json.load(f)
                     return j, [d['weight'] for d in j]
             l = itertools.chain([random.choices(*_(name), k=n) for name, n in pool_id_changed])
