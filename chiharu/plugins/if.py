@@ -31,7 +31,7 @@ async def if_gacha(session: CommandSession):
                 with open(config.rel(f'if\\pools\\{name}.json'), encoding='utf-8') as f:
                     j = json.load(f)
                     return j, [d['weight'] for d in j]
-            l = itertools.chain([random.choices(*_(name), k=n) for name, n in pool_id_changed])
+            l = list(itertools.chain(*[random.choices(*_(name), k=n) for name, n in pool_id_changed]))
         else:
             with open(config.rel(f'if\\pools\\{pool_id_changed}.json'), encoding='utf-8') as f:
                 pool = json.load(f)
