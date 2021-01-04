@@ -1471,11 +1471,11 @@ async def thwiki_leaderboard(session: CommandSession):
         al = list(sorted(whiteforest, key=lambda node: ((0 if 'time' not in node else -node['time']), str(node['card']))))
         index = al.index(node)
         print(index)
-        await session.send('\n'.join([f"{i + 1} 直播时长：{al[i]['time']}min 用户：{al[i]['card']} {al[i]['qq']}"
+        await session.send('\n'.join([f"{i + 1} 直播时长：{al[i]['time']}min 用户：{al[i]['alias'] if 'alias' in al[i] else al[i]['card']} {al[i]['qq']}"
             for i in range(max(0, index - 2), min(len(al) - 1, index + 3))]), auto_escape=True)
         return
     _max = 10
-    await session.send('\n'.join([f"{i + 1} 直播时长：{node['time']}min 用户：{node['card']} {node['qq']}"
+    await session.send('\n'.join([f"{i + 1} 直播时长：{node['time']}min 用户：{node['alias'] if 'alias' in node else node['card']} {node['qq']}"
         for i, node in enumerate(more_itertools.take(_max, sorted(whiteforest,
             key=lambda node: (0 if 'time' not in node else node['time']), reverse=True
         )))]), auto_escape=True)
