@@ -15,6 +15,13 @@ async def if_gacha(session: CommandSession):
     '''幻想收束模拟抽卡。
     使用'-if.gacha 卡池id'抽卡。
     卡池信息请使用'-if.gacha 卡池'或'-if.gacha pool'查询。'''
+    # 对于card.json的[0]，是一个dict，key代表卡池代号，val[0]代表卡池名，val[1]代表保底机制，
+    # "2"表示premium的1星升级为2星，"ex???"代表第10张导向名为"ex???"的卡池文件，
+    # val[2]若为str，则为前9个指向的卡池文件，若为list，则举例为[["1", 5], ["fes58", 4], ["fes9", 1]]，
+    # 代表哪n张卡导向名为什么的文件。
+    # 对于卡池文件，type有三种：premium, up, mixed。premium表示普池卡，
+    # up表示等概率分布的特定卡，mixed格式举例为[[0, 2], [1, 2], ["abc", "def"]]，
+    # 表示普池的[0, 2]与[1, 2]以及两张特定卡所有这些卡等概率。
     if session.current_arg_text in ('卡池', 'pool'):
         await session.send('\n'.join(f'{i}: {l[0]}' for i, l in metainfo.items()))
     else:
