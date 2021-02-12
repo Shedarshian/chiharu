@@ -306,6 +306,3 @@ async def find_help(cmd_name: tuple, session: CommandSession):
                     continue
                 yield (command.display_id, f"-{'.'.join(command.name)}{''.join(' ' + x for x in command.args)}：{command.short_des}")
         return (cmd_tree.des + '\n' + '\n'.join(s2 for id, s2 in sorted([s async for s in _(cmd_tree)], key=lambda x: x[0]))).strip()
-
-import sqlite3
-userdata = sqlite3.connect(rel('users.db'))

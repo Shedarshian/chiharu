@@ -201,3 +201,7 @@ class AvBvConverter:
 
 for i in range(58):
     AvBvConverter.tr[AvBvConverter.table[i]]=i
+
+import sqlite3
+userdata_db = sqlite3.connect(rel('users.db'))
+userdata = userdata_db.cursor()
