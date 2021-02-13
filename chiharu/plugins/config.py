@@ -10,7 +10,7 @@ from nonebot.session import BaseSession
 from nonebot.command import _PauseException, _FinishException, SwitchException
 import traceback
 from collections import UserDict
-from .inject import find_help, CommandGroup, Environment, AllGroup, Admin, Constraint, on_command, _find_command, userdata
+from .inject import find_help, CommandGroup, Environment, AllGroup, Admin, Constraint, on_command, _find_command
 
 PATH = "C:\\coolq_data\\"
 PATH_IMG = "C:\\coolq\\image"
@@ -204,4 +204,5 @@ for i in range(58):
 
 import sqlite3
 userdata_db = sqlite3.connect(rel('users.db'))
+userdata_db.row_factory = sqlite3.Row
 userdata = userdata_db.cursor()
