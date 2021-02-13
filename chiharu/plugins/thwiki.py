@@ -307,8 +307,6 @@ def _line(s, has_card):
     return l.pop(0), l.pop(0), l.pop(0), (' '.join(l) if has_card else None)
 
 # Initializes the authorized user tree
-with open(config.rel("thwiki_whiteforest.json"), encoding = 'utf-8') as f:
-    whiteforest = json.load(f)
 
 # Initializes weak blacklist (only blocks user from being the recommendee
 with open(config.rel("thwiki_weak_blacklist.txt"), encoding = 'utf-8') as f:
@@ -322,14 +320,11 @@ with open(config.rel("thwiki_banlist.json"), encoding = 'utf-8') as f:
 # id: internal ID, takes priority to qq
 # qq: QQ ID
 def find_whiteforest(*, id=None, qq=None):
-    global whiteforest
-    return more_itertools.only([x for x in whiteforest if x['qq'] == qq]) if id is None else more_itertools.only([x for x in whiteforest if x['id'] == id])
+    return config.userdata.execute('select * from thwiki_user where ?=?', ('qq', qq) if id is None else ('id', id)).fetchone()
 
 # Write current authorized user tree to file.
 def save_whiteforest():
-    global whiteforest
-    with open(config.rel("thwiki_whiteforest.json"), 'w', encoding='utf-8') as f:
-        f.write(json.dumps(whiteforest, ensure_ascii=False, indent=4, separators=(',', ': ')))
+    config.userdata_db.commit()
 
 def save_banlist():
     global banlist
@@ -351,12 +346,11 @@ async def get_card(qq):
 # Add new user to the authorized user tree
 # qq: QQ ID
 def find_or_new(qq):
-    global whiteforest
     ret = find_whiteforest(qq=qq)
     if ret is None:
-        ret = {'id': len(whiteforest), 'qq': qq, 'trail': 1, 'card': None, 'time': 0}
-        whiteforest.append(ret)
+        config.userdata.execute('insert into thwiki_user (qq, trail, time) values (?, 1, 0)', qq)
         save_whiteforest()
+        ret = find_whiteforest(qq=qq)
     return ret
 
 # Removes user from the authorized user tree
@@ -364,7 +358,6 @@ def find_or_new(qq):
 # if_save: indicates whether the change should be saved now
 # clear_time: self-explanatory
 def deprive(node, if_save=True, clear_time=True):
-    global whiteforest
     global l
 
     updated = []
@@ -379,18 +372,14 @@ def deprive(node, if_save=True, clear_time=True):
                 i.supervise = 0
                 updated_event.append(i)
 
-        if 'parent' in r:
-            r.pop('parent')
-        if 'child' in r:
-            for i in r.pop('child'):
-                f = find_whiteforest(id=i)
+        if r['childs'] is not None:
+            for i in r['childs'].split(','):
+                f = find_whiteforest(id=int(i))
                 # Add child nodes to the list
                 to_do.append(f)
-
         # Why use trail as key? You mean 'trial' or 'trace'??
-        r['trail'] = 1
-        if clear_time:
-            r['time'] = 0
+        config.userdata.execute('update thwiki_user set parents=NULL, trail=1%s where qq=?' % (', time=0' if clear_time else ''), (r['qq'],))
+
         config.logger.thwiki << f'用户{r["qq"]} 已被deprive，时间{"清零" if clear_time else ("保留为" + str(r["time"]))}'
         updated.append(config.cq.at(r['qq']))
 
@@ -407,31 +396,29 @@ def add_time(qq, time):
     node = find_or_new(qq)
 
     time = int(time)
-    if 'time' not in node:
-        node['time'] = 0
-    node['time'] += time
-    config.logger.thwiki << f'【LOG】用户{qq} {"积累" if time > 0 else "扣除"}时间{abs(time)}，目前时间{node["time"]}'
+    time_new = node["time"] + time
+    config.userdata.execute('update thwiki_user set time=? where id=?', (time_new, node['id']))
+    config.logger.thwiki << f'【LOG】用户{qq} {"积累" if time > 0 else "扣除"}时间{abs(time)}，目前时间{time_new}'
 
     b = False # What is the purpose??
-    if node['time'] >= TRAIL_TIME and qq not in weak_blacklist:
+    if time_new >= TRAIL_TIME and qq not in weak_blacklist:
         b = node['trail'] != 0
         if 'parent' not in node or node['parent'] != -1:
             if node['trail'] != 0:
                 config.logger.thwiki << f'【LOG】用户{qq} 已通过试用期转正'
-                node['trail'] = 0
+                config.userdata.execute(f'update thwiki_user set trail=0 where id=?', (node['id'],))
             else:
                 config.logger.thwiki << f'【LOG】用户{qq} 已通过试用期，节点独立'
-            if 'parent' in node:
-                find_whiteforest(id=node['parent'])['child'].remove(node['id'])
-            if 'child' not in node:
-                node['child'] = []
-            node['parent'] = -1
-            # Also check this fix
-        if 'to_confirm' in node:
-            node.pop('to_confirm')
-    elif node['time'] < TRAIL_TIME and node['time'] - time > TRAIL_TIME:
+            if node['parent'] is not None:
+                c = config.userdata.execute(f'select childs from thwiki_user where id=?', (node["parent"],)).fetchone()['childs'].split(',')
+                c.remove(str(node['id']))
+                config.userdata.execute(f'update thwiki_user set childs=? where id=?', (','.join(c), node["parent"]))
+            if node['childs'] is None:
+                config.userdata.execute(f'update thwiki_user set childs=? where id=?', ('', node['id']))
+            config.userdata.execute(f'update thwiki_user set parent=-1 where id=?', (node['id'],))
+    elif time_new < TRAIL_TIME and node['time'] > TRAIL_TIME:
         config.logger.thwiki << f'【LOG】用户{qq} 已退回试用期'
-        node['trail'] = 1
+        config.userdata.execute(f'update thwiki_user set trail=1 where id=?', (node['id'],))
     save_whiteforest()
     return b
 
@@ -439,9 +426,10 @@ def add_supervise_time(qq, time):
     node = find_or_new(qq)
 
     time = int(time)
-    if 'supervise_time' not in node:
-        node['supervise_time'] = 0
-    node['supervise_time'] += time
+    if node['supervise_time'] is None:
+        config.userdata.execute('update thwiki_user set supervise_time=? where id=?', (time, node['id']))
+    else:
+        config.userdata.execute('update thwiki_user set supervise_time=? where id=?', (node['supervise_time'] + time, node['id']))
     config.logger.thwiki << f'【LOG】监视者{qq} {"积累" if time > 0 else "扣除"}监视时间{abs(time)}，目前监视时间{node["supervise_time"]}'
     save_whiteforest()
 
@@ -455,7 +443,7 @@ class Record(namedtuple('Record', ['qq', 'time', 'msg_id', 'msg'])):
         return f"{self.qq}【{self.time.isoformat(sep=' ')}】{self.msg_id}: {self.msg}"
     @staticmethod
     def construct(line):
-        match = re.match('^(\d+)【(.*?)】(\d+): (.*)$', line)
+        match = re.match(r'^(\d+)【(.*?)】(\d+): (.*)$', line)
         if not match:
             return None
         qq, time, msg_id, msg = match.groups()
@@ -734,8 +722,7 @@ async def thwiki_cancel(session: CommandSession):
     i = l2[0]
     uqq = int(session.ctx['user_id'])
     node = find_or_new(qq=uqq)
-    if uqq == l[i].qq or 'supervisor' in node and node['supervisor']:
-    #        await permission.check_permission(get_bot(), session.ctx, permission.GROUP_ADMIN):
+    if uqq == l[i].qq or node['supervisor']:
         now = datetime.now()
         e = l.pop(i)
         config.logger.thwiki << f"【LOG】用户{session.ctx['user_id']} 成功删除：{e}"
@@ -755,7 +742,7 @@ async def thwiki_cancel(session: CommandSession):
         elif e.supervise == 0 and e.begin < now:
             today = str(date.today().isoformat())
             if 'last_cancel_day' not in node or node['last_cancel_day'] != today:
-                node['last_cancel_day'] = today
+                config.userdata.execute(f'update thwiki_user set last_cancel_day=? where id=?', (today, node['id']))
                 save_whiteforest()
             else:
                 new = datetime.now() + timedelta(minutes=60)
@@ -800,7 +787,7 @@ async def thwiki_list(session: CommandSession):
         node = find_or_new(qq=qq)
 
         # Check if there a set timezone
-        if 'timezone' not in node or node['timezone'] == 8:
+        if node['timezone'] in (None, 8):
             if if_all:
                 await session.send('\n'.join([str(x) for x in l]), auto_escape=True)
             else:
@@ -893,8 +880,10 @@ async def _():
     if json.loads(ret)['code'] != 0:
         for id in config.group_id_dict['thwiki_send']:
             await get_bot().send_group_msg(group_id=id, message='直播间简介更新失败')
-    for r in whiteforest:
-        r['card'] = await get_card(r['qq'])
+    for row in config.userdata.execute('select id, qq, card from thwiki_user').fetchall():
+        card = await get_card(row['qq'])
+        if card != row['card']:
+            config.userdata.execute('update thwiki_user set card=? where id=?', (card, row['id']))
     save_whiteforest()
 
     global record_file
@@ -941,8 +930,8 @@ async def _():
             l.pop(i)
             node = find_or_new(e.qq)
             today = str(date.today().isoformat())
-            if 'last_cancel_day' not in node or node['last_cancel_day'] != today:
-                node['last_cancel_day'] = today
+            if node['last_cancel_day'] != today:
+                config.userdata.execute(f'update thwiki_user set last_cancel_day=? where id=?', (today, node['id']))
                 save_whiteforest()
                 for id in config.group_id_dict['thwiki_send']:
                     await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('您的直播无人监视，已被自动取消')])
@@ -1042,8 +1031,8 @@ async def thwiki_get(session: CommandSession):
             if qq == e.qq and b and e.begin - timedelta(minutes = 15) < now:
                 return (e.supervise != 0), e
         
-        node = find_whiteforest(qq=qq)
-        if node is not None and 'supervisor' in node and node['supervisor'] or await permission.check_permission(get_bot(), session.ctx, permission.GROUP_ADMIN):
+        node = find_or_new(qq)
+        if node['supervisor'] or await permission.check_permission(get_bot(), session.ctx, permission.GROUP_ADMIN):
             return True, None
 
         return False, None
@@ -1143,8 +1132,8 @@ async def thwiki_grant(session: CommandSession):
     推荐需要获得推荐权。获得推荐权的方法是申请加入“THBWiki直播审核群”。群号请在直播群公告里寻找。"""
     # Check for permission
     sqq = session.ctx['user_id']
-    node = find_whiteforest(qq=sqq)
-    if node is None or node['trail'] == 1 or 'supervisor' not in node or not node['supervisor']:
+    node = find_or_new(sqq)
+    if node['trail'] == 1 or not node['supervisor']:
         session.finish("您没有推荐权，无法推荐")
     elif sqq in weak_blacklist:
         session.finish("您不可推荐他人")
@@ -1168,7 +1157,7 @@ async def thwiki_grant(session: CommandSession):
     arguments = session.current_arg.split(' ')
     flag = False
     for arg in arguments:
-        if arg == 'false' or arg == 'False' or arg == 'f' or arg == 'F':
+        if arg in ('false', 'False', 'f', 'F'):
             flag = True
 
     if flag:
@@ -1192,7 +1181,9 @@ async def thwiki_grant(session: CommandSession):
                 partial_failed.append(config.cq.at(node_c['qq']))
             else:
                 config.logger.thwiki << f'【LOG】用户{sqq} 撤回推荐{qq} 成功'
-                node['child'].remove(node_c['id'])
+                c = node['childs'].split(',')
+                c.remove(str(node_c['id']))
+                config.userdata.execute('update thwiki_user set childs=? where id=?', (','.join(c), node['id']))
                 u, u2 = deprive(node_c, False)
                 updated += u
                 updated_event += u2
@@ -1222,10 +1213,10 @@ async def thwiki_grant(session: CommandSession):
             else:
                 if ret_c['card'] is None:
                     to_card.append(ret_c)
-                ret_c['parent'] = node['id']
-                ret_c['child'] = []	
-                ret_c['trail'] = 0	
-                node['child'].append(ret_c['id'])
+                config.userdata.execute('update thwiki_user set parent=?, childs=?, trail=0 where id=?', (node['id'], '', ret_c['id']))
+                c = node['childs'].split(',')
+                c.append(str(ret_c['id']))
+                config.userdata.execute('update thwiki_user set childs=? where id=?', (','.join(c), node['id']))
                 config.logger.thwiki << f"【LOG】用户{sqq} 推荐{qq} 成功"
                 updated.append(config.cq.at(ret_c['qq']))
                 updated_qq.append(ret_c['qq'])
@@ -1233,9 +1224,10 @@ async def thwiki_grant(session: CommandSession):
         for e in l:
             if e.qq in updated_qq and e.supervise >= 0:
                 e.supervise = -1
-        for r in to_card:
-            c = await get_card(r['qq'])
-            r['card'] = c
+        for row in to_card:
+            card = await get_card(row['qq'])
+            if card != row['card']:
+                config.userdata.execute('update thwiki_user set card=? where id=?', (card, row['id']))
         if len(to_card) > 0:
             save_whiteforest()
         await session.send(updated + ([config.cq.text(" 已成功推荐！")] if len(updated) > 0 else []) + ([config.cq.text("\n")] if len(updated) > 0 and len(not_update) > 0 else []) + ((not_update + [config.cq.text(" 是已推荐用户，推荐失败")]) if len(not_update) > 0 else []) + ([config.cq.text("\n")] if len(not_update) > 0 and len(update_failed) > 0 else []) + ((update_failed + [config.cq.text(" 不可被推荐，推荐失败")]) if len(update_failed) > 0 else []), auto_escape=True)
@@ -1252,7 +1244,9 @@ async def thwiki_depart(session: CommandSession):
         session.finish("您还处在试用期，无需脱离")
     elif node['parent'] == -1:
         session.finish("您已超过试用期所需时间，无需脱离")
-    find_whiteforest(id=node['parent'])['child'].remove(node['id'])
+    c = find_whiteforest(id=node['parent'])['childs']
+    c.remove(str(node['id']))
+    config.userdata.execute('update thwiki_user set childs=? where id=?', (','.join(c), node['parent']))
     updated, updated_event = deprive(node, True, False)
     for e in updated_event:
         config.logger.thwiki << f'【LOG】事件权限更新：{e}'
@@ -1284,7 +1278,6 @@ async def thwiki_deprive(session: CommandSession):
 
     global blacklist
     global weak_blacklist
-    global whiteforest
 
     updated = []
     not_updated = []
@@ -1292,18 +1285,20 @@ async def thwiki_deprive(session: CommandSession):
 
     for qq in qqs:
         if qq not in blacklist:
-            node = find_or_new(qq = qq)
+            node = find_or_new(qq=qq)
             if node['trail'] == 1:
                 if node['card'] is None:
-                    node['card'] = await get_card(qq)
+                    config.userdata.execute('update thwiki_user set card=? where id=?', (await get_card(qq), node['id']))
                 # Consider swap to PM
                 config.logger.thwiki << f'【LOG】{session.ctx["user_id"]} deprive {qq}失败'
                 not_updated.append(config.cq.at(qq))
                 #return
             else:
-                node_parent = find_whiteforest(id = node['parent'])
+                node_parent = find_whiteforest(id=node['parent'])
                 if node_parent is not None:
-                    node_parent['child'].remove(node['id'])
+                    c = node_parent['childs'].split(',')
+                    c.remove(node['id'])
+                    config.userdata.execute('update thwiki_user set childs=? where id=?', (','.join(c), node_parent['id']))
                 u, u2 = deprive(node)
                 updated += u
                 updated_event += u2
@@ -1396,14 +1391,12 @@ async def thwiki_supervise(session: CommandSession):
 async def thwiki_time(session: CommandSession):
     """查询直播时长（2019年8月至今）。
     不加参数为查询自己的直播时间。可加参数@别人查询别人的直播时间。"""
-    match = re.search('qq=(\d+)', session.current_arg)
+    match = re.search(r'qq=(\d+)', session.current_arg)
     if match:
         qq = int(match.group(1))
     else:
         qq = session.ctx['user_id']
-    node = find_or_new(qq = qq)
-    if 'time' not in node:
-        node['time'] = 0
+    node = find_or_new(qq=qq)
     await session.send(f'您{"查询的人" if match else ""}的直播总时长为：{node["time"]}分钟。（2019年8月开始）', auto_escape=True)
 
 # Handler for command '-thwiki.timezone'
@@ -1414,28 +1407,28 @@ async def thwiki_timezone(session: CommandSession):
     """查询或修改时区。
     不加参数时，查询自己的时区。参数为@别人时，查询别人的时区。
     参数为UTC时区信息时，修改自己的时区。"""
-    match = re.search('qq=(\d+)', session.current_arg)
+    match = re.search(r'qq=(\d+)', session.current_arg)
     if match:
         qq = int(match.group(1))
         other = True
     else:
         qq = session.ctx['user_id']
         other = False
-    match = re.fullmatch('(UTC)?(\+\d+|-\d+|\d+)(:00)?', session.current_arg_text.strip())
+    match = re.fullmatch(r'(UTC)?(\+\d+|-\d+|\d+)(:00)?', session.current_arg_text.strip())
     if match and not other:
         tz_new = int(match.group(2))
         if tz_new <= -15 or tz_new >= 15:
             session.finish("UTC时区必须在(-15, +15)以内")
     else:
         tz_new = None
-    node = find_or_new(qq = qq)
+    node = find_or_new(qq=qq)
     if tz_new is not None:
-        node['timezone'] = tz_new
+        config.userdata.execute('update thwiki_user set timezone=? where id=?', (tz_new, node['id']))
         config.logger.thwiki << f'【LOG】用户{qq} 已修改时区为{tz_new}'
         await session.send(f"您的时区已修改为{timezone(timedelta(hours=tz_new)).tzname(datetime.today())}")
         save_whiteforest()
     else:
-        tz = node.get('timezone', 8)
+        tz = node['timezone'] or 8
         await session.send(("您查询的用户" if other else "您") + f"的时区为{timezone(timedelta(hours=tz)).tzname(datetime.today())}")
 
 # Handler for command '-thwiki.grantlist'
@@ -1444,14 +1437,14 @@ async def thwiki_timezone(session: CommandSession):
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_grantlist(session: CommandSession):
     """查询推荐树。监视群可用。"""
-    for node in whiteforest:
+    for node in config.userdata.execute('select id, qq, card from thwiki_user').fetchall():
         if node['card'] is None:
-            node['card'] = await get_card(node['qq'])
+            config.userdata.execute('update thwiki_user set card=? where id=?', (await get_card(node['qq']), node['id']))
     await session.send('\n'.join(
         [f"id: {node['id']} qq: {node['qq']} 名片: {node['card']}\nparent id: {node['parent']}" +
             (f" 名片: {find_whiteforest(id=node['parent'])['card']}" if node['parent'] != -1 else '') +
             (f"\nchilds id: {' '.join(map(str, node['child']))}" if 'child' in node and len(node['child']) > 0 else "")
-            for node in whiteforest if node['trail'] == 0]
+            for node in config.userdata.execute('select * from thwiki_user where trail=0').fetchall()]
         ), auto_escape=True, ensure_private=True)
 
 # Handler for command '-thwiki.leaderboard'
@@ -1466,19 +1459,16 @@ async def thwiki_leaderboard(session: CommandSession):
     #         node['card'] = await get_card(node['qq'])
     if session.current_arg_text == "me":
         node = find_or_new(qq=session.ctx['user_id'])
-        if 'time' not in node:
-            node['time'] = 0
-        al = list(sorted(whiteforest, key=lambda node: ((0 if 'time' not in node else -node['time']), str(node['card']))))
-        index = al.index(node)
-        print(index)
-        await session.send('\n'.join([f"{i + 1} 直播时长：{al[i]['time']}min 用户：{al[i]['alias'] if 'alias' in al[i] else al[i]['card']} {al[i]['qq']}"
+        al = config.userdata.execute('select id, time, card, alias from thwiki_user order by time, id desc').fetchall()
+        index = [i for i, row in enumerate(al) if row['id'] == node['id']][0]
+        await session.send('\n'.join([f"{i + 1} 直播时长：{al[i]['time']}min 用户：{al[i]['alias'] if al[i]['alias'] else al[i]['card']} {al[i]['qq']}"
             for i in range(max(0, index - 2), min(len(al) - 1, index + 3))]), auto_escape=True)
         return
     _max = 10
     await session.send('\n'.join([f"{i + 1} 直播时长：{node['time']}min 用户：{node['alias'] if 'alias' in node else node['card']} {node['qq']}"
-        for i, node in enumerate(more_itertools.take(_max, sorted(whiteforest,
-            key=lambda node: (0 if 'time' not in node else node['time']), reverse=True
-        )))]), auto_escape=True)
+        for i, node in enumerate(more_itertools.take(_max,
+            config.userdata.execute('select id, time, card, alias from thwiki_user order by time, id desc').fetchall()
+        ))]), auto_escape=True)
 
 # Handler for command '-thwiki.open'
 @on_command(('thwiki', 'open'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
@@ -1578,7 +1568,7 @@ async def thwiki_shutdown(session: CommandSession):
     """强制关闭直播间。直播群管理可用。"""
     qq = session.ctx['user_id']
     node = find_or_new(qq=qq)
-    if 'supervisor' in node and node['supervisor']:
+    if node['supervisor']:
         await th_open(is_open=False)
         config.logger.thwiki << f'【LOG】管理者{qq}关闭直播间'
         await session.send('已关闭直播间')
@@ -1614,7 +1604,6 @@ async def thwiki_blacklist(session: CommandSession):
         await session.send('\n'.join((str(find_or_new(i)['card']) + ' ' + str(i)) for i in blacklist))
         return
     global weak_blacklist
-    global whiteforest
     global l
 
     # Construct QQ list from @s
@@ -1633,7 +1622,7 @@ async def thwiki_blacklist(session: CommandSession):
         if qq not in blacklist:
             config.logger.thwiki << f'【LOG】管理{session.ctx["user_id"]} 将{qq}加入blacklist'
             blacklist.append(qq)
-            node_current = find_or_new(qq = qq)
+            node_current = find_or_new(qq=qq)
             u, u2 = deprive(node_current, True, True)
             updated_event += u2
             if qq in weak_blacklist:
@@ -1668,7 +1657,6 @@ async def thwiki_weak_blacklist(session: CommandSession):
     if session.current_arg == '':
         await session.send('\n'.join((str(find_or_new(i)['card']) + ' ' + str(i)) for i in weak_blacklist))
     global blacklist
-    global whiteforest
     global l
 
     # Construct QQ list from @s
@@ -1690,7 +1678,7 @@ async def thwiki_weak_blacklist(session: CommandSession):
             else:
                 config.logger.thwiki << f'【LOG】管理{session.ctx["user_id"]} 将{qq}加入weak_blacklist'
                 weak_blacklist.append(qq)
-                node_current = find_or_new(qq = qq)
+                node_current = find_or_new(qq=qq)
                 u, u2 = deprive(node_current, True, False)
                 updated_event += u2
 
@@ -1713,7 +1701,7 @@ async def thwiki_weak_blacklist(session: CommandSession):
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_check_user(session: CommandSession):
     """查询直播过的用户数量。直播群管理或监视群可用。"""
-    await session.send(str(len([node for node in whiteforest if 'time' in node and node['time'] > 0])))
+    await session.send(str(len(config.userdata.execute('select id from thwiki_user where time > 0').fetchall())))
 
 @on_notice('group_increase')
 async def thwiki_greet(session: NoticeSession):
@@ -1721,8 +1709,7 @@ async def thwiki_greet(session: NoticeSession):
         message = ('欢迎来到THBWiki直播群！我是直播小助手，在群里使用指令即可申请直播时间~\n现在群内直播使用推荐，有人推荐可以直接直播，没有推荐的用户直播时需有管理监视，总直播时长36小时之后可以转正。\n不要忘记阅读群文件里的本群须知哦~\n以下为指令列表，欢迎在群里使用与提问~\n' + help.sp['thwiki_live']['thwiki']) % help._dict['thwiki']
         await get_bot().send_private_msg(user_id=session.ctx['user_id'], message=message, auto_escape=True)
     elif session.ctx['group_id'] in config.group_id_dict['thwiki_supervise']:
-        node = find_or_new(session.ctx['user_id'])
-        node['supervisor'] = True
+        config.userdata.execute('update thwiki_user set supervisor=1 where qq=?', (session.ctx['user_id'],))
         save_whiteforest()
 
 @on_notice('group_decrease')
@@ -1734,8 +1721,10 @@ async def thwiki_decrease(session: NoticeSession):
     if node is not None and node['trail'] == 0:
         node_parent = find_whiteforest(id=node['parent'])
         if node_parent is not None:
-            node_parent['child'].remove(node['id'])
-        if_send = len(node['child']) != 0
+            c = node_parent['childs'].split(',')
+            c.remove(str(node['id']))
+            config.userdata.execute('update thwiki_user set childs=? where id=?', (','.join(c), node_parent['id']))
+        if_send = node['childs'] != ''
         updated, updated_event = deprive(node, True, False)
         node['time'] = 0
         if if_send:
@@ -1779,7 +1768,7 @@ async def thwiki_cookie(session: CommandSession):
 async def thwiki_group_request(session: RequestSession):
     if session.ctx['group_id'] in config.group_id_dict['thwiki_send']:
         qq = session.ctx["user_id"]
-        match = re.search('答案：[^\d]*?(\d+)[^\d]+?(\d+)\s*', session.ctx['comment'])
+        match = re.search(r'答案：[^\d]*?(\d+)[^\d]+?(\d+)\s*', session.ctx['comment'])
         if not match:
             for group in config.group_id_dict['thwiki_supervise']:
                 await get_bot().send_group_msg(group_id=group, message=f'用户{qq}答案不满足格式')
@@ -1804,7 +1793,7 @@ async def thwiki_group_request(session: RequestSession):
         node = find_or_new(qq)
         message = session.ctx['comment'] or '无'
         if node['card'] is None:
-            node['card'] = await get_card(qq)
+            config.userdata.execute('update thwiki_user set card=? where id=?', (await get_card(qq), node['id']))
         with open(config.rel('thwiki_bilispace.json')) as f:
             a = json.load(f)
         c = a[str(qq)] if str(qq) in a else "未记录"
@@ -1839,10 +1828,10 @@ async def thwiki_punish(session: CommandSession):
                 session.args['confirmed'] = False
                 session.pause('消息撤回失败，请联系管理员手动撤回消息后，在此处回复“完毕”，以执行下一步指令。回复返回退出。')
         node = find_or_new(record.qq)
-        if 'punish' not in node:
-            node['punish'] = session.get('severity')
+        if not node['punish']:
+            config.userdata.execute('update thwiki_user set punish=? where id=?', (session.get('severity'), node['id']))
         else:
-            node['punish'] += session.get('severity')
+            config.userdata.execute('update thwiki_user set punish=? where id=?', (node['punish'] + session.get('severity'), node['id']))
         save_whiteforest()
         group = list(config.group_id_dict['thwiki_punish'])[0]
         if 3 <= node['punish'] < FRIENDLY_MAX:
@@ -1911,17 +1900,14 @@ async def _(session: CommandSession):
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_punish_check(session: CommandSession):
     "查询用户被惩罚次数。"
-    match = re.search('qq=(\d+)', session.current_arg)
+    match = re.search(r'qq=(\d+)', session.current_arg)
     if match:
         qq = int(match.group(1))
     else:
         session.finish('请输入如qq=1569603950')
     def _(qq):
         node = find_or_new(qq)
-        if 'punish' not in node:
-            return 0
-        else:
-            return node['punish']
+        return node['punish'] or 0
     await session.send(f'此用户友善度剩余{FRIENDLY_MAX - _(qq)}点。')
 
 @on_command(('thwiki', 'kick'), only_to_me=False, environment=env_supervise_only)
@@ -2038,8 +2024,8 @@ async def thwiki_set_alias(session: CommandSession):
         session.finish('别名不可设置为空。')
     if if_others and not is_supervisor(session):
         session.finish('非监视者不可修改其他人的别名。')
-    node = find_or_new(qq)
-    node['alias'] = alias
+    find_or_new(qq)
+    config.userdata.execute('update thwiki_user set alias=? where qq=?', (alias, qq))
     save_whiteforest()
     await session.send(f'已成功修改{"该用户" if if_others else "您"}的别名至{alias}。')
     global l
@@ -2057,23 +2043,7 @@ async def thwiki_set_alias(session: CommandSession):
 @on_command(('thwiki', 'test'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_test(session: CommandSession):
-    updated, updated_event = [], []
-    for node in whiteforest:
-        if 'supervisor' not in node or not node['supervisor']:
-            if 'child' in node:
-                for c in node['child']:
-                    u = deprive(find_whiteforest(id=c), False, False)
-                    updated += u[0]
-                    updated_event += u[1]
-                node.pop('child')
-    save_whiteforest()
-    await _save(l)
-    for e in updated_event:
-        config.logger.thwiki << f'【LOG】事件权限更新：{e}'
-        for group in config.group_id_dict['thwiki_supervise']:
-            await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
-    for group in config.group_id_dict['thwiki_send']:
-        await get_bot().send_group_msg(group_id=group, message=[config.cq.text('已成功安全脱离')] + updated)
+    pass
 
 # Generate a token for begin_quiz command to use
 @on_command(('thwiki', 'generate_token'), only_to_me=False, hide=True)

@@ -204,4 +204,5 @@ for i in range(58):
 
 import sqlite3
 userdata_db = sqlite3.connect(rel('users.db'))
+userdata_db.row_factory = sqlite3.Row
 userdata = userdata_db.cursor()
