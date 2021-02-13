@@ -320,7 +320,8 @@ with open(config.rel("thwiki_banlist.json"), encoding = 'utf-8') as f:
 # id: internal ID, takes priority to qq
 # qq: QQ ID
 def find_whiteforest(*, id=None, qq=None):
-    return config.userdata.execute('select * from thwiki_user where ?=?', ('qq', qq) if id is None else ('id', id)).fetchone()
+    return config.userdata.execute('select * from thwiki_user where qq=?', (qq,)).fetchone() if id is None else \
+        config.userdata.execute('select * from thwiki_user where id=?', (id,)).fetchone()
 
 # Write current authorized user tree to file.
 def save_whiteforest():
@@ -348,7 +349,8 @@ async def get_card(qq):
 def find_or_new(qq):
     ret = find_whiteforest(qq=qq)
     if ret is None:
-        config.userdata.execute('insert into thwiki_user (qq, trail, time) values (?, 1, 0)', qq)
+        print(type(qq))
+        config.userdata.execute('insert into thwiki_user (qq, trail, time) values (?, 1, 0)', (qq,))
         save_whiteforest()
         ret = find_whiteforest(qq=qq)
     return ret
