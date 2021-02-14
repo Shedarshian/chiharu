@@ -403,7 +403,7 @@ def add_time(qq, time):
                 config.userdata.execute(f'update thwiki_user set trail=0 where id=?', (node['id'],))
             else:
                 config.logger.thwiki << f'【LOG】用户{qq} 已通过试用期，节点独立'
-            if node['parent'] is not None:
+            if node['parent'] not in (-1, None):
                 c = config.userdata.execute(f'select childs from thwiki_user where id=?', (node["parent"],)).fetchone()['childs'].split(',')
                 c.remove(str(node['id']))
                 config.userdata.execute(f'update thwiki_user set childs=? where id=?', (','.join(c), node["parent"]))
