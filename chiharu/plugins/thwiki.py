@@ -341,8 +341,8 @@ async def get_card(qq):
 def find_or_new(qq):
     ret = find_whiteforest(qq=qq)
     if ret is None:
-        print(type(qq))
-        config.userdata.execute('insert into thwiki_user (qq, trail, time) values (?, 1, 0)', (qq,))
+        id = config.userdata.execute('select id from thwiki_user order by id desc').fetchone()['id']
+        config.userdata.execute('insert into thwiki_user (qq, trail, time, id) values (?, 1, 0, ?)', (qq, id + 1))
         save_whiteforest()
         ret = find_whiteforest(qq=qq)
     return ret
