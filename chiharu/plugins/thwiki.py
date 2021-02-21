@@ -35,7 +35,7 @@ env_supervise_only = config.Environment('thwiki_supervise', ret='请在监视群
 def is_supervisor(session):
     qq = session.ctx['user_id']
     node = find_or_new(qq)
-    return node['supervisor']
+    return node['supervisor'] is not None and node['supervisor']
 constraint_supervisor = config.Constraint('thwiki_live', can_respond=is_supervisor)
 env_supervise = config.Environment('thwiki_supervise', 'thwiki_live', constraint_supervisor, ret='请在监视群内或直播群管理使用')
 env_all_thwiki_live = config.Environment('thwiki_supervise', 'thwiki_live')
