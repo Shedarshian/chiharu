@@ -35,7 +35,7 @@ env_supervise_only = config.Environment('thwiki_supervise', ret='请在监视群
 def is_supervisor(session):
     qq = session.ctx['user_id']
     node = find_or_new(qq)
-    return 'supervisor' in node and node['supervisor']
+    return node['supervisor']
 constraint_supervisor = config.Constraint('thwiki_live', can_respond=is_supervisor)
 env_supervise = config.Environment('thwiki_supervise', 'thwiki_live', constraint_supervisor, ret='请在监视群内或直播群管理使用')
 env_all_thwiki_live = config.Environment('thwiki_supervise', 'thwiki_live')
@@ -1998,7 +1998,7 @@ async def _(session: CommandSession):
 async def thwiki_set_alias(session: CommandSession):
     """设置自己显示在直播列表中的别名。只能在直播群使用。
     监视者可@别人设置别人的别名。"""
-    q = session.current_arg.split(' ')
+    q = session.current_arg.strip().split(' ')
     if_others = False
     if len(q) == 1:
         alias = q[0]
