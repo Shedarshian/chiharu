@@ -587,7 +587,7 @@ async def _(session: CommandSession):
         tz = None
     session.args['tz'] = tz
     now = datetime.now(tz=tz).date()
-    if 'alias' in check:
+    if check['alias'] is not None:
         session.args['card'] = check['alias']
 
     def _default(t, t_default):
