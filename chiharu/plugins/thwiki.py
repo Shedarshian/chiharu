@@ -581,7 +581,7 @@ async def _(session: CommandSession):
     session.args['float_end'] = False
 
     check = find_or_new(session.ctx['user_id'])
-    if 'timezone' in check and check['timezone'] != 8:
+    if check['timezone'] is not None and check['timezone'] != 8:
         tz = timezone(timedelta(hours=check['timezone']))
     else:
         tz = None
