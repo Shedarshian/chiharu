@@ -1455,11 +1455,11 @@ async def thwiki_leaderboard(session: CommandSession):
         node = find_or_new(qq=session.ctx['user_id'])
         al = config.userdata.execute('select qq, id, time, card, alias from thwiki_user order by time desc, id').fetchall()
         index = [i for i, row in enumerate(al) if row['id'] == node['id']][0]
-        await session.send('\n'.join([f"{i + 1} 直播时长：{al[i]['time']}min 用户：{al[i]['alias'] if al[i]['alias'] else al[i]['card']} {al[i]['qq']}"
+        await session.send('\n'.join([f"{i + 1} 直播时长：{al[i]['time']}min 用户：{al[i]['alias'] or al[i]['card']} {al[i]['qq']}"
             for i in range(max(0, index - 2), min(len(al) - 1, index + 3))]), auto_escape=True)
         return
     _max = 10
-    await session.send('\n'.join([f"{i + 1} 直播时长：{node['time']}min 用户：{node['alias'] if 'alias' in node else node['card']} {node['qq']}"
+    await session.send('\n'.join([f"{i + 1} 直播时长：{node['time']}min 用户：{node['alias'] or node['card']} {node['qq']}"
         for i, node in enumerate(more_itertools.take(_max,
             config.userdata.execute('select qq, id, time, card, alias from thwiki_user order by time desc, id').fetchall()
         ))]), auto_escape=True)
