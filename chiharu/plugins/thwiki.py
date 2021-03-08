@@ -1827,6 +1827,7 @@ async def thwiki_punish(session: CommandSession):
         else:
             config.userdata.execute('update thwiki_user set punish=? where id=?', (node['punish'] + session.get('severity'), node['id']))
         save_whiteforest()
+        node = find_or_new(record.qq)
         group = list(config.group_id_dict['thwiki_punish'])[0]
         if 3 <= node['punish'] < FRIENDLY_MAX:
             await get_bot().set_group_ban(group_id=group, user_id=node['qq'], duration=3600)
