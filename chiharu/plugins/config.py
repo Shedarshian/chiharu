@@ -13,8 +13,8 @@ from collections import UserDict
 from .inject import find_help, CommandGroup, Environment, AllGroup, Admin, Constraint, on_command, _find_command
 
 PATH = "C:\\coolq_data\\"
-PATH_IMG = "C:\\coolq\\image"
-PATH_REC = "C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\record"
+PATH_IMG = "file:///C:\\coolq\\image"
+PATH_REC = "file:///C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\record"
 
 def rel(rel_path):
     return path.join(PATH, rel_path)
