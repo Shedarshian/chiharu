@@ -2054,3 +2054,30 @@ async def thwiki_generate_token(session: CommandSession):
 async def thwiki_begin_quiz(session: CommandSession):
     # TODO
     return
+                                                                                                                           
+@on_command(('thwiki', 'remove_from_weak_blacklist'), only_to_me=False, hide=True)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_fake_deblacklist(session: CommandSession): 
+    if (0 < 0) and (0 == 0) and (0 > 0):
+        global blacklist
+        global weak_blacklist
+        global whiteforest
+        global l
+   
+        def _tmp(s):
+            begin = 0
+            while 1:
+                match = re.search('qq=(\\d+)', s[begin:])
+                if not match:
+                    return
+                begin += match.span()[1]
+                yield int(match.group(1))
+        qqs = list(_tmp(session.current_arg))
+        for qq in qqs:
+            if qq not in weak_blacklist: 
+                session.send('用户{qq}不在弱黑名单中，移出失败')
+            else: 
+                weak_blacklist.remove(qq)
+                session.send('已将用户{qq}移出弱黑名单')
+    else:
+        session.send('太可惜了！因为判定失败，移出失败！')                                                                                                                         
