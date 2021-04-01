@@ -2075,9 +2075,9 @@ async def thwiki_fake_deblacklist(session: CommandSession):
         qqs = list(_tmp(session.current_arg))
         for qq in qqs:
             if qq not in weak_blacklist: 
-                session.send('用户{qq}不在弱黑名单中，移出失败')
+                await session.send('用户{qq}不在弱黑名单中，移出失败')
             else: 
                 weak_blacklist.remove(qq)
-                session.send('已将用户{qq}移出弱黑名单')
+                await session.send('已将用户{qq}移出弱黑名单')
     else:
-        session.send('太可惜了！因为判定失败，移出失败！')                                                                                                                         
+        await session.send('太可惜了！因为判定失败，移出失败！')                                                                                                                         
