@@ -160,5 +160,5 @@ async def help_reflection(session: CommandSession):
     else:
         await session.send('未发现指令。')
 
-config.CommandGroup('me', short_des='关于我®', des='こんにちは～七海千春です～\n维护者：小大圣\n献给：yuyu♥\n友情协助：Randolph（snakebird关卡信息），小石\n鸣谢：Python®  c\u0336o\u0336o\u0336l\u0336q\u0336  mirai® cqhttp®  nonebot®  阿里云®\nContact me：shedarshian@gmail.com', display_id=998)
+config.CommandGroup('me', short_des='关于我®', des='こんにちは～七海千春です～\n维护者：小大圣\n献给：yuyu♥\n友情协助：Randolph（snakebird关卡信息），小石\n鸣谢：Python®  c\u0336o\u0336o\u0336l\u0336q\u0336  m\u0336i\u0336r\u0336a\u0336i\u0336 go-cqhttp® cqhttp®  nonebot®  阿里云®\nContact me：shedarshian@gmail.com', display_id=998)
 config.CommandGroup((), des="指令：")

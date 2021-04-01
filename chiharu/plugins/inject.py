@@ -51,7 +51,10 @@ class Environment:
             elif group_id in self.constraint:
                 ret = self.constraint[group_id]._f(session)
                 if not ret and self.constraint[group_id].ret and not no_reply:
-                    await session.send(self.constraint[group_id].ret)
+                    if isinstance(self.constraint[group_id].ret, str):
+                        await session.send(self.constraint[group_id].ret)
+                    else:
+                        await session.send(self.constraint[group_id].ret(session))
                 return ret
             elif group_id in self.group:
                 return True
@@ -62,7 +65,10 @@ class Environment:
         except KeyError:
             if not self.private:
                 if self.ret != "" and not no_reply:
-                    await session.send(self.ret)
+                    if isinstance(self.ret, str):
+                        await session.send(self.ret)
+                    else:
+                        await session.send(self.ret(session))
                 return False
             else:
                 return True
@@ -70,7 +76,7 @@ class Environment:
 # and add a 'block' class property in 'config_data.py'
 
 class Constraint:
-    def __init__(self, *args, can_respond: Callable[..., bool], ret: str = ""):
+    def __init__(self, *args, can_respond: Callable[..., bool], ret: Union[str, Callable[..., str]] = ""):
         from .config import group_id_dict
         self.group = set()
         for arg in args:
@@ -90,7 +96,10 @@ class Constraint:
                 return
             if group_id in self.group and not self._f(session):
                 if self.ret != "":
-                    await session.send(self.ret, auto_escape=True)
+                    if isinstance(self.ret, str):
+                        await session.send(self.ret, auto_escape=True)
+                    else:
+                        await session.send(self.ret(session), auto_escape=True)
             else:
                 await f(session, *args, **kwargs)
         return _f

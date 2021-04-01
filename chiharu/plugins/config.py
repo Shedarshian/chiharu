@@ -13,8 +13,8 @@ from collections import UserDict
 from .inject import find_help, CommandGroup, Environment, AllGroup, Admin, Constraint, on_command, _find_command
 
 PATH = "C:\\coolq_data\\"
-PATH_IMG = "C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\image"
-PATH_REC = "C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\record"
+PATH_IMG = "file:///C:\\coolq\\image"
+PATH_REC = "file:///C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\record"
 
 def rel(rel_path):
     return path.join(PATH, rel_path)
@@ -52,10 +52,10 @@ class cq:
             return {'type': 'at', 'data': {'qq': str(s)}}
     @staticmethod
     def img(s: str):
-        return {'type': 'image', 'data': {'file': 'file:///' + s}}
+        return {'type': 'image', 'data': {'file': 'file:///' + img(s)}}
     @staticmethod
     def rec(s: str):
-        return {'type': 'record', 'data': {'file': 'file:///' + s}}
+        return {'type': 'record', 'data': {'file': 'file:///' + rec(s)}}
 
 def group(n, *iterables):
     def _(n, it):
@@ -201,3 +201,8 @@ class AvBvConverter:
 
 for i in range(58):
     AvBvConverter.tr[AvBvConverter.table[i]]=i
+
+import sqlite3
+userdata_db = sqlite3.connect(rel('users.db'))
+userdata_db.row_factory = sqlite3.Row
+userdata = userdata_db.cursor()
