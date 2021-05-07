@@ -366,7 +366,7 @@ def deprive(node, if_save=True, clear_time=True):
                 i.supervise = 0
                 updated_event.append(i)
 
-        if r['childs'] is not None:
+        if r['childs'] is not None and r['childs'] != '':
             for i in r['childs'].split(','):
                 f = find_whiteforest(id=int(i))
                 # Add child nodes to the list
