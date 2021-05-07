@@ -372,7 +372,7 @@ def deprive(node, if_save=True, clear_time=True):
                 # Add child nodes to the list
                 to_do.append(f)
         # Why use trail as key? You mean 'trial' or 'trace'??
-        config.userdata.execute('update thwiki_user set parents=NULL, trail=1%s where qq=?' % (', time=0' if clear_time else ''), (r['qq'],))
+        config.userdata.execute('update thwiki_user set parent=NULL, trail=1%s where qq=?' % (', time=0' if clear_time else ''), (r['qq'],))
 
         config.logger.thwiki << f'用户{r["qq"]} 已被deprive，时间{"清零" if clear_time else ("保留为" + str(r["time"]))}'
         updated.append(config.cq.at(r['qq']))
@@ -1719,8 +1719,8 @@ async def thwiki_decrease(session: NoticeSession):
             c.remove(str(node['id']))
             config.userdata.execute('update thwiki_user set childs=? where id=?', (','.join(c), node_parent['id']))
         if_send = node['childs'] != ''
+        config.userdata.execute('update thwiki_user set time=0 where qq=?', (qq,))
         updated, updated_event = deprive(node, True, False)
-        node['time'] = 0
         if if_send:
             for group in config.group_id_dict['thwiki_send']:
                 await get_bot().send_group_msg(group_id=group, message=[config.cq.text(f"{node['card']} 退群，已自动安全脱离")] + updated)
@@ -1728,6 +1728,9 @@ async def thwiki_decrease(session: NoticeSession):
                 config.logger.thwiki << f'【LOG】事件权限更新：{e}'
                 for group in config.group_id_dict['thwiki_supervise']:
                     await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视')
+    elif node is not None:
+        config.userdata.execute('update thwiki_user set time=0 where qq=?', (qq,))
+        save_whiteforest()
 
 @on_command(('thwiki', 'help'), only_to_me=False, hide=True)
 @config.ErrorHandle(config.logger.thwiki)
