@@ -11,7 +11,7 @@ import re
 from nonebot import on_command, CommandSession, permission, get_bot, NLPSession
 from nonebot.command import call_command
 from .. import config, game
-from .achievement import achievement
+from .achievement import achievement, cp, cp_add
 
 def add(l: Tuple[int, int], r: Tuple[int, int]):
     return (l[0] + r[0], l[1] + r[1])
