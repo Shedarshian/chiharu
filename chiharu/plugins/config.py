@@ -52,10 +52,10 @@ class cq:
             return {'type': 'at', 'data': {'qq': str(s)}}
     @staticmethod
     def img(s: str):
-        return {'type': 'image', 'data': {'file': img(s)}}
+        return {'type': 'image', 'data': {'file': 'file:///' + img(s)}}
     @staticmethod
     def rec(s: str):
-        return {'type': 'record', 'data': {'file': rec(s)}}
+        return {'type': 'record', 'data': {'file': 'file:///' + rec(s)}}
 
 def group(n, *iterables):
     def _(n, it):
