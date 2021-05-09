@@ -827,26 +827,27 @@ async def thwiki_term(session: CommandSession):
     if l[0].qq != session.ctx['user_id']:
         session.finish('现在不是你在播')
     e = l.pop(0)
-    s = "。"
+    s = "已终止，请您将obs断流，将开始空闲时间轮播。"
     if e.supervise != 0:
         d = int((now - e.begin).total_seconds() - 1) // 60 + 1
         if e.supervise > 0:
             add_supervise_time(e.supervise, d)
         if add_time(e.qq, d):
             await session.send('您已成功通过试用期转正！')
-        s = f"，已为您累积直播时间{d}分钟。"
+        s = f"已终止，请您将obs断流，将开始空闲时间轮播，已为您累积直播时间{d}分钟。"
     elif e.supervise == 0 and e.begin < now:
         today = str(date.today().isoformat())
+        node = find_or_new(e.qq)
         if 'last_cancel_day' not in node or node['last_cancel_day'] != today:
             config.userdata.execute(f'update thwiki_user set last_cancel_day=? where id=?', (today, node['id']))
             save_whiteforest()
         else:
             new = datetime.now() + timedelta(minutes=60)
             global banlist
-            if uqq not in banlist or banlist[uqq] < new:
-                banlist[uqq] = new
+            if e.qq not in banlist or banlist[e.qq] < new:
+                banlist[e.qq] = new
                 save_banlist()
-            await session.send([config.cq.at(e.qq), config.cq.text('您今日已有过待监视预约被取消，已进入冷静期60分钟。')])
+            s = '已终止，您今日已有过待监视预约被取消，已进入冷静期60分钟。'
     await _save(l)
 
     # ret = await th_open(is_open=False)
@@ -855,7 +856,7 @@ async def thwiki_term(session: CommandSession):
     #     await session.send('成功删除，断流失败' + s)
     # else:
     #     await session.send('成功断流' + s)
-    await session.send('已终止，请您将obs断流，将开始空闲时间轮播' + s)
+    await session.send(s)
     ret = await change(title='【东方】轮播中')
     if json.loads(ret)['code'] != 0:
         config.logger.thwiki << f'【LOG】修改标题失败{ret}'
