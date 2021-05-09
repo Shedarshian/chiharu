@@ -835,6 +835,18 @@ async def thwiki_term(session: CommandSession):
         if add_time(e.qq, d):
             await session.send('您已成功通过试用期转正！')
         s = f"，已为您累积直播时间{d}分钟。"
+    elif e.supervise == 0 and e.begin < now:
+        today = str(date.today().isoformat())
+        if 'last_cancel_day' not in node or node['last_cancel_day'] != today:
+            config.userdata.execute(f'update thwiki_user set last_cancel_day=? where id=?', (today, node['id']))
+            save_whiteforest()
+        else:
+            new = datetime.now() + timedelta(minutes=60)
+            global banlist
+            if uqq not in banlist or banlist[uqq] < new:
+                banlist[uqq] = new
+                save_banlist()
+            await session.send([config.cq.at(e.qq), config.cq.text('您今日已有过待监视预约被取消，已进入冷静期60分钟。')])
     await _save(l)
 
     # ret = await th_open(is_open=False)
