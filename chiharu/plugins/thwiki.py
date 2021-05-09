@@ -757,10 +757,10 @@ async def thwiki_cancel(session: CommandSession):
         if json.loads(ret)['code'] != 0:
             config.logger.thwiki << '【LOG】更新到直播间失败'
             await session.send('更新到直播间失败')
-        ret = await change(area=33)
-        if json.loads(ret)['code'] != 0:
-            for id in config.group_id_dict['thwiki_send']:
-                await get_bot().send_group_msg(group_id=id, message='轮播分区修改失败')
+        # ret = await change(area=33)
+        # if json.loads(ret)['code'] != 0:
+        #     for id in config.group_id_dict['thwiki_send']:
+        #         await get_bot().send_group_msg(group_id=id, message='轮播分区修改失败')
     else:
         await session.send('非管理员不可删除')
 
@@ -865,10 +865,10 @@ async def thwiki_term(session: CommandSession):
     ret = await change_des_to_list(lunbo=True)
     if json.loads(ret)['code'] != 0:
         await session.send('更新到直播间失败')
-    ret = await change(area=33)
-    if json.loads(ret)['code'] != 0:
-        for id in config.group_id_dict['thwiki_send']:
-            await get_bot().send_group_msg(group_id=id, message='轮播分区修改失败')
+    # ret = await change(area=33)
+    # if json.loads(ret)['code'] != 0:
+    #     for id in config.group_id_dict['thwiki_send']:
+    #         await get_bot().send_group_msg(group_id=id, message='轮播分区修改失败')
 
 # Handler for '-thwiki.terminate', equivalent to '-thwiki.term'
 @on_command(('thwiki', 'terminate'), only_to_me=False, short_des='提前终止直播，进入轮播。', environment=env, hide=True)
@@ -969,10 +969,10 @@ async def _():
                 if json.loads(ret)['code'] != 0:
                     for id in config.group_id_dict['thwiki_send']:
                         await bot.send_group_msg(group_id=id, message='直播间简介更新失败')
-                ret = await change(area=33)
-                if json.loads(ret)['code'] != 0:
-                    for id in config.group_id_dict['thwiki_send']:
-                        await bot.send_group_msg(group_id=id, message='轮播分区修改失败')
+                # ret = await change(area=33)
+                # if json.loads(ret)['code'] != 0:
+                #     for id in config.group_id_dict['thwiki_send']:
+                #         await bot.send_group_msg(group_id=id, message='轮播分区修改失败')
             break
 
 # Handler for command '-thwiki.check'
