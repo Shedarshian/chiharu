@@ -1926,7 +1926,7 @@ async def thwiki_ban(session: CommandSession):
         now = datetime.now()
         if len(banlist) == 0:
             session.finish('当前无人在冷静期中。')
-        session.finish('\n'.join(f'{qq}: {(time - now).minute}分钟' for qq, time in banlist.items()))
+        session.finish('\n'.join(f'{qq}: {(time - now).total_seconds() // 60}分钟' for qq, time in banlist.items()))
     try:
         qq, time = session.current_arg_text.split(' ')
     except ValueError:
