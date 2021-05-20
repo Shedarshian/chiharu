@@ -4,16 +4,14 @@ import random
 import re
 import more_itertools
 from functools import lru_cache
-from abc import ABC, abstractmethod
 from nonebot import CommandSession, NLPSession, on_natural_language, get_bot
 from nonebot.command import call_command
 from ..inject import CommandGroup, on_command
-from .. import config, game
-from .achievement import achievement
+from .. import config
 env = config.Environment('logic_dragon')
 env_supervise = config.Environment('logic_dragon_supervise')
 
-config.CommandGroup('dragon', des="逻辑接龙相关。", environment=env|env_supervise)
+CommandGroup('dragon', des="逻辑接龙相关。", environment=env|env_supervise)
 
 message_re = re.compile(r"[\s我那就，]*接[\s，,]*(.*)[\s，,\n]*.*")
 
@@ -56,6 +54,7 @@ def check_and_add_log(s):
     log_file.write(s + '\n')
     log_file.flush()
     return True
+past_two_user = []
 
 # dragon_data := qq : int, jibi : int, card : str, draw_time : int, death_time : str, today_jibi : int, today_keyword_jibi : int
 # status : str, daily_status : str, status_time : str
@@ -118,6 +117,14 @@ def add_bomb(d, word):
     global bombs
     d["bombs"].append(word)
     bombs.append(word)
+@wrapper_file
+def add_begin(d, word):
+    d['begin'].append(word)
+@wrapper_file
+def get_begin(d):
+    c = random.choice(d['begin'])
+    d['begin'].remove(c)
+    return c
 
 def save_data():
     config.userdata_db.commit()
@@ -188,7 +195,7 @@ def kill(qq, hour=4):
             else:
                 ret += "你使用虹色之环闪避失败，死亡时间+1h！\n"
                 hour += 1
-    remove_status(qq, 'h', False)
+    remove_status(qq, 'h', False, remove_all=True)
     if dodge:
         return ret
     add_limited_status(qq, 'd', datetime.now() + timedelta(hours=hour))
@@ -217,16 +224,22 @@ async def logical_dragon(session: NLPSession):
     if match := message_re.match(session.current_arg_text):
         ret = ""
         qq = session.ctx['user_id']
+        global past_two_user
         node = find_or_new(qq)
         if check_limited_status(qq, 'd', node) or check_status(qq, 'd', True, node):
             session.finish('你已死，不能接龙！')
+        if qq in past_two_user:
+            session.finish("你接太快了！两次接龙之间至少要隔两个人。")
+        past_two_user.append(qq)
+        if len(past_two_user) > 2:
+            past_two_user.pop(0)
         word = match.group(1).strip()
         if word == keyword:
             ret += "\n你接到了奖励词！"
             if node['today_keyword_jibi'] > 0:
                 ret += "奖励10击毙。"
                 config.userdata.execute("update dragon_data set today_keyword_jibi=? where qq=?", (node['today_keyword_jibi'] - 1, qq))
-                add_jibi(qq, 10, node['jibi'])
+                add_jibi(qq, 10)
             if update_keyword():
                 ret += f"奖励词已更新为：{keyword}。"
             else:
@@ -234,26 +247,30 @@ async def logical_dragon(session: NLPSession):
         for i, k in enumerate(hidden_keyword):
             if k in word:
                 ret += f"\n你接到了隐藏奖励词{k}！奖励10击毙。"
-                add_jibi(qq, 10, node['jibi'])
+                add_jibi(qq, 10)
+                if n := check_global_status('m', False):
+                    ret += f"\n你触发了存钱罐，奖励+{n * 10}击毙！"
+                    remove_global_status('m', False)
+                    add_jibi(qq, n * 10)
             if not update_hidden_keyword(i):
                 ret += "隐藏奖励词池已空！"
         if not check_and_add_log(word):
-            ret += "过去一周之内接过此词，你死了！"
+            ret += "\n过去一周之内接过此词，你死了！"
             if (s := kill(qq)):
                 ret += '\n' + s
         else:
-            ret += f"成功接龙！接龙词：{word}。"
+            ret += f"\n成功接龙！接龙词：{word}。"
             if node['today_jibi'] > 0:
                 ret += "奖励1击毙。"
                 config.userdata.execute("update dragon_data set today_jibi=? where qq=?", (node['today_jibi'] - 1, qq))
-                add_jibi(qq, 1, node['jibi'])
+                add_jibi(qq, 1)
             if word in bombs:
                 ret += "\n你成功触发了炸弹，被炸死了！"
                 remove_bomb(word)
                 if (s := kill(qq)):
                     ret += '\n' + s
         save_data()
-        await session.send(ret)
+        await session.send(ret.strip())
 
 @on_natural_language(only_to_me=False, only_short_message=True)
 async def logical_dragon_else(session: NLPSession):
@@ -365,6 +382,12 @@ async def dragon_check(session: CommandSession):
         pass
     elif data in ("手牌", "hand_cards"):
         pass
+
+@on_command(('dragon', 'add_begin'), only_to_me=False, environment=env_supervise)
+async def dragon_add_begin(session: CommandSession):
+    """添加起始词。"""
+    add_begin(session.current_arg.strip())
+    await session.send('成功添加起始词。')
 
 @lru_cache(10)
 def Card(id):
@@ -479,7 +502,7 @@ class hongsezhihuan(_card):
     positive = 0
     description = "下次你死亡时，有1/2几率闪避，1/2几率死亡时间+1小时。"
 
-class ComicSans(_card):
+class ComicSans(_card): # TODO
     name = "Comic Sans"
     id = 80
     global_daily_status = 'c'
