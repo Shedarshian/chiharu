@@ -186,7 +186,7 @@ def remove_global_limited_status(s, status=None):
 def kill(qq, hour=4):
     ret = ""
     dodge = False
-    n = check_status(qq, 'h', False))
+    n = check_status(qq, 'h', False)
     if n:
         for a in range(n):
             if random.randint(0, 1) == 0:
