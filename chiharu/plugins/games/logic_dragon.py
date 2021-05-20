@@ -186,7 +186,8 @@ def remove_global_limited_status(s, status=None):
 def kill(qq, hour=4):
     ret = ""
     dodge = False
-    if (n := check_status(qq, 'h', False)):
+    n = check_status(qq, 'h', False))
+    if n:
         for a in range(n):
             if random.randint(0, 1) == 0:
                 ret = "你使用了虹色之环，闪避了死亡！"
@@ -221,7 +222,8 @@ def throw_card(qq, id, card_list=None):
 async def logical_dragon(session: NLPSession):
     if not env.test(session):
         return
-    if match := message_re.match(session.current_arg_text):
+    match = message_re.match(session.current_arg_text)
+    if match:
         ret = ""
         qq = session.ctx['user_id']
         global past_two_user
@@ -248,7 +250,8 @@ async def logical_dragon(session: NLPSession):
             if k in word:
                 ret += f"\n你接到了隐藏奖励词{k}！奖励10击毙。"
                 add_jibi(qq, 10)
-                if n := check_global_status('m', False):
+                n = check_global_status('m', False)
+                if n:
                     ret += f"\n你触发了存钱罐，奖励+{n * 10}击毙！"
                     remove_global_status('m', False)
                     add_jibi(qq, n * 10)
@@ -256,7 +259,8 @@ async def logical_dragon(session: NLPSession):
                 ret += "隐藏奖励词池已空！"
         if not check_and_add_log(word):
             ret += "\n过去一周之内接过此词，你死了！"
-            if (s := kill(qq)):
+            s = kill(qq)
+            if s:
                 ret += '\n' + s
         else:
             ret += f"\n成功接龙！接龙词：{word}。"
@@ -267,7 +271,8 @@ async def logical_dragon(session: NLPSession):
             if word in bombs:
                 ret += "\n你成功触发了炸弹，被炸死了！"
                 remove_bomb(word)
-                if (s := kill(qq)):
+                s = kill(qq)
+                if s:
                     ret += '\n' + s
         save_data()
         await session.send(ret.strip())
@@ -350,7 +355,8 @@ async def dragon_draw(session: CommandSession):
     add_cards(qq, cards)
     ret += '\n'.join(c.description for c in cards)
     for c in cards:
-        if r := c.on_draw(qq):
+        r = c.on_draw(qq)
+        if r:
             ret += '\n' + r
     save_data()
     await session.send(ret)
@@ -398,42 +404,48 @@ def Card(id):
 
 class card_meta(type):
     def __new__(cls, clsname, bases, attrs):
-        if 'status' in attrs and (status := attrs['status']):
+        if 'status' in attrs and attrs['status']:
+            status = attrs['status']
             if status in _card.status_set:
                 raise ImportError
             _card.status_set.add(status)
             def use(self, qq, args, card_list):
                 add_status(qq, status, False)
             attrs['use'] = use
-        elif 'daily_status' in attrs and (status := attrs['daily_status']):
+        elif 'daily_status' in attrs and attrs['daily_status']:
+            status = attrs['daily_status']
             if status in _card.daily_status_set:
                 raise ImportError
             _card.daily_status_set.add(status)
             def use(self, qq, args, card_list):
                 add_status(qq, status, True)
             attrs['use'] = use
-        elif 'limited_status' in attrs and (status := attrs['limited_status']):
+        elif 'limited_status' in attrs and attrs['limited_status']:
+            status = attrs['limited_status']
             if status in _card.limited_status_set:
                 raise ImportError
             _card.limited_status_set.add(status)
             def use(self, qq, args, card_list):
                 add_limited_status(qq, status, datetime.now() + self.limited_time)
             attrs['use'] = use
-        elif 'global_status' in attrs and (status := attrs['global_status']):
+        elif 'global_status' in attrs and attrs['global_status']:
+            status = attrs['global_status']
             if status in _card.status_set:
                 raise ImportError
             _card.status_set.add(status)
             def use(self, qq, args, card_list):
                 add_global_status(status, False)
             attrs['use'] = use
-        elif 'global_daily_status' in attrs and (status := attrs['global_daily_status']):
+        elif 'global_daily_status' in attrs and attrs['global_daily_status']:
+            status = attrs['global_daily_status']
             if status in _card.daily_status_set:
                 raise ImportError
             _card.daily_status_set.add(status)
             def use(self, qq, args, card_list):
                 add_global_status(status, True)
             attrs['use'] = use
-        elif 'global_limited_status' in attrs and (status := attrs['global_limited_status']):
+        elif 'global_limited_status' in attrs and attrs['global_limited_status']:
+            status = attrs['global_limited_status']
             if status in _card.limited_status_set:
                 raise ImportError
             _card.limited_status_set.add(status)
@@ -484,7 +496,8 @@ class caipiaozhongjiang(_card):
         cards = [draw_card() for i in range(2)]
         ret += '\n'.join(c.description for c in cards)
         for c in cards:
-            if r := c.on_draw(qq):
+            r = c.on_draw(qq)
+            if r:
                 ret += '\n' + r
         return ret
 
