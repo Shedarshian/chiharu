@@ -11,8 +11,9 @@ from ..inject import CommandGroup, on_command
 from .. import config, game
 from .achievement import achievement
 env = config.Environment('logic_dragon')
+env_supervise = config.Environment('logic_dragon_supervise')
 
-config.CommandGroup('dragon', des="逻辑接龙相关。", environment=env)
+config.CommandGroup('dragon', des="逻辑接龙相关。", environment=env|env_supervise)
 
 message_re = re.compile(r"[\s我那就，]*接[\s，,]*(.*)[\s，,\n]*.*")
 
@@ -58,10 +59,11 @@ def check_and_add_log(s):
 
 # dragon_data := qq : int, jibi : int, card : str, draw_time : int, death_time : str, today_jibi : int, today_keyword_jibi : int
 # status : str, daily_status : str, status_time : str
+# global_status : qq = 2711644761
 def find_or_new(qq):
     t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     if t is None:
-        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi) values (?, 0, 0, 10, 10)', (qq,))
+        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?)', (qq, '', '', '', '', '{}'))
         t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     return t
 def get_jibi(qq):
@@ -117,6 +119,9 @@ def add_bomb(d, word):
     d["bombs"].append(word)
     bombs.append(word)
 
+def save_data():
+    config.userdata_db.commit()
+
 def add_status(qq, s, is_daily):
     status = find_or_new(qq)['daily_status' if is_daily else 'status']
     if s not in status:
@@ -126,7 +131,11 @@ def add_limited_status(qq, s, end_time : datetime):
     status = eval(find_or_new(qq)['status_time'])
     if s not in status:
         status[s] = end_time.isoformat()
-        config.userdata.execute('update dragon_data set status=? where qq=?', (str(status), qq))
+        config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), qq))
+def add_global_status(s, is_daily):
+    return add_status(2711644761, s, is_daily)
+def add_global_limited_status(s, end_time : datetime):
+    return add_limited_status(2711644761, s, end_time)
 def check_status(qq, s, is_daily, node=None):
     if node is None:
         node = find_or_new(qq)
@@ -140,15 +149,53 @@ def check_limited_status(qq, s, node=None):
     t = datetime.fromisoformat(status[s])
     if t < datetime.now():
         status.pop(s)
-        config.userdata.execute('update dragon_data set status=? where qq=?', (str(status), qq))
+        config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), qq))
         return False
     return True
+def check_global_status(s, is_daily, node=None):
+    return check_status(2711644761, s, is_daily, node)
+def check_global_limited_status(s, node=None):
+    return check_limited_status(2711644761, s, node)
+def remove_status(qq, s, is_daily, remove_all=True, status=None):
+    if status is None:
+        status = find_or_new(qq)['daily_status' if is_daily else 'status']
+    if remove_all:
+        status = ''.join([t for t in status if t != s])
+    else:
+        l = list(status)
+        l.remove(s)
+        status = ''.join(l)
+    config.userdata.execute('update dragon_data set %s=? where qq=?' % ('daily_status' if is_daily else 'status'), (status, qq))
+def remove_limited_status(qq, s, status=None):
+    if status is None:
+        status = eval(find_or_new(qq)['status_time'])
+    status.pop(s)
+    config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), qq))
+def remove_global_status(s, is_daily, remove_all=True, status=None):
+    return remove_status(2711644761, s, is_daily, remove_all, status)
+def remove_global_limited_status(s, status=None):
+    return remove_limited_status(2711644761, s, status)
+
 def kill(qq, hour=4):
+    ret = ""
+    dodge = False
+    if (n := check_status(qq, 'h', False)):
+        for a in range(n):
+            if random.randint(0, 1) == 0:
+                ret = "你使用了虹色之环，闪避了死亡！"
+                dodge = True
+                break
+            else:
+                ret += "你使用虹色之环闪避失败，死亡时间+1h！\n"
+                hour += 1
+    remove_status(qq, 'h', False)
+    if dodge:
+        return ret
     add_limited_status(qq, 'd', datetime.now() + timedelta(hours=hour))
-    # TODO
+    return ret
 
 def draw_card():
-    return Card(random.randint(0, len(_card.card_id_dict) - 1))
+    return random.choice(_card.card_id_dict.values())()
 def add_cards(qq, cards, card_list=None):
     if card_list is None:
         card_list = get_card(qq)
@@ -171,7 +218,7 @@ async def logical_dragon(session: NLPSession):
         ret = ""
         qq = session.ctx['user_id']
         node = find_or_new(qq)
-        if check_limited_status(qq, 'd', node):
+        if check_limited_status(qq, 'd', node) or check_status(qq, 'd', True, node):
             session.finish('你已死，不能接龙！')
         word = match.group(1).strip()
         if word == keyword:
@@ -205,6 +252,7 @@ async def logical_dragon(session: NLPSession):
                 remove_bomb(word)
                 if (s := kill(qq)):
                     ret += '\n' + s
+        save_data()
         await session.send(ret)
 
 @on_natural_language(only_to_me=False, only_short_message=True)
@@ -229,6 +277,7 @@ async def logical_dragon_else(session: NLPSession):
 async def dragon_add_bomb(session: CommandSession):
     """添加炸弹。"""
     add_bomb(session.current_arg_text.strip())
+    save_data()
 
 @on_command(('dragon', 'use_card'), aliases="使用手牌", only_to_me=False, args=("card"), environment=env)
 async def dragon_use_card(session: CommandSession):
@@ -259,6 +308,7 @@ async def dragon_use_card(session: CommandSession):
             session.finish("请在换行后输入使用卡牌所需要的个数正确的参数，使用空格隔开。")
     throw_card(qq, id, card_list=cards)
     ret = card.use(args=arg, qq=session.ctx['user_id'], card_list=cards)
+    save_data()
     await session.send(ret)
 
 @on_command(('dragon', 'draw'), only_to_me=False, args=("num"), environment=env)
@@ -285,6 +335,7 @@ async def dragon_draw(session: CommandSession):
     for c in cards:
         if r := c.on_draw(qq):
             ret += '\n' + r
+    save_data()
     await session.send(ret)
 
 @on_command(('dragon', 'check'), aliases="查询接龙", only_to_me=False, short_des="查询逻辑接龙相关数据。", args=("name",), environment=env)
@@ -328,15 +379,43 @@ class card_meta(type):
             if status in _card.status_set:
                 raise ImportError
             _card.status_set.add(status)
-            def use(self, args, qq, card_list):
+            def use(self, qq, args, card_list):
                 add_status(qq, status, False)
             attrs['use'] = use
         elif 'daily_status' in attrs and (status := attrs['daily_status']):
             if status in _card.daily_status_set:
                 raise ImportError
-            _card.status_set.add(status)
-            def use(self, args, qq, card_list):
+            _card.daily_status_set.add(status)
+            def use(self, qq, args, card_list):
                 add_status(qq, status, True)
+            attrs['use'] = use
+        elif 'limited_status' in attrs and (status := attrs['limited_status']):
+            if status in _card.limited_status_set:
+                raise ImportError
+            _card.limited_status_set.add(status)
+            def use(self, qq, args, card_list):
+                add_limited_status(qq, status, datetime.now() + self.limited_time)
+            attrs['use'] = use
+        elif 'global_status' in attrs and (status := attrs['global_status']):
+            if status in _card.status_set:
+                raise ImportError
+            _card.status_set.add(status)
+            def use(self, qq, args, card_list):
+                add_global_status(status, False)
+            attrs['use'] = use
+        elif 'global_daily_status' in attrs and (status := attrs['global_daily_status']):
+            if status in _card.daily_status_set:
+                raise ImportError
+            _card.daily_status_set.add(status)
+            def use(self, qq, args, card_list):
+                add_global_status(status, True)
+            attrs['use'] = use
+        elif 'global_limited_status' in attrs and (status := attrs['global_limited_status']):
+            if status in _card.limited_status_set:
+                raise ImportError
+            _card.limited_status_set.add(status)
+            def use(self, qq, args, card_list):
+                add_global_limited_status(status, datetime.now() + self.global_limited_time)
             attrs['use'] = use
         c = type(clsname, bases, attrs)
         _card.card_id_dict[c['id']] = c
@@ -346,6 +425,7 @@ class _card(metaclass=card_meta):
     card_id_dict = {}
     status_set = {'d'}
     daily_status_set = set()
+    limited_status_set = set()
     @property
     # @abstractmethod
     def img(self):
@@ -355,21 +435,53 @@ class _card(metaclass=card_meta):
     positive = 0
     description = ""
     arg_num = 0
-    def use(self, args, qq, card_list):
+    def use(self, qq, args=None, card_list=None):
         pass
     def on_draw(self, qq):
         pass
 
+class dabingyichang(_card):
+    name = "大病一场"
+    id = 30
+    daily_status = 'd'
+    positive = -1
+    description = "抽到时，直到下一次主题出现前不得接龙。"
+    def on_draw(self, qq):
+        self.use(qq)
+        return "你病了！直到下一次主题出现前不得接龙。"
+
+class caipiaozhongjiang(_card):
+    name = "彩票中奖"
+    id = 31
+    positive = 1
+    description = "抽到时立即获得20击毙与两张牌。"
+    def on_draw(self, qq):
+        ret = "你中奖了！获得20击毙与两张牌。你抽到的牌为：\n"
+        add_jibi(qq, 20)
+        cards = [draw_card() for i in range(2)]
+        ret += '\n'.join(c.description for c in cards)
+        for c in cards:
+            if r := c.on_draw(qq):
+                ret += '\n' + r
+        return ret
+
+class cunqianguan(_card):
+    name = "存钱罐"
+    id = 70
+    global_status = 'm'
+    positive = 0
+    description = "下次触发隐藏词的奖励+10击毙。"
+
 class hongsezhihuan(_card):
     name = "虹色之环"
-    id = 1
+    id = 71
     status = 'h'
     positive = 0
     description = "下次你死亡时，有1/2几率闪避，1/2几率死亡时间+1小时。"
 
 class ComicSans(_card):
     name = "Comic Sans"
-    id = 5
-    daily_status = 'c'
+    id = 80
+    global_daily_status = 'c'
     positive = 0
     description = "七海千春今天所有生成的图片均使用Comic Sans作为西文字体（中文使用华文彩云）。"
