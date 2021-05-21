@@ -4,7 +4,7 @@ import random
 import re
 import more_itertools
 from functools import lru_cache
-from nonebot import CommandSession, NLPSession, on_natural_language, get_bot
+from nonebot import CommandSession, NLPSession, on_natural_language, get_bot, scheduler
 from nonebot.command import call_command
 from ..inject import CommandGroup, on_command
 from .. import config
@@ -19,11 +19,13 @@ message_re = re.compile(r"[\s我那就，]*接[\s，,]*(.*)[\s，,\n]*.*")
 # hidden : [list(str), list(str)]
 # begin : list(str)
 # bombs : list(str)
+# last_update_date : str
 with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
     d = json.load(f)
     keyword = d["keyword"][0]
     hidden_keyword = d["hidden"][0]
     bombs = d["bombs"]
+    last_update_date = d["last_update_date"]
     del d
 # log
 log_set : set = set()
@@ -70,7 +72,7 @@ def get_jibi(qq):
 def add_jibi(qq, jibi, current_jibi=None):
     if current_jibi is None:
         current_jibi = get_jibi(qq)
-    config.userdata.execute("update dragon_data set jibi=? where qq=?", current_jibi + jibi, qq)
+    config.userdata.execute("update dragon_data set jibi=? where qq=?", max(0, current_jibi + jibi), qq)
 def wrapper_file(_func):
     def func(*args, **kwargs):
         with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
@@ -121,10 +123,9 @@ def add_bomb(d, word):
 def add_begin(d, word):
     d['begin'].append(word)
 @wrapper_file
-def get_begin(d):
-    c = random.choice(d['begin'])
-    d['begin'].remove(c)
-    return c
+def add_hidden(d, word):
+    d['hidden'][1].append(word)
+
 
 def save_data():
     config.userdata_db.commit()
@@ -186,8 +187,16 @@ def remove_global_limited_status(s, status=None):
 def kill(qq, hour=4):
     ret = ""
     dodge = False
+    n = check_status(qq, 's', False)
+    if n and not dodge:
+        jibi = get_jibi(qq)
+        if jibi >= 10:
+            add_jibi(qq, -10, jibi)
+            ret = "你触发了死秽回避之药的效果，免除死亡！"
+            dodge = True
+            remove_status(qq, 's', False, remove_all=False)
     n = check_status(qq, 'h', False)
-    if n:
+    if n and not dodge:
         for a in range(n):
             if random.randint(0, 1) == 0:
                 ret = "你使用了虹色之环，闪避了死亡！"
@@ -196,7 +205,7 @@ def kill(qq, hour=4):
             else:
                 ret += "你使用虹色之环闪避失败，死亡时间+1h！\n"
                 hour += 1
-    remove_status(qq, 'h', False, remove_all=True)
+        remove_status(qq, 'h', False)
     if dodge:
         return ret
     add_limited_status(qq, 'd', datetime.now() + timedelta(hours=hour))
@@ -217,6 +226,17 @@ def throw_card(qq, id, card_list=None):
         card_list = get_card(qq)
     card_list.remove(id)
     config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(x) for x in card_list), qq))
+
+@wrapper_file
+async def daily_update(d):
+    config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10', ('',))
+    c = random.choice(d['begin'])
+    d['last_update_date'] = date.today().isoformat()
+    d['begin'].remove(c)
+    if len(d['begin']) == 0:
+        for group in config.group_id_dict['logic_dragon_supervise']:
+            await get_bot().send_group_msg(group_id=group, message="起始词库已空！")
+    return c
 
 @on_natural_language(keywords="接", only_to_me=False, only_short_message=False)
 async def logical_dragon(session: NLPSession):
@@ -268,6 +288,9 @@ async def logical_dragon(session: NLPSession):
                 ret += "奖励1击毙。"
                 config.userdata.execute("update dragon_data set today_jibi=? where qq=?", (node['today_jibi'] - 1, qq))
                 add_jibi(qq, 1)
+                if node['today_jibi'] == 1:
+                    ret += "\n你今日全勤，奖励1抽奖券！"
+                    config.userdata.execute("update dragon_data set draw_time=? where qq=?", (node['draw_time'] + 1, qq))
             if word in bombs:
                 ret += "\n你成功触发了炸弹，被炸死了！"
                 remove_bomb(word)
@@ -352,7 +375,7 @@ async def dragon_draw(session: CommandSession):
     draw_time -= n
     config.userdata.execute('update dragon_data set draw_time=? where qq=?', (draw_time, qq))
     cards = [draw_card() for i in range(n)]
-    add_cards(qq, cards)
+    add_cards(qq, [c for c in cards if not c.consumed_on_draw])
     ret += '\n'.join(c.description for c in cards)
     for c in cards:
         r = c.on_draw(qq)
@@ -394,6 +417,21 @@ async def dragon_add_begin(session: CommandSession):
     """添加起始词。"""
     add_begin(session.current_arg.strip())
     await session.send('成功添加起始词。')
+
+@on_command(('dragon', 'add_hidden'), only_to_me=False, environment=env_supervise)
+async def dragon_add_hidden(session: CommandSession):
+    """添加隐藏奖励词。"""
+    add_hidden(session.current_arg_text.strip())
+    await session.send('成功添加隐藏奖励词。')
+
+@scheduler.scheduled_job('cron', id="dragon_daily", hour='16', minute='00-03')
+async def dragon_daily():
+    global last_update_date
+    if last_update_date == date.today().isoformat():
+        return
+    ret = await daily_update()
+    for group in config.group_id_dict['logic_dragon']:
+        await get_bot().send_group_msg(group_id=group, message=ret)
 
 @lru_cache(10)
 def Card(id):
@@ -470,6 +508,7 @@ class _card(metaclass=card_meta):
     positive = 0
     description = ""
     arg_num = 0
+    consumed_on_draw = False
     def use(self, qq, args=None, card_list=None):
         pass
     def on_draw(self, qq):
@@ -481,6 +520,7 @@ class dabingyichang(_card):
     daily_status = 'd'
     positive = -1
     description = "抽到时，直到下一次主题出现前不得接龙。"
+    consumed_on_draw = True
     def on_draw(self, qq):
         self.use(qq)
         return "你病了！直到下一次主题出现前不得接龙。"
@@ -490,6 +530,7 @@ class caipiaozhongjiang(_card):
     id = 31
     positive = 1
     description = "抽到时立即获得20击毙与两张牌。"
+    consumed_on_draw = True
     def on_draw(self, qq):
         ret = "你中奖了！获得20击毙与两张牌。你抽到的牌为：\n"
         add_jibi(qq, 20)
@@ -500,6 +541,13 @@ class caipiaozhongjiang(_card):
             if r:
                 ret += '\n' + r
         return ret
+
+class sihuihuibizhiyao(_card):
+    name = "死秽回避之药"
+    id = 50
+    status = 's'
+    positive = 1
+    description = "你下次死亡时自动消耗10击毙免除死亡。"
 
 class cunqianguan(_card):
     name = "存钱罐"
@@ -521,3 +569,46 @@ class ComicSans(_card): # TODO
     global_daily_status = 'c'
     positive = 0
     description = "七海千春今天所有生成的图片均使用Comic Sans作为西文字体（中文使用华文彩云）。"
+
+class suicideking(_card):
+    name = "自杀国王（♥K）"
+    id = 90
+    positive = -1
+    description = "抽到时立即死亡。"
+    consumed_on_draw = True
+    def on_draw(self, qq):
+        return "你抽到了自杀国王，你死了！\n" + kill(qq)
+
+class zhu(_card):
+    name = "猪（♠Q）"
+    id = 91
+    positive = -1
+    description = "抽到时损失20击毙（但不会扣至0以下）。"
+    consumed_on_draw = True
+    def on_draw(self, qq):
+        add_jibi(qq, -20)
+        return "你抽到了猪，损失了20击毙！"
+
+class yang(_card):
+    name = "羊（♦J）"
+    id = 92
+    positive = 1
+    description = "抽到时获得20击毙。"
+    consumed_on_draw = True
+    def on_draw(self, qq):
+        add_jibi(qq, 20)
+        return "你抽到了羊，获得了20击毙！"
+
+class guanggaopai(_card):
+    name = "广告牌"
+    id = 94
+    positive = 0
+    @property
+    def description(self):
+        return random.choice([
+            "广告位永久招租，联系邮箱：shedarshian@gmail.com",
+            "我给你找了个厂，虹龙洞里挖龙珠的，两班倒，20多金点包酸素勾玉，一天活很多，也不会很闲，明天你就去上班吧，不想看到你整天在群里接龙，无所事事了，是谁我就不在群里指出来了，等下你没面子。\n先填个表https://store.steampowered.com/app/1566410",
+            "MUASTG，车万原作游戏前沿逆向研究，主要研究弹幕判定、射击火力、ZUN引擎弹幕设计等，曾发表车万顶刊华胥三绝，有意者加群796991184",
+            "你想明白生命的意义吗？你想真正……的活着吗？\n☑下载战斗天邪鬼：https://pan.baidu.com/s/1FIAxhHIaggld3yRAyFr9FA",
+            "肥料掺了金坷垃，一袋能顶两袋撒！肥料掺了金坷垃，不流失，不浪费，不蒸发，能吸收两米下的氮磷钾！"
+        ])
