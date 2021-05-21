@@ -491,10 +491,10 @@ class card_meta(type):
                 def use(self, qq, args, card_list):
                     add_global_limited_status(status, datetime.now() + self.global_limited_time)
                 attrs['use'] = use
-            c = type(clsname, bases, attrs)
+            c = type.__new__(cls, clsname, bases, attrs)
             bases[0].card_id_dict[attrs['id']] = c
         else:
-            c = type(clsname, bases, attrs)
+            c = type.__new__(cls, clsname, bases, attrs)
         return c
 
 class _card(metaclass=card_meta):
