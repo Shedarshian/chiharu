@@ -212,7 +212,7 @@ def kill(qq, hour=4):
     return ret
 
 def draw_card():
-    return random.choice(_card.card_id_dict.values())()
+    return random.choice(list(_card.card_id_dict.values()))()
 def add_cards(qq, cards, card_list=None):
     if card_list is None:
         card_list = get_card(qq)
