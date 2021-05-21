@@ -240,7 +240,7 @@ async def daily_update(d):
 
 @on_natural_language(keywords="接", only_to_me=False, only_short_message=False)
 async def logical_dragon(session: NLPSession):
-    if not env.test(session):
+    if not await env.test(session):
         return
     match = message_re.match(session.msg_text)
     if match:
