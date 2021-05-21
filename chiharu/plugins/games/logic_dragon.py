@@ -302,9 +302,9 @@ async def logical_dragon(session: NLPSession):
 
 @on_natural_language(only_to_me=False, only_short_message=True)
 async def logical_dragon_else(session: NLPSession):
-    if not env.test(session):
+    if not await env.test(session):
         return
-    text = session.current_arg_text.strip()
+    text = session.msg_text.strip()
     # 查询接龙
     if text.startswith("查询接龙"):
         call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[4:].strip())
