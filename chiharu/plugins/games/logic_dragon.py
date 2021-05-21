@@ -72,7 +72,7 @@ def get_jibi(qq):
 def add_jibi(qq, jibi, current_jibi=None):
     if current_jibi is None:
         current_jibi = get_jibi(qq)
-    config.userdata.execute("update dragon_data set jibi=? where qq=?", max(0, current_jibi + jibi), qq)
+    config.userdata.execute("update dragon_data set jibi=? where qq=?", (max(0, current_jibi + jibi), qq))
 def wrapper_file(_func):
     def func(*args, **kwargs):
         with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
