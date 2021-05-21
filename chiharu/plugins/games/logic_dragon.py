@@ -13,6 +13,7 @@ env_supervise = config.Environment('logic_dragon_supervise')
 
 CommandGroup('dragon', des="逻辑接龙相关。", environment=env|env_supervise)
 
+# TODO 十连保底，手牌上限，查询功能
 message_re = re.compile(r"[\s我那就，]*接[\s，,]*(.*)[\s，,\n]*.*")
 
 # keyword : [str, list(str)]
@@ -228,8 +229,9 @@ def throw_card(qq, id, card_list=None):
     card_list.remove(id)
     config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(x) for x in card_list), qq))
 
-@wrapper_file
-async def daily_update(d):
+async def daily_update():
+    with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
+        d = json.load(f)
     config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10', ('',))
     c = random.choice(d['begin'])
     d['last_update_date'] = date.today().isoformat()
@@ -237,6 +239,8 @@ async def daily_update(d):
     if len(d['begin']) == 0:
         for group in config.group_id_dict['logic_dragon_supervise']:
             await get_bot().send_group_msg(group_id=group, message="起始词库已空！")
+    with open(config.rel('dragon_words.json'), 'w', encoding='utf-8') as f:
+        f.write(json.dumps(d, indent=4, separators=(',', ': '), ensure_ascii=False))
     return "今日关键词：" + c
 
 @on_natural_language(keywords="接", only_to_me=False, only_short_message=False)
@@ -433,7 +437,7 @@ async def dragon_daily():
     if last_update_date == date.today().isoformat():
         return
     ret = await daily_update()
-    for group in config.group_id_dict['logic_dragon']:
+    for group in config.group_id_dict['logic_dragon_send']:
         await get_bot().send_group_msg(group_id=group, message=ret)
 
 @lru_cache(10)
