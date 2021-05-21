@@ -220,7 +220,8 @@ def add_cards(qq, cards, card_list=None):
     card_list.sort()
     config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(x) for x in card_list), qq))
 def get_card(qq):
-    return [int(x) for x in find_or_new(qq)['card'].split(',')]
+    s = find_or_new(qq)['card']
+    return [] if s == '' else [int(x) for x in s.split(',')]
 def throw_card(qq, id, card_list=None):
     if card_list is None:
         card_list = get_card(qq)
