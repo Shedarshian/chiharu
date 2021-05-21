@@ -242,7 +242,7 @@ async def daily_update(d):
 async def logical_dragon(session: NLPSession):
     if not env.test(session):
         return
-    match = message_re.match(session.current_arg_text)
+    match = message_re.match(session.msg_text)
     if match:
         ret = ""
         qq = session.ctx['user_id']
