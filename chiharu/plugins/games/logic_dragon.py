@@ -103,7 +103,7 @@ def update_hidden_keyword(d, which, if_delete=False):
         n = {hidden_keyword.index(which)}
     if len(d['hidden'][1]) < len(n):
         return False
-    for i in which:
+    for i in n:
         hidden_keyword[i] = random.choice(d['hidden'][1])
         if if_delete:
             d['hidden'][1].remove(hidden_keyword[i])
