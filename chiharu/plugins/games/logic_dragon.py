@@ -230,11 +230,12 @@ def throw_card(qq, id, card_list=None):
     config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(x) for x in card_list), qq))
 
 async def daily_update():
+    global last_update_date
     with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         d = json.load(f)
     config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10', ('',))
     c = random.choice(d['begin'])
-    d['last_update_date'] = date.today().isoformat()
+    d['last_update_date'] = last_update_date = date.today().isoformat()
     d['begin'].remove(c)
     if len(d['begin']) == 0:
         for group in config.group_id_dict['logic_dragon_supervise']:
@@ -400,7 +401,8 @@ async def dragon_check(session: CommandSession):
     隐藏奖励池/hidden_keyword_pool：查询当前隐藏奖励池大小。
     卡池/card_pool：查询当前卡池总卡数。
     复活时间/recover_time：查询自己的复活时间。
-    手牌/hand_cards：查询自己当前手牌。"""
+    手牌/hand_cards：查询自己当前手牌。
+    击毙/jibi：查询自己的击毙数。"""
     with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         d = json.load(f)
     data = session.current_arg_text
@@ -417,6 +419,8 @@ async def dragon_check(session: CommandSession):
     elif data in ("复活时间", "recover_time"):
         pass
     elif data in ("手牌", "hand_cards"):
+        pass
+    elif data in ("击毙", "jibi"):
         pass
 
 @on_command(('dragon', 'add_begin'), only_to_me=False, environment=env_supervise)
@@ -623,5 +627,6 @@ class guanggaopai(_card):
             "我给你找了个厂，虹龙洞里挖龙珠的，两班倒，20多金点包酸素勾玉，一天活很多，也不会很闲，明天你就去上班吧，不想看到你整天在群里接龙，无所事事了，是谁我就不在群里指出来了，等下你没面子。\n先填个表https://store.steampowered.com/app/1566410",
             "MUASTG，车万原作游戏前沿逆向研究，主要研究弹幕判定、射击火力、ZUN引擎弹幕设计等，曾发表车万顶刊华胥三绝，有意者加群796991184",
             "你想明白生命的意义吗？你想真正……的活着吗？\n☑下载战斗天邪鬼：https://pan.baidu.com/s/1FIAxhHIaggld3yRAyFr9FA",
-            "肥料掺了金坷垃，一袋能顶两袋撒！肥料掺了金坷垃，不流失，不浪费，不蒸发，能吸收两米下的氮磷钾！"
+            "肥料掺了金坷垃，一袋能顶两袋撒！肥料掺了金坷垃，不流失，不浪费，不蒸发，能吸收两米下的氮磷钾！",
+            "欢迎关注甜品站弹幕研究协会，国内一流的东方STG学术交流平台，从避弹，打分到neta，可以学到各种高端姿势：https://www.isndes.com/ms?m=2"
         ])
