@@ -278,8 +278,8 @@ async def logical_dragon(session: NLPSession):
                     ret += f"\n你触发了存钱罐，奖励+{n * 10}击毙！"
                     remove_global_status('m', False)
                     add_jibi(qq, n * 10)
-            if not update_hidden_keyword(i):
-                ret += "隐藏奖励词池已空！"
+                if not update_hidden_keyword(i):
+                    ret += "隐藏奖励词池已空！"
         if not check_and_add_log(word):
             ret += "\n过去一周之内接过此词，你死了！"
             s = kill(qq)
