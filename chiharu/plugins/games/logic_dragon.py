@@ -544,7 +544,7 @@ class caipiaozhongjiang(_card):
         ret = "你中奖了！获得20击毙与两张牌。你抽到的牌为：\n"
         add_jibi(qq, 20)
         cards = [draw_card() for i in range(2)]
-        ret += '\n'.join(c.description for c in cards)
+        ret += '\n'.join(c.full_description for c in cards)
         for c in cards:
             r = c.on_draw(qq)
             if r:
