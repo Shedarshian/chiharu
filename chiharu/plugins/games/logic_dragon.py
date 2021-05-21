@@ -307,17 +307,17 @@ async def logical_dragon_else(session: NLPSession):
     text = session.msg_text.strip()
     # 查询接龙
     if text.startswith("查询接龙"):
-        call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[4:].strip())
+        await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[4:].strip())
     # 添加炸弹
     elif text.startswith("添加炸弹"):
-        call_command(get_bot(), session.ctx, ('dragon', 'add_bomb'), current_arg=text[4:].strip())
+        await call_command(get_bot(), session.ctx, ('dragon', 'add_bomb'), current_arg=text[4:].strip())
     # 使用手牌
     elif text.startswith("使用手牌"):
-        call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
+        await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
     # 抽卡
     elif text.startswith("抽卡"):
-        call_command(get_bot(), session.ctx, ('dragon', 'draw'), current_arg=text[2:].strip())
-    
+        await call_command(get_bot(), session.ctx, ('dragon', 'draw'), current_arg=text[2:].strip())
+
 @on_command(('dragon', 'add_bomb'), aliases="添加炸弹", only_to_me=False, args=("keyword"), environment=env)
 async def dragon_add_bomb(session: CommandSession):
     """添加炸弹。"""
@@ -398,15 +398,15 @@ async def dragon_check(session: CommandSession):
         d = json.load(f)
     data = session.current_arg_text
     if data in ("奖励词", "keyword"):
-        session.finish(keyword)
+        session.finish("当前奖励词为：" + keyword)
     elif data in ("奖励池", "keyword_pool"):
-        session.finish(str(len(d['keyword'][1])))
+        session.finish("当前奖励池大小为：" + str(len(d['keyword'][1])))
     elif data in ("起始池", "begin_pool"):
-        session.finish(str(len(d['begin'])))
+        session.finish("当前起始池大小为：" + str(len(d['begin'])))
     elif data in ("隐藏奖励池", "hidden_keyword_pool"):
-        session.finish(str(len(d['hidden'][1])))
+        session.finish("当前隐藏奖励池大小为：" + str(len(d['hidden'][1])))
     elif data in ("卡池", "card_pool"):
-        session.finish(str(len(_card.card_id_dict)))
+        session.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
     elif data in ("复活时间", "recover_time"):
         pass
     elif data in ("手牌", "hand_cards"):
