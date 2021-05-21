@@ -236,7 +236,7 @@ async def daily_update(d):
     if len(d['begin']) == 0:
         for group in config.group_id_dict['logic_dragon_supervise']:
             await get_bot().send_group_msg(group_id=group, message="起始词库已空！")
-    return c
+    return "今日关键词：" + c
 
 @on_natural_language(keywords="接", only_to_me=False, only_short_message=False)
 async def logical_dragon(session: NLPSession):
@@ -414,13 +414,13 @@ async def dragon_check(session: CommandSession):
 
 @on_command(('dragon', 'add_begin'), only_to_me=False, environment=env_supervise)
 async def dragon_add_begin(session: CommandSession):
-    """添加起始词。"""
+    """添加起始词。黑幕群可用。"""
     add_begin(session.current_arg.strip())
     await session.send('成功添加起始词。')
 
 @on_command(('dragon', 'add_hidden'), only_to_me=False, environment=env_supervise)
 async def dragon_add_hidden(session: CommandSession):
-    """添加隐藏奖励词。"""
+    """添加隐藏奖励词。黑幕群可用。"""
     add_hidden(session.current_arg_text.strip())
     await session.send('成功添加隐藏奖励词。')
 
