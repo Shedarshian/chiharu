@@ -249,9 +249,11 @@ async def logical_dragon(session: NLPSession):
         global past_two_user
         node = find_or_new(qq)
         if check_limited_status(qq, 'd', node) or check_status(qq, 'd', True, node):
-            session.finish('你已死，不能接龙！')
+            await session.send('你已死，不能接龙！')
+            return
         if qq in past_two_user:
-            session.finish("你接太快了！两次接龙之间至少要隔两个人。")
+            await session.send("你接太快了！两次接龙之间至少要隔两个人。")
+            return
         past_two_user.append(qq)
         if len(past_two_user) > 2:
             past_two_user.pop(0)
