@@ -379,7 +379,7 @@ async def dragon_draw(session: CommandSession):
     config.userdata.execute('update dragon_data set draw_time=? where qq=?', (draw_time, qq))
     cards = [draw_card() for i in range(n)]
     add_cards(qq, [c for c in cards if not c.consumed_on_draw])
-    ret += '\n'.join(c.description for c in cards)
+    ret += '\n'.join(c.full_description for c in cards)
     for c in cards:
         r = c.on_draw(qq)
         if r:
@@ -519,6 +519,9 @@ class _card(metaclass=card_meta):
         pass
     def on_draw(self, qq):
         pass
+    @property
+    def full_description(self):
+        return f"{self.name}：{self.description}"
 
 class dabingyichang(_card):
     name = "大病一场"
