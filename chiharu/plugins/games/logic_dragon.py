@@ -79,7 +79,7 @@ def wrapper_file(_func):
             d = json.load(f)
         ret = _func(d, *args, **kwargs)
         with open(config.rel('dragon_words.json'), 'w', encoding='utf-8') as f:
-            f.write(json.dumps(d, indent=4, separators=(',', ': ')))
+            f.write(json.dumps(d, indent=4, separators=(',', ': '), ensure_ascii=False))
         return ret
     return func
 @wrapper_file
