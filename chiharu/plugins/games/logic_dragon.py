@@ -146,12 +146,10 @@ def add_global_status(s, is_daily):
 def add_global_limited_status(s, end_time : datetime):
     return add_limited_status(2711644761, s, end_time)
 def check_status(qq, s, is_daily, node=None):
-    if node is None:
-        node = find_or_new(qq)
+    node = node or find_or_new(qq)
     return node['daily_status' if is_daily else 'status'].count(s)
 def check_limited_status(qq, s, node=None):
-    if node is None:
-        node = find_or_new(qq)
+    node = node or find_or_new(qq)
     status = eval(node['status_time'])
     if s not in status:
         return False
@@ -166,8 +164,7 @@ def check_global_status(s, is_daily, node=None):
 def check_global_limited_status(s, node=None):
     return check_limited_status(2711644761, s, node)
 def remove_status(qq, s, is_daily, remove_all=True, status=None):
-    if status is None:
-        status = find_or_new(qq)['daily_status' if is_daily else 'status']
+    status = status or find_or_new(qq)['daily_status' if is_daily else 'status']
     if remove_all:
         status = ''.join([t for t in status if t != s])
     else:
@@ -176,8 +173,7 @@ def remove_status(qq, s, is_daily, remove_all=True, status=None):
         status = ''.join(l)
     config.userdata.execute('update dragon_data set %s=? where qq=?' % ('daily_status' if is_daily else 'status'), (status, qq))
 def remove_limited_status(qq, s, status=None):
-    if status is None:
-        status = eval(find_or_new(qq)['status_time'])
+    status = status or eval(find_or_new(qq)['status_time'])
     status.pop(s)
     config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), qq))
 def remove_global_status(s, is_daily, remove_all=True, status=None):
@@ -220,8 +216,8 @@ def add_cards(qq, cards, card_list=None):
     card_list.extend(c.id for c in cards)
     card_list.sort()
     config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(x) for x in card_list), qq))
-def get_card(qq):
-    s = find_or_new(qq)['card']
+def get_card(qq, card=None):
+    s = card or find_or_new(qq)['card']
     return [] if s == '' else [int(x) for x in s.split(',')]
 def throw_card(qq, id, card_list=None):
     if card_list is None:
@@ -423,10 +419,10 @@ async def dragon_check(session: CommandSession):
             session.finish("你的复活时间为：" + status['d'])
         session.finish("你目前没有复活时间！")
     elif data in ("手牌", "hand_cards"):
-        cards = get_card(qq)
+        cards = get_card(session.ctx['user_id'])
         if len(cards) == 0:
             session.finish("你没有手牌！")
-        session.finish("你的手牌为：\n" + '\n'.join(s.full_description for s in cards))
+        session.finish("你的手牌为：\n" + '\n'.join(Card(s).full_description for s in cards))
     elif data in ("击毙", "jibi"):
         session.finish("你的击毙数为：" + str(node['jibi']))
 
