@@ -451,7 +451,7 @@ class card_meta(type):
                 if status in bases[0].status_set:
                     raise ImportError
                 bases[0].status_set.add(status)
-                def use(self, qq, args, card_list):
+                def use(self, qq, args=None, card_list=None):
                     add_status(qq, status, False)
                 attrs['use'] = use
             elif 'daily_status' in attrs and attrs['daily_status']:
@@ -459,7 +459,7 @@ class card_meta(type):
                 if status in bases[0].daily_status_set:
                     raise ImportError
                 bases[0].daily_status_set.add(status)
-                def use(self, qq, args, card_list):
+                def use(self, qq, args=None, card_list=None):
                     add_status(qq, status, True)
                 attrs['use'] = use
             elif 'limited_status' in attrs and attrs['limited_status']:
@@ -467,7 +467,7 @@ class card_meta(type):
                 if status in bases[0].limited_status_set:
                     raise ImportError
                 bases[0].limited_status_set.add(status)
-                def use(self, qq, args, card_list):
+                def use(self, qq, args=None, card_list=None):
                     add_limited_status(qq, status, datetime.now() + self.limited_time)
                 attrs['use'] = use
             elif 'global_status' in attrs and attrs['global_status']:
@@ -475,7 +475,7 @@ class card_meta(type):
                 if status in bases[0].status_set:
                     raise ImportError
                 bases[0].status_set.add(status)
-                def use(self, qq, args, card_list):
+                def use(self, qq, args=None, card_list=None):
                     add_global_status(status, False)
                 attrs['use'] = use
             elif 'global_daily_status' in attrs and attrs['global_daily_status']:
@@ -483,7 +483,7 @@ class card_meta(type):
                 if status in bases[0].daily_status_set:
                     raise ImportError
                 bases[0].daily_status_set.add(status)
-                def use(self, qq, args, card_list):
+                def use(self, qq, args=None, card_list=None):
                     add_global_status(status, True)
                 attrs['use'] = use
             elif 'global_limited_status' in attrs and attrs['global_limited_status']:
@@ -491,7 +491,7 @@ class card_meta(type):
                 if status in bases[0].limited_status_set:
                     raise ImportError
                 bases[0].limited_status_set.add(status)
-                def use(self, qq, args, card_list):
+                def use(self, qq, args=None, card_list=None):
                     add_global_limited_status(status, datetime.now() + self.global_limited_time)
                 attrs['use'] = use
             c = type.__new__(cls, clsname, bases, attrs)
