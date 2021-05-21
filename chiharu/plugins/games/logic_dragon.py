@@ -416,12 +416,19 @@ async def dragon_check(session: CommandSession):
         session.finish("当前隐藏奖励池大小为：" + str(len(d['hidden'][1])))
     elif data in ("卡池", "card_pool"):
         session.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
-    elif data in ("复活时间", "recover_time"):
-        pass
+    node = find_or_new(session.ctx['user_id'])
+    if data in ("复活时间", "recover_time"):
+        status = eval(node['status_time'])
+        if 'd' in status:
+            session.finish("你的复活时间为：" + status['d'])
+        session.finish("你目前没有复活时间！")
     elif data in ("手牌", "hand_cards"):
-        pass
+        cards = get_card(qq)
+        if len(cards) == 0:
+            session.finish("你没有手牌！")
+        session.finish("你的手牌为：\n" + '\n'.join(s.full_description for s in cards))
     elif data in ("击毙", "jibi"):
-        pass
+        session.finish("你的击毙数为：" + str(node['jibi']))
 
 @on_command(('dragon', 'add_begin'), only_to_me=False, environment=env_supervise)
 async def dragon_add_begin(session: CommandSession):
