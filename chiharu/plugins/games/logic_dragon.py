@@ -13,7 +13,7 @@ env_supervise = config.Environment('logic_dragon_supervise')
 
 CommandGroup('dragon', des="逻辑接龙相关。", environment=env|env_supervise)
 
-# TODO 十连保底，手牌上限，查询功能
+# TODO 十连保底，手牌上限
 message_re = re.compile(r"[\s我那就，]*接[\s，,]*(.*)[\s，,\n]*.*")
 
 # keyword : [str, list(str)]
@@ -60,12 +60,12 @@ def check_and_add_log(s):
 past_two_user = []
 
 # dragon_data := qq : int, jibi : int, card : str, draw_time : int, death_time : str, today_jibi : int, today_keyword_jibi : int
-# status : str, daily_status : str, status_time : str
+# status : str, daily_status : str, status_time : str, card_limit : int
 # global_status : qq = 2711644761
 def find_or_new(qq):
     t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     if t is None:
-        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?)', (qq, '', '', '', '', '{}'))
+        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4)', (qq, '', '', '', '', '{}'))
         t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     return t
 def get_jibi(qq):
@@ -216,14 +216,18 @@ def add_cards(qq, cards, card_list=None):
     card_list.extend(c.id for c in cards)
     card_list.sort()
     config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(x) for x in card_list), qq))
-def get_card(qq, card=None):
-    s = card or find_or_new(qq)['card']
+def get_card(qq, card=None, node=None):
+    s = card or (node or find_or_new(qq))['card']
     return [] if s == '' else [int(x) for x in s.split(',')]
-def throw_card(qq, id, card_list=None):
+def throw_card(qq, ids, card_list=None):
     if card_list is None:
         card_list = get_card(qq)
-    card_list.remove(id)
+    for id in ids:
+        if id not in card_list:
+            return False
+        card_list.remove(id)
     config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(x) for x in card_list), qq))
+    return True
 
 async def daily_update():
     global last_update_date
@@ -364,6 +368,16 @@ async def dragon_use_card(session: CommandSession):
 async def dragon_draw(session: CommandSession):
     """使用抽卡券进行抽卡。"""
     qq = session.ctx['user_id']
+    if session.get("discard"):
+        discard_card = session.args["discard_card"]
+        card_list = session.args["card_list"]
+        to_add_list = session.args["to_add_list"]
+        card_list += [c.id for c in to_add_list]
+        if not throw_card(qq, discard_card, card_list=card_list):
+            session.pause("您选择了错误的卡牌！")
+        save_data()
+        await session.send("成功弃置！")
+        return
     try:
         n = int(session.current_arg_text.strip() or 1)
     except ValueError:
@@ -379,14 +393,35 @@ async def dragon_draw(session: CommandSession):
     draw_time -= n
     config.userdata.execute('update dragon_data set draw_time=? where qq=?', (draw_time, qq))
     cards = [draw_card() for i in range(n)]
-    add_cards(qq, [c for c in cards if not c.consumed_on_draw])
+    node = find_or_new(qq)
+    card_list = get_card(qq, node=node)
+    to_add_list = [c for c in cards if not c.consumed_on_draw]
+    x = len(card_list) + len(to_add_list) - node['card_limit']
     ret += '\n'.join(c.full_description for c in cards)
     for c in cards:
         r = c.on_draw(qq)
         if r:
             ret += '\n' + r
-    save_data()
     await session.send(ret)
+    if x > 0:
+        session.args["discard"] = True
+        session.args["discard_num"] = x
+        session.args["card_list"] = card_list
+        session.args["to_add_list"] = to_add_list
+        save_data()
+        session.pause(f"您的手牌已超出上限{x}张！请先选择一些牌弃置（输入id号，使用空格分隔）：\n" + "\n".join([Card(i).full_description for i in card_list] + [c.full_description for c in to_add_list]))
+    add_cards(qq, to_add_list)
+    save_data()
+
+@dragon_draw.args_parser
+async def _(session: CommandSession):
+    if session.get("discard"):
+        l = [int(i) for i in session.current_arg_text.split(' ')]
+        if len(l) != session.args["discard_num"]:
+            session.pause("弃置张数不对！")
+        session.args["discard_card"] = l
+    else:
+        session.args["discard"] = False
 
 @on_command(('dragon', 'check'), aliases="查询接龙", only_to_me=False, short_des="查询逻辑接龙相关数据。", args=("name",), environment=env)
 async def dragon_check(session: CommandSession):
@@ -532,7 +567,7 @@ class _card(metaclass=card_meta):
         pass
     @property
     def full_description(self):
-        return f"id: {self.id} {self.name}\n\t{self.description}"
+        return f"{self.id}. {self.name}\n\t{self.description}"
 
 class dabingyichang(_card):
     name = "大病一场"
