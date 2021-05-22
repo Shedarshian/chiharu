@@ -151,7 +151,7 @@ from .config import find_help
 async def help_reflection(session: CommandSession):
     """查询指令帮助。指令名不需要前缀"-"。"""
     if session.current_arg_text != '':
-        cmd_name = session.current_arg_text.split('.')
+        cmd_name = tuple(session.current_arg_text.split('.'))
     else:
         cmd_name = ()
     ret = await find_help(cmd_name, session)

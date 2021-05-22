@@ -171,6 +171,13 @@ class CommandGroup:
             self.leaf.update(CommandGroup.command_group_dict[name]['leaf'])
             self.help_addition |= CommandGroup.command_group_dict[name]['help_addition']
         CommandGroup.command_group_dict[name] = self
+        parent_name = name[:-1]
+        if parent_name not in CommandGroup.command_group_dict:
+            CommandGroup.command_group_dict[parent_name] = {'help_addition': set(), 'leaf': {name[-1]: cmd}}
+        elif isinstance(CommandGroup.command_group_dict[parent_name], dict):
+            CommandGroup.command_group_dict[parent_name]['leaf'][name[-1]] = cmd
+        else:
+            CommandGroup.command_group_dict[parent_name].leaf[name[-1]] = cmd
         if display_parents:
             if type(display_parents) is str:
                 parents = ((display_parents,),)
