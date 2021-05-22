@@ -312,17 +312,19 @@ _nonebot_logger.info('Successfully injected "on_command" and "_find_command"')
 del _nonebot_logger
 
 async def find_help(cmd_name: tuple, session: CommandSession):
-    if cmd_name in CommandGroup.command_group_dict:
+    if (is_command_group := cmd_name in CommandGroup.command_group_dict):
         cmd_tree = CommandGroup.command_group_dict[cmd_name]
         if isinstance(cmd_tree, dict):
-            cmd_tree = CommandGroup.command_group_dict[cmd_name] = CommandGroup(cmd_name)
-            cmd_tree.leaf
+            t = CommandGroup(cmd_name)
+            t.leaf.update(cmd_tree['leaf'])
+            t.help_addition |= cmd_tree['help_addition']
+            cmd_tree = CommandGroup.command_group_dict[cmd_name] = t
     else:
         cmd_tree = CommandManager()._find_command(cmd_name)
 
     if cmd_tree.hide or (cmd_tree.environment and not await cmd_tree.environment.test(session, no_reply=True)):
         return
-    if cmd_tree.command and not cmd_tree.is_help:
+    if not is_command_group:
         # command
         return f"-{'.'.join(cmd_name)}{''.join(' ' + x for x in cmd_tree.args)}\n{cmd_tree.des}"
     else:
