@@ -283,7 +283,7 @@ def on_command(name: Union[str, CommandName_T], *,
             for parent_name in parents:
                 if parent_name not in CommandGroup.command_group_dict:
                     CommandGroup.command_group_dict[parent_name] = {'help_addition': {cmd}, 'leaf': {}}
-                elif isinstance(CommandGroup.command_group_dict[parent_name], set):
+                elif isinstance(CommandGroup.command_group_dict[parent_name], dict):
                     CommandGroup.command_group_dict[parent_name]['help_addition'].add(cmd)
                 else:
                     CommandGroup.command_group_dict[parent_name].help_addition.add(cmd)
