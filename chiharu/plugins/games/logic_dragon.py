@@ -369,15 +369,14 @@ async def dragon_draw(session: CommandSession):
     """使用抽卡券进行抽卡。"""
     qq = session.ctx['user_id']
     if session.get("discard"):
-        discard_card = session.args["discard_card"]
-        card_list = session.args["card_list"]
-        to_add_list = session.args["to_add_list"]
+        discard_card = session.get("discard_card")
+        card_list = session.get("card_list")
+        to_add_list = session.get("to_add_list")
         card_list += [c.id for c in to_add_list]
         if not throw_card(qq, discard_card, card_list=card_list):
             session.pause("您选择了错误的卡牌！")
         save_data()
-        await session.send("成功弃置！")
-        return
+        session.finish("成功弃置！")
     try:
         n = int(session.current_arg_text.strip() or 1)
     except ValueError:
