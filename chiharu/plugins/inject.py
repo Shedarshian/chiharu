@@ -258,6 +258,7 @@ def on_command(name: Union[str, CommandName_T], *,
 
             cmd.args_parser_func = shell_like_args_parser
         
+        nonlocal aliases
         CommandManager.add_command(cmd_name, cmd)
         CommandManager.add_aliases(aliases, cmd)
         CommandManager.add_patterns(patterns, cmd)
@@ -277,7 +278,6 @@ def on_command(name: Union[str, CommandName_T], *,
                     _CommandGroup.command_group_dict[parent_name].help_addition.add(cmd)
 
         from nonebot.command import CommandManager
-        nonlocal aliases
         if isinstance(aliases, str):
             aliases = (aliases,)
         for alias in aliases:
