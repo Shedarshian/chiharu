@@ -189,7 +189,7 @@ from . import config
 def on_command(name: Union[str, CommandName_T], *,
                aliases: Union[Iterable[str], str] = (),
                permission: int = permission.EVERYBODY,
-               patterns: Patterns_T,
+               patterns: Patterns_T = (),
                only_to_me: bool = True,
                privileged: bool = False,
                shell_like: bool = False,
