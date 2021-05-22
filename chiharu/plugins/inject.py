@@ -164,7 +164,7 @@ class CommandGroup:
                 perm_checker_func=functools.partial(check_permission, permission_required=permission.EVERYBODY),
                 expire_timeout=..., run_timeout=..., session_class=None,
                 des=des, short_des=short_des, environment=environment,
-                hide=hide, hide_in_parent=hide_in_parent, display_id=display_id, args=())
+                hide=hide, hide_in_parent=hide_in_parent or hide, display_id=display_id, args=())
         cmd.is_help = True
         CommandManager.add_command(name, cmd)
         if name in CommandGroup.command_group_dict and isinstance(CommandGroup.command_group_dict[name], dict):
