@@ -167,7 +167,7 @@ class CommandGroup:
                 hide=hide, hide_in_parent=hide_in_parent, display_id=display_id, args=())
         cmd.is_help = True
         CommandManager.add_command(name, cmd)
-        if isinstance(CommandGroup.command_group_dict[name], set):
+        if name in CommandGroup.command_group_dict and isinstance(CommandGroup.command_group_dict[name], set):
             self.help_addition |= CommandGroup.command_group_dict[name]
         CommandGroup.command_group_dict[name] = self
         if display_parents:
@@ -264,6 +264,13 @@ def on_command(name: Union[str, CommandName_T], *,
         CommandManager.add_command(cmd_name, cmd)
         CommandManager.add_aliases(aliases, cmd)
         CommandManager.add_patterns(patterns, cmd)
+        parent_name = cmd_name[:-1]
+        if parent_name not in CommandGroup.command_group_dict:
+            CommandGroup.command_group_dict[parent_name] = {'help_addition': {}, 'leaf': {cmd_name[-1]: cmd}}
+        elif isinstance(CommandGroup.command_group_dict[parent_name], set):
+            CommandGroup.command_group_dict[parent_name]['leaf'][cmd_name[-1]] = cmd
+        else:
+            CommandGroup.command_group_dict[parent_name].leaf[cmd_name[-1]] = cmd
         if display_parents:
             if type(display_parents) is str:
                 parents = ((display_parents,),)
@@ -273,9 +280,9 @@ def on_command(name: Union[str, CommandName_T], *,
                 parents = display_parents
             for parent_name in parents:
                 if parent_name not in CommandGroup.command_group_dict:
-                    CommandGroup.command_group_dict[parent_name] = {cmd}
+                    CommandGroup.command_group_dict[parent_name] = {'help_addition': {cmd}, 'leaf': {}}
                 elif isinstance(CommandGroup.command_group_dict[parent_name], set):
-                    CommandGroup.command_group_dict[parent_name].add(cmd)
+                    CommandGroup.command_group_dict[parent_name]['help_addition'].add(cmd)
                 else:
                     CommandGroup.command_group_dict[parent_name].help_addition.add(cmd)
 
@@ -295,13 +302,18 @@ def on_command(name: Union[str, CommandName_T], *,
 import nonebot.command
 nonebot.command.on_command = on_command
 nonebot.on_command = on_command
+nonebot.command.CommandGroup = CommandGroup
+nonebot.CommandGroup = CommandGroup
 
 from nonebot.log import logger as _nonebot_logger
 _nonebot_logger.info('Successfully injected "on_command" and "_find_command"')
 del _nonebot_logger
 
 async def find_help(cmd_name: tuple, session: CommandSession):
-    cmd_tree = CommandManager()._find_command(cmd_name)
+    if cmd_name in CommandGroup.command_group_dict:
+        cmd_tree = CommandGroup.command_group_dict[cmd_name]
+    else:
+        cmd_tree = CommandManager()._find_command(cmd_name)
 
     if cmd_tree.hide or (cmd_tree.environment and not await cmd_tree.environment.test(session, no_reply=True)):
         return
