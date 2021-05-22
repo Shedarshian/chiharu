@@ -403,10 +403,10 @@ async def dragon_draw(session: CommandSession):
             ret += '\n' + r
     await session.send(ret)
     if x > 0:
-        session.args["discard"] = True
-        session.args["discard_num"] = x
-        session.args["card_list"] = card_list
-        session.args["to_add_list"] = to_add_list
+        session.state["discard"] = True
+        session.state["discard_num"] = x
+        session.state["card_list"] = card_list
+        session.state["to_add_list"] = to_add_list
         save_data()
         session.pause(f"您的手牌已超出上限{x}张！请先选择一些牌弃置（输入id号，使用空格分隔）：\n" + "\n".join([Card(i).full_description for i in card_list] + [c.full_description for c in to_add_list]))
     add_cards(qq, to_add_list)
@@ -416,11 +416,11 @@ async def dragon_draw(session: CommandSession):
 async def _(session: CommandSession):
     if session.get("discard"):
         l = [int(i) for i in session.current_arg_text.split(' ')]
-        if len(l) != session.args["discard_num"]:
+        if len(l) != session.state["discard_num"]:
             session.pause("弃置张数不对！")
-        session.args["discard_card"] = l
+        session.state["discard_card"] = l
     else:
-        session.args["discard"] = False
+        session.state["discard"] = False
 
 @on_command(('dragon', 'check'), aliases="查询接龙", only_to_me=False, short_des="查询逻辑接龙相关数据。", args=("name",), environment=env)
 async def dragon_check(session: CommandSession):
