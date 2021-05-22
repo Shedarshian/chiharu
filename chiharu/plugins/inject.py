@@ -133,7 +133,7 @@ class MyCommand(Command):
         self.display_id = display_id
         self.is_help = False
 
-class _CommandGroup:
+class CommandGroup:
     command_group_dict = {}
     def __init__(self, name: Union[str, CommandName_T], 
                des: str = "", *,
@@ -165,9 +165,9 @@ class _CommandGroup:
                 hide=hide, hide_in_parent=hide_in_parent, display_id=display_id, args=())
         cmd.is_help = True
         CommandManager.add_command(name, cmd)
-        if isinstance(_CommandGroup.command_group_dict[name], set):
-            self.help_addition |= _CommandGroup.command_group_dict[name]
-        _CommandGroup.command_group_dict[name] = self
+        if isinstance(CommandGroup.command_group_dict[name], set):
+            self.help_addition |= CommandGroup.command_group_dict[name]
+        CommandGroup.command_group_dict[name] = self
         if display_parents:
             if type(display_parents) is str:
                 parents = ((display_parents,),)
@@ -176,12 +176,12 @@ class _CommandGroup:
             else:
                 parents = display_parents
             for parent_name in parents:
-                if parent_name not in _CommandGroup.command_group_dict:
-                    _CommandGroup.command_group_dict[parent_name] = {self}
-                elif isinstance(_CommandGroup.command_group_dict[parent_name], set):
-                    _CommandGroup.command_group_dict[parent_name].add(self)
+                if parent_name not in CommandGroup.command_group_dict:
+                    CommandGroup.command_group_dict[parent_name] = {self}
+                elif isinstance(CommandGroup.command_group_dict[parent_name], set):
+                    CommandGroup.command_group_dict[parent_name].add(self)
                 else:
-                    _CommandGroup.command_group_dict[parent_name].help_addition.add(self)
+                    CommandGroup.command_group_dict[parent_name].help_addition.add(self)
 
 from . import config
 def on_command(name: Union[str, CommandName_T], *,
@@ -270,12 +270,12 @@ def on_command(name: Union[str, CommandName_T], *,
             else:
                 parents = display_parents
             for parent_name in parents:
-                if parent_name not in _CommandGroup.command_group_dict:
-                    _CommandGroup.command_group_dict[parent_name] = {cmd}
-                elif isinstance(_CommandGroup.command_group_dict[parent_name], set):
-                    _CommandGroup.command_group_dict[parent_name].add(cmd)
+                if parent_name not in CommandGroup.command_group_dict:
+                    CommandGroup.command_group_dict[parent_name] = {cmd}
+                elif isinstance(CommandGroup.command_group_dict[parent_name], set):
+                    CommandGroup.command_group_dict[parent_name].add(cmd)
                 else:
-                    _CommandGroup.command_group_dict[parent_name].help_addition.add(cmd)
+                    CommandGroup.command_group_dict[parent_name].help_addition.add(cmd)
 
         from nonebot.command import CommandManager
         if isinstance(aliases, str):
