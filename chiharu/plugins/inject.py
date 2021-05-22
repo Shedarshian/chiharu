@@ -143,6 +143,8 @@ class CommandGroup:
                hide_in_parent: bool = False,
                display_parents: Union[None, str, Tuple[str], Iterable[Tuple[str]]] = None,
                display_id: int = 0):
+        if isinstance(name, str):
+            name = (name,)
         self.short_des = short_des
         self.des = des or short_des
         self.environment = environment
