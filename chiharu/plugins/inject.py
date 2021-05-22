@@ -167,8 +167,9 @@ class CommandGroup:
                 hide=hide, hide_in_parent=hide_in_parent, display_id=display_id, args=())
         cmd.is_help = True
         CommandManager.add_command(name, cmd)
-        if name in CommandGroup.command_group_dict and isinstance(CommandGroup.command_group_dict[name], set):
-            self.help_addition |= CommandGroup.command_group_dict[name]
+        if name in CommandGroup.command_group_dict and isinstance(CommandGroup.command_group_dict[name], dict):
+            self.leaf.update(CommandGroup.command_group_dict[name]['leaf'])
+            self.help_addition |= CommandGroup.command_group_dict[name]['help_addition']
         CommandGroup.command_group_dict[name] = self
         if display_parents:
             if type(display_parents) is str:
@@ -179,9 +180,9 @@ class CommandGroup:
                 parents = display_parents
             for parent_name in parents:
                 if parent_name not in CommandGroup.command_group_dict:
-                    CommandGroup.command_group_dict[parent_name] = {self}
-                elif isinstance(CommandGroup.command_group_dict[parent_name], set):
-                    CommandGroup.command_group_dict[parent_name].add(self)
+                    CommandGroup.command_group_dict[parent_name] = {'help_addition': {self}, 'leaf': {}}
+                elif isinstance(CommandGroup.command_group_dict[parent_name], dict):
+                    CommandGroup.command_group_dict[parent_name]['help_addition'].add(self)
                 else:
                     CommandGroup.command_group_dict[parent_name].help_addition.add(self)
 
@@ -267,8 +268,8 @@ def on_command(name: Union[str, CommandName_T], *,
         CommandManager.add_patterns(patterns, cmd)
         parent_name = cmd_name[:-1]
         if parent_name not in CommandGroup.command_group_dict:
-            CommandGroup.command_group_dict[parent_name] = {'help_addition': {}, 'leaf': {cmd_name[-1]: cmd}}
-        elif isinstance(CommandGroup.command_group_dict[parent_name], set):
+            CommandGroup.command_group_dict[parent_name] = {'help_addition': set(), 'leaf': {cmd_name[-1]: cmd}}
+        elif isinstance(CommandGroup.command_group_dict[parent_name], dict):
             CommandGroup.command_group_dict[parent_name]['leaf'][cmd_name[-1]] = cmd
         else:
             CommandGroup.command_group_dict[parent_name].leaf[cmd_name[-1]] = cmd
@@ -313,6 +314,9 @@ del _nonebot_logger
 async def find_help(cmd_name: tuple, session: CommandSession):
     if cmd_name in CommandGroup.command_group_dict:
         cmd_tree = CommandGroup.command_group_dict[cmd_name]
+        if isinstance(cmd_tree, dict):
+            cmd_tree = CommandGroup.command_group_dict[cmd_name] = CommandGroup(cmd_name)
+            cmd_tree.leaf
     else:
         cmd_tree = CommandManager()._find_command(cmd_name)
 
