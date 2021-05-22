@@ -261,6 +261,7 @@ def on_command(name: Union[str, CommandName_T], *,
             cmd.args_parser_func = shell_like_args_parser
         
         nonlocal aliases
+        global CommandManager
         CommandManager.add_command(cmd_name, cmd)
         CommandManager.add_aliases(aliases, cmd)
         CommandManager.add_patterns(patterns, cmd)
