@@ -1811,13 +1811,13 @@ async def thwiki_group_request(session: RequestSession):
             await get_bot().send_group_msg(group_id=group, message=f'收到审核群加群申请。qq：{qq}，名片：{node["card"]}，直播时间：{node["time"]}min，b站空间：{c}，加群申请信息：{message}')
 
 @message_preprocessor
-async def thwiki_record(bot, ctx):
+async def thwiki_record(bot, event, plugin_manager):
     try:
-        if ctx['group_id'] not in config.group_id_dict['thwiki_live']:
+        if event.group_id not in config.group_id_dict['thwiki_live']:
             return
     except KeyError:
         return
-    r = Record(ctx['user_id'], datetime.now(), ctx['message_id'], ctx['raw_message'])
+    r = Record(event.user_id, datetime.now(), event.message_id, event.raw_message)
     record_file.write(str(r) + '\n')
     record_file.flush()
 
