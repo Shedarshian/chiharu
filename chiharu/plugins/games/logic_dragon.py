@@ -6,7 +6,7 @@ import more_itertools
 from functools import lru_cache
 from nonebot import CommandSession, NLPSession, on_natural_language, get_bot, scheduler
 from nonebot.command import call_command
-from nonebot.command.argfilter import extractors, validators, _raise_failure
+from nonebot.command.argfilter import extractors, validators
 from ..inject import CommandGroup, on_command
 from .. import config
 env = config.Environment('logic_dragon')
