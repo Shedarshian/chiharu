@@ -224,7 +224,8 @@ def get_card(qq, card=None, node=None):
 def throw_card(qq, cards, hand_card=None):
     if hand_card is None:
         hand_card = get_card(qq)
-    for c in cards:
+    for i in cards:
+        c = Card(i)
         if c not in hand_card:
             return False
         hand_card.remove(c)
