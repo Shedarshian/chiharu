@@ -597,7 +597,7 @@ class caipiaozhongjiang(_card):
     consumed_on_draw = True
     @classmethod
     async def on_draw(cls, session, qq, hand_card, no_requirement=False):
-        session.send(char(no_requirement) + "中奖了！获得20击毙与两张牌。你抽到的牌为：")
+        session.send(char(no_requirement) + "中奖了！获得20击毙与两张牌。" + char(no_requirement) + "抽到的牌为：")
         add_jibi(qq, 20)
         await draw(2, session, qq, hand_card, no_requirement=no_requirement)
 
@@ -608,6 +608,7 @@ class wuzhongshengyou(_card):
     description = "摸两张牌。"
     @classmethod
     async def use(cls, session, qq, hand_card, no_requirement=False):
+        session.send(char(no_requirement) + "抽到的牌为：")
         await draw(2, session, qq, hand_card, no_requirement=no_requirement)
 
 class minus1ma(_card):
