@@ -238,9 +238,7 @@ async def draw(n: int, session: SessionBuffer, qq: int, hand_card, *, no_require
     for c in cards:
         if not c.consumed_on_draw:
             hand_card.append(c)
-        r = await c.on_draw(session, qq, hand_card, no_requirement=no_requirement)
-        if r:
-            session.send('\n' + r)
+        await c.on_draw(session, qq, hand_card, no_requirement=no_requirement)
 
 async def use_card(card, session: SessionBuffer, qq: int, hand_card, *, no_requirement=False):
     session.send(char(no_requirement) + '使用了卡牌：\n' + card.full_description)
@@ -586,14 +584,14 @@ class _card(metaclass=card_meta):
 class dabingyichang(_card):
     name = "大病一场"
     id = 30
-    daily_status = 'd'
     positive = -1
     description = "抽到时，直到下一次主题出现前不得接龙。"
     consumed_on_draw = True
     @classmethod
     async def on_draw(cls, session, qq, hand_card, no_requirement=False):
-        await cls.use(session, qq, hand_card)
+        add_status(qq, 'd', True)
         session.send(char(no_requirement) + "病了！直到下一次主题出现前不得接龙。")
+_card.daily_status_set.add('d')
 
 class caipiaozhongjiang(_card):
     name = "彩票中奖"
@@ -639,6 +637,7 @@ class xingyuntujiao(_card):
     async def use(cls, session, qq, hand_card, no_requirement=False):
         c = draw_card({1})
         session.send(char(no_requirement) + '抽到并使用了卡牌：\n' + c.full_description)
+        await c.on_draw(session, qq, hand_card, no_requirement=no_requirement)
         await c.use(session, qq, hand_card, no_requirement=no_requirement)
 
 class cunqianguan(_card):
