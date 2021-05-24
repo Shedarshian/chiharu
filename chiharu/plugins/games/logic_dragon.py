@@ -551,16 +551,19 @@ class card_meta(type):
         else:
             c = type.__new__(cls, clsname, bases, attrs)
         return c
+    @property
+    # @abstractmethod
+    def img(self):
+        pass
+    @property
+    def full_description(cls):
+        return f"{cls.id}. {cls.name}\n\t{cls.description}"
 
 class _card(metaclass=card_meta):
     card_id_dict = {}
     status_set = {'d'}
     daily_status_set = set()
     limited_status_set = set()
-    @property
-    # @abstractmethod
-    def img(self):
-        pass
     name = ""
     id = -1
     positive = 0
@@ -573,9 +576,6 @@ class _card(metaclass=card_meta):
     @classmethod
     async def on_draw(cls, session, qq, hand_card, no_requirement=False):
         pass
-    @property
-    def full_description(self):
-        return f"{self.id}. {self.name}\n\t{self.description}"
 
 class dabingyichang(_card):
     name = "大病一场"
