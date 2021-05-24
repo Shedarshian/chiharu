@@ -220,4 +220,4 @@ class SessionBuffer:
             await self.session.send(self.buffer.strip())
             self.buffer = ''
     def __getattr__(self, name: str):
-        return self.session.__getattr__(name)
+        return getattr(self.session, name)
