@@ -212,7 +212,7 @@ async def kill(session, qq, hand_card, hour=4, no_requirement=False):
 
 def draw_card(positive=None):
     c = random.choice(list(_card.card_id_dict.values()))
-    if positive is not None and len(positive & {-1, 0, 1}) == 0:
+    if positive is not None and len(positive & {-1, 0, 1}) != 0:
         while c.positive not in positive:
             c = random.choice(list(_card.card_id_dict.values()))
     return c
