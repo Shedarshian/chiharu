@@ -4,8 +4,8 @@ import json
 import datetime
 import getopt
 from os import path
-from typing import Awaitable, Generator, Set, Callable, Tuple, Dict
-from nonebot import get_bot, permission
+from typing import Awaitable, Generator, Set, Callable, Tuple, Dict, Union
+from nonebot import CommandSession, get_bot, permission
 from nonebot.session import BaseSession
 from nonebot.command import _PauseException, _FinishException, SwitchException
 import traceback
@@ -45,7 +45,7 @@ class cq:
     def text(s: str):
         return {'type': 'text', 'data': {'text': s}}
     @staticmethod
-    def at(s: (int, str)):
+    def at(s: Union[int, str]):
         if type(s) == str:
             return {'type': 'at', 'data': {'qq': s}}
         elif type(s) == int:
@@ -206,3 +206,18 @@ import sqlite3
 userdata_db = sqlite3.connect(rel('users.db'))
 userdata_db.row_factory = sqlite3.Row
 userdata = userdata_db.cursor()
+
+class SessionBuffer:
+    __slots__ = ('buffer', 'session')
+    def __init__(self, session: CommandSession):
+        self.buffer: str = ''
+        self.session: CommandSession = session
+    def send(self, s, end='\n'):
+        self.buffer += s
+        self.buffer += end
+    async def flush(self):
+        if self.buffer:
+            await self.session.send(self.buffer.strip())
+            self.buffer = ''
+    def __getattr__(self, name: str):
+        return self.session.__getattr__(name)
