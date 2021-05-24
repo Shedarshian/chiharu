@@ -6,6 +6,7 @@ import more_itertools
 from functools import lru_cache
 from nonebot import CommandSession, NLPSession, on_natural_language, get_bot, scheduler
 from nonebot.command import call_command
+from nonebot.command.argfilter import extractors, validators, _raise_failure
 from ..inject import CommandGroup, on_command
 from .. import config
 env = config.Environment('logic_dragon')
@@ -368,15 +369,6 @@ async def dragon_use_card(session: CommandSession):
 async def dragon_draw(session: CommandSession):
     """使用抽卡券进行抽卡。"""
     qq = session.ctx['user_id']
-    if session.get("discard"):
-        discard_card = session.get("discard_card")
-        card_list = session.get("card_list")
-        to_add_list = session.get("to_add_list")
-        card_list += [c.id for c in to_add_list]
-        if not throw_card(qq, discard_card, card_list=card_list):
-            session.pause("您选择了错误的卡牌！")
-        save_data()
-        session.finish("成功弃置！")
     try:
         n = int(session.current_arg_text.strip() or 1)
     except ValueError:
@@ -393,8 +385,8 @@ async def dragon_draw(session: CommandSession):
     config.userdata.execute('update dragon_data set draw_time=? where qq=?', (draw_time, qq))
     cards = [draw_card() for i in range(n)]
     node = find_or_new(qq)
-    card_list = get_card(qq, node=node)
-    to_add_list = [c for c in cards if not c.consumed_on_draw]
+    card_list = get_card(qq, node=node) # 是id号
+    to_add_list = [c for c in cards if not c.consumed_on_draw] # 是Card对象
     x = len(card_list) + len(to_add_list) - node['card_limit']
     ret += '\n'.join(c.full_description for c in cards)
     for c in cards:
@@ -403,24 +395,21 @@ async def dragon_draw(session: CommandSession):
             ret += '\n' + r
     await session.send(ret)
     if x > 0:
-        session.state["discard"] = True
-        session.state["discard_num"] = x
-        session.state["card_list"] = card_list
-        session.state["to_add_list"] = to_add_list
         save_data()
-        session.pause(f"您的手牌已超出上限{x}张！请先选择一些牌弃置（输入id号，使用空格分隔）：\n" + "\n".join([Card(i).full_description for i in card_list] + [c.full_description for c in to_add_list]))
-    add_cards(qq, to_add_list)
-    save_data()
-
-@dragon_draw.args_parser
-async def _(session: CommandSession):
-    if session.get("discard"):
-        l = [int(i) for i in session.current_arg_text.split(' ')]
-        if len(l) != session.state["discard_num"]:
-            session.pause("弃置张数不对！")
-        session.state["discard_card"] = l
+        ret2 = f"您的手牌已超出上限{x}张！请先选择一些牌弃置（输入id号，使用空格分隔）：\n" + \
+            "\n".join([Card(i).full_description for i in card_list] + [c.full_description for c in to_add_list])
+        card_list.extend(c.id for c in to_add_list)
+        l = await session.aget("discard_cards",
+            prompt=ret2,
+            arg_filters=[
+                extractors.extract_text,
+                lambda s: list(map(int, re.findall(r'\d+', str(s)))),
+                validators.fit_size(x, x, message="请输入正确的张数。"),
+                validators.ensure_true(lambda l: throw_card(qq, l, card_list=card_list), message="您选择了错误的卡牌！")
+            ])
     else:
-        session.state["discard"] = False
+        add_cards(qq, to_add_list)
+    save_data()
 
 @on_command(('dragon', 'check'), aliases="查询接龙", only_to_me=False, short_des="查询逻辑接龙相关数据。", args=("name",), environment=env)
 async def dragon_check(session: CommandSession):
