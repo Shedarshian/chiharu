@@ -398,7 +398,7 @@ async def dragon_use_card(session: CommandSession):
     if card not in hand_card:
         session.finish("你还未拥有这张牌！")
     card = Card(id)
-    throw_card(qq, id, hand_card=hand_card)
+    throw_card(qq, card, hand_card=hand_card)
     buf = SessionBuffer(session)
     await settlement(buf, qq, partial(use_card, card))
     save_data()
