@@ -493,7 +493,7 @@ def Card(id):
     if id in _card.card_id_dict:
         return _card.card_id_dict[id]
     else:
-        return None
+        raise ValueError("哈")
 
 class card_meta(type):
     def __new__(cls, clsname, bases, attrs):
