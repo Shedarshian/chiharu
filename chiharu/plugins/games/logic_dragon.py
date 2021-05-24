@@ -245,10 +245,9 @@ async def use_card(card, session: SessionBuffer, qq: int, hand_card, *, no_requi
     session.send(char(no_requirement) + '使用了卡牌：\n' + card.full_description)
     await card.use(session, qq, hand_card, no_requirement=no_requirement)
 
-async def settlement(session: CommandSession, qq: int, to_do, *, no_requirement=False):
+async def settlement(buf: SessionBuffer, qq: int, to_do, *, no_requirement=False):
     node = find_or_new(qq)
     hand_card = get_card(qq, node=node)
-    buf = SessionBuffer(session)
     await to_do(buf, qq, hand_card, no_requirement=no_requirement)
     await buf.flush()
     # discard
@@ -256,13 +255,13 @@ async def settlement(session: CommandSession, qq: int, to_do, *, no_requirement=
     if x > 0:
         save_data()
         if no_requirement:
-            await session.send(f"该玩家手牌已超出上限{x}张！多余的牌已被弃置。")
+            await buf.session.send(f"该玩家手牌已超出上限{x}张！多余的牌已被弃置。")
             hand_card = hand_card[:node['card_limit']]
             set_cards(qq, hand_card)
         else:
             ret2 = f"您的手牌已超出上限{x}张！请先选择一些牌弃置（输入id号，使用空格分隔）：\n" + \
                 "\n".join(c.full_description for c in hand_card)
-            l = await session.aget("discard_cards",
+            l = await buf.aget("discard_cards",
                 prompt=ret2,
                 arg_filters=[
                     extractors.extract_text,
@@ -270,7 +269,7 @@ async def settlement(session: CommandSession, qq: int, to_do, *, no_requirement=
                     validators.fit_size(x, x, message="请输入正确的张数。"),
                     validators.ensure_true(lambda l: throw_card(qq, l, hand_card=hand_card), message="您选择了错误的卡牌！")
                 ])
-            await session.send("成功弃置。")
+            await buf.session.send("成功弃置。")
     save_data()
 
 async def daily_update():
@@ -399,7 +398,8 @@ async def dragon_use_card(session: CommandSession):
         session.finish("你还未拥有这张牌！")
     card = Card(id)
     throw_card(qq, id, hand_card=hand_card)
-    await settlement(session, qq, partial(use_card, card))
+    buf = SessionBuffer(session)
+    await settlement(buf, qq, partial(use_card, card))
     save_data()
 
 @on_command(('dragon', 'draw'), only_to_me=False, args=("num"), environment=env)
@@ -411,16 +411,15 @@ async def dragon_draw(session: CommandSession):
     except ValueError:
         n = 1
     draw_time = find_or_new(qq)['draw_time']
-    ret = ""
+    buf = SessionBuffer(session)
     if draw_time < n:
         n = draw_time
-        ret += f"您的抽卡券只有{n}张！\n"
+        buf.send(f"您的抽卡券只有{n}张！\n")
     if n == 0:
         session.finish("您没有抽卡券！")
-    ret += "您抽到的卡牌是：\n"
     draw_time -= n
     config.userdata.execute('update dragon_data set draw_time=? where qq=?', (draw_time, qq))
-    await settlement(session, qq, partial(draw, n))
+    await settlement(buf, qq, partial(draw, n))
     save_data()
 
 @on_command(('dragon', 'check'), aliases="查询接龙", only_to_me=False, short_des="查询逻辑接龙相关数据。", args=("name",), environment=env)
@@ -457,7 +456,7 @@ async def dragon_check(session: CommandSession):
         cards = get_card(session.ctx['user_id'])
         if len(cards) == 0:
             session.finish("你没有手牌！")
-        session.finish("你的手牌为：\n" + '\n'.join(Card(s).full_description for s in cards))
+        session.finish("你的手牌为：\n" + '\n'.join(s.full_description for s in cards))
     elif data in ("击毙", "jibi"):
         session.finish("你的击毙数为：" + str(node['jibi']))
 
@@ -485,7 +484,7 @@ async def dragon_daily():
 @lru_cache(10)
 def Card(id):
     if id in _card.card_id_dict:
-        return _card.card_id_dict[id]()
+        return _card.card_id_dict[id]
     else:
         return None
 
