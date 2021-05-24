@@ -708,6 +708,7 @@ class guanggaopai(_card):
     id = 94
     positive = 0
     consumed_on_draw = True
+    @classmethod
     @property
     def description(self):
         return random.choice([
