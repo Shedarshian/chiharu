@@ -397,7 +397,7 @@ async def dragon_use_card(session: CommandSession):
     hand_card = get_card(qq)
     if card not in hand_card:
         session.finish("你还未拥有这张牌！")
-    throw_card(qq, [card], hand_card=hand_card)
+    throw_card(qq, [card.id], hand_card=hand_card)
     save_data()
     buf = SessionBuffer(session)
     await settlement(buf, qq, partial(use_card, card))
@@ -614,7 +614,6 @@ class wuzhongshengyou(_card):
     description = "摸两张牌。"
     @classmethod
     async def use(cls, session, qq, hand_card, no_requirement=False):
-        session.send(char(no_requirement) + "抽到的牌为：")
         await draw(2, session, qq, hand_card, no_requirement=no_requirement)
 
 class minus1ma(_card):
