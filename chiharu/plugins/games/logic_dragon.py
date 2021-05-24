@@ -407,6 +407,7 @@ async def dragon_draw(session: CommandSession):
                 validators.fit_size(x, x, message="请输入正确的张数。"),
                 validators.ensure_true(lambda l: throw_card(qq, l, card_list=card_list), message="您选择了错误的卡牌！")
             ])
+        await session.send("成功弃置。")
     else:
         add_cards(qq, to_add_list)
     save_data()
