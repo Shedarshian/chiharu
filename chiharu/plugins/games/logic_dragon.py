@@ -473,6 +473,12 @@ async def dragon_add_hidden(session: CommandSession):
     add_hidden(session.current_arg_text.strip())
     await session.send('成功添加隐藏奖励词。')
 
+@on_command(('dragon', 'add_draw'), only_to_me=False, environment=env_supervise)
+async def _(session: CommandSession):
+    qq = session.ctx['user_id']
+    node = find_or_new(qq)
+    config.userdata.execute("update dragon_data set draw_time=? where qq=?", (node['draw_time'] + int(session.current_arg_text), qq)) 
+
 @scheduler.scheduled_job('cron', id="dragon_daily", hour='16', minute='00-03')
 async def dragon_daily():
     global last_update_date
