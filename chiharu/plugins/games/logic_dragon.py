@@ -407,6 +407,8 @@ async def logical_dragon_else(session: NLPSession):
     # 抽卡
     elif text.startswith("抽卡"):
         await call_command(get_bot(), session.ctx, ('dragon', 'draw'), current_arg=text[2:].strip())
+    elif text.startswith("查看手牌"):
+        await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="手牌")
 
 @on_command(('dragon', 'add_bomb'), aliases="添加炸弹", only_to_me=False, args=("keyword"), environment=env)
 @config.ErrorHandle
