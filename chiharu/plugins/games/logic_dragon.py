@@ -271,8 +271,8 @@ async def use_card(card, session: SessionBuffer, qq: int, hand_card, *, no_requi
 
 # 弃牌。将cards里的卡牌移出手牌。弃光手牌时请复制hand_card。
 async def discard_cards(cards, session: SessionBuffer, qq: int, hand_card, *, no_requirement=False):
-    for i in cards:
-        hand_card.remove(Card(i))
+    for c in cards:
+        hand_card.remove(c)
     set_cards(qq, hand_card)
     for card in cards:
         await card.on_discard(session, qq, hand_card, no_requirement=no_requirement)
