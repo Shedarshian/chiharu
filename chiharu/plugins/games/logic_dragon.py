@@ -253,6 +253,7 @@ async def kill(session, qq, hand_card, hour=4, no_requirement=False):
         add_limited_status(qq, 'd', datetime.now() + timedelta(hours=hour))
         if (x := check_status(qq, 'x', False)):
             remove_status(qq, 'x', False, remove_all=True)
+            session.send("你触发了辉夜姬的秘密宝箱！奖励抽卡一张。")
             await draw(x, session, qq, hand_card, no_requirement=no_requirement)
             
 # 抽卡。将卡牌放入手牌。
@@ -657,7 +658,7 @@ class caipiaozhongjiang(_card):
     consumed_on_draw = True
     @classmethod
     async def on_draw(cls, session, qq, hand_card, no_requirement=False):
-        session.send(char(no_requirement) + "中奖了！获得20击毙与两张牌。" + char(no_requirement) + "抽到的牌为：")
+        session.send(char(no_requirement) + "中奖了！获得20击毙与两张牌。")
         await add_jibi(session, qq, 20)
         await draw(2, session, qq, hand_card, no_requirement=no_requirement)
 
