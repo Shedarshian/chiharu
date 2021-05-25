@@ -289,7 +289,6 @@ async def settlement(buf: SessionBuffer, qq: int, to_do, *, no_requirement=False
         if no_requirement:
             await buf.session.send(f"该玩家手牌已超出上限{x}张！多余的牌已被弃置。")
             hand_card = hand_card[:node['card_limit']]
-            set_cards(qq, hand_card)
         else:
             ret2 = f"您的手牌已超出上限{x}张！请先选择一些牌弃置（输入id号，使用空格分隔）：\n" + \
                 "\n".join(c.full_description for c in hand_card)
@@ -305,6 +304,7 @@ async def settlement(buf: SessionBuffer, qq: int, to_do, *, no_requirement=False
             buf.send("成功弃置。")
             await discard_cards([Card(i) for i in l], buf, qq, hand_card, no_requirement=no_requirement)
         x = len(hand_card) - node['card_limit']
+    set_cards(qq, hand_card)
     await buf.flush()
     save_data()
 
