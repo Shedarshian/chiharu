@@ -305,6 +305,7 @@ async def settlement(buf: SessionBuffer, qq: int, to_do, *, no_requirement=False
             buf.send("成功弃置。")
             await discard_cards([Card(i) for i in l], buf, qq, hand_card, no_requirement=no_requirement)
         x = len(hand_card) - node['card_limit']
+    await buf.flush()
     save_data()
 
 async def daily_update():
@@ -407,12 +408,14 @@ async def logical_dragon_else(session: NLPSession):
         await call_command(get_bot(), session.ctx, ('dragon', 'draw'), current_arg=text[2:].strip())
 
 @on_command(('dragon', 'add_bomb'), aliases="添加炸弹", only_to_me=False, args=("keyword"), environment=env)
+@config.ErrorHandle
 async def dragon_add_bomb(session: CommandSession):
     """添加炸弹。"""
     add_bomb(session.current_arg_text.strip())
     save_data()
 
 @on_command(('dragon', 'use_card'), aliases="使用手牌", only_to_me=False, args=("card"), environment=env)
+@config.ErrorHandle
 async def dragon_use_card(session: CommandSession):
     """使用手牌。"""
     args = session.current_arg_text.strip()
@@ -438,6 +441,7 @@ async def dragon_use_card(session: CommandSession):
     save_data()
 
 @on_command(('dragon', 'draw'), only_to_me=False, args=("num"), environment=env)
+@config.ErrorHandle
 async def dragon_draw(session: CommandSession):
     """使用抽卡券进行抽卡。"""
     qq = session.ctx['user_id']
@@ -458,6 +462,7 @@ async def dragon_draw(session: CommandSession):
     save_data()
 
 @on_command(('dragon', 'check'), aliases="查询接龙", only_to_me=False, short_des="查询逻辑接龙相关数据。", args=("name",), environment=env)
+@config.ErrorHandle
 async def dragon_check(session: CommandSession):
     """查询逻辑接龙相关数据。可选参数：
     奖励词/keyword：查询当前奖励词。
@@ -496,18 +501,21 @@ async def dragon_check(session: CommandSession):
         session.finish("你的击毙数为：" + str(node['jibi']))
 
 @on_command(('dragon', 'add_begin'), only_to_me=False, environment=env_supervise)
+@config.ErrorHandle
 async def dragon_add_begin(session: CommandSession):
     """添加起始词。黑幕群可用。"""
     add_begin(session.current_arg.strip())
     await session.send('成功添加起始词。')
 
 @on_command(('dragon', 'add_hidden'), only_to_me=False, environment=env_supervise)
+@config.ErrorHandle
 async def dragon_add_hidden(session: CommandSession):
     """添加隐藏奖励词。黑幕群可用。"""
     add_hidden(session.current_arg_text.strip())
     await session.send('成功添加隐藏奖励词。')
 
 @on_command(('dragon', 'add_draw'), only_to_me=False, environment=env_supervise)
+@config.ErrorHandle
 async def _(session: CommandSession):
     qq = session.ctx['user_id']
     node = find_or_new(qq)
