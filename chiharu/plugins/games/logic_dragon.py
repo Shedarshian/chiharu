@@ -214,15 +214,15 @@ def set_cards(qq, hand_card):
 def get_card(qq, card=None, node=None):
     s = card or (node or find_or_new(qq))['card']
     return [] if s == '' else [Card(int(x)) for x in s.split(',')]
-def check_throw_card(qq, cards, hand_card=None):
+def check_throw_card(qq, card_ids, hand_card=None):
     if hand_card is None:
         hand_card = get_card(qq)
-    if len(cards) == 1:
-        if Card(cards[0]) not in hand_card:
+    if len(card_ids) == 1:
+        if Card(card_ids[0]) not in hand_card:
             return False
     else:
         hand_counter = Counter(c.id for c in hand_card)
-        hand_counter.subtract(Counter(c.id for c in cards))
+        hand_counter.subtract(Counter(card_ids))
         if -hand_counter != Counter():
             return False
     return True
