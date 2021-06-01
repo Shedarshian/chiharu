@@ -186,13 +186,15 @@ def remove_status(qq, s, is_daily, remove_all=True, status=None):
         status = ''.join([t for t in status if t != s])
     else:
         l = list(status)
-        l.remove(s)
+        if s in l:
+            l.remove(s)
         status = ''.join(l)
     config.userdata.execute('update dragon_data set %s=? where qq=?' % ('daily_status' if is_daily else 'status'), (status, qq))
 def remove_limited_status(qq, s, status=None):
     status = status or eval(find_or_new(qq)['status_time'])
-    status.pop(s)
-    config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), qq))
+    if s in status:
+        status.pop(s)
+        config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), qq))
 def remove_global_status(s, is_daily, remove_all=True, status=None):
     return remove_status(2711644761, s, is_daily, remove_all, status)
 def remove_global_limited_status(s, status=None):
@@ -377,9 +379,13 @@ async def logical_dragon(session: NLPSession):
         else:
             buf.send(f"成功接龙！接龙词：{word}。", end='')
             if node['today_jibi'] > 0:
-                buf.send("奖励1击毙。")
+                jibi_to_add = 1
+                if (n := check_status(qq, 'y', False, node)) and node['today_jibi'] % 2 == 1:
+                    jibi_to_add += n
+                    buf.send("\n你因为幸运护符的效果，", end='')
+                buf.send(f"奖励{jibi_to_add}击毙。")
                 config.userdata.execute("update dragon_data set today_jibi=? where qq=?", (node['today_jibi'] - 1, qq))
-                await add_jibi(buf, qq, 1)
+                await add_jibi(buf, qq, jibi_to_add)
                 if node['today_jibi'] == 1:
                     buf.send("你今日全勤，奖励1抽奖券！")
                     config.userdata.execute("update dragon_data set draw_time=? where qq=?", (node['draw_time'] + 1, qq))
@@ -781,6 +787,19 @@ class liwujiaohuan(_card):
             session.send("通过交换，你获得了手牌：\n" + '\n'.join(c.full_description for c in hand_card))
         else:
             session.send("你交换了大家的手牌！")
+
+class xingyunhufu(_card):
+    name = "幸运护符"
+    id = 73
+    positive = 1
+    description = "持有此卡时，你无法使用其他卡牌。你每进行两次接龙额外获得一个击毙（每天上限为5击毙）。使用将丢弃这张卡。"
+    @classmethod
+    async def on_draw(cls, session, qq, hand_card, no_requirement):
+        add_status(qq, 'y', False)
+    @classmethod
+    async def on_discard(cls, session, qq, hand_card, no_requirement):
+        remove_status(qq, 'y', False)
+_card.status_set.add('y')
 
 class jisuzhuangzhi(_card):
     name = "极速装置"
