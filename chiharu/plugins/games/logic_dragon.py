@@ -71,6 +71,8 @@ def save_global_state():
     with open(config.rel('dragon_state.json'), 'w', encoding='utf-8') as f:
         f.write(json.dumps(global_state, indent=4, separators=(',', ': '), ensure_ascii=False))
 
+char = lambda x: "该玩家" if x else "你"
+
 # dragon_data := qq : int, jibi : int, card : str, draw_time : int, death_time : str, today_jibi : int, today_keyword_jibi : int
 # status : str, daily_status : str, status_time : str, card_limit : int
 # global_status : qq = 2711644761
@@ -82,12 +84,12 @@ def find_or_new(qq):
     return t
 def get_jibi(qq):
     return find_or_new(qq)['jibi']
-async def add_jibi(session, qq, jibi, current_jibi=None):
+async def add_jibi(session, qq, jibi, current_jibi=None, no_requirement=False):
     if current_jibi is None:
         current_jibi = get_jibi(qq)
     if n := check_status(qq, '2', False):
         jibi *= 2 ** n
-        session.send(f"你触发了{f'{n}次' if n > 1 else ''}变压器的效果，{'获得' if jibi >= 0 else '损失'}击毙加倍为{abs(jibi)}！")
+        session.send(char(no_requirement) + f"触发了{f'{n}次' if n > 1 else ''}变压器的效果，{'获得' if jibi >= 0 else '损失'}击毙加倍为{abs(jibi)}！")
         remove_status(qq, '2', False, remove_all=True)
     config.userdata.execute("update dragon_data set jibi=? where qq=?", (max(0, current_jibi + jibi), qq))
 def wrapper_file(_func):
@@ -200,8 +202,6 @@ def remove_global_status(s, is_daily, remove_all=True, status=None):
 def remove_global_limited_status(s, status=None):
     return remove_limited_status(2711644761, s, status)
 
-char = lambda x: "该玩家" if x else "你"
-
 def draw_card(positive=None):
     x = positive is not None and len(positive & {-1, 0, 1}) != 0
     if check_global_status('j', True):
@@ -232,16 +232,14 @@ def check_throw_card(qq, card_ids, hand_card=None):
 # 击杀玩家。
 async def kill(session, qq, hand_card, hour=4, no_requirement=False):
     dodge = False
-    n = check_status(qq, 's', False)
-    if n and not dodge:
+    if (n := check_status(qq, 's', False)) and not dodge:
         jibi = get_jibi(qq)
         if jibi >= 10 * 2 ** check_status(qq, '2', False):
             await add_jibi(session, qq, -10, jibi)
             session.send(char(no_requirement) + "触发了死秽回避之药的效果，免除死亡！")
             dodge = True
             remove_status(qq, 's', False, remove_all=False)
-    n = check_status(qq, 'h', False)
-    if n and not dodge:
+    if (n := check_status(qq, 'h', False)) and not dodge:
         for a in range(n):
             remove_status(qq, 'h', False, remove_all=False)
             if random.randint(0, 1) == 0:
@@ -251,6 +249,9 @@ async def kill(session, qq, hand_card, hour=4, no_requirement=False):
             else:
                 session.send(char(no_requirement) + "使用虹色之环闪避失败，死亡时间+1h！")
                 hour += 1
+    if (n := check_status(qq, 'p', False)) and not dodge:
+        session.send(char(no_requirement) + f"因掠夺者啵噗的效果，死亡时间+{n}h！")
+        hour += n
     if not dodge:
         add_limited_status(qq, 'd', datetime.now() + timedelta(hours=hour))
         if (x := check_status(qq, 'x', False)):
@@ -386,6 +387,12 @@ async def logical_dragon(session: NLPSession):
                 buf.send(f"奖励{jibi_to_add}击毙。")
                 config.userdata.execute("update dragon_data set today_jibi=? where qq=?", (node['today_jibi'] - 1, qq))
                 await add_jibi(buf, qq, jibi_to_add)
+                if (n := check_status(qq, 'p', False, node)):
+                    user = global_state['past_two_user'][1]
+                    if (p := get_jibi(user)) > 0:
+                        buf.send(f"你从上一名玩家处偷取了{min(n, p)}击毙！")
+                        await add_jibi(buf, user, -n)
+                        await add_jibi(buf, qq, min(n, p))
                 if node['today_jibi'] == 1:
                     buf.send("你今日全勤，奖励1抽奖券！")
                     config.userdata.execute("update dragon_data set draw_time=? where qq=?", (node['draw_time'] + 1, qq))
@@ -750,6 +757,7 @@ class xingyuntujiao(_card):
         session.send(char(no_requirement) + '抽到并使用了卡牌：\n' + c.full_description)
         await c.on_draw(session, qq, hand_card, no_requirement=no_requirement)
         await c.use(session, qq, hand_card, no_requirement=no_requirement)
+        await c.on_discard(session, qq, hand_card, no_requirement=no_requirement)
 
 class cunqianguan(_card):
     name = "存钱罐"
@@ -819,6 +827,20 @@ class zhongshendexixi(_card):
         session.send(char(no_requirement) + '抽到并使用了卡牌：\n' + c.full_description)
         await c.on_draw(session, qq, hand_card, no_requirement=no_requirement)
         await c.use(session, qq, hand_card, no_requirement=no_requirement)
+        await c.on_discard(session, qq, hand_card, no_requirement=no_requirement)
+
+class lveduozhebopu(_card):
+    name = "掠夺者啵噗"
+    id = 77
+    positive = 1
+    description = "持有此卡时，你死亡时间增加1小时。每天你因接龙获得1击毙时，可从你所接龙的人处偷取1击毙。若目标没有击毙则不可偷取。使用将丢弃这张卡。"
+    @classmethod
+    async def on_draw(cls, session, qq, hand_card, no_requirement):
+        add_status(qq, 'p', False)
+    @classmethod
+    async def on_discard(cls, session, qq, hand_card, no_requirement):
+        remove_status(qq, 'p', False)
+_card.status_set.add('p')
 
 class jiandieyubei(_card):
     name = "邪恶的间谍行动～预备"
