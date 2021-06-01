@@ -65,6 +65,7 @@ def check_and_add_log(s):
 
 # global_state
 # past_two_user : list(int)
+# exchange_stack : list(int)
 with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
     global_state = json.load(f)
 def save_global_state():
@@ -258,10 +259,10 @@ async def kill(session, qq, hand_card, hour=4, no_requirement=False):
             remove_status(qq, 'x', False, remove_all=True)
             session.send("你触发了辉夜姬的秘密宝箱！奖励抽卡一张。")
             await draw(x, session, qq, hand_card, no_requirement=no_requirement)
-            
+
 # 抽卡。将卡牌放入手牌。
-async def draw(n: int, session: SessionBuffer, qq: int, hand_card, *, no_requirement=False, positive=None):
-    cards = [draw_card(positive) for i in range(n)]
+async def draw(n: int, session: SessionBuffer, qq: int, hand_card, *, no_requirement=False, positive=None, cards=None):
+    cards = [draw_card(positive) for i in range(n)] if cards is not None else cards
     session.send(char(no_requirement) + '抽到的卡牌是：\n' + '\n'.join(c.full_description for c in cards))
     for c in cards:
         if not c.consumed_on_draw:
@@ -273,13 +274,26 @@ async def use_card(card, session: SessionBuffer, qq: int, hand_card, *, no_requi
     session.send(char(no_requirement) + '使用了卡牌：\n' + card.full_description)
     await card.use(session, qq, hand_card, no_requirement=no_requirement)
 
-# 弃牌。将cards里的卡牌移出手牌。弃光手牌时请复制hand_card。
+# 弃牌。将cards里的卡牌移出手牌。弃光手牌时请复制hand_card作为cards传入。
 async def discard_cards(cards, session: SessionBuffer, qq: int, hand_card, *, no_requirement=False):
     for c in cards:
         hand_card.remove(c)
     set_cards(qq, hand_card)
     for card in cards:
         await card.on_discard(session, qq, hand_card, no_requirement=no_requirement)
+
+# 交换两人手牌。
+async def exchange(session: SessionBuffer, qq: int, hand_card, *, target: int, no_requirement=False):
+    target_hand_cards = get_card(target)
+    self_hand_cards = copy(hand_card)
+    hand_card.clear()
+    for card in self_hand_cards:
+        await card.on_give(session, qq, hand_card, target, no_requirement=no_requirement)
+    for card in target_hand_cards:
+        await card.on_give(session, target, [], qq, no_requirement=True)
+    hand_card.extend(target_hand_cards)
+    set_cards(qq, hand_card)
+    set_cards(target, self_hand_cards)
 
 # 结算卡牌相关。请不要递归调用此函数。
 async def settlement(buf: SessionBuffer, qq: int, to_do, *, no_requirement=False):
@@ -337,6 +351,7 @@ async def logical_dragon(session: NLPSession):
         qq = session.ctx['user_id']
         global global_state
         node = find_or_new(qq)
+        to_exchange = None
         if check_limited_status(qq, 'd', node) or check_status(qq, 'd', True, node):
             await session.send('你已死，不能接龙！')
             return
@@ -372,6 +387,9 @@ async def logical_dragon(session: NLPSession):
                     buf.send(f"\n你触发了存钱罐，奖励+{n * 10}击毙！")
                     remove_global_status('m', False)
                     await add_jibi(buf, qq, n * 10)
+                if global_state['exchange_stack']:
+                    to_exchange = global_state['exchange_stack'].pop(-1)
+                    save_global_state()
                 if not update_hidden_keyword(i):
                     buf.send("隐藏奖励词池已空！")
         if not check_and_add_log(word):
@@ -400,6 +418,12 @@ async def logical_dragon(session: NLPSession):
                 buf.send("你成功触发了炸弹，被炸死了！")
                 remove_bomb(word)
                 await settlement(buf, qq, kill)
+            if to_exchange is not None:
+                buf.send(f"你与{to_exchange}交换了手牌与击毙！")
+                jibi = (get_jibi(qq), get_jibi(to_exchange))
+                await add_jibi(buf, qq, jibi[1] - jibi[0])
+                await add_jibi(buf, to_exchange, jibi[0] - jibi[1])
+                await settlement(buf, qq, partial(exchange, target=to_exchange))
         await buf.flush()
         save_data()
 
@@ -643,6 +667,9 @@ class _card(metaclass=card_meta):
     @classmethod
     async def on_discard(cls, session, qq, hand_card, no_requirement=False):
         pass
+    @classmethod
+    async def on_give(cls, session, qq, hand_card, target, no_requirement=False):
+        pass
 
 class jiandiezhixing(_card):
     name = "邪恶的间谍行动～执行"
@@ -807,6 +834,10 @@ class xingyunhufu(_card):
     @classmethod
     async def on_discard(cls, session, qq, hand_card, no_requirement):
         remove_status(qq, 'y', False)
+    @classmethod
+    async def on_give(cls, session, qq, hand_card, target, no_requirement):
+        remove_status(qq, 'y', False)
+        add_status(target, 'y', False)
 _card.status_set.add('y')
 
 class jisuzhuangzhi(_card):
@@ -815,6 +846,16 @@ class jisuzhuangzhi(_card):
     status = 'p'
     positive = 1
     description = '下次你可以连续接龙两次。'
+
+class huxiangjiaohuan(_card):
+    name = '互相交换'
+    id = 75
+    positive = 0
+    description = "下一个接中隐藏奖励词的玩家手牌、击毙与你互换。"
+    @classmethod
+    async def use(cls, session, qq, hand_card, no_requirement):
+        global_state['exchange_stack'].append(qq)
+        save_global_state()
 
 class zhongshendexixi(_card):
     name = "众神的嬉戏"
@@ -840,6 +881,10 @@ class lveduozhebopu(_card):
     @classmethod
     async def on_discard(cls, session, qq, hand_card, no_requirement):
         remove_status(qq, 'p', False)
+    @classmethod
+    async def on_give(cls, session, qq, hand_card, target, no_requirement):
+        remove_status(qq, 'p', False)
+        add_status(target, 'p', False)
 _card.status_set.add('p')
 
 class jiandieyubei(_card):
