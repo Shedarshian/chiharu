@@ -135,6 +135,11 @@ def remove_bomb(d, word):
     d["bombs"].remove(word)
     bombs.remove(word)
 @wrapper_file
+def remove_all_bomb(d):
+    global bombs
+    d["bombs"] = []
+    bombs = []
+@wrapper_file
 def add_bomb(d, word):
     global bombs
     d["bombs"].append(word)
@@ -426,6 +431,10 @@ async def logical_dragon(session: NLPSession):
                 buf.send("你成功触发了炸弹，被炸死了！")
                 remove_bomb(word)
                 await settlement(buf, qq, kill)
+            if check_global_status('+', False):
+                buf.send("你触发了+2的效果，摸一张非正面牌与一张非负面牌！")
+                cards = [draw_card({-1, 0}), draw_card({0, 1})]
+                await settlement(buf, qq, partial(draw, 0, cards=cards))
             if to_exchange is not None:
                 buf.send(f"你与{to_exchange}交换了手牌与击毙！")
                 jibi = (get_jibi(qq), get_jibi(to_exchange))
@@ -842,6 +851,22 @@ class baoshidewugong(_card):
     async def use(cls, session, qq, hand_card):
         node = find_or_new(qq)
         config.userdata.execute('update dragon_data set card_limit=? where qq=?', (node['card_limit'] + 1, qq))
+
+class plus2(_card):
+    name = "+2"
+    id = 60
+    global_status = '+'
+    positive = 0
+    description = "下一个接龙的人抽一张非负面卡和一张非正面卡。"
+
+class hezuowujian(_card):
+    name = "合作无间"
+    id = 63
+    positive = 1
+    description = "拆除所有雷。"
+    @classmethod
+    async def use(cls, session, qq, hand_card):
+        remove_all_bomb()
 
 class cunqianguan(_card):
     name = "存钱罐"
