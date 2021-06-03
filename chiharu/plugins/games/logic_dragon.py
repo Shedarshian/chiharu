@@ -676,17 +676,17 @@ class _card(metaclass=card_meta):
     async def on_give(cls, session, qq, hand_card, target):
         pass
     @classmethod
-    async def add_daily_status(cls, s):
+    def add_daily_status(cls, s):
         if s in cls.daily_status_set:
             raise ImportError
         cls.daily_status_set.add(s)
     @classmethod
-    async def add_status(cls, s):
+    def add_status(cls, s):
         if s in cls.status_set:
             raise ImportError
         cls.status_set.add(s)
     @classmethod
-    async def add_limited_status(cls, s):
+    def add_limited_status(cls, s):
         if s in cls.limited_status_set:
             raise ImportError
         cls.limited_status_set.add(s)
