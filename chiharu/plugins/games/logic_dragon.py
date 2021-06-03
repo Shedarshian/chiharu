@@ -833,6 +833,16 @@ class xingyuntujiao(_card):
         await c.use(session, qq, hand_card)
         await c.on_discard(session, qq, hand_card)
 
+class baoshidewugong(_card):
+    name = "暴食的蜈蚣"
+    id = 56
+    positive = 1
+    description = "你的手牌上限永久+1。"
+    @classmethod
+    async def use(cls, session, qq, hand_card):
+        node = find_or_new(qq)
+        config.userdata.execute('update dragon_data set card_limit=? where qq=?', (node['card_limit'] + 1, qq))
+
 class cunqianguan(_card):
     name = "存钱罐"
     id = 70
