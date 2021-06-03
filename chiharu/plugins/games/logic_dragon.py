@@ -18,7 +18,7 @@ env_supervise = config.Environment('logic_dragon_supervise')
 
 CommandGroup('dragon', des="逻辑接龙相关。", environment=env|env_supervise)
 
-# TODO 十连保底，保存过去2人状态，以及互相交换状态（按顺序）
+# TODO 十连保底
 message_re = re.compile(r"[\s我那就，]*接[\s，,]*(.*)[\s，,\n]*.*")
 
 # keyword : [str, list(str)]
@@ -659,7 +659,7 @@ class _card(metaclass=card_meta):
     card_id_dict = {}
     status_set = {'d'}
     daily_status_set = set()
-    limited_status_set = set()
+    limited_status_set = {'d'}
     name = ""
     id = -1
     positive = 0
@@ -687,6 +687,23 @@ class jiandiezhixing(_card):
     @classmethod
     async def on_discard(cls, session, qq, hand_card):
         await kill(session, qq, hand_card)
+
+# class lianren(_card):
+#     name = "VI - 恋人"
+#     id = 6
+#     positive = 1
+#     description = "复活1名指定玩家。"
+#     @classmethod
+#     async def use(cls, session, qq, hand_card):
+#         await session.flush()
+#         l = await session.aget(prompt="请at一名玩家复活。\n",
+#             arg_filters=[
+#                     lambda s: [r.group(1) for r in re.findall(r'qq=(\d+)', str(s))],
+#                     validators.fit_size(1, 1, message="请at正确的人数。"),
+#                 ])
+#         n = check_limited_status(l[0], 'd')
+#         remove_limited_status(l[0], 'd')
+#         session.send("已复活！" + ("（虽然目标并没有死亡）" if n else ''))
 
 class dabingyichang(_card):
     name = "大病一场"
@@ -729,7 +746,7 @@ class tiesuolianhuan(_card):
     @classmethod
     async def use(cls, session, qq, hand_card):
         await session.flush()
-        l = await session.aget(prompt="请at两名玩家。\n",
+        l = await session.aget(prompt="请指定两名玩家进行铁索连环。\n",
             arg_filters=[
                     lambda s: [r.group(1) for r in re.findall(r'qq=(\d+)', str(s))],
                     validators.fit_size(1, 2, message="请at正确的人数。"),
