@@ -370,9 +370,9 @@ async def logical_dragon(session: NLPSession):
             return
         m = check_status(qq, 'm', True, node)
         if m and len(global_state['past_two_user']) != 0 and qq == global_state['past_two_user'][1] or not m and qq in global_state['past_two_user']:
-            if check_status(qq, 'p', False, node):
+            if check_status(qq, 'z', False, node):
                 buf.send("你触发了极速装置！")
-                remove_status(qq, 'p', False, remove_all=False)
+                remove_status(qq, 'z', False, remove_all=False)
             else:
                 await session.send(f"你接太快了！两次接龙之间至少要隔{'一' if m else '两'}个人。")
                 return
@@ -599,54 +599,42 @@ class card_meta(type):
         if len(bases) != 0 and 'status_set' in bases[0].__dict__:
             if 'status' in attrs and attrs['status']:
                 status = attrs['status']
-                if status in bases[0].status_set:
-                    raise ImportError
-                bases[0].status_set.add(status)
+                bases[0].add_status(status)
                 @classmethod
                 async def use(self, session, qq, hand_card):
                     add_status(qq, status, False)
                 attrs['use'] = use
             elif 'daily_status' in attrs and attrs['daily_status']:
                 status = attrs['daily_status']
-                if status in bases[0].daily_status_set:
-                    raise ImportError
-                bases[0].daily_status_set.add(status)
+                bases[0].add_daily_status(status)
                 @classmethod
                 async def use(self, session, qq, hand_card):
                     add_status(qq, status, True)
                 attrs['use'] = use
             elif 'limited_status' in attrs and attrs['limited_status']:
                 status = attrs['limited_status']
-                if status in bases[0].limited_status_set:
-                    raise ImportError
-                bases[0].limited_status_set.add(status)
+                bases[0].add_limited_status(status)
                 @classmethod
                 async def use(self, session, qq, hand_card):
                     add_limited_status(qq, status, datetime.now() + self.limited_time)
                 attrs['use'] = use
             elif 'global_status' in attrs and attrs['global_status']:
                 status = attrs['global_status']
-                if status in bases[0].status_set:
-                    raise ImportError
-                bases[0].status_set.add(status)
+                bases[0].add_status(status)
                 @classmethod
                 async def use(self, session, qq, hand_card):
                     add_global_status(status, False)
                 attrs['use'] = use
             elif 'global_daily_status' in attrs and attrs['global_daily_status']:
                 status = attrs['global_daily_status']
-                if status in bases[0].daily_status_set:
-                    raise ImportError
-                bases[0].daily_status_set.add(status)
+                bases[0].add_daily_status(status)
                 @classmethod
                 async def use(self, session, qq, hand_card):
                     add_global_status(status, True)
                 attrs['use'] = use
             elif 'global_limited_status' in attrs and attrs['global_limited_status']:
                 status = attrs['global_limited_status']
-                if status in bases[0].limited_status_set:
-                    raise ImportError
-                bases[0].limited_status_set.add(status)
+                bases[0].add_limited_status(status)
                 @classmethod
                 async def use(self, session, qq, hand_card):
                     add_global_limited_status(status, datetime.now() + self.global_limited_time)
@@ -670,7 +658,7 @@ class _card(metaclass=card_meta):
     daily_status_set = set()
     limited_status_set = {'d'}
     name = ""
-    id = -1
+    id = -15
     positive = 0
     description = ""
     arg_num = 0
@@ -687,6 +675,21 @@ class _card(metaclass=card_meta):
     @classmethod
     async def on_give(cls, session, qq, hand_card, target):
         pass
+    @classmethod
+    async def add_daily_status(cls, s):
+        if s in cls.daily_status_set:
+            raise ImportError
+        cls.daily_status_set.add(s)
+    @classmethod
+    async def add_status(cls, s):
+        if s in cls.status_set:
+            raise ImportError
+        cls.status_set.add(s)
+    @classmethod
+    async def add_limited_status(cls, s):
+        if s in cls.limited_status_set:
+            raise ImportError
+        cls.limited_status_set.add(s)
 
 class jiandiezhixing(_card):
     name = "邪恶的间谍行动～执行"
@@ -724,7 +727,7 @@ class dabingyichang(_card):
     async def on_draw(cls, session, qq, hand_card):
         add_status(qq, 'd', True)
         session.send(session.char(qq) + "病了！直到下一次主题出现前不得接龙。")
-_card.daily_status_set.add('d')
+_card.add_daily_status('d')
 
 class caipiaozhongjiang(_card):
     name = "彩票中奖"
@@ -920,12 +923,12 @@ class xingyunhufu(_card):
     async def on_give(cls, session, qq, hand_card, target):
         remove_status(qq, 'y', False)
         add_status(target, 'y', False)
-_card.status_set.add('y')
+_card.add_status_set('y')
 
 class jisuzhuangzhi(_card):
     name = "极速装置"
     id = 74
-    status = 'p'
+    status = 'z'
     positive = 1
     description = '下次你可以连续接龙两次。'
 
@@ -967,7 +970,7 @@ class lveduozhebopu(_card):
     async def on_give(cls, session, qq, hand_card, target):
         remove_status(qq, 'p', False)
         add_status(target, 'p', False)
-_card.status_set.add('p')
+_card.add_status_set('p')
 
 class jiandieyubei(_card):
     name = "邪恶的间谍行动～预备"
