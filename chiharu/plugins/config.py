@@ -208,10 +208,11 @@ userdata_db.row_factory = sqlite3.Row
 userdata = userdata_db.cursor()
 
 class SessionBuffer:
-    __slots__ = ('buffer', 'session')
-    def __init__(self, session: CommandSession):
+    __slots__ = ('buffer', 'session', 'active')
+    def __init__(self, session: CommandSession, qq):
         self.buffer: str = ''
         self.session: CommandSession = session
+        self.active = session.ctx['user_id']
     def send(self, s, end='\n'):
         self.buffer += s
         self.buffer += end
@@ -221,3 +222,8 @@ class SessionBuffer:
             self.buffer = ''
     def __getattr__(self, name: str):
         return getattr(self.session, name)
+    def char(self, qq):
+        if qq == self.active:
+            return '你'
+        else:
+            return '该玩家'

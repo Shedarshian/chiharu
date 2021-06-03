@@ -73,8 +73,6 @@ def save_global_state():
     with open(config.rel('dragon_state.json'), 'w', encoding='utf-8') as f:
         f.write(json.dumps(global_state, indent=4, separators=(',', ': '), ensure_ascii=False))
 
-char = lambda x: "该玩家" if x else "你"
-
 # dragon_data := qq : int, jibi : int, card : str, draw_time : int, death_time : str, today_jibi : int, today_keyword_jibi : int
 # status : str, daily_status : str, status_time : str, card_limit : int
 # global_status : qq = 2711644761
@@ -86,12 +84,12 @@ def find_or_new(qq):
     return t
 def get_jibi(qq):
     return find_or_new(qq)['jibi']
-async def add_jibi(session, qq, jibi, current_jibi=None, no_requirement=False):
+async def add_jibi(session, qq, jibi, current_jibi=None):
     if current_jibi is None:
         current_jibi = get_jibi(qq)
     if n := check_status(qq, '2', False):
         jibi *= 2 ** n
-        session.send(char(no_requirement) + f"触发了{f'{n}次' if n > 1 else ''}变压器的效果，{'获得' if jibi >= 0 else '损失'}击毙加倍为{abs(jibi)}！")
+        session.send(session.char(qq) + f"触发了{f'{n}次' if n > 1 else ''}变压器的效果，{'获得' if jibi >= 0 else '损失'}击毙加倍为{abs(jibi)}！")
         remove_status(qq, '2', False, remove_all=True)
     config.userdata.execute("update dragon_data set jibi=? where qq=?", (max(0, current_jibi + jibi), qq))
 def wrapper_file(_func):
@@ -232,34 +230,34 @@ def check_throw_card(qq, card_ids, hand_card=None):
     return True
 
 # 击杀玩家。
-async def kill(session, qq, hand_card, hour=4, no_requirement=False):
+async def kill(session, qq, hand_card, hour=4):
     dodge = False
     if (n := check_status(qq, 's', False)) and not dodge:
         jibi = get_jibi(qq)
         if jibi >= 10 * 2 ** check_status(qq, '2', False):
             await add_jibi(session, qq, -10, jibi)
-            session.send(char(no_requirement) + "触发了死秽回避之药的效果，免除死亡！")
+            session.send(session.char(qq) + "触发了死秽回避之药的效果，免除死亡！")
             dodge = True
             remove_status(qq, 's', False, remove_all=False)
     if (n := check_status(qq, 'h', False)) and not dodge:
         for a in range(n):
             remove_status(qq, 'h', False, remove_all=False)
             if random.randint(0, 1) == 0:
-                session.send(char(no_requirement) + "使用了虹色之环，闪避了死亡！")
+                session.send(session.char(qq) + "使用了虹色之环，闪避了死亡！")
                 dodge = True
                 break
             else:
-                session.send(char(no_requirement) + "使用虹色之环闪避失败，死亡时间+1h！")
+                session.send(session.char(qq) + "使用虹色之环闪避失败，死亡时间+1h！")
                 hour += 1
     if (n := check_status(qq, 'p', False)) and not dodge:
-        session.send(char(no_requirement) + f"因掠夺者啵噗的效果，死亡时间+{n}h！")
+        session.send(session.char(qq) + f"因掠夺者啵噗的效果，死亡时间+{n}h！")
         hour += n
     if not dodge:
         add_limited_status(qq, 'd', datetime.now() + timedelta(hours=hour))
         if (x := check_status(qq, 'x', False)):
             remove_status(qq, 'x', False, remove_all=True)
-            session.send(char(no_requirement) + "触发了辉夜姬的秘密宝箱！奖励抽卡一张。")
-            await draw(x, session, qq, hand_card, no_requirement=no_requirement)
+            session.send(session.char(qq) + "触发了辉夜姬的秘密宝箱！奖励抽卡一张。")
+            await draw(x, session, qq, hand_card)
         global global_state
         if qq in global_state['lianhuan']:
             l = copy(global_state['lianhuan'])
@@ -268,53 +266,53 @@ async def kill(session, qq, hand_card, hour=4, no_requirement=False):
             l.remove(qq)
             session.send(f"由于铁索连环的效果，{' '.join(f'[CQ:at,qq={target}]' for target in l)}个人也一起死了！")
             for target in l:
-                await kill(session, target, get_card(target), hour=hour, no_requirement=True)
+                await kill(session, target, get_card(target), hour=hour)
 
 # 抽卡。将卡牌放入手牌。
-async def draw(n: int, session: SessionBuffer, qq: int, hand_card, *, no_requirement=False, positive=None, cards=None):
+async def draw(n: int, session: SessionBuffer, qq: int, hand_card, *, positive=None, cards=None):
     cards = [draw_card(positive) for i in range(n)] if cards is not None else cards
-    session.send(char(no_requirement) + '抽到的卡牌是：\n' + '\n'.join(c.full_description for c in cards))
+    session.send(session.char(qq) + '抽到的卡牌是：\n' + '\n'.join(c.full_description for c in cards))
     for c in cards:
         if not c.consumed_on_draw:
             hand_card.append(c)
-        await c.on_draw(session, qq, hand_card, no_requirement=no_requirement)
+        await c.on_draw(session, qq, hand_card)
 
 # 使用卡牌。不处理将卡牌移出手牌的操作。
-async def use_card(card, session: SessionBuffer, qq: int, hand_card, *, no_requirement=False):
-    session.send(char(no_requirement) + '使用了卡牌：\n' + card.full_description)
-    await card.use(session, qq, hand_card, no_requirement=no_requirement)
+async def use_card(card, session: SessionBuffer, qq: int, hand_card):
+    session.send(session.char(qq) + '使用了卡牌：\n' + card.full_description)
+    await card.use(session, qq, hand_card)
 
 # 弃牌。将cards里的卡牌移出手牌。弃光手牌时请复制hand_card作为cards传入。
-async def discard_cards(cards, session: SessionBuffer, qq: int, hand_card, *, no_requirement=False):
+async def discard_cards(cards, session: SessionBuffer, qq: int, hand_card):
     for c in cards:
         hand_card.remove(c)
     set_cards(qq, hand_card)
     for card in cards:
-        await card.on_discard(session, qq, hand_card, no_requirement=no_requirement)
+        await card.on_discard(session, qq, hand_card)
 
 # 交换两人手牌。
-async def exchange(session: SessionBuffer, qq: int, hand_card, *, target: int, no_requirement=False):
+async def exchange(session: SessionBuffer, qq: int, hand_card, *, target: int):
     target_hand_cards = get_card(target)
     self_hand_cards = copy(hand_card)
     hand_card.clear()
     for card in self_hand_cards:
-        await card.on_give(session, qq, hand_card, target, no_requirement=no_requirement)
+        await card.on_give(session, qq, hand_card, target)
     for card in target_hand_cards:
-        await card.on_give(session, target, [], qq, no_requirement=True)
+        await card.on_give(session, target, [], qq)
     hand_card.extend(target_hand_cards)
     set_cards(qq, hand_card)
     set_cards(target, self_hand_cards)
 
 # 结算卡牌相关。请不要递归调用此函数。
-async def settlement(buf: SessionBuffer, qq: int, to_do, *, no_requirement=False):
+async def settlement(buf: SessionBuffer, qq: int, to_do):
     node = find_or_new(qq)
     hand_card = get_card(qq, node=node)
-    await to_do(buf, qq, hand_card, no_requirement=no_requirement)
+    await to_do(buf, qq, hand_card)
     # discard
     x = len(hand_card) - node['card_limit']
     while x > 0:
         save_data()
-        if no_requirement:
+        if buf.active == qq:
             await buf.session.send(f"该玩家手牌已超出上限{x}张！多余的牌已被弃置。")
             hand_card = hand_card[:node['card_limit']]
         else:
@@ -330,7 +328,7 @@ async def settlement(buf: SessionBuffer, qq: int, to_do, *, no_requirement=False
                     validators.ensure_true(lambda l: 53 not in l, message="空白卡牌不可因超出手牌上限而被弃置！")
                 ])
             buf.send("成功弃置。")
-            await discard_cards([Card(i) for i in l], buf, qq, hand_card, no_requirement=no_requirement)
+            await discard_cards([Card(i) for i in l], buf, qq, hand_card)
         x = len(hand_card) - node['card_limit']
     set_cards(qq, hand_card)
     await buf.flush()
@@ -596,7 +594,7 @@ class card_meta(type):
                     raise ImportError
                 bases[0].status_set.add(status)
                 @classmethod
-                async def use(self, session, qq, hand_card, no_requirement=False):
+                async def use(self, session, qq, hand_card):
                     add_status(qq, status, False)
                 attrs['use'] = use
             elif 'daily_status' in attrs and attrs['daily_status']:
@@ -605,7 +603,7 @@ class card_meta(type):
                     raise ImportError
                 bases[0].daily_status_set.add(status)
                 @classmethod
-                async def use(self, session, qq, hand_card, no_requirement=False):
+                async def use(self, session, qq, hand_card):
                     add_status(qq, status, True)
                 attrs['use'] = use
             elif 'limited_status' in attrs and attrs['limited_status']:
@@ -614,7 +612,7 @@ class card_meta(type):
                     raise ImportError
                 bases[0].limited_status_set.add(status)
                 @classmethod
-                async def use(self, session, qq, hand_card, no_requirement=False):
+                async def use(self, session, qq, hand_card):
                     add_limited_status(qq, status, datetime.now() + self.limited_time)
                 attrs['use'] = use
             elif 'global_status' in attrs and attrs['global_status']:
@@ -623,7 +621,7 @@ class card_meta(type):
                     raise ImportError
                 bases[0].status_set.add(status)
                 @classmethod
-                async def use(self, session, qq, hand_card, no_requirement=False):
+                async def use(self, session, qq, hand_card):
                     add_global_status(status, False)
                 attrs['use'] = use
             elif 'global_daily_status' in attrs and attrs['global_daily_status']:
@@ -632,7 +630,7 @@ class card_meta(type):
                     raise ImportError
                 bases[0].daily_status_set.add(status)
                 @classmethod
-                async def use(self, session, qq, hand_card, no_requirement=False):
+                async def use(self, session, qq, hand_card):
                     add_global_status(status, True)
                 attrs['use'] = use
             elif 'global_limited_status' in attrs and attrs['global_limited_status']:
@@ -641,7 +639,7 @@ class card_meta(type):
                     raise ImportError
                 bases[0].limited_status_set.add(status)
                 @classmethod
-                async def use(self, session, qq, hand_card, no_requirement=False):
+                async def use(self, session, qq, hand_card):
                     add_global_limited_status(status, datetime.now() + self.global_limited_time)
                 attrs['use'] = use
             c = type.__new__(cls, clsname, bases, attrs)
@@ -669,16 +667,16 @@ class _card(metaclass=card_meta):
     arg_num = 0
     consumed_on_draw = False
     @classmethod
-    async def use(cls, session, qq, hand_card, no_requirement=False):
+    async def use(cls, session, qq, hand_card):
         pass
     @classmethod
-    async def on_draw(cls, session, qq, hand_card, no_requirement=False):
+    async def on_draw(cls, session, qq, hand_card):
         pass
     @classmethod
-    async def on_discard(cls, session, qq, hand_card, no_requirement=False):
+    async def on_discard(cls, session, qq, hand_card):
         pass
     @classmethod
-    async def on_give(cls, session, qq, hand_card, target, no_requirement=False):
+    async def on_give(cls, session, qq, hand_card, target):
         pass
 
 class jiandiezhixing(_card):
@@ -687,8 +685,8 @@ class jiandiezhixing(_card):
     positive = -1
     description = "此牌不可被使用，通常情况下无法被抽到。当你弃置此牌时立即死亡。"
     @classmethod
-    async def on_discard(cls, session, qq, hand_card, no_requirement):
-        await kill(session, qq, hand_card, no_requirement=no_requirement)
+    async def on_discard(cls, session, qq, hand_card):
+        await kill(session, qq, hand_card)
 
 class dabingyichang(_card):
     name = "大病一场"
@@ -697,9 +695,9 @@ class dabingyichang(_card):
     description = "抽到时，直到下一次主题出现前不得接龙。"
     consumed_on_draw = True
     @classmethod
-    async def on_draw(cls, session, qq, hand_card, no_requirement=False):
+    async def on_draw(cls, session, qq, hand_card):
         add_status(qq, 'd', True)
-        session.send(char(no_requirement) + "病了！直到下一次主题出现前不得接龙。")
+        session.send(session.char(qq) + "病了！直到下一次主题出现前不得接龙。")
 _card.daily_status_set.add('d')
 
 class caipiaozhongjiang(_card):
@@ -709,10 +707,10 @@ class caipiaozhongjiang(_card):
     description = "抽到时立即获得20击毙与两张牌。"
     consumed_on_draw = True
     @classmethod
-    async def on_draw(cls, session, qq, hand_card, no_requirement=False):
-        session.send(char(no_requirement) + "中奖了！获得20击毙与两张牌。")
+    async def on_draw(cls, session, qq, hand_card):
+        session.send(session.char(qq) + "中奖了！获得20击毙与两张牌。")
         await add_jibi(session, qq, 20)
-        await draw(2, session, qq, hand_card, no_requirement=no_requirement)
+        await draw(2, session, qq, hand_card)
 
 class wuzhongshengyou(_card):
     name = "无中生有"
@@ -720,8 +718,8 @@ class wuzhongshengyou(_card):
     positive = 1
     description = "摸两张牌。"
     @classmethod
-    async def use(cls, session, qq, hand_card, no_requirement=False):
-        await draw(2, session, qq, hand_card, no_requirement=no_requirement)
+    async def use(cls, session, qq, hand_card):
+        await draw(2, session, qq, hand_card)
 
 class tiesuolianhuan(_card):
     name = "铁索连环"
@@ -729,7 +727,7 @@ class tiesuolianhuan(_card):
     positive = 1
     description = "指定至多两名玩家进入连环状态。任何处于连环状态的玩家被击毙时所有连环状态的玩家也被击毙并失去此效果。也可用于解除至多两人的连环状态。"
     @classmethod
-    async def use(cls, session, qq, hand_card, no_requirement):
+    async def use(cls, session, qq, hand_card):
         await session.flush()
         l = await session.aget(prompt="请at两名玩家。\n",
             arg_filters=[
@@ -758,7 +756,7 @@ class baiban(_card):
     positive = 1
     description = "复制你手牌中一张牌的效果。"
     @classmethod
-    async def use(cls, session, qq, hand_card, no_requirement):
+    async def use(cls, session, qq, hand_card):
         await session.flush()
         l = await session.aget(prompt="请选择你手牌中的一张牌复制，输入id号。\n" + "\n".join(c.full_description for c in hand_card),
             arg_filters=[
@@ -790,9 +788,9 @@ class blank(_card):
     positive = -1
     description = "使用时弃置所有手牌。此牌不可因手牌超出上限而被弃置。"
     @classmethod
-    async def use(cls, session, qq, hand_card, no_requirement):
+    async def use(cls, session, qq, hand_card):
         session.send("你弃光了所有手牌。")
-        await discard_cards(copy(hand_card), session, qq, hand_card, no_requirement=no_requirement)
+        await discard_cards(copy(hand_card), session, qq, hand_card)
 
 class dragontube(_card):
     name = "龙之烟管"
@@ -800,7 +798,7 @@ class dragontube(_card):
     positive = 1
     description = "你今天通过普通接龙获得的击毙上限增加10。"
     @classmethod
-    async def use(cls, session, qq, hand_card, no_requirement):
+    async def use(cls, session, qq, hand_card):
         node = find_or_new(qq)
         config.userdata.execute('update dragon_data set today_jibi=? where qq=?', (node['today_jibi'] + 10, qq))
         session.send("已增加。")
@@ -811,12 +809,12 @@ class xingyuntujiao(_card):
     positive = 1
     description = "抽取一张正面卡并立即发动效果。"
     @classmethod
-    async def use(cls, session, qq, hand_card, no_requirement=False):
+    async def use(cls, session, qq, hand_card):
         c = draw_card({1})
-        session.send(char(no_requirement) + '抽到并使用了卡牌：\n' + c.full_description)
-        await c.on_draw(session, qq, hand_card, no_requirement=no_requirement)
-        await c.use(session, qq, hand_card, no_requirement=no_requirement)
-        await c.on_discard(session, qq, hand_card, no_requirement=no_requirement)
+        session.send(session.char(qq) + '抽到并使用了卡牌：\n' + c.full_description)
+        await c.on_draw(session, qq, hand_card)
+        await c.use(session, qq, hand_card)
+        await c.on_discard(session, qq, hand_card)
 
 class cunqianguan(_card):
     name = "存钱罐"
@@ -838,7 +836,7 @@ class liwujiaohuan(_card):
     positive = 1
     description = "所有玩家手牌集合在一起随机分配，手牌张数不变。"
     @classmethod
-    async def use(cls, session, qq, hand_card, no_requirement):
+    async def use(cls, session, qq, hand_card):
         set_cards(qq, hand_card)
         l = [(t['qq'], get_card(t['qq'], t['card'])) for t in config.userdata.execute("select qq, card from dragon_data").fetchall()]
         all_cards = list(itertools.chain(*(c for q, c in l)))
@@ -861,13 +859,13 @@ class xingyunhufu(_card):
     positive = 1
     description = "持有此卡时，你无法使用其他卡牌。你每进行两次接龙额外获得一个击毙（每天上限为5击毙）。使用将丢弃这张卡。"
     @classmethod
-    async def on_draw(cls, session, qq, hand_card, no_requirement):
+    async def on_draw(cls, session, qq, hand_card):
         add_status(qq, 'y', False)
     @classmethod
-    async def on_discard(cls, session, qq, hand_card, no_requirement):
+    async def on_discard(cls, session, qq, hand_card):
         remove_status(qq, 'y', False)
     @classmethod
-    async def on_give(cls, session, qq, hand_card, target, no_requirement):
+    async def on_give(cls, session, qq, hand_card, target):
         remove_status(qq, 'y', False)
         add_status(target, 'y', False)
 _card.status_set.add('y')
@@ -885,7 +883,7 @@ class huxiangjiaohuan(_card):
     positive = 0
     description = "下一个接中隐藏奖励词的玩家手牌、击毙与你互换。"
     @classmethod
-    async def use(cls, session, qq, hand_card, no_requirement):
+    async def use(cls, session, qq, hand_card):
         global_state['exchange_stack'].append(qq)
         save_global_state()
 
@@ -895,12 +893,12 @@ class zhongshendexixi(_card):
     positive = 0
     description = '抽取一张卡并立即发动效果。'
     @classmethod
-    async def use(cls, session, qq, hand_card, no_requirement=False):
+    async def use(cls, session, qq, hand_card):
         c = draw_card()
-        session.send(char(no_requirement) + '抽到并使用了卡牌：\n' + c.full_description)
-        await c.on_draw(session, qq, hand_card, no_requirement=no_requirement)
-        await c.use(session, qq, hand_card, no_requirement=no_requirement)
-        await c.on_discard(session, qq, hand_card, no_requirement=no_requirement)
+        session.send(session.char(qq) + '抽到并使用了卡牌：\n' + c.full_description)
+        await c.on_draw(session, qq, hand_card)
+        await c.use(session, qq, hand_card)
+        await c.on_discard(session, qq, hand_card)
 
 class lveduozhebopu(_card):
     name = "掠夺者啵噗"
@@ -908,13 +906,13 @@ class lveduozhebopu(_card):
     positive = 1
     description = "持有此卡时，你死亡时间增加1小时。每天你因接龙获得1击毙时，可从你所接龙的人处偷取1击毙。若目标没有击毙则不可偷取。使用将丢弃这张卡。"
     @classmethod
-    async def on_draw(cls, session, qq, hand_card, no_requirement):
+    async def on_draw(cls, session, qq, hand_card):
         add_status(qq, 'p', False)
     @classmethod
-    async def on_discard(cls, session, qq, hand_card, no_requirement):
+    async def on_discard(cls, session, qq, hand_card):
         remove_status(qq, 'p', False)
     @classmethod
-    async def on_give(cls, session, qq, hand_card, target, no_requirement):
+    async def on_give(cls, session, qq, hand_card, target):
         remove_status(qq, 'p', False)
         add_status(target, 'p', False)
 _card.status_set.add('p')
@@ -932,10 +930,10 @@ class qijimanbu(_card):
     positive = 1
     description = "弃置你所有手牌，并摸取等量的非负面牌。"
     @classmethod
-    async def use(cls, session, qq, hand_card, no_requirement):
+    async def use(cls, session, qq, hand_card):
         n = len(hand_card)
-        await discard_cards(copy(hand_card), session, qq, hand_card, no_requirement=no_requirement)
-        await draw(n, session, qq, hand_card, no_requirement=no_requirement, positive={0, 1})
+        await discard_cards(copy(hand_card), session, qq, hand_card)
+        await draw(n, session, qq, hand_card, positive={0, 1})
 
 class ComicSans(_card): # TODO
     name = "Comic Sans"
@@ -950,7 +948,7 @@ class PC(_card):
     positive = 1
     description = '所有人立刻获得胜利。'
     @classmethod
-    async def use(cls, session, qq, hand_card, no_requirement):
+    async def use(cls, session, qq, hand_card):
         session.send("所有人都赢了！恭喜你们！")
 
 class suicideking(_card):
@@ -960,8 +958,8 @@ class suicideking(_card):
     description = "抽到时立即死亡。"
     consumed_on_draw = True
     @classmethod
-    async def on_draw(cls, session, qq, hand_card, no_requirement=False):
-        session.send(char(no_requirement) + "抽到了自杀之王，" + char(no_requirement) + "死了！")
+    async def on_draw(cls, session, qq, hand_card):
+        session.send(session.char(qq) + "抽到了自杀之王，" + session.char(qq) + "死了！")
         await kill(session, qq, hand_card)
 
 class zhu(_card):
@@ -971,9 +969,9 @@ class zhu(_card):
     description = "抽到时损失20击毙（但不会扣至0以下）。"
     consumed_on_draw = True
     @classmethod
-    async def on_draw(cls, session, qq, hand_card, no_requirement=False):
+    async def on_draw(cls, session, qq, hand_card):
         await add_jibi(session, qq, -20)
-        session.send(char(no_requirement) + "抽到了猪，损失了20击毙！")
+        session.send(session.char(qq) + "抽到了猪，损失了20击毙！")
 
 class yang(_card):
     name = "羊（♦J）"
@@ -982,9 +980,9 @@ class yang(_card):
     description = "抽到时获得20击毙。"
     consumed_on_draw = True
     @classmethod
-    async def on_draw(cls, session, qq, hand_card, no_requirement=False):
+    async def on_draw(cls, session, qq, hand_card):
         await add_jibi(session, qq, 20)
-        session.send(char(no_requirement) + "抽到了羊，获得了20击毙！")
+        session.send(session.char(qq) + "抽到了羊，获得了20击毙！")
 
 class bianyaqi(_card):
     name = "变压器（♣10）"
