@@ -66,6 +66,7 @@ def check_and_add_log(s):
 # global_state
 # past_two_user : list(int)
 # exchange_stack : list(int)
+# lianhuan : list(int)
 with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
     global_state = json.load(f)
 def save_global_state():
@@ -257,8 +258,17 @@ async def kill(session, qq, hand_card, hour=4, no_requirement=False):
         add_limited_status(qq, 'd', datetime.now() + timedelta(hours=hour))
         if (x := check_status(qq, 'x', False)):
             remove_status(qq, 'x', False, remove_all=True)
-            session.send("你触发了辉夜姬的秘密宝箱！奖励抽卡一张。")
+            session.send(char(no_requirement) + "触发了辉夜姬的秘密宝箱！奖励抽卡一张。")
             await draw(x, session, qq, hand_card, no_requirement=no_requirement)
+        global global_state
+        if qq in global_state['lianhuan']:
+            l = copy(global_state['lianhuan'])
+            global_state['lianhuan'] = []
+            save_global_state()
+            l.remove(qq)
+            session.send(f"由于铁索连环的效果，{' '.join(f'[CQ:at,qq={target}]' for target in l)}个人也一起死了！")
+            for target in l:
+                await kill(session, target, get_card(target), hour=hour, no_requirement=True)
 
 # 抽卡。将卡牌放入手牌。
 async def draw(n: int, session: SessionBuffer, qq: int, hand_card, *, no_requirement=False, positive=None, cards=None):
@@ -712,6 +722,28 @@ class wuzhongshengyou(_card):
     @classmethod
     async def use(cls, session, qq, hand_card, no_requirement=False):
         await draw(2, session, qq, hand_card, no_requirement=no_requirement)
+
+class tiesuolianhuan(_card):
+    name = "铁索连环"
+    id = 38
+    positive = 1
+    description = "指定至多两名玩家进入连环状态。任何处于连环状态的玩家被击毙时所有连环状态的玩家也被击毙并失去此效果。也可用于解除至多两人的连环状态。"
+    @classmethod
+    async def use(cls, session, qq, hand_card, no_requirement):
+        await session.flush()
+        l = await session.aget(prompt="请at两名玩家。\n",
+            arg_filters=[
+                    lambda s: [r.group(1) for r in re.findall(r'qq=(\d+)', str(s))],
+                    validators.fit_size(1, 2, message="请at正确的人数。"),
+                ])
+        global global_state
+        for target in l:
+            if target in global_state['lianhuan']:
+                global_state['lianhuan'].remove(target)
+            else:
+                global_state['lianhuan'].append(target)
+        save_global_state()
+        session.send('成功切换两名玩家的连环状态！')
 
 class minus1ma(_card):
     name = "-1马"
