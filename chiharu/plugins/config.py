@@ -209,7 +209,7 @@ userdata = userdata_db.cursor()
 
 class SessionBuffer:
     __slots__ = ('buffer', 'session', 'active')
-    def __init__(self, session: CommandSession, qq):
+    def __init__(self, session: CommandSession):
         self.buffer: str = ''
         self.session: CommandSession = session
         self.active = session.ctx['user_id']
