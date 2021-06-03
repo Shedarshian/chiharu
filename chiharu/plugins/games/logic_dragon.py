@@ -419,7 +419,7 @@ async def logical_dragon(session: NLPSession):
                 config.userdata.execute("update dragon_data set today_jibi=? where qq=?", (node['today_jibi'] - 1, qq))
                 await add_jibi(buf, qq, jibi_to_add)
                 if (n := check_status(qq, 'p', False, node)):
-                    user = global_state['past_two_user'][1]
+                    user = global_state['past_two_user'][0]
                     if (p := get_jibi(user)) > 0:
                         buf.send(f"你从上一名玩家处偷取了{min(n, p)}击毙！")
                         await add_jibi(buf, user, -n)
