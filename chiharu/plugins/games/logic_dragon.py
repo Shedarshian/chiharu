@@ -923,7 +923,7 @@ class xingyunhufu(_card):
     async def on_give(cls, session, qq, hand_card, target):
         remove_status(qq, 'y', False)
         add_status(target, 'y', False)
-_card.add_status_set('y')
+_card.add_status('y')
 
 class jisuzhuangzhi(_card):
     name = "极速装置"
@@ -970,7 +970,7 @@ class lveduozhebopu(_card):
     async def on_give(cls, session, qq, hand_card, target):
         remove_status(qq, 'p', False)
         add_status(target, 'p', False)
-_card.add_status_set('p')
+_card.add_status('p')
 
 class jiandieyubei(_card):
     name = "邪恶的间谍行动～预备"
