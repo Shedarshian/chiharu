@@ -779,6 +779,30 @@ class minus1ma(_card):
     positive = 1
     description = "直到下次主题刷新为止，你隔一次就可以接龙。"
 
+class dongfeng(_card):
+    name = "东风（🀀）"
+    id = 40
+    positive = 0
+    description = "可邀请持有南风、西风、北风的群友各一位进行一局麻将对战，根据结算顺位获得奖励（一位20击毙，二位10击毙，三位5击毙，四位被击毙），对局结束后此牌被消耗。"
+
+class nanfeng(_card):
+    name = "南风（🀁）"
+    id = 41
+    positive = 0
+    description = "可邀请持有东风、西风、北风的群友各一位进行一局麻将对战，根据结算顺位获得奖励（一位20击毙，二位10击毙，三位5击毙，四位被击毙），对局结束后此牌被消耗。"
+
+class xifeng(_card):
+    name = "西风（🀂）"
+    id = 42
+    positive = 0
+    description = "可邀请持有东风、南风、北风的群友各一位进行一局麻将对战，根据结算顺位获得奖励（一位20击毙，二位10击毙，三位5击毙，四位被击毙），对局结束后此牌被消耗。"
+
+class beifeng(_card):
+    name = "北风（🀃）"
+    id = 43
+    positive = 0
+    description = "可邀请持有东风、南风、西风的群友各一位进行一局麻将对战，根据结算顺位获得奖励（一位20击毙，二位10击毙，三位5击毙，四位被击毙），对局结束后此牌被消耗。"
+
 class baiban(_card):
     name = "白板（🀆）"
     id = 44
@@ -796,6 +820,12 @@ class baiban(_card):
                     validators.ensure_true(lambda l: -1 not in l, message="此牌不可使用！")
                 ])
         await use_card(Card(l[0]), session, qq, hand_card)
+
+class hongzhong(_card):
+    name = "红中（🀄）"
+    id = 46
+    positive = 1
+    description = "在同时有人驳回和同意时，可以使用此卡强制通过。"
 
 class sihuihuibizhiyao(_card):
     name = "死秽回避之药"
