@@ -589,12 +589,13 @@ async def dragon_buy(session: CommandSession):
         buf.send("您刷新的关键词为：" + await update_begin_word())
     elif id == 2:
         # (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。
-        n = await buf.aget(prompt="请输入你想要消耗的击毙数。",
+        n = await buf.aget(prompt="请输入你想要减少的死亡时间。",
             arg_filters=[
                 extractors.extract_text,
                 lambda s: list(map(int, re.findall(r'\d+', str(s)))),
                 validators.fit_size(1, 1, message="请输入一个自然数。"),
             ])[0]
+        n //= 15
         add_jibi(buf, qq, -n)
         b = decrease_death_time(qq, timedelta(minutes=15 * n))
         buf.send(f"您减少了{15 * n}分钟的死亡时间！" + ("您活了！" if b else ""))
