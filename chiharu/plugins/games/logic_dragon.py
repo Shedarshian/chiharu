@@ -977,6 +977,12 @@ class hezuowujian(_card):
     async def use(cls, session, qq, hand_card):
         remove_all_bomb()
 
+class ourostone(_card):
+    name = "衔尾蛇之石"
+    id = 66
+    positive = 0
+    description = "修改当前规则至首尾接龙直至下次刷新。首尾接龙时，每个汉语词必须至少包含3个汉字，英语词必须至少包含4个字母。"
+
 class cunqianguan(_card):
     name = "存钱罐"
     id = 70
