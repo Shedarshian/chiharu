@@ -206,6 +206,17 @@ def remove_global_status(s, is_daily, remove_all=True, status=None):
     return remove_status(2711644761, s, is_daily, remove_all, status)
 def remove_global_limited_status(s, status=None):
     return remove_limited_status(2711644761, s, status)
+def decrease_death_time(qq, time: timedelta, node=None):
+    node = node or find_or_new(qq)
+    status = eval(node['status_time'])
+    if 'd' in status:
+        t = datetime.fromisoformat(status['d'])
+        t -= time
+        if t < datetime.now():
+            status.pop('d')
+        config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), qq))
+        return 'd' not in status
+    return True
 
 def draw_card(positive=None):
     x = positive is not None and len(positive & {-1, 0, 1}) != 0
@@ -339,11 +350,10 @@ async def settlement(buf: SessionBuffer, qq: int, to_do):
     await buf.flush()
     save_data()
 
-async def daily_update():
+async def update_begin_word():
     global last_update_date
     with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         d = json.load(f)
-    config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10', ('',))
     c = random.choice(d['begin'])
     d['last_update_date'] = last_update_date = date.today().isoformat()
     d['begin'].remove(c)
@@ -352,7 +362,11 @@ async def daily_update():
             await get_bot().send_group_msg(group_id=group, message="起始词库已空！")
     with open(config.rel('dragon_words.json'), 'w', encoding='utf-8') as f:
         f.write(json.dumps(d, indent=4, separators=(',', ': '), ensure_ascii=False))
-    return "今日关键词：" + c
+    return c
+
+async def daily_update():
+    config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10', ('',))
+    return "今日关键词：" + await update_begin_word()
 
 @on_natural_language(keywords="接", only_to_me=False, only_short_message=False)
 async def logical_dragon(session: NLPSession):
@@ -403,7 +417,7 @@ async def logical_dragon(session: NLPSession):
                 if global_state['exchange_stack']:
                     to_exchange = global_state['exchange_stack'].pop(-1)
                     save_global_state()
-                if not update_hidden_keyword(i):
+                if not update_hidden_keyword(i, True):
                     buf.send("隐藏奖励词池已空！")
         if not check_and_add_log(word):
             buf.send("过去一周之内接过此词，你死了！")
@@ -449,20 +463,20 @@ async def logical_dragon_else(session: NLPSession):
     if not await env.test(session):
         return
     text = session.msg_text.strip()
-    # 查询接龙
     if text.startswith("查询接龙"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[4:].strip())
-    # 添加炸弹
     elif text.startswith("添加炸弹"):
         await call_command(get_bot(), session.ctx, ('dragon', 'add_bomb'), current_arg=text[4:].strip())
-    # 使用手牌
     elif text.startswith("使用手牌"):
         await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
-    # 抽卡
     elif text.startswith("抽卡"):
         await call_command(get_bot(), session.ctx, ('dragon', 'draw'), current_arg=text[2:].strip())
     elif text.startswith("查看手牌"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="手牌")
+    elif text.startswith("商店"):
+        await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="商店")
+    elif text.startswith("购买"):
+        await call_command(get_bot(), session.ctx, ('dragon', 'buy'), current_arg=text[2:].strip())
 
 @on_command(('dragon', 'add_bomb'), aliases="添加炸弹", only_to_me=False, args=("keyword"), environment=env)
 @config.ErrorHandle
@@ -529,7 +543,8 @@ async def dragon_check(session: CommandSession):
     卡池/card_pool：查询当前卡池总卡数。
     复活时间/recover_time：查询自己的复活时间。
     手牌/hand_cards：查询自己当前手牌。
-    击毙/jibi：查询自己的击毙数。"""
+    击毙/jibi：查询自己的击毙数。
+    商店/shop：查询可购买项目。"""
     with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         d = json.load(f)
     data = session.current_arg_text
@@ -543,6 +558,8 @@ async def dragon_check(session: CommandSession):
         session.finish("当前隐藏奖励池大小为：" + str(len(d['hidden'][1])))
     elif data in ("卡池", "card_pool"):
         session.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
+    elif data in ("商店", "shop"):
+        session.finish("1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. (35击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。")
     node = find_or_new(session.ctx['user_id'])
     if data in ("复活时间", "recover_time"):
         status = eval(node['status_time'])
@@ -556,6 +573,65 @@ async def dragon_check(session: CommandSession):
         session.finish("你的手牌为：\n" + '\n'.join(s.full_description for s in cards))
     elif data in ("击毙", "jibi"):
         session.finish("你的击毙数为：" + str(node['jibi']))
+
+@on_command(('dragon', 'buy'), aliases="购买", only_to_me=False, short_des="购买逻辑接龙相关商品。", args=("id",), environment=env)
+@config.ErrorHandle
+async def dragon_buy(session: CommandSession):
+    try:
+        id = int(session.current_arg_text)
+    except ValueError:
+        session.finish("请输入要购买的商品id。")
+    qq = session.ctx['user_id']
+    buf = SessionBuffer(session)
+    if id == 1:
+        # (25击毙)从起始词库中刷新一条接龙词。
+        add_jibi(buf, qq, -25)
+        buf.send("您刷新的关键词为：" + await update_begin_word())
+    elif id == 2:
+        # (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。
+        n = await buf.aget(prompt="请输入你想要消耗的击毙数。",
+            arg_filters=[
+                extractors.extract_text,
+                lambda s: list(map(int, re.findall(r'\d+', str(s)))),
+                validators.fit_size(1, 1, message="请输入一个自然数。"),
+            ])[0]
+        add_jibi(buf, qq, -n)
+        b = decrease_death_time(qq, timedelta(minutes=15 * n))
+        buf.send(f"您减少了{15 * n}分钟的死亡时间！" + ("您活了！" if b else ""))
+    elif id == 3:
+        # (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。
+        s = await buf.aget(prompt="请提交起始词和一张图。（审核不通过不返还击毙）")
+        add_jibi(buf, qq, -70)
+        for group in config.group_id_dict['dragon_supervise']:
+            await get_bot().send_group_msg(group_id=group, message=s)
+        buf.send("您已成功提交！")
+    elif id == 4:
+        # (35击毙)回溯一条接龙。
+        add_jibi(buf, qq, -35)
+        buf.send("成功回溯！")
+    elif id == 5:
+        # (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。
+        c = await buf.aget(prompt="请输入标记为雷的词。",
+            arg_filters=[
+                extractors.extract_text,
+                validators.ensure_true(lambda c: c in log_set, message="请输入一周以内接过的词汇。"),
+            ])
+        add_jibi(buf, qq, -10)
+        add_bomb(c)
+        buf.send(f"成功添加词汇{c}！")
+    elif id == 6:
+        # (5击毙)刷新一组隐藏奖励词。
+        add_jibi(buf, qq, -5)
+        update_hidden_keyword(-1)
+        buf.send("成功刷新！")
+    elif id == 7:
+        # (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。
+        s = await buf.aget(prompt="请提交卡牌名、来源、与卡牌效果描述。（审核不通过不返还击毙）")
+        add_jibi(buf, qq, -50)
+        for group in config.group_id_dict['dragon_supervise']:
+            await get_bot().send_group_msg(group_id=group, message=s)
+        buf.send("您已成功提交！")
+    await buf.flush()
 
 @on_command(('dragon', 'add_begin'), only_to_me=False, environment=env_supervise)
 @config.ErrorHandle
