@@ -14,9 +14,10 @@ from .. import config
 from ..config import SessionBuffer
 env = config.Environment('logic_dragon')
 env_supervise = config.Environment('logic_dragon_supervise')
+env_admin = config.Environment(config.Admin('logic_dragon'))
 config.logger.open('dragon')
 
-CommandGroup('dragon', des="逻辑接龙相关。", environment=env|env_supervise)
+CommandGroup('dragon', short_des="逻辑接龙相关。", environment=env|env_supervise)
 
 # TODO 十连保底
 message_re = re.compile(r"[\s我那就，]*接[\s，,]*(.*)[\s，,\n]*.*")
@@ -749,6 +750,16 @@ async def dragon_add_hidden(session: CommandSession):
     """添加隐藏奖励词。黑幕群可用。"""
     add_hidden(session.current_arg_text.strip())
     await session.send('成功添加隐藏奖励词。')
+
+@on_command(('dragon', 'kill'), only_to_me=False, args=('@s',), environment=env_admin)
+@config.ErrorHandle
+async def dragon_kill(session: CommandSession):
+    match = re.search('qq=(\\d+)', session.current_arg)
+    if not match:
+        session.finish("没有@人！")
+    qq = match.group(1)
+    buf = SessionBuffer(session)
+    await settlement(buf, qq, kill)
 
 # @on_command(('dragon', 'add_draw'), only_to_me=False, environment=env_supervise)
 # @config.ErrorHandle
