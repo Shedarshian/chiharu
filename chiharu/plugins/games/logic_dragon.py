@@ -160,6 +160,10 @@ def add_begin(d, word):
     d['begin'].append(word)
     config.logger.dragon << f"【LOG】增加了起始词{word}。"
 @wrapper_file
+def add_keyword(d, word):
+    d['keyword'][1].append(word)
+    config.logger.dragon << f"【LOG】增加了起始词{word}。"
+@wrapper_file
 def add_hidden(d, word):
     d['hidden'][1].append(word)
     config.logger.dragon << f"【LOG】增加了隐藏关键词{word}。"
@@ -744,12 +748,19 @@ async def dragon_add_begin(session: CommandSession):
     add_begin(session.current_arg.strip())
     await session.send('成功添加起始词。')
 
+@on_command(('dragon', 'add_keyword'), only_to_me=False, environment=env_supervise)
+@config.ErrorHandle
+async def dragon_add_keyword(session: CommandSession):
+    """添加关键词。黑幕群可用。"""
+    add_keyword(session.current_arg.strip())
+    await session.send('成功添加关键词。')
+
 @on_command(('dragon', 'add_hidden'), only_to_me=False, environment=env_supervise)
 @config.ErrorHandle
 async def dragon_add_hidden(session: CommandSession):
-    """添加隐藏奖励词。黑幕群可用。"""
+    """添加隐藏关键词。黑幕群可用。"""
     add_hidden(session.current_arg_text.strip())
-    await session.send('成功添加隐藏奖励词。')
+    await session.send('成功添加隐藏关键词。')
 
 @on_command(('dragon', 'kill'), only_to_me=False, args=('@s',), environment=env_admin)
 @config.ErrorHandle
