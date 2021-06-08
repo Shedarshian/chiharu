@@ -576,7 +576,7 @@ async def logical_dragon_else(session: NLPSession):
 #     save_data()
 
 @on_command(('dragon', 'use_card'), aliases="使用手牌", only_to_me=False, args=("card"), environment=env)
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.dragon)
 async def dragon_use_card(session: CommandSession):
     """使用手牌。"""
     args = session.current_arg_text.strip()
@@ -604,7 +604,7 @@ async def dragon_use_card(session: CommandSession):
     save_data()
 
 @on_command(('dragon', 'draw'), only_to_me=False, args=("num"), environment=env)
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.dragon)
 async def dragon_draw(session: CommandSession):
     """使用抽卡券进行抽卡。"""
     qq = session.ctx['user_id']
@@ -627,7 +627,7 @@ async def dragon_draw(session: CommandSession):
     save_data()
 
 @on_command(('dragon', 'check'), aliases="查询接龙", only_to_me=False, short_des="查询逻辑接龙相关数据。", args=("name",), environment=env)
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.dragon)
 async def dragon_check(session: CommandSession):
     """查询逻辑接龙相关数据。可选参数：
     奖励词/keyword：查询当前奖励词。
@@ -669,7 +669,7 @@ async def dragon_check(session: CommandSession):
         session.finish("你的击毙数为：" + str(node['jibi']))
 
 @on_command(('dragon', 'buy'), aliases="购买", only_to_me=False, short_des="购买逻辑接龙相关商品。", args=("id",), environment=env)
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.dragon)
 async def dragon_buy(session: CommandSession):
     try:
         id = int(session.current_arg_text)
@@ -742,28 +742,28 @@ async def dragon_buy(session: CommandSession):
     await buf.flush()
 
 @on_command(('dragon', 'add_begin'), only_to_me=False, environment=env_supervise)
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.dragon)
 async def dragon_add_begin(session: CommandSession):
     """添加起始词。黑幕群可用。"""
     add_begin(session.current_arg.strip())
     await session.send('成功添加起始词。')
 
 @on_command(('dragon', 'add_keyword'), only_to_me=False, environment=env_supervise)
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.dragon)
 async def dragon_add_keyword(session: CommandSession):
     """添加关键词。黑幕群可用。"""
     add_keyword(session.current_arg.strip())
     await session.send('成功添加关键词。')
 
 @on_command(('dragon', 'add_hidden'), only_to_me=False, environment=env_supervise)
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.dragon)
 async def dragon_add_hidden(session: CommandSession):
     """添加隐藏关键词。黑幕群可用。"""
     add_hidden(session.current_arg_text.strip())
     await session.send('成功添加隐藏关键词。')
 
 @on_command(('dragon', 'kill'), only_to_me=False, args=('@s',), environment=env_admin)
-@config.ErrorHandle
+@config.ErrorHandle(config.logger.dragon)
 async def dragon_kill(session: CommandSession):
     match = re.search('qq=(\\d+)', session.current_arg)
     if not match:
