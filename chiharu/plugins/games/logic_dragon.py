@@ -1,12 +1,11 @@
 from collections import Counter
 from copy import copy
 from datetime import datetime, timedelta, date, time
-import itertools
+import itertools, more_itertools
 import json
 import random
 import re
-import more_itertools
-from functools import lru_cache, partial
+from functools import lru_cache, partial, reduce
 from nonebot import CommandSession, NLPSession, on_natural_language, get_bot, scheduler
 from nonebot.command import call_command
 from nonebot.command.argfilter import extractors, validators
@@ -15,6 +14,7 @@ from .. import config
 from ..config import SessionBuffer
 env = config.Environment('logic_dragon')
 env_supervise = config.Environment('logic_dragon_supervise')
+config.logger.open('dragon')
 
 CommandGroup('dragon', des="逻辑接龙相关。", environment=env|env_supervise)
 
@@ -67,11 +67,13 @@ def check_and_add_log(s):
 # past_two_user : list(int)
 # exchange_stack : list(int)
 # lianhuan : list(int)
+# quest : map(int, list(map('id': int, 'remain': int)))
 with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
     global_state = json.load(f)
 def save_global_state():
     with open(config.rel('dragon_state.json'), 'w', encoding='utf-8') as f:
         f.write(json.dumps(global_state, indent=4, separators=(',', ': '), ensure_ascii=False))
+quest_print_aux = {qq: 0 for qq in global_state['qq'].keys()}
 
 # dragon_data := qq : int, jibi : int, card : str, draw_time : int, death_time : str, today_jibi : int, today_keyword_jibi : int
 # status : str, daily_status : str, status_time : str, card_limit : int
@@ -92,6 +94,7 @@ async def add_jibi(session, qq, jibi, current_jibi=None):
         session.send(session.char(qq) + f"触发了{f'{n}次' if n > 1 else ''}变压器的效果，{'获得' if jibi >= 0 else '损失'}击毙加倍为{abs(jibi)}！")
         remove_status(qq, '2', False, remove_all=True)
     config.userdata.execute("update dragon_data set jibi=? where qq=?", (max(0, current_jibi + jibi), qq))
+    config.logger.dragon << f"【LOG】玩家原有击毙{current_jibi}，{f'触发了{n}次变压器的效果，' if n > 0 else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
 def wrapper_file(_func):
     def func(*args, **kwargs):
         with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
@@ -106,11 +109,13 @@ def wrapper_file(_func):
 def update_keyword(d, if_delete=True):
     global keyword
     if len(d['keyword'][1]) == 0:
+        config.logger.dragon << "【LOG】更新关键词失败！"
         return False
     keyword = random.choice(d['keyword'][1])
     if if_delete:
         d['keyword'][1].remove(keyword)
     d['keyword'][0] = keyword
+    config.logger.dragon << f"【LOG】关键词更新为：{keyword}。"
     return True
 @wrapper_file
 def update_hidden_keyword(d, which, if_delete=False):
@@ -122,35 +127,48 @@ def update_hidden_keyword(d, which, if_delete=False):
     else:
         n = {hidden_keyword.index(which)}
     if len(d['hidden'][1]) < len(n):
+        config.logger.dragon << "【LOG】隐藏关键词更新失败！"
         return False
     for i in n:
         hidden_keyword[i] = random.choice(d['hidden'][1])
         if if_delete:
             d['hidden'][1].remove(hidden_keyword[i])
         d['hidden'][0][i] = hidden_keyword[i]
+    config.logger.dragon << f"【LOG】隐藏关键词更新为：{'，'.join(hidden_keyword)}。"
     return True
 @wrapper_file
 def remove_bomb(d, word):
     global bombs
     d["bombs"].remove(word)
     bombs.remove(word)
+    config.logger.dragon << f"【LOG】移除了炸弹{word}，当前炸弹：{'，'.join(bombs)}。"
 @wrapper_file
 def remove_all_bomb(d):
     global bombs
     d["bombs"] = []
     bombs = []
+    config.logger.dragon << f"【LOG】移除了所有炸弹。"
 @wrapper_file
 def add_bomb(d, word):
     global bombs
     d["bombs"].append(word)
     bombs.append(word)
+    config.logger.dragon << f"【LOG】增加了炸弹{word}，当前炸弹：{'，'.join(bombs)}。"
 @wrapper_file
 def add_begin(d, word):
     d['begin'].append(word)
+    config.logger.dragon << f"【LOG】增加了起始词{word}。"
 @wrapper_file
 def add_hidden(d, word):
     d['hidden'][1].append(word)
+    config.logger.dragon << f"【LOG】增加了隐藏关键词{word}。"
 
+def cancellation(session):
+    def control(value):
+        if value == "取消":
+            config.logger.dragon << f"【LOG】用户{session.ctx['user_id']}取消。"
+            session.finish("已取消。")
+    return control
 
 def save_data():
     config.userdata_db.commit()
@@ -160,11 +178,13 @@ def add_status(qq, s, is_daily):
     if s not in status:
         status += s
         config.userdata.execute('update dragon_data set %s=? where qq=?' % ('daily_status' if is_daily else 'status'), (status, qq))
+    config.logger.dragon << f"【LOG】用户{qq}增加了{'每日' if is_daily else '永久'}状态{s}。"
 def add_limited_status(qq, s, end_time : datetime):
     status = eval(find_or_new(qq)['status_time'])
     if s not in status:
         status[s] = end_time.isoformat()
         config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), qq))
+    config.logger.dragon << f"【LOG】用户{qq}增加了限时状态{s}，结束时间为{end_time}。"
 def add_global_status(s, is_daily):
     return add_status(2711644761, s, is_daily)
 def add_global_limited_status(s, end_time : datetime):
@@ -197,11 +217,13 @@ def remove_status(qq, s, is_daily, remove_all=True, status=None):
             l.remove(s)
         status = ''.join(l)
     config.userdata.execute('update dragon_data set %s=? where qq=?' % ('daily_status' if is_daily else 'status'), (status, qq))
+    config.logger.dragon << f"【LOG】用户{qq}移除了{'一层' if not remove_all else ''}{'每日' if is_daily else '永久'}状态{s}，当前状态为{status}。"
 def remove_limited_status(qq, s, status=None):
     status = status or eval(find_or_new(qq)['status_time'])
     if s in status:
         status.pop(s)
         config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), qq))
+    config.logger.dragon << f"【LOG】用户{qq}移除了限时状态{s}，当前限时状态为{str(status)}。"
 def remove_global_status(s, is_daily, remove_all=True, status=None):
     return remove_status(2711644761, s, is_daily, remove_all, status)
 def remove_global_limited_status(s, status=None):
@@ -218,6 +240,8 @@ def decrease_death_time(qq, time: timedelta, node=None):
         return 'd' not in status
     return True
 
+def cards_to_str(cards):
+    return '，'.join(c.name for c in cards)
 def draw_card(positive=None):
     x = positive is not None and len(positive & {-1, 0, 1}) != 0
     if check_global_status('j', True):
@@ -229,6 +253,7 @@ def draw_card(positive=None):
     return c
 def set_cards(qq, hand_card):
     config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(c.id) for c in hand_card), qq))
+    config.logger.dragon << f"【LOG】设置用户手牌为{cards_to_str(hand_card)}。"
 def get_card(qq, card=None, node=None):
     s = card or (node or find_or_new(qq))['card']
     return [] if s == '' else [Card(int(x)) for x in s.split(',')]
@@ -248,11 +273,13 @@ def check_throw_card(qq, card_ids, hand_card=None):
 # 击杀玩家。
 async def kill(session, qq, hand_card, hour=4):
     dodge = False
+    config.logger.dragon << f"【LOG】尝试击杀玩家{qq}。"
     if (n := check_status(qq, 's', False)) and not dodge:
         jibi = get_jibi(qq)
         if jibi >= 10 * 2 ** check_status(qq, '2', False):
             await add_jibi(session, qq, -10, jibi)
             session.send(session.char(qq) + "触发了死秽回避之药的效果，免除死亡！")
+            config.logger.dragon << f"【LOG】用户{qq}触发了死秽回避之药的效果，免除死亡。"
             dodge = True
             remove_status(qq, 's', False, remove_all=False)
     if (n := check_status(qq, 'h', False)) and not dodge:
@@ -260,19 +287,23 @@ async def kill(session, qq, hand_card, hour=4):
             remove_status(qq, 'h', False, remove_all=False)
             if random.randint(0, 1) == 0:
                 session.send(session.char(qq) + "使用了虹色之环，闪避了死亡！")
+                config.logger.dragon << f"【LOG】用户{qq}触发了虹色之环，闪避了死亡。"
                 dodge = True
                 break
             else:
                 session.send(session.char(qq) + "使用虹色之环闪避失败，死亡时间+1h！")
+                config.logger.dragon << f"【LOG】用户{qq}使用虹色之环闪避失败，死亡时间+1h。"
                 hour += 1
     if (n := check_status(qq, 'p', False)) and not dodge:
         session.send(session.char(qq) + f"因掠夺者啵噗的效果，死亡时间+{n}h！")
+        config.logger.dragon << f"【LOG】用户{qq}因掠夺者啵噗的效果，死亡时间+{n}h。"
         hour += n
     if not dodge:
         add_limited_status(qq, 'd', datetime.now() + timedelta(hours=hour))
         if (x := check_status(qq, 'x', False)):
             remove_status(qq, 'x', False, remove_all=True)
-            session.send(session.char(qq) + "触发了辉夜姬的秘密宝箱！奖励抽卡一张。")
+            session.send(session.char(qq) + f"触发了辉夜姬的秘密宝箱！奖励抽卡{x}张。")
+            config.logger.dragon << f"【LOG】用户{qq}触发了辉夜姬的秘密宝箱{x}次。"
             await draw(x, session, qq, hand_card)
         global global_state
         if qq in global_state['lianhuan']:
@@ -281,35 +312,44 @@ async def kill(session, qq, hand_card, hour=4):
             save_global_state()
             l.remove(qq)
             session.send(f"由于铁索连环的效果，{' '.join(f'[CQ:at,qq={target}]' for target in l)}个人也一起死了！")
+            config.logger.dragon << f"【LOG】用户{qq}触发了铁索连环的效果至{l}。"
             for target in l:
                 await kill(session, target, get_card(target), hour=hour)
 
 # 抽卡。将卡牌放入手牌。
 async def draw(n: int, session: SessionBuffer, qq: int, hand_card, *, positive=None, cards=None):
     cards = [draw_card(positive) for i in range(n)] if cards is not None else cards
-    session.send(session.char(qq) + '抽到的卡牌是：\n' + '\n'.join(c.full_description for c in cards))
+    session.send(session.char(qq) + '抽到的卡牌是：\n' + '\n'.join(c.full_description(qq) for c in cards))
+    config.logger.dragon << f"【LOG】用户{qq}抽到的卡牌为{cards_to_str(cards)}。"
     for c in cards:
         if not c.consumed_on_draw:
             hand_card.append(c)
         await c.on_draw(session, qq, hand_card)
+    config.logger.dragon << f"【LOG】用户{qq}抽完卡牌，当前手牌为{cards_to_str(hand_card)}。"
 
 # 使用卡牌。不处理将卡牌移出手牌的操作。
 async def use_card(card, session: SessionBuffer, qq: int, hand_card):
-    session.send(session.char(qq) + '使用了卡牌：\n' + card.full_description)
+    session.send(session.char(qq) + '使用了卡牌：\n' + card.full_description(qq))
+    config.logger.dragon << f"【LOG】用户{qq}使用了卡牌{card.name}。"
     await card.use(session, qq, hand_card)
+    await card.on_discard(session, qq, hand_card)
+    config.logger.dragon << f"【LOG】用户{qq}使用完卡牌，当前手牌为{cards_to_str(hand_card)}。"
 
 # 弃牌。将cards里的卡牌移出手牌。弃光手牌时请复制hand_card作为cards传入。
 async def discard_cards(cards, session: SessionBuffer, qq: int, hand_card):
+    config.logger.dragon << f"【LOG】用户{qq}弃牌{cards_to_str(cards)}。"
     for c in cards:
         hand_card.remove(c)
     set_cards(qq, hand_card)
     for card in cards:
         await card.on_discard(session, qq, hand_card)
+    config.logger.dragon << f"【LOG】用户{qq}弃完卡牌，当前手牌为{cards_to_str(hand_card)}。"
 
 # 交换两人手牌。
 async def exchange(session: SessionBuffer, qq: int, hand_card, *, target: int):
     target_hand_cards = get_card(target)
     self_hand_cards = copy(hand_card)
+    config.logger.dragon << f"【LOG】交换用户{qq}与用户{target}的手牌。{qq}手牌为{cards_to_str(self_hand_cards)}，{target}手牌为{cards_to_str(target_hand_cards)}。"
     hand_card.clear()
     for card in self_hand_cards:
         await card.on_give(session, qq, hand_card, target)
@@ -318,9 +358,11 @@ async def exchange(session: SessionBuffer, qq: int, hand_card, *, target: int):
     hand_card.extend(target_hand_cards)
     set_cards(qq, hand_card)
     set_cards(target, self_hand_cards)
+    config.logger.dragon << f"【LOG】交换完用户{qq}与用户{target}的手牌，当前用户{qq}的手牌为{cards_to_str(hand_card)}。"
 
 # 结算卡牌相关。请不要递归调用此函数。
 async def settlement(buf: SessionBuffer, qq: int, to_do):
+    config.logger.dragon << f"【LOG】用户{qq}开始结算。"
     node = find_or_new(qq)
     hand_card = get_card(qq, node=node)
     await to_do(buf, qq, hand_card)
@@ -330,10 +372,12 @@ async def settlement(buf: SessionBuffer, qq: int, to_do):
         save_data()
         if buf.active == qq:
             await buf.session.send(f"该玩家手牌已超出上限{x}张！多余的牌已被弃置。")
+            config.logger.dragon << f"【LOG】用户{qq}手牌为{cards_to_str(hand_card)}，超出上限{node['card_limit']}，自动弃置。"
             await discard_cards(copy(hand_card[node['card_limit']:]), buf, qq, hand_card)
         else:
             ret2 = f"您的手牌已超出上限{x}张！请先选择一些牌弃置（输入id号，使用空格分隔）：\n" + \
-                "\n".join(c.full_description for c in hand_card)
+                "\n".join(c.full_description(qq) for c in hand_card)
+            config.logger.dragon << f"【LOG】用户{qq}手牌超出上限，用户选择弃牌。"
             await buf.flush()
             l = await buf.aget(prompt=ret2,
                 arg_filters=[
@@ -357,14 +401,25 @@ async def update_begin_word():
     c = random.choice(d['begin'])
     d['last_update_date'] = last_update_date = date.today().isoformat()
     d['begin'].remove(c)
+    config.logger.dragon << f"【LOG】更新了起始词：{c}。"
     if len(d['begin']) == 0:
         for group in config.group_id_dict['logic_dragon_supervise']:
             await get_bot().send_group_msg(group_id=group, message="起始词库已空！")
+        config.logger.dragon << f"【LOG】起始词库已空！"
     with open(config.rel('dragon_words.json'), 'w', encoding='utf-8') as f:
         f.write(json.dumps(d, indent=4, separators=(',', ': '), ensure_ascii=False))
     return c
 
 async def daily_update():
+    global global_state
+    m = {}
+    for qq, quests in global_state['quest']:
+        if len(quests) == 0:
+            continue
+        m[qq] = [{'id': get_mission(), 'remain': 3} for i in quests]
+        config.logger.dragon << f"【LOG】更新了用户{qq}的任务为：{[c['id'] for c in m[qq]]}。"
+    global_state['quest'] = m
+    save_global_state()
     config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10', ('',))
     return "今日关键词：" + await update_begin_word()
 
@@ -381,23 +436,29 @@ async def logical_dragon(session: NLPSession):
         to_exchange = None
         if check_limited_status(qq, 'd', node) or check_status(qq, 'd', True, node):
             await session.send('你已死，不能接龙！')
+            config.logger.dragon << f"【LOG】用户{qq}已死，接龙失败。"
             return
         m = check_status(qq, 'm', True, node)
         if m and len(global_state['past_two_user']) != 0 and qq == global_state['past_two_user'][1] or not m and qq in global_state['past_two_user']:
             if check_status(qq, 'z', False, node):
                 buf.send("你触发了极速装置！")
+                config.logger.dragon << f"【LOG】用户{qq}触发了极速装置。"
                 remove_status(qq, 'z', False, remove_all=False)
             else:
                 await session.send(f"你接太快了！两次接龙之间至少要隔{'一' if m else '两'}个人。")
+                config.logger.dragon << f"【LOG】用户{qq}接龙过快，失败。"
                 return
         global_state['past_two_user'].append(qq)
         if len(global_state['past_two_user']) > 2:
             global_state['past_two_user'].pop(0)
         save_global_state()
         word = match.group(1).strip()
+        config.logger.dragon << f"【LOG】用户{qq}尝试接龙{word}。"
         if word == keyword:
+            config.logger.dragon << f"【LOG】用户{qq}接到了奖励词{keyword}。"
             buf.send("你接到了奖励词！", end='')
             if node['today_keyword_jibi'] > 0:
+                config.logger.dragon << f"【LOG】用户{qq}已拿完今日奖励词击毙。"
                 buf.send("奖励10击毙。", end='')
                 config.userdata.execute("update dragon_data set today_keyword_jibi=? where qq=?", (node['today_keyword_jibi'] - 1, qq))
                 await add_jibi(buf, qq, 10)
@@ -407,26 +468,33 @@ async def logical_dragon(session: NLPSession):
                 buf.send("奖励词池已空！")
         for i, k in enumerate(hidden_keyword):
             if k in word:
+                config.logger.dragon << f"【LOG】用户{qq}接到了隐藏奖励词{k}。"
                 buf.send(f"你接到了隐藏奖励词{k}！奖励10击毙。", end='')
                 await add_jibi(buf, qq, 10)
                 n = check_global_status('m', False)
                 if n:
+                    config.logger.dragon << f"【LOG】用户{qq}触发了存钱罐{n}次。"
                     buf.send(f"\n你触发了存钱罐，奖励+{n * 10}击毙！")
                     remove_global_status('m', False)
                     await add_jibi(buf, qq, n * 10)
                 if global_state['exchange_stack']:
                     to_exchange = global_state['exchange_stack'].pop(-1)
+                    config.logger.dragon << f"【LOG】用户{qq}触发了互相交换，来自{to_exchange}。"
                     save_global_state()
                 if not update_hidden_keyword(i, True):
                     buf.send("隐藏奖励词池已空！")
+                break
         if not check_and_add_log(word):
+            config.logger.dragon << f"【LOG】用户{qq}由于过去一周接过此词，死了。"
             buf.send("过去一周之内接过此词，你死了！")
             await settlement(buf, qq, kill)
         else:
             buf.send(f"成功接龙！接龙词：{word}。", end='')
             if node['today_jibi'] > 0:
+                config.logger.dragon << f"【LOG】用户{qq}仍有{node['today_jibi']}次奖励机会。"
                 jibi_to_add = 1
                 if (n := check_status(qq, 'y', False, node)) and node['today_jibi'] % 2 == 1:
+                    config.logger.dragon << f"【LOG】用户{qq}触发了幸运护符{n}次。"
                     jibi_to_add += n
                     buf.send("\n你因为幸运护符的效果，", end='')
                 buf.send(f"奖励{jibi_to_add}击毙。")
@@ -434,24 +502,41 @@ async def logical_dragon(session: NLPSession):
                 await add_jibi(buf, qq, jibi_to_add)
                 if (n := check_status(qq, 'p', False, node)):
                     user = global_state['past_two_user'][0]
+                    config.logger.dragon << f"【LOG】用户{qq}触发了{n}次掠夺者啵噗的效果，偷取了{user}击毙。"
                     if (p := get_jibi(user)) > 0:
                         buf.send(f"你从上一名玩家处偷取了{min(n, p)}击毙！")
                         await add_jibi(buf, user, -n)
                         await add_jibi(buf, qq, min(n, p))
                 if node['today_jibi'] == 1:
                     buf.send("你今日全勤，奖励1抽奖券！")
+                    config.logger.dragon << f"【LOG】用户{qq}全勤，奖励1抽奖券。"
                     config.userdata.execute("update dragon_data set draw_time=? where qq=?", (node['draw_time'] + 1, qq))
+            if l := global_state.get('qq'):
+                for m in l:
+                    if m['remain'] > 0:
+                        id, name, func = mission[m['id']]
+                        if func(word):
+                            buf.send(f"你完成了任务：{name}！奖励3击毙。此任务还可完成{m['remain'] - 1}次。")
+                            config.logger.dragon << f"【LOG】用户{qq}完成了一次任务{name}，剩余{m['remain'] - 1}次。"
+                            m['remain'] -= 1
+                            await add_jibi(buf, qq, 3)
+                            save_global_state()
+                            break
             if word in bombs:
                 buf.send("你成功触发了炸弹，被炸死了！")
+                config.logger.dragon << f"【LOG】用户{qq}触发了炸弹，被炸死了。"
                 remove_bomb(word)
                 await settlement(buf, qq, kill)
-            if check_global_status('+', False):
-                buf.send("你触发了+2的效果，摸一张非正面牌与一张非负面牌！")
-                cards = [draw_card({-1, 0}), draw_card({0, 1})]
+            if (n := check_global_status('+', False)):
+                remove_global_status('+', False)
+                buf.send(f"你触发了{n}次+2的效果，摸{n}张非正面牌与{n}张非负面牌！")
+                config.logger.dragon << f"【LOG】用户{qq}触发了+2的效果。"
+                cards = list(itertools.chain(*[[draw_card({-1, 0}), draw_card({0, 1})] for i in range(n)]))
                 await settlement(buf, qq, partial(draw, 0, cards=cards))
             if to_exchange is not None:
                 buf.send(f"你与{to_exchange}交换了手牌与击毙！")
                 jibi = (get_jibi(qq), get_jibi(to_exchange))
+                config.logger.dragon << f"【LOG】用户{qq}与{to_exchange}交换了手牌与击毙。{qq}击毙为{jibi[0]}，{to_exchange}击毙为{jibi[1]}。"
                 await add_jibi(buf, qq, jibi[1] - jibi[0])
                 await add_jibi(buf, to_exchange, jibi[0] - jibi[1])
                 await settlement(buf, qq, partial(exchange, target=to_exchange))
@@ -478,12 +563,12 @@ async def logical_dragon_else(session: NLPSession):
     elif text.startswith("购买"):
         await call_command(get_bot(), session.ctx, ('dragon', 'buy'), current_arg=text[2:].strip())
 
-@on_command(('dragon', 'add_bomb'), aliases="添加炸弹", only_to_me=False, args=("keyword"), environment=env)
-@config.ErrorHandle
-async def dragon_add_bomb(session: CommandSession):
-    """添加炸弹。"""
-    add_bomb(session.current_arg_text.strip())
-    save_data()
+# @on_command(('dragon', 'add_bomb'), aliases="添加炸弹", only_to_me=False, args=("keyword"), environment=env)
+# @config.ErrorHandle
+# async def dragon_add_bomb(session: CommandSession):
+#     """添加炸弹。"""
+#     add_bomb(session.current_arg_text.strip())
+#     save_data()
 
 @on_command(('dragon', 'use_card'), aliases="使用手牌", only_to_me=False, args=("card"), environment=env)
 @config.ErrorHandle
@@ -500,9 +585,11 @@ async def dragon_use_card(session: CommandSession):
         session.finish("请输入存在的卡牌id号或卡牌名。")
     qq = session.ctx['user_id']
     hand_card = get_card(qq)
+    config.logger.dragon << f"【LOG】用户{qq}试图使用手牌{card.name}，当前手牌为{hand_card}。"
     if card not in hand_card:
         session.finish("你还未拥有这张牌！")
     if card.id == -1:
+        config.logger.dragon << f"【LOG】用户{qq}无法使用卡牌{card.name}。"
         session.finish("此牌不可被使用！")
     hand_card.remove(card)
     set_cards(qq, hand_card)
@@ -520,9 +607,11 @@ async def dragon_draw(session: CommandSession):
         n = int(session.current_arg_text.strip() or 1)
     except ValueError:
         n = 1
+    config.logger.dragon << f"【LOG】用户{qq}试图抽卡{n}次。"
     draw_time = find_or_new(qq)['draw_time']
     buf = SessionBuffer(session)
     if draw_time < n:
+        config.logger.dragon << f"【LOG】用户{qq}的抽卡券只有{draw_time}张。"
         n = draw_time
         buf.send(f"您的抽卡券只有{n}张！\n")
     if n == 0:
@@ -570,7 +659,7 @@ async def dragon_check(session: CommandSession):
         cards = get_card(session.ctx['user_id'])
         if len(cards) == 0:
             session.finish("你没有手牌！")
-        session.finish("你的手牌为：\n" + '\n'.join(s.full_description for s in cards))
+        session.finish("你的手牌为：\n" + '\n'.join(s.full_description(session.ctx['user_id']) for s in cards))
     elif data in ("击毙", "jibi"):
         session.finish("你的击毙数为：" + str(node['jibi']))
 
@@ -583,12 +672,14 @@ async def dragon_buy(session: CommandSession):
         session.finish("请输入要购买的商品id。")
     qq = session.ctx['user_id']
     buf = SessionBuffer(session)
+    config.logger.dragon << f"【LOG】用户{qq}购买商品{id}。"
     if id == 1:
         # (25击毙)从起始词库中刷新一条接龙词。
         add_jibi(buf, qq, -25)
         buf.send("您刷新的关键词为：" + await update_begin_word())
     elif id == 2:
         # (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。
+        config.logger.dragon << f"【LOG】询问用户{qq}减少的死亡时间。"
         n = await buf.aget(prompt="请输入你想要减少的死亡时间。",
             arg_filters=[
                 extractors.extract_text,
@@ -596,12 +687,18 @@ async def dragon_buy(session: CommandSession):
                 validators.fit_size(1, 1, message="请输入一个自然数。"),
             ])[0]
         n //= 15
+        if (jibi := get_jibi(qq)) < n:
+            buf.send(f"您只有{jibi}击毙！")
+            n = jibi
+        config.logger.dragon << f"【LOG】用户{qq}使用{n}击毙减少{15 * n}分钟死亡时间。"
         add_jibi(buf, qq, -n)
         b = decrease_death_time(qq, timedelta(minutes=15 * n))
         buf.send(f"您减少了{15 * n}分钟的死亡时间！" + ("您活了！" if b else ""))
     elif id == 3:
         # (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。
-        s = await buf.aget(prompt="请提交起始词和一张图。（审核不通过不返还击毙）")
+        config.logger.dragon << f"【LOG】询问用户{qq}提交起始词与图。"
+        s = await buf.aget(prompt="请提交起始词和一张图。（审核不通过不返还击毙），输入取消退出。", arg_filter=[cancellation(session)])
+        config.logger.dragon << f"【LOG】用户{qq}提交起始词：{s}。"
         add_jibi(buf, qq, -70)
         for group in config.group_id_dict['dragon_supervise']:
             await get_bot().send_group_msg(group_id=group, message=s)
@@ -612,11 +709,14 @@ async def dragon_buy(session: CommandSession):
         buf.send("成功回溯！")
     elif id == 5:
         # (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。
+        config.logger.dragon << f"【LOG】询问用户{qq}标记的雷。"
         c = await buf.aget(prompt="请输入标记为雷的词。",
             arg_filters=[
                 extractors.extract_text,
-                validators.ensure_true(lambda c: c in log_set, message="请输入一周以内接过的词汇。"),
+                validators.ensure_true(lambda c: c in log_set, message="请输入一周以内接过的词汇。输入取消退出。"),
+                cancellation(session)
             ])
+        config.logger.dragon << f"【LOG】用户{qq}标记{c}为雷。"
         add_jibi(buf, qq, -10)
         add_bomb(c)
         buf.send(f"成功添加词汇{c}！")
@@ -627,7 +727,9 @@ async def dragon_buy(session: CommandSession):
         buf.send("成功刷新！")
     elif id == 7:
         # (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。
-        s = await buf.aget(prompt="请提交卡牌名、来源、与卡牌效果描述。（审核不通过不返还击毙）")
+        config.logger.dragon << f"【LOG】询问用户{qq}提交的卡牌。"
+        s = await buf.aget(prompt="请提交卡牌名、来源、与卡牌效果描述。（审核不通过不返还击毙），输入取消退出。", arg_filter=[cancellation(session)])
+        config.logger.dragon << f"【LOG】用户{qq}提交卡牌{s}。"
         add_jibi(buf, qq, -50)
         for group in config.group_id_dict['dragon_supervise']:
             await get_bot().send_group_msg(group_id=group, message=s)
@@ -648,16 +750,17 @@ async def dragon_add_hidden(session: CommandSession):
     add_hidden(session.current_arg_text.strip())
     await session.send('成功添加隐藏奖励词。')
 
-@on_command(('dragon', 'add_draw'), only_to_me=False, environment=env_supervise)
-@config.ErrorHandle
-async def _(session: CommandSession):
-    qq = session.ctx['user_id']
-    node = find_or_new(qq)
-    config.userdata.execute("update dragon_data set draw_time=? where qq=?", (node['draw_time'] + int(session.current_arg_text), qq)) 
+# @on_command(('dragon', 'add_draw'), only_to_me=False, environment=env_supervise)
+# @config.ErrorHandle
+# async def _(session: CommandSession):
+#     qq = session.ctx['user_id']
+#     node = find_or_new(qq)
+#     config.userdata.execute("update dragon_data set draw_time=? where qq=?", (node['draw_time'] + int(session.current_arg_text), qq)) 
 
 @scheduler.scheduled_job('cron', id="dragon_daily", hour='16', minute='00-03')
 async def dragon_daily():
     global last_update_date
+    config.logger.dragon << f"【LOG】尝试每日更新。"
     if last_update_date == date.today().isoformat():
         return
     ret = await daily_update()
@@ -725,9 +828,6 @@ class card_meta(type):
     # @abstractmethod
     def img(self):
         pass
-    @property
-    def full_description(cls):
-        return f"{cls.id}. {cls.name}\n\t{cls.description}"
 
 class _card(metaclass=card_meta):
     card_id_dict = {}
@@ -767,6 +867,9 @@ class _card(metaclass=card_meta):
         if s in cls.limited_status_set:
             raise ImportError
         cls.limited_status_set.add(s)
+    @classmethod
+    def full_description(cls, qq):
+        return f"{cls.id}. {cls.name}\n\t{cls.description}"
 
 class jiandiezhixing(_card):
     name = "邪恶的间谍行动～执行"
@@ -835,11 +938,13 @@ class tiesuolianhuan(_card):
     @classmethod
     async def use(cls, session, qq, hand_card):
         await session.flush()
-        l = await session.aget(prompt="请指定两名玩家进行铁索连环。\n",
+        config.logger.dragon << f"【LOG】询问用户{qq}铁索连环。"
+        l = await session.aget(prompt="请at群内至多两名玩家进行铁索连环。\n",
             arg_filters=[
                     lambda s: [r.group(1) for r in re.findall(r'qq=(\d+)', str(s))],
                     validators.fit_size(1, 2, message="请at正确的人数。"),
                 ])
+        config.logger.dragon << f"【LOG】用户{qq}铁索连环选择{l}。"
         global global_state
         for target in l:
             if target in global_state['lianhuan']:
@@ -847,7 +952,7 @@ class tiesuolianhuan(_card):
             else:
                 global_state['lianhuan'].append(target)
         save_global_state()
-        session.send('成功切换两名玩家的连环状态！')
+        session.send('成功切换玩家的连环状态！')
 
 class minus1ma(_card):
     name = "-1马"
@@ -888,7 +993,8 @@ class baiban(_card):
     @classmethod
     async def use(cls, session, qq, hand_card):
         await session.flush()
-        l = await session.aget(prompt="请选择你手牌中的一张牌复制，输入id号。\n" + "\n".join(c.full_description for c in hand_card),
+        config.logger.dragon << f"【LOG】询问用户{qq}复制牌。"
+        l = await session.aget(prompt="请选择你手牌中的一张牌复制，输入id号。\n" + "\n".join(c.full_description(qq) for c in hand_card),
             arg_filters=[
                     extractors.extract_text,
                     lambda s: list(map(int, re.findall(r'\d+', str(s)))),
@@ -896,7 +1002,10 @@ class baiban(_card):
                     validators.ensure_true(lambda l: Card(l[0]) in hand_card, message="您选择了错误的卡牌！"),
                     validators.ensure_true(lambda l: -1 not in l, message="此牌不可使用！")
                 ])
-        await use_card(Card(l[0]), session, qq, hand_card)
+        card = Card(l[0])
+        config.logger.dragon << f"【LOG】用户{qq}选择了卡牌{card.name}。"
+        session.send(session.char(qq) + '使用了卡牌：\n' + card.full_description(qq))
+        await card.use(session, qq, hand_card)
 
 class hongzhong(_card):
     name = "红中（🀄）"
@@ -936,6 +1045,7 @@ class dragontube(_card):
     @classmethod
     async def use(cls, session, qq, hand_card):
         node = find_or_new(qq)
+        config.logger.dragon << f"【LOG】用户{qq}增加了接龙击毙上限至{node['today_jibi'] + 10}。"
         config.userdata.execute('update dragon_data set today_jibi=? where qq=?', (node['today_jibi'] + 10, qq))
         session.send("已增加。")
 
@@ -947,7 +1057,8 @@ class xingyuntujiao(_card):
     @classmethod
     async def use(cls, session, qq, hand_card):
         c = draw_card({1})
-        session.send(session.char(qq) + '抽到并使用了卡牌：\n' + c.full_description)
+        config.logger.dragon << f"【LOG】用户{qq}幸运兔脚抽取了卡牌{c.name}。"
+        session.send(session.char(qq) + '抽到并使用了卡牌：\n' + c.full_description(qq))
         await c.on_draw(session, qq, hand_card)
         await c.use(session, qq, hand_card)
         await c.on_discard(session, qq, hand_card)
@@ -960,6 +1071,7 @@ class baoshidewugong(_card):
     @classmethod
     async def use(cls, session, qq, hand_card):
         node = find_or_new(qq)
+        config.logger.dragon << f"【LOG】用户{qq}增加了手牌上限至{node['card_limit'] + 1}。"
         config.userdata.execute('update dragon_data set card_limit=? where qq=?', (node['card_limit'] + 1, qq))
 
 class plus2(_card):
@@ -984,6 +1096,44 @@ class ourostone(_card):
     positive = 0
     description = "修改当前规则至首尾接龙直至下次刷新。首尾接龙时，每个汉语词必须至少包含3个汉字，英语词必须至少包含4个字母。"
 
+class queststone(_card):
+    name = "任务之石"
+    id = 67
+    positive = 1
+    description = "持有此石时，你每天会刷新一个接龙任务。每次完成接龙任务可以获得3击毙，每天最多3次。使用将丢弃此石。"
+    @classmethod
+    def full_description(cls, qq):
+        m = mission[global_state['quest'][qq][quest_print_aux[qq]]['id']][1]
+        remain = global_state['quest'][qq][quest_print_aux[qq]]['remain']
+        quest_print_aux[qq] += 1
+        if quest_print_aux[qq] >= len(mission):
+            quest_print_aux[qq] = 0
+        return super().full_description(qq) + "\n\t当前任务：" + m + f"剩余{remain}次。"
+    @classmethod
+    async def on_draw(cls, session, qq, hand_card):
+        if qq not in global_state['quest']:
+            global_state['quest'][qq] = []
+        global_state['quest'][qq].append({'id': (i := get_mission()), 'remain': 3})
+        config.logger.dragon << f"【LOG】用户{qq}刷新了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][qq]]}。"
+        save_global_state()
+    @classmethod
+    async def on_discard(cls, session, qq, hand_card):
+        del global_state['quest'][qq][quest_print_aux[qq]]
+        if quest_print_aux[qq] >= len(mission):
+            quest_print_aux[qq] = 0
+        config.logger.dragon << f"【LOG】用户{qq}删除了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][qq]]}。"
+        save_global_state()
+    @classmethod
+    async def on_give(cls, session, qq, hand_card, target):
+        m = global_state['quest'][qq][quest_print_aux[qq]]
+        del global_state['quest'][qq][quest_print_aux[qq]]
+        if quest_print_aux[qq] >= len(mission):
+            quest_print_aux[qq] = 0
+        config.logger.dragon << f"【LOG】用户{qq}删除了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][qq]]}。"
+        global_state['quest'][target].append(m)
+        config.logger.dragon << f"【LOG】用户{target}增加了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][qq]]}。"
+        save_global_state()
+
 class cunqianguan(_card):
     name = "存钱罐"
     id = 70
@@ -1006,7 +1156,9 @@ class liwujiaohuan(_card):
     @classmethod
     async def use(cls, session, qq, hand_card):
         set_cards(qq, hand_card)
+        config.logger.dragon << f"【LOG】用户{qq}交换了所有人的手牌。"
         l = [(t['qq'], get_card(t['qq'], t['card'])) for t in config.userdata.execute("select qq, card from dragon_data").fetchall()]
+        config.logger.dragon << f"【LOG】所有人的手牌为：{','.join(f'{qq}: {cards_to_str(cards)}' for qq, cards in l)}。"
         all_cards = list(itertools.chain(*(c for q, c in l)))
         random.shuffle(all_cards)
         hand_card.clear()
@@ -1015,9 +1167,10 @@ class liwujiaohuan(_card):
                 if qq == q:
                     hand_card.extend(all_cards[:n])
                 set_cards(q, all_cards[:n])
+                config.logger.dragon << f"【LOG】{q}交换后的手牌为：{cards_to_str(all_cards[:n])}。"
                 all_cards = all_cards[n:]
         if len(hand_card) != 0:
-            session.send("通过交换，你获得了手牌：\n" + '\n'.join(c.full_description for c in hand_card))
+            session.send("通过交换，你获得了手牌：\n" + '\n'.join(c.full_description(qq) for c in hand_card))
         else:
             session.send("你交换了大家的手牌！")
 
@@ -1052,6 +1205,7 @@ class huxiangjiaohuan(_card):
     description = "下一个接中隐藏奖励词的玩家手牌、击毙与你互换。"
     @classmethod
     async def use(cls, session, qq, hand_card):
+        config.logger.dragon << f"【LOG】用户{qq}被加入交换堆栈，现为{global_state['exchange_stack']}。"
         global_state['exchange_stack'].append(qq)
         save_global_state()
 
@@ -1063,7 +1217,8 @@ class zhongshendexixi(_card):
     @classmethod
     async def use(cls, session, qq, hand_card):
         c = draw_card()
-        session.send(session.char(qq) + '抽到并使用了卡牌：\n' + c.full_description)
+        session.send(session.char(qq) + '抽到并使用了卡牌：\n' + c.full_description(qq))
+        config.logger.dragon << f"【LOG】用户{qq}众神的嬉戏抽取了卡牌{c.name}。"
         await c.on_draw(session, qq, hand_card)
         await c.use(session, qq, hand_card)
         await c.on_discard(session, qq, hand_card)
@@ -1176,3 +1331,40 @@ class guanggaopai(_card):
             "下蛋公鸡，公鸡中的战斗鸡，哦也",
             "欢迎关注甜品站弹幕研究协会，国内一流的东方STG学术交流平台，从避弹，打分到neta，可以学到各种高端姿势：https://www.isndes.com/ms?m=2"
         ])
+
+from pypinyin import pinyin, Style
+
+mission = []
+def add_mission(doc):
+    def _(f):
+        global mission
+        mission.append((len(mission), doc, f))
+        return f
+def get_mission():
+    return random.randint(0, len(mission) - 1)
+
+for i in range(2, 9):
+    add_mission(f"字数为{i}。")(lambda s: len([c for c in s if c != ' ']) == i)
+add_mission("包含一个非佛经大数的数字。")(lambda s: len(set(s) & set('0123456789零一二三四五六七八九十百千万亿壹贰叁肆伍陆柒捌玖拾佰仟')) != 0)
+add_mission("包含一个常用的人称代词。")(lambda s: len(set(s) & set('我你他她它祂您怹咱俺恁')) != 0)
+@add_mission("包含一个中国的省级行政单位的全称。")
+def _(s):
+    for c in ("黑龙江", "吉林", "辽宁", "河北", "河南", "山东", "山西", "安徽", "江西", "江苏", "浙江", "福建", "台湾", "广东", "湖南", "湖北", "海南", "云南", "贵州", "四川", "青海", "甘肃", "陕西", "内蒙古自治区", "新疆维吾尔自治区", "广西壮族自治区", "宁夏回族自治区", "西藏自治区", "北京", "天津", "上海", "重庆", "香港特别行政区", "澳门特别行政区"):
+        if c in s:
+            return True
+    return False
+add_mission("包含的/地/得。")(lambda s: len(set(s) & set('的地得')) != 0)
+add_mission("包含叠字。")(lambda s: any(a == b and ord(a) > 255 for a, b in more_itertools.windowed(s, 2)))
+for c in ("人", "大", "小", "方", "龙"):
+    add_mission(f"包含“{c}”。")(lambda s: c in s)
+@add_mission("包含国际单位制的七个基本单位制之一。")
+def _(s):
+    for c in ("米", "千克", "公斤", "秒", "安", "开", "摩尔", "坎德拉"):
+        if c in s:
+            return True
+    return False
+add_mission("前两个字的声母相同。")(lambda s: len(p := pinyin(s[0:2], style=Style.INITIALS, strict=True, errors='ignore', heteronym=True)) >= 2 and len(set(p[0]) & set(p[1])) != 0)
+add_mission("前两个字的韵母相同。")(lambda s: len(p := pinyin(s[0:2], style=Style.FINALS, strict=True, errors='ignore', heteronym=True)) >= 2 and len(set(p[0]) & set(p[1])) != 0)
+add_mission("首字没有声母。")(lambda s: len(p := pinyin(s[0:1], style=Style.INITIALS, strict=True, errors='ignore', heteronym=True)) >= 1 and '' in p[0])
+add_mission("首字是多音字。")(lambda s: len(p := pinyin(s[0:1], style=Style.INITIALS, strict=True, errors='ignore', heteronym=True)) >= 1 and len(p[0]) > 1)
+add_mission("所有字音调相同且至少包含两个字。")(lambda s: len(p := pinyin(s, style=Style.FINALS_TONE3, neutral_tone_with_five=True, strict=True, errors='ignore', heteronym=True)) > 1 and len(reduce(lambda x, y: x & y, (set(c[-1] for c in s) for s in p))) != 0)
