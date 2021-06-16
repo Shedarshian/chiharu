@@ -1362,6 +1362,7 @@ def add_mission(doc):
         global mission
         mission.append((len(mission), doc, f))
         return f
+    return _
 def get_mission():
     return random.randint(0, len(mission) - 1)
 
