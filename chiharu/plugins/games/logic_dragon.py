@@ -20,7 +20,7 @@ config.logger.open('dragon')
 CommandGroup('dragon', short_des="逻辑接龙相关。", environment=env|env_supervise)
 
 # TODO 十连保底
-message_re = re.compile(r"[\s我那就，]*接[\s，,]*(.*)[\s，,\n]*.*")
+message_re = re.compile(r"[\s我那就，]*接[\s，,]+(.*)[\s，,\n]*.*")
 
 # keyword : [str, list(str)]
 # hidden : [list(str), list(str)]
