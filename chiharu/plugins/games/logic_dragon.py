@@ -74,7 +74,7 @@ with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
 def save_global_state():
     with open(config.rel('dragon_state.json'), 'w', encoding='utf-8') as f:
         f.write(json.dumps(global_state, indent=4, separators=(',', ': '), ensure_ascii=False))
-quest_print_aux = {qq: 0 for qq in global_state['qq'].keys()}
+quest_print_aux = {qq: 0 for qq in global_state['quest'].keys()}
 
 # dragon_data := qq : int, jibi : int, card : str, draw_time : int, death_time : str, today_jibi : int, today_keyword_jibi : int
 # status : str, daily_status : str, status_time : str, card_limit : int
