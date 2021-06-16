@@ -466,7 +466,7 @@ async def logical_dragon(session: NLPSession):
             if node['today_keyword_jibi'] > 0:
                 config.logger.dragon << f"【LOG】用户{qq}已拿完今日奖励词击毙。"
                 buf.send("奖励10击毙。", end='')
-                config.userdata.execute("update dragon_data set today_keyword_jibi=? where qq=?", (node['today_keyword_jibi'] - 1, qq))
+                config.userdata.execute("update dragon_data set today_keyword_jibi=? where qq=?", (node['today_keyword_jibi'] - 10, qq))
                 await add_jibi(buf, qq, 10)
             if update_keyword():
                 buf.send(f"奖励词已更新为：{keyword}。")
