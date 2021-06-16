@@ -305,6 +305,7 @@ async def kill(session, qq, hand_card, hour=4):
         hour += n
     if not dodge:
         add_limited_status(qq, 'd', datetime.now() + timedelta(hours=hour))
+        session.send(f"你死了！{hour}小时不得接龙。")
         if (x := check_status(qq, 'x', False)):
             remove_status(qq, 'x', False, remove_all=True)
             session.send(session.char(qq) + f"触发了辉夜姬的秘密宝箱！奖励抽卡{x}张。")
@@ -765,6 +766,7 @@ async def dragon_add_hidden(session: CommandSession):
 @on_command(('dragon', 'kill'), only_to_me=False, args=('@s',), environment=env_admin)
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_kill(session: CommandSession):
+    """击毙玩家，管理可用，用于处理驳回。"""
     match = re.search('qq=(\\d+)', session.current_arg)
     if not match:
         session.finish("没有@人！")

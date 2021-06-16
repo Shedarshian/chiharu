@@ -5,7 +5,7 @@ import warnings, shlex, itertools
 import functools
 from datetime import timedelta
 from more_itertools import only
-from nonebot import permission
+from nonebot import permission, get_bot
 from nonebot.command import CommandHandler_T, Command, CommandSession, CommandManager
 from nonebot.typing import CommandName_T, Patterns_T, PermChecker_T
 from nonebot.session import BaseSession
