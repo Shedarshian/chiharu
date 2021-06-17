@@ -107,14 +107,15 @@ def wrapper_file(_func):
     return func
 # pylint: disable=no-value-for-parameter
 @wrapper_file
-def update_keyword(d, if_delete=True):
+def update_keyword(d, if_delete=False):
     global keyword
     if len(d['keyword'][1]) == 0:
         config.logger.dragon << "【LOG】更新关键词失败！"
         return False
     keyword = random.choice(d['keyword'][1])
-    if if_delete:
-        d['keyword'][1].remove(keyword)
+    d['keyword'][1].remove(keyword)
+    if not if_delete:
+        d['keyword'][1].append(d['keyword'][0])
     d['keyword'][0] = keyword
     config.logger.dragon << f"【LOG】关键词更新为：{keyword}。"
     return True
@@ -132,8 +133,9 @@ def update_hidden_keyword(d, which, if_delete=False):
         return False
     for i in n:
         hidden_keyword[i] = random.choice(d['hidden'][1])
-        if if_delete:
-            d['hidden'][1].remove(hidden_keyword[i])
+        d['hidden'][1].remove(hidden_keyword[i])
+        if not if_delete:
+            d['hidden'][1].append(d['hidden'][0][i])
         d['hidden'][0][i] = hidden_keyword[i]
     config.logger.dragon << f"【LOG】隐藏关键词更新为：{'，'.join(hidden_keyword)}。"
     return True
@@ -468,7 +470,7 @@ async def logical_dragon(session: NLPSession):
                 buf.send("奖励10击毙。", end='')
                 config.userdata.execute("update dragon_data set today_keyword_jibi=? where qq=?", (node['today_keyword_jibi'] - 10, qq))
                 await add_jibi(buf, qq, 10)
-            if update_keyword():
+            if update_keyword(if_delete=True):
                 buf.send(f"奖励词已更新为：{keyword}。")
             else:
                 buf.send("奖励词池已空！")
