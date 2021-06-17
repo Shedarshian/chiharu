@@ -123,7 +123,7 @@ def update_keyword(d, if_delete=False):
 def update_hidden_keyword(d, which, if_delete=False):
     global hidden_keyword
     if which == -1:
-        n = {1, 2, 3}
+        n = {0, 1, 2}
     elif isinstance(which, int):
         n = {which}
     else:
