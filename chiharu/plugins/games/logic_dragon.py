@@ -558,8 +558,6 @@ async def logical_dragon_else(session: NLPSession):
     text = session.msg_text.strip()
     if text.startswith("查询接龙 "):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[4:].strip())
-    elif text.startswith("添加炸弹 "):
-        await call_command(get_bot(), session.ctx, ('dragon', 'add_bomb'), current_arg=text[4:].strip())
     elif text.startswith("使用手牌 "):
         await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
     elif text.startswith("抽卡 "):
