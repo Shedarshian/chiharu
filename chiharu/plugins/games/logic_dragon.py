@@ -556,17 +556,17 @@ async def logical_dragon_else(session: NLPSession):
     if not await env.test(session):
         return
     text = session.msg_text.strip()
-    if text.startswith("查询接龙 "):
+    if text.startswith("查询接龙"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[4:].strip())
-    elif text.startswith("使用手牌 "):
+    elif text.startswith("使用手牌") and (len(text) == 4 or text[4] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
-    elif text.startswith("抽卡 "):
+    elif text.startswith("抽卡") and (len(text) == 2 or text[2] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'draw'), current_arg=text[2:].strip())
-    elif text.startswith("查看手牌 "):
+    elif text.startswith("查看手牌"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="手牌")
-    elif text.startswith("商店 "):
+    elif text.startswith("商店"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="商店")
-    elif text.startswith("购买 "):
+    elif text.startswith("购买") and (len(text) == 2 or text[2] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'buy'), current_arg=text[2:].strip())
 
 # @on_command(('dragon', 'add_bomb'), aliases="添加炸弹", only_to_me=False, args=("keyword"), environment=env)
@@ -576,10 +576,11 @@ async def logical_dragon_else(session: NLPSession):
 #     add_bomb(session.current_arg_text.strip())
 #     save_data()
 
-@on_command(('dragon', 'use_card'), aliases="使用手牌", only_to_me=False, args=("card"), environment=env)
+@on_command(('dragon', 'use_card'), aliases="使用手牌", short_des="使用手牌。", only_to_me=False, args=("card"), environment=env)
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_use_card(session: CommandSession):
-    """使用手牌。"""
+    """使用手牌。
+    使用方法为：使用手牌 id号"""
     args = session.current_arg_text.strip()
     if len(args) == 0:
         session.finish("请输入想使用的卡牌！")
@@ -604,10 +605,11 @@ async def dragon_use_card(session: CommandSession):
     await settlement(buf, qq, partial(use_card, card))
     save_data()
 
-@on_command(('dragon', 'draw'), only_to_me=False, args=("num"), environment=env)
+@on_command(('dragon', 'draw'), short_des="使用抽卡券进行抽卡。", only_to_me=False, args=("num"), environment=env)
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_draw(session: CommandSession):
-    """使用抽卡券进行抽卡。"""
+    """使用抽卡券进行抽卡。
+    使用方法：抽卡 张数"""
     qq = session.ctx['user_id']
     try:
         n = int(session.current_arg_text.strip() or 1)
@@ -672,6 +674,8 @@ async def dragon_check(session: CommandSession):
 @on_command(('dragon', 'buy'), aliases="购买", only_to_me=False, short_des="购买逻辑接龙相关商品。", args=("id",), environment=env)
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_buy(session: CommandSession):
+    """购买逻辑接龙相关商品。
+    使用方法：购买 id号"""
     try:
         id = int(session.current_arg_text)
     except ValueError:
