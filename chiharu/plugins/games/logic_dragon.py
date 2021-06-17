@@ -175,6 +175,7 @@ def cancellation(session):
         if value == "取消":
             config.logger.dragon << f"【LOG】用户{session.ctx['user_id']}取消。"
             session.finish("已取消。")
+        return value
     return control
 
 def save_data():
