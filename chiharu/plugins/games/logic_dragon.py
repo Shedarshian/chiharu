@@ -324,7 +324,7 @@ async def kill(session, qq, hand_card, hour=4):
 
 # 抽卡。将卡牌放入手牌。
 async def draw(n: int, session: SessionBuffer, qq: int, hand_card, *, positive=None, cards=None):
-    cards = [draw_card(positive) for i in range(n)] if cards is not None else cards
+    cards = [draw_card(positive) for i in range(n)] if cards is None else cards
     session.send(session.char(qq) + '抽到的卡牌是：\n' + '\n'.join(c.full_description(qq) for c in cards))
     config.logger.dragon << f"【LOG】用户{qq}抽到的卡牌为{cards_to_str(cards)}。"
     for c in cards:
