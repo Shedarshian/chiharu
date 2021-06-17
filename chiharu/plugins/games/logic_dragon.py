@@ -685,7 +685,7 @@ async def dragon_buy(session: CommandSession):
     config.logger.dragon << f"【LOG】用户{qq}购买商品{id}。"
     if id == 1:
         # (25击毙)从起始词库中刷新一条接龙词。
-        add_jibi(buf, qq, -25)
+        await add_jibi(buf, qq, -25)
         buf.send("您刷新的关键词为：" + await update_begin_word())
     elif id == 2:
         # (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。
@@ -701,7 +701,7 @@ async def dragon_buy(session: CommandSession):
             buf.send(f"您只有{jibi}击毙！")
             n = jibi
         config.logger.dragon << f"【LOG】用户{qq}使用{n}击毙减少{15 * n}分钟死亡时间。"
-        add_jibi(buf, qq, -n)
+        await add_jibi(buf, qq, -n)
         b = decrease_death_time(qq, timedelta(minutes=15 * n))
         buf.send(f"您减少了{15 * n}分钟的死亡时间！" + ("您活了！" if b else ""))
     elif id == 3:
@@ -709,13 +709,13 @@ async def dragon_buy(session: CommandSession):
         config.logger.dragon << f"【LOG】询问用户{qq}提交起始词与图。"
         s = await buf.aget(prompt="请提交起始词和一张图。（审核不通过不返还击毙），输入取消退出。", arg_filter=[cancellation(session)])
         config.logger.dragon << f"【LOG】用户{qq}提交起始词：{s}。"
-        add_jibi(buf, qq, -70)
+        await add_jibi(buf, qq, -70)
         for group in config.group_id_dict['dragon_supervise']:
             await get_bot().send_group_msg(group_id=group, message=s)
         buf.send("您已成功提交！")
     elif id == 4:
         # (35击毙)回溯一条接龙。
-        add_jibi(buf, qq, -35)
+        await add_jibi(buf, qq, -35)
         buf.send("成功回溯！")
     elif id == 5:
         # (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。
@@ -727,12 +727,12 @@ async def dragon_buy(session: CommandSession):
                 cancellation(session)
             ])
         config.logger.dragon << f"【LOG】用户{qq}标记{c}为雷。"
-        add_jibi(buf, qq, -10)
+        await add_jibi(buf, qq, -10)
         add_bomb(c)
         buf.send(f"成功添加词汇{c}！")
     elif id == 6:
         # (5击毙)刷新一组隐藏奖励词。
-        add_jibi(buf, qq, -5)
+        await add_jibi(buf, qq, -5)
         update_hidden_keyword(-1)
         buf.send("成功刷新！")
     elif id == 7:
@@ -740,7 +740,7 @@ async def dragon_buy(session: CommandSession):
         config.logger.dragon << f"【LOG】询问用户{qq}提交的卡牌。"
         s = await buf.aget(prompt="请提交卡牌名、来源、与卡牌效果描述。（审核不通过不返还击毙），输入取消退出。", arg_filter=[cancellation(session)])
         config.logger.dragon << f"【LOG】用户{qq}提交卡牌{s}。"
-        add_jibi(buf, qq, -50)
+        await add_jibi(buf, qq, -50)
         for group in config.group_id_dict['dragon_supervise']:
             await get_bot().send_group_msg(group_id=group, message=s)
         buf.send("您已成功提交！")
