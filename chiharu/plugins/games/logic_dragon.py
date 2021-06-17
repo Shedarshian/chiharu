@@ -468,13 +468,15 @@ async def logical_dragon(session: NLPSession):
             buf.send("你接到了奖励词！", end='')
             if node['today_keyword_jibi'] > 0:
                 config.logger.dragon << f"【LOG】用户{qq}已拿完今日奖励词击毙。"
-                buf.send("奖励10击毙。", end='')
+                buf.send("奖励10击毙。")
                 config.userdata.execute("update dragon_data set today_keyword_jibi=? where qq=?", (node['today_keyword_jibi'] - 10, qq))
                 await add_jibi(buf, qq, 10)
-            if update_keyword(if_delete=True):
-                buf.send(f"奖励词已更新为：{keyword}。")
             else:
-                buf.send("奖励词池已空！")
+                buf.send("")
+            if update_keyword(if_delete=True):
+                buf.end(f"奖励词已更新为：{keyword}。")
+            else:
+                buf.end("奖励词池已空！")
         for i, k in enumerate(hidden_keyword):
             if k in word:
                 config.logger.dragon << f"【LOG】用户{qq}接到了隐藏奖励词{k}。"
