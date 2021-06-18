@@ -63,8 +63,10 @@ class Tree:
             else:
                 id = (0, 0)
         else:
-            self.parent = None # TODO
             id = parent_or_id
+            self.parent = self.find((id[0] - 1, id[1])) # TODO
+            if self.parent:
+                self.parent.childs.append(self)
         if not self.find(id):
             self.id = id
             self._objs.append([self])
