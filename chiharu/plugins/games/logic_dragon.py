@@ -550,7 +550,7 @@ async def logical_dragon(session: NLPSession):
             config.logger.dragon << f"【LOG】节点{parent.id}不可分叉，接龙失败。"
             await session.send(f"节点不可分叉，接龙{word}失败。")
             return
-        if parent.fork and len(parent.childs) == 0:
+        if parent.fork and len(parent.childs) == 1:
             config.logger.dragon << f"【LOG】节点{parent.id}已分叉，接龙失败。"
             await session.send(f"节点已分叉，接龙{word}失败。")
             return
