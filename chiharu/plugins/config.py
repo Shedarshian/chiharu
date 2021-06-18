@@ -211,6 +211,7 @@ class SessionBuffer:
     __slots__ = ('buffer', 'session', 'active', 'send_end')
     def __init__(self, session: CommandSession):
         self.buffer: str = ''
+        self.send_end: str = ''
         self.session: CommandSession = session
         self.active = session.ctx['user_id']
     def send(self, s, end='\n'):
@@ -218,7 +219,7 @@ class SessionBuffer:
         self.buffer += end
     def end(self, s, end='\n'):
         self.send_end += s
-        self.send_end += send_end
+        self.send_end += end
     async def flush(self):
         if self.buffer or self.send_end:
             await self.session.send((self.buffer + self.send_end).strip())

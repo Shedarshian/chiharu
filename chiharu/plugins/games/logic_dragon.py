@@ -59,7 +59,9 @@ class Tree:
             self.parent = parent
             if parent:
                 parent.childs.append(self)
-            id = (parent.id[0] + 1, parent.id[1])
+                id = (parent.id[0] + 1, parent.id[1])
+            else:
+                id = (0, 0)
         else:
             self.parent = None # TODO
             id = parent_or_id
@@ -516,7 +518,7 @@ async def daily_update():
     save_global_state()
     config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10', ('',))
     word = await update_begin_word(is_daily=True)
-    return "今日关键词：" + word + "\nid为0。"
+    return "今日关键词：" + word + "\nid为【0】。"
 
 @on_natural_language(keywords="接", only_to_me=False, only_short_message=False)
 async def logical_dragon(session: NLPSession):
@@ -533,6 +535,20 @@ async def logical_dragon(session: NLPSession):
             await session.send('你已死，不能接龙！')
             config.logger.dragon << f"【LOG】用户{qq}已死，接龙失败。"
             return
+        parent = Tree.find(Tree.str_to_id(match))
+        if not parent:
+            await session.send("请输入存在的id号。")
+            return
+        word = match.group(3).strip()
+        config.logger.dragon << f"【LOG】用户{qq}尝试接龙{word}，母节点id为{parent.id}。"
+        if len(parent.childs) != 0 and not parent.fork:
+            config.logger.dragon << f"【LOG】节点{parent.id}不可分叉，接龙失败。"
+            await session.send(f"节点不可分叉，接龙{word}失败。")
+            return
+        if parent.fork and len(parent.childs) == 0:
+            config.logger.dragon << f"【LOG】节点{parent.id}已分叉，接龙失败。"
+            await session.send(f"节点已分叉，接龙{word}失败。")
+            return
         m = check_status(qq, 'm', True, node)
         if m and len(global_state['past_two_user']) != 0 and qq == global_state['past_two_user'][1] or not m and qq in global_state['past_two_user']:
             if check_status(qq, 'z', False, node):
@@ -547,17 +563,6 @@ async def logical_dragon(session: NLPSession):
         if len(global_state['past_two_user']) > 2:
             global_state['past_two_user'].pop(0)
         save_global_state()
-        parent = Tree.find(Tree.str_to_id(match))
-        if not parent:
-            session.finish("请输入存在的id号。")
-        word = match.group(3).strip()
-        config.logger.dragon << f"【LOG】用户{qq}尝试接龙{word}，母节点id为{parent.id}。"
-        if len(parent.childs) != 0 and not parent.fork:
-            config.logger.dragon << f"【LOG】节点{parent.id}不可分叉，接龙失败。"
-            session.finish(f"节点不可分叉，接龙{word}失败。")
-        if parent.fork and len(parent.childs) == 0:
-            config.logger.dragon << f"【LOG】节点{parent.id}已分叉，接龙失败。"
-            session.finish(f"节点已分叉，接龙{word}失败。")
         tree_node = Tree(parent, word)
         if word == keyword:
             config.logger.dragon << f"【LOG】用户{qq}接到了奖励词{keyword}。"
@@ -596,7 +601,7 @@ async def logical_dragon(session: NLPSession):
             buf.send("过去一周之内接过此词，你死了！")
             await settlement(buf, qq, kill)
         else:
-            buf.send(f"成功接龙！接龙词：{word}，id为{tree_node.id_str}。", end='')
+            buf.send(f"成功接龙！接龙词：{word}，id为【{tree_node.id_str}】。", end='')
             if node['today_jibi'] > 0:
                 config.logger.dragon << f"【LOG】用户{qq}仍有{node['today_jibi']}次奖励机会。"
                 jibi_to_add = 1
@@ -785,7 +790,7 @@ async def dragon_buy(session: CommandSession):
     if id == 1:
         # (25击毙)从起始词库中刷新一条接龙词。
         await add_jibi(buf, qq, -25)
-        buf.send("您刷新的关键词为：" + await update_begin_word() + "，id为0。")
+        buf.send("您刷新的关键词为：" + await update_begin_word() + "，id为【0】。")
     elif id == 2:
         # (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。
         config.logger.dragon << f"【LOG】询问用户{qq}减少的死亡时间。"
