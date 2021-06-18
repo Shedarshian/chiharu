@@ -52,12 +52,17 @@ class Tree:
     __slots__ = ('id', 'parent', 'childs', 'word', 'fork')
     forests = []
     _objs = [] # [[wd0], [wd1], [wd2, wd2a, wd2b]]
-    max_id = -1
-    def __init__(self, parent, word):
-        self.parent = parent
-        if parent:
-            parent.childs.append(self)
-        id = (parent.id[0] + 1, 0)
+    max_branches = -1
+    def __init__(self, parent_or_id, word):
+        if isinstance(parent_or_id, Tree):
+            parent = parent_or_id
+            self.parent = parent
+            if parent:
+                parent.childs.append(self)
+            id = (parent.id[0] + 1, parent.id[1])
+        else:
+            self.parent = None # TODO
+            id = parent_or_id
         if not self.find(id):
             self.id = id
             self._objs.append([self])
@@ -81,7 +86,13 @@ class Tree:
         return str(self.id[0]) + ('' if self.id[1] == 0 else chr(97 + self.id[1]))
     @staticmethod
     def str_to_id(match):
-        return int(match.group(1)), 0 if match.group(2) is None else ord(match.group(2)) - 97
+        return int(match.group(1)), (0 if match.group(2) is None else ord(match.group(2)) - 97)
+    @classmethod
+    def init(cls, is_daily):
+        cls._objs = []
+        cls.max_branches = -1
+        if is_daily:
+            cls.forests = []
     @classmethod
     def graph(self):
         pass
@@ -89,7 +100,7 @@ class Tree:
 # log
 log_set : set = set()
 log_file = None
-def load_log():
+def load_log(init):
     global log_set, log_file
     log_set = set()
     if log_file is not None:
@@ -100,7 +111,7 @@ def load_log():
     today = rf'log\dragon_log_{d.isoformat()}.txt'
     def _(s):
         if match := re.match(r'(\d+[a-z]?) (.*)', s):
-            return match.group(1)
+            return match.group(2)
         return s
     for i in range(7):
         try:
@@ -109,8 +120,16 @@ def load_log():
         except FileNotFoundError:
             pass
         d -= timedelta(days=1)
+    if init:
+        try:
+            with open(config.rel(today), encoding='utf-8') as f:
+                for line in f.getlines():
+                    match = re.match(r'(\d+)([a-z])? (.*)', line.strip())
+                    node = Tree(Tree.str_to_id(match), match.group(3))
+        except FileNotFoundError:
+            pass
     log_file = open(config.rel(today), 'a', encoding='utf-8')
-load_log()
+load_log(True)
 def check_and_add_log(s : Tree):
     global log_set
     if s.word in log_set:
@@ -474,15 +493,15 @@ async def update_begin_word(is_daily):
     with open(config.rel('dragon_words.json'), 'w', encoding='utf-8') as f:
         f.write(json.dumps(d, indent=4, separators=(',', ': '), ensure_ascii=False))
     word_stripped = re.sub(r'[CQ:image,file=.*]', '', c).strip()
+    Tree.init(is_daily)
     if is_daily:
-        load_log()
+        load_log(init=False)
         log_set.add(word_stripped)
         log_file.write(f'0 {word_stripped}\n')
         log_file.flush()
     else:
         Tree.forests.append(Tree._objs)
-    Tree._objs = []
-    root = Tree(-1, word_stripped)
+    root = Tree(None, word_stripped)
     return c
 
 async def daily_update():
