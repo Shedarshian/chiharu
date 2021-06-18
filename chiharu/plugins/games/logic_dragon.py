@@ -363,7 +363,7 @@ def check_throw_card(qq, card_ids, hand_card=None):
     return True
 
 # 击杀玩家。
-async def kill(session, qq, hand_card, hour=4):
+async def kill(session, qq, hand_card, hour=2):
     dodge = False
     config.logger.dragon << f"【LOG】尝试击杀玩家{qq}。"
     if (n := check_status(qq, 's', False)) and not dodge:
@@ -808,12 +808,12 @@ async def dragon_buy(session: CommandSession):
     elif id == 2:
         # (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。
         config.logger.dragon << f"【LOG】询问用户{qq}减少的死亡时间。"
-        n = await buf.aget(prompt="请输入你想要减少的死亡时间。",
+        n = (await buf.aget(prompt="请输入你想要减少的死亡时间。",
             arg_filters=[
                 extractors.extract_text,
                 lambda s: list(map(int, re.findall(r'\d+', str(s)))),
                 validators.fit_size(1, 1, message="请输入一个自然数。"),
-            ])[0]
+            ]))[0]
         n //= 15
         if (jibi := get_jibi(qq)) < n:
             buf.send(f"您只有{jibi}击毙！")
