@@ -24,14 +24,14 @@ CommandGroup('dragon', short_des="逻辑接龙相关。", environment=env|env_su
 message_re = re.compile(r"\s*(\d+)([a-z])?\s*接[\s，,]+(.*)[\s，,\n]*.*")
 
 # Version information and changelog
-version = "0.2.0"
-changelog = """0.2.0 Changelog:
+version = "0.2.1"
+changelog = """0.2.1 Changelog:
 Change:
 接龙现在会以树状形式储存。
 接龙时需显式提供你所接的词汇的id。id相撞时则会判定为接龙失败。
 Add:
--dragon.version [-c]：查询逻辑接龙版本与Changelog。"""
-# -dragon.fork id（也可使用：分叉 id）：可以指定分叉。
+-dragon.version [-c]：查询逻辑接龙版本与Changelog。
+-dragon.fork id（也可使用：分叉 id）：可以指定分叉。"""
 # -dragon.delete id（也可使用：驳回 id）：可以驳回节点。
 # -dragon.check 活动词：查询当前可接的活动词与id。
 
@@ -64,7 +64,7 @@ class Tree:
                 id = (0, 0)
         else:
             id = parent_or_id
-            self.parent = self.find((id[0] - 1, id[1])) # TODO
+            self.parent = self.find((id[0] - 1, id[1]))
             if self.parent:
                 self.parent.childs.append(self)
         if not self.find(id):
@@ -854,6 +854,17 @@ async def dragon_buy(session: CommandSession):
             await get_bot().send_group_msg(group_id=group, message=s)
         buf.send("您已成功提交！")
     await buf.flush()
+
+@on_command(('dragon', 'fork'), aliases="分叉", only_to_me=False, short_des="分叉接龙。", args=("id",), environment=env)
+@config.ErrorHandle(config.logger.dragon)
+async def dragon_fork(session: CommandSession):
+    match = re.search(r'(\d+)([a-z])?', session.current_arg_text)
+    parent = Tree.find(Tree.str_to_id(match))
+    if not parent:
+        session.finish("请输入存在的id号。")
+    parent.fork = True
+    config.logger.dragon << f"【LOG】用户{session.ctx['user_id']}将id{parent.id}分叉。"
+    session.finish("成功分叉！")
 
 @on_command(('dragon', 'add_begin'), only_to_me=False, environment=env_supervise)
 @config.ErrorHandle(config.logger.dragon)
