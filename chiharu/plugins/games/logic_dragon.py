@@ -773,7 +773,7 @@ async def dragon_check(session: CommandSession):
         session.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
     elif data in ("活动词", "active"):
         words = [f"{s[-1].word}，id为{s[-1].id_str}" for s in Tree._objs]
-        session.finish("当前活动词为：" + '\n'.join(words))
+        session.finish("当前活动词为：\n" + '\n'.join(words))
     elif data in ("商店", "shop"):
         session.finish("1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. (35击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。")
     node = find_or_new(session.ctx['user_id'])
