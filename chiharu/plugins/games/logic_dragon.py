@@ -581,7 +581,7 @@ async def logical_dragon(session: NLPSession):
         for i, k in enumerate(hidden_keyword):
             if k in word:
                 config.logger.dragon << f"【LOG】用户{qq}接到了隐藏奖励词{k}。"
-                buf.send(f"你接到了隐藏奖励词{k}！奖励10击毙。", end='')
+                buf.send(f"你接到了隐藏奖励词{k}！奖励10击毙。")
                 await add_jibi(buf, qq, 10)
                 n = check_global_status('m', False)
                 if n:
