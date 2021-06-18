@@ -677,6 +677,8 @@ async def logical_dragon_else(session: NLPSession):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="商店")
     elif text.startswith("购买") and (len(text) == 2 or text[2] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'buy'), current_arg=text[2:].strip())
+    elif text.startswith("分叉") and (len(text) == 2 or text[2] == ' '):
+        await call_command(get_bot(), session.ctx, ('dragon', 'fork'), current_arg=text[2:].strip())
 
 # @on_command(('dragon', 'add_bomb'), aliases="添加炸弹", only_to_me=False, args=("keyword"), environment=env)
 # @config.ErrorHandle
