@@ -208,7 +208,7 @@ userdata_db.row_factory = sqlite3.Row
 userdata = userdata_db.cursor()
 
 class SessionBuffer:
-    __slots__ = ('buffer', 'session', 'active', 'end')
+    __slots__ = ('buffer', 'session', 'active', 'send_end')
     def __init__(self, session: CommandSession):
         self.buffer: str = ''
         self.session: CommandSession = session
@@ -217,11 +217,11 @@ class SessionBuffer:
         self.buffer += s
         self.buffer += end
     def end(self, s, end='\n'):
-        self.end += s
-        self.end += end
+        self.send_end += s
+        self.send_end += send_end
     async def flush(self):
-        if self.buffer or self.end:
-            await self.session.send((self.buffer + self.end).strip())
+        if self.buffer or self.send_end:
+            await self.session.send((self.buffer + self.send_end).strip())
             self.buffer = ''
     def __getattr__(self, name: str):
         return getattr(self.session, name)
