@@ -808,7 +808,7 @@ async def dragon_buy(session: CommandSession):
     elif id == 2:
         # (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。
         config.logger.dragon << f"【LOG】询问用户{qq}减少的死亡时间。"
-        n = (await buf.aget(prompt="请输入你想要减少的死亡时间。",
+        n = (await buf.aget(prompt="请输入你想要减少的死亡时间，单位为分钟。",
             arg_filters=[
                 extractors.extract_text,
                 lambda s: list(map(int, re.findall(r'\d+', str(s)))),
