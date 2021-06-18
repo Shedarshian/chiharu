@@ -54,7 +54,7 @@ class Tree:
     _objs = [] # [[wd0], [wd1], [wd2, wd2a, wd2b]]
     max_branches = -1
     def __init__(self, parent_or_id, word):
-        if isinstance(parent_or_id, Tree):
+        if isinstance(parent_or_id, Tree) or parent_or_id is None:
             parent = parent_or_id
             self.parent = parent
             if parent:
