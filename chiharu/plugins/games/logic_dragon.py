@@ -34,6 +34,7 @@ Add:
 -dragon.fork id（也可使用：分叉 id）：可以指定分叉。"""
 # -dragon.delete id（也可使用：驳回 id）：可以驳回节点。
 # -dragon.check 活动词：查询当前可接的活动词与id。
+# -dragon.check 状态：查询自己的状态。
 
 # keyword : [str, list(str)]
 # hidden : [list(str), list(str)]
@@ -667,6 +668,8 @@ async def logical_dragon_else(session: NLPSession):
     text = session.msg_text.strip()
     if text.startswith("查询接龙"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[4:].strip())
+    elif text.startswith("查询"):
+        await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[2:].strip())
     elif text.startswith("使用手牌") and (len(text) == 4 or text[4] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
     elif text.startswith("抽卡") and (len(text) == 2 or text[2] == ' '):
@@ -860,6 +863,8 @@ async def dragon_buy(session: CommandSession):
 @on_command(('dragon', 'fork'), aliases="分叉", only_to_me=False, short_des="分叉接龙。", args=("id",), environment=env)
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_fork(session: CommandSession):
+    """分叉接龙。
+    使用方法：分叉 id号"""
     match = re.search(r'(\d+)([a-z])?', session.current_arg_text)
     parent = Tree.find(Tree.str_to_id(match))
     if not parent:
