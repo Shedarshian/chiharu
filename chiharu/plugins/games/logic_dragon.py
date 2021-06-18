@@ -123,7 +123,7 @@ def load_log(init):
     if init:
         try:
             with open(config.rel(today), encoding='utf-8') as f:
-                for line in f.getlines():
+                for line in f.readlines():
                     match = re.match(r'(\d+)([a-z])? (.*)', line.strip())
                     node = Tree(Tree.str_to_id(match), match.group(3))
         except FileNotFoundError:
