@@ -30,10 +30,10 @@ Change:
 接龙现在会以树状形式储存。
 接龙时需显式提供你所接的词汇的id。id相撞时则会判定为接龙失败。
 Add:
--dragon.version [-c]：查询逻辑接龙版本与Changelog。
--dragon.fork id（也可使用：分叉 id）：可以指定分叉。
--dragon.delete id（也可使用：驳回 id）：可以驳回节点。
--dragon.check 活动词：查询当前可接的活动词与id。"""
+-dragon.version [-c]：查询逻辑接龙版本与Changelog。"""
+# -dragon.fork id（也可使用：分叉 id）：可以指定分叉。
+# -dragon.delete id（也可使用：驳回 id）：可以驳回节点。
+# -dragon.check 活动词：查询当前可接的活动词与id。
 
 # keyword : [str, list(str)]
 # hidden : [list(str), list(str)]
