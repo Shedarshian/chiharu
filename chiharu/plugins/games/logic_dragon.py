@@ -326,6 +326,7 @@ def decrease_death_time(qq, time: timedelta, node=None):
     if 'd' in status:
         t = datetime.fromisoformat(status['d'])
         t -= time
+        status['d'] = t.isoformat()
         if t < datetime.now():
             status.pop('d')
         config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), qq))
