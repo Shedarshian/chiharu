@@ -24,16 +24,16 @@ CommandGroup('dragon', short_des="逻辑接龙相关。", environment=env|env_su
 message_re = re.compile(r"\s*(\d+)([a-z])?\s*接[\s，,]+(.*)[\s，,\n]*.*")
 
 # Version information and changelog
-version = "0.2.1"
-changelog = """0.2.1 Changelog:
+version = "0.2.2"
+changelog = """0.2.2 Changelog:
 Change:
 接龙现在会以树状形式储存。
 接龙时需显式提供你所接的词汇的id。id相撞时则会判定为接龙失败。
 Add:
 -dragon.version [-c]：查询逻辑接龙版本与Changelog。
--dragon.fork id（也可使用：分叉 id）：可以指定分叉。"""
+-dragon.fork id（也可使用：分叉 id）：可以指定分叉。
+-dragon.check 活动词：查询当前可接的活动词与id。"""
 # -dragon.delete id（也可使用：驳回 id）：可以驳回节点。
-# -dragon.check 活动词：查询当前可接的活动词与id。
 # -dragon.check 状态：查询自己的状态。
 
 # keyword : [str, list(str)]
@@ -752,6 +752,7 @@ async def dragon_check(session: CommandSession):
     起始池/begin_pool：查询当前起始词池大小。
     隐藏奖励池/hidden_keyword_pool：查询当前隐藏奖励池大小。
     卡池/card_pool：查询当前卡池总卡数。
+    活动词/active：查询当前可以接的词。
     复活时间/recover_time：查询自己的复活时间。
     手牌/hand_cards：查询自己当前手牌。
     击毙/jibi：查询自己的击毙数。
@@ -769,6 +770,9 @@ async def dragon_check(session: CommandSession):
         session.finish("当前隐藏奖励池大小为：" + str(len(d['hidden'][1])))
     elif data in ("卡池", "card_pool"):
         session.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
+    elif data in ("活动词", "active"):
+        words = [f"{s[-1].word}，id为{s[-1].id_str}" for s in Tree._objs]
+        session.finish("当前活动词为：" + '\n'.join(words))
     elif data in ("商店", "shop"):
         session.finish("1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. (35击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。")
     node = find_or_new(session.ctx['user_id'])
