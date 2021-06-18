@@ -5,6 +5,7 @@ import itertools, more_itertools
 import json
 import random
 import re
+from PIL import Image, ImageDraw
 from functools import lru_cache, partial, reduce
 from nonebot import CommandSession, NLPSession, on_natural_language, get_bot, scheduler
 from nonebot.command import call_command
@@ -20,7 +21,19 @@ config.logger.open('dragon')
 CommandGroup('dragon', short_des="逻辑接龙相关。", environment=env|env_supervise)
 
 # TODO 十连保底
-message_re = re.compile(r"[\s我那就，]*接[\s，,]+(.*)[\s，,\n]*.*")
+message_re = re.compile(r"\s*(\d+)([a-z])?\s*接[\s，,]+(.*)[\s，,\n]*.*")
+
+# Version information and changelog
+version = "0.2.0"
+changelog = """0.2.0 Changelog:
+Change:
+接龙现在会以树状形式储存。
+接龙时需显式提供你所接的词汇的id。id相撞时则会判定为接龙失败。
+Add:
+-dragon.version [-c]：查询逻辑接龙版本与Changelog。
+-dragon.fork id（也可使用：分叉 id）：可以指定分叉。
+-dragon.delete id（也可使用：驳回 id）：可以驳回节点。
+-dragon.check 活动词：查询当前可接的活动词与id。"""
 
 # keyword : [str, list(str)]
 # hidden : [list(str), list(str)]
@@ -34,6 +47,45 @@ with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
     bombs = d["bombs"]
     last_update_date = d["last_update_date"]
     del d
+
+class Tree:
+    __slots__ = ('id', 'parent', 'childs', 'word', 'fork')
+    forests = []
+    _objs = [] # [[wd0], [wd1], [wd2, wd2a, wd2b]]
+    max_id = -1
+    def __init__(self, parent, word):
+        self.parent = parent
+        if parent:
+            parent.childs.append(self)
+        id = (parent.id[0] + 1, 0)
+        if not self.find(id):
+            self.id = id
+            self._objs.append([self])
+        else:
+            for i in itertools.count():
+                if not self.find((id[0], i)):
+                    self.id = (id[0], i)
+                    self._objs[id[0]].append(self)
+                    break
+        self.childs = []
+        self.word = word
+        self.fork = False
+    @classmethod
+    def find(cls, id):
+        try:
+            return cls._objs[id[0]][id[1]]
+        except IndexError:
+            return None
+    @property
+    def id_str(self):
+        return str(self.id[0]) + ('' if self.id[1] == 0 else chr(97 + self.id[1]))
+    @staticmethod
+    def str_to_id(match):
+        return int(match.group(1)), 0 if match.group(2) is None else ord(match.group(2)) - 97
+    @classmethod
+    def graph(self):
+        pass
+
 # log
 log_set : set = set()
 log_file = None
@@ -46,21 +98,25 @@ def load_log():
     if datetime.now().time() < time(15, 59):
         d -= timedelta(days=1)
     today = rf'log\dragon_log_{d.isoformat()}.txt'
+    def _(s):
+        if match := re.match(r'(\d+[a-z]?) (.*)', s):
+            return match.group(1)
+        return s
     for i in range(7):
         try:
             with open(config.rel(rf'log\dragon_log_{d.isoformat()}.txt'), encoding='utf-8') as f:
-                log_set.update(s.strip() for s in f.readlines())
+                log_set.update(_(s.strip()) for s in f.readlines())
         except FileNotFoundError:
             pass
         d -= timedelta(days=1)
     log_file = open(config.rel(today), 'a', encoding='utf-8')
 load_log()
-def check_and_add_log(s):
+def check_and_add_log(s : Tree):
     global log_set
-    if s in log_set:
+    if s.word in log_set:
         return False
-    log_set.add(s)
-    log_file.write(s + '\n')
+    log_set.add(s.word)
+    log_file.write(f'{s.id_str} {s.word}\n')
     log_file.flush()
     return True
 
@@ -403,7 +459,7 @@ async def settlement(buf: SessionBuffer, qq: int, to_do):
     await buf.flush()
     save_data()
 
-async def update_begin_word():
+async def update_begin_word(is_daily):
     global last_update_date
     with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         d = json.load(f)
@@ -417,6 +473,16 @@ async def update_begin_word():
         config.logger.dragon << f"【LOG】起始词库已空！"
     with open(config.rel('dragon_words.json'), 'w', encoding='utf-8') as f:
         f.write(json.dumps(d, indent=4, separators=(',', ': '), ensure_ascii=False))
+    word_stripped = re.sub(r'[CQ:image,file=.*]', '', c).strip()
+    if is_daily:
+        load_log()
+        log_set.add(word_stripped)
+        log_file.write(f'0 {word_stripped}\n')
+        log_file.flush()
+    else:
+        Tree.forests.append(Tree._objs)
+    Tree._objs = []
+    root = Tree(-1, word_stripped)
     return c
 
 async def daily_update():
@@ -430,7 +496,8 @@ async def daily_update():
     global_state['quest'] = m
     save_global_state()
     config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10', ('',))
-    return "今日关键词：" + await update_begin_word()
+    word = await update_begin_word(is_daily=True)
+    return "今日关键词：" + word + "\nid为0。"
 
 @on_natural_language(keywords="接", only_to_me=False, only_short_message=False)
 async def logical_dragon(session: NLPSession):
@@ -461,8 +528,18 @@ async def logical_dragon(session: NLPSession):
         if len(global_state['past_two_user']) > 2:
             global_state['past_two_user'].pop(0)
         save_global_state()
-        word = match.group(1).strip()
-        config.logger.dragon << f"【LOG】用户{qq}尝试接龙{word}。"
+        parent = Tree.find(Tree.str_to_id(match))
+        if not parent:
+            session.finish("请输入存在的id号。")
+        word = match.group(3).strip()
+        config.logger.dragon << f"【LOG】用户{qq}尝试接龙{word}，母节点id为{parent.id}。"
+        if len(parent.childs) != 0 and not parent.fork:
+            config.logger.dragon << f"【LOG】节点{parent.id}不可分叉，接龙失败。"
+            session.finish(f"节点不可分叉，接龙{word}失败。")
+        if parent.fork and len(parent.childs) == 0:
+            config.logger.dragon << f"【LOG】节点{parent.id}已分叉，接龙失败。"
+            session.finish(f"节点已分叉，接龙{word}失败。")
+        tree_node = Tree(parent, word)
         if word == keyword:
             config.logger.dragon << f"【LOG】用户{qq}接到了奖励词{keyword}。"
             buf.send("你接到了奖励词！", end='')
@@ -493,14 +570,14 @@ async def logical_dragon(session: NLPSession):
                     config.logger.dragon << f"【LOG】用户{qq}触发了互相交换，来自{to_exchange}。"
                     save_global_state()
                 if not update_hidden_keyword(i, True):
-                    buf.send("隐藏奖励词池已空！")
+                    buf.end("隐藏奖励词池已空！")
                 break
-        if not check_and_add_log(word):
+        if not check_and_add_log(tree_node):
             config.logger.dragon << f"【LOG】用户{qq}由于过去一周接过此词，死了。"
             buf.send("过去一周之内接过此词，你死了！")
             await settlement(buf, qq, kill)
         else:
-            buf.send(f"成功接龙！接龙词：{word}。", end='')
+            buf.send(f"成功接龙！接龙词：{word}，id为{tree_node.id_str}。", end='')
             if node['today_jibi'] > 0:
                 config.logger.dragon << f"【LOG】用户{qq}仍有{node['today_jibi']}次奖励机会。"
                 jibi_to_add = 1
@@ -689,7 +766,7 @@ async def dragon_buy(session: CommandSession):
     if id == 1:
         # (25击毙)从起始词库中刷新一条接龙词。
         await add_jibi(buf, qq, -25)
-        buf.send("您刷新的关键词为：" + await update_begin_word())
+        buf.send("您刷新的关键词为：" + await update_begin_word() + "，id为0。")
     elif id == 2:
         # (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。
         config.logger.dragon << f"【LOG】询问用户{qq}减少的死亡时间。"
@@ -788,12 +865,26 @@ async def dragon_kill(session: CommandSession):
 #     node = find_or_new(qq)
 #     config.userdata.execute("update dragon_data set draw_time=? where qq=?", (node['draw_time'] + int(session.current_arg_text), qq)) 
 
+@on_command(('dragon', 'version'), only_to_me=False, short_des="查看逻辑接龙版本。", args=("[-c]",))
+@config.ErrorHandle(config.logger.dragon)
+async def dragon_version(session: CommandSession):
+    """查看逻辑接龙版本。
+    可选参数：
+    -c：一并输出Changelog。"""
+    if session.current_arg_text == '-c':
+        await session.send(f"七海千春 逻辑接龙 ver.{version} 为您服务\n{changelog}")
+    else:
+        await session.send(f"七海千春 逻辑接龙 ver.{version} 为您服务")
+
 @scheduler.scheduled_job('cron', id="dragon_daily", hour='16', minute='00-03')
 async def dragon_daily():
     global last_update_date
     config.logger.dragon << f"【LOG】尝试每日更新。"
     if last_update_date == date.today().isoformat():
         return
+    graph = Tree.graph()
+    # for group in config.group_id_dict['logic_dragon_send']:
+    #     await get_bot().send_group_msg(group_id=group, message=[config.cq.text("昨天的接龙图："), config.cq.img(graph)])
     ret = await daily_update()
     for group in config.group_id_dict['logic_dragon_send']:
         await get_bot().send_group_msg(group_id=group, message=ret)
