@@ -780,7 +780,12 @@ async def dragon_check(session: CommandSession):
     if data in ("复活时间", "recover_time"):
         status = eval(node['status_time'])
         if 'd' in status:
-            session.finish("你的复活时间为：" + status['d'])
+            if status['d'] < datetime.now():
+                status.pop('d')
+                config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), qq))
+                session.finish("你目前没有复活时间！")
+            delta = datetime.fromisoformat(status['d']) - datetime.now()
+            session.finish(f"你的复活时间为：{delta.seconds // 60}分钟。")
         session.finish("你目前没有复活时间！")
     elif data in ("手牌", "hand_cards"):
         cards = get_card(session.ctx['user_id'])
