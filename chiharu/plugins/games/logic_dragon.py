@@ -138,14 +138,15 @@ def load_log(init):
             pass
     log_file = open(config.rel(today), 'a', encoding='utf-8')
 load_log(True)
-def check_and_add_log(s : Tree):
+def check_and_add_log_and_contruct_tree(parent, word):
     global log_set
-    if s.word in log_set:
-        return False
+    if word in log_set:
+        return None
+    s = Tree(parent, word)
     log_set.add(s.word)
     log_file.write(f'{s.id_str} {s.word}\n')
     log_file.flush()
-    return True
+    return s
 
 # global_state
 # past_two_user : list(int)
@@ -569,7 +570,6 @@ async def logical_dragon(session: NLPSession):
         if len(global_state['past_two_user']) > 2:
             global_state['past_two_user'].pop(0)
         save_global_state()
-        tree_node = Tree(parent, word)
         if word == keyword:
             config.logger.dragon << f"【LOG】用户{qq}接到了奖励词{keyword}。"
             buf.send("你接到了奖励词！", end='')
@@ -602,7 +602,7 @@ async def logical_dragon(session: NLPSession):
                 if not update_hidden_keyword(i, True):
                     buf.end("隐藏奖励词池已空！")
                 break
-        if not check_and_add_log(tree_node):
+        if not (tree_node := check_and_add_log_and_contruct_tree(parent, word)):
             config.logger.dragon << f"【LOG】用户{qq}由于过去一周接过此词，死了。"
             buf.send("过去一周之内接过此词，你死了！")
             await settlement(buf, qq, kill)
