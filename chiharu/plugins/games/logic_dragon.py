@@ -492,7 +492,7 @@ async def update_begin_word(is_daily):
         config.logger.dragon << f"【LOG】起始词库已空！"
     with open(config.rel('dragon_words.json'), 'w', encoding='utf-8') as f:
         f.write(json.dumps(d, indent=4, separators=(',', ': '), ensure_ascii=False))
-    word_stripped = re.sub(r'[CQ:image,file=.*]', '', c).strip()
+    word_stripped = re.sub(r'\[CQ:image,file=.*\]', '', c).strip()
     Tree.init(is_daily)
     if is_daily:
         load_log(init=False)
