@@ -51,8 +51,8 @@ with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
 class Tree:
     __slots__ = ('id', 'parent', 'childs', 'word', 'fork')
     forests = []
-    _objs = [] # [[wd0], [wd1], [wd2, wd2a, wd2b]]
-    max_branches = -1
+    _objs = [] # [[wd0, wd1, wd2], [wd2a], [wd2b]]
+    max_branches = 0
     def __init__(self, parent_or_id, word):
         if isinstance(parent_or_id, Tree) or parent_or_id is None:
             parent = parent_or_id
@@ -69,34 +69,37 @@ class Tree:
                 self.parent.childs.append(self)
         if not self.find(id):
             self.id = id
-            self._objs.append([self])
+            if Tree.max_branches == id[1]:
+                Tree.max_branches += 1
+                self._objs.append([])
         else:
-            for i in itertools.count():
-                if not self.find((id[0], i)):
-                    self.id = (id[0], i)
-                    self._objs[id[0]].append(self)
-                    break
+            self.id = (id[0], Tree.max_branches)
+            Tree.max_branches += 1
+            self._objs.append([])
+        self._objs[self.id[1]].append(self)
         self.childs = []
         self.word = word
         self.fork = False
     @classmethod
     def find(cls, id):
         try:
-            return cls._objs[id[0]][id[1]]
+            return cls._objs[id[1]][id[0]]
         except IndexError:
             return None
     @property
     def id_str(self):
-        return str(self.id[0]) + ('' if self.id[1] == 0 else chr(97 + self.id[1]))
+        return str(self.id[0]) + ('' if self.id[1] == 0 else chr(96 + self.id[1]))
     @staticmethod
     def str_to_id(match):
-        return int(match.group(1)), (0 if match.group(2) is None else ord(match.group(2)) - 97)
+        return int(match.group(1)), (0 if match.group(2) is None else ord(match.group(2)) - 96)
     @classmethod
     def init(cls, is_daily):
         cls._objs = []
         cls.max_branches = -1
         if is_daily:
             cls.forests = []
+    def __repr__(self):
+        return f"<id: {self.id}, parent_id: {'None' if self.parent is None else self.parent.id}, word: \"{self.word}\">"
     @classmethod
     def graph(self):
         pass
