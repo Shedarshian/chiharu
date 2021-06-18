@@ -7,7 +7,7 @@ import random
 import re
 from PIL import Image, ImageDraw
 from functools import lru_cache, partial, reduce
-from nonebot import CommandSession, NLPSession, on_natural_language, get_bot, scheduler
+from nonebot import CommandSession, NLPSession, on_natural_language, get_bot, permission, scheduler
 from nonebot.command import call_command
 from nonebot.command.argfilter import extractors, validators
 from ..inject import CommandGroup, on_command
@@ -899,6 +899,20 @@ async def dragon_version(session: CommandSession):
 async def dragon_daily():
     global last_update_date
     config.logger.dragon << f"【LOG】尝试每日更新。"
+    if last_update_date == date.today().isoformat():
+        return
+    graph = Tree.graph()
+    # for group in config.group_id_dict['logic_dragon_send']:
+    #     await get_bot().send_group_msg(group_id=group, message=[config.cq.text("昨天的接龙图："), config.cq.img(graph)])
+    ret = await daily_update()
+    for group in config.group_id_dict['logic_dragon_send']:
+        await get_bot().send_group_msg(group_id=group, message=ret)
+
+@on_command(('dragon', 'update'), only_to_me=False, hide=True, permission=permission.SUPERUSER)
+@config.ErrorHandle(config.logger.dragon)
+async def dragon_update(session: CommandSession):
+    global last_update_date
+    config.logger.dragon << f"【LOG】强制每日更新。"
     if last_update_date == date.today().isoformat():
         return
     graph = Tree.graph()
