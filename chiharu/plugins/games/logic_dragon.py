@@ -783,7 +783,7 @@ async def dragon_check(session: CommandSession):
             delta = datetime.fromisoformat(status['d']) - datetime.now()
             if delta < timedelta():
                 status.pop('d')
-                config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), qq))
+                config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), session.ctx['user_id']))
                 session.finish("你目前没有复活时间！")
             session.finish(f"你的复活时间为：{delta.seconds // 60}分钟。")
         session.finish("你目前没有复活时间！")
