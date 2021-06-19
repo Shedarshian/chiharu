@@ -344,6 +344,16 @@ def decrease_death_time(qq, time: timedelta, node=None):
         config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), qq))
         return 'd' not in status
     return True
+def get_limited_time(qq, s, status=None):
+    status = status or eval(find_or_new(qq)['status_time'])
+    if s not in status:
+        return None
+    delta = datetime.fromisoformat(status[s]) - datetime.now()
+    if delta < timedelta():
+        status.pop(s)
+        config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), session.ctx['user_id']))
+        return None
+    return delta.seconds // 60
 
 def cards_to_str(cards):
     return '，'.join(c.name for c in cards)
@@ -764,6 +774,7 @@ async def dragon_check(session: CommandSession):
     卡池/card_pool：查询当前卡池总卡数。
     活动词/active：查询当前可以接的词。
     复活时间/recover_time：查询自己的复活时间。
+    状态/status：查询自己当前状态。
     手牌/hand_cards：查询自己当前手牌。
     击毙/jibi：查询自己的击毙数。
     商店/shop：查询可购买项目。"""
@@ -785,24 +796,42 @@ async def dragon_check(session: CommandSession):
         session.finish("当前活动词为：\n" + '\n'.join(words))
     elif data in ("商店", "shop"):
         session.finish("1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. (35击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。")
-    node = find_or_new(session.ctx['user_id'])
+    qq = session.ctx['user_id']
+    node = find_or_new(qq)
     if data in ("复活时间", "recover_time"):
         status = eval(node['status_time'])
-        if 'd' in status:
-            delta = datetime.fromisoformat(status['d']) - datetime.now()
-            if delta < timedelta():
-                status.pop('d')
-                config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), session.ctx['user_id']))
-                session.finish("你目前没有复活时间！")
-            session.finish(f"你的复活时间为：{delta.seconds // 60}分钟。")
-        session.finish("你目前没有复活时间！")
+        time = get_limited_time(qq, 'd', status)
+        if time is None:
+            session.finish("你目前没有复活时间！")
+        else:
+            session.finish(f"你的复活时间为：{time}分钟。")
     elif data in ("手牌", "hand_cards"):
-        cards = get_card(session.ctx['user_id'])
+        cards = get_card(qq)
         if len(cards) == 0:
             session.finish("你没有手牌！")
-        session.finish("你的手牌为：\n" + '\n'.join(s.full_description(session.ctx['user_id']) for s in cards))
+        session.finish("你的手牌为：\n" + '\n'.join(s.full_description(qq) for s in cards))
     elif data in ("击毙", "jibi"):
         session.finish("你的击毙数为：" + str(node['jibi']))
+    elif data in ("状态", "status"):
+        status = node['status']
+        daily_status = node['daily_status']
+        status_time = eval(node['status_time'])
+        def _():
+            for s in status:
+                yield _card.status_dict[s]
+            for s in daily_status:
+                yield _card.daily_status_dict[s]
+            for key in status_time:
+                time = get_limited_time(qq, key, status)
+                if time is not None:
+                    yield f"{_card.limited_status_dict[s]}\n\t结束时间：{time}分钟。"
+            if qq in global_state['lianhuan']:
+                yield tiesuolianhuan.status_des
+        ret = '\n'.join(_())
+        if ret == '':
+            session.finish("你目前没有状态！")
+        else:
+            session.finish("你的状态为：\n" + ret)
 
 @on_command(('dragon', 'buy'), aliases="购买", only_to_me=False, short_des="购买逻辑接龙相关商品。", args=("id",), environment=env)
 @config.ErrorHandle(config.logger.dragon)
@@ -979,42 +1008,42 @@ class card_meta(type):
         if len(bases) != 0 and 'status_set' in bases[0].__dict__:
             if 'status' in attrs and attrs['status']:
                 status = attrs['status']
-                bases[0].add_status(status)
+                bases[0].add_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, session, qq, hand_card):
                     add_status(qq, status, False)
                 attrs['use'] = use
             elif 'daily_status' in attrs and attrs['daily_status']:
                 status = attrs['daily_status']
-                bases[0].add_daily_status(status)
+                bases[0].add_daily_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, session, qq, hand_card):
                     add_status(qq, status, True)
                 attrs['use'] = use
             elif 'limited_status' in attrs and attrs['limited_status']:
                 status = attrs['limited_status']
-                bases[0].add_limited_status(status)
+                bases[0].add_limited_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, session, qq, hand_card):
                     add_limited_status(qq, status, datetime.now() + self.limited_time)
                 attrs['use'] = use
             elif 'global_status' in attrs and attrs['global_status']:
                 status = attrs['global_status']
-                bases[0].add_status(status)
+                bases[0].add_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, session, qq, hand_card):
                     add_global_status(status, False)
                 attrs['use'] = use
             elif 'global_daily_status' in attrs and attrs['global_daily_status']:
                 status = attrs['global_daily_status']
-                bases[0].add_daily_status(status)
+                bases[0].add_daily_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, session, qq, hand_card):
                     add_global_status(status, True)
                 attrs['use'] = use
             elif 'global_limited_status' in attrs and attrs['global_limited_status']:
                 status = attrs['global_limited_status']
-                bases[0].add_limited_status(status)
+                bases[0].add_limited_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, session, qq, hand_card):
                     add_global_limited_status(status, datetime.now() + self.global_limited_time)
@@ -1031,9 +1060,9 @@ class card_meta(type):
 
 class _card(metaclass=card_meta):
     card_id_dict = {}
-    status_set = {'d'}
-    daily_status_set = set()
-    limited_status_set = {'d'}
+    status_dict = {'d': "永久死亡。"}
+    daily_status_dict = {}
+    limited_status_dict = {'d': "死亡：不可接龙。"}
     name = ""
     id = -15
     positive = 0
@@ -1053,20 +1082,20 @@ class _card(metaclass=card_meta):
     async def on_give(cls, session, qq, hand_card, target):
         pass
     @classmethod
-    def add_daily_status(cls, s):
-        if s in cls.daily_status_set:
+    def add_daily_status(cls, s, des):
+        if s in cls.daily_status_dict:
             raise ImportError
-        cls.daily_status_set.add(s)
+        cls.daily_status_dict[s] = des
     @classmethod
-    def add_status(cls, s):
-        if s in cls.status_set:
+    def add_status(cls, s, des):
+        if s in cls.status_dict:
             raise ImportError
-        cls.status_set.add(s)
+        cls.status_dict[s] = des
     @classmethod
-    def add_limited_status(cls, s):
-        if s in cls.limited_status_set:
+    def add_limited_status(cls, s, des):
+        if s in cls.limited_status_dict:
             raise ImportError
-        cls.limited_status_set.add(s)
+        cls.limited_status_dict[s] = des
     @classmethod
     def full_description(cls, qq):
         return f"{cls.id}. {cls.name}\n\t{cls.description}"
@@ -1107,7 +1136,7 @@ class dabingyichang(_card):
     async def on_draw(cls, session, qq, hand_card):
         add_status(qq, 'd', True)
         session.send(session.char(qq) + "病了！直到下一次主题出现前不得接龙。")
-_card.add_daily_status('d')
+_card.add_daily_status('d', "生病：直到下一次主题出现前不可接龙。")
 
 class caipiaozhongjiang(_card):
     name = "彩票中奖"
@@ -1134,6 +1163,7 @@ class tiesuolianhuan(_card):
     name = "铁索连环"
     id = 38
     positive = 1
+    status_des = "铁索连环：任何处于连环状态的玩家被击毙时所有连环状态的玩家也被击毙并失去此效果。"
     description = "指定至多两名玩家进入连环状态。任何处于连环状态的玩家被击毙时所有连环状态的玩家也被击毙并失去此效果。也可用于解除至多两人的连环状态。"
     @classmethod
     async def use(cls, session, qq, hand_card):
@@ -1158,6 +1188,7 @@ class minus1ma(_card):
     name = "-1马"
     id = 39
     daily_status = 'm'
+    status_des = "-1马：直到下次主题刷新为止，你隔一次就可以接龙。"
     positive = 1
     description = "直到下次主题刷新为止，你隔一次就可以接龙。"
 
@@ -1217,6 +1248,7 @@ class sihuihuibizhiyao(_card):
     name = "死秽回避之药"
     id = 50
     status = 's'
+    status_des = '死秽回避之药：下次死亡时自动消耗5击毙免除死亡。'
     positive = 1
     description = "你下次死亡时自动消耗5击毙免除死亡。"
 
@@ -1224,6 +1256,7 @@ class huiye(_card):
     name = "辉夜姬的秘密宝箱"
     id = 52
     status = 'x'
+    status_des = '辉夜姬的秘密宝箱：下一次死亡的时候奖励抽一张卡。'
     positive = 1
     description = "你下一次死亡的时候奖励你抽一张卡。"
 
@@ -1278,6 +1311,7 @@ class plus2(_card):
     name = "+2"
     id = 60
     global_status = '+'
+    status_des = '+2：下一个接龙的人抽一张非负面卡和一张非正面卡。'
     positive = 0
     description = "下一个接龙的人抽一张非负面卡和一张非正面卡。"
 
@@ -1338,6 +1372,7 @@ class cunqianguan(_card):
     name = "存钱罐"
     id = 70
     global_status = 'm'
+    status_des = '存钱罐：下次触发隐藏词的奖励+10击毙。'
     positive = 0
     description = "下次触发隐藏词的奖励+10击毙。"
 
@@ -1345,6 +1380,7 @@ class hongsezhihuan(_card):
     name = "虹色之环"
     id = 71
     status = 'h'
+    status_des = '虹色之环：下次死亡时，有1/2几率闪避，1/2几率死亡时间+1小时。'
     positive = 0
     description = "下次你死亡时，有1/2几率闪避，1/2几率死亡时间+1小时。"
 
@@ -1389,12 +1425,13 @@ class xingyunhufu(_card):
     async def on_give(cls, session, qq, hand_card, target):
         remove_status(qq, 'y', False)
         add_status(target, 'y', False)
-_card.add_status('y')
+_card.add_status('y', '幸运护符：无法使用其他卡牌。每进行两次接龙额外获得一个击毙（每天上限为5击毙）。')
 
 class jisuzhuangzhi(_card):
     name = "极速装置"
     id = 74
     status = 'z'
+    status_des = '极速装置：下次可以连续接龙两次。'
     positive = 1
     description = '下次你可以连续接龙两次。'
 
@@ -1438,7 +1475,7 @@ class lveduozhebopu(_card):
     async def on_give(cls, session, qq, hand_card, target):
         remove_status(qq, 'p', False)
         add_status(target, 'p', False)
-_card.add_status('p')
+_card.add_status('p', '掠夺者啵噗：死亡时间增加1小时。每天因接龙获得1击毙时，可从所接龙的人处偷取1击毙。若目标没有击毙则不可偷取。')
 
 class jiandieyubei(_card):
     name = "邪恶的间谍行动～预备"
@@ -1462,6 +1499,7 @@ class ComicSans(_card): # TODO
     name = "Comic Sans"
     id = 80
     global_daily_status = 'c'
+    status_des = 'Comic Sans：七海千春今天所有生成的图片均使用Comic Sans作为西文字体（中文使用华文彩云）。'
     positive = 0
     description = "七海千春今天所有生成的图片均使用Comic Sans作为西文字体（中文使用华文彩云）。"
 
@@ -1511,6 +1549,7 @@ class bianyaqi(_card):
     name = "变压器（♣10）"
     id = 93
     status = '2'
+    status_des = '变压器（♣10）：下一次击毙变动变动值加倍。'
     positive = 0
     description = "下一次你的击毙变动变动值加倍。"
 
