@@ -24,15 +24,17 @@ CommandGroup('dragon', short_des="逻辑接龙相关。", environment=env|env_su
 message_re = re.compile(r"\s*(\d+)([a-z])?\s*接[\s，,]*(.*)[\s，,\n]*.*")
 
 # Version information and changelog
-version = "0.2.2"
-changelog = """0.2.2 Changelog:
+version = "0.2.3"
+changelog = """0.2.3 Changelog:
 Change:
 接龙现在会以树状形式储存。
 接龙时需显式提供你所接的词汇的id。id相撞时则会判定为接龙失败。
 Add:
 -dragon.version [-c]：查询逻辑接龙版本与Changelog。
 -dragon.fork id（也可使用：分叉 id）：可以指定分叉。
--dragon.check 活动词：查询当前可接的活动词与id。"""
+-dragon.check 活动词：查询当前可接的活动词与id。
+BugFix:
+修正了“接太快了”只和时序有关导致在有分叉的情况下不会正常运作的bug。"""
 # -dragon.delete id（也可使用：驳回 id）：可以驳回节点。
 # -dragon.check 状态：查询自己的状态。
 
@@ -521,7 +523,7 @@ async def update_begin_word(is_daily):
         log_file.flush()
     else:
         Tree.forests.append(Tree._objs)
-    root = Tree(None, word_stripped)
+    root = Tree(None, word_stripped, 2711644761, '', '')
     return c
 
 async def daily_update():
@@ -535,6 +537,7 @@ async def daily_update():
     global_state['quest'] = m
     save_global_state()
     config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10', ('',))
+    save_data()
     word = await update_begin_word(is_daily=True)
     return "今日关键词：" + word + "\nid为【0】。"
 
@@ -568,7 +571,7 @@ async def logical_dragon(session: NLPSession):
             await session.send(f"节点已分叉，接龙{word}失败。")
             return
         m = check_status(qq, 'm', True, node)
-        if m and len(global_state['past_two_user']) != 0 and qq == global_state['past_two_user'][1] or not m and qq in global_state['past_two_user']:
+        if m and qq == parent.qq or not m and (qq == parent.qq or parent.parent is not None and qq == parent.parent.qq):
             if check_status(qq, 'z', False, node):
                 buf.send("你触发了极速装置！")
                 config.logger.dragon << f"【LOG】用户{qq}触发了极速装置。"
@@ -696,13 +699,6 @@ async def logical_dragon_else(session: NLPSession):
         await call_command(get_bot(), session.ctx, ('dragon', 'buy'), current_arg=text[2:].strip())
     elif text.startswith("分叉") and (len(text) == 2 or text[2] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'fork'), current_arg=text[2:].strip())
-
-# @on_command(('dragon', 'add_bomb'), aliases="添加炸弹", only_to_me=False, args=("keyword"), environment=env)
-# @config.ErrorHandle
-# async def dragon_add_bomb(session: CommandSession):
-#     """添加炸弹。"""
-#     add_bomb(session.current_arg_text.strip())
-#     save_data()
 
 @on_command(('dragon', 'use_card'), aliases="使用手牌", short_des="使用手牌。", only_to_me=False, args=("card"), environment=env)
 @config.ErrorHandle(config.logger.dragon)
