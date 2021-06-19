@@ -1009,7 +1009,7 @@ def Card(id):
 
 class card_meta(type):
     def __new__(cls, clsname, bases, attrs):
-        if len(bases) != 0 and 'status_set' in bases[0].__dict__:
+        if len(bases) != 0 and 'status_dict' in bases[0].__dict__:
             if 'status' in attrs and attrs['status']:
                 status = attrs['status']
                 bases[0].add_status(status, attrs['status_des'])
