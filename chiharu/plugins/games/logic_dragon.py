@@ -1331,7 +1331,7 @@ class hezuowujian(_card):
 class ourostone(_card):
     name = "衔尾蛇之石"
     id = 66
-    global_state = 'o'
+    global_daily_status = 'o'
     status_des = "衔尾蛇之石：规则为首尾接龙直至下次刷新。首尾接龙时，每个汉语词必须至少包含3个汉字，英语词必须至少包含4个字母。"
     positive = 0
     description = "修改当前规则至首尾接龙直至下次刷新。首尾接龙时，每个汉语词必须至少包含3个汉字，英语词必须至少包含4个字母。"
