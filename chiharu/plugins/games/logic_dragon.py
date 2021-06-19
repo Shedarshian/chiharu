@@ -351,7 +351,7 @@ def get_limited_time(qq, s, status=None):
     delta = datetime.fromisoformat(status[s]) - datetime.now()
     if delta < timedelta():
         status.pop(s)
-        config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), session.ctx['user_id']))
+        config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), qq))
         return None
     return delta.seconds // 60
 
@@ -580,6 +580,10 @@ async def logical_dragon(session: NLPSession):
             config.logger.dragon << f"【LOG】节点{parent.id}已分叉，接龙失败。"
             await session.send(f"节点已分叉，接龙{word}失败。")
             return
+        if check_global_status('o', True):
+            if parent.word != '' and word != '' and parent.word[-1] != word[0]:
+                await session.send("当前规则为首尾接龙，接龙失败。")
+                return
         m = check_status(qq, 'm', True, node)
         if m and qq == parent.qq or not m and (qq == parent.qq or parent.parent is not None and qq == parent.parent.qq):
             if check_status(qq, 'z', False, node):
@@ -1327,6 +1331,8 @@ class hezuowujian(_card):
 class ourostone(_card):
     name = "衔尾蛇之石"
     id = 66
+    global_state = 'o'
+    status_des = "衔尾蛇之石：规则为首尾接龙直至下次刷新。首尾接龙时，每个汉语词必须至少包含3个汉字，英语词必须至少包含4个字母。"
     positive = 0
     description = "修改当前规则至首尾接龙直至下次刷新。首尾接龙时，每个汉语词必须至少包含3个汉字，英语词必须至少包含4个字母。"
 
