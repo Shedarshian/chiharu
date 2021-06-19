@@ -828,7 +828,7 @@ async def dragon_check(session: CommandSession):
             for key in status_time:
                 time = get_limited_time(qq, key, status)
                 if time is not None:
-                    yield f"{_card.limited_status_dict[s]}\n\t结束时间：{time}分钟。"
+                    yield f"{_card.limited_status_dict[key]}\n\t结束时间：{time}分钟。"
             if qq in global_state['lianhuan']:
                 yield tiesuolianhuan.status_des
         ret = '\n'.join(_())
@@ -1175,7 +1175,7 @@ class tiesuolianhuan(_card):
         config.logger.dragon << f"【LOG】询问用户{qq}铁索连环。"
         l = await session.aget(prompt="请at群内至多两名玩家进行铁索连环。\n",
             arg_filters=[
-                    lambda s: [r.group(1) for r in re.findall(r'qq=(\d+)', str(s))],
+                    lambda s: [int(r[3:]) for r in re.findall(r'qq=(\d+)', str(s))],
                     validators.fit_size(1, 2, message="请at正确的人数。"),
                 ])
         config.logger.dragon << f"【LOG】用户{qq}铁索连环选择{l}。"
