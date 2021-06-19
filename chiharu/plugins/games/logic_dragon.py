@@ -84,7 +84,7 @@ class Tree:
     @classmethod
     def find(cls, id):
         try:
-            return cls._objs[id[1]][id[0]]
+            return cls._objs[id[1]][id[0] - cls._objs[id[1]][0].id[0]]
         except IndexError:
             return None
     @property
@@ -96,7 +96,7 @@ class Tree:
     @classmethod
     def init(cls, is_daily):
         cls._objs = []
-        cls.max_branches = -1
+        cls.max_branches = 0
         if is_daily:
             cls.forests = []
     def __repr__(self):
@@ -553,7 +553,7 @@ async def logical_dragon(session: NLPSession):
             config.logger.dragon << f"【LOG】节点{parent.id}不可分叉，接龙失败。"
             await session.send(f"节点不可分叉，接龙{word}失败。")
             return
-        if parent.fork and len(parent.childs) == 1:
+        if parent.fork and len(parent.childs) == 2:
             config.logger.dragon << f"【LOG】节点{parent.id}已分叉，接龙失败。"
             await session.send(f"节点已分叉，接龙{word}失败。")
             return
@@ -951,8 +951,6 @@ async def dragon_daily():
 async def dragon_update(session: CommandSession):
     global last_update_date
     config.logger.dragon << f"【LOG】强制每日更新。"
-    if last_update_date == date.today().isoformat():
-        return
     graph = Tree.graph()
     # for group in config.group_id_dict['logic_dragon_send']:
     #     await get_bot().send_group_msg(group_id=group, message=[config.cq.text("昨天的接龙图："), config.cq.img(graph)])
