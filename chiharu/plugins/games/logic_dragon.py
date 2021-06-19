@@ -50,11 +50,11 @@ with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
     del d
 
 class Tree:
-    __slots__ = ('id', 'parent', 'childs', 'word', 'fork', 'keyword')
+    __slots__ = ('id', 'parent', 'childs', 'word', 'fork', 'kwd', 'hdkwd', 'qq')
     forests = []
     _objs = [] # [[wd0, wd1, wd2], [wd2a], [wd2b]]
     max_branches = 0
-    def __init__(self, parent_or_id, word):
+    def __init__(self, parent_or_id, word, qq, kwd, hdkwd):
         if isinstance(parent_or_id, Tree) or parent_or_id is None:
             parent = parent_or_id
             self.parent = parent
@@ -81,6 +81,9 @@ class Tree:
         self.childs = []
         self.word = word
         self.fork = False
+        self.qq = qq
+        self.kwd = kwd
+        self.hdkwd = hdkwd
     @classmethod
     def find(cls, id):
         try:
@@ -101,6 +104,8 @@ class Tree:
             cls.forests = []
     def __repr__(self):
         return f"<id: {self.id}, parent_id: {'None' if self.parent is None else self.parent.id}, word: \"{self.word}\">"
+    def __str__(self):
+        return f"{self.id_str}/{self.qq}/{self.kwd}/{self.hdkwd}/ {self.word}"
     @classmethod
     def graph(self):
         pass
@@ -118,7 +123,7 @@ def load_log(init):
         d -= timedelta(days=1)
     today = rf'log\dragon_log_{d.isoformat()}.txt'
     def _(s):
-        if match := re.match(r'(\d+[a-z]?(?:\*|@)?) (.*)', s):
+        if match := re.match(r'(\d+[a-z]?(?:/\d+/[^/]*/[^/]*/)?) (.*)', s):
             return match.group(2)
         return s
     for i in range(7):
@@ -132,19 +137,24 @@ def load_log(init):
         try:
             with open(config.rel(today), encoding='utf-8') as f:
                 for line in f.readlines():
-                    if match := re.match(r'(\d+)([a-z])?(\*|@)? (.*)', line.strip()):
-                        node = Tree(Tree.str_to_id(match), match.group(4))
+                    if match := re.match(r'(\d+)([a-z])?(?:/(\d+)/([^/]*)/([^/]*)/)? (.*)', line.strip()):
+                        if match.group(1) == '0' and len(Tree._objs) != 0:
+                            Tree.forests.append(Tree._objs)
+                            Tree.init(is_daily=False)
+                        node = Tree(Tree.str_to_id(match), match.group(6),
+                                0 if match.group(3) is None else int(match.group(3)),
+                                kwd=match.group(4), hdkwd=match.group(5))
         except FileNotFoundError:
             pass
     log_file = open(config.rel(today), 'a', encoding='utf-8')
 load_log(True)
-def check_and_add_log_and_contruct_tree(parent, word):
+def check_and_add_log_and_contruct_tree(parent, word, qq, kwd, hdkwd):
     global log_set
     if word in log_set:
         return None
-    s = Tree(parent, word)
+    s = Tree(parent, word, qq, kwd, hdkwd)
     log_set.add(s.word)
-    log_file.write(f'{s.id_str} {s.word}\n')
+    log_file.write(f'{s}\n')
     log_file.flush()
     return s
 
@@ -571,9 +581,11 @@ async def logical_dragon(session: NLPSession):
         if len(global_state['past_two_user']) > 2:
             global_state['past_two_user'].pop(0)
         save_global_state()
+        kwd = hdkwd = ""
         if word == keyword:
             config.logger.dragon << f"【LOG】用户{qq}接到了奖励词{keyword}。"
             buf.send("你接到了奖励词！", end='')
+            kwd = keyword
             if node['today_keyword_jibi'] > 0:
                 config.logger.dragon << f"【LOG】用户{qq}已拿完今日奖励词击毙。"
                 buf.send("奖励10击毙。")
@@ -587,6 +599,7 @@ async def logical_dragon(session: NLPSession):
                 buf.end("奖励词池已空！")
         for i, k in enumerate(hidden_keyword):
             if k in word:
+                hdkwd = k
                 config.logger.dragon << f"【LOG】用户{qq}接到了隐藏奖励词{k}。"
                 buf.send(f"你接到了隐藏奖励词{k}！奖励10击毙。")
                 await add_jibi(buf, qq, 10)
@@ -603,7 +616,7 @@ async def logical_dragon(session: NLPSession):
                 if not update_hidden_keyword(i, True):
                     buf.end("隐藏奖励词池已空！")
                 break
-        if not (tree_node := check_and_add_log_and_contruct_tree(parent, word)):
+        if not (tree_node := check_and_add_log_and_contruct_tree(parent, word, qq, kwd=kwd, hdkwd=hdkwd)):
             config.logger.dragon << f"【LOG】用户{qq}由于过去一周接过此词，死了。"
             buf.send("过去一周之内接过此词，你死了！")
             await settlement(buf, qq, kill)
