@@ -369,8 +369,8 @@ async def kill(session, qq, hand_card, hour=2):
     config.logger.dragon << f"【LOG】尝试击杀玩家{qq}。"
     if (n := check_status(qq, 's', False)) and not dodge:
         jibi = get_jibi(qq)
-        if jibi >= 10 * 2 ** check_status(qq, '2', False):
-            await add_jibi(session, qq, -10, jibi)
+        if jibi >= 5 * 2 ** check_status(qq, '2', False):
+            await add_jibi(session, qq, -5, jibi)
             session.send(session.char(qq) + "触发了死秽回避之药的效果，免除死亡！")
             config.logger.dragon << f"【LOG】用户{qq}触发了死秽回避之药的效果，免除死亡。"
             dodge = True
@@ -1209,7 +1209,7 @@ class sihuihuibizhiyao(_card):
     id = 50
     status = 's'
     positive = 1
-    description = "你下次死亡时自动消耗10击毙免除死亡。"
+    description = "你下次死亡时自动消耗5击毙免除死亡。"
 
 class huiye(_card):
     name = "辉夜姬的秘密宝箱"
