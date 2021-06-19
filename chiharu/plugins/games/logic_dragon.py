@@ -24,8 +24,8 @@ CommandGroup('dragon', short_des="逻辑接龙相关。", environment=env|env_su
 message_re = re.compile(r"\s*(\d+)([a-z])?\s*接[\s，,]*(.*)[\s，,\n]*.*")
 
 # Version information and changelog
-version = "0.2.3"
-changelog = """0.2.3 Changelog:
+version = "0.2.5"
+changelog = """0.2.5 Changelog:
 Change:
 接龙现在会以树状形式储存。
 接龙时需显式提供你所接的词汇的id。id相撞时则会判定为接龙失败。
@@ -33,10 +33,10 @@ Add:
 -dragon.version [-c]：查询逻辑接龙版本与Changelog。
 -dragon.fork id（也可使用：分叉 id）：可以指定分叉。
 -dragon.check 活动词：查询当前可接的活动词与id。
+-dragon.check 状态：查询自己的状态。
+-dragon.delete id（也可使用：驳回 id）：可以驳回节点。
 BugFix:
 修正了“接太快了”只和时序有关导致在有分叉的情况下不会正常运作的bug。"""
-# -dragon.delete id（也可使用：驳回 id）：可以驳回节点。
-# -dragon.check 状态：查询自己的状态。
 
 # keyword : [str, list(str)]
 # hidden : [list(str), list(str)]
@@ -56,25 +56,19 @@ class Tree:
     forests = []
     _objs = [] # [[wd0, wd1, wd2], [wd2a], [wd2b]]
     max_branches = 0
-    def __init__(self, parent_or_id, word, qq, kwd, hdkwd):
-        if isinstance(parent_or_id, Tree) or parent_or_id is None:
-            parent = parent_or_id
-            self.parent = parent
-            if parent:
-                parent.childs.append(self)
-                id = (parent.id[0] + 1, parent.id[1])
-            else:
-                id = (0, 0)
+    def __init__(self, parent, word, qq, kwd, hdkwd, *, id=None):
+        self.parent = parent
+        if parent:
+            parent.childs.append(self)
+            id = id or (parent.id[0] + 1, parent.id[1])
         else:
-            id = parent_or_id
-            self.parent = self.find((id[0] - 1, id[1]))
-            if self.parent:
-                self.parent.childs.append(self)
+            id = id or (0, 0)
         if not self.find(id):
             self.id = id
-            if Tree.max_branches == id[1]:
-                Tree.max_branches += 1
-                self._objs.append([])
+            if Tree.max_branches <= id[1]:
+                for i in range(id[1] + 1 - Tree.max_branches):
+                    self._objs.append([])
+                Tree.max_branches = id[1] + 1
         else:
             self.id = (id[0], Tree.max_branches)
             Tree.max_branches += 1
@@ -89,6 +83,8 @@ class Tree:
     @classmethod
     def find(cls, id):
         try:
+            if len(cls._objs[id[1]]) == 0:
+                return None
             return cls._objs[id[1]][id[0] - cls._objs[id[1]][0].id[0]]
         except IndexError:
             return None
@@ -96,7 +92,11 @@ class Tree:
     def id_str(self):
         return str(self.id[0]) + ('' if self.id[1] == 0 else chr(96 + self.id[1]))
     @staticmethod
-    def str_to_id(match):
+    def str_to_id(str):
+        match = re.match(r'(\d+)([a-z])?', str)
+        return int(match.group(1)), (0 if match.group(2) is None else ord(match.group(2)) - 96)
+    @staticmethod
+    def match_to_id(match):
         return int(match.group(1)), (0 if match.group(2) is None else ord(match.group(2)) - 96)
     @classmethod
     def init(cls, is_daily):
@@ -107,7 +107,7 @@ class Tree:
     def __repr__(self):
         return f"<id: {self.id}, parent_id: {'None' if self.parent is None else self.parent.id}, word: \"{self.word}\">"
     def __str__(self):
-        return f"{self.id_str}/{self.qq}/{self.kwd}/{self.hdkwd}/ {self.word}"
+        return f"{self.id_str}<{'-1' if self.parent is None else self.parent.id_str}/{self.qq}/{self.kwd}/{self.hdkwd}/ {self.word}"
     @classmethod
     def graph(self):
         pass
@@ -125,7 +125,7 @@ def load_log(init):
         d -= timedelta(days=1)
     today = rf'log\dragon_log_{d.isoformat()}.txt'
     def _(s):
-        if match := re.match(r'(\d+[a-z]?(?:/\d+/[^/]*/[^/]*/)?) (.*)', s):
+        if match := re.match(r'(\d+[a-z]?(?:<-?\d+[a-z]?)?(?:/\d+/[^/]*/[^/]*/)?) (.*)', s):
             return match.group(2)
         return s
     for i in range(7):
@@ -139,13 +139,18 @@ def load_log(init):
         try:
             with open(config.rel(today), encoding='utf-8') as f:
                 for line in f.readlines():
-                    if match := re.match(r'(\d+)([a-z])?(?:/(\d+)/([^/]*)/([^/]*)/)? (.*)', line.strip()):
+                    if match := re.match(r'(\d+)([a-z])?(?:<(-?\d+[a-z]?))?(?:/(\d+)/([^/]*)/([^/]*)/)? (.*)', line.strip()):
                         if match.group(1) == '0' and len(Tree._objs) != 0:
                             Tree.forests.append(Tree._objs)
                             Tree.init(is_daily=False)
-                        node = Tree(Tree.str_to_id(match), match.group(6),
-                                0 if match.group(3) is None else int(match.group(3)),
-                                kwd=match.group(4), hdkwd=match.group(5))
+                        id = Tree.match_to_id(match)
+                        if match.group(3) is None: # backward compatability
+                            parent = Tree.find((id[0] - 1, id[1]))
+                        else:
+                            parent = None if match.group(3) == '-1' else Tree.find(Tree.str_to_id(match.group(3)))
+                        node = Tree(parent, match.group(7),
+                                0 if match.group(4) is None else int(match.group(4)),
+                                kwd=match.group(5), hdkwd=match.group(6), id=id)
         except FileNotFoundError:
             pass
     log_file = open(config.rel(today), 'a', encoding='utf-8')
@@ -566,7 +571,7 @@ async def logical_dragon(session: NLPSession):
             await session.send('你已死，不能接龙！')
             config.logger.dragon << f"【LOG】用户{qq}已死，接龙失败。"
             return
-        parent = Tree.find(Tree.str_to_id(match))
+        parent = Tree.find(Tree.match_to_id(match))
         if not parent:
             await session.send("请输入存在的id号。")
             return
@@ -713,6 +718,10 @@ async def logical_dragon_else(session: NLPSession):
         await call_command(get_bot(), session.ctx, ('dragon', 'buy'), current_arg=text[2:].strip())
     elif text.startswith("分叉") and (len(text) == 2 or text[2] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'fork'), current_arg=text[2:].strip())
+    elif text.startswith("驳回分叉"):
+        await call_command(get_bot(), session.ctx, ('dragon', 'delete'), current_arg="-f " + text[4:].strip())
+    elif text.startswith("驳回"):
+        await call_command(get_bot(), session.ctx, ('dragon', 'delete'), current_arg=text[2:].strip())
 
 @on_command(('dragon', 'use_card'), aliases="使用手牌", short_des="使用手牌。", only_to_me=False, args=("card"), environment=env)
 @config.ErrorHandle(config.logger.dragon)
@@ -796,7 +805,7 @@ async def dragon_check(session: CommandSession):
     elif data in ("卡池", "card_pool"):
         session.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
     elif data in ("活动词", "active"):
-        words = [f"{s[-1].word}，id为{s[-1].id_str}" for s in Tree._objs]
+        words = [f"{s[-1].word}，id为{s[-1].id_str}" for s in Tree._objs if len(s) != 0]
         session.finish("当前活动词为：\n" + '\n'.join(words))
     elif data in ("商店", "shop"):
         session.finish("1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. (35击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。")
@@ -918,12 +927,33 @@ async def dragon_fork(session: CommandSession):
     """分叉接龙。
     使用方法：分叉 id号"""
     match = re.search(r'(\d+)([a-z])?', session.current_arg_text)
-    parent = Tree.find(Tree.str_to_id(match))
+    parent = Tree.find(Tree.match_to_id(match))
     if not parent:
         session.finish("请输入存在的id号。")
     parent.fork = True
     config.logger.dragon << f"【LOG】用户{session.ctx['user_id']}将id{parent.id}分叉。"
     session.finish("成功分叉！")
+
+@on_command(('dragon', 'delete'), aliases="驳回", only_to_me=False, short_des="管理可用，驳回节点。", args=("[-f]", "id"), environment=env_admin)
+@config.ErrorHandle(config.logger.dragon)
+async def dragon_delete(session: CommandSession):
+    """管理可用，驳回节点。
+    可选参数：
+        -f：驳回该节点的分叉。
+    可使用：驳回 id 或 驳回分叉 id。"""
+    match = re.search(r'(\d+)([a-z])?', session.current_arg_text)
+    node = Tree.find(Tree.match_to_id(match))
+    if not node:
+        session.finish("请输入存在的id号。")
+    to_delete = None
+    f = session.current_arg_text.strip().startswith('-f')
+    if f:
+        if len(node.childs) == 2:
+            to_delete = node.childs[1]
+        node.fork = False
+    else:
+        to_delete = node
+    
 
 @on_command(('dragon', 'add_begin'), only_to_me=False, environment=env_supervise)
 @config.ErrorHandle(config.logger.dragon)
@@ -956,13 +986,6 @@ async def dragon_kill(session: CommandSession):
     qq = match.group(1)
     buf = SessionBuffer(session)
     await settlement(buf, qq, kill)
-
-# @on_command(('dragon', 'add_draw'), only_to_me=False, environment=env_supervise)
-# @config.ErrorHandle
-# async def _(session: CommandSession):
-#     qq = session.ctx['user_id']
-#     node = find_or_new(qq)
-#     config.userdata.execute("update dragon_data set draw_time=? where qq=?", (node['draw_time'] + int(session.current_arg_text), qq)) 
 
 @on_command(('dragon', 'version'), only_to_me=False, short_des="查看逻辑接龙版本。", args=("[-c]",))
 @config.ErrorHandle(config.logger.dragon)
