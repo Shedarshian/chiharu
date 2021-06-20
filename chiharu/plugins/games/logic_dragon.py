@@ -185,7 +185,6 @@ def check_and_add_log_and_contruct_tree(parent, word, qq, kwd, hdkwd):
     return s
 
 # global_state
-# past_two_user : list(int)
 # exchange_stack : list(int)
 # lianhuan : list(int)
 # quest : map(int, list(map('id': int, 'remain': int)))
@@ -618,9 +617,6 @@ async def logical_dragon(session: NLPSession):
                 await session.send(f"你接太快了！两次接龙之间至少要隔{'一' if m else '两'}个人。")
                 config.logger.dragon << f"【LOG】用户{qq}接龙过快，失败。"
                 return
-        global_state['past_two_user'].append(qq)
-        if len(global_state['past_two_user']) > 2:
-            global_state['past_two_user'].pop(0)
         save_global_state()
         kwd = hdkwd = ""
         if word == keyword:
@@ -674,7 +670,7 @@ async def logical_dragon(session: NLPSession):
                 config.userdata.execute("update dragon_data set today_jibi=? where qq=?", (node['today_jibi'] - 1, qq))
                 await add_jibi(buf, qq, jibi_to_add)
                 if (n := check_status(qq, 'p', False, node)):
-                    user = global_state['past_two_user'][0]
+                    user = parent.qq
                     config.logger.dragon << f"【LOG】用户{qq}触发了{n}次掠夺者啵噗的效果，偷取了{user}击毙。"
                     if (p := get_jibi(user)) > 0:
                         buf.send(f"你从上一名玩家处偷取了{min(n, p)}击毙！")
