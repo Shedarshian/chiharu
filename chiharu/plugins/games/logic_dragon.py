@@ -109,7 +109,21 @@ class Tree:
     def __str__(self):
         return f"{self.id_str}<{'-1' if self.parent is None else self.parent.id_str}/{self.qq}/{self.kwd}/{self.hdkwd}/ {self.word}"
     def remove(self):
-        pass
+        id = self.id
+        begin = id[0] - Tree._objs[id[1]][0].id[0]
+        to_remove = set(Tree._objs[id[1]][begin:])
+        Tree._objs[id[1]] = Tree._objs[id[1]][:begin]
+        while True:
+            count = 0
+            for s in Tree._objs:
+                if len(s) == 0 or (parent := s[0].parent) is None:
+                    continue
+                if parent in to_remove:
+                    to_remove.update(Tree._objs[s[0].id[1]])
+                    Tree._objs[s[0].id[1]] = []
+                    count += 1
+            if count == 0:
+                break
     @classmethod
     def graph(self):
         pass
@@ -959,7 +973,7 @@ async def dragon_delete(session: CommandSession):
         node.fork = False
     else:
         to_delete = node
-    
+    node.remove()
 
 @on_command(('dragon', 'add_begin'), only_to_me=False, environment=env_supervise)
 @config.ErrorHandle(config.logger.dragon)
