@@ -108,6 +108,8 @@ class Tree:
         return f"<id: {self.id}, parent_id: {'None' if self.parent is None else self.parent.id}, word: \"{self.word}\">"
     def __str__(self):
         return f"{self.id_str}<{'-1' if self.parent is None else self.parent.id_str}/{self.qq}/{self.kwd}/{self.hdkwd}/ {self.word}"
+    def remove(self):
+        pass
     @classmethod
     def graph(self):
         pass
@@ -806,6 +808,10 @@ async def dragon_check(session: CommandSession):
         session.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
     elif data in ("活动词", "active"):
         words = [f"{s[-1].word}，id为{s[-1].id_str}" for s in Tree._objs if len(s) != 0]
+        for s in Tree._objs:
+            for word in s:
+                if word.fork and len(word.childs) == 1:
+                    words.append(f"{word.word}，id为{word.id_str}")
         session.finish("当前活动词为：\n" + '\n'.join(words))
     elif data in ("商店", "shop"):
         session.finish("1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. (35击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。")
