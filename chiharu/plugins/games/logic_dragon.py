@@ -122,8 +122,11 @@ class Tree:
                     to_remove.update(Tree._objs[s[0].id[1]])
                     Tree._objs[s[0].id[1]] = []
                     count += 1
+            # TODO 额外判断有多个parents的节点
             if count == 0:
                 break
+        if self.parent is not None:
+            self.parent.childs.remove(self)
     @classmethod
     def graph(self):
         pass
@@ -821,7 +824,7 @@ async def dragon_check(session: CommandSession):
     elif data in ("卡池", "card_pool"):
         session.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
     elif data in ("活动词", "active"):
-        words = [f"{s[-1].word}，id为{s[-1].id_str}" for s in Tree._objs if len(s) != 0]
+        words = [f"{s[-1].word}，id为{s[-1].id_str}" for s in Tree._objs if len(s) != 0 and len(s[-1].childs) == 0]
         for s in Tree._objs:
             for word in s:
                 if word.fork and len(word.childs) == 1:
@@ -973,7 +976,20 @@ async def dragon_delete(session: CommandSession):
         node.fork = False
     else:
         to_delete = node
-    node.remove()
+    if await session.aget(prompt=f"要{f'驳回节点{node.word}的分叉' if f else ''}{'并' if f and to_delete is not None else ''}{f'驳回节点{to_delete.word}' if to_delete is not None else ''}，输入确认继续，输入取消退出。") != "确认":
+        session.finish("已退出。")
+    to_delete.remove()
+    # 保存到log文件
+    d = date.today()
+    if datetime.now().time() < time(15, 59):
+        d -= timedelta(days=1)
+    today = rf'log\dragon_log_{d.isoformat()}.txt'
+    global log_file
+    log_file.close()
+    with open(config.rel(today), 'w', encoding='utf-8') as f:
+        f.writelines(str(word) + '\n' for word in itertools.chain(*Tree._objs))
+    log_file = open(config.rel(today), 'a', encoding='utf-8')
+    await session.send("已成功驳回。")
 
 @on_command(('dragon', 'add_begin'), only_to_me=False, environment=env_supervise)
 @config.ErrorHandle(config.logger.dragon)
