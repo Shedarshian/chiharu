@@ -1235,7 +1235,7 @@ class tiesuolianhuan(_card):
         config.logger.dragon << f"【LOG】询问用户{qq}铁索连环。"
         l = await session.aget(prompt="请at群内至多两名玩家进行铁索连环。\n",
             arg_filters=[
-                    lambda s: [int(r[3:]) for r in re.findall(r'qq=(\d+)', str(s))],
+                    lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
                     validators.fit_size(1, 2, message="请at正确的人数。"),
                 ])
         config.logger.dragon << f"【LOG】用户{qq}铁索连环选择{l}。"
