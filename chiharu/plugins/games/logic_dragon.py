@@ -985,7 +985,12 @@ async def dragon_delete(session: CommandSession):
     with open(config.rel(today), 'w', encoding='utf-8') as f:
         f.writelines(str(word) + '\n' for word in itertools.chain(*Tree._objs))
     log_file = open(config.rel(today), 'a', encoding='utf-8')
-    await session.send("已成功驳回。")
+    buf = SessionBuffer(session)
+    buf.send("已成功驳回。")
+    if not f:
+        await settlement(buf, node.qq, kill)
+    else:
+        await buf.flush()
 
 @on_command(('dragon', 'add_begin'), only_to_me=False, environment=env_supervise)
 @config.ErrorHandle(config.logger.dragon)
