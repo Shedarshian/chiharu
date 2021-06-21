@@ -155,6 +155,7 @@ class CommandGroup:
         self.leaf = {}
         self.help_addition = set()
         self.is_help = False
+        self.args = ()
         async def _(session: CommandSession):
             ret = await find_help(name, session)
             if ret:
