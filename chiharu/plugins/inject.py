@@ -331,7 +331,7 @@ async def find_help(cmd_name: tuple, session: CommandSession):
     else:
         cmd_tree = CommandManager()._find_command(cmd_name)
 
-    if cmd_tree.hide or (cmd_tree.environment and not await cmd_tree.environment.test(session, no_reply=True)):
+    if cmd_tree is None or cmd_tree.hide or (cmd_tree.environment and not await cmd_tree.environment.test(session, no_reply=True)):
         return
     if not is_command_group:
         # command
