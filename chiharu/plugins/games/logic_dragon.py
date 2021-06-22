@@ -820,13 +820,6 @@ async def dragon_check(session: CommandSession):
         session.finish("当前隐藏奖励池大小为：" + str(len(d['hidden'][1])))
     elif data in ("卡池", "card_pool"):
         session.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
-    elif data in ("活动词", "active"):
-        words = [f"{s[-1].word}，id为{s[-1].id_str}" for s in Tree._objs if len(s) != 0 and len(s[-1].childs) == 0]
-        for s in Tree._objs:
-            for word in s:
-                if word.fork and len(word.childs) == 1:
-                    words.append(f"{word.word}，id为{word.id_str}")
-        session.finish("当前活动词为：\n" + '\n'.join(words))
     elif data in ("商店", "shop"):
         session.finish("1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. (35击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。")
     qq = session.ctx['user_id']
@@ -865,6 +858,13 @@ async def dragon_check(session: CommandSession):
             session.finish("你目前没有状态！")
         else:
             session.finish("你的状态为：\n" + ret)
+    elif data in ("活动词", "active"):
+        words = [s[-1] for s in Tree._objs if len(s) != 0 and len(s[-1].childs) == 0]
+        for s in Tree._objs:
+            for word in s:
+                if word.fork and len(word.childs) == 1:
+                    words.append(s)
+        session.finish("当前活动词为：\n" + '\n'.join(f"{s.word}，{'⚠️' if s.parent is not None and (s.parent.qq == qq or s.parent.parent is not None and s.parent.parent.qq == qq) else ''}id为{s.id_str}" for s in words))
 
 @on_command(('dragon', 'buy'), aliases="购买", only_to_me=False, short_des="购买逻辑接龙相关商品。", args=("id",), environment=env)
 @config.ErrorHandle(config.logger.dragon)
