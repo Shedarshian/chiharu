@@ -492,9 +492,9 @@ async def exchange(session: SessionBuffer, qq: int, hand_card, *, target: int):
     config.logger.dragon << f"【LOG】交换用户{qq}与用户{target}的手牌。{qq}手牌为{cards_to_str(self_hand_cards)}，{target}手牌为{cards_to_str(target_hand_cards)}。"
     hand_card.clear()
     for card in self_hand_cards:
-        await card.on_give(session, qq, hand_card, target)
+        await card.on_give(session, qq, target)
     for card in target_hand_cards:
-        await card.on_give(session, target, [], qq)
+        await card.on_give(session, target, qq)
     hand_card.extend(target_hand_cards)
     set_cards(qq, hand_card)
     set_cards(target, self_hand_cards)
@@ -1113,6 +1113,22 @@ class card_meta(type):
                 async def use(self, session, qq, hand_card):
                     add_global_limited_status(status, datetime.now() + self.global_limited_time)
                 attrs['use'] = use
+            elif 'hold_status' in attrs and attrs['hold_status']:
+                status = attrs['hold_status']
+                bases[0].add_status(status, attrs['status_des'])
+                @classmethod
+                async def on_draw(cls, session, qq, hand_card):
+                    add_status(qq, 'y', False)
+                @classmethod
+                async def on_discard(cls, session, qq, hand_card):
+                    remove_status(qq, 'y', False)
+                @classmethod
+                async def on_give(cls, session, qq, target):
+                    remove_status(qq, 'y', False)
+                    add_status(target, 'y', False)
+                attrs['on_draw'] = on_draw
+                attrs['on_discard'] = on_discard
+                attrs['on_give'] = on_give
             c = type.__new__(cls, clsname, bases, attrs)
             bases[0].card_id_dict[attrs['id']] = c
         else:
@@ -1144,7 +1160,7 @@ class _card(metaclass=card_meta):
     async def on_discard(cls, session, qq, hand_card):
         pass
     @classmethod
-    async def on_give(cls, session, qq, hand_card, target):
+    async def on_give(cls, session, qq, target):
         pass
     @classmethod
     def add_daily_status(cls, s, des):
@@ -1425,7 +1441,7 @@ class queststone(_card):
         config.logger.dragon << f"【LOG】用户{qq}删除了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][qq]]}。"
         save_global_state()
     @classmethod
-    async def on_give(cls, session, qq, hand_card, target):
+    async def on_give(cls, session, qq, target):
         m = global_state['quest'][qq][quest_print_aux[qq]]
         del global_state['quest'][qq][quest_print_aux[qq]]
         if quest_print_aux[qq] >= len(mission):
@@ -1462,14 +1478,16 @@ class liwujiaohuan(_card):
         config.logger.dragon << f"【LOG】用户{qq}交换了所有人的手牌。"
         l = [(t['qq'], get_card(t['qq'], t['card'])) for t in config.userdata.execute("select qq, card from dragon_data").fetchall()]
         config.logger.dragon << f"【LOG】所有人的手牌为：{','.join(f'{qq}: {cards_to_str(cards)}' for qq, cards in l)}。"
-        all_cards = list(itertools.chain(*(c for q, c in l)))
+        all_cards = list(itertools.chain(*([(q, c) for c in cs] for q, cs in l)))
         random.shuffle(all_cards)
         hand_card.clear()
         for q, c in l:
             if (n := len(c)):
                 if qq == q:
-                    hand_card.extend(all_cards[:n])
+                    hand_card.extend([c for q, c in all_cards[:n]])
                 set_cards(q, all_cards[:n])
+                for qqq, c in all_cards[:n]:
+                    c.on_give(session, qqq, q)
                 config.logger.dragon << f"【LOG】{q}交换后的手牌为：{cards_to_str(all_cards[:n])}。"
                 all_cards = all_cards[n:]
         if len(hand_card) != 0:
@@ -1480,19 +1498,10 @@ class liwujiaohuan(_card):
 class xingyunhufu(_card):
     name = "幸运护符"
     id = 73
+    hold_status = 'y'
+    status_des = '幸运护符：无法使用其他卡牌。每进行两次接龙额外获得一个击毙（每天上限为5击毙）。'
     positive = 1
     description = "持有此卡时，你无法使用其他卡牌。你每进行两次接龙额外获得一个击毙（每天上限为5击毙）。使用将丢弃这张卡。"
-    @classmethod
-    async def on_draw(cls, session, qq, hand_card):
-        add_status(qq, 'y', False)
-    @classmethod
-    async def on_discard(cls, session, qq, hand_card):
-        remove_status(qq, 'y', False)
-    @classmethod
-    async def on_give(cls, session, qq, hand_card, target):
-        remove_status(qq, 'y', False)
-        add_status(target, 'y', False)
-_card.add_status('y', '幸运护符：无法使用其他卡牌。每进行两次接龙额外获得一个击毙（每天上限为5击毙）。')
 
 class jisuzhuangzhi(_card):
     name = "极速装置"
@@ -1531,18 +1540,9 @@ class lveduozhebopu(_card):
     name = "掠夺者啵噗"
     id = 77
     positive = 1
+    hold_status = 'p'
+    status_des = '掠夺者啵噗：死亡时间增加1小时。每天因接龙获得1击毙时，可从所接龙的人处偷取1击毙。若目标没有击毙则不可偷取。'
     description = "持有此卡时，你死亡时间增加1小时。每天你因接龙获得1击毙时，可从你所接龙的人处偷取1击毙。若目标没有击毙则不可偷取。使用将丢弃这张卡。"
-    @classmethod
-    async def on_draw(cls, session, qq, hand_card):
-        add_status(qq, 'p', False)
-    @classmethod
-    async def on_discard(cls, session, qq, hand_card):
-        remove_status(qq, 'p', False)
-    @classmethod
-    async def on_give(cls, session, qq, hand_card, target):
-        remove_status(qq, 'p', False)
-        add_status(target, 'p', False)
-_card.add_status('p', '掠夺者啵噗：死亡时间增加1小时。每天因接龙获得1击毙时，可从所接龙的人处偷取1击毙。若目标没有击毙则不可偷取。')
 
 class jiandieyubei(_card):
     name = "邪恶的间谍行动～预备"
