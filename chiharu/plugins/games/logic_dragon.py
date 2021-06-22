@@ -302,15 +302,16 @@ def save_data():
 
 def add_status(qq, s, is_daily):
     status = find_or_new(qq)['daily_status' if is_daily else 'status']
-    if s not in status:
-        status += s
-        config.userdata.execute('update dragon_data set %s=? where qq=?' % ('daily_status' if is_daily else 'status'), (status, qq))
+    status += s
+    config.userdata.execute('update dragon_data set %s=? where qq=?' % ('daily_status' if is_daily else 'status'), (status, qq))
     config.logger.dragon << f"【LOG】用户{qq}增加了{'每日' if is_daily else '永久'}状态{s}。"
 def add_limited_status(qq, s, end_time : datetime):
     status = eval(find_or_new(qq)['status_time'])
     if s not in status:
         status[s] = end_time.isoformat()
-        config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), qq))
+    else:
+        status[s] = max(datetime.fromisoformat(status[s]), end_time).isoformat()
+    config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), qq))
     config.logger.dragon << f"【LOG】用户{qq}增加了限时状态{s}，结束时间为{end_time}。"
 def add_global_status(s, is_daily):
     return add_status(2711644761, s, is_daily)
@@ -509,7 +510,7 @@ async def settlement(buf: SessionBuffer, qq: int, to_do):
     x = len(hand_card) - node['card_limit']
     while x > 0:
         save_data()
-        if buf.active == qq:
+        if buf.active != qq:
             await buf.session.send(f"该玩家手牌已超出上限{x}张！多余的牌已被弃置。")
             config.logger.dragon << f"【LOG】用户{qq}手牌为{cards_to_str(hand_card)}，超出上限{node['card_limit']}，自动弃置。"
             await discard_cards(copy(hand_card[node['card_limit']:]), buf, qq, hand_card)
