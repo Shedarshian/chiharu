@@ -1438,7 +1438,7 @@ class queststone(_card):
         m = mission[global_state['quest'][str(qq)][quest_print_aux[str(qq)]]['id']][1]
         remain = global_state['quest'][str(qq)][quest_print_aux[str(qq)]]['remain']
         quest_print_aux[str(qq)] += 1
-        if quest_print_aux[str(qq)] >= len(mission):
+        if quest_print_aux[str(qq)] >= len(global_state['quest'][str(qq)]):
             quest_print_aux[str(qq)] = 0
         return super().full_description(qq) + "\n\t当前任务：" + m + f"剩余{remain}次。"
     @classmethod
