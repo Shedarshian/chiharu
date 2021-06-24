@@ -158,7 +158,7 @@ def load_log(init):
         try:
             with open(config.rel(today), encoding='utf-8') as f:
                 for line in f.readlines():
-                    if match := re.match(r'(\d+)([a-z])?(?:<(-?\d+[a-z]?))?(?:/(\d+)/([^/]*)/([^/]*)/)? (.*)', line.strip()):
+                    if match := re.match(r'(\d+)([a-z])?(?:<(-?\d+[a-z]?))?(?:/(\d+)/([^/]*)/([^/]*)/)? (.*)', line.strip("\r\n")):
                         if match.group(1) == '0' and len(Tree._objs) != 0:
                             Tree.forests.append(Tree._objs)
                             Tree.init(is_daily=False)
