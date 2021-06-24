@@ -400,7 +400,7 @@ def check_throw_card(qq, card_ids, hand_card=None):
     if hand_card is None:
         hand_card = get_card(qq)
     if len(card_ids) == 1:
-        if Card(card_ids[0]) not in hand_card:
+        if card_ids[0] not in [c.id for c in hand_card]:
             return False
     else:
         hand_counter = Counter(c.id for c in hand_card)
@@ -576,6 +576,7 @@ async def daily_update():
     return "今日关键词：" + word + "\nid为【0】。"
 
 @on_natural_language(keywords="接", only_to_me=False, only_short_message=False)
+@config.ErrorHandle(config.logger.dragon)
 async def logical_dragon(session: NLPSession):
     if not await env.test(session):
         return
@@ -714,6 +715,7 @@ async def logical_dragon(session: NLPSession):
         save_data()
 
 @on_natural_language(only_to_me=False, only_short_message=True)
+@config.ErrorHandle(config.logger.dragon)
 async def logical_dragon_else(session: NLPSession):
     if not await env.test(session):
         return
