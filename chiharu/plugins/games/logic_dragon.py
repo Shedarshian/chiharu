@@ -459,12 +459,16 @@ async def kill(session, qq, hand_card, hour=2):
 # 抽卡。将卡牌放入手牌。
 async def draw(n: int, session: SessionBuffer, qq: int, hand_card, *, positive=None, cards=None):
     cards = [draw_card(positive) for i in range(n)] if cards is None else cards
+    if n := cards.count(Card(67)):
+        for i in range(n):
+            await Card(67).on_draw(session, qq, hand_card)
     session.send(session.char(qq) + '抽到的卡牌是：\n' + '\n'.join(c.full_description(qq) for c in cards))
     config.logger.dragon << f"【LOG】用户{qq}抽到的卡牌为{cards_to_str(cards)}。"
     for c in cards:
         if not c.consumed_on_draw:
             hand_card.append(c)
-        await c.on_draw(session, qq, hand_card)
+        if c.id != 67:
+            await c.on_draw(session, qq, hand_card)
     config.logger.dragon << f"【LOG】用户{qq}抽完卡牌，当前手牌为{cards_to_str(hand_card)}。"
 
 # 使用卡牌。不处理将卡牌移出手牌的操作。
