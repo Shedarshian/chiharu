@@ -686,7 +686,7 @@ async def logical_dragon(session: NLPSession):
                     buf.send("你今日全勤，奖励1抽奖券！")
                     config.logger.dragon << f"【LOG】用户{qq}全勤，奖励1抽奖券。"
                     config.userdata.execute("update dragon_data set draw_time=? where qq=?", (node['draw_time'] + 1, qq))
-            if l := global_state.get('qq'):
+            if l := global_state['quest'].get('qq'):
                 for m in l:
                     if m['remain'] > 0:
                         id, name, func = mission[m['id']]
@@ -1066,15 +1066,6 @@ async def dragon_update(session: CommandSession):
     ret = await daily_update()
     for group in config.group_id_dict['logic_dragon_send']:
         await get_bot().send_group_msg(group_id=group, message=ret)
-
-@on_command(('dragon', 'draw67'), only_to_me=False, hide=True)
-@config.ErrorHandle(config.logger.dragon)
-async def dragon_draw67(session: CommandSession):
-    if session.ctx['user_id'] != 1824789744:
-        return
-    qq = session.ctx['user_id']
-    buf = SessionBuffer(session)
-    await settlement(buf, qq, partial(draw, 0, cards=[Card(67)]))
  
 @lru_cache(10)
 def Card(id):
