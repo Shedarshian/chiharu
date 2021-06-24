@@ -686,7 +686,7 @@ async def logical_dragon(session: NLPSession):
                     buf.send("你今日全勤，奖励1抽奖券！")
                     config.logger.dragon << f"【LOG】用户{qq}全勤，奖励1抽奖券。"
                     config.userdata.execute("update dragon_data set draw_time=? where qq=?", (node['draw_time'] + 1, qq))
-            if l := global_state['quest'].get(qq):
+            if l := global_state['quest'].get(str(qq)):
                 for m in l:
                     if m['remain'] > 0:
                         id, name, func = mission[m['id']]
