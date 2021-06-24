@@ -1445,6 +1445,7 @@ class queststone(_card):
     async def on_draw(cls, session, qq, hand_card):
         if str(qq) not in global_state['quest']:
             global_state['quest'][str(qq)] = []
+            quest_print_aux[str(qq)] = 0
         global_state['quest'][str(qq)].append({'id': (i := get_mission()), 'remain': 3})
         config.logger.dragon << f"【LOG】用户{qq}刷新了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][str(qq)]]}。"
         save_global_state()
