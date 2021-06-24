@@ -1658,7 +1658,7 @@ def get_mission():
     return random.randint(0, len(mission) - 1)
 
 for i in range(2, 9):
-    add_mission(f"字数为{i}。")(lambda s: len([c for c in s if c != ' ']) == i)
+    add_mission(f"字数为{i}。")((lambda i: lambda s: len([c for c in s if c != ' ']) == i)(i))
 add_mission("包含一个非佛经大数的数字。")(lambda s: len(set(s) & set('0123456789零一二三四五六七八九十百千万亿壹贰叁肆伍陆柒捌玖拾佰仟')) != 0)
 add_mission("包含一个常用的人称代词。")(lambda s: len(set(s) & set('我你他她它祂您怹咱俺恁')) != 0)
 @add_mission("包含一个中国的省级行政单位的全称。")
@@ -1670,7 +1670,7 @@ def _(s):
 add_mission("包含的/地/得。")(lambda s: len(set(s) & set('的地得')) != 0)
 add_mission("包含叠字。")(lambda s: any(a == b and ord(a) > 255 for a, b in more_itertools.windowed(s, 2)))
 for c in ("人", "大", "小", "方", "龙"):
-    add_mission(f"包含“{c}”。")(lambda s: c in s)
+    add_mission(f"包含“{c}”。")((lambda c: lambda s: c in s)(c))
 @add_mission("包含国际单位制的七个基本单位制之一。")
 def _(s):
     for c in ("米", "千克", "公斤", "秒", "安", "开", "摩尔", "坎德拉"):
