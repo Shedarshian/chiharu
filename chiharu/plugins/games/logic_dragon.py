@@ -1426,35 +1426,35 @@ class queststone(_card):
     description = "持有此石时，你每天会刷新一个接龙任务。每次完成接龙任务可以获得3击毙，每天最多3次。使用将丢弃此石。"
     @classmethod
     def full_description(cls, qq):
-        m = mission[global_state['quest'][qq][quest_print_aux[qq]]['id']][1]
-        remain = global_state['quest'][qq][quest_print_aux[qq]]['remain']
-        quest_print_aux[qq] += 1
-        if quest_print_aux[qq] >= len(mission):
-            quest_print_aux[qq] = 0
+        m = mission[global_state['quest'][str(qq)][quest_print_aux[str(qq)]]['id']][1]
+        remain = global_state['quest'][str(qq)][quest_print_aux[str(qq)]]['remain']
+        quest_print_aux[str(qq)] += 1
+        if quest_print_aux[str(qq)] >= len(mission):
+            quest_print_aux[str(qq)] = 0
         return super().full_description(qq) + "\n\t当前任务：" + m + f"剩余{remain}次。"
     @classmethod
     async def on_draw(cls, session, qq, hand_card):
-        if qq not in global_state['quest']:
-            global_state['quest'][qq] = []
-        global_state['quest'][qq].append({'id': (i := get_mission()), 'remain': 3})
+        if str(qq) not in global_state['quest']:
+            global_state['quest'][str(qq)] = []
+        global_state['quest'][str(qq)].append({'id': (i := get_mission()), 'remain': 3})
         config.logger.dragon << f"【LOG】用户{qq}刷新了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][qq]]}。"
         save_global_state()
     @classmethod
     async def on_discard(cls, session, qq, hand_card):
-        del global_state['quest'][qq][quest_print_aux[qq]]
-        if quest_print_aux[qq] >= len(mission):
-            quest_print_aux[qq] = 0
-        config.logger.dragon << f"【LOG】用户{qq}删除了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][qq]]}。"
+        del global_state['quest'][str(qq)][quest_print_aux[str(qq)]]
+        if quest_print_aux[str(qq)] >= len(mission):
+            quest_print_aux[str(qq)] = 0
+        config.logger.dragon << f"【LOG】用户{qq}删除了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][str(qq)]]}。"
         save_global_state()
     @classmethod
     async def on_give(cls, session, qq, target):
-        m = global_state['quest'][qq][quest_print_aux[qq]]
-        del global_state['quest'][qq][quest_print_aux[qq]]
-        if quest_print_aux[qq] >= len(mission):
-            quest_print_aux[qq] = 0
-        config.logger.dragon << f"【LOG】用户{qq}删除了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][qq]]}。"
-        global_state['quest'][target].append(m)
-        config.logger.dragon << f"【LOG】用户{target}增加了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][qq]]}。"
+        m = global_state['quest'][str(qq)][quest_print_aux[str(qq)]]
+        del global_state['quest'][str(qq)][quest_print_aux[str(qq)]]
+        if quest_print_aux[str(qq)] >= len(mission):
+            quest_print_aux[str(qq)] = 0
+        config.logger.dragon << f"【LOG】用户{qq}删除了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][str(qq)]]}。"
+        global_state['quest'][str(target)].append(m)
+        config.logger.dragon << f"【LOG】用户{target}增加了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][str(target)]]}。"
         save_global_state()
 
 class cunqianguan(_card):
