@@ -686,12 +686,14 @@ async def logical_dragon(session: NLPSession):
                     buf.send("你今日全勤，奖励1抽奖券！")
                     config.logger.dragon << f"【LOG】用户{qq}全勤，奖励1抽奖券。"
                     config.userdata.execute("update dragon_data set draw_time=? where qq=?", (node['draw_time'] + 1, qq))
+            else:
+                buf.send()
             if l := global_state['quest'].get(str(qq)):
                 for m in l:
                     if m['remain'] > 0:
                         id, name, func = mission[m['id']]
                         if func(word):
-                            buf.send(f"你完成了任务：{name}！奖励3击毙。此任务还可完成{m['remain'] - 1}次。")
+                            buf.send(f"你完成了任务：{name[:-1]}！奖励3击毙。此任务还可完成{m['remain'] - 1}次。")
                             config.logger.dragon << f"【LOG】用户{qq}完成了一次任务{name}，剩余{m['remain'] - 1}次。"
                             m['remain'] -= 1
                             await add_jibi(buf, qq, 3)
