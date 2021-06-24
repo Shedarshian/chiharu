@@ -1067,6 +1067,15 @@ async def dragon_update(session: CommandSession):
     for group in config.group_id_dict['logic_dragon_send']:
         await get_bot().send_group_msg(group_id=group, message=ret)
 
+@on_command(('dragon', 'draw67'), only_to_me=False, hide=True)
+@config.ErrorHandle(config.logger.dragon)
+async def dragon_draw67(session: CommandSession):
+    if session.ctx['user_id'] != 1824789744:
+        return
+    qq = session.ctx['user_id']
+    buf = SessionBuffer(session)
+    await settlement(buf, qq, partial(draw, 0, cards=[Card(67)]))
+ 
 @lru_cache(10)
 def Card(id):
     if id in _card.card_id_dict:
@@ -1437,7 +1446,7 @@ class queststone(_card):
         if str(qq) not in global_state['quest']:
             global_state['quest'][str(qq)] = []
         global_state['quest'][str(qq)].append({'id': (i := get_mission()), 'remain': 3})
-        config.logger.dragon << f"【LOG】用户{qq}刷新了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][qq]]}。"
+        config.logger.dragon << f"【LOG】用户{qq}刷新了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][str(qq)]]}。"
         save_global_state()
     @classmethod
     async def on_discard(cls, session, qq, hand_card):
