@@ -567,7 +567,7 @@ async def update_begin_word(is_daily):
 async def daily_update():
     global global_state
     m = {}
-    for qq, quests in global_state['quest']:
+    for qq, quests in global_state['quest'].items():
         if len(quests) == 0:
             continue
         m[qq] = [{'id': get_mission(), 'remain': 3} for i in quests]
