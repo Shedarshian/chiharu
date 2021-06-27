@@ -197,7 +197,7 @@ def save_global_state():
 quest_print_aux = {qq: 0 for qq in global_state['quest'].keys()}
 
 # dragon_data := qq : int, jibi : int, card : str, draw_time : int, death_time : str, today_jibi : int, today_keyword_jibi : int
-# status : str, daily_status : str, status_time : str, card_limit : int
+# status : str, daily_status : str, status_time : str, card_limit : int, shop_drawn_card: int
 # global_status : qq = 2711644761
 def find_or_new(qq):
     t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
@@ -579,7 +579,7 @@ async def daily_update():
         config.logger.dragon << f"【LOG】更新了用户{qq}的任务为：{[c['id'] for c in m[qq]]}。"
     global_state['quest'] = m
     save_global_state()
-    config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10', ('',))
+    config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=0', ('',))
     save_data()
     word = await update_begin_word(is_daily=True)
     return "今日关键词：" + word + "\nid为【0】。"
@@ -839,7 +839,7 @@ async def dragon_check(session: CommandSession):
     elif data in ("卡池", "card_pool"):
         session.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
     elif data in ("商店", "shop"):
-        session.finish("1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. (35击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。")
+        session.finish("1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. (35击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。\n8. (25击毙)抽一张卡，每日限一次。")
     qq = session.ctx['user_id']
     node = find_or_new(qq)
     if data in ("复活时间", "recover_time"):
@@ -957,6 +957,16 @@ async def dragon_buy(session: CommandSession):
         for group in config.group_id_dict['dragon_supervise']:
             await get_bot().send_group_msg(group_id=group, message=s)
         buf.send("您已成功提交！")
+    elif id == 8:
+        # (25击毙)抽一张卡，每日限一次。
+        node = find_or_new(qq)
+        if node['shop_drawn_card'] >= 1:
+            buf.send("您今日已在商店购买过抽卡！")
+        else:
+            config.userdata.execute("update dragon_data set shop_drawn_card=? where qq=?", (node['shop_drawn_card'] + 1, qq))
+            await add_jibi(buf, qq, -25, is_buy=True)
+            await settlement(buf, qq, partial(draw, 1))
+            save_data()
     await buf.flush()
 
 @on_command(('dragon', 'fork'), aliases="分叉", only_to_me=False, short_des="分叉接龙。", args=("id",), environment=env)
