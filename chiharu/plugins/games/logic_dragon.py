@@ -202,7 +202,7 @@ quest_print_aux = {qq: 0 for qq in global_state['quest'].keys()}
 def find_or_new(qq):
     t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     if t is None:
-        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4)', (qq, '', '', '', '', '{}'))
+        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 0)', (qq, '', '', '', '', '{}'))
         t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     return t
 def get_jibi(qq):
@@ -1146,14 +1146,14 @@ class card_meta(type):
                 bases[0].add_status(status, attrs['status_des'])
                 @classmethod
                 async def on_draw(cls, session, qq, hand_card):
-                    add_status(qq, 'y', False)
+                    add_status(qq, status, False)
                 @classmethod
                 async def on_discard(cls, session, qq, hand_card):
-                    remove_status(qq, 'y', False)
+                    remove_status(qq, status, False)
                 @classmethod
                 async def on_give(cls, session, qq, target):
-                    remove_status(qq, 'y', False)
-                    add_status(target, 'y', False)
+                    remove_status(qq, status, False)
+                    add_status(target, status, False)
                 attrs['on_draw'] = on_draw
                 attrs['on_discard'] = on_discard
                 attrs['on_give'] = on_give
