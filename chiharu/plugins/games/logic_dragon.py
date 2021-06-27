@@ -166,7 +166,7 @@ def load_log(init):
                         if match.group(4) is None: # backward compatability
                             parent = Tree.find((id[0] - 1, id[1]))
                         else:
-                            parent = None if match.group(4) == '-1' else Tree.find(Tree.str_to_id(match.group(3)))
+                            parent = None if match.group(4) == '-1' else Tree.find(Tree.str_to_id(match.group(4)))
                         node = Tree(parent, match.group(8),
                                 0 if match.group(5) is None else int(match.group(5)),
                                 kwd=match.group(6), hdkwd=match.group(7), id=id,
