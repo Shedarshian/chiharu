@@ -217,6 +217,7 @@ async def add_jibi(session, qq, jibi, current_jibi=None, is_buy=False):
     if m := check_status(qq, 'S', False):
         jibi //= 2 ** m
         session.send(session.char(qq) + f"触发了{f'{m}次' if m > 1 else ''}Steam夏季特卖的效果，花费击毙减半为{abs(jibi)}！")
+        remove_status(qq, 'S', False, remove_all=True)
     config.userdata.execute("update dragon_data set jibi=? where qq=?", (max(0, current_jibi + jibi), qq))
     config.logger.dragon << f"【LOG】玩家原有击毙{current_jibi}，{f'触发了{n}次变压器的效果，' if n > 0 else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
 def wrapper_file(_func):
