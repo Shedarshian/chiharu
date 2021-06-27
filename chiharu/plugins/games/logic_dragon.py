@@ -175,11 +175,11 @@ def load_log(init):
             pass
     log_file = open(config.rel(today), 'a', encoding='utf-8')
 load_log(True)
-def check_and_add_log_and_contruct_tree(parent, word, qq, kwd, hdkwd):
+def check_and_add_log_and_contruct_tree(parent, word, qq, kwd, hdkwd, fork):
     global log_set
     if word in log_set:
         return None
-    s = Tree(parent, word, qq, kwd, hdkwd)
+    s = Tree(parent, word, qq, kwd, hdkwd, fork=fork)
     log_set.add(s.word)
     log_file.write(f'{s}\n')
     log_file.flush()
@@ -663,7 +663,10 @@ async def logical_dragon(session: NLPSession):
                 if not update_hidden_keyword(i, True):
                     buf.end("隐藏奖励词池已空！")
                 break
-        if not (tree_node := check_and_add_log_and_contruct_tree(parent, word, qq, kwd=kwd, hdkwd=hdkwd)):
+        fork = False
+        if (n := check_global_status('b', True)):
+            fork = random.random() > 0.95 ** n
+        if not (tree_node := check_and_add_log_and_contruct_tree(parent, word, qq, kwd=kwd, hdkwd=hdkwd, fork=fork)):
             config.logger.dragon << f"【LOG】用户{qq}由于过去一周接过此词，死了。"
             buf.send("过去一周之内接过此词，你死了！")
             await settlement(buf, qq, kill)
@@ -692,6 +695,8 @@ async def logical_dragon(session: NLPSession):
                     config.userdata.execute("update dragon_data set draw_time=? where qq=?", (node['draw_time'] + 1, qq))
             else:
                 buf.send("")
+            if fork:
+                buf.send("你触发了Fork Bomb，此词变成了分叉点！")
             if l := global_state['quest'].get(str(qq)):
                 for m in l:
                     if m['remain'] > 0:
@@ -1651,13 +1656,21 @@ class guanggaopai(_card):
             "欢迎关注甜品站弹幕研究协会，国内一流的东方STG学术交流平台，从避弹，打分到neta，可以学到各种高端姿势：https://www.isndes.com/ms?m=2"
         ])
 
-class steam(_card):
+class steamsummer(_card):
     name = "Steam夏季特卖"
     id = 151
     positive = 1
     status = 'S'
     status_des = "Steam夏季特卖：你下一次购物花费减少50%。"
     description = "你下一次购物花费减少50%。"
+
+class forkbomb(_card):
+    name = "Fork Bomb"
+    id = 152
+    positive = 0
+    global_daily_status = 'b'
+    status_des = "Fork Bomb：今天每个接龙词都有5%几率变成分叉点。"
+    description = "今天每个接龙词都有5%几率变成分叉点。"
 
 from pypinyin import pinyin, Style
 
