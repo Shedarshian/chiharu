@@ -549,7 +549,8 @@ async def thwiki_apply(session: CommandSession):
     config.logger.thwiki << f'【LOG】用户{qq}成功申请：{e}'
     
     check = find_or_new(qq=qq)
-    await session.send(f'成功申请，id为{e.id}，您还在试用期，请等待管理员监视，敬请谅解w' if check['trail'] else f'成功申请，id为{e.id}')
+    await session.send((f'成功申请，id为{e.id}，您还在试用期，请等待管理员监视，敬请谅解w' if check['trail'] else f'成功申请，id为{e.id}') +
+        ('\nfloat为自由时间截止，请随时准备给后来人让位，如决定至少播多久请申请固定时段，谢谢合作。' if float_end else ''))
     
     # Try to change description in livestream room
     ret = await change_des_to_list()
