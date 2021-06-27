@@ -56,7 +56,7 @@ class Tree:
     forests = []
     _objs = [] # [[wd0, wd1, wd2], [wd2a], [wd2b]]
     max_branches = 0
-    def __init__(self, parent, word, qq, kwd, hdkwd, *, id=None):
+    def __init__(self, parent, word, qq, kwd, hdkwd, *, id=None, fork=False):
         self.parent = parent
         if parent:
             parent.childs.append(self)
@@ -76,7 +76,7 @@ class Tree:
         self._objs[self.id[1]].append(self)
         self.childs = []
         self.word = word
-        self.fork = False
+        self.fork = fork
         self.qq = qq
         self.kwd = kwd
         self.hdkwd = hdkwd
@@ -107,7 +107,7 @@ class Tree:
     def __repr__(self):
         return f"<id: {self.id}, parent_id: {'None' if self.parent is None else self.parent.id}, word: \"{self.word}\">"
     def __str__(self):
-        return f"{self.id_str}<{'-1' if self.parent is None else self.parent.id_str}/{self.qq}/{self.kwd}/{self.hdkwd}/ {self.word}"
+        return f"{self.id_str}{'+' if self.fork else ''}<{'-1' if self.parent is None else self.parent.id_str}/{self.qq}/{self.kwd}/{self.hdkwd}/ {self.word}"
     def remove(self):
         id = self.id
         begin = id[0] - Tree._objs[id[1]][0].id[0]
@@ -144,7 +144,7 @@ def load_log(init):
         d -= timedelta(days=1)
     today = rf'log\dragon_log_{d.isoformat()}.txt'
     def _(s):
-        if match := re.match(r'(\d+[a-z]?(?:<-?\d+[a-z]?)?(?:/\d+/[^/]*/[^/]*/)?) (.*)', s):
+        if match := re.match(r'(\d+[a-z]?(?:\+?<-?\d+[a-z]?)?(?:/\d+/[^/]*/[^/]*/)?) (.*)', s):
             return match.group(2)
         return s
     for i in range(7):
@@ -158,18 +158,19 @@ def load_log(init):
         try:
             with open(config.rel(today), encoding='utf-8') as f:
                 for line in f.readlines():
-                    if match := re.match(r'(\d+)([a-z])?(?:<(-?\d+[a-z]?))?(?:/(\d+)/([^/]*)/([^/]*)/)? (.*)', line.strip("\r\n")):
+                    if match := re.match(r'(\d+)([a-z])?(?:(\+)?<(-?\d+[a-z]?))?(?:/(\d+)/([^/]*)/([^/]*)/)? (.*)', line.strip("\r\n")):
                         if match.group(1) == '0' and len(Tree._objs) != 0:
                             Tree.forests.append(Tree._objs)
                             Tree.init(is_daily=False)
                         id = Tree.match_to_id(match)
-                        if match.group(3) is None: # backward compatability
+                        if match.group(4) is None: # backward compatability
                             parent = Tree.find((id[0] - 1, id[1]))
                         else:
-                            parent = None if match.group(3) == '-1' else Tree.find(Tree.str_to_id(match.group(3)))
-                        node = Tree(parent, match.group(7),
-                                0 if match.group(4) is None else int(match.group(4)),
-                                kwd=match.group(5), hdkwd=match.group(6), id=id)
+                            parent = None if match.group(4) == '-1' else Tree.find(Tree.str_to_id(match.group(3)))
+                        node = Tree(parent, match.group(8),
+                                0 if match.group(5) is None else int(match.group(5)),
+                                kwd=match.group(6), hdkwd=match.group(7), id=id,
+                                fork=match.group(3) is not None)
         except FileNotFoundError:
             pass
     log_file = open(config.rel(today), 'a', encoding='utf-8')
@@ -206,15 +207,18 @@ def find_or_new(qq):
     return t
 def get_jibi(qq):
     return find_or_new(qq)['jibi']
-async def add_jibi(session, qq, jibi, current_jibi=None):
+async def add_jibi(session, qq, jibi, current_jibi=None, is_buy=False):
     if current_jibi is None:
         current_jibi = get_jibi(qq)
     if n := check_status(qq, '2', False):
         jibi *= 2 ** n
         session.send(session.char(qq) + f"触发了{f'{n}次' if n > 1 else ''}变压器的效果，{'获得' if jibi >= 0 else '损失'}击毙加倍为{abs(jibi)}！")
         remove_status(qq, '2', False, remove_all=True)
+    if m := check_status(qq, 'S', False):
+        jibi //= 2 ** m
+        session.send(session.char(qq) + f"触发了{f'{m}次' if m > 1 else ''}Steam夏季特卖的效果，花费击毙减半为{abs(jibi)}！")
     config.userdata.execute("update dragon_data set jibi=? where qq=?", (max(0, current_jibi + jibi), qq))
-    config.logger.dragon << f"【LOG】玩家原有击毙{current_jibi}，{f'触发了{n}次变压器的效果，' if n > 0 else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
+    config.logger.dragon << f"【LOG】玩家原有击毙{current_jibi}，{f'触发了{n}次变压器的效果，' if n > 0 else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
 def wrapper_file(_func):
     def func(*args, **kwargs):
         with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
@@ -888,7 +892,7 @@ async def dragon_buy(session: CommandSession):
     config.logger.dragon << f"【LOG】用户{qq}购买商品{id}。"
     if id == 1:
         # (25击毙)从起始词库中刷新一条接龙词。
-        await add_jibi(buf, qq, -25)
+        await add_jibi(buf, qq, -25, is_buy=True)
         buf.send("您刷新的关键词为：" + await update_begin_word() + "，id为【0】。")
     elif id == 2:
         # (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。
@@ -904,7 +908,7 @@ async def dragon_buy(session: CommandSession):
             buf.send(f"您只有{jibi}击毙！")
             n = jibi
         config.logger.dragon << f"【LOG】用户{qq}使用{n}击毙减少{15 * n}分钟死亡时间。"
-        await add_jibi(buf, qq, -n)
+        await add_jibi(buf, qq, -n, is_buy=True)
         b = decrease_death_time(qq, timedelta(minutes=15 * n))
         buf.send(f"您减少了{15 * n}分钟的死亡时间！" + ("您活了！" if b else ""))
     elif id == 3:
@@ -912,13 +916,13 @@ async def dragon_buy(session: CommandSession):
         config.logger.dragon << f"【LOG】询问用户{qq}提交起始词与图。"
         s = await buf.aget(prompt="请提交起始词和一张图。（审核不通过不返还击毙），输入取消退出。", arg_filter=[cancellation(session)])
         config.logger.dragon << f"【LOG】用户{qq}提交起始词：{s}。"
-        await add_jibi(buf, qq, -70)
+        await add_jibi(buf, qq, -70, is_buy=True)
         for group in config.group_id_dict['dragon_supervise']:
             await get_bot().send_group_msg(group_id=group, message=s)
         buf.send("您已成功提交！")
     elif id == 4:
         # (35击毙)回溯一条接龙。
-        await add_jibi(buf, qq, -35)
+        await add_jibi(buf, qq, -35, is_buy=True)
         buf.send("成功回溯！")
     elif id == 5:
         # (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。
@@ -930,12 +934,12 @@ async def dragon_buy(session: CommandSession):
                 cancellation(session)
             ])
         config.logger.dragon << f"【LOG】用户{qq}标记{c}为雷。"
-        await add_jibi(buf, qq, -10)
+        await add_jibi(buf, qq, -10, is_buy=True)
         add_bomb(c)
         buf.send(f"成功添加词汇{c}！")
     elif id == 6:
         # (5击毙)刷新一组隐藏奖励词。
-        await add_jibi(buf, qq, -5)
+        await add_jibi(buf, qq, -5, is_buy=True)
         update_hidden_keyword(-1)
         buf.send("成功刷新！")
     elif id == 7:
@@ -943,7 +947,7 @@ async def dragon_buy(session: CommandSession):
         config.logger.dragon << f"【LOG】询问用户{qq}提交的卡牌。"
         s = await buf.aget(prompt="请提交卡牌名、来源、与卡牌效果描述。（审核不通过不返还击毙），输入取消退出。", arg_filter=[cancellation(session)])
         config.logger.dragon << f"【LOG】用户{qq}提交卡牌{s}。"
-        await add_jibi(buf, qq, -50)
+        await add_jibi(buf, qq, -50, is_buy=True)
         for group in config.group_id_dict['dragon_supervise']:
             await get_bot().send_group_msg(group_id=group, message=s)
         buf.send("您已成功提交！")
@@ -1646,6 +1650,14 @@ class guanggaopai(_card):
             "下蛋公鸡，公鸡中的战斗鸡，哦也",
             "欢迎关注甜品站弹幕研究协会，国内一流的东方STG学术交流平台，从避弹，打分到neta，可以学到各种高端姿势：https://www.isndes.com/ms?m=2"
         ])
+
+class steam(_card):
+    name = "Steam夏季特卖"
+    id = 151
+    positive = 1
+    status = 'S'
+    status_des = "Steam夏季特卖：你下一次购物花费减少50%。"
+    description = "你下一次购物花费减少50%。"
 
 from pypinyin import pinyin, Style
 
