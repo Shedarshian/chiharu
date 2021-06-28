@@ -189,7 +189,7 @@ def check_and_add_log_and_contruct_tree(parent, word, qq, kwd, hdkwd, fork):
 # exchange_stack : list(int)
 # lianhuan : list(int)
 # quest : map(int, list(map('id': int, 'remain': int)))
-# steal : map(int, list(int))
+# steal : map(int, map('user': list(int), 'time': int))
 with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
     global_state = json.load(f)
 def save_global_state():
@@ -697,6 +697,7 @@ async def logical_dragon(session: NLPSession):
                 if user not in global_state['steal'][str(qq)] and global_state['steal'][str(qq)]['time'] < 10:
                     global_state['steal'][str(qq)]['time'] += 1
                     global_state['steal'][str(qq)]['user'].append(user)
+                    save_global_state()
                     config.logger.dragon << f"【LOG】用户{qq}触发了{n}次掠夺者啵噗的效果，偷取了{user}击毙，剩余偷取次数{9 - global_state['steal'][str(qq)]['time']}。"
                     if (p := get_jibi(user)) > 0:
                         buf.send(f"你从上一名玩家处偷取了{min(n, p)}击毙！")
