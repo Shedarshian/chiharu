@@ -189,6 +189,7 @@ def check_and_add_log_and_contruct_tree(parent, word, qq, kwd, hdkwd, fork):
 # exchange_stack : list(int)
 # lianhuan : list(int)
 # quest : map(int, list(map('id': int, 'remain': int)))
+# steal : map(int, list(int))
 with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
     global_state = json.load(f)
 def save_global_state():
@@ -578,6 +579,8 @@ async def daily_update():
         m[qq] = [{'id': get_mission(), 'remain': 3} for i in quests]
         config.logger.dragon << f"【LOG】更新了用户{qq}的任务为：{[c['id'] for c in m[qq]]}。"
     global_state['quest'] = m
+    for qq in global_state['steal']:
+        global_state['steal'][qq] = {'time': 0, 'user': []}
     save_global_state()
     config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=0', ('',))
     save_data()
@@ -683,19 +686,22 @@ async def logical_dragon(session: NLPSession):
                 buf.send(f"奖励{jibi_to_add}击毙。")
                 config.userdata.execute("update dragon_data set today_jibi=? where qq=?", (node['today_jibi'] - 1, qq))
                 await add_jibi(buf, qq, jibi_to_add)
-                if (n := check_status(qq, 'p', False, node)):
-                    user = parent.qq
-                    config.logger.dragon << f"【LOG】用户{qq}触发了{n}次掠夺者啵噗的效果，偷取了{user}击毙。"
-                    if (p := get_jibi(user)) > 0:
-                        buf.send(f"你从上一名玩家处偷取了{min(n, p)}击毙！")
-                        await add_jibi(buf, user, -n)
-                        await add_jibi(buf, qq, min(n, p))
                 if node['today_jibi'] == 1:
                     buf.send("你今日全勤，奖励1抽奖券！")
                     config.logger.dragon << f"【LOG】用户{qq}全勤，奖励1抽奖券。"
                     config.userdata.execute("update dragon_data set draw_time=? where qq=?", (node['draw_time'] + 1, qq))
             else:
                 buf.send("")
+            if (n := check_status(qq, 'p', False, node)):
+                user = parent.qq
+                if user not in global_state['steal'][str(qq)] and global_state['steal'][str(qq)]['time'] < 10:
+                    global_state['steal'][str(qq)]['time'] += 1
+                    global_state['steal'][str(qq)]['user'].append(user)
+                    config.logger.dragon << f"【LOG】用户{qq}触发了{n}次掠夺者啵噗的效果，偷取了{user}击毙，剩余偷取次数{9 - global_state['steal'][str(qq)]['time']}。"
+                    if (p := get_jibi(user)) > 0:
+                        buf.send(f"你从上一名玩家处偷取了{min(n, p)}击毙！")
+                        await add_jibi(buf, user, -n)
+                        await add_jibi(buf, qq, min(n, p))
             if fork:
                 buf.send("你触发了Fork Bomb，此词变成了分叉点！")
             if l := global_state['quest'].get(str(qq)):
@@ -1569,9 +1575,28 @@ class lveduozhebopu(_card):
     name = "掠夺者啵噗"
     id = 77
     positive = 1
-    hold_status = 'p'
-    status_des = '掠夺者啵噗：死亡时间增加1小时。每天因接龙获得1击毙时，可从所接龙的人处偷取1击毙。若目标没有击毙则不可偷取。'
-    description = "持有此卡时，你死亡时间增加1小时。每天你因接龙获得1击毙时，可从你所接龙的人处偷取1击毙。若目标没有击毙则不可偷取。使用将丢弃这张卡。"
+    description = "每天你可从你所接龙的人处偷取1击毙，每人限一次，最多10击毙，若目标没有击毙则不可偷取。死亡时或使用将丢弃这张卡。"
+    @classmethod
+    async def on_draw(cls, session, qq, hand_card):
+        add_status(qq, 'p', False)
+        if str(qq) not in global_state['steal']:
+            global_state['steal'][str(qq)] = global_state['steal'][str(qq)]['time']
+        save_global_state()
+    @classmethod
+    async def on_discard(cls, session, qq, hand_card):
+        remove_status(qq, 'p', False)
+        if not check_status(qq, 'p', False):
+            del global_state['steal'][str(qq)]
+        save_global_state()
+    @classmethod
+    async def on_give(cls, session, qq, target):
+        remove_status(qq, 'p', False)
+        add_status(target, 'p', False)
+        global_state['steal'][str(target)] = global_state['steal'][str(qq)]
+        if not check_status(qq, 'p', False):
+            del global_state['steal'][str(qq)]
+        save_global_state()
+_card.add_status('p', '掠夺者啵噗：每天可从所接龙的人处偷取1击毙，每人限一次，最多10击毙，若目标没有击毙则不可偷取。')
 
 class jiandieyubei(_card):
     name = "邪恶的间谍行动～预备"
