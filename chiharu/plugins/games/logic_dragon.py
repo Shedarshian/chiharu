@@ -693,7 +693,7 @@ async def logical_dragon(session: NLPSession):
                 buf.send("")
             if (n := check_status(qq, 'p', False, node)):
                 user = parent.qq
-                if user not in global_state['steal'][str(qq)] and global_state['steal'][str(qq)]['time'] < 10:
+                if user not in global_state['steal'][str(qq)]['user'] and global_state['steal'][str(qq)]['time'] < 10:
                     global_state['steal'][str(qq)]['time'] += 1
                     global_state['steal'][str(qq)]['user'].append(user)
                     save_global_state()
