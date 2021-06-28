@@ -440,9 +440,8 @@ async def kill(session, qq, hand_card, hour=2):
                 config.logger.dragon << f"【LOG】用户{qq}使用虹色之环闪避失败，死亡时间+1h。"
                 hour += 1
     if (n := check_status(qq, 'p', False)) and not dodge:
-        session.send(session.char(qq) + f"因掠夺者啵噗的效果，死亡时间+{n}h！")
-        config.logger.dragon << f"【LOG】用户{qq}因掠夺者啵噗的效果，死亡时间+{n}h。"
-        hour += n
+        config.logger.dragon << f"【LOG】用户的{n}张掠夺者啵噗因死亡被弃置。"
+        await discard_cards([Card(77) for i in range(n)], session, qq, hand_card)
     if not dodge:
         add_limited_status(qq, 'd', datetime.now() + timedelta(hours=hour))
         session.send(f"你死了！{hour}小时不得接龙。")
