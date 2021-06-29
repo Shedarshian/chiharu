@@ -54,6 +54,10 @@ TRAIL_TIME = 36 * 60
 TIME_OUT = 15
 FRIENDLY_MAX = 5
 
+def search_ret(ret):
+    match = re.search(r'\{.*\}', ret)
+    return "{}" if not match else match.group(0)
+
 # Change title and description on Bilibili livestream room
 # title: self-explanatory
 # description: self-explanatory
@@ -554,7 +558,7 @@ async def thwiki_apply(session: CommandSession):
     
     # Try to change description in livestream room
     ret = await change_des_to_list()
-    if json.loads(ret)['code'] != 0:
+    if json.loads(search_ret(ret))['code'] != 0:
         config.logger.thwiki << '【LOG】更新到直播间失败'
         await session.send('更新到直播间失败')
 
@@ -755,11 +759,11 @@ async def thwiki_cancel(session: CommandSession):
                 pass
 
         ret = await change_des_to_list(lunbo=lunbo)
-        if json.loads(ret)['code'] != 0:
+        if json.loads(search_ret(ret))['code'] != 0:
             config.logger.thwiki << '【LOG】更新到直播间失败'
             await session.send('更新到直播间失败')
         # ret = await change(area=33)
-        # if json.loads(ret)['code'] != 0:
+        # if json.loads(search_ret(ret))['code'] != 0:
         #     for id in config.group_id_dict['thwiki_send']:
         #         await get_bot().send_group_msg(group_id=id, message='轮播分区修改失败')
     else:
@@ -852,22 +856,22 @@ async def thwiki_term(session: CommandSession):
     await _save(l)
 
     # ret = await th_open(is_open=False)
-    # if json.loads(ret)['code'] != 0:
+    # if json.loads(search_ret(ret))['code'] != 0:
     #     config.logger.thwiki << '【LOG】断流失败'
     #     await session.send('成功删除，断流失败' + s)
     # else:
     #     await session.send('成功断流' + s)
     await session.send(s)
     ret = await change(title='【东方】轮播中')
-    if json.loads(ret)['code'] != 0:
+    if json.loads(search_ret(ret))['code'] != 0:
         config.logger.thwiki << f'【LOG】修改标题失败{ret}'
         await session.send('修改标题失败', auto_escape=True)
 
     ret = await change_des_to_list(lunbo=True)
-    if json.loads(ret)['code'] != 0:
+    if json.loads(search_ret(ret))['code'] != 0:
         await session.send('更新到直播间失败')
     # ret = await change(area=33)
-    # if json.loads(ret)['code'] != 0:
+    # if json.loads(search_ret(ret))['code'] != 0:
     #     for id in config.group_id_dict['thwiki_send']:
     #         await get_bot().send_group_msg(group_id=id, message='轮播分区修改失败')
 
@@ -885,7 +889,7 @@ async def _():
     global l
     await _save(l)
     ret = await change_des_to_list()
-    if json.loads(ret)['code'] != 0:
+    if json.loads(search_ret(ret))['code'] != 0:
         for id in config.group_id_dict['thwiki_send']:
             await get_bot().send_group_msg(group_id=id, message='直播间简介更新失败')
     for row in config.userdata.execute('select id, qq, card from thwiki_user').fetchall():
@@ -924,11 +928,11 @@ async def _():
             for id in config.group_id_dict['thwiki_send']:
                 await bot.send_group_msg(group_id=id, message=e.output_with_at())
             ret = await change(title=('【东方】' if '【东方】' not in e.name else '') + e.name)
-            if json.loads(ret)['code'] != 0:
+            if json.loads(search_ret(ret))['code'] != 0:
                 for id in config.group_id_dict['thwiki_send']:
                     await bot.send_group_msg(group_id=id, message='直播间标题修改失败')
             ret = await change_des_to_list()
-            if json.loads(ret)['code'] != 0:
+            if json.loads(search_ret(ret))['code'] != 0:
                 for id in config.group_id_dict['thwiki_send']:
                     await bot.send_group_msg(group_id=id, message='直播间简介更新失败')
             if e.supervise > 0:
@@ -967,11 +971,11 @@ async def _():
                 for id in config.group_id_dict['thwiki_send']:
                     await bot.send_group_msg(group_id=id, message=[config.cq.text("已为"), config.cq.at(e.qq), config.cq.text(f"累积直播时间{d}分钟")], auto_escape=True)
                 ret = await change_des_to_list(lunbo=True)
-                if json.loads(ret)['code'] != 0:
+                if json.loads(search_ret(ret))['code'] != 0:
                     for id in config.group_id_dict['thwiki_send']:
                         await bot.send_group_msg(group_id=id, message='直播间简介更新失败')
                 # ret = await change(area=33)
-                # if json.loads(ret)['code'] != 0:
+                # if json.loads(search_ret(ret))['code'] != 0:
                 #     for id in config.group_id_dict['thwiki_send']:
                 #         await bot.send_group_msg(group_id=id, message='轮播分区修改失败')
             break
@@ -985,7 +989,7 @@ async def thwiki_check(session: CommandSession):
     # Query Bilibili livestream room
     loop = asyncio.get_event_loop()
     url = await loop.run_in_executor(None, requests.get, 'https://api.live.bilibili.com/room/v1/Room/room_init?id=14055253')
-    response = json.loads(url.text)
+    response = json.loads(search_ret(url.text))
     if response['data']['live_status'] == 1:
         url2 = await loop.run_in_executor(None, requests.get,
             'https://api.live.bilibili.com/room/v1/Room/get_info?room_id=14055253')
@@ -1064,7 +1068,7 @@ async def thwiki_get(session: CommandSession):
     url = await loop.run_in_executor(None, functools.partial(requests.get,
         'http://api.live.bilibili.com/live_stream/v1/StreamList/get_stream_by_roomId?room_id=14055253',
         cookies=cookie_jar))
-    response = json.loads(url.text)
+    response = json.loads(search_ret(url.text))
     if response['code'] != 0:
         config.logger.thwiki << f'【LOG】用户{qq} get 无法获取rtmp与key'
         await session.send([config.cq.text('无法获取rtmp与key，已将缓存数据发送，如无法推流请联系'),
@@ -1093,7 +1097,7 @@ async def thwiki_get(session: CommandSession):
             await session.send('不支持分区：%s，自动转至单机·其他' % session.current_arg_text, auto_escape=True)
             area = 235
         ret = await change(area=area)
-        if json.loads(ret)['code'] != 0:
+        if json.loads(search_ret(ret))['code'] != 0:
             config.logger.thwiki << '【LOG】直播间分区修改失败'
             await session.send(f'直播间分区修改失败', auto_escape=True)
         else:
@@ -1114,13 +1118,13 @@ async def thwiki_get(session: CommandSession):
             if '东方' not in t:
                 t = '【东方】' + t
             ret = await change(title=t)
-            if json.loads(ret)['code'] != 0:
+            if json.loads(search_ret(ret))['code'] != 0:
                 config.logger.thwiki << '【LOG】直播间标题修改失败'
                 await session.send(f'直播间标题修改失败', auto_escape=True)
 
         # Send request
         ret = await th_open(area=area)
-        if json.loads(ret)['code'] == 0:
+        if json.loads(search_ret(ret))['code'] == 0:
             fenqu = areas_rev[area]
             config.logger.thwiki << f'【LOG】用户{qq} 开启直播间，分区：{fenqu}'
             await session.send('检测到直播间未开启，现已开启，分区：%s' % fenqu
@@ -1388,7 +1392,7 @@ async def thwiki_supervise(session: CommandSession):
                     await get_bot().send_group_msg(group_id=group, message=s)
         if ret.begin < (datetime.now() + timedelta(days = 7)):
             ret = await change_des_to_list()
-            if json.loads(ret)['code'] != 0:
+            if json.loads(search_ret(ret))['code'] != 0:
                 for id in config.group_id_dict['thwiki_supervise']:
                     await get_bot().send_group_msg(group_id=id, message='直播间简介更新失败')
 
@@ -1483,7 +1487,7 @@ async def thwiki_leaderboard(session: CommandSession):
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_open(session: CommandSession):
     ret = await th_open()
-    if json.loads(ret)['code'] != 0:
+    if json.loads(search_ret(ret))['code'] != 0:
         await session.send('开启直播失败')
     else:
         await session.send('成功开启直播')
@@ -1525,7 +1529,7 @@ async def thwiki_change(session: CommandSession):
         t = '【东方】' + t
     ret = await change(title=t)
     config.logger.thwiki << f'【LOG】用户{qq} 修改标题至"{t}"'
-    if json.loads(ret)['code'] == 0:
+    if json.loads(search_ret(ret))['code'] == 0:
         await session.send(f'成功修改标题至"{t}"', auto_escape=True)
     else:
         config.logger.thwiki << f'【LOG】修改标题失败{ret}'
@@ -1966,7 +1970,7 @@ async def thwiki_bookmark(session: CommandSession):
     bv = session.get('bv')
     if await env_supervise.test(session):
         ret = await add_fav(bv=bv, fav=853928275)
-        if json.loads(ret)['code'] == 0:
+        if json.loads(search_ret(ret))['code'] == 0:
             config.logger.thwiki << f'【LOG】用户{qq}添加书签{bv}'
             await session.send('成功增加视频')
         else:
@@ -1987,7 +1991,7 @@ async def thwiki_recommend(session: CommandSession):
     av = session.get('av')
     bv = session.get('bv')
     ret = await add_fav(bv=bv, fav=426047475)
-    if json.loads(ret)['code'] == 0:
+    if json.loads(search_ret(ret))['code'] == 0:
         config.logger.thwiki << f'【LOG】用户{qq}添加推荐{bv}'
         await session.send('成功加入推荐视频列表')
     else:
