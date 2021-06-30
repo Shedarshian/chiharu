@@ -1017,8 +1017,8 @@ async def dragon_delete(session: CommandSession):
     today = rf'log\dragon_log_{d.isoformat()}.txt'
     global log_file
     log_file.close()
-    with open(config.rel(today), 'w', encoding='utf-8') as f:
-        f.writelines(str(word) + '\n' for word in itertools.chain(*Tree._objs))
+    with open(config.rel(today), 'w', encoding='utf-8') as file:
+        file.writelines(str(word) + '\n' for word in itertools.chain(*Tree._objs))
     log_file = open(config.rel(today), 'a', encoding='utf-8')
     buf = SessionBuffer(session)
     buf.send("已成功驳回。")
