@@ -6,6 +6,7 @@ import getopt
 from os import path
 from typing import Awaitable, Generator, Set, Callable, Tuple, Dict, Union
 from nonebot import CommandSession, get_bot, permission
+from nonebot.natural_language import NLPSession
 from nonebot.session import BaseSession
 from nonebot.command import _PauseException, _FinishException, SwitchException
 import traceback
@@ -207,13 +208,63 @@ userdata_db = sqlite3.connect(rel('users.db'))
 userdata_db.row_factory = sqlite3.Row
 userdata = userdata_db.cursor()
 
+import asyncio
+from nonebot.command import _PauseException, _FinishException
+from functools import partial
+from typing import Optional, List, Any, NoReturn
+from nonebot.typing import Message_T, Filter_T
+from nonebot.command.argfilter import ValidateError
+
 class SessionBuffer:
-    __slots__ = ('buffer', 'session', 'active', 'send_end')
-    def __init__(self, session: CommandSession):
+    __slots__ = ('buffer', 'session', 'active', 'send_end', '_future', '_run_future', 'apause', 'aget', 'pause')
+    def __init__(self, session: BaseSession):
         self.buffer: str = ''
         self.send_end: str = ''
-        self.session: CommandSession = session
+        self.session: BaseSession = session
         self.active = session.ctx['user_id']
+        if isinstance(self.session, NLPSession):
+            self._run_future = partial(asyncio.run_coroutine_threadsafe,
+                                   loop=self.session.bot.loop)
+            async def apause(self, message = None, **kwargs) -> None:
+                if message:
+                    self._run_future(self.send(message, **kwargs))
+                while True:
+                    try:
+                        self._future = asyncio.get_event_loop().create_future()
+                        # timeout_opt = self.expire_timeout
+                        timeout = None
+                        await asyncio.wait_for(self._future, timeout)
+                        break
+                    except _PauseException:
+                        continue
+                    except (_FinishException, asyncio.TimeoutError):
+                        raise
+            async def aget(self,
+                        *,
+                        prompt: Optional[Message_T] = None,
+                        arg_filters: Optional[List[Filter_T]] = None,
+                        **kwargs) -> Any:
+                await self.apause(prompt, **kwargs)
+                arg = session.current_arg
+                for f in arg_filters:
+                    try:
+                        res = f(arg)
+                        if isinstance(res, Awaitable):
+                            res = await res
+                        arg = res
+                    except ValidateError as e:
+                        failure_message = e.message
+                        if failure_message is None:
+                            failure_message = "失败"
+                        session.pause(failure_message, **kwargs)
+                return arg
+            def pause(self, message: Optional[Message_T] = None, **kwargs) -> NoReturn:
+                if message:
+                    self._run_future(self.send(message, **kwargs))
+                self._raise(_PauseException())
+            self.pause = pause
+            self.apause = apause
+            self.aget = aget
     def send(self, s, end='\n'):
         self.buffer += s
         self.buffer += end
