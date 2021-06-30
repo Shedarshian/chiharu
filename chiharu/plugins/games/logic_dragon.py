@@ -591,7 +591,39 @@ async def daily_update():
 async def logical_dragon(session: NLPSession):
     if not await env.test(session):
         return
-    match = message_re.match(session.msg_text)
+    await call_command(get_bot(), session.ctx, ('dragon', 'construct'), current_arg=session.msg_text)
+
+@on_natural_language(only_to_me=False, only_short_message=True)
+@config.ErrorHandle(config.logger.dragon)
+async def logical_dragon_else(session: NLPSession):
+    if not await env.test(session):
+        return
+    text = session.msg_text.strip()
+    if text.startswith("查询接龙"):
+        await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[4:].strip())
+    elif text.startswith("查询"):
+        await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[2:].strip())
+    elif text.startswith("使用手牌") and (len(text) == 4 or text[4] == ' '):
+        await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
+    elif text.startswith("抽卡") and (len(text) == 2 or text[2] == ' '):
+        await call_command(get_bot(), session.ctx, ('dragon', 'draw'), current_arg=text[2:].strip())
+    elif text.startswith("查看手牌"):
+        await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="手牌")
+    elif text.startswith("商店"):
+        await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="商店")
+    elif text.startswith("购买") and (len(text) == 2 or text[2] == ' '):
+        await call_command(get_bot(), session.ctx, ('dragon', 'buy'), current_arg=text[2:].strip())
+    elif text.startswith("分叉") and (len(text) == 2 or text[2] == ' '):
+        await call_command(get_bot(), session.ctx, ('dragon', 'fork'), current_arg=text[2:].strip())
+    elif text.startswith("驳回分叉"):
+        await call_command(get_bot(), session.ctx, ('dragon', 'delete'), current_arg="-f " + text[4:].strip())
+    elif text.startswith("驳回"):
+        await call_command(get_bot(), session.ctx, ('dragon', 'delete'), current_arg=text[2:].strip())
+
+@on_command(('dragon', 'construct'), hide=True, environment=env)
+@config.ErrorHandle(config.logger.dragon)
+async def dragon_construct(session: CommandSession):
+    match = message_re.match(session.current_arg_text)
     if match:
         buf = SessionBuffer(session)
         qq = session.ctx['user_id']
@@ -735,33 +767,6 @@ async def logical_dragon(session: NLPSession):
                 await settlement(buf, qq, partial(exchange, target=to_exchange))
         await buf.flush()
         save_data()
-
-@on_natural_language(only_to_me=False, only_short_message=True)
-@config.ErrorHandle(config.logger.dragon)
-async def logical_dragon_else(session: NLPSession):
-    if not await env.test(session):
-        return
-    text = session.msg_text.strip()
-    if text.startswith("查询接龙"):
-        await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[4:].strip())
-    elif text.startswith("查询"):
-        await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[2:].strip())
-    elif text.startswith("使用手牌") and (len(text) == 4 or text[4] == ' '):
-        await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
-    elif text.startswith("抽卡") and (len(text) == 2 or text[2] == ' '):
-        await call_command(get_bot(), session.ctx, ('dragon', 'draw'), current_arg=text[2:].strip())
-    elif text.startswith("查看手牌"):
-        await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="手牌")
-    elif text.startswith("商店"):
-        await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="商店")
-    elif text.startswith("购买") and (len(text) == 2 or text[2] == ' '):
-        await call_command(get_bot(), session.ctx, ('dragon', 'buy'), current_arg=text[2:].strip())
-    elif text.startswith("分叉") and (len(text) == 2 or text[2] == ' '):
-        await call_command(get_bot(), session.ctx, ('dragon', 'fork'), current_arg=text[2:].strip())
-    elif text.startswith("驳回分叉"):
-        await call_command(get_bot(), session.ctx, ('dragon', 'delete'), current_arg="-f " + text[4:].strip())
-    elif text.startswith("驳回"):
-        await call_command(get_bot(), session.ctx, ('dragon', 'delete'), current_arg=text[2:].strip())
 
 @on_command(('dragon', 'use_card'), aliases="使用手牌", short_des="使用手牌。", only_to_me=False, args=("card"), environment=env)
 @config.ErrorHandle(config.logger.dragon)
