@@ -77,7 +77,7 @@ async def change(title=None, description=None, area=None):
         value = {'room_id': 14055253, 'area_id': area, 'csrf': csrf, 'csrf_token': csrf}
     length = len(parse.urlencode(value))
     print('length: ' + str(length))
-    headers = {}#copy(config.headers)
+    headers = copy(config.headers)
     headers['Content-Length'] = str(length)
 
     # Send request
@@ -104,7 +104,7 @@ async def th_open(is_open=True, area=235):
     if is_open:
         value['area_v2'] = area
     length = len(parse.urlencode(value))
-    headers = {}#copy(config.headers)
+    headers = copy(config.headers)
     headers['Content-Length'] = str(length)
 
     # Send request
@@ -467,7 +467,7 @@ async def add_fav(fav, av=None, bv=None):
     value = {'rid': av, 'type': 2, 'add_media_ids': fav, 'del_media_ids': '', 'jsonp': 'jsonp', 'csrf': csrf}
     length = len(parse.urlencode(value))
     print('length: ' + str(length))
-    headers = {}#copy(config.headers)
+    headers = copy(config.headers)
     headers['Content-Length'] = str(length)
     #headers['Host'] = 'api.bilibili.com'
     headers['Referer'] = f'https://www.bilibili.com/video/{bv}'

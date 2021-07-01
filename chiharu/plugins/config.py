@@ -208,12 +208,12 @@ userdata_db = sqlite3.connect(rel('users.db'))
 userdata_db.row_factory = sqlite3.Row
 userdata = userdata_db.cursor()
 
-import asyncio
-from nonebot.command import _PauseException, _FinishException
-from functools import partial
-from typing import Optional, List, Any, NoReturn
-from nonebot.typing import Message_T, Filter_T
-from nonebot.command.argfilter import ValidateError
+# import asyncio
+# from nonebot.command import _PauseException, _FinishException
+# from functools import partial
+# from typing import Optional, List, Any, NoReturn
+# from nonebot.typing import Message_T, Filter_T
+# from nonebot.command.argfilter import ValidateError
 
 class SessionBuffer:
     __slots__ = ('buffer', 'session', 'active', 'send_end')#, '_future', '_run_future', 'apause', 'aget', 'pause')
