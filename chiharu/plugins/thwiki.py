@@ -1135,7 +1135,7 @@ async def thwiki_get(session: CommandSession):
         # Send request
         ret = await th_open(area=area)
         d = json.loads(search_ret(ret))
-            if d['code'] == 0:
+        if d['code'] == 0:
             fenqu = areas_rev[area]
             config.logger.thwiki << f'【LOG】用户{qq} 开启直播间，分区：{fenqu}'
             await session.send('检测到直播间未开启，现已开启，分区：%s' % fenqu
@@ -1546,7 +1546,7 @@ async def thwiki_change(session: CommandSession):
     if d['code'] == 0:
         await session.send(f'成功修改标题至"{t}"', auto_escape=True)
     else:
-        config.logger.thwiki << f'【LOG】修改标题失败：' + d['msg'])
+        config.logger.thwiki << f'【LOG】修改标题失败：' + d['msg']
         await session.send('修改标题失败：' + d['msg'], auto_escape=True)
 
 # Handler for command '-thwiki.version'
@@ -2007,7 +2007,7 @@ async def thwiki_recommend(session: CommandSession):
     bv = session.get('bv')
     ret = await add_fav(bv=bv, fav=426047475)
     d = json.loads(search_ret(ret))
-        if d['code'] == 0:
+    if d['code'] == 0:
         config.logger.thwiki << f'【LOG】用户{qq}添加推荐{bv}'
         await session.send('成功加入推荐视频列表')
     else:
