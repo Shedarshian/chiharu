@@ -896,7 +896,7 @@ async def _():
     d = json.loads(search_ret(ret))
     if d['code'] != 0:
         for id in config.group_id_dict['thwiki_send']:
-            await get_bot().send_group_msg(group_id=id, message='直播间简介更新失败：' + d['msg']))
+            await get_bot().send_group_msg(group_id=id, message='直播间简介更新失败：' + d['msg'])
     for row in config.userdata.execute('select id, qq, card from thwiki_user').fetchall():
         card = await get_card(row['qq'])
         if card != row['card']:
