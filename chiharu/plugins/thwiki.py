@@ -222,7 +222,7 @@ class Event:
             end = '自由'
         else:
             end = format_date(self.end)
-        return f'时间: {begin}-{end} 投稿人: {self.card} <br />内容: {self.name} <br />'
+        return f'时间: {begin}-{end} 投稿人: {self.card}\n内容: {self.name}\n'
     def str_with_at(self):
         begin = format_date(self.begin)
         if self.isFloat:
@@ -285,12 +285,13 @@ async def change_des_to_list(lunbo=False):
     global l
     fut = datetime.now() + timedelta(days=7)
     list_in_7_days = [x.str_url() for x in l if x.begin < fut]
-    s = 'THBWiki电视台（大雾）</h2><p>直播内容基本上会以<strong>东方Project</strong>的游戏为主，日常进行直播的主播不定。</p><h3><strong>本直播间欢迎大家使用，但需要直播的内容为东方Project相关且遵守直播者所在国家与中国相关法律与条约及平台条约。</strong><br />具体使用方法以及粉丝群请戳QQ群：<strong>807894304</strong> 【THBWiki Live】</h3>' + \
-        ('未来一周内暂时没有预定节目哦(╥╯^╰╥)' if len(list_in_7_days) == 0 else '<p>未来一周节目单（时间以北京时间为准，随时更新）：<br />%s</p>' % ''.join(list_in_7_days))
+    #s = 'THBWiki电视台（大雾）</h2><p>直播内容基本上会以<strong>东方Project</strong>的游戏为主，日常进行直播的主播不定。</p><h3><strong>本直播间欢迎大家使用，但需要直播的内容为东方Project相关且遵守直播者所在国家与中国相关法律与条约及平台条约。</strong><br />具体使用方法以及粉丝群请戳QQ群：<strong>807894304</strong> 【THBWiki Live】</h3>' + \
+    s = 'THBWiki电视台（大雾）\n直播内容基本上会以【东方Project】的游戏为主，日常进行直播的主播不定。\n【本直播间欢迎大家使用，但需要直播的内容为东方Project相关且遵守直播者所在国家与中国相关法律与条约及平台条约。】\n具体使用方法以及粉丝群请戳QQ群：【807894304】（THBWiki Live）\n' + \
+        ('未来一周内暂时没有预定节目哦(╥╯^╰╥)' if len(list_in_7_days) == 0 else '未来一周节目单（时间以北京时间为准，随时更新）：\n%s' % ''.join(list_in_7_days))
     if lunbo:
-        s = '<h2>当前轮播中，欢迎点击链接查看<a href="https://space.bilibili.com/362841475/favlist?fid=853928275">轮播视频表</a>，在直播群（下述）中可以添加轮播视频或推荐视频哦~<br />' + s
+        s = '当前轮播中，欢迎点击链接查看 https://space.bilibili.com/362841475/favlist?fid=853928275 轮播视频表，在直播群（下述）中可以添加轮播视频或推荐视频哦~\n' + s
     else:
-        s = '<h2>' + s
+        pass
     return await change(description=s)
 
 # Initializes blacklist (blocks user from applying)
