@@ -1065,13 +1065,13 @@ async def dragon_add_hidden(session: CommandSession):
 
 @on_command(('dragon', 'kill'), only_to_me=False, args=('@s',), environment=env_admin)
 @config.ErrorHandle(config.logger.dragon)
-async def dragon_kill(session: CommandSession):
+@config.buffer_dec
+async def dragon_kill(buf: SessionBuffer):
     """击毙玩家，管理可用，用于处理驳回。"""
-    match = re.search('qq=(\\d+)', session.current_arg)
+    match = re.search('qq=(\\d+)', buf.current_arg)
     if not match:
-        session.finish("没有@人！")
+        buf.finish("没有@人！")
     qq = match.group(1)
-    buf = SessionBuffer(session)
     await settlement(buf, qq, kill)
 
 @on_command(('dragon', 'version'), only_to_me=False, short_des="查看逻辑接龙版本。", args=("[-c]",))
