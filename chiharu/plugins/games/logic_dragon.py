@@ -508,6 +508,11 @@ async def exchange(session: SessionBuffer, qq: int, hand_card, *, target: int):
         await card.on_give(session, target, qq)
     hand_card.extend(target_hand_cards)
     set_cards(qq, hand_card)
+    target_limit = find_or_new(target)['card_limit']
+    if len(self_hand_cards) > target_limit:
+        session.send(f"该玩家手牌已超出上限{len(self_hand_cards) - target_limit}张！多余的牌已被弃置。")
+        config.logger.dragon << f"【LOG】用户{target}手牌为{cards_to_str(self_hand_cards)}，超出上限{target_limit}，自动弃置。"
+        await discard_cards(copy(self_hand_cards[target_limit:]), session, target, self_hand_cards)
     set_cards(target, self_hand_cards)
     config.logger.dragon << f"【LOG】交换完用户{qq}与用户{target}的手牌，当前用户{qq}的手牌为{cards_to_str(hand_card)}。"
 
@@ -522,7 +527,7 @@ async def settlement(buf: SessionBuffer, qq: int, to_do):
     while x > 0:
         save_data()
         if buf.active != qq:
-            await buf.session.send(f"该玩家手牌已超出上限{x}张！多余的牌已被弃置。")
+            buf.send(f"该玩家手牌已超出上限{x}张！多余的牌已被弃置。")
             config.logger.dragon << f"【LOG】用户{qq}手牌为{cards_to_str(hand_card)}，超出上限{node['card_limit']}，自动弃置。"
             await discard_cards(copy(hand_card[node['card_limit']:]), buf, qq, hand_card)
         else:
