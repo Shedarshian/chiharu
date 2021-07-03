@@ -222,7 +222,7 @@ async def add_jibi(session, qq, jibi, current_jibi=None, is_buy=False):
         session.send(session.char(qq) + f"触发了{f'{m}次' if m > 1 else ''}Steam夏季特卖的效果，花费击毙减半为{abs(jibi)}！")
         remove_status(qq, 'S', False, remove_all=True)
     config.userdata.execute("update dragon_data set jibi=? where qq=?", (max(0, current_jibi + jibi), qq))
-    config.logger.dragon << f"【LOG】玩家原有击毙{current_jibi}，{f'触发了{n}次变压器的效果，' if n > 0 else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
+    config.logger.dragon << f"【LOG】玩家{qq}原有击毙{current_jibi}，{f'触发了{n}次变压器的效果，' if n > 0 else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
 def wrapper_file(_func):
     def func(*args, **kwargs):
         with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
@@ -1494,6 +1494,9 @@ class queststone(_card):
         if quest_print_aux[str(qq)] >= len(mission):
             quest_print_aux[str(qq)] = 0
         config.logger.dragon << f"【LOG】用户{qq}删除了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][str(qq)]]}。"
+        if str(target) not in global_state['quest']:
+            global_state['quest'][str(target)] = []
+            quest_print_aux[str(target)] = 0
         global_state['quest'][str(target)].append(m)
         config.logger.dragon << f"【LOG】用户{target}增加了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][str(target)]]}。"
         save_global_state()
