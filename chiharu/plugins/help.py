@@ -136,12 +136,10 @@ async def help_f(session: CommandSession):
 @config.ErrorHandle
 async def reload_plugin(session: CommandSession):
     name = 'chiharu.plugins.' + session.current_arg_text
-    l = list(filter(lambda x: x.module.__name__ == name, plugin._plugins))
-    if len(l) == 0:
-        await session.send('no plugin named ' + session.current_arg_text, auto_escape=True)
+    if plugin.reload_plugin(name):
+        await session.send('Successfully reloaded ' + session.current_arg_text)
     else:
-        l[0].module = importlib.reload(l[0].module)
-        await session.send('Successfully reloaded ' + session.current_arg_text, auto_escape=True)
+        await session.send('Failed to reload plugin')
 
 from nonebot.command import Command
 from .config import find_help
