@@ -761,7 +761,7 @@ async def dragon_construct(session: CommandSession):
                 cards = list(itertools.chain(*[[draw_card({-1, 0}), draw_card({0, 1})] for i in range(n)]))
                 await settlement(buf, qq, partial(draw, 0, cards=cards))
             if to_exchange is not None:
-                buf.send(f"你与{to_exchange}交换了手牌与击毙！")
+                buf.send(f"你与[CQ:at,qq={to_exchange}]交换了手牌与击毙！")
                 jibi = (get_jibi(qq), get_jibi(to_exchange))
                 config.logger.dragon << f"【LOG】用户{qq}与{to_exchange}交换了手牌与击毙。{qq}击毙为{jibi[0]}，{to_exchange}击毙为{jibi[1]}。"
                 await add_jibi(buf, qq, jibi[1] - jibi[0])
