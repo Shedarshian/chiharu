@@ -225,6 +225,7 @@ class SessionBuffer:
         if self.buffer or self.send_end:
             await self.session.send((self.buffer + self.send_end).strip())
             self.buffer = ''
+            self.send_end = ''
     def __getattr__(self, name: str):
         return getattr(self.session, name)
     def char(self, qq):
