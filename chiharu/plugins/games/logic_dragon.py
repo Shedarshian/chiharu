@@ -1076,7 +1076,7 @@ async def dragon_version(session: CommandSession):
     else:
         await session.send(f"七海千春 逻辑接龙 ver.{version} 为您服务")
 
-@scheduler.scheduled_job('cron', id="dragon_daily", hour='16', minute='00-03')
+@scheduler.scheduled_job('cron', id="dragon_daily", hour='16', minute='00-03', replace_existing=True)
 async def dragon_daily():
     global last_update_date
     config.logger.dragon << f"【LOG】尝试每日更新。"

@@ -115,7 +115,7 @@ with open(config.rel("QAQ.txt")) as f:
     ssh.connect("lxslc7.ihep.ac.cn", 22, 'qity', p)
     del p
 interact = paramiko_expect.SSHClientInteraction(ssh, timeout=10)
-@scheduler.scheduled_job('date', id='boss_login', run_date=datetime.now() + timedelta(seconds=15))
+@scheduler.scheduled_job('date', id='boss_login', run_date=datetime.now() + timedelta(seconds=15), replace_existing=True)
 async def login():
     global isLoggedin
     interact.expect(PROMPT)
@@ -203,7 +203,7 @@ class Status:
         else:
             return ""
 
-@scheduler.scheduled_job('cron', id='check_boss', minute='00-57/3')
+@scheduler.scheduled_job('cron', id='check_boss', minute='00-57/3', replace_existing=True)
 async def check_boss():
     global BossCheck, isLoggedin, told_not_logged_in, interact
     bot = get_bot()

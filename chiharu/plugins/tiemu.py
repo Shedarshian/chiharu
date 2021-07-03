@@ -83,7 +83,7 @@ async def change(session: CommandSession):
     await save()
     await session.send([config.cq.text('尊敬的银幕会员'), config.cq.at(qq), config.cq.text('，您现在的银幕尊享时间为%i分钟。' % time)])
 
-@scheduler.scheduled_job('cron', id="tiemu_lengjing", hour='06-07/1')
+@scheduler.scheduled_job('cron', id="tiemu_lengjing", hour='06-07/1', replace_existing=True)
 async def tiemu_lengjing_time():
     await tiemu_lengjing()
 
