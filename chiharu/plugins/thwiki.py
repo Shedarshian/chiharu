@@ -888,7 +888,7 @@ async def thwiki_terminate(session: CommandSession):
     """提前终止直播。只能在直播群内使用。"""
     await call_command(get_bot(), session.ctx, ('thwiki', 'term'), current_arg = "")
 
-@scheduler.scheduled_job('cron', id="thwiki_daily", hour='00', replace_existing=True)
+@scheduler.scheduled_job('cron', id="thwiki_daily", hour='00')
 @config.maintain('thwiki')
 async def _():
     global l
@@ -921,7 +921,7 @@ async def _():
         record_file = open(config.rel(r'log\thwiki_record.txt'), 'w', encoding='utf-8')
         record_file.write('\n'.join([str(r) for r in _l]))
 
-@scheduler.scheduled_job('cron', id="thwiki_minute", second='00', replace_existing=True)
+@scheduler.scheduled_job('cron', id="thwiki_minute", second='00')
 @config.maintain('thwiki')
 async def _():
     global l
