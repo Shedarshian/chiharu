@@ -893,7 +893,7 @@ async def dragon_check(session: CommandSession):
         for s in Tree._objs:
             for word in s:
                 if word.fork and len(word.childs) == 1:
-                    words.append(s)
+                    words.append(word)
         session.finish("当前活动词为：\n" + '\n'.join(f"{s.word}，{'⚠️' if s.qq == qq or s.parent is not None and s.parent.qq == qq else ''}id为{s.id_str}" for s in words))
 
 @on_command(('dragon', 'buy'), aliases="购买", only_to_me=False, short_des="购买逻辑接龙相关商品。", args=("id",), environment=env)
