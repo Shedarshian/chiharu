@@ -145,7 +145,7 @@ async def BirthAdd(session: CommandSession):
         birth_file.write(json.dumps(birth, ensure_ascii=False, indent=4, separators=(',', ': ')))
     await session.send(str(t))
 
-@scheduler.scheduled_job('cron', id="daily_seiyuu", hour='23', minute='01', replace_existing=True)
+@scheduler.scheduled_job('cron', id="daily_seiyuu", hour='23', minute='01')
 async def DailySeiyuu():
     bot = get_bot()
     try:
@@ -156,7 +156,7 @@ async def DailySeiyuu():
         for id in config.group_id_dict['seiyuu']:
             await bot.send_group_msg(group_id=id, message="timeout!")
 
-@scheduler.scheduled_job('cron', id="daily_birth", hour='23', minute='01', replace_existing=True)
+@scheduler.scheduled_job('cron', id="daily_birth", hour='23', minute='01')
 async def DailyBirth():
     bot = get_bot()
     l = ['imas', 'lovelive', 'bandori', '227']

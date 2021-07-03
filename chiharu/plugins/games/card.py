@@ -1025,7 +1025,7 @@ async def card_reply(session: CommandSession):
         await f.send('留言回复：\n' + content)
     await session.send('消息已送出')
 
-@scheduler.scheduled_job('cron', id="card_update", hour='05', replace_existing=True)
+@scheduler.scheduled_job('cron', id="card_update", hour='05')
 @config.ErrorHandle(config.logger.card)
 async def update():
     global daily_pool_all, daily_pool
