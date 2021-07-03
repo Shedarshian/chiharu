@@ -629,35 +629,35 @@ async def logical_dragon_else(session: NLPSession):
 
 @on_command(('dragon', 'construct'), hide=True, environment=env)
 @config.ErrorHandle(config.logger.dragon)
-async def dragon_construct(session: CommandSession):
-    match = message_re.match(session.current_arg_text)
+@config.buffer_dec
+async def dragon_construct(buf: SessionBuffer):
+    match = message_re.match(buf.current_arg_text)
     if match:
-        buf = SessionBuffer(session)
-        qq = session.ctx['user_id']
+        qq = buf.ctx['user_id']
         global global_state
         node = find_or_new(qq)
         to_exchange = None
         if check_limited_status(qq, 'd', node) or check_status(qq, 'd', True, node):
-            await session.send('你已死，不能接龙！')
+            await buf.session.send('你已死，不能接龙！')
             config.logger.dragon << f"【LOG】用户{qq}已死，接龙失败。"
             return
         parent = Tree.find(Tree.match_to_id(match))
         if not parent:
-            await session.send("请输入存在的id号。")
+            await buf.session.send("请输入存在的id号。")
             return
         word = match.group(3).strip()
         config.logger.dragon << f"【LOG】用户{qq}尝试接龙{word}，母节点id为{parent.id}。"
         if len(parent.childs) != 0 and not parent.fork:
             config.logger.dragon << f"【LOG】节点{parent.id}不可分叉，接龙失败。"
-            await session.send(f"节点不可分叉，接龙{word}失败。")
+            await buf.session.send(f"节点不可分叉，接龙{word}失败。")
             return
         if parent.fork and len(parent.childs) == 2:
             config.logger.dragon << f"【LOG】节点{parent.id}已分叉，接龙失败。"
-            await session.send(f"节点已分叉，接龙{word}失败。")
+            await buf.session.send(f"节点已分叉，接龙{word}失败。")
             return
         if check_global_status('o', True):
             if parent.word != '' and word != '' and parent.word[-1] != word[0]:
-                await session.send("当前规则为首尾接龙，接龙失败。")
+                await buf.session.send("当前规则为首尾接龙，接龙失败。")
                 return
         m = check_status(qq, 'm', True, node)
         if m and qq == parent.qq or not m and (qq == parent.qq or parent.parent is not None and qq == parent.parent.qq):
@@ -666,7 +666,7 @@ async def dragon_construct(session: CommandSession):
                 config.logger.dragon << f"【LOG】用户{qq}触发了极速装置。"
                 remove_status(qq, 'z', False, remove_all=False)
             else:
-                await session.send(f"你接太快了！两次接龙之间至少要隔{'一' if m else '两'}个人。")
+                await buf.session.send(f"你接太快了！两次接龙之间至少要隔{'一' if m else '两'}个人。")
                 config.logger.dragon << f"【LOG】用户{qq}接龙过快，失败。"
                 return
         save_global_state()
@@ -777,52 +777,52 @@ async def dragon_construct(session: CommandSession):
 
 @on_command(('dragon', 'use_card'), aliases="使用手牌", short_des="使用手牌。", only_to_me=False, args=("card"), environment=env)
 @config.ErrorHandle(config.logger.dragon)
-async def dragon_use_card(session: CommandSession):
+@config.buffer_dec
+async def dragon_use_card(buf: SessionBuffer):
     """使用手牌。
     使用方法为：使用手牌 id号"""
-    args = session.current_arg_text.strip()
+    args = buf.current_arg_text.strip()
     if len(args) == 0:
-        session.finish("请输入想使用的卡牌！")
+        buf.finish("请输入想使用的卡牌！")
     try:
         card = Card(int(args))
     except (ValueError, IndexError):
         card = more_itertools.only([cls for cls in _card.card_id_dict.values() if cls.name == args])
     if card is None:
-        session.finish("请输入存在的卡牌id号或卡牌名。")
-    qq = session.ctx['user_id']
+        buf.finish("请输入存在的卡牌id号或卡牌名。")
+    qq = buf.ctx['user_id']
     hand_card = get_card(qq)
     config.logger.dragon << f"【LOG】用户{qq}试图使用手牌{card.name}，当前手牌为{hand_card}。"
     if card not in hand_card:
-        session.finish("你还未拥有这张牌！")
+        buf.finish("你还未拥有这张牌！")
     if card.id == -1:
         config.logger.dragon << f"【LOG】用户{qq}无法使用卡牌{card.name}。"
-        session.finish("此牌不可被使用！")
+        buf.finish("此牌不可被使用！")
     hand_card.remove(card)
     set_cards(qq, hand_card)
     save_data()
-    buf = SessionBuffer(session)
     await settlement(buf, qq, partial(use_card, card))
     save_data()
 
 @on_command(('dragon', 'draw'), short_des="使用抽卡券进行抽卡。", only_to_me=False, args=("num"), environment=env)
 @config.ErrorHandle(config.logger.dragon)
-async def dragon_draw(session: CommandSession):
+@config.buffer_dec
+async def dragon_draw(buf: SessionBuffer):
     """使用抽卡券进行抽卡。
     使用方法：抽卡 张数"""
-    qq = session.ctx['user_id']
+    qq = buf.ctx['user_id']
     try:
-        n = int(session.current_arg_text.strip() or 1)
+        n = int(buf.current_arg_text.strip() or 1)
     except ValueError:
         n = 1
     config.logger.dragon << f"【LOG】用户{qq}试图抽卡{n}次。"
     draw_time = find_or_new(qq)['draw_time']
-    buf = SessionBuffer(session)
     if draw_time < n:
         config.logger.dragon << f"【LOG】用户{qq}的抽卡券只有{draw_time}张。"
         n = draw_time
         buf.send(f"您的抽卡券只有{n}张！\n")
     if n == 0:
-        session.finish("您没有抽卡券！")
+        buf.finish("您没有抽卡券！")
     draw_time -= n
     config.userdata.execute('update dragon_data set draw_time=? where qq=?', (draw_time, qq))
     await settlement(buf, qq, partial(draw, n))
@@ -907,15 +907,15 @@ async def dragon_check(session: CommandSession):
 
 @on_command(('dragon', 'buy'), aliases="购买", only_to_me=False, short_des="购买逻辑接龙相关商品。", args=("id",), environment=env)
 @config.ErrorHandle(config.logger.dragon)
-async def dragon_buy(session: CommandSession):
+@config.buffer_dec
+async def dragon_buy(buf: SessionBuffer):
     """购买逻辑接龙相关商品。
     使用方法：购买 id号"""
     try:
-        id = int(session.current_arg_text)
+        id = int(buf.current_arg_text)
     except ValueError:
-        session.finish("请输入要购买的商品id。")
-    qq = session.ctx['user_id']
-    buf = SessionBuffer(session)
+        buf.finish("请输入要购买的商品id。")
+    qq = buf.ctx['user_id']
     config.logger.dragon << f"【LOG】用户{qq}购买商品{id}。"
     if id == 1:
         # (25击毙)从起始词库中刷新一条接龙词。
@@ -958,7 +958,7 @@ async def dragon_buy(session: CommandSession):
             arg_filters=[
                 extractors.extract_text,
                 validators.ensure_true(lambda c: c in log_set, message="请输入一周以内接过的词汇。输入取消退出。"),
-                cancellation(session)
+                cancellation(buf.session)
             ])
         config.logger.dragon << f"【LOG】用户{qq}标记{c}为雷。"
         await add_jibi(buf, qq, -10, is_buy=True)
@@ -972,7 +972,7 @@ async def dragon_buy(session: CommandSession):
     elif id == 7:
         # (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。
         config.logger.dragon << f"【LOG】询问用户{qq}提交的卡牌。"
-        s = await buf.aget(prompt="请提交卡牌名、来源、与卡牌效果描述。（审核不通过不返还击毙），输入取消退出。", arg_filter=[cancellation(session)])
+        s = await buf.aget(prompt="请提交卡牌名、来源、与卡牌效果描述。（审核不通过不返还击毙），输入取消退出。", arg_filter=[cancellation(buf.session)])
         config.logger.dragon << f"【LOG】用户{qq}提交卡牌{s}。"
         await add_jibi(buf, qq, -50, is_buy=True)
         for group in config.group_id_dict['dragon_supervise']:
