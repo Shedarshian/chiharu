@@ -25,8 +25,8 @@ CommandGroup('dragon', short_des="逻辑接龙相关。", environment=env|env_su
 message_re = re.compile(r"\s*(\d+)([a-z])?\s*接[\s，,]*(.*)[\s，,\n]*.*")
 
 # Version information and changelog
-version = "0.2.5"
-changelog = """0.2.5 Changelog:
+version = "0.2.6"
+changelog = """0.2.6 Changelog:
 Change:
 接龙现在会以树状形式储存。
 接龙时需显式提供你所接的词汇的id。id相撞时则会判定为接龙失败。
@@ -35,6 +35,7 @@ Add:
 -dragon.fork id（也可使用：分叉 id）：可以指定分叉。
 -dragon.check 活动词：查询当前可接的活动词与id。
 -dragon.check 状态：查询自己的状态。
+-dragon.check 资料：查询自己的资料。
 -dragon.delete id（也可使用：驳回 id）：可以驳回节点。
 BugFix:
 修正了“接太快了”只和时序有关导致在有分叉的情况下不会正常运作的bug。"""
@@ -834,6 +835,7 @@ async def dragon_check(session: CommandSession):
     活动词/active：查询当前可以接的词。
     复活时间/recover_time：查询自己的复活时间。
     状态/status：查询自己当前状态。
+    资料/profile：查询自己当前资料。
     手牌/hand_cards：查询自己当前手牌。
     击毙/jibi：查询自己的击毙数。
     商店/shop：查询可购买项目。"""
@@ -895,6 +897,8 @@ async def dragon_check(session: CommandSession):
                 if word.fork and len(word.childs) == 1:
                     words.append(word)
         session.finish("当前活动词为：\n" + '\n'.join(f"{s.word}，{'⚠️' if s.qq == qq or s.parent is not None and s.parent.qq == qq else ''}id为{s.id_str}" for s in words))
+    elif data in ("资料", "profile"):
+        session.finish(f"你的资料为：\n今日剩余获得击毙次数：{node['today_jibi']}。\n今日剩余获得关键词击毙：{node['today_keyword_jibi']}。\n剩余抽卡券：{node['draw_time']}。\n手牌上限：{node['card_limit']}。")
 
 @on_command(('dragon', 'buy'), aliases="购买", only_to_me=False, short_des="购买逻辑接龙相关商品。", args=("id",), environment=env)
 @config.ErrorHandle(config.logger.dragon)

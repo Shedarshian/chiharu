@@ -14,7 +14,7 @@ def get_mission():
 
 for i in range(2, 9):
     add_mission(f"字数为{i}。")((lambda i: lambda s: len([c for c in s if c != ' ']) == i)(i))
-add_mission("包含一个非佛经大数的数字。")(lambda s: len(set(s) & set('0123456789零一二三四五六七八九十百千万亿壹贰叁肆伍陆柒捌玖拾佰仟')) != 0)
+add_mission("包含一个亿或以下的常用单汉字数字或阿拉伯数字。")(lambda s: len(set(s) & set('0123456789零一二三四五六七八九十百千万亿兆壹贰叁肆伍陆柒捌玖拾佰仟卅')) != 0)
 add_mission("包含一个常用的人称代词。")(lambda s: len(set(s) & set('我你他她它祂您怹咱俺恁')) != 0)
 @add_mission("包含一个中国的省级行政单位的全称。")
 def _(s):
