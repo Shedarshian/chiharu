@@ -1545,7 +1545,7 @@ class liwujiaohuan(_card):
                     hand_card.extend(cards_temp)
                 set_cards(q, cards_temp)
                 for qqq, c in all_cards[:n]:
-                    c.on_give(session, qqq, q)
+                    await c.on_give(session, qqq, q)
                 config.logger.dragon << f"【LOG】{q}交换后的手牌为：{cards_to_str(cards_temp)}。"
                 all_cards = all_cards[n:]
         if len(hand_card) != 0:
