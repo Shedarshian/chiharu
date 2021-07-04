@@ -1544,7 +1544,7 @@ class liwujiaohuan(_card):
                 set_cards(q, cards_temp)
                 for qqq, c in all_cards[:n]:
                     c.on_give(session, qqq, q)
-                config.logger.dragon << f"【LOG】{q}交换后的手牌为：{cards_to_str(all_cards[:n])}。"
+                config.logger.dragon << f"【LOG】{q}交换后的手牌为：{cards_to_str(cards_temp)}。"
                 all_cards = all_cards[n:]
         if len(hand_card) != 0:
             session.send("通过交换，你获得了手牌：\n" + '\n'.join(c.full_description(qq) for c in hand_card))
