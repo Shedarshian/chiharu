@@ -400,7 +400,7 @@ def draw_card(positive=None):
     return c
 def set_cards(qq, hand_card):
     config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(c.id) for c in hand_card), qq))
-    config.logger.dragon << f"【LOG】设置用户手牌为{cards_to_str(hand_card)}。"
+    config.logger.dragon << f"【LOG】设置用户{qq}手牌为{cards_to_str(hand_card)}。"
 def get_card(qq, card=None, node=None):
     s = card or (node or find_or_new(qq))['card']
     return [] if s == '' else [Card(int(x)) for x in s.split(',')]
