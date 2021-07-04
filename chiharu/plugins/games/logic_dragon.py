@@ -1538,9 +1538,10 @@ class liwujiaohuan(_card):
         hand_card.clear()
         for q, c in l:
             if (n := len(c)):
+                cards_temp = [c for q, c in all_cards[:n]]
                 if qq == q:
-                    hand_card.extend([c for q, c in all_cards[:n]])
-                set_cards(q, all_cards[:n])
+                    hand_card.extend(cards_temp)
+                set_cards(q, cards_temp)
                 for qqq, c in all_cards[:n]:
                     c.on_give(session, qqq, q)
                 config.logger.dragon << f"【LOG】{q}交换后的手牌为：{cards_to_str(all_cards[:n])}。"
