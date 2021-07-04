@@ -1241,6 +1241,15 @@ class jiandiezhixing(_card):
     async def on_discard(cls, session, qq, hand_card):
         await kill(session, qq, hand_card)
 
+# class nvjisi(_card):
+#     name = "II - 女祭司"
+#     id = 2
+#     positive = 0
+#     description = "击毙当前周期内接龙次数最多的玩家。"
+#     @classmethod
+#     async def use(cls, session, qq, hand_card):
+#         pass
+
 # class lianren(_card):
 #     name = "VI - 恋人"
 #     id = 6
@@ -1257,6 +1266,15 @@ class jiandiezhixing(_card):
 #         n = check_limited_status(l[0], 'd')
 #         remove_limited_status(l[0], 'd')
 #         session.send("已复活！" + ("（虽然目标并没有死亡）" if n else ''))
+
+# class taiyang(_card):
+#     name = "XIX - 太阳"
+#     id = 19
+#     positive = 1
+#     description = "随机揭示一个隐藏奖励词。"
+#     @classmethod
+#     async def use(cls, session, qq, hand_card):
+#         session.send("你揭示的一个隐藏奖励词是：" + random.choice(hidden_keyword))
 
 class dabingyichang(_card):
     name = "大病一场"
