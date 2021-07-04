@@ -1600,7 +1600,7 @@ class lveduozhebopu(_card):
     async def on_draw(cls, session, qq, hand_card):
         add_status(qq, 'p', False)
         if str(qq) not in global_state['steal']:
-            global_state['steal'][str(qq)] = global_state['steal'][str(qq)]['time']
+            global_state['steal'][str(qq)] = {'time': 0, 'user': []}
         save_global_state()
     @classmethod
     async def on_discard(cls, session, qq, hand_card):
