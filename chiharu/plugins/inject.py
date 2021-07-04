@@ -296,12 +296,6 @@ def on_command(name: Union[str, CommandName_T], *,
                     CommandGroup.command_group_dict[parent_name]['help_addition'].add(cmd)
                 else:
                     CommandGroup.command_group_dict[parent_name].help_addition.add(cmd)
-
-        from nonebot.command import CommandManager
-        if isinstance(aliases, str):
-            aliases = (aliases,)
-        for alias in aliases:
-            CommandManager._aliases[alias] = cmd_name
         
         Plugin.GlobalTemp.commands.add(cmd)
         func.args_parser = cmd.args_parser
