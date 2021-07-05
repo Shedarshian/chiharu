@@ -9,3 +9,4 @@ MAX_VALIDATION_FAILURES = 0
 
 from datetime import timedelta
 SESSION_RUN_TIMEOUT = timedelta(minutes=2)
+SESSION_EXPIRE_TIMEOUT = None
