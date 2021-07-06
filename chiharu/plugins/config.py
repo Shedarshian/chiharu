@@ -208,6 +208,17 @@ userdata_db = sqlite3.connect(rel('users.db'))
 userdata_db.row_factory = sqlite3.Row
 userdata = userdata_db.cursor()
 
+class _helper:
+    __slots__ = ("session",)
+    def __init__(self, session):
+        self.session = session
+    def __getattr__(self, name):
+        def _(qq, s, end='\n'):
+            self.session.buffer += self.session.char(qq)
+            self.session.buffer += s
+            self.session.buffer += end
+            logger._l[name] << "【LOG】用户{qq}" + s
+        return _
 class SessionBuffer:
     __slots__ = ('buffer', 'session', 'active', 'send_end')
     def __init__(self, session: BaseSession):
@@ -218,6 +229,9 @@ class SessionBuffer:
     def send(self, s, end='\n'):
         self.buffer += s
         self.buffer += end
+    @property
+    def send_log(self):
+        return _helper(self)
     def end(self, s, end='\n'):
         self.send_end += s
         self.send_end += end

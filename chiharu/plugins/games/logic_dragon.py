@@ -200,12 +200,12 @@ def save_global_state():
 quest_print_aux = {qq: 0 for qq in global_state['quest'].keys()}
 
 # dragon_data := qq : int, jibi : int, card : str, draw_time : int, death_time : str, today_jibi : int, today_keyword_jibi : int
-# status : str, daily_status : str, status_time : str, card_limit : int, shop_drawn_card: int
+# status : str, daily_status : str, status_time : str, card_limit : int, shop_drawn_card: int, event_pt: int
 # global_status : qq = 2711644761
 def find_or_new(qq):
     t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     if t is None:
-        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 0)', (qq, '', '', '', '', '{}'))
+        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 0, 0)', (qq, '', '', '', '', '{}'))
         t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     return t
 def get_jibi(qq):
@@ -387,6 +387,12 @@ def get_limited_time(qq, s, status=None):
         return None
     return delta.seconds // 60
 
+async def add_event_pt(session, qq, pt, current_pt=None):
+    current_pt = current_pt or find_or_new(qq)['event_pt']
+    config.userdata.execute('update dragon_data set event_pt=? where qq=?', (current_pt + pt, qq))
+    session.send(session.char(qq) + f"收到了{pt}活动pt！")
+    config.logger.dragon << f"【LOG】用户{qq}增加了{pt}活动pt。现有{current_pt + pt}活动pt。"
+
 def cards_to_str(cards):
     return '，'.join(c.name for c in cards)
 def draw_card(positive=None):
@@ -418,39 +424,35 @@ def check_throw_card(qq, card_ids, hand_card=None):
     return True
 
 # 击杀玩家。
-async def kill(session, qq, hand_card, hour=2):
+async def kill(session, qq, hand_card, hour=2, minute=0):
     dodge = False
     config.logger.dragon << f"【LOG】尝试击杀玩家{qq}。"
     if (n := check_status(qq, 's', False)) and not dodge:
         jibi = get_jibi(qq)
         if jibi >= 5 * 2 ** check_status(qq, '2', False):
             await add_jibi(session, qq, -5, jibi)
-            session.send(session.char(qq) + "触发了死秽回避之药的效果，免除死亡！")
-            config.logger.dragon << f"【LOG】用户{qq}触发了死秽回避之药的效果，免除死亡。"
+            session.send_log.dragon(qq, "触发了死秽回避之药的效果，免除死亡！")
             dodge = True
             remove_status(qq, 's', False, remove_all=False)
     if (n := check_status(qq, 'h', False)) and not dodge:
         for a in range(n):
             remove_status(qq, 'h', False, remove_all=False)
             if random.randint(0, 1) == 0:
-                session.send(session.char(qq) + "使用了虹色之环，闪避了死亡！")
-                config.logger.dragon << f"【LOG】用户{qq}触发了虹色之环，闪避了死亡。"
+                session.send_log.dragon(qq, "触发了虹色之环，闪避了死亡！")
                 dodge = True
                 break
             else:
-                session.send(session.char(qq) + "使用虹色之环闪避失败，死亡时间+1h！")
-                config.logger.dragon << f"【LOG】用户{qq}使用虹色之环闪避失败，死亡时间+1h。"
+                session.send_log.dragon(qq, "触发虹色之环闪避失败，死亡时间+1h！")
                 hour += 1
     if (n := check_status(qq, 'p', False)) and not dodge:
-        config.logger.dragon << f"【LOG】用户的{n}张掠夺者啵噗因死亡被弃置。"
+        config.logger.dragon << f"【LOG】用户{qq}的{n}张掠夺者啵噗因死亡被弃置。"
         await discard_cards([Card(77) for i in range(n)], session, qq, hand_card)
     if not dodge:
-        add_limited_status(qq, 'd', datetime.now() + timedelta(hours=hour))
-        session.send(f"你死了！{hour}小时不得接龙。")
+        add_limited_status(qq, 'd', datetime.now() + timedelta(hours=hour, minutes=minute))
+        session.send(session.char(qq) + f"死了！{f'{hour}小时' if hour != 0 else ''}{f'{minute}分钟' if minute != 0 else ''}不得接龙。")
         if (x := check_status(qq, 'x', False)):
             remove_status(qq, 'x', False, remove_all=True)
-            session.send(session.char(qq) + f"触发了辉夜姬的秘密宝箱！奖励抽卡{x}张。")
-            config.logger.dragon << f"【LOG】用户{qq}触发了辉夜姬的秘密宝箱{x}次。"
+            session.send_log.dragon(qq, f"触发了辉夜姬的秘密宝箱！奖励抽卡{x}张。")
             await draw(x, session, qq, hand_card)
         global global_state
         if qq in global_state['lianhuan']:
@@ -1748,3 +1750,74 @@ class forkbomb(_card):
     global_daily_status = 'b'
     status_des = "Fork Bomb：今天每个接龙词都有5%几率变成分叉点。"
     description = "今天每个接龙词都有5%几率变成分叉点。"
+
+from collections import namedtuple
+
+# 飞行棋棋盘格子
+class Grid(namedtuple('Grid', ["id", "content", "data", "pos", "childs_id", "parents_id"], defaults=[None, None])):
+    __slots__ = ()
+    all_items = {}
+    topology = 0
+    # example: Grid(1, 1, (20, 20), (3, 10), ((2,), (3,), (3,))) # 奖励3pt，被击毙10分钟，在不同拓扑下childs不同
+    def __init__(self, *args, **kwargs):
+        super(Grid, self).__init__(*args, **kwargs)
+        Grid.all_items[self.id] = self
+    @classmethod
+    def find(cls, id):
+        return cls.all_items[id]
+    @property
+    def parents(self):
+        if self.parents_id is None:
+            return [self.find(self.id - 1)]
+        elif isinstance(self.parents_id[0], (tuple, list)):
+            return [self.find(id) for id in self.parents_id[self.topology]]
+        else:
+            return [self.find(id) for id in self.parents_id]
+    @property
+    def childs(self):
+        if self.childs_id is None:
+            return [self.find(self.id + 1)]
+        elif isinstance(self.childs_id[0], (tuple, list)):
+            return [self.find(id) for id in self.childs_id[self.topology]]
+        else:
+            return [self.find(id) for id in self.childs_id]
+    async def move(self, session, qq, hand_card, n, back=False):
+        current = self
+        for i in range(n):
+            if back:
+                current = current.parents[0] # TODO: choose
+            else:
+                current = current.childs[0] # TODO: choose
+        config.logger.dragon << f"【LOG】用户{qq}走到了{current.id}。"
+        return current
+    async def do(self, session, qq, hand_card):
+        await add_event_pt(session, qq, self.data[0])
+        if self.content == 0: # 改变拓扑结构至环面/莫比乌斯带/克莱因瓶
+            session.send_log.dragon(qq, "走到了：改变拓扑结构至" + {0: "环面", 1: "莫比乌斯带", 2: "克莱因瓶"}[self.data[1]] + "。")
+            Grid.topology = self.data[1]
+        elif self.content == 1: # 被击毙5/10/15/20/25分钟
+            session.send_log.dragon(qq, f"走到了：被击毙{self.data[1]}分钟。")
+            await kill(session, qq, hand_card, minute=self.data[1])
+        elif self.content == 2: # 获得2/4/6/8/10击毙
+            session.send_log.dragon(f"走到了：获得{self.data[1]}击毙。")
+            await add_jibi(session, qq, self.data[1])
+        elif self.content == 3: # 获得活动pt后，再扔一次骰子前进/后退 
+            n = random.randint(1, 6)
+            session.send_log.dragon(qq, f"走到了：获得活动pt后，再扔一次骰子{'前进' if self.data[1] == 1 else '后退'}。{session.char(qq)}扔到了{n}。")
+            grid = await self.move(session, qq, hand_card, n, back=(self.data[1] != 1))
+            return await grid.do(session, qq, hand_card)
+        elif self.content == 16: # 抽一张卡并立即发动效果
+            session.send_log.dragon("走到了：抽一张卡并立即发动效果。")
+            c = draw_card()
+            session.send(session.char(qq) + '抽到并使用了卡牌：\n' + c.full_description(qq))
+            config.logger.dragon << f"【LOG】用户{qq}抽取了卡牌{c.name}。"
+            await c.on_draw(session, qq, hand_card)
+            await c.use(session, qq, hand_card)
+            await c.on_discard(session, qq, hand_card)
+        elif self.content == 17: # 获得20活动pt并随机飞到一个格子
+            session.send_log.dragon(f"走到了：获得{self.data[1]}活动pt并随机飞到一个格子。")
+            await add_event_pt(session, qq, self.data[1])
+            grid = random.choice(list(self.all_items.values()))
+            config.logger.dragon << f"【LOG】用户{qq}飞到了{grid.id}。"
+            return await grid.do(session, qq, hand_card)
+        return self
