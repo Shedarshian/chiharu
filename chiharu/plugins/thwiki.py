@@ -567,7 +567,7 @@ async def thwiki_apply(session: CommandSession):
     # Send notification to supervisors
     if check['trail']:
         for group in config.group_id_dict['thwiki_supervise']:
-            msg_id = (await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视'))['message_id']
+            msg_id = (await get_bot().send_group_msg(group_id=group, message=f'{e}\n等待管理员监视' + ('\n该用户初次直播，请额外注意。' if check['time'] == 0 else '')))['message_id']
         e.msg_id = msg_id
     
     # Save new application list
