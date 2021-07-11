@@ -945,7 +945,7 @@ async def dragon_buy(buf: SessionBuffer):
     elif id == 3:
         # (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。
         config.logger.dragon << f"【LOG】询问用户{qq}提交起始词与图。"
-        s = await buf.aget(prompt="请提交起始词和一张图。（审核不通过不返还击毙），输入取消退出。", arg_filters=[cancellation(session)])
+        s = await buf.aget(prompt="请提交起始词和一张图。（审核不通过不返还击毙），输入取消退出。", arg_filters=[cancellation(buf.session)])
         config.logger.dragon << f"【LOG】用户{qq}提交起始词：{s}。"
         await add_jibi(buf, qq, -70, is_buy=True)
         for group in config.group_id_dict['logic_dragon_supervise']:
