@@ -217,7 +217,7 @@ async def add_jibi(session, qq, jibi, current_jibi=None, is_buy=False):
         jibi *= 2 ** n
         session.send(session.char(qq) + f"触发了{f'{n}次' if n > 1 else ''}变压器的效果，{'获得' if jibi >= 0 else '损失'}击毙加倍为{abs(jibi)}！")
         remove_status(qq, '2', False, remove_all=True)
-    if is_buy and (m := check_status(qq, 'S', False)):
+    if (m := check_status(qq, 'S', False)) and is_buy:
         jibi //= 2 ** m
         session.send(session.char(qq) + f"触发了{f'{m}次' if m > 1 else ''}Steam夏季特卖的效果，花费击毙减半为{abs(jibi)}！")
         remove_status(qq, 'S', False, remove_all=True)
