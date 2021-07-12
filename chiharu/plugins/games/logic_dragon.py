@@ -920,7 +920,8 @@ async def dragon_check(session: CommandSession):
             for word in s:
                 if word.fork and len(word.childs) == 1:
                     words.append(word)
-        session.finish("当前活动词为：\n" + '\n'.join(f"{s.word}，{'⚠️' if s.qq == qq or s.parent is not None and s.parent.qq == qq else ''}id为{s.id_str}" for s in words))
+        m = check_status(qq, 'm', True, node)
+        session.finish("当前活动词为：\n" + '\n'.join(f"{s.word}，{'⚠️' if s.qq == qq or s.parent is not None and s.parent.qq == qq and not m else ''}id为{s.id_str}" for s in words))
     elif data in ("资料", "profile"):
         session.finish(f"你的资料为：\n今日剩余获得击毙次数：{node['today_jibi']}。\n今日剩余获得关键词击毙：{node['today_keyword_jibi']}。\n剩余抽卡券：{node['draw_time']}。\n手牌上限：{node['card_limit']}。")
 
