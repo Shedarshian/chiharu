@@ -414,7 +414,7 @@ def draw_card(positive=None):
     x = positive is not None and len(positive & {-1, 0, 1}) != 0
     if check_global_status('j', True):
         if (x and (-1 in positive) or not x) and random.random() < 0.2:
-            return -1
+            return Card(-1)
     c = random.choice(list(_card.card_id_dict.values()))
     while (x and c.positive not in positive) or c.id < 0:
         c = random.choice(list(_card.card_id_dict.values()))
