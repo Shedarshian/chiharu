@@ -201,18 +201,20 @@ quest_print_aux = {qq: 0 for qq in global_state['quest'].keys()}
 
 # dragon_data := qq : int, jibi : int, card : str, draw_time : int, death_time : str, today_jibi : int, today_keyword_jibi : int
 # status : str, daily_status : str, status_time : str, card_limit : int, shop_drawn_card: int, event_pt: int
+# spend_shop : int
 # global_status : qq = 2711644761
 def find_or_new(qq):
     t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     if t is None:
-        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 0, 0)', (qq, '', '', '', '', '{}'))
+        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 0, 0, 0)', (qq, '', '', '', '', '{}'))
         t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     return t
 def get_jibi(qq):
     return find_or_new(qq)['jibi']
 async def add_jibi(session, qq, jibi, current_jibi=None, is_buy=False):
+    node = find_or_new(qq)
     if current_jibi is None:
-        current_jibi = get_jibi(qq)
+        current_jibi = node['jibi']
     if n := check_status(qq, '2', False):
         jibi *= 2 ** n
         session.send(session.char(qq) + f"触发了{f'{n}次' if n > 1 else ''}变压器的效果，{'获得' if jibi >= 0 else '损失'}击毙加倍为{abs(jibi)}！")
@@ -221,8 +223,21 @@ async def add_jibi(session, qq, jibi, current_jibi=None, is_buy=False):
         jibi //= 2 ** m
         session.send(session.char(qq) + f"触发了{f'{m}次' if m > 1 else ''}Steam夏季特卖的效果，花费击毙减半为{abs(jibi)}！")
         remove_status(qq, 'S', False, remove_all=True)
+    if (p := check_status(qq, '1', False)) and is_buy:
+        if 100 <= node['spend_shop'] < 150:
+            jibi  = int(jibi * 0.8 ** p)
+            session.send(session.char(qq) + f"触发了{f'{p}次' if p > 1 else ''}北京市政交通一卡通的效果，花费击毙打了8折变为{abs(jibi)}！")
+        elif 150 <= node['spend_shop'] < 400:
+            jibi = int(jibi * 0.5 ** p)
+            session.send(session.char(qq) + f"触发了{f'{p}次' if p > 1 else ''}北京市政交通一卡通的效果，花费击毙打了5折变为{abs(jibi)}！")
+        elif node['spend_shop'] >= 400:
+            session.send(session.char(qq) + "今日已花费400击毙，不再打折！")
     config.userdata.execute("update dragon_data set jibi=? where qq=?", (max(0, current_jibi + jibi), qq))
-    config.logger.dragon << f"【LOG】玩家{qq}原有击毙{current_jibi}，{f'触发了{n}次变压器的效果，' if n > 0 else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
+    config.logger.dragon << f"【LOG】玩家{qq}原有击毙{current_jibi}，{f'触发了{n}次变压器的效果，' if n > 0 else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 else ''}{f'触发了{p}次北京市政交通一卡通的效果，' if p > 0 else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
+    if is_buy:
+        spend = node['spend_shop'] + jibi
+        config.userdata.execute("update dragon_data set spend_shop=? where qq=?", (spend, qq))
+        config.logger.dragon << f"【LOG】玩家{qq}累计今日商店购买至{spend}。"
 def wrapper_file(_func):
     def func(*args, **kwargs):
         with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
@@ -590,7 +605,7 @@ async def daily_update():
     for qq in global_state['steal']:
         global_state['steal'][qq] = {'time': 0, 'user': []}
     save_global_state()
-    config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=0', ('',))
+    config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=0, spend_shop=0', ('',))
     save_data()
     word = await update_begin_word(is_daily=True)
     return "今日关键词：" + word + "\nid为【0】。"
@@ -1751,6 +1766,14 @@ class forkbomb(_card):
     status_des = "Fork Bomb：今天每个接龙词都有5%几率变成分叉点。"
     description = "今天每个接龙词都有5%几率变成分叉点。"
 
+class beijingcard(_card):
+    name = "北京市市政交通一卡通"
+    id = 153
+    positive = 1
+    hold_status = '1'
+    description = "持有此卡时，你当天在商店总消费达100击毙后商店所有物品变为8折，当天在商店总消费达150击毙后商店所有物品变为5折，当天在商店总消费达400击毙后不再打折。"
+    statue_des = "北京市市政交通一卡通：你当天在商店总消费达100击毙后商店所有物品变为8折，当天在商店总消费达150击毙后商店所有物品变为5折，当天在商店总消费达400击毙后不再打折。"
+
 from collections import namedtuple
 
 # 飞行棋棋盘格子
@@ -1758,7 +1781,7 @@ class Grid(namedtuple('Grid', ["id", "content", "data", "pos", "childs_id", "par
     __slots__ = ()
     all_items = {}
     topology = 0
-    # example: Grid(1, 1, (20, 20), (3, 10), ((2,), (3,), (3,))) # 奖励3pt，被击毙10分钟，在不同拓扑下childs不同
+    # example: Grid(1, 1, (3, 10), (20, 20), ((2,), (3,), (3,))) # 奖励3pt，被击毙10分钟，在不同拓扑下childs不同
     def __init__(self, *args, **kwargs):
         super(Grid, self).__init__(*args, **kwargs)
         Grid.all_items[self.id] = self
