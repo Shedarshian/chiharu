@@ -1661,7 +1661,7 @@ class jiandieyubei(_card):
     name = "邪恶的间谍行动～预备"
     id = 78
     positive = 0
-    global_daily_statue = 'j'
+    global_daily_status = 'j'
     description = "今日卡池中有一定概率出现【邪恶的间谍行动~执行】。"
 
 class qijimanbu(_card):
