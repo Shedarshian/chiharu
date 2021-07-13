@@ -235,7 +235,7 @@ async def add_jibi(session, qq, jibi, current_jibi=None, is_buy=False):
     config.userdata.execute("update dragon_data set jibi=? where qq=?", (max(0, current_jibi + jibi), qq))
     config.logger.dragon << f"【LOG】玩家{qq}原有击毙{current_jibi}，{f'触发了{n}次变压器的效果，' if n > 0 else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 and is_buy else ''}{f'触发了{p}次北京市政交通一卡通的效果，' if p > 0 and is_buy else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
     if is_buy:
-        spend = node['spend_shop'] + jibi
+        spend = node['spend_shop'] + abs(jibi)
         config.userdata.execute("update dragon_data set spend_shop=? where qq=?", (spend, qq))
         config.logger.dragon << f"【LOG】玩家{qq}累计今日商店购买至{spend}。"
 def wrapper_file(_func):
