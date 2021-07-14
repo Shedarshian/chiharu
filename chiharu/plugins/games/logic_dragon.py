@@ -555,7 +555,7 @@ async def settlement(buf: SessionBuffer, qq: int, to_do):
             l = await buf.aget(prompt=ret2,
                 arg_filters=[
                     extractors.extract_text,
-                    lambda s: list(map(int, re.findall(r'\d+', str(s)))),
+                    lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
                     validators.fit_size(x, x, message="请输入正确的张数。"),
                     validators.ensure_true(lambda l: check_throw_card(qq, l, hand_card=hand_card), message="您选择了错误的卡牌！"),
                     validators.ensure_true(lambda l: 53 not in l, message="空白卡牌不可因超出手牌上限而被弃置！")
