@@ -8,5 +8,5 @@ NICKNAME = ('千春', '七海千春')
 MAX_VALIDATION_FAILURES = 0
 
 from datetime import timedelta
-SESSION_RUN_TIMEOUT = timedelta(minutes=2)
+SESSION_RUN_TIMEOUT = None
 SESSION_EXPIRE_TIMEOUT = None
