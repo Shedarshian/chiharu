@@ -77,7 +77,7 @@ async def PythonExec(session: CommandSession):
 @config.ErrorHandle
 async def PythonAwait(session: CommandSession):
     with stdoutIO() as s:
-        local = {}
+        local = {'session': session}
         exec('async def main():\n  ' + '\n  '.join(session.current_arg_text.split('\n')), local, local)
         await local['main']()
     await session.send(s.getvalue()[:-1], auto_escape=True)
