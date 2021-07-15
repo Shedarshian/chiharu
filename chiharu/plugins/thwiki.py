@@ -442,7 +442,7 @@ class Record(namedtuple('Record', ['qq', 'time', 'msg_id', 'msg'])):
         return f"{self.qq}【{self.time.isoformat(sep=' ')}】{self.msg_id}: {self.msg}"
     @staticmethod
     def construct(line):
-        match = re.match(r'^(\d+)【(.*?)】(\d+): (.*)$', line)
+        match = re.match(r'^(\d+)【(.*?)】(\-?\d+): (.*)$', line)
         if not match:
             return None
         qq, time, msg_id, msg = match.groups()
