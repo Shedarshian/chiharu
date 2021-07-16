@@ -327,7 +327,7 @@ def add_status(qq, s, is_daily):
     status = find_or_new(qq)['daily_status' if is_daily else 'status']
     status += s
     config.userdata.execute('update dragon_data set %s=? where qq=?' % ('daily_status' if is_daily else 'status'), (status, qq))
-    config.logger.dragon << f"【LOG】用户{qq}增加了{'每日' if is_daily else '永久'}状态{s}。"
+    config.logger.dragon << f"【LOG】用户{qq}增加了{'每日' if is_daily else '永久'}状态{s}，当前状态为{status}。"
 def add_limited_status(qq, s, end_time : datetime):
     status = eval(find_or_new(qq)['status_time'])
     if s not in status:
