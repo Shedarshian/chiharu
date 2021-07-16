@@ -314,7 +314,7 @@ def add_hidden(d, word):
 
 def cancellation(session):
     def control(value):
-        if value == "取消":
+        if value.strip() == "取消":
             config.logger.dragon << f"【LOG】用户{session.ctx['user_id']}取消。"
             session.finish("已取消。")
         return value
@@ -992,10 +992,10 @@ async def dragon_buy(buf: SessionBuffer):
     elif id == 7:
         # (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。
         config.logger.dragon << f"【LOG】询问用户{qq}提交的卡牌。"
-        s = await buf.aget(prompt="请提交卡牌名、来源、与卡牌效果描述。（审核不通过不返还击毙），输入取消退出。", arg_filter=[cancellation(buf.session)])
+        s = await buf.aget(prompt="请提交卡牌名、来源、与卡牌效果描述。（审核不通过不返还击毙），输入取消退出。", arg_filters=[cancellation(buf.session)])
         config.logger.dragon << f"【LOG】用户{qq}提交卡牌{s}。"
         await add_jibi(buf, qq, -50, is_buy=True)
-        for group in config.group_id_dict['dragon_supervise']:
+        for group in config.group_id_dict['logic_dragon_supervise']:
             await get_bot().send_group_msg(group_id=group, message=s)
         buf.send("您已成功提交！")
     elif id == 8:
