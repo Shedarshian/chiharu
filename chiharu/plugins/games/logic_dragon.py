@@ -977,8 +977,8 @@ async def dragon_buy(buf: SessionBuffer):
         c = await buf.aget(prompt="请输入标记为雷的词。",
             arg_filters=[
                 extractors.extract_text,
-                validators.ensure_true(lambda c: c in log_set, message="请输入一周以内接过的词汇。输入取消退出。"),
-                cancellation(buf.session)
+                cancellation(buf.session),
+                validators.ensure_true(lambda c: c in log_set, message="请输入一周以内接过的词汇。输入取消退出。")
             ])
         config.logger.dragon << f"【LOG】用户{qq}标记{c}为雷。"
         await add_jibi(buf, qq, -10, is_buy=True)
