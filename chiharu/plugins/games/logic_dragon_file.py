@@ -22,12 +22,12 @@ quest_print_aux = {qq: 0 for qq in global_state['quest'].keys()}
 
 # dragon_data := qq : int, jibi : int, card : str, draw_time : int, death_time : str, today_jibi : int, today_keyword_jibi : int
 # status : str, daily_status : str, status_time : str, card_limit : int, shop_drawn_card: int, event_pt: int
-# spend_shop : int
+# spend_shop : int, equipment : str
 # global_status : qq = 2711644761
 def find_or_new(qq):
     t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     if t is None:
-        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 0, 0, 0)', (qq, '', '', '', '', '{}'))
+        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop, equipment) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 0, 0, 0, ?)', (qq, '', '', '', '', '{}', '{}'))
         t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     return t
 
@@ -45,6 +45,7 @@ class User:
         self.node = dict(find_or_new(qq))
         self.buf = buf
         self.hand_card = [] if self.card == '' else [Card(int(x)) for x in self.card.split(',')]
+        self.equipment : dict = eval(self.equipment)
     def reload(self):
         self.node = dict(find_or_new(self.qq))
     def __setattr__(self, attr, value):
@@ -67,6 +68,9 @@ class User:
     def set_cards(self):
         config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(c.id) for c in self.hand_card), self.qq))
         config.logger.dragon << f"【LOG】设置用户{self.qq}手牌为{cards_to_str(self.hand_card)}。"
+    def set_equipments(self):
+        config.userdata.execute("update dragon_data set equipment=? where qq=?", (str(self.equipment), self.qq))
+        config.logger.dragon << f"【LOG】设置用户{self.qq}装备为{equips_to_str(self.equipment)}。"
     def check_throw_card(self, card_ids):
         if len(card_ids) == 1:
             if card_ids[0] not in [c.id for c in self.hand_card]:
@@ -89,7 +93,7 @@ class User:
         config.userdata.execute('update dragon_data set dailystatus=? where qq=?', (status, self.qq))
         self.reload()
         self.log << f"增加了每日状态{s}，当前状态为{status}。"
-    def add_limited_status(self, s, end_time : datetime):
+    def add_limited_status(self, s, end_time: datetime):
         status = eval(self.status_time)
         if s not in status:
             status[s] = end_time.isoformat()
@@ -141,6 +145,8 @@ class User:
             self.reload()
             return False
         return True
+    def check_equipment(self, id):
+        return self.equipment.get(id, 0)
     def decrease_death_time(self, time: timedelta):
         status = eval(self.status_time)
         if 'd' in status:
@@ -175,11 +181,22 @@ class User:
             jibi *= 2 ** n
             self.send_char(f"触发了{f'{n}次' if n > 1 else ''}变压器的效果，{'获得' if jibi >= 0 else '损失'}击毙加倍为{abs(jibi)}！")
             self.remove_status('2')
-        if (m := self.check_status('S')) and is_buy:
+        if q := self.check_equipment(0):
+            if jibi > 0 and random.random() < 0.05 * q:
+                jibi *= 2
+                self.send_char(f"触发了比基尼的效果，获得击毙加倍为{abs(jibi)}！")
+            else:
+                q = 0
+        dodge = False
+        if r := self.check_equipment(1):
+            if jibi < 0 and random.random() < r / (20 + r):
+                dodge = True
+                self.send_char(f"触发了学生泳装的效果，本次免单！")
+        if (m := self.check_status('S')) and is_buy and not dodge:
             jibi //= 2 ** m
             self.send_char(f"触发了{f'{m}次' if m > 1 else ''}Steam夏季特卖的效果，花费击毙减半为{abs(jibi)}！")
             self.remove_status('S')
-        if (p := self.check_status('1')) and is_buy:
+        if (p := self.check_status('1')) and is_buy and not dodge:
             if 100 <= self.spend_shop < 150:
                 jibi  = int(jibi * 0.8 ** p)
                 self.send_char(f"触发了{f'{p}次' if p > 1 else ''}北京市政交通一卡通的效果，花费击毙打了8折变为{abs(jibi)}！")
@@ -188,9 +205,10 @@ class User:
                 self.send_char(f"触发了{f'{p}次' if p > 1 else ''}北京市政交通一卡通的效果，花费击毙打了5折变为{abs(jibi)}！")
             elif self.spend_shop >= 400:
                 self.send_char("今日已花费400击毙，不再打折！")
-        config.userdata.execute("update dragon_data set jibi=? where qq=?", (max(0, current_jibi + jibi), self.qq))
-        self.log << f"原有击毙{current_jibi}，{f'触发了{n}次变压器的效果，' if n > 0 else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 and is_buy else ''}{f'触发了{p}次北京市政交通一卡通的效果，' if p > 0 and is_buy else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
-        if is_buy:
+        if not dodge:
+            config.userdata.execute("update dragon_data set jibi=? where qq=?", (max(0, current_jibi + jibi), self.qq))
+        self.log << f"原有击毙{current_jibi}，{f'触发了{n}次变压器的效果，' if n > 0 else ''}{f'触发了比基尼的效果，' if q > 0 else ''}{f'触发了学生泳装的效果，' if dodge else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 and is_buy and not dodge else ''}{f'触发了{p}次北京市政交通一卡通的效果，' if p > 0 and is_buy and not dodge else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
+        if is_buy and not dodge:
             spend = self.spend_shop + abs(jibi)
             config.userdata.execute("update dragon_data set spend_shop=? where qq=?", (spend, self.qq))
             self.log << f"累计今日商店购买至{spend}。"
@@ -331,6 +349,8 @@ def draw_card(positive=None):
     while (x and c.positive not in positive) or c.id < 0:
         c = random.choice(list(_card.card_id_dict.values()))
     return c
+def equips_to_str(equips):
+    return '，'.join(f"{count}*{c.name}" for c, count in equips.items())
 
 @lru_cache(10)
 def Card(id):
@@ -1107,3 +1127,44 @@ class Grid(namedtuple('Grid', ["id", "content", "data", "pos", "childs_id", "par
             user.log << f"飞到了{grid.id}。"
             return await grid.do(user)
         return self
+
+@lru_cache(10)
+def Equipment(id):
+    if id in _equipment.id_dict:
+        return _equipment.id_dict[id]
+    else:
+        raise ValueError("斯")
+
+class equipment_meta(type):
+    def __new__(cls, clsname, bases, attrs):
+        if len(bases) != 0 and 'id_dict' in bases[0].__dict__:
+            c = type.__new__(cls, clsname, bases, attrs)
+            bases[0].card_id_dict[attrs['id']] = c
+        else:
+            c = type.__new__(cls, clsname, bases, attrs)
+        return c
+
+class _equipment(metaclass=equipment_meta):
+    id_dict = {}
+    id = -127
+    name = ''
+    des_shop = ''
+    @classmethod
+    def description(cls, count):
+        pass
+
+class bikini(_equipment):
+    id = 0
+    name = '比基尼'
+    des_shop = '你每次获得击毙时都有一定几率加倍。一星为5%，二星为10%，三星为15%。'
+    @classmethod
+    def description(cls, count):
+        return f'你每次获得击毙时都有{5 * count}%几率加倍。'
+
+class schoolsui(_equipment):
+    id = 1
+    name = '学校泳装'
+    des_shop = '你每次击毙减少或商店购买都有一定几率免单。一星为4.76%，二星为9.09%，三星为13.04%。'
+    @classmethod
+    def description(cls, count):
+        return f'你每次击毙减少或商店购买都有{count / (20 + count) * 100:.2f}%几率免单。'
