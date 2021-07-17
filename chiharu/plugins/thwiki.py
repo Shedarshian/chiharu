@@ -1845,8 +1845,8 @@ async def thwiki_record(bot, event, plugin_manager):
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_punish(session: CommandSession):
     """惩罚不当发言。
-    格式为：-thwiki.punish qq 换行 YYYY-MM-DD HH:MM[:SS] [换行 关键词]
-    检索给定时间前后1分钟内距离该时间最近的包含关键词的发言。（可不给关键字）
+    格式为：-thwiki.punish qq [换行 YYYY-MM-DD HH:MM[:SS] [换行 关键词]]
+    检索给定时间前后10分钟内距离该时间最近的包含关键词的发言，不给时间则为从现在开始。（可不给关键字）
     如确认，则将该发言撤回，并扣除友善度。友善度上限为5，扣至1或2点则禁言1h，扣至零则踢出。
     并告知友善度剩余几点。"""
     if session.get('confirmed'):
@@ -1878,9 +1878,9 @@ async def thwiki_punish(session: CommandSession):
     qq, word, time = session.get('qq'), session.get('word'), session.get('time')
     try:
         if word is None:
-            l = [record for record in load_record(record_file.readlines()) if record is not None and abs(record.time - time) < timedelta(minutes=1) and record.qq == qq]
+            l = [record for record in load_record(record_file.readlines()) if record is not None and abs(record.time - time) < timedelta(minutes=10) and record.qq == qq]
         else:
-            l = [record for record in load_record(record_file.readlines()) if record is not None and abs(record.time - time) < timedelta(minutes=1) and record.qq == qq and word in record.msg]
+            l = [record for record in load_record(record_file.readlines()) if record is not None and abs(record.time - time) < timedelta(minutes=10) and record.qq == qq and word in record.msg]
     finally:
         record_file.close()
         record_file = open(config.rel(r'log\thwiki_record.txt'), 'a', encoding='utf-8')
@@ -1913,19 +1913,24 @@ async def _(session: CommandSession):
         return
     session.args['confirmed'] = False
     l = list(map(str.strip, session.current_arg_text.replace('\r', '').split('\n')))
-    if len(l) == 2:
+    if len(l) == 1:
+        qq_str = l[0]
+        session.args['time'] = datetime.now()
+        session.args['word'] = None
+    elif len(l) == 2:
         qq_str, time_str = l
         session.args['word'] = None
     elif len(l) == 3:
         qq_str, time_str, word = l
         session.args['word'] = word.strip()
     else:
-        session.finish('格式为：-thwiki.punish qq 换行 YYYY-MM-DD HH:MM[:SS] [换行 关键词]')
+        session.finish('格式为：-thwiki.punish qq [换行 YYYY-MM-DD HH:MM[:SS] [换行 关键词]]')
     session.args['qq'] = int(qq_str)
-    try:
-        session.args['time'] = datetime.fromisoformat(time_str)
-    except ValueError:
-        session.finish('时间不符合格式')
+    if 'time_str' in locals():
+        try:
+            session.args['time'] = datetime.fromisoformat(time_str)
+        except ValueError:
+            session.finish('时间不符合格式')
 
 @on_command(('thwiki', 'punish_check'), only_to_me=False, args=('qq=qq号'), environment=env_supervise)
 @config.ErrorHandle(config.logger.thwiki)
@@ -2092,7 +2097,7 @@ async def thwiki_generate_token(session: CommandSession):
 async def thwiki_begin_quiz(session: CommandSession):
     # TODO
     return
-                                                                                                                           
+
 @on_command(('thwiki', 'remove_from_weak_blacklist'), only_to_me=False, hide=True)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_fake_deblacklist(session: CommandSession): 
