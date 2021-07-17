@@ -48,7 +48,7 @@ class User:
     def reload(self):
         self.node = find_or_new(self.qq)
     def __setattr__(self, attr, value):
-        setattr(self, attr, value)
+        self.__dict__[attr] = value
     def __getattr__(self, attr):
         if attr in self.node:
             return self.node[attr]
