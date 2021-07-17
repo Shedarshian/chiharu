@@ -47,6 +47,8 @@ class User:
         self.hand_card = [] if self.card == '' else [Card(int(x)) for x in self.card.split(',')]
     def reload(self):
         self.node = find_or_new(self.qq)
+    def __setattr__(self, attr, value):
+        setattr(self, attr, value)
     def __getattr__(self, attr):
         if attr in self.node:
             return self.node[attr]
