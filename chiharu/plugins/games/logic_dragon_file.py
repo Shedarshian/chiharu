@@ -46,7 +46,7 @@ class User:
         self.buf = buf
         self.hand_card = [] if self.card == '' else [Card(int(x)) for x in self.card.split(',')]
     def reload(self):
-        self.node = find_or_new(self.qq)
+        self.node = dict(find_or_new(qq))
     def __setattr__(self, attr, value):
         self.__dict__[attr] = value
     def __getattr__(self, attr):
