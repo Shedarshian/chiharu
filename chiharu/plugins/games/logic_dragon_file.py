@@ -42,7 +42,7 @@ class Wrapper:
 class User:
     def __init__(self, qq, buf):
         self.qq = qq
-        self.node = find_or_new(qq)
+        self.node = dict(find_or_new(qq))
         self.buf = buf
         self.hand_card = [] if self.card == '' else [Card(int(x)) for x in self.card.split(',')]
     def reload(self):
