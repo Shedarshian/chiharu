@@ -340,9 +340,9 @@ def add_global_status(s, is_daily):
     return add_status(2711644761, s, is_daily)
 def add_global_limited_status(s, end_time : datetime):
     return add_limited_status(2711644761, s, end_time)
-def check_status(qq, s, is_daily, node=None):
-    node = node or find_or_new(qq)
-    return node['daily_status' if is_daily else 'status'].count(s)
+def check_status(qq, s, is_daily, node=None, status=None):
+    status = status or (node or find_or_new(qq))['daily_status' if is_daily else 'status']
+    return status.count(s)
 def check_limited_status(qq, s, node=None):
     node = node or find_or_new(qq)
     status = eval(node['status_time'])
@@ -1569,9 +1569,16 @@ class liwujiaohuan(_card):
     async def use(cls, session, qq, hand_card):
         set_cards(qq, hand_card)
         config.logger.dragon << f"【LOG】用户{qq}交换了所有人的手牌。"
-        l = [(t['qq'], get_card(t['qq'], t['card'])) for t in config.userdata.execute("select qq, card from dragon_data").fetchall()]
+        l = [(t['qq'], get_card(t['qq'], t['card']), t['status']) for t in config.userdata.execute("select qq, card, status from dragon_data").fetchall()]
         config.logger.dragon << f"【LOG】所有人的手牌为：{','.join(f'{qq}: {cards_to_str(cards)}' for qq, cards in l)}。"
-        all_cards = list(itertools.chain(*([(q, c) for c in cs] for q, cs in l)))
+        def _():
+            for q, cs, status in l:
+                if check_status(q, 'G', False, status=status):
+                    remove_status(q, "G", False, remove_all=False, status=status)
+                else:
+                    for c in cs:
+                        yield (q, c)
+        all_cards = list(_())
         random.shuffle(all_cards)
         hand_card.clear()
         for q, c in l:
@@ -1751,6 +1758,14 @@ class guanggaopai(_card):
             "下蛋公鸡，公鸡中的战斗鸡，哦也",
             "欢迎关注甜品站弹幕研究协会，国内一流的东方STG学术交流平台，从避弹，打分到neta，可以学到各种高端姿势：https://www.isndes.com/ms?m=2"
         ])
+
+class McGuffium239(_card):
+    name = "Mc Guffium 239"
+    id = 102
+    positive = 1
+    status = 'G'
+    status_des = 'Mc Guffium 239：下一次礼物交换不对你生效。'
+    description = "下一次礼物交换不对你生效。"
 
 class steamsummer(_card):
     name = "Steam夏季特卖"
