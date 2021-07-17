@@ -130,7 +130,7 @@ class User:
         return self.status.count(s)
     def check_daily_status(self, s):
         return self.daily_status.count(s)
-    def check_limit_status(self, s):
+    def check_limited_status(self, s):
         status = eval(self.status_time)
         if s not in status:
             return False
