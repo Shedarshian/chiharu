@@ -1160,7 +1160,7 @@ class equipment_meta(type):
     def __new__(cls, clsname, bases, attrs):
         if len(bases) != 0 and 'id_dict' in bases[0].__dict__:
             c = type.__new__(cls, clsname, bases, attrs)
-            bases[0].card_id_dict[attrs['id']] = c
+            bases[0].id_dict[attrs['id']] = c
         else:
             c = type.__new__(cls, clsname, bases, attrs)
         return c
