@@ -1845,7 +1845,7 @@ async def thwiki_record(bot, event, plugin_manager):
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_punish(session: CommandSession):
     """惩罚不当发言。
-    格式为：-thwiki.punish qq [换行 YYYY-MM-DD HH:MM[:SS] [换行 关键词]]
+    格式为：-thwiki.punish qq [换行 [YYYY-MM-DD HH:MM[:SS]] [换行 关键词]]
     检索给定时间前后10分钟内距离该时间最近的包含关键词的发言，不给时间则为从现在开始。（可不给关键字）
     如确认，则将该发言撤回，并扣除友善度。友善度上限为5，扣至1或2点则禁言1h，扣至零则踢出。
     并告知友善度剩余几点。"""
@@ -1915,7 +1915,7 @@ async def _(session: CommandSession):
     l = list(map(str.strip, session.current_arg_text.replace('\r', '').split('\n')))
     if len(l) == 1:
         qq_str = l[0]
-        session.args['time'] = datetime.now()
+        time_str = ''
         session.args['word'] = None
     elif len(l) == 2:
         qq_str, time_str = l
@@ -1926,7 +1926,9 @@ async def _(session: CommandSession):
     else:
         session.finish('格式为：-thwiki.punish qq [换行 YYYY-MM-DD HH:MM[:SS] [换行 关键词]]')
     session.args['qq'] = int(qq_str)
-    if 'time_str' in locals():
+    if time_str == '':
+        session.args['time'] = datetime.now()
+    else:
         try:
             session.args['time'] = datetime.fromisoformat(time_str)
         except ValueError:
