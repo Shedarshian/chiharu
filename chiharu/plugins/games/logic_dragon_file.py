@@ -542,6 +542,21 @@ class jiandiezhixing(_card):
 #     status_des = "X - 命运之轮：直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
 #     description = "直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
 
+# class zhengyi(_card):
+#     name = "XI - 正义"
+#     id = 11
+#     positive = 1
+#     description = "现在你身上每有一个buff，奖励你5击毙。"
+#     @classmethod
+#     async def use(cls, user: User):
+#         n = len(user.status) + len(user.daily_status)
+#         status_time = eval(user.status_time)
+#         for k in status_time:
+#             if user.check_limited_status(k):
+#                 n += 1
+#         user.buf.send(f"你身上有{n}个buff，奖励你{n * 5}个击毙。")
+#         await user.add_jibi(n * 5)
+
 # class emo(_card):
 #     name = "XV - 恶魔"
 #     id = 15
