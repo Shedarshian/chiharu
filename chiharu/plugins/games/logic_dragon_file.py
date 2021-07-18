@@ -91,7 +91,7 @@ class User:
     def add_daily_status(self, s):
         status = self.daily_status
         status += s
-        config.userdata.execute('update dragon_data set dailystatus=? where qq=?', (status, self.qq))
+        config.userdata.execute('update dragon_data set daily_status=? where qq=?', (status, self.qq))
         self.reload()
         self.log << f"增加了每日状态{s}，当前状态为{status}。"
     def add_limited_status(self, s, end_time: datetime):
@@ -255,7 +255,7 @@ class User:
                     await User(target, self.buf).kill(hour=hour)
     async def draw(self, n: int, /, positive=None, cards=None):
         """抽卡。将卡牌放入手牌。"""
-        cards = [draw_card(positive) for i in range(n)] if cards is None else cards
+        cards = draw_cards(positive, n) if cards is None else cards
         if n := cards.count(Card(67)):
             for i in range(n):
                 await Card(67).on_draw(self)
@@ -341,15 +341,16 @@ me = User(2711644761, None)
 
 def cards_to_str(cards):
     return '，'.join(c.name for c in cards)
-def draw_card(positive=None):
+def draw_cards(positive=None, k=1):
     x = positive is not None and len(positive & {-1, 0, 1}) != 0
     if me.check_daily_status('j'):
         if (x and (-1 in positive) or not x) and random.random() < 0.2:
             return Card(-1)
-    c = random.choice(list(_card.card_id_dict.values()))
-    while (x and c.positive not in positive) or c.id < 0:
-        c = random.choice(list(_card.card_id_dict.values()))
-    return c
+    cards = list(c for c in _card.card_id_dict.values() if c.id >= 0 and (not x or x and c.positive in positive))
+    l = random.choices(cards, [c.weight for c in cards], k=k)
+    return l
+def draw_card(positive=None):
+    return draw_cards(positive, k=1)[0]
 def equips_to_str(equips):
     return '，'.join(f"{count}*{c.name}" for c, count in equips.items())
 
@@ -440,6 +441,7 @@ class _card(metaclass=card_meta):
     limited_status_dict = {'d': "死亡：不可接龙。"}
     name = ""
     id = -127
+    weight = 1
     positive = 0
     description = ""
     arg_num = 0
