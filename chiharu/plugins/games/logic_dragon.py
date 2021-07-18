@@ -432,7 +432,7 @@ async def dragon_construct(buf: SessionBuffer):
                 user.log << f"触发了IX - 隐者的效果，没死。"
                 buf.send_char("触发了IX - 隐者的效果，没死。")
             else:
-                await user.settlement(buf, qq, user.kill())
+                await user.settlement(user.kill())
         else:
             buf.send(f"成功接龙！接龙词：{word}，id为【{tree_node.id_str}】。", end='')
             if user.today_jibi > 0:
