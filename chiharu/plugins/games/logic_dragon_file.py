@@ -484,6 +484,32 @@ class jiandiezhixing(_card):
     async def on_discard(cls, user):
         await user.kill()
 
+# class magician(_card):
+#     name = "I - 魔术师"
+#     id = 1
+#     positive = 1
+#     description = "选择一张你的手牌（不可选择暴食的蜈蚣），执行3次该手牌的效果，并弃置该手牌。"
+#     @classmethod
+#     async def use(cls, user: User):
+#         await user.buf.flush()
+#         config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行I - 魔术师。"
+#         l = await user.buf.aget(prompt="请选择你手牌中的一张牌（不可选择暴食的蜈蚣），输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.hand_card),
+#             arg_filters=[
+#                     extractors.extract_text,
+#                     lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
+#                     validators.fit_size(1, 1, message="请输入正确的张数。"),
+#                     validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.hand_card, message="您选择了错误的卡牌！"),
+#                     validators.ensure_true(lambda l: -1 not in l, message="此牌不可使用！"),
+#                     validators.ensure_true(lambda l: 56 not in l, message="此牌不可选择！")
+#                 ])
+#         card = Card(l[0])
+#         config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
+#         user.send_char('使用了三次卡牌：\n' + card.full_description(user.qq))
+#         await card.use(user)
+#         await card.use(user)
+#         await card.use(user)
+#         await user.discard_cards([card])
+
 # class nvjisi(_card):
 #     name = "II - 女祭司"
 #     id = 2
@@ -689,9 +715,9 @@ class baiban(_card):
         l = await user.buf.aget(prompt="请选择你手牌中的一张牌复制，输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.hand_card),
             arg_filters=[
                     extractors.extract_text,
-                    lambda s: list(map(int, re.findall(r'\d+', str(s)))),
+                    lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
                     validators.fit_size(1, 1, message="请输入正确的张数。"),
-                    validators.ensure_true(lambda l: Card(l[0]) in user.hand_card, message="您选择了错误的卡牌！"),
+                    validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.hand_card, message="您选择了错误的卡牌！"),
                     validators.ensure_true(lambda l: -1 not in l, message="此牌不可使用！")
                 ])
         card = Card(l[0])
