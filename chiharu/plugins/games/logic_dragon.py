@@ -844,4 +844,4 @@ async def dragon_update(session: CommandSession):
 @on_command(('dragon', 'char'), only_to_me=False, hide=True, permission=permission.SUPERUSER)
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_char(session: CommandSession):
-    await session.send(f"status: {''.join(_card.status_dict.keys())}\ndaily_status: {''.join(_card.daily_status_dict.keys())}\nlimited_status: {''.join(_card.limited_status_dict.keys())}")
+    await session.send(f"status: {''.join(sorted(_card.status_dict.keys()))}\ndaily_status: {''.join(sorted(_card.daily_status_dict.keys()))}\nlimited_status: {''.join(sorted(_card.limited_status_dict.keys()))}")
