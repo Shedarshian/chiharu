@@ -517,6 +517,14 @@ class jiandiezhixing(_card):
 #     status_des = "IX - 隐者：今天你不会因为接到重复词或触雷而死亡。"
 #     description = "今天你不会因为接到重复词或触雷而死亡。"
 
+# class fortune(_card):
+#     name = "X - 命运之轮"
+#     id = 10
+#     positive = 0
+#     global_daily_status = 'O'
+#     status_des = "X - 命运之轮：直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
+#     description = "直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
+
 # class emo(_card):
 #     name = "XV - 恶魔"
 #     id = 15

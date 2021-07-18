@@ -585,7 +585,7 @@ async def dragon_check(session: CommandSession):
     elif data in ("卡池", "card_pool"):
         session.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
     elif data in ("商店", "shop"):
-        session.finish("1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. (35击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。\n8. (25击毙)抽一张卡，每日限一次。")
+        session.finish("1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. (35击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。\n8. (25击毙)抽一张卡，每日限一次。" + ("\n16. (5击毙)🎰🎲💰选我抽奖！💰🎲🎰" if me.check_daily_status('O') else ''))
     qq = session.ctx['user_id']
     buf = SessionBuffer(session)
     user = User(qq, buf)
@@ -717,6 +717,39 @@ async def dragon_buy(buf: SessionBuffer):
             await user.add_jibi(-25, is_buy=True)
             await user.settlement(user.draw(1))
             save_data()
+    elif id == 16 and me.check_daily_status('O'):
+        # (5击毙)抽奖
+        # 15%几率掉一张卡
+        # 30%几率获得1-10击毙
+        # 15%几率在过去一周内随机标记一个雷
+        # 5%几率抽奖机爆炸击毙抽奖人，抽奖机消失
+        # 35%几率什么都不掉
+        await user.add_jibi(-5, is_buy=True)
+        r = random.random()
+        user.log << f"抽奖机抽到了{r}。"
+        if r < 0.15:
+            buf.send("🎴🎴🎴恭喜您抽到了卡牌！")
+            await user.settlement(user.draw(1))
+        elif r < 0.45:
+            p = random.randint(1, 10)
+            buf.send(f"💰💰💰恭喜您抽到了{p}击毙！")
+            await user.add_jibi(p)
+        elif r < 0.6:
+            buf.send("💣💣💣恭喜你抽到了雷！")
+            buf.send("过去一周的一个随机词汇变成了雷！")
+            w = random.choice(list(log_set))
+            config.logger.dragon << f"【LOG】{w}被随机标记为雷。"
+            add_bomb(w)
+        elif r < 0.65:
+            buf.send("💥💥💥抽奖机爆炸了！")
+            me.remove_daily_status('O')
+            await user.kill()
+        else:
+            r = '   '
+            while r[0] == r[1] == r[2]:
+                r = ''.join(random.choice('🎴💰💣') for i in range(3))
+            buf.send(r + "你什么都没有抽到……再来一次吧！")
+        save_data()
     await buf.flush()
 
 @on_command(('dragon', 'fork'), aliases="分叉", only_to_me=False, short_des="分叉接龙。", args=("id",), environment=env)
