@@ -408,6 +408,7 @@ class card_meta(type):
             elif 'hold_status' in attrs and attrs['hold_status']:
                 status = attrs['hold_status']
                 bases[0].add_status(status, attrs['status_des'])
+                bases[0].is_hold += attrs['status_des']
                 @classmethod
                 async def on_draw(cls, user):
                     user.add_status(status)
@@ -434,6 +435,7 @@ class card_meta(type):
 class _card(metaclass=card_meta):
     card_id_dict = {}
     status_dict = {'d': "永久死亡。"}
+    is_hold = ''
     daily_status_dict = {}
     limited_status_dict = {'d': "死亡：不可接龙。"}
     name = ""
@@ -443,16 +445,16 @@ class _card(metaclass=card_meta):
     arg_num = 0
     consumed_on_draw = False
     @classmethod
-    async def use(cls, user):
+    async def use(cls, user: User):
         pass
     @classmethod
-    async def on_draw(cls, user):
+    async def on_draw(cls, user: User):
         pass
     @classmethod
-    async def on_discard(cls, user):
+    async def on_discard(cls, user: User):
         pass
     @classmethod
-    async def on_give(cls, user, target):
+    async def on_give(cls, user: User, target: User):
         pass
     @classmethod
     def add_daily_status(cls, s, des):
@@ -508,6 +510,21 @@ class jiandiezhixing(_card):
 #         n = u.check_limited_status('d')
 #         u.remove_limited_status('d')
 #         user.buf.send("已复活！" + ("（虽然目标并没有死亡）" if n else ''))
+
+# class liliang(_card):
+#     name = "VIII - 力量"
+#     id = 8
+#     positive = 0
+#     description = "加倍你身上所有的非持有性buff。"
+#     @classmethod
+#     async def use(cls, user: User):
+#         status = user.status
+#         status_time = eval(user.status_time)
+#         user.add_status(''.join(s for s in status if s not in _card.is_hold))
+#         user.add_daily_status(user.daily_status)
+#         for k, val in status_time.items():
+#             if user.check_limited_status(k):
+#                 user.add_limited_status(k, datetime.now() + (datetime.fromisoformat(val) - datetime.now()) * 2)
 
 # class yinzhe(_card):
 #     name = "IX - 隐者"
