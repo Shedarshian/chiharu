@@ -18,7 +18,7 @@
 #     if len(listout) == 0:
 #         await session.send("No newer manga!")
 #     else:
-#         await session.send(listout, auto_escape=True)
+#         await session.send(listout)
 
 # @scheduler.scheduled_job('cron', id="bandori_manga", hour='00-21/3')
 # async def CheckBandoriManga():

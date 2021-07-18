@@ -726,7 +726,7 @@ async def chess_begin_complete(session: CommandSession, data: Dict[str, Any]):
     data['red'] = data['players'][0]
     data['board'] = ChessBoard()
     data['nowRed'] = True
-    await session.send(str(data['board']), auto_escape=True)
+    await session.send(str(data['board']))
 
 @xiangqi.end(('play', 'xiangqi', 'end'))
 async def chess_end(session: CommandSession, data: Dict[str, Any]):
@@ -762,15 +762,15 @@ async def chess_test(session: CommandSession):
     try:
         board.process(session.get('args'), session.get('isRed'))
         session.get('ifSuccess')()
-        await session.send(str(board), auto_escape=True)
+        await session.send(str(board))
     except ChessWin as e:
-        await session.send(e.args[0], auto_escape=True)
+        await session.send(e.args[0])
         await session.get('ifWin')()
     except ChessError as e:
-        await session.send(e.args[0], auto_escape=True)
+        await session.send(e.args[0])
 
 config.CommandGroup('xiangqi', hide=True)
 @on_command(('xiangqi', 'check'), only_to_me=False, hide=True)
 @config.ErrorHandle
 async def chess_check(session: CommandSession):
-    await session.send(' '.join(map(str, filter(lambda x: xiangqi.center[x]['game'] is xiangqi, xiangqi.center.keys()))), auto_escape=True)
+    await session.send(' '.join(map(str, filter(lambda x: xiangqi.center[x]['game'] is xiangqi, xiangqi.center.keys()))))

@@ -14,6 +14,7 @@ import wand.image, wand.color
 from io import StringIO
 from string import Formatter
 from nonebot import CommandSession, permission, on_natural_language, NLPSession
+from nonebot.message import escape
 from .inject import on_command
 from . import config
 from .birth import myFormatter
@@ -38,7 +39,7 @@ async def AscCheck(session: CommandSession):
     strin = args[0]
     format_string = "U+{:x}" if h else "{}"
     strout = ' '.join([format_string.format(ord(x)) for x in strin])
-    await session.send('对应数字是：\n' + strout, auto_escape=True)
+    await session.send('对应数字是：\n' + strout)
 
 @on_command(('misc', 'asc', 'trans'), only_to_me=False)
 @config.ErrorHandle
@@ -51,7 +52,7 @@ async def AscTrans(session: CommandSession):
         return int(x)
     try:
         strout = ''.join([chr(_(i)) for i in strin])
-        await session.send('对应字符是：\n' + strout, auto_escape=True)
+        await session.send(escape('对应字符是：\n' + strout))
     except ValueError:
         await session.send('请输入十进制数字或U+xxx十六进制数字。')
 
@@ -71,7 +72,7 @@ config.CommandGroup('python', hide=True)
 async def PythonExec(session: CommandSession):
     with stdoutIO() as s:
         exec(session.current_arg_text, {}, {})
-    await session.send(s.getvalue()[:-1], auto_escape=True)
+    await session.send(s.getvalue()[:-1])
 
 @on_command(('python', 'await'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
@@ -80,7 +81,7 @@ async def PythonAwait(session: CommandSession):
         local = {'session': session}
         exec('async def main():\n  ' + '\n  '.join(session.current_arg_text.split('\n')), local, local)
         await local['main']()
-    await session.send(s.getvalue()[:-1], auto_escape=True)
+    await session.send(s.getvalue()[:-1])
 
 config.CommandGroup(('misc', 'maj'), short_des='麻将小助手。')
 
@@ -209,10 +210,10 @@ async def maj_train(session: CommandSession):
             s = Maj.compile(tehai, **d)
             loop = asyncio.get_event_loop()
             name = await GetMajImg(s)
-            await session.send([config.cq.text(str_title), config.cq.img(name + '.png')], auto_escape=True)
+            await session.send([config.cq.text(str_title), config.cq.img(name + '.png')])
         else:
             strout = str_title + ''.join(map(str, stack))
-            await session.send(strout, auto_escape=True)
+            await session.send(strout)
         result = maj.MajHai._ting(map(lambda x: x - 1, stack))
         daan[group_id] = \
             ''.join(map(lambda x: str(x[0] + 1), filter(lambda x: x[1] > 0, enumerate(map(len, result)))))
@@ -236,7 +237,7 @@ async def maj_train(session: CommandSession):
         stack.sort()
         stack.pop(random.randint(0, len(stack) - 1))
         strout = str_title + ''.join(map(str, stack))
-        await session.send(strout, auto_escape=True)
+        await session.send(strout)
         result = maj.MajHai._ting(map(lambda x: x - 1, stack))
         daan[group_id] = \
             ''.join(map(lambda x: str(x[0] + 1), filter(lambda x: x[1] > 0, enumerate(map(len, result)))))
@@ -316,10 +317,10 @@ async def maj_img(session: CommandSession):
         d = Maj.search_for(' '.join(l[1:]))
         test = Maj.compile(tehai, **d)
     except MajException as e:
-        await session.send(e.args[0], auto_escape=True)
+        await session.send(e.args[0])
         return
     name = await GetMajImg(test)
-    await session.send(config.cq.img(name + '.png'), auto_escape=True)
+    await session.send(config.cq.img(name + '.png'))
 
 @on_command(('misc', 'maj', 'ting'), only_to_me=False)
 @config.ErrorHandle
@@ -502,12 +503,12 @@ async def maj_voice(session: CommandSession):
     if voicer_str in voicer_dict:
         voicer = voicer_name[voicer_dict[voicer_str]]
     else:
-        await session.send('未找到角色' + voicer_str, auto_escape=True)
+        await session.send('未找到角色' + voicer_str)
         return
     try:
         l = list(maj_parse(content, voicer_dict[voicer_str]))
     except maj.MajErr as e:
-        await session.send(e.args[0], auto_escape=True)
+        await session.send(e.args[0])
         return
     if not os.path.isdir(config.rel(f'Cache\\majsoul_voice\\{voicer}')):
         os.mkdir(config.rel(f'Cache\\majsoul_voice\\{voicer}'))
@@ -523,7 +524,7 @@ async def maj_voice(session: CommandSession):
                 with open(config.rel(f'Cache\\majsoul_voice\\{voicer}\\{audio}.mp3'), 'wb') as f:
                     f.write(url.content)
     except maj.MajErr as e:
-        await session.send(e.args[0], auto_escape=True)
+        await session.send(e.args[0])
         return
     except requests.exceptions.SSLError as e:
         await session.send("雀魂连接失败！")
@@ -661,7 +662,7 @@ async def token_alpha(session: CommandSession):
     try:
         global token
         strout = myFormatter().vformat(session.current_arg_text, (), token)
-        await session.send('对应字符是：\n' + strout, auto_escape=True)
+        await session.send(escape('对应字符是：\n' + strout))
     except KeyError as e:
         await session.send(f'字符{e.args[0]}未能识别')
 
@@ -764,7 +765,7 @@ async def omikuji(session: CommandSession):
             if h < 0:
                 return i
     d = pick(m, h)
-    await session.send(f"{version}\n{d['ji']}    {d['name']}\n\n{d['des']}", auto_escape=True)
+    await session.send(f"{version}\n{d['ji']}    {d['name']}\n\n{d['des']}")
     if d['ji'] == '大大吉':
         if achievement.omikuji.get(qq):
             await session.send(achievement.omikuji.get_str())
@@ -827,9 +828,9 @@ async def todo(session: CommandSession):
             except IndexError:
                 await session.send('请输入一元函数。')
             except ParserError as e:
-                await session.send('SyntaxError: ' + str(e), auto_escape=True)
+                await session.send('SyntaxError: ' + str(e))
             except Exception as e:
-                await session.send(type(e).__name__ + ': ' + str(e), auto_escape=True)
+                await session.send(type(e).__name__ + ': ' + str(e))
             mode = ''
         elif mode == 'move':
             end = int(command)

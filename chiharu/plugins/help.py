@@ -127,10 +127,10 @@ async def help_f(session: CommandSession):
     else:
         strout = str_tail
     # if name == 'thwiki' and str_tail != '' and group_id in config.group_id_dict['thwiki_live']:
-    #     await session.send(strout, auto_escape=True, ensure_private=True)
+    #     await session.send(strout, ensure_private=True)
     # else:
-    #     await session.send(strout, auto_escape=True)
-    await session.send(strout, auto_escape=True)
+    #     await session.send(strout)
+    await session.send(strout)
 
 @on_command('reload', only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle

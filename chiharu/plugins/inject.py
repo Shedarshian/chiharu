@@ -101,9 +101,9 @@ class Constraint:
             if group_id in self.group and not self._f(session):
                 if self.ret != "":
                     if isinstance(self.ret, str):
-                        await session.send(self.ret, auto_escape=True)
+                        await session.send(self.ret)
                     else:
-                        await session.send(self.ret(session), auto_escape=True)
+                        await session.send(self.ret(session))
             else:
                 await f(session, *args, **kwargs)
         return _f

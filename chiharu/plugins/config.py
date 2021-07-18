@@ -112,12 +112,12 @@ def ErrorHandle(f):
             return await f(*args, **kwargs)
         except getopt.GetoptError as e:
             if session is not None:
-                await session.send('参数错误！' + str(e.args), auto_escape=True)
+                await session.send('参数错误！' + str(e.args))
         except (_PauseException, _FinishException, SwitchException):
             raise
         except Exception:
             if session is not None:
-                await args[0].send(traceback.format_exc(), auto_escape=True)
+                await args[0].send(traceback.format_exc())
                 qq = session.ctx['user_id']
                 if achievement.bug.get(qq):
                     await args[0].send(achievement.bug.get_str())
@@ -136,14 +136,14 @@ def _(g: _logger, if_send=True):
                 if len(args) >= 1 and isinstance(args[0], BaseSession):
                     g << f"【ERR】用户{args[0].ctx['user_id']} 使用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
                     if if_send:
-                        await args[0].send(traceback.format_exc(), auto_escape=True)
+                        await args[0].send(traceback.format_exc())
                         qq = args[0].ctx['user_id']
                         if achievement.bug.get(qq):
                             await args[0].send(achievement.bug.get_str())
                 elif 'session' in kwargs and isinstance(kwargs['session'], BaseSession):
                     g << f"【ERR】用户{kwargs['session'].ctx['user_id']} 使用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
                     if if_send:
-                        await kwargs['session'].send(traceback.format_exc(), auto_escape=True)
+                        await kwargs['session'].send(traceback.format_exc())
                         qq = kwargs['session'].ctx['user_id']
                         if achievement.bug.get(qq):
                             await kwargs['session'].send(achievement.bug.get_str())
@@ -174,7 +174,7 @@ def maintain(s):
                 if group_id in group_id_dict['aaa']:
                     await f(*args, **kwargs)
                 else:
-                    await session.send(maintain_str[s], auto_escape=True)
+                    await session.send(maintain_str[s])
         return _f
     return _
 
