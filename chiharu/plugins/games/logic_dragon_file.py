@@ -9,6 +9,7 @@ from nonebot.command.argfilter import extractors, validators
 from .. import config
 
 # global_state
+# last_card_user : int
 # exchange_stack : list(int)
 # lianhuan : list(int)
 # quest : map(int, list(map('id': int, 'remain': int)))
@@ -507,6 +508,26 @@ class jiandiezhixing(_card):
 #         n = u.check_limited_status('d')
 #         u.remove_limited_status('d')
 #         user.buf.send("已复活！" + ("（虽然目标并没有死亡）" if n else ''))
+
+# class yinzhe(_card):
+#     name = "IX - 隐者"
+#     id = 9
+#     positive = 1
+#     daily_status = 'Y'
+#     status_des = "IX - 隐者：今天你不会因为接到重复词或触雷而死亡。"
+#     description = "今天你不会因为接到重复词或触雷而死亡。"
+
+# class emo(_card):
+#     name = "XV - 恶魔"
+#     id = 15
+#     positive = 1
+#     description = "击毙上一位使用卡牌的人。"
+#     @classmethod
+#     async def use(cls, user):
+#         q = global_state['last_card_user']
+#         u = User(q, user.buf)
+#         user.buf.send(f'[CQ:at,qq={q}]被你击毙了！')
+#         await u.kill()
 
 # class taiyang(_card):
 #     name = "XIX - 太阳"

@@ -296,6 +296,7 @@ async def daily_update():
     save_global_state()
     config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=0, spend_shop=0', ('',))
     save_data()
+    me.reload()
     word = await update_begin_word(is_daily=True)
     return "今日关键词：" + word + "\nid为【0】。"
 
@@ -420,7 +421,11 @@ async def dragon_construct(buf: SessionBuffer):
         if not (tree_node := check_and_add_log_and_contruct_tree(parent, word, qq, kwd=kwd, hdkwd=hdkwd, fork=fork)):
             user.log << f"由于过去一周接过此词，死了。"
             buf.send("过去一周之内接过此词，你死了！")
-            await user.settlement(buf, qq, user.kill())
+            if user.check_daily_status('Y'):
+                user.log << f"触发了IX - 隐者的效果，没死。"
+                buf.send_char("触发了IX - 隐者的效果，没死。")
+            else:
+                await user.settlement(buf, qq, user.kill())
         else:
             buf.send(f"成功接龙！接龙词：{word}，id为【{tree_node.id_str}】。", end='')
             if user.today_jibi > 0:
@@ -470,7 +475,11 @@ async def dragon_construct(buf: SessionBuffer):
                 buf.send("你成功触发了炸弹，被炸死了！")
                 user.log << f"触发了炸弹，被炸死了。"
                 remove_bomb(word)
-                await user.settlement(user.kill())
+                if user.check_daily_status('Y'):
+                    user.log << f"触发了IX - 隐者的效果，没死。"
+                    buf.send_char("触发了IX - 隐者的效果，没死。")
+                else:
+                    await user.settlement(user.kill())
             if (n := me.check_status('+')):
                 me.remove_status('+')
                 buf.send(f"你触发了{n}次+2的效果，摸{n}张非正面牌与{n}张非负面牌！")
@@ -510,6 +519,8 @@ async def dragon_use_card(buf: SessionBuffer):
     if card.id == -1:
         user.log << f"无法使用卡牌{card.name}。"
         buf.finish("此牌不可被使用！")
+    global_state['last_card_user'] = qq
+    save_global_state()
     user.hand_card.remove(card)
     user.set_cards()
     save_data()
