@@ -547,6 +547,14 @@ class jiandiezhixing(_card):
 #         from .logic_dragon import hidden_keyword
 #         user.buf.send("你揭示的一个隐藏奖励词是：" + random.choice(hidden_keyword))
 
+class sekai(_card):
+    name = "XXI - 世界"
+    id = 21
+    positive = 0
+    global_daily_status = 's'
+    status_des = "XXI - 世界：除大病一场外，所有“直到下次主题刷新为止”的效果延长至明天。"
+    description = "除大病一场外，所有“直到下次主题刷新为止”的效果延长至明天。"
+
 class dabingyichang(_card):
     name = "大病一场"
     id = 30

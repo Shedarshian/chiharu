@@ -294,7 +294,14 @@ async def daily_update():
     for qq in global_state['steal']:
         global_state['steal'][qq] = {'time': 0, 'user': []}
     save_global_state()
-    config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=0, spend_shop=0', ('',))
+    if me.check_daily_status('s'):
+        me.remove_daily_status('s', remove_all=False)
+        config.userdata.execute('update dragon_data set today_jibi=10, today_keyword_jibi=10, shop_drawn_card=0, spend_shop=0', ('',))
+        for r in config.userdata.execute("select qq, daily_status from dragon_data").fetchall():
+            if 'd' in r['daily_status']:
+                User(r['qq'], None).remove_daily_status('d')
+    else:
+        config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=0, spend_shop=0', ('',))
     save_data()
     me.reload()
     word = await update_begin_word(is_daily=True)
