@@ -484,134 +484,134 @@ class jiandiezhixing(_card):
     async def on_discard(cls, user):
         await user.kill()
 
-# class magician(_card):
-#     name = "I - 魔术师"
-#     id = 1
-#     positive = 1
-#     description = "选择一张你的手牌（不可选择暴食的蜈蚣），执行3次该手牌的效果，并弃置该手牌。"
-#     @classmethod
-#     async def use(cls, user: User):
-#         await user.buf.flush()
-#         config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行I - 魔术师。"
-#         l = await user.buf.aget(prompt="请选择你手牌中的一张牌（不可选择暴食的蜈蚣），输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.hand_card),
-#             arg_filters=[
-#                     extractors.extract_text,
-#                     lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
-#                     validators.fit_size(1, 1, message="请输入正确的张数。"),
-#                     validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.hand_card, message="您选择了错误的卡牌！"),
-#                     validators.ensure_true(lambda l: -1 not in l, message="此牌不可使用！"),
-#                     validators.ensure_true(lambda l: 56 not in l, message="此牌不可选择！")
-#                 ])
-#         card = Card(l[0])
-#         config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
-#         user.send_char('使用了三次卡牌：\n' + card.full_description(user.qq))
-#         await card.use(user)
-#         await card.use(user)
-#         await card.use(user)
-#         await user.discard_cards([card])
+class magician(_card):
+    name = "I - 魔术师"
+    id = 1
+    positive = 1
+    description = "选择一张你的手牌（不可选择暴食的蜈蚣），执行3次该手牌的效果，并弃置该手牌。"
+    @classmethod
+    async def use(cls, user: User):
+        await user.buf.flush()
+        config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行I - 魔术师。"
+        l = await user.buf.aget(prompt="请选择你手牌中的一张牌（不可选择暴食的蜈蚣），输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.hand_card),
+            arg_filters=[
+                    extractors.extract_text,
+                    lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
+                    validators.fit_size(1, 1, message="请输入正确的张数。"),
+                    validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.hand_card, message="您选择了错误的卡牌！"),
+                    validators.ensure_true(lambda l: -1 not in l, message="此牌不可使用！"),
+                    validators.ensure_true(lambda l: 56 not in l, message="此牌不可选择！")
+                ])
+        card = Card(l[0])
+        config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
+        user.send_char('使用了三次卡牌：\n' + card.full_description(user.qq))
+        await card.use(user)
+        await card.use(user)
+        await card.use(user)
+        await user.discard_cards([card])
 
-# class nvjisi(_card):
-#     name = "II - 女祭司"
-#     id = 2
-#     positive = 0
-#     description = "击毙当前周期内接龙次数最多的玩家。"
-#     @classmethod
-#     async def use(cls, user):
-#         pass
+class nvjisi(_card):
+    name = "II - 女祭司"
+    id = 2
+    positive = 0
+    description = "击毙当前周期内接龙次数最多的玩家。"
+    @classmethod
+    async def use(cls, user):
+        pass
 
-# class lianren(_card):
-#     name = "VI - 恋人"
-#     id = 6
-#     positive = 1
-#     description = "复活1名指定玩家。"
-#     @classmethod
-#     async def use(cls, user):
-#         await user.buf.flush()
-#         l = await user.buf.aget(prompt="请at一名玩家复活。\n",
-#             arg_filters=[
-#                     lambda s: [r.group(1) for r in re.findall(r'qq=(\d+)', str(s))],
-#                     validators.fit_size(1, 1, message="请at正确的人数。"),
-#                 ])
-#         u = User(l[0], user.buf)
-#         n = u.check_limited_status('d')
-#         u.remove_limited_status('d')
-#         user.buf.send("已复活！" + ("（虽然目标并没有死亡）" if n else ''))
+class lianren(_card):
+    name = "VI - 恋人"
+    id = 6
+    positive = 1
+    description = "复活1名指定玩家。"
+    @classmethod
+    async def use(cls, user):
+        await user.buf.flush()
+        l = await user.buf.aget(prompt="请at一名玩家复活。\n",
+            arg_filters=[
+                    lambda s: [r.group(1) for r in re.findall(r'qq=(\d+)', str(s))],
+                    validators.fit_size(1, 1, message="请at正确的人数。"),
+                ])
+        u = User(l[0], user.buf)
+        n = u.check_limited_status('d')
+        u.remove_limited_status('d')
+        user.buf.send("已复活！" + ("（虽然目标并没有死亡）" if n else ''))
 
-# class liliang(_card):
-#     name = "VIII - 力量"
-#     id = 8
-#     positive = 0
-#     description = "加倍你身上所有的非持有性buff。"
-#     @classmethod
-#     async def use(cls, user: User):
-#         status = user.status
-#         status_time = eval(user.status_time)
-#         user.add_status(''.join(s for s in status if s not in _card.is_hold))
-#         user.add_daily_status(user.daily_status)
-#         for k, val in status_time.items():
-#             if user.check_limited_status(k):
-#                 user.add_limited_status(k, datetime.now() + (datetime.fromisoformat(val) - datetime.now()) * 2)
+class liliang(_card):
+    name = "VIII - 力量"
+    id = 8
+    positive = 0
+    description = "加倍你身上所有的非持有性buff。"
+    @classmethod
+    async def use(cls, user: User):
+        status = user.status
+        status_time = eval(user.status_time)
+        user.add_status(''.join(s for s in status if s not in _card.is_hold))
+        user.add_daily_status(user.daily_status)
+        for k, val in status_time.items():
+            if user.check_limited_status(k):
+                user.add_limited_status(k, datetime.now() + (datetime.fromisoformat(val) - datetime.now()) * 2)
 
-# class yinzhe(_card):
-#     name = "IX - 隐者"
-#     id = 9
-#     positive = 1
-#     daily_status = 'Y'
-#     status_des = "IX - 隐者：今天你不会因为接到重复词或触雷而死亡。"
-#     description = "今天你不会因为接到重复词或触雷而死亡。"
+class yinzhe(_card):
+    name = "IX - 隐者"
+    id = 9
+    positive = 1
+    daily_status = 'Y'
+    status_des = "IX - 隐者：今天你不会因为接到重复词或触雷而死亡。"
+    description = "今天你不会因为接到重复词或触雷而死亡。"
 
-# class fortune(_card):
-#     name = "X - 命运之轮"
-#     id = 10
-#     positive = 0
-#     global_daily_status = 'O'
-#     status_des = "X - 命运之轮：直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
-#     description = "直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
+class fortune(_card):
+    name = "X - 命运之轮"
+    id = 10
+    positive = 0
+    global_daily_status = 'O'
+    status_des = "X - 命运之轮：直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
+    description = "直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
 
-# class zhengyi(_card):
-#     name = "XI - 正义"
-#     id = 11
-#     positive = 1
-#     description = "现在你身上每有一个buff，奖励你5击毙。"
-#     @classmethod
-#     async def use(cls, user: User):
-#         n = len(user.status) + len(user.daily_status)
-#         status_time = eval(user.status_time)
-#         for k in status_time:
-#             if user.check_limited_status(k):
-#                 n += 1
-#         user.buf.send(f"你身上有{n}个buff，奖励你{n * 5}个击毙。")
-#         await user.add_jibi(n * 5)
+class zhengyi(_card):
+    name = "XI - 正义"
+    id = 11
+    positive = 1
+    description = "现在你身上每有一个buff，奖励你5击毙。"
+    @classmethod
+    async def use(cls, user: User):
+        n = len(user.status) + len(user.daily_status)
+        status_time = eval(user.status_time)
+        for k in status_time:
+            if user.check_limited_status(k):
+                n += 1
+        user.buf.send(f"你身上有{n}个buff，奖励你{n * 5}个击毙。")
+        await user.add_jibi(n * 5)
 
-# class emo(_card):
-#     name = "XV - 恶魔"
-#     id = 15
-#     positive = 1
-#     description = "击毙上一位使用卡牌的人。"
-#     @classmethod
-#     async def use(cls, user):
-#         q = global_state['last_card_user']
-#         u = User(q, user.buf)
-#         user.buf.send(f'[CQ:at,qq={q}]被你击毙了！')
-#         await u.kill()
+class emo(_card):
+    name = "XV - 恶魔"
+    id = 15
+    positive = 1
+    description = "击毙上一位使用卡牌的人。"
+    @classmethod
+    async def use(cls, user):
+        q = global_state['last_card_user']
+        u = User(q, user.buf)
+        user.buf.send(f'[CQ:at,qq={q}]被你击毙了！')
+        await u.kill()
 
-# class taiyang(_card):
-#     name = "XIX - 太阳"
-#     id = 19
-#     positive = 1
-#     description = "随机揭示一个隐藏奖励词。"
-#     @classmethod
-#     async def use(cls, user):
-#         from .logic_dragon import hidden_keyword
-#         user.buf.send("你揭示的一个隐藏奖励词是：" + random.choice(hidden_keyword))
+class taiyang(_card):
+    name = "XIX - 太阳"
+    id = 19
+    positive = 1
+    description = "随机揭示一个隐藏奖励词。"
+    @classmethod
+    async def use(cls, user):
+        from .logic_dragon import hidden_keyword
+        user.buf.send("你揭示的一个隐藏奖励词是：" + random.choice(hidden_keyword))
 
-# class sekai(_card):
-#     name = "XXI - 世界"
-#     id = 21
-#     positive = 0
-#     global_daily_status = 's'
-#     status_des = "XXI - 世界：除大病一场外，所有“直到下次主题刷新为止”的效果延长至明天。"
-#     description = "除大病一场外，所有“直到下次主题刷新为止”的效果延长至明天。"
+class sekai(_card):
+    name = "XXI - 世界"
+    id = 21
+    positive = 0
+    global_daily_status = 's'
+    status_des = "XXI - 世界：除大病一场外，所有“直到下次主题刷新为止”的效果延长至明天。"
+    description = "除大病一场外，所有“直到下次主题刷新为止”的效果延长至明天。"
 
 class dabingyichang(_card):
     name = "大病一场"
