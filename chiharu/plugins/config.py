@@ -217,7 +217,7 @@ class _helper:
             self.session.buffer += self.session.char(qq)
             self.session.buffer += s
             self.session.buffer += end
-            logger._l[name] << "【LOG】用户{qq}" + s
+            logger._l[name] << f"【LOG】用户{qq}" + s
         return _
 class SessionBuffer:
     __slots__ = ('buffer', 'session', 'active', 'send_end')

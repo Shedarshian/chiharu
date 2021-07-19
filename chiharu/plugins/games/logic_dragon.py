@@ -526,13 +526,13 @@ async def dragon_use_card(buf: SessionBuffer):
     if card.id == -1:
         user.log << f"无法使用卡牌{card.name}。"
         buf.finish("此牌不可被使用！")
-    global_state['last_card_user'] = qq
-    save_global_state()
     user.hand_card.remove(card)
     user.set_cards()
     save_data()
     await user.settlement(user.use_card(card))
     save_data()
+    global_state['last_card_user'] = qq
+    save_global_state()
 
 @on_command(('dragon', 'draw'), short_des="使用抽卡券进行抽卡。", only_to_me=False, args=("num"), environment=env)
 @config.ErrorHandle(config.logger.dragon)

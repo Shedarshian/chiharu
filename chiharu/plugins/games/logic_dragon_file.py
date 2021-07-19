@@ -111,6 +111,7 @@ class User:
                 l.remove(s)
             status = ''.join(l)
         config.userdata.execute('update dragon_data set status=? where qq=?', (status, self.qq))
+        self.reload()
         self.log << f"移除了{'一层' if not remove_all else ''}永久状态{s}，当前状态为{status}。"
     def remove_daily_status(self, s, *, remove_all=True):
         status = self.daily_status
@@ -122,12 +123,14 @@ class User:
                 l.remove(s)
             status = ''.join(l)
         config.userdata.execute('update dragon_data set daily_status=? where qq=?', (status, self.qq))
+        self.reload()
         self.log << f"移除了{'一层' if not remove_all else ''}每日状态{s}，当前状态为{status}。"
     def remove_limited_status(self, s, status=None):
         status = eval(self.status_time)
         if s in status:
             status.pop(s)
             config.userdata.execute('update dragon_data set status_time=? where qq=?', (str(status), self.qq))
+            self.reload()
         self.log << f"移除了限时状态{s}，当前限时状态为{str(status)}。"
     def check_status(self, s):
         return self.status.count(s)
