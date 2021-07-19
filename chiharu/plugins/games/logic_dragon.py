@@ -446,7 +446,7 @@ async def dragon_construct(buf: SessionBuffer):
                 config.userdata.execute("update dragon_data set today_jibi=? where qq=?", (user.today_jibi - 1, qq))
                 user.reload()
                 await user.add_jibi(jibi_to_add)
-                if user.today_jibi == 1:
+                if user.today_jibi == 0:
                     buf.send("你今日全勤，奖励1抽奖券！")
                     user.log << f"全勤，奖励1抽奖券。"
                     config.userdata.execute("update dragon_data set draw_time=? where qq=?", (user.draw_time + 1, qq))
