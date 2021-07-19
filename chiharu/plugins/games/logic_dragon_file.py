@@ -33,9 +33,6 @@ def find_or_new(qq):
         t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     return t
 
-def save_data():
-    config.userdata_db.commit()
-
 class Wrapper:
     def __init__(self, qq):
         self.qq = qq
@@ -237,9 +234,13 @@ class User:
         if (n := self.check_status('p')) and not dodge:
             self.log << f"的{n}张掠夺者啵噗因死亡被弃置。"
             await self.discard_cards([Card(77) for i in range(n)])
+        time = timedelta(hours=hour, minutes=minute)
+        if (n := me.check_daily_status('D')) and not dodge:
+            time *= 2 ** n
         if not dodge:
-            self.add_limited_status('d', datetime.now() + timedelta(hours=hour, minutes=minute))
-            self.send_char(f"死了！{f'{hour}小时' if hour != 0 else ''}{f'{minute}分钟' if minute != 0 else ''}不得接龙。")
+            self.add_limited_status('d', datetime.now() + time)
+            m = time.seconds // 60
+            self.send_char(f"死了！{f'{m // 60}小时' if m >= 60 else ''}{f'{m % 60}分钟' if m % 60 != 0 else ''}不得接龙。")
             if (x := self.check_status('x')):
                 self.remove_status('x')
                 self.send_log(f"触发了辉夜姬的秘密宝箱！奖励抽卡{x}张。")
@@ -339,6 +340,10 @@ class User:
         save_data()
 
 me = User(2711644761, None)
+
+def save_data():
+    config.userdata_db.commit()
+    me.reload()
 
 def cards_to_str(cards):
     return '，'.join(c.name for c in cards)
@@ -596,6 +601,13 @@ class justice(_card):
                 n += 1
         user.buf.send(f"你身上有{n}个buff，奖励你{n * 5}个击毙。")
         await user.add_jibi(n * 5)
+
+class death(_card):
+    name = "XIII - 死神"
+    id = 13
+    description = "今天的所有死亡时间加倍。"
+    global_daily_status = 'D'
+    status_des = "XIII - 死神：今天的所有死亡时间加倍。"
 
 class devil(_card):
     name = "XV - 恶魔"
@@ -1167,6 +1179,46 @@ add_mission("首字是多音字。")(lambda s: len(p := pinyin(s[0:1], style=Sty
 add_mission("所有字音调相同且至少包含两个字。")(lambda s: len(p := pinyin(s, style=Style.FINALS_TONE3, neutral_tone_with_five=True, strict=True, errors='ignore', heteronym=True)) > 1 and len(reduce(lambda x, y: x & y, (set(c[-1] for c in s) for s in p))) != 0)
 
 from collections import namedtuple
+@lru_cache(10)
+def Equipment(id):
+    if id in _equipment.id_dict:
+        return _equipment.id_dict[id]
+    else:
+        raise ValueError("斯")
+
+class equipment_meta(type):
+    def __new__(cls, clsname, bases, attrs):
+        if len(bases) != 0 and 'id_dict' in bases[0].__dict__:
+            c = type.__new__(cls, clsname, bases, attrs)
+            bases[0].id_dict[attrs['id']] = c
+        else:
+            c = type.__new__(cls, clsname, bases, attrs)
+        return c
+
+class _equipment(metaclass=equipment_meta):
+    id_dict = {}
+    id = -127
+    name = ''
+    des_shop = ''
+    @classmethod
+    def description(cls, count):
+        pass
+
+class bikini(_equipment):
+    id = 0
+    name = '比基尼'
+    des_shop = '你每次获得击毙时都有一定几率加倍。一星为5%，二星为10%，三星为15%。'
+    @classmethod
+    def description(cls, count):
+        return f'你每次获得击毙时都有{5 * count}%几率加倍。'
+
+class schoolsui(_equipment):
+    id = 1
+    name = '学校泳装'
+    des_shop = '你每次击毙减少或商店购买都有一定几率免单。一星为4.76%，二星为9.09%，三星为13.04%。'
+    @classmethod
+    def description(cls, count):
+        return f'你每次击毙减少或商店购买都有{count / (20 + count) * 100:.2f}%几率免单。'
 
 # 飞行棋棋盘格子
 class Grid(namedtuple('Grid', ["id", "content", "data", "pos", "childs_id", "parents_id"], defaults=[None, None])):
@@ -1236,44 +1288,3 @@ class Grid(namedtuple('Grid', ["id", "content", "data", "pos", "childs_id", "par
             user.log << f"飞到了{grid.id}。"
             return await grid.do(user)
         return self
-
-@lru_cache(10)
-def Equipment(id):
-    if id in _equipment.id_dict:
-        return _equipment.id_dict[id]
-    else:
-        raise ValueError("斯")
-
-class equipment_meta(type):
-    def __new__(cls, clsname, bases, attrs):
-        if len(bases) != 0 and 'id_dict' in bases[0].__dict__:
-            c = type.__new__(cls, clsname, bases, attrs)
-            bases[0].id_dict[attrs['id']] = c
-        else:
-            c = type.__new__(cls, clsname, bases, attrs)
-        return c
-
-class _equipment(metaclass=equipment_meta):
-    id_dict = {}
-    id = -127
-    name = ''
-    des_shop = ''
-    @classmethod
-    def description(cls, count):
-        pass
-
-class bikini(_equipment):
-    id = 0
-    name = '比基尼'
-    des_shop = '你每次获得击毙时都有一定几率加倍。一星为5%，二星为10%，三星为15%。'
-    @classmethod
-    def description(cls, count):
-        return f'你每次获得击毙时都有{5 * count}%几率加倍。'
-
-class schoolsui(_equipment):
-    id = 1
-    name = '学校泳装'
-    des_shop = '你每次击毙减少或商店购买都有一定几率免单。一星为4.76%，二星为9.09%，三星为13.04%。'
-    @classmethod
-    def description(cls, count):
-        return f'你每次击毙减少或商店购买都有{count / (20 + count) * 100:.2f}%几率免单。'
