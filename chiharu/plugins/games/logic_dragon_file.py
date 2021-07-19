@@ -539,7 +539,10 @@ class high_priestess(_card):
         else:
             user.buf.send(f"当前周期内接龙次数最多的玩家有{''.join(f'[CQ:at,qq={q}]' for q in l)}！")
         for q in l:
-            await User(q, user.buf).kill()
+            if q == user.qq:
+                await user.kill()
+            else:
+                await User(q, user.buf).kill()
 
 class lovers(_card):
     name = "VI - 恋人"
@@ -554,7 +557,10 @@ class lovers(_card):
                     lambda s: [r.group(1) for r in re.findall(r'qq=(\d+)', str(s))],
                     validators.fit_size(1, 1, message="请at正确的人数。"),
                 ])
-        u = User(l[0], user.buf)
+        if l[0] == user.qq:
+            u = user
+        else:
+            u = User(l[0], user.buf)
         n = u.check_limited_status('d')
         u.remove_limited_status('d')
         user.buf.send("已复活！" + ("（虽然目标并没有死亡）" if n else ''))
@@ -620,7 +626,10 @@ class devil(_card):
     @classmethod
     async def use(cls, user):
         q = global_state['last_card_user']
-        u = User(q, user.buf)
+        if q == user.qq:
+            u = user
+        else:
+            u = User(q, user.buf)
         user.buf.send(f'[CQ:at,qq={q}]被你击毙了！')
         await u.kill()
 
@@ -927,7 +936,10 @@ class liwujiaohuan(_card):
         config.logger.dragon << f"【LOG】所有人的手牌为：{','.join(f'{qq}: {cards_to_str(cards)}' for qq, cards in l)}。"
         def _():
             for q, cs, status in l:
-                userq = User(q, user.buf)
+                if q == user.qq:
+                    userq = user
+                else:
+                    userq = User(q, user.buf)
                 if userq.check_status('G'):
                     userq.remove_status("G")
                 else:
