@@ -1,3 +1,4 @@
+import itertools
 import random, more_itertools, json, re
 from collections import Counter
 from functools import lru_cache
@@ -519,7 +520,16 @@ class nvjisi(_card):
     description = "击毙当前周期内接龙次数最多的玩家。"
     @classmethod
     async def use(cls, user):
-        pass
+        from .logic_dragon import Tree
+        counter = Counter([tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))])
+        l = counter.most_common()
+        ql = [qq for qq, time in l if time == l[0][1]]
+        if len(ql) == 1:
+            user.buf.send(f"当前周期内接龙次数最多的玩家是[CQ:at,qq={ql[0]}]！")
+        else:
+            user.buf.send(f"当前周期内接龙次数最多的玩家有{''.join(f'[CQ:at,qq={q}]' for q in l)}！")
+        for q in l:
+            await User(q, user.buf).kill()
 
 class lianren(_card):
     name = "VI - 恋人"
