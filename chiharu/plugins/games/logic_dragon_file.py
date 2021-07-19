@@ -343,11 +343,11 @@ def cards_to_str(cards):
     return '，'.join(c.name for c in cards)
 def draw_cards(positive=None, k=1):
     x = positive is not None and len(positive & {-1, 0, 1}) != 0
-    if me.check_daily_status('j'):
-        if (x and (-1 in positive) or not x) and random.random() < 0.2:
-            return Card(-1)
-    cards = list(c for c in _card.card_id_dict.values() if c.id >= 0 and (not x or x and c.positive in positive))
-    l = random.choices(cards, [c.weight for c in cards], k=k)
+    cards = [c for c in _card.card_id_dict.values() if c.id >= 0 and (not x or x and c.positive in positive)]
+    weight = [c.weight for c in cards]
+    if me.check_daily_status('j') and (not x or x and (-1 in positive)):
+        return [(Card(-1) if random.random() < 0.2 else random.choices(cards, weight)[0]) for i in range(k)]
+    l = random.choices(cards, weight, k=k)
     return l
 def draw_card(positive=None):
     return draw_cards(positive, k=1)[0]
