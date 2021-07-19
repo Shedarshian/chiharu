@@ -296,7 +296,7 @@ async def daily_update():
     save_global_state()
     if me.check_daily_status('s'):
         me.remove_daily_status('s', remove_all=False)
-        config.userdata.execute('update dragon_data set today_jibi=10, today_keyword_jibi=10, shop_drawn_card=0, spend_shop=0', ('',))
+        config.userdata.execute('update dragon_data set today_jibi=10, today_keyword_jibi=10, shop_drawn_card=0, spend_shop=0')
         for r in config.userdata.execute("select qq, daily_status from dragon_data").fetchall():
             if 'd' in r['daily_status']:
                 User(r['qq'], None).remove_daily_status('d')
