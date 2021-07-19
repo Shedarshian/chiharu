@@ -513,7 +513,7 @@ class magician(_card):
         await card.use(user)
         await user.discard_cards([card])
 
-class nvjisi(_card):
+class high_priestess(_card):
     name = "II - 女祭司"
     id = 2
     positive = 0
@@ -531,7 +531,7 @@ class nvjisi(_card):
         for q in l:
             await User(q, user.buf).kill()
 
-class lianren(_card):
+class lovers(_card):
     name = "VI - 恋人"
     id = 6
     positive = 1
@@ -549,7 +549,7 @@ class lianren(_card):
         u.remove_limited_status('d')
         user.buf.send("已复活！" + ("（虽然目标并没有死亡）" if n else ''))
 
-class liliang(_card):
+class strength(_card):
     name = "VIII - 力量"
     id = 8
     positive = 0
@@ -564,7 +564,7 @@ class liliang(_card):
             if user.check_limited_status(k):
                 user.add_limited_status(k, datetime.now() + (datetime.fromisoformat(val) - datetime.now()) * 2)
 
-class yinzhe(_card):
+class hermit(_card):
     name = "IX - 隐者"
     id = 9
     positive = 1
@@ -572,7 +572,7 @@ class yinzhe(_card):
     status_des = "IX - 隐者：今天你不会因为接到重复词或触雷而死亡。"
     description = "今天你不会因为接到重复词或触雷而死亡。"
 
-class fortune(_card):
+class wheel_of_fortune(_card):
     name = "X - 命运之轮"
     id = 10
     positive = 0
@@ -580,7 +580,7 @@ class fortune(_card):
     status_des = "X - 命运之轮：直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
     description = "直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
 
-class zhengyi(_card):
+class justice(_card):
     name = "XI - 正义"
     id = 11
     positive = 1
@@ -595,7 +595,7 @@ class zhengyi(_card):
         user.buf.send(f"你身上有{n}个buff，奖励你{n * 5}个击毙。")
         await user.add_jibi(n * 5)
 
-class emo(_card):
+class devil(_card):
     name = "XV - 恶魔"
     id = 15
     positive = 1
@@ -607,7 +607,7 @@ class emo(_card):
         user.buf.send(f'[CQ:at,qq={q}]被你击毙了！')
         await u.kill()
 
-class taiyang(_card):
+class sun(_card):
     name = "XIX - 太阳"
     id = 19
     positive = 1
@@ -617,7 +617,7 @@ class taiyang(_card):
         from .logic_dragon import hidden_keyword
         user.buf.send("你揭示的一个隐藏奖励词是：" + random.choice(hidden_keyword))
 
-class sekai(_card):
+class world(_card):
     name = "XXI - 世界"
     id = 21
     positive = 0
