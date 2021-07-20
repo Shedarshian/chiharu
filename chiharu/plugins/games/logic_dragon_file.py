@@ -311,29 +311,37 @@ class User:
             if jibi > 0 and random.random() < 0.05 * q:
                 jibi *= 2
                 self.send_char(f"触发了比基尼的效果，获得击毙加倍为{abs(jibi)}！")
-            else:
-                q = 0
+            else: q = 0
         dodge = False
         if r := self.data.check_equipment(1):
             if jibi < 0 and random.random() < r / (20 + r):
                 dodge = True
                 self.send_char(f"触发了学生泳装的效果，本次免单！")
-        if (m := self.data.check_status('S')) and is_buy and not dodge:
-            jibi //= 2 ** m
-            self.send_char(f"触发了{f'{m}次' if m > 1 else ''}Steam夏季特卖的效果，花费击毙减半为{abs(jibi)}！")
-            self.data.remove_status('S')
-        if (p := self.data.check_status('1')) and is_buy and not dodge:
-            if 100 <= self.data.spend_shop < 150:
-                jibi  = int(jibi * 0.8 ** p)
-                self.send_char(f"触发了{f'{p}次' if p > 1 else ''}北京市政交通一卡通的效果，花费击毙打了8折变为{abs(jibi)}！")
-            elif 150 <= self.data.spend_shop < 400:
-                jibi = int(jibi * 0.5 ** p)
-                self.send_char(f"触发了{f'{p}次' if p > 1 else ''}北京市政交通一卡通的效果，花费击毙打了5折变为{abs(jibi)}！")
-            elif self.data.spend_shop >= 400:
-                self.send_char("今日已花费400击毙，不再打折！")
-        if not dodge:
+        if m := self.data.check_status('S'):
+            if is_buy and not dodge:
+                jibi //= 2 ** m
+                self.send_char(f"触发了{f'{m}次' if m > 1 else ''}Steam夏季特卖的效果，花费击毙减半为{abs(jibi)}！")
+                self.data.remove_status('S')
+            else: m = 0
+        if p := self.data.check_status('1'):
+            if is_buy and not dodge:
+                if 100 <= self.data.spend_shop < 150:
+                    jibi  = int(jibi * 0.8 ** p)
+                    self.send_char(f"触发了{f'{p}次' if p > 1 else ''}北京市政交通一卡通的效果，花费击毙打了8折变为{abs(jibi)}！")
+                elif 150 <= self.data.spend_shop < 400:
+                    jibi = int(jibi * 0.5 ** p)
+                    self.send_char(f"触发了{f'{p}次' if p > 1 else ''}北京市政交通一卡通的效果，花费击毙打了5折变为{abs(jibi)}！")
+                elif self.data.spend_shop >= 400:
+                    self.send_char("今日已花费400击毙，不再打折！")
+            else: p = 0
+        dodge2 = False
+        if t := self.data.check_status('n'):
+            if not dodge and jibi < 0 and -jibi >= self.data.jibi / 2:
+                dodge2 = True
+                self.data.remove_status('n', remove_all=False)
+        if not dodge and not dodge2:
             self.data.jibi += jibi
-        self.log << f"原有击毙{current_jibi}，{f'触发了{s}次告解的效果，' if s > 0 else ''}{f'触发了{n}次变压器的效果，' if n > 0 else ''}{f'触发了比基尼的效果，' if q > 0 else ''}{f'触发了学生泳装的效果，' if dodge else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 and is_buy and not dodge else ''}{f'触发了{p}次北京市政交通一卡通的效果，' if p > 0 and is_buy and not dodge else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
+        self.log << f"原有击毙{current_jibi}，{f'触发了{s}次告解的效果，' if s > 0 else ''}{f'触发了{n}次变压器的效果，' if n > 0 else ''}{f'触发了比基尼的效果，' if q > 0 else ''}{f'触发了学生泳装的效果，' if dodge else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 else ''}{f'触发了{p}次北京市政交通一卡通的效果，' if p > 0 else ''}{f'触发了深谋远虑之策的效果，' if dodge2 else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
         if is_buy and not dodge:
             self.data.spend_shop += abs(jibi)
             self.log << f"累计今日商店购买至{self.data.spend_shop}。"
@@ -1271,6 +1279,13 @@ class gaojie(_card):
     description = "今日每次你获得击毙时额外获得1击毙。"
     daily_status = "@"
     status_des = "告解：今日每次你获得击毙时额外获得1击毙。"
+
+class shenmouyuanlv(_card):
+    name = "深谋远虑之策"
+    id = 117
+    description = "当你一次使用/损失了超过你现有击毙一半以上的击毙时，恢复这些击毙。"
+    status = 'n'
+    status_des = "深谋远虑之策：当你一次使用/损失了超过你现有击毙一半以上的击毙时，恢复这些击毙。"
 
 class steamsummer(_card):
     name = "Steam夏季特卖"
