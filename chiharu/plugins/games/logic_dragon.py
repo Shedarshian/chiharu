@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, date, time
-from typing import Dict, List, Tuple, Type, TypedDict, Union
+from typing import Dict, List, Tuple, Type, TypedDict, Union, Optional
 import itertools, more_itertools
 import json, random, re
 from PIL import Image, ImageDraw
@@ -25,11 +25,6 @@ changelog = """0.3.1 Changelog:
 Change:
 再次大改结算逻辑。"""
 
-# keyword : [str, list(str)]
-# hidden : [list(str), list(str)]
-# begin : list(str)
-# bombs : list(str)
-# last_update_date : str
 class TWords(TypedDict):
     keyword: Tuple[str, List[str]]
     hidden: Tuple[List[str], List[str]]
@@ -46,10 +41,10 @@ with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
 
 class Tree:
     __slots__ = ('id', 'parent', 'childs', 'word', 'fork', 'kwd', 'hdkwd', 'qq')
-    forests = []
-    _objs = [] # [[wd0, wd1, wd2], [wd2a], [wd2b]]
+    forests: List[List[List['Tree']]] = []
+    _objs: List[List['Tree']] = [] # [[wd0, wd1, wd2], [wd2a], [wd2b]]
     max_branches = 0
-    def __init__(self, parent, word, qq, kwd, hdkwd, *, id=None, fork=False):
+    def __init__(self, parent: 'Tree', word: str, qq: int, kwd: str, hdkwd: str, *, id: Optional[Tuple[int, int]]=None, fork: bool=False):
         self.parent = parent
         if parent:
             parent.childs.append(self)
@@ -57,7 +52,7 @@ class Tree:
         else:
             id = id or (0, 0)
         if not self.find(id):
-            self.id = id
+            self.id: Tuple[int, int] = id
             if Tree.max_branches <= id[1]:
                 for i in range(id[1] + 1 - Tree.max_branches):
                     self._objs.append([])
@@ -67,14 +62,14 @@ class Tree:
             Tree.max_branches += 1
             self._objs.append([])
         self._objs[self.id[1]].append(self)
-        self.childs = []
+        self.childs: List['Tree'] = []
         self.word = word
         self.fork = fork
         self.qq = qq
         self.kwd = kwd
         self.hdkwd = hdkwd
     @classmethod
-    def find(cls, id):
+    def find(cls, id: int):
         try:
             if len(cls._objs[id[1]]) == 0:
                 return None
@@ -92,7 +87,7 @@ class Tree:
     def match_to_id(match):
         return int(match.group(1)), (0 if match.group(2) is None else ord(match.group(2)) - 96)
     @classmethod
-    def init(cls, is_daily):
+    def init(cls, is_daily: bool):
         cls._objs = []
         cls.max_branches = 0
         if is_daily:
