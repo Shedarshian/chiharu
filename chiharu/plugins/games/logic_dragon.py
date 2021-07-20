@@ -534,6 +534,8 @@ async def dragon_use_card(buf: SessionBuffer):
     if card.id == -1:
         user.log << f"无法使用卡牌{card.name}。"
         buf.finish("此牌不可被使用！")
+    if user.data.check_status('y') and card.id != 73:
+        buf.finish("你因幸运护符的效果，不可使用其他手牌！")
     user.data.hand_card.remove(card)
     user.data.set_cards()
     save_data()
