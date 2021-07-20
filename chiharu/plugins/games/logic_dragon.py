@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, date, time
-from typing import Dict, List, Tuple, Type, TypedDict, Union, Optional
+from typing import Dict, List, Set, Tuple, Type, TypedDict, Union, Optional
 import itertools, more_itertools
 import json, random, re
 from PIL import Image, ImageDraw
@@ -120,7 +120,7 @@ class Tree:
         pass
 
 # log
-log_set : set = set()
+log_set : Set[str] = set()
 log_file = None
 def load_log(init):
     global log_set, log_file
@@ -163,7 +163,7 @@ def load_log(init):
             pass
     log_file = open(config.rel(today), 'a', encoding='utf-8')
 load_log(True)
-def check_and_add_log_and_contruct_tree(parent, word, qq, kwd, hdkwd, fork):
+def check_and_add_log_and_contruct_tree(parent: Tree, word: str, qq: int, kwd: str, hdkwd: str, fork: bool):
     global log_set
     if word in log_set:
         return None
@@ -364,7 +364,7 @@ async def dragon_construct(buf: SessionBuffer):
         if not parent:
             await buf.session.send("请输入存在的id号。")
             return
-        word = match.group(3).strip()
+        word: str = match.group(3).strip()
         user.log << f"尝试接龙{word}，母节点id为{parent.id}。"
         if len(parent.childs) != 0 and not parent.fork:
             config.logger.dragon << f"【LOG】节点{parent.id}不可分叉，接龙失败。"
@@ -453,6 +453,8 @@ async def dragon_construct(buf: SessionBuffer):
                     user.draw_time += 1
             else:
                 buf.send("")
+            if (n := me.check_daily_status('t')) and random.random() > 0.9 ** n:
+                add_keyword(word)
             if (n := user.data.check_status('p')):
                 last_qq = parent.qq
                 last = User(last_qq, buf)

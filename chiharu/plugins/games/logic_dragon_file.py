@@ -721,6 +721,17 @@ class justice(_card):
         user.buf.send(f"你身上有{n}个buff，奖励你{n * 5}个击毙。")
         await user.add_jibi(n * 5)
 
+class hanged_man(_card):
+    name = "XII - 倒吊人"
+    id = 12
+    positive = 1
+    description = "你立即死亡，然后免疫你下一次死亡。"
+    @classmethod
+    async def use(cls, user: User):
+        await user.kill()
+        user.data.add_status('r')
+_card.add_status('r', "免死：免疫你下一次死亡。")
+
 class death(_card):
     name = "XIII - 死神"
     id = 13
@@ -739,6 +750,14 @@ class devil(_card):
         u = User(q, user.buf)
         user.buf.send(f'[CQ:at,qq={q}]被你击毙了！')
         await u.kill()
+
+class star(_card):
+    name = "XVII - 星星"
+    id = 17
+    positive = 0
+    description = "今天的每个词有10%的几率进入奖励词池。"
+    global_daily_status = 't'
+    status_des = "XVII - 星星：今天的每个词有10%的几率进入奖励词池。"
 
 class sun(_card):
     name = "XIX - 太阳"
