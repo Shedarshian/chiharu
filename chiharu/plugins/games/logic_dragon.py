@@ -223,11 +223,15 @@ def remove_bomb(d, word):
     bombs.remove(word)
     config.logger.dragon << f"【LOG】移除了炸弹{word}，当前炸弹：{'，'.join(bombs)}。"
 @wrapper_file
-def remove_all_bomb(d):
+def remove_all_bomb(d, p: Optional[float]=None):
     global bombs
-    d["bombs"] = []
-    bombs = []
-    config.logger.dragon << f"【LOG】移除了所有炸弹。"
+    if p is None:
+        d["bombs"] = []
+        bombs = []
+        config.logger.dragon << f"【LOG】移除了所有炸弹。"
+    else:
+        d["bombs"] = bombs = [bomb for bomb in bombs if random.random() < p]
+        config.logger.dragon << f"【LOG】炸弹变成了{'，'.join(bombs)}。"
 @wrapper_file
 def add_bomb(d, word):
     global bombs

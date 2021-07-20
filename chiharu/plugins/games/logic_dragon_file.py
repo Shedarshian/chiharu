@@ -968,11 +968,11 @@ class hezuowujian(_card):
     name = "合作无间"
     id = 63
     positive = 1
-    description = "拆除所有雷。"
+    description = "拆除所有雷，每个雷有70%的概率被拆除。"
     @classmethod
     async def use(cls, user: User):
         from .logic_dragon import remove_all_bomb
-        remove_all_bomb()
+        remove_all_bomb(0.7)
 
 class ourostone(_card):
     name = "衔尾蛇之石"
