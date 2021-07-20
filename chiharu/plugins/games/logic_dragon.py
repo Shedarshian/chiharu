@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, date, time
+from typing import List, Type
 import itertools, more_itertools
 import json, random, re
 from PIL import Image, ImageDraw
@@ -31,10 +32,10 @@ Change:
 # last_update_date : str
 with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
     d = json.load(f)
-    keyword = d["keyword"][0]
-    hidden_keyword = d["hidden"][0]
-    bombs = d["bombs"]
-    last_update_date = d["last_update_date"]
+    keyword: str = d["keyword"][0]
+    hidden_keyword: List[str] = d["hidden"][0]
+    bombs: List[str] = d["bombs"]
+    last_update_date: str = d["last_update_date"]
     del d
 
 class Tree:
@@ -253,7 +254,7 @@ def cancellation(session):
         return value
     return control
 
-from .logic_dragon_file import global_state, save_global_state, save_data, mission, get_mission, User, me, draw_card, Card, _card
+from .logic_dragon_file import TQuest, global_state, save_global_state, save_data, mission, get_mission, me, draw_card, Card, _card, Game, User
 from . import logic_dragon_file
 
 async def update_begin_word(is_daily):
@@ -282,9 +283,9 @@ async def update_begin_word(is_daily):
     root = Tree(None, word_stripped, 2711644761, '', '')
     return c
 
-async def daily_update():
+async def daily_update() -> None:
     global global_state
-    m = {}
+    m: TQuest = {}
     for qq, quests in global_state['quest'].items():
         if len(quests) == 0:
             continue
@@ -299,7 +300,7 @@ async def daily_update():
         config.userdata.execute('update dragon_data set today_jibi=10, today_keyword_jibi=10, shop_drawn_card=0, spend_shop=0')
         for r in config.userdata.execute("select qq, daily_status from dragon_data").fetchall():
             if 'd' in r['daily_status']:
-                User(r['qq'], None).remove_daily_status('d')
+                Game.user(r['qq'], None).remove_daily_status('d')
     else:
         config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=0, spend_shop=0', ('',))
     save_data()
@@ -345,7 +346,7 @@ async def logical_dragon_else(session: NLPSession):
 
 @on_command(('dragon', 'construct'), hide=True, environment=env)
 @config.ErrorHandle(config.logger.dragon)
-@config.buffer_dec
+@Game.wrapper
 async def dragon_construct(buf: SessionBuffer):
     match = message_re.match(buf.current_arg_text)
     if match:
@@ -353,7 +354,7 @@ async def dragon_construct(buf: SessionBuffer):
         user = User(qq, buf)
         global global_state
         to_exchange = None
-        if user.check_limited_status('d') or user.check_daily_status('d'):
+        if user.data.check_limited_status('d') or user.data.check_daily_status('d'):
             await buf.session.send('你已死，不能接龙！')
             user.log << f"已死，接龙失败。"
             return
@@ -375,12 +376,12 @@ async def dragon_construct(buf: SessionBuffer):
             if parent.word != '' and word != '' and parent.word[-1] != word[0]:
                 await buf.session.send("当前规则为首尾接龙，接龙失败。")
                 return
-        m = user.check_daily_status('m')
+        m = user.data.check_daily_status('m')
         if m and qq == parent.qq or not m and (qq == parent.qq or parent.parent is not None and qq == parent.parent.qq):
-            if user.check_status('z'):
+            if user.data.check_status('z'):
                 buf.send("你触发了极速装置！")
                 user.log << f"触发了极速装置。"
-                user.remove_status('z', remove_all=False)
+                user.data.remove_status('z', remove_all=False)
             else:
                 await buf.session.send(f"你接太快了！两次接龙之间至少要隔{'一' if m else '两'}个人。")
                 user.log << f"接龙过快，失败。"
@@ -391,11 +392,10 @@ async def dragon_construct(buf: SessionBuffer):
             user.log << f"接到了奖励词{keyword}。"
             buf.send("你接到了奖励词！", end='')
             kwd = keyword
-            if user.today_keyword_jibi > 0:
+            if user.data.today_keyword_jibi > 0:
                 user.log << "已拿完今日奖励词击毙。"
                 buf.send("奖励10击毙。")
-                config.userdata.execute("update dragon_data set today_keyword_jibi=? where qq=?", (user.today_keyword_jibi - 10, qq))
-                user.reload()
+                user.data.today_keyword_jibi -= 10
                 await user.add_jibi(10)
             else:
                 buf.send("")
@@ -428,32 +428,30 @@ async def dragon_construct(buf: SessionBuffer):
         if not (tree_node := check_and_add_log_and_contruct_tree(parent, word, qq, kwd=kwd, hdkwd=hdkwd, fork=fork)):
             user.log << f"由于过去一周接过此词，死了。"
             buf.send("过去一周之内接过此词，你死了！")
-            if user.check_daily_status('Y'):
+            if user.data.check_daily_status('Y'):
                 user.log << f"触发了IX - 隐者的效果，没死。"
-                buf.send_char("触发了IX - 隐者的效果，没死。")
+                user.send_char("触发了IX - 隐者的效果，没死。")
             else:
                 await user.settlement(user.kill())
         else:
             buf.send(f"成功接龙！接龙词：{word}，id为【{tree_node.id_str}】。", end='')
-            if user.today_jibi > 0:
-                user.log << f"仍有{user.today_jibi}次奖励机会。"
+            if user.data.today_jibi > 0:
+                user.log << f"仍有{user.data.today_jibi}次奖励机会。"
                 jibi_to_add = 1
-                if (n := user.check_status('y')) and user.today_jibi % 2 == 1:
+                if (n := user.data.check_status('y')) and user.data.today_jibi % 2 == 1:
                     user.log << f"触发了幸运护符{n}次。"
                     jibi_to_add += n
                     buf.send("\n你因为幸运护符的效果，", end='')
                 buf.send(f"奖励{jibi_to_add}击毙。")
-                config.userdata.execute("update dragon_data set today_jibi=? where qq=?", (user.today_jibi - 1, qq))
-                user.reload()
+                user.data.today_jibi -= 1
                 await user.add_jibi(jibi_to_add)
-                if user.today_jibi == 0:
+                if user.data.today_jibi == 0:
                     buf.send("你今日全勤，奖励1抽奖券！")
                     user.log << f"全勤，奖励1抽奖券。"
-                    config.userdata.execute("update dragon_data set draw_time=? where qq=?", (user.draw_time + 1, qq))
-                    user.reload()
+                    user.draw_time += 1
             else:
                 buf.send("")
-            if (n := user.check_status('p')):
+            if (n := user.data.check_status('p')):
                 last_qq = parent.qq
                 last = User(last_qq, buf)
                 if last_qq not in global_state['steal'][str(qq)]['user'] and global_state['steal'][str(qq)]['time'] < 10:
@@ -461,7 +459,7 @@ async def dragon_construct(buf: SessionBuffer):
                     global_state['steal'][str(qq)]['user'].append(last_qq)
                     save_global_state()
                     user.log << f"触发了{n}次掠夺者啵噗的效果，偷取了{last_qq}击毙，剩余偷取次数{9 - global_state['steal'][str(qq)]['time']}。"
-                    if (p := last.jibi) > 0:
+                    if (p := last.data.jibi) > 0:
                         buf.send(f"你从上一名玩家处偷取了{min(n, p)}击毙！")
                         await last.add_jibi(-n)
                         await user.add_jibi(min(n, p))
@@ -482,9 +480,9 @@ async def dragon_construct(buf: SessionBuffer):
                 buf.send("你成功触发了炸弹，被炸死了！")
                 user.log << f"触发了炸弹，被炸死了。"
                 remove_bomb(word)
-                if user.check_daily_status('Y'):
+                if user.data.check_daily_status('Y'):
                     user.log << f"触发了IX - 隐者的效果，没死。"
-                    buf.send_char("触发了IX - 隐者的效果，没死。")
+                    user.send_char("触发了IX - 隐者的效果，没死。")
                 else:
                     await user.settlement(user.kill())
             if (n := me.check_status('+')):
@@ -495,7 +493,7 @@ async def dragon_construct(buf: SessionBuffer):
                 await user.settlement(user.draw(0, cards=cards))
             if to_exchange is not None:
                 buf.send(f"你与[CQ:at,qq={to_exchange.qq}]交换了手牌与击毙！")
-                jibi = (user.jibi, to_exchange.jibi)
+                jibi = (user.data.jibi, to_exchange.data.jibi)
                 user.log << f"与{to_exchange}交换了手牌与击毙。{qq}击毙为{jibi[0]}，{to_exchange}击毙为{jibi[1]}。"
                 await user.add_jibi(jibi[1] - jibi[0])
                 await to_exchange.add_jibi(jibi[0] - jibi[1])
@@ -505,7 +503,7 @@ async def dragon_construct(buf: SessionBuffer):
 
 @on_command(('dragon', 'use_card'), aliases="使用手牌", short_des="使用手牌。", only_to_me=False, args=("card"), environment=env)
 @config.ErrorHandle(config.logger.dragon)
-@config.buffer_dec
+@Game.wrapper
 async def dragon_use_card(buf: SessionBuffer):
     """使用手牌。
     使用方法为：使用手牌 id号"""
@@ -520,14 +518,14 @@ async def dragon_use_card(buf: SessionBuffer):
         buf.finish("请输入存在的卡牌id号或卡牌名。")
     qq = buf.ctx['user_id']
     user = User(qq, buf)
-    user.log << f"试图使用手牌{card.name}，当前手牌为{user.hand_card}。"
-    if card not in user.hand_card:
+    user.log << f"试图使用手牌{card.name}，当前手牌为{user.data.hand_card}。"
+    if card not in user.data.hand_card:
         buf.finish("你还未拥有这张牌！")
     if card.id == -1:
         user.log << f"无法使用卡牌{card.name}。"
         buf.finish("此牌不可被使用！")
-    user.hand_card.remove(card)
-    user.set_cards()
+    user.data.hand_card.remove(card)
+    user.data.set_cards()
     save_data()
     await user.settlement(user.use_card(card))
     save_data()
@@ -536,7 +534,7 @@ async def dragon_use_card(buf: SessionBuffer):
 
 @on_command(('dragon', 'draw'), short_des="使用抽卡券进行抽卡。", only_to_me=False, args=("num"), environment=env)
 @config.ErrorHandle(config.logger.dragon)
-@config.buffer_dec
+@Game.wrapper
 async def dragon_draw(buf: SessionBuffer):
     """使用抽卡券进行抽卡。
     使用方法：抽卡 张数"""
@@ -547,24 +545,22 @@ async def dragon_draw(buf: SessionBuffer):
         n = 1
     user = User(qq, buf)
     user.log << f"试图抽卡{n}次。"
-    draw_time = user.draw_time
-    if draw_time < n:
-        user.log << f"的抽卡券只有{draw_time}张。"
-        n = draw_time
+    if user.data.draw_time < n:
+        user.log << f"的抽卡券只有{user.data.draw_time}张。"
+        n = user.data.draw_time
         buf.send(f"您的抽卡券只有{n}张！\n")
     if n == 0:
         buf.send("您没有抽卡券！")
         await buf.flush()
         return
-    draw_time -= n
-    config.userdata.execute('update dragon_data set draw_time=? where qq=?', (draw_time, qq))
-    user.reload()
+    user.data.draw_time -= n
     await user.settlement(user.draw(n))
     save_data()
 
 @on_command(('dragon', 'check'), aliases="查询接龙", only_to_me=False, short_des="查询逻辑接龙相关数据。", args=("name",), environment=env)
 @config.ErrorHandle(config.logger.dragon)
-async def dragon_check(session: CommandSession):
+@Game.wrapper
+async def dragon_check(buf: SessionBuffer):
     """查询逻辑接龙相关数据。可选参数：
     奖励词/keyword：查询当前奖励词。
     奖励池/keyword_pool：查询当前奖励词池大小。
@@ -580,69 +576,65 @@ async def dragon_check(session: CommandSession):
     商店/shop：查询可购买项目。"""
     with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         d = json.load(f)
-    data = session.current_arg_text
+    data = buf.current_arg_text
     if data in ("奖励词", "keyword"):
-        session.finish("当前奖励词为：" + keyword)
+        buf.finish("当前奖励词为：" + keyword)
     elif data in ("奖励池", "keyword_pool"):
-        session.finish("当前奖励池大小为：" + str(len(d['keyword'][1])))
+        buf.finish("当前奖励池大小为：" + str(len(d['keyword'][1])))
     elif data in ("起始池", "begin_pool"):
-        session.finish("当前起始池大小为：" + str(len(d['begin'])))
+        buf.finish("当前起始池大小为：" + str(len(d['begin'])))
     elif data in ("隐藏奖励池", "hidden_keyword_pool"):
-        session.finish("当前隐藏奖励池大小为：" + str(len(d['hidden'][1])))
+        buf.finish("当前隐藏奖励池大小为：" + str(len(d['hidden'][1])))
     elif data in ("卡池", "card_pool"):
-        session.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
+        buf.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
     elif data in ("商店", "shop"):
-        session.finish("1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. (35击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。\n8. (25击毙)抽一张卡，每日限一次。" + ("\n16. (5击毙)🎰🎲💰选我抽奖！💰🎲🎰" if me.check_daily_status('O') else ''))
-    qq = session.ctx['user_id']
-    buf = SessionBuffer(session)
+        buf.finish("1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. (35击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。\n8. (25击毙)抽一张卡，每日限一次。" + ("\n16. (5击毙)🎰🎲💰选我抽奖！💰🎲🎰" if me.check_daily_status('O') else ''))
+    qq = buf.ctx['user_id']
     user = User(qq, buf)
     if data in ("复活时间", "recover_time"):
-        time = user.get_limited_time('d')
+        time = user.data.get_limited_time('d')
         if time is None:
-            session.finish("你目前没有复活时间！")
+            buf.finish("你目前没有复活时间！")
         else:
-            session.finish(f"你的复活时间为：{time}分钟。")
+            buf.finish(f"你的复活时间为：{time}分钟。")
     elif data in ("手牌", "hand_cards"):
-        cards = user.hand_card
+        cards = user.data.hand_card
         if len(cards) == 0:
-            session.finish("你没有手牌！")
-        session.finish("你的手牌为：\n" + '\n'.join(s.full_description(qq) for s in cards))
+            buf.finish("你没有手牌！")
+        buf.finish("你的手牌为：\n" + '\n'.join(s.full_description(qq) for s in cards))
     elif data in ("击毙", "jibi"):
-        session.finish("你的击毙数为：" + str(user.jibi))
+        buf.finish("你的击毙数为：" + str(user.data.jibi))
     elif data in ("状态", "status"):
-        status = user.status
-        daily_status = user.daily_status
-        status_time = eval(user.status_time)
         def _():
-            for s in status:
+            for s in user.data.status:
                 yield _card.status_dict[s]
-            for s in daily_status:
+            for s in user.data.daily_status:
                 yield _card.daily_status_dict[s]
-            for key in status_time:
-                time = user.get_limited_time(key)
+            for key in user.data.status_time:
+                time = user.data.get_limited_time(key)
                 if time is not None:
                     yield f"{_card.limited_status_dict[key]}\n\t结束时间：{time}分钟。"
             if qq in global_state['lianhuan']:
                 yield logic_dragon_file.tiesuolianhuan.status_des
         ret = '\n'.join(_())
         if ret == '':
-            session.finish("你目前没有状态！")
+            buf.finish("你目前没有状态！")
         else:
-            session.finish("你的状态为：\n" + ret)
+            buf.finish("你的状态为：\n" + ret)
     elif data in ("活动词", "active"):
         words = [s[-1] for s in Tree._objs if len(s) != 0 and len(s[-1].childs) == 0]
         for s in Tree._objs:
             for word in s:
                 if word.fork and len(word.childs) == 1:
                     words.append(word)
-        m = user.check_daily_status('m')
-        session.finish("当前活动词为：\n" + '\n'.join(f"{s.word}，{'⚠️' if s.qq == qq or s.parent is not None and s.parent.qq == qq and not m else ''}id为{s.id_str}" for s in words))
+        m = user.data.check_daily_status('m')
+        buf.finish("当前活动词为：\n" + '\n'.join(f"{s.word}，{'⚠️' if s.qq == qq or s.parent is not None and s.parent.qq == qq and not m else ''}id为{s.id_str}" for s in words))
     elif data in ("资料", "profile"):
-        session.finish(f"你的资料为：\n今日剩余获得击毙次数：{user.today_jibi}。\n今日剩余获得关键词击毙：{user.today_keyword_jibi}。\n剩余抽卡券：{user.draw_time}。\n手牌上限：{user.card_limit}。")
+        buf.finish(f"你的资料为：\n今日剩余获得击毙次数：{user.data.today_jibi}。\n今日剩余获得关键词击毙：{user.data.today_keyword_jibi}。\n剩余抽卡券：{user.data.draw_time}。\n手牌上限：{user.data.card_limit}。")
 
 @on_command(('dragon', 'buy'), aliases="购买", only_to_me=False, short_des="购买逻辑接龙相关商品。", args=("id",), environment=env)
 @config.ErrorHandle(config.logger.dragon)
-@config.buffer_dec
+@Game.wrapper
 async def dragon_buy(buf: SessionBuffer):
     """购买逻辑接龙相关商品。
     使用方法：购买 id号"""
@@ -667,7 +659,7 @@ async def dragon_buy(buf: SessionBuffer):
                 validators.fit_size(1, 1, message="请输入一个自然数。"),
             ]))[0]
         n //= 15
-        if (jibi := user.jibi) < n:
+        if (jibi := user.data.jibi) < n:
             buf.send(f"您只有{jibi}击毙！")
             n = jibi
         config.logger.dragon << f"【LOG】用户{qq}使用{n}击毙减少{15 * n}分钟死亡时间。"
@@ -716,11 +708,10 @@ async def dragon_buy(buf: SessionBuffer):
         buf.send("您已成功提交！")
     elif id == 8:
         # (25击毙)抽一张卡，每日限一次。
-        if user.shop_drawn_card >= 1:
+        if user.data.shop_drawn_card >= 1:
             buf.send("您今日已在商店购买过抽卡！")
         else:
-            config.userdata.execute("update dragon_data set shop_drawn_card=? where qq=?", (user.shop_drawn_card + 1, qq))
-            user.reload()
+            user.data.shop_drawn_card += 1
             await user.add_jibi(-25, is_buy=True)
             await user.settlement(user.draw(1))
             save_data()
@@ -776,25 +767,26 @@ async def dragon_fork(session: CommandSession):
 
 @on_command(('dragon', 'delete'), aliases="驳回", only_to_me=False, short_des="管理可用，驳回节点。", args=("[-f]", "id"), environment=env_admin)
 @config.ErrorHandle(config.logger.dragon)
-async def dragon_delete(session: CommandSession):
+@Game.wrapper
+async def dragon_delete(buf: SessionBuffer):
     """管理可用，驳回节点。
     可选参数：
         -f：驳回该节点的分叉。
     可使用：驳回 id 或 驳回分叉 id。"""
-    match = re.search(r'(\d+)([a-z])?', session.current_arg_text)
+    match = re.search(r'(\d+)([a-z])?', buf.current_arg_text)
     node = Tree.find(Tree.match_to_id(match))
     if not node:
-        session.finish("请输入存在的id号。")
+        buf.finish("请输入存在的id号。")
     to_delete = None
-    f = session.current_arg_text.strip().startswith('-f')
+    f = buf.current_arg_text.strip().startswith('-f')
     if f:
         if len(node.childs) == 2:
             to_delete = node.childs[1]
         node.fork = False
     else:
         to_delete = node
-    if await session.aget(prompt=f"要{f'驳回节点{node.word}的分叉' if f else ''}{'并' if f and to_delete is not None else ''}{f'驳回节点{to_delete.word}' if to_delete is not None else ''}，输入确认继续，输入取消退出。") != "确认":
-        session.finish("已退出。")
+    if await buf.aget(prompt=f"要{f'驳回节点{node.word}的分叉' if f else ''}{'并' if f and to_delete is not None else ''}{f'驳回节点{to_delete.word}' if to_delete is not None else ''}，输入确认继续，输入取消退出。") != "确认":
+        buf.finish("已退出。")
     to_delete.remove()
     # 保存到log文件
     d = date.today()
@@ -806,7 +798,6 @@ async def dragon_delete(session: CommandSession):
     with open(config.rel(today), 'w', encoding='utf-8') as file:
         file.writelines(str(word) + '\n' for word in itertools.chain(*Tree._objs))
     log_file = open(config.rel(today), 'a', encoding='utf-8')
-    buf = SessionBuffer(session)
     buf.send("已成功驳回。")
     if not f:
         n = User(node.qq, buf)
@@ -837,7 +828,7 @@ async def dragon_add_hidden(session: CommandSession):
 
 @on_command(('dragon', 'kill'), only_to_me=False, args=('@s',), environment=env_admin)
 @config.ErrorHandle(config.logger.dragon)
-@config.buffer_dec
+@Game.wrapper
 async def dragon_kill(buf: SessionBuffer):
     """击毙玩家，管理可用，用于处理驳回。"""
     match = re.search('qq=(\\d+)', buf.current_arg)

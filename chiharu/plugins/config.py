@@ -24,6 +24,7 @@ def img(rel_path):
 def rec(rel_path):
     return path.join(PATH_REC, rel_path)
 
+selfqq = 2711644761
 group_id_dict = {}
 tiemu_basic = {}
 headers = {}
