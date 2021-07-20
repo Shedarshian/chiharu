@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, date, time
-from typing import List, Type
+from typing import Dict, List, Tuple, Type, TypedDict, Union
 import itertools, more_itertools
 import json, random, re
 from PIL import Image, ImageDraw
@@ -30,12 +30,18 @@ Change:
 # begin : list(str)
 # bombs : list(str)
 # last_update_date : str
+class TWords(TypedDict):
+    keyword: Tuple[str, List[str]]
+    hidden: Tuple[List[str], List[str]]
+    begin: List[str]
+    bombs: List[str]
+    last_update_date: str
 with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
-    d = json.load(f)
-    keyword: str = d["keyword"][0]
-    hidden_keyword: List[str] = d["hidden"][0]
-    bombs: List[str] = d["bombs"]
-    last_update_date: str = d["last_update_date"]
+    d: TWords = json.load(f)
+    keyword = d["keyword"][0]
+    hidden_keyword = d["hidden"][0]
+    bombs = d["bombs"]
+    last_update_date = d["last_update_date"]
     del d
 
 class Tree:
@@ -257,10 +263,10 @@ def cancellation(session):
 from .logic_dragon_file import TQuest, global_state, save_global_state, save_data, mission, get_mission, me, draw_card, Card, _card, Game, User
 from . import logic_dragon_file
 
-async def update_begin_word(is_daily):
+async def update_begin_word(is_daily: bool):
     global last_update_date
     with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
-        d = json.load(f)
+        d: TWords = json.load(f)
     c = random.choice(d['begin'])
     d['last_update_date'] = last_update_date = date.today().isoformat()
     d['begin'].remove(c)
@@ -283,6 +289,7 @@ async def update_begin_word(is_daily):
     root = Tree(None, word_stripped, 2711644761, '', '')
     return c
 
+@Game.wrapper_noarg
 async def daily_update() -> None:
     global global_state
     m: TQuest = {}
@@ -300,7 +307,7 @@ async def daily_update() -> None:
         config.userdata.execute('update dragon_data set today_jibi=10, today_keyword_jibi=10, shop_drawn_card=0, spend_shop=0')
         for r in config.userdata.execute("select qq, daily_status from dragon_data").fetchall():
             if 'd' in r['daily_status']:
-                Game.user(r['qq'], None).remove_daily_status('d')
+                User(r['qq'], None).data.remove_daily_status('d')
     else:
         config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=0, spend_shop=0', ('',))
     save_data()

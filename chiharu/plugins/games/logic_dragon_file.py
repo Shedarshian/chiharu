@@ -66,6 +66,14 @@ class Game:
     session_list: List[CommandSession] = []
     userdatas: Dict[int, 'UserData'] = {}
     @classmethod
+    def wrapper_noarg(cls, f: Awaitable):
+        async def _f():
+            try:
+                await f()
+            finally:
+                cls.userdatas.clear()
+        return _f
+    @classmethod
     def wrapper(cls, f: Awaitable[config.SessionBuffer]):
         async def _f(session: CommandSession):
             cls.session_list.append(session)
