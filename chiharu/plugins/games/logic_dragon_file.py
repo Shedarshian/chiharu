@@ -298,6 +298,11 @@ class User:
         self.log << f"增加了{pt}活动pt。现有{self.data.event_pt}活动pt。"
     async def add_jibi(self, jibi: int, /, is_buy: bool=False):
         current_jibi = self.data.jibi
+        if s := self.data.check_daily_status('@'):
+            if jibi > 0:
+                jibi += s
+                self.send_char(f"触发了{f'{s}次' if s > 1 else ''}告解的效果，获得击毙加{s}。")
+            else: s = 0
         if n := self.data.check_status('2'):
             jibi *= 2 ** n
             self.send_char(f"触发了{f'{n}次' if n > 1 else ''}变压器的效果，{'获得' if jibi >= 0 else '损失'}击毙加倍为{abs(jibi)}！")
@@ -328,7 +333,7 @@ class User:
                 self.send_char("今日已花费400击毙，不再打折！")
         if not dodge:
             self.data.jibi += jibi
-        self.log << f"原有击毙{current_jibi}，{f'触发了{n}次变压器的效果，' if n > 0 else ''}{f'触发了比基尼的效果，' if q > 0 else ''}{f'触发了学生泳装的效果，' if dodge else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 and is_buy and not dodge else ''}{f'触发了{p}次北京市政交通一卡通的效果，' if p > 0 and is_buy and not dodge else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
+        self.log << f"原有击毙{current_jibi}，{f'触发了{s}次告解的效果，' if s > 0 else ''}{f'触发了{n}次变压器的效果，' if n > 0 else ''}{f'触发了比基尼的效果，' if q > 0 else ''}{f'触发了学生泳装的效果，' if dodge else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 and is_buy and not dodge else ''}{f'触发了{p}次北京市政交通一卡通的效果，' if p > 0 and is_buy and not dodge else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
         if is_buy and not dodge:
             self.data.spend_shop += abs(jibi)
             self.log << f"累计今日商店购买至{self.data.spend_shop}。"
@@ -1259,6 +1264,13 @@ class dihuoqiangxi(_card):
     description = "今天之内所有的接龙词都有10%的几率变成地雷。"
     global_daily_status = 'B'
     status_des = "地火强袭：今天之内所有的接龙词都有10%的几率变成地雷。"
+
+class gaojie(_card):
+    name = "告解"
+    id = 116
+    description = "今日每次你获得击毙时额外获得1击毙。"
+    daily_status = "@"
+    status_des = "告解：今日每次你获得击毙时额外获得1击毙。"
 
 class steamsummer(_card):
     name = "Steam夏季特卖"
