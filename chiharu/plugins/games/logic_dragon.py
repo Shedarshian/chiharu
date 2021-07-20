@@ -20,10 +20,10 @@ CommandGroup('dragon', short_des="逻辑接龙相关。", environment=env|env_su
 message_re = re.compile(r"\s*(\d+)([a-z])?\s*接[\s，,]*(.*)[\s，,\n]*.*")
 
 # Version information and changelog
-version = "0.3.0"
-changelog = """0.3.0 Changelog:
+version = "0.3.1"
+changelog = """0.3.1 Changelog:
 Change:
-大改结算逻辑。"""
+再次大改结算逻辑。"""
 
 # keyword : [str, list(str)]
 # hidden : [list(str), list(str)]
