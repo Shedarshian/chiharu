@@ -25,6 +25,8 @@ changelog = """0.3.1 Changelog:
 Change:
 再次大改结算逻辑。"""
 
+current_event = ''#"swim"
+
 class TWords(TypedDict):
     keyword: Tuple[str, List[str]]
     hidden: Tuple[List[str], List[str]]
@@ -259,7 +261,7 @@ def cancellation(session):
         return value
     return control
 
-from .logic_dragon_file import TQuest, global_state, save_global_state, save_data, mission, get_mission, me, draw_card, Card, _card, Game, User
+from .logic_dragon_file import Equipment, TQuest, global_state, save_global_state, save_data, mission, get_mission, me, draw_card, Card, _card, Game, User
 from . import logic_dragon_file
 
 async def update_begin_word(is_daily: bool):
@@ -341,8 +343,12 @@ async def logical_dragon_else(session: NLPSession):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="手牌")
     elif text.startswith("商店"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="商店")
+    elif text.startswith("活动商店"):
+        await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="活动商店")
     elif text.startswith("购买") and (len(text) == 2 or text[2] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'buy'), current_arg=text[2:].strip())
+    elif text.startswith("购买活动") and (len(text) == 4 or text[4] == ' '):
+        await call_command(get_bot(), session.ctx, ('dragon', 'buy_event'), current_arg=text[4:].strip())
     elif text.startswith("分叉") and (len(text) == 2 or text[2] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'fork'), current_arg=text[2:].strip())
     elif text.startswith("驳回分叉"):
@@ -643,6 +649,13 @@ async def dragon_check(buf: SessionBuffer):
         buf.finish("当前活动词为：\n" + '\n'.join(f"{s.word}，{'⚠️' if s.qq == qq or s.parent is not None and s.parent.qq == qq and not m else ''}id为{s.id_str}" for s in words))
     elif data in ("资料", "profile"):
         buf.finish(f"你的资料为：\n今日剩余获得击毙次数：{user.data.today_jibi}。\n今日剩余获得关键词击毙：{user.data.today_keyword_jibi}。\n剩余抽卡券：{user.data.draw_time}。\n手牌上限：{user.data.card_limit}。")
+    elif data in ("活动商店", "event_shop"):
+        if current_event == "swim":
+            b = user.data.check_equipment(0)
+            s = user.data.check_equipment(1)
+            p = user.data.event_shop
+            nt = '\n\t'
+            buf.finish(f"1. (75pt){'升星' if b else '购买'}比基尼。{'（不可购买）' if s else f'（余{3 - b}次）'}{f'{nt}{Equipment(0).description(b + 1)}' if not s and b != 3 else ''}\n2. (75pt){'升星' if s else '购买'}学校泳装。{'（不可购买）' if b else f'（余{3 - s}次）'}{f'{nt}{Equipment(1).description(s + 1)}' if not b and s != 3 else ''}\n3. (75pt)暴食的蜈蚣。{'（不可购买）' if p else '（余1次）'}\n4. (30pt)抽卡券。")
 
 @on_command(('dragon', 'buy'), aliases="购买", only_to_me=False, short_des="购买逻辑接龙相关商品。", args=("id",), environment=env)
 @config.ErrorHandle(config.logger.dragon)
@@ -761,6 +774,22 @@ async def dragon_buy(buf: SessionBuffer):
             buf.send(r + "你什么都没有抽到……再来一次吧！")
         save_data()
     await buf.flush()
+
+@on_command(('dragon', 'buy_event'), aliases="购买活动", only_to_me=False, short_des="购买逻辑接龙活动商店相关商品。", args=("id",), environment=env, hide=(current_event == ''))
+@config.ErrorHandle(config.logger.dragon)
+@Game.wrapper
+async def dragon_buy_event(buf: SessionBuffer):
+    """购买逻辑接龙相关商品。
+    使用方法：购买活动 id号"""
+    if current_event == '':
+        return
+    try:
+        id = int(buf.current_arg_text)
+    except ValueError:
+        buf.finish("请输入要购买的商品id。")
+    qq = buf.ctx['user_id']
+    user = User(qq, buf)
+    user.log << f"购买活动商品{id}。"
 
 @on_command(('dragon', 'fork'), aliases="分叉", only_to_me=False, short_des="分叉接龙。", args=("id",), environment=env)
 @config.ErrorHandle(config.logger.dragon)

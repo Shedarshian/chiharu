@@ -39,6 +39,8 @@ class TUserData(TypedDict):
     event_pt: int
     spend_shop: int
     equipment: str
+    event_stage: int
+    event_shop: int
 
 with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
     global_state: TGlobalState = json.load(f)
@@ -120,7 +122,7 @@ class UserData:
         def save(key, value):
             config.userdata.execute(f"update dragon_data set {key}=? where qq=?", (str(value), self.qq))
         self.status_time = property_dict(eval(self.node['status_time']), partial(save, 'status_time'))
-        self.equipment = property_dict({key: Equipment(val) for key, val in eval(self.node['equipment']).items()}, partial(save, 'equipment'))
+        self.equipment = property_dict(eval(self.node['equipment']), partial(save, 'equipment'))
     def reload(self) -> None:
         self.node = dict(find_or_new(self.qq))
     @property
@@ -208,6 +210,13 @@ class UserData:
     def event_stage(self, value: 'Grid'):
         self._event_stage = value
         config.userdata.execute("update dragon_data set event_stage=? where qq=?", (self._event_stage.data_saved, self.qq))
+    @property
+    def event_shop(self):
+        return self.node['event_shop']
+    @event_shop.setter
+    def event_shop(self, value):
+        config.userdata.execute("update dragon_data set event_shop=? where qq=?", (value, self.qq))
+        self.node['event_shop'] = value
     def set_cards(self):
         config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(c.id) for c in self.hand_card), self.qq))
         config.logger.dragon << f"【LOG】设置用户{self.qq}手牌为{cards_to_str(self.hand_card)}。"
@@ -275,8 +284,8 @@ class UserData:
             del self.status_time[s]
             return None
         return delta.seconds // 60
-    def check_equipment(self, id: int) -> int:
-        return self.equipment.get(id, 0)
+    def check_equipment(self, equip_id: int) -> int:
+        return self.equipment.get(equip_id, 0)
 
 class User:
     def __init__(self, qq: int, buf: config.SessionBuffer):
@@ -1403,7 +1412,7 @@ class equipment_meta(type):
         return c
 
 class _equipment(metaclass=equipment_meta):
-    id_dict = {}
+    id_dict: Dict[int, TEquipment] = {}
     id = -127
     name = ''
     des_shop = ''
