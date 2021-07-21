@@ -1,4 +1,4 @@
-import itertools
+import itertools, hashlib
 import random, more_itertools, json, re
 from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, List, NamedTuple, Optional, Set, Tuple, Type, TypeVar, TypedDict, Union
 from collections import Counter, UserDict
@@ -25,6 +25,7 @@ class TGlobalState(TypedDict):
     lianhuan: List[int]
     quest: Dict[int, List[TQuest]]
     steal: Dict[int, TSteal]
+    event_route: List[int]
 class TUserData(TypedDict):
     qq: int
     jibi: int
@@ -197,6 +198,15 @@ class UserData:
     def daily_status(self, value):
         config.userdata.execute("update dragon_data set daily_status=? where qq=?", (value, self.qq))
         self.node['daily_status'] = value
+    @property
+    def event_stage(self):
+        if '_event_stage' not in self.__dict__:
+            self._event_stage: Grid = Grid(self.node['event_stage'] % 2048, self.node['event_stage'] // 2048)
+        return self._event_stage
+    @event_stage.setter
+    def event_stage(self, value: 'Grid'):
+        self._event_stage = value
+        config.userdata.execute("update dragon_data set event_stage=? where qq=?", (self._event_stage.data_saved, self.qq))
     def set_cards(self):
         config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(c.id) for c in self.hand_card), self.qq))
         config.logger.dragon << f"【LOG】设置用户{self.qq}手牌为{cards_to_str(self.hand_card)}。"
@@ -471,6 +481,26 @@ class User:
         self.data.set_cards()
         await self.buf.flush()
         save_data()
+    async def event_move(self, n):
+        current = self.data.event_stage
+        while n != 0:
+            for i in range(n):
+                childs = current.childs
+                if len(childs) == 1:
+                    current = childs[0]
+                else:
+                    await self.buf.flush()
+                    s = await self.buf.session.aget(prompt="请选择你接下来的路线【附图】", force_update=True, arg_filters=[
+                        extractors.extract_text,
+                        lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
+                        validators.fit_size(1, 1, message="请输入数字。"),
+                        lambda l: l[0],
+                        validators.ensure_true(lambda s: 0 <= s < len(childs), message="数字输入错误！"),
+                    ])
+                    current = childs[s]
+            self.data.event_stage = current
+            n = await current.do(self)
+        # 踢人
 
 me = UserData(config.selfqq)
 
@@ -1389,68 +1419,72 @@ class schoolsui(_equipment):
     def description(cls, count: int):
         return f'你每次击毙减少或商店购买都有{count / (20 + count) * 100:.2f}%几率免单。'
 
-class TGrid(NamedTuple):
-    id: int
-    content: int
-    data: Iterable[int]
-    pos: Tuple[int, int]
-    childs_id: Union[None, Iterable[int], Iterable[Iterable[int]]] = None
-    parents_id: Union[None, Iterable[int], Iterable[Iterable[int]]] = None
-
-# 飞行棋棋盘格子
-class Grid(TGrid):
-    __slots__ = ()
-    all_items: Dict[int, 'Grid'] = {}
-    topology = 0
-    # example: Grid(1, 1, (3, 10), (20, 20), ((2,), (3,), (3,))) # 奖励3pt，被击毙10分钟，在不同拓扑下childs不同
-    def __init__(self, *args, **kwargs):
-        super(Grid, self).__init__(*args, **kwargs)
-        Grid.all_items[self.id] = self
-    @classmethod
-    def find(cls, id):
-        return cls.all_items[id]
+# 爬塔格子
+class Grid:
+    __slots__ = ('stage', 'route', 'hashed')
+    pool: Dict[Tuple[int, int], 'Grid'] = {}
+    def __new__(cls, stage: int, route: int) -> Any:
+        if i := cls.pool.get((stage, route)):
+            return i
+        return object.__new__(cls, stage, route)
+    def __init__(self, stage: int, route: int):
+        self.stage = stage
+        self.route = route
+        h = f"{stage} {route}".encode('utf-8')
+        b = hashlib.sha1(h).digest()
+        self.hashed = int.from_bytes(b[0:3], 'big')
+    def __hash__(self):
+        return hash((self.stage, self.route))
     @property
-    def parents(self):
-        if self.parents_id is None:
-            return [self.find(self.id - 1)]
-        elif isinstance(self.parents_id[0], (tuple, list)):
-            return [self.find(id) for id in self.parents_id[self.topology]]
+    def data_saved(self):
+        return self.stage + self.route * 2048
+    @property
+    def description(self):
+        i = self.hashed
+        s = f"增加{2 + i % 4}pt，"
+        i //= 4
+        content = i % 100
+        if content < 10:
+            s += f"被击毙{content // 2 * 5}分钟。"
+        elif content < 60:
+            s += f"获得{(content - 10) // 10 * 2 + 2}击毙。"
+        elif content < 75:
+            s += f"获得活动pt后，再扔一次骰子{'前进' if content < 70 else '后退'}。"
+        elif content < 85:
+            s += "抽一张卡并立即发动效果。"
+        else: # ？
+            pass
+        return s
+    @property
+    def parent(self):
+        if self.route != 0 and (p := global_state["event_route"][self.route - 1]) + 1 == self.stage:
+            return Grid(p % 2048, p // 2048)
+        elif self.stage >= 1:
+            return Grid(self.stage - 1, self.route)
         else:
-            return [self.find(id) for id in self.parents_id]
+            return None
     @property
     def childs(self):
-        if self.childs_id is None:
-            return [self.find(self.id + 1)]
-        elif isinstance(self.childs_id[0], (tuple, list)):
-            return [self.find(id) for id in self.childs_id[self.topology]]
-        else:
-            return [self.find(id) for id in self.childs_id]
-    async def move(self, user, n, back=False):
-        current = self
-        for i in range(n):
-            if back:
-                current = current.parents[0] # TODO: choose
-            else:
-                current = current.childs[0] # TODO: choose
-        user.log << f"走到了{current.id}。"
-        return current
-    async def do(self, user: User):
-        await user.add_event_pt(self.data[0])
-        if self.content == 0: # 改变拓扑结构至环面/莫比乌斯带/克莱因瓶
-            user.send_log("走到了：改变拓扑结构至" + {0: "环面", 1: "莫比乌斯带", 2: "克莱因瓶"}[self.data[1]] + "。")
-            Grid.topology = self.data[1]
-        elif self.content == 1: # 被击毙5/10/15/20/25分钟
-            user.send_log(f"走到了：被击毙{self.data[1]}分钟。")
-            await user.kill(minute=self.data[1])
-        elif self.content == 2: # 获得2/4/6/8/10击毙
-            user.send_log(f"走到了：获得{self.data[1]}击毙。")
-            await user.add_jibi(self.data[1])
-        elif self.content == 3: # 获得活动pt后，再扔一次骰子前进/后退 
+        route = [self.route]
+        if self.data_saved in global_state["event_route"]:
+            route += [i for i, d in enumerate(global_state["event_route"]) if d == self.data_saved]
+        return [Grid(self.stage + 1, r) for r in route]
+    async def do(self, user: User) -> int:
+        i = self.hashed
+        await user.add_event_pt(2 + i % 4)
+        i //= 4
+        content = i % 100
+        if content < 10: # 被击毙5/10/15/20/25分钟
+            user.send_log(f"走到了：被击毙{content // 2 * 5}分钟。")
+            await user.kill(minute=content // 2 * 5 + 5)
+        elif content < 60: # 获得2/4/6/8/10击毙
+            user.send_log(f"走到了：获得{(content - 10) // 10 * 2 + 2}击毙。")
+            await user.add_jibi((content - 10) // 10 * 2 + 2)
+        elif content < 75: # 获得活动pt后，再扔一次骰子前进（10）/后退（5）
             n = random.randint(1, 6)
-            user.send_log(f"走到了：获得活动pt后，再扔一次骰子{'前进' if self.data[1] == 1 else '后退'}。{user.char}扔到了{n}。")
-            grid = await self.move(user, n, back=(self.data[1] != 1))
-            return await grid.do(user)
-        elif self.content == 16: # 抽一张卡并立即发动效果
+            user.send_log(f"走到了：获得活动pt后，再扔一次骰子{'前进' if content < 70 else '后退'}。{user.char}扔到了{n}。")
+            return n if content < 70 else -n
+        elif content < 85: # 抽一张卡并立即发动效果
             user.send_log("走到了：抽一张卡并立即发动效果。")
             c = draw_card()
             user.send_char('抽到并使用了卡牌：\n' + c.full_description(user.qq))
@@ -1458,10 +1492,6 @@ class Grid(TGrid):
             await c.on_draw(user)
             await c.use(user)
             await c.on_discard(user)
-        elif self.content == 17: # 获得20活动pt并随机飞到一个格子
-            user.send_log(f"走到了：获得{self.data[1]}活动pt并随机飞到一个格子。")
-            await user.add_event_pt(self.data[1])
-            grid = random.choice(list(self.all_items.values()))
-            user.log << f"飞到了{grid.id}。"
-            return await grid.do(user)
-        return self
+        else: # ？
+            pass
+        return 0
