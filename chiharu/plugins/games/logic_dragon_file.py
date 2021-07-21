@@ -11,12 +11,9 @@ from pypinyin import pinyin, Style
 from nonebot.command.argfilter import extractors, validators
 from .. import config
 
-# global_state
-# last_card_user : int
-# exchange_stack : list(int)
-# lianhuan : list(int)
-# quest : map(int, list(map('id': int, 'remain': int)))
-# steal : map(int, map('user': list(int), 'time': int))
+class UserChooseMe(Exception):
+    pass
+
 TQuest = TypedDict('TQuest', id=int, remain=int)
 TSteal = TypedDict('TSteal', user=List[int], time=int)
 class TGlobalState(TypedDict):
@@ -81,6 +78,8 @@ class Game:
             buf = config.SessionBuffer(session)
             try:
                 await f(buf)
+            except UserChooseMe:
+                buf.send("呀！不能选我！")
             finally:
                 await buf.flush()
                 cls.remove_session(session)
@@ -92,6 +91,8 @@ class Game:
             cls.userdatas.clear()
     @classmethod
     def userdata(cls, qq: int):
+        if qq == config.selfqq:
+            raise UserChooseMe()
         if qq in cls.userdatas:
             return cls.userdatas[qq]
         u = UserData(qq)
@@ -1105,7 +1106,7 @@ class liwujiaohuan(_card):
     async def use(cls, user: User):
         user.data.set_cards()
         config.logger.dragon << f"【LOG】用户{user.qq}交换了所有人的手牌。"
-        l = [User(t['qq'], user.buf) for t in config.userdata.execute("select qq, card, status from dragon_data").fetchall()]
+        l = [User(t['qq'], user.buf) for t in config.userdata.execute("select qq from dragon_data").fetchall() if t['qq'] != config.selfqq]
         config.logger.dragon << f"【LOG】所有人的手牌为：{','.join(f'{user.qq}: {cards_to_str(user.data.hand_card)}' for user in l)}。"
         def _():
             for u in l:
