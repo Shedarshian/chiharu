@@ -678,10 +678,10 @@ class magician(_card):
         card = Card(l[0])
         config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
         user.send_char('使用了三次卡牌：\n' + card.full_description(user.qq))
-        await card.use(user)
-        await card.use(user)
-        await card.use(user)
         await user.discard_cards([card])
+        await card.use(user)
+        await card.use(user)
+        await card.use(user)
 
 class high_priestess(_card):
     name = "II - 女祭司"
