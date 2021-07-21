@@ -1100,7 +1100,7 @@ class liwujiaohuan(_card):
         user.data.set_cards()
         config.logger.dragon << f"【LOG】用户{user.qq}交换了所有人的手牌。"
         l = [User(t['qq'], user.buf) for t in config.userdata.execute("select qq, card, status from dragon_data").fetchall()]
-        config.logger.dragon << f"【LOG】所有人的手牌为：{','.join(f'{qq}: {cards_to_str(cards)}' for qq, cards in l)}。"
+        config.logger.dragon << f"【LOG】所有人的手牌为：{','.join(f'{user.qq}: {cards_to_str(user.data.hand_card)}' for user in l)}。"
         def _():
             for u in l:
                 if u.data.check_status('G'):
