@@ -454,7 +454,7 @@ async def dragon_construct(buf: SessionBuffer):
                 if user.data.today_jibi == 0:
                     buf.send("你今日全勤，奖励1抽奖券！")
                     user.log << f"全勤，奖励1抽奖券。"
-                    user.draw_time += 1
+                    user.data.draw_time += 1
             else:
                 buf.send("")
             if (n := me.check_daily_status('t')) and random.random() > 0.9 ** n:
