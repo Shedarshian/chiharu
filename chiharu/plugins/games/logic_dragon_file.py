@@ -1103,14 +1103,15 @@ class liwujiaohuan(_card):
         config.logger.dragon << f"【LOG】所有人的手牌为：{','.join(f'{user.qq}: {cards_to_str(user.data.hand_card)}' for user in l)}。"
         def _():
             for u in l:
-                if u.data.check_status('G'):
-                    u.data.remove_status("G")
-                else:
+                if not u.data.check_status('G'):
                     for c in u.data.hand_card:
                         yield (u, c)
         all_cards = list(_())
         random.shuffle(all_cards)
         for u in l:
+            if u.data.check_status('G'):
+                u.data.remove_status("G")
+                continue
             if (n := len(u.data.hand_card)):
                 cards_temp = [c1 for q1, c1 in all_cards[:n]]
                 u.data.hand_card.clear()
