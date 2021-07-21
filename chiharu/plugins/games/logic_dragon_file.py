@@ -283,7 +283,7 @@ class User:
         self.data = Game.userdata(qq)
         self.buf = buf
     @property
-    def char(self) -> str:
+    def char(self):
         return self.buf.char(self.qq)
     def send_char(self, s: str):
         self.buf.send(self.char + s)
@@ -484,20 +484,26 @@ class User:
     async def event_move(self, n):
         current = self.data.event_stage
         while n != 0:
-            for i in range(n):
-                childs = current.childs
-                if len(childs) == 1:
-                    current = childs[0]
+            for i in range(abs(n)):
+                if n > 0:
+                    childs = current.childs
+                    if len(childs) == 1:
+                        current = childs[0]
+                    else:
+                        await self.buf.flush()
+                        config.logger.dragon << f"【LOG】询问用户{self.qq}接下来的路线。"
+                        s = await self.buf.session.aget(prompt="请选择你接下来的路线【附图】", force_update=True, arg_filters=[
+                            extractors.extract_text,
+                            lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
+                            validators.fit_size(1, 1, message="请输入数字。"),
+                            lambda l: l[0],
+                            validators.ensure_true(lambda s: 0 <= s < len(childs), message="数字输入错误！"),
+                        ])
+                        current = childs[s]
                 else:
-                    await self.buf.flush()
-                    s = await self.buf.session.aget(prompt="请选择你接下来的路线【附图】", force_update=True, arg_filters=[
-                        extractors.extract_text,
-                        lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
-                        validators.fit_size(1, 1, message="请输入数字。"),
-                        lambda l: l[0],
-                        validators.ensure_true(lambda s: 0 <= s < len(childs), message="数字输入错误！"),
-                    ])
-                    current = childs[s]
+                    p = current.parent
+                    current = p or current
+            self.log << f"行走至格子{current}。"
             self.data.event_stage = current
             n = await current.do(self)
         # 踢人
@@ -1436,6 +1442,8 @@ class Grid:
         self.hashed = int.from_bytes(b[0:3], 'big')
     def __hash__(self):
         return hash((self.stage, self.route))
+    def __str__(self):
+        return f"{self.stage}层{self.route}列"
     @property
     def data_saved(self):
         return self.stage + self.route * 2048
