@@ -507,42 +507,42 @@ class card_meta(type):
                 status = attrs['status']
                 bases[0].add_status(status, attrs['status_des'])
                 @classmethod
-                async def use(self, user):
-                    user.add_status(status)
+                async def use(self, user: User):
+                    user.data.add_status(status)
                 attrs['use'] = use
             elif 'daily_status' in attrs and attrs['daily_status']:
                 status = attrs['daily_status']
                 bases[0].add_daily_status(status, attrs['status_des'])
                 @classmethod
-                async def use(self, user):
-                    user.add_daily_status(status)
+                async def use(self, user: User):
+                    user.data.add_daily_status(status)
                 attrs['use'] = use
             elif 'limited_status' in attrs and attrs['limited_status']:
                 status = attrs['limited_status']
                 bases[0].add_limited_status(status, attrs['status_des'])
                 @classmethod
-                async def use(self, user):
-                    user.add_limited_status(status, datetime.now() + attrs['limited_time'])
+                async def use(self, user: User):
+                    user.data.add_limited_status(status, datetime.now() + attrs['limited_time'])
                 attrs['use'] = use
             elif 'global_status' in attrs and attrs['global_status']:
                 status = attrs['global_status']
                 bases[0].add_status(status, attrs['status_des'])
                 @classmethod
-                async def use(self, user):
+                async def use(self, user: User):
                     me.add_status(status)
                 attrs['use'] = use
             elif 'global_daily_status' in attrs and attrs['global_daily_status']:
                 status = attrs['global_daily_status']
                 bases[0].add_daily_status(status, attrs['status_des'])
                 @classmethod
-                async def use(self, user):
+                async def use(self, user: User):
                     me.add_daily_status(status)
                 attrs['use'] = use
             elif 'global_limited_status' in attrs and attrs['global_limited_status']:
                 status = attrs['global_limited_status']
                 bases[0].add_limited_status(status, attrs['status_des'])
                 @classmethod
-                async def use(self, user):
+                async def use(self, user: User):
                     me.add_limited_status(status, datetime.now() + attrs['global_limited_time'])
                 attrs['use'] = use
             elif 'hold_status' in attrs and attrs['hold_status']:
@@ -550,15 +550,15 @@ class card_meta(type):
                 bases[0].add_status(status, attrs['status_des'])
                 bases[0].is_hold += attrs['status_des']
                 @classmethod
-                async def on_draw(cls, user):
-                    user.add_status(status)
+                async def on_draw(cls, user: User):
+                    user.data.add_status(status)
                 @classmethod
-                async def on_discard(cls, user):
-                    user.remove_status(status, remove_all=False)
+                async def on_discard(cls, user: User):
+                    user.data.remove_status(status, remove_all=False)
                 @classmethod
-                async def on_give(cls, user, target):
-                    user.remove_status(status)
-                    target.add_status(status)
+                async def on_give(cls, user: User, target: User):
+                    user.data.remove_status(status)
+                    target.data.add_status(status)
                 attrs['on_draw'] = on_draw
                 attrs['on_discard'] = on_discard
                 attrs['on_give'] = on_give
