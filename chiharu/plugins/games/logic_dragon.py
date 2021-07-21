@@ -459,8 +459,6 @@ async def dragon_construct(buf: SessionBuffer):
                 buf.send("")
             if (n := me.check_daily_status('t')) and random.random() > 0.9 ** n:
                 add_keyword(word)
-            if (n := me.check_daily_status('B')) and random.random() > 0.9 ** n:
-                add_bomb(word)
             if (n := user.data.check_status('p')):
                 last_qq = parent.qq
                 last = User(last_qq, buf)
@@ -508,6 +506,8 @@ async def dragon_construct(buf: SessionBuffer):
                 await user.add_jibi(jibi[1] - jibi[0])
                 await to_exchange.add_jibi(jibi[0] - jibi[1])
                 await user.settlement(user.exchange(to_exchange))
+            if (n := me.check_daily_status('B')) and random.random() > 0.9 ** n:
+                add_bomb(word)
         await buf.flush()
         save_data()
 
