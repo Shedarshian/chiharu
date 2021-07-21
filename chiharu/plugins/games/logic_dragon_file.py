@@ -1297,12 +1297,12 @@ class McGuffium239(_card):
     status_des = 'Mc Guffium 239：下一次礼物交换不对你生效。'
     description = "下一次礼物交换不对你生效。"
 
-class dihuoqiangxi(_card):
-    name = "地火强袭"
+class dihuopenfa(_card):
+    name = "地火喷发"
     id = 114
     description = "今天之内所有的接龙词都有10%的几率变成地雷。"
     global_daily_status = 'B'
-    status_des = "地火强袭：今天之内所有的接龙词都有10%的几率变成地雷。"
+    status_des = "地火喷发：今天之内所有的接龙词都有10%的几率变成地雷。"
 
 class gaojie(_card):
     name = "告解"
