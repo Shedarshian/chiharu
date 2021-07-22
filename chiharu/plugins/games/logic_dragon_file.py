@@ -69,7 +69,7 @@ class Game:
     def wrapper_noarg(cls, f: Awaitable):
         async def _f():
             try:
-                await f()
+                return await f()
             finally:
                 cls.userdatas.clear()
         return _f

@@ -291,7 +291,7 @@ async def update_begin_word(is_daily: bool):
     return c
 
 @Game.wrapper_noarg
-async def daily_update() -> None:
+async def daily_update() -> str:
     global global_state
     m: TQuest = {}
     for qq, quests in global_state['quest'].items():
