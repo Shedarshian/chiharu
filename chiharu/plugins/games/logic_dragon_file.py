@@ -100,15 +100,16 @@ class Game:
         u = UserData(qq)
         cls.userdatas[qq] = u
         return u
-def property_dict(dct, f):
-    class _property_dict(UserDict):
-        def __setattr__(self, name, value):
-            super().__setattr__(name, value)
-            f(self.data)
-        def __delattr__(self, name):
-            super().__delattr__(name)
-            f(self.data)
-    return _property_dict(dct)
+class property_dict(UserDict):
+    def __init__(self, f: Callable, __dict, **kwargs) -> None:
+        super().__init__(__dict=__dict, **kwargs)
+        self.f = f
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        self.f(self.data)
+    def __delattr__(self, name):
+        super().__delattr__(name)
+        self.f(self.data)
 class Wrapper:
     def __init__(self, qq):
         self.qq = qq
@@ -121,8 +122,8 @@ class UserData:
         self.hand_card = [] if self.node['card'] == '' else [Card(int(x)) for x in self.node['card'].split(',')]
         def save(key, value):
             config.userdata.execute(f"update dragon_data set {key}=? where qq=?", (str(value), self.qq))
-        self.status_time = property_dict(eval(self.node['status_time']), partial(save, 'status_time'))
-        self.equipment = property_dict(eval(self.node['equipment']), partial(save, 'equipment'))
+        self.status_time = property_dict(partial(save, 'status_time'), eval(self.node['status_time']))
+        self.equipment = property_dict(partial(save, 'equipment'), eval(self.node['equipment']))
     def reload(self) -> None:
         self.node = dict(find_or_new(self.qq))
     @property
