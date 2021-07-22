@@ -102,7 +102,7 @@ class Game:
         return u
 class property_dict(UserDict):
     def __init__(self, f: Callable, __dict, **kwargs) -> None:
-        super().__init__(__dict=__dict, **kwargs)
+        super().__init__(__dict, **kwargs)
         self.f = f
     def __setattr__(self, name, value):
         if name in ('data', 'f'):
