@@ -105,8 +105,11 @@ class property_dict(UserDict):
         super().__init__(__dict=__dict, **kwargs)
         self.f = f
     def __setattr__(self, name, value):
-        super().__setattr__(name, value)
-        self.f(self.data)
+        if name in self.__dict__:
+            self.__dict__[name] = value
+        else:
+            super().__setattr__(name, value)
+            self.f(self.data)
     def __delattr__(self, name):
         super().__delattr__(name)
         self.f(self.data)
