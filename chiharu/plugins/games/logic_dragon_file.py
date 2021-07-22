@@ -372,6 +372,10 @@ class User:
         """击杀玩家。"""
         dodge = False
         config.logger.dragon << f"【LOG】尝试击杀玩家{self.qq}。"
+        if self.data.check_status('r') and not dodge:
+            dodge = True
+            self.send_log("触发了免死的效果，免除死亡！")
+            self.data.remove_status('r', remove_all=False)
         if (n := self.data.check_status('s')) and not dodge:
             if self.data.jibi >= 5 * 2 ** self.data.check_status('2'):
                 await self.add_jibi(-5)
