@@ -232,7 +232,7 @@ def remove_all_bomb(d, p: Optional[float]=None):
         bombs = []
         config.logger.dragon << f"【LOG】移除了所有炸弹。"
     else:
-        d["bombs"] = bombs = [bomb for bomb in bombs if random.random() < p]
+        d["bombs"] = bombs = [bomb for bomb in bombs if random.random() > p]
         config.logger.dragon << f"【LOG】炸弹变成了{'，'.join(bombs)}。"
 @wrapper_file
 def add_bomb(d, word):
