@@ -2,7 +2,7 @@ import itertools, hashlib
 import random, more_itertools, json, re
 from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, List, NamedTuple, Optional, Set, Tuple, Type, TypeVar, TypedDict, Union
 from collections import Counter, UserDict
-from functools import lru_cache, partial
+from functools import lru_cache, partial, wraps
 from copy import copy
 from datetime import datetime, timedelta
 from functools import reduce
@@ -67,6 +67,7 @@ class Game:
     userdatas: Dict[int, 'UserData'] = {}
     @classmethod
     def wrapper_noarg(cls, f: Awaitable):
+        @wraps(f)
         async def _f():
             try:
                 return await f()
@@ -75,6 +76,7 @@ class Game:
         return _f
     @classmethod
     def wrapper(cls, f: Awaitable[config.SessionBuffer]):
+        @wraps(f)
         async def _f(session: CommandSession):
             cls.session_list.append(session)
             buf = config.SessionBuffer(session)
