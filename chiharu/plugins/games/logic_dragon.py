@@ -428,9 +428,13 @@ async def dragon_construct(buf: SessionBuffer):
                     me.remove_status('m')
                     await user.add_jibi(n * 10)
                 if global_state['exchange_stack']:
-                    to_exchange = User(global_state['exchange_stack'].pop(-1), buf)
-                    user.log << f"触发了互相交换，来自{to_exchange.qq}。"
-                    save_global_state()
+                    to_exchange = User(global_state['exchange_stack'][-1], buf)
+                    if (await user.check_attacked(to_exchange)).valid:
+                        global_state['exchange_stack'].pop(-1)
+                        user.log << f"触发了互相交换，来自{to_exchange.qq}。"
+                        save_global_state()
+                    else:
+                        to_exchange = None
                 if not update_hidden_keyword(i, True):
                     buf.end("隐藏奖励词池已空！")
                 break
@@ -468,8 +472,9 @@ async def dragon_construct(buf: SessionBuffer):
             if (n := user.data.check_status('p')):
                 last_qq = parent.qq
                 last = User(last_qq, buf)
-                if last_qq not in global_state['steal'][str(qq)]['user'] and global_state['steal'][str(qq)]['time'] < 10:
-                    global_state['steal'][str(qq)]['time'] += 1
+                c = await last.check_attacked(user)
+                if last_qq not in global_state['steal'][str(qq)]['user'] and global_state['steal'][str(qq)]['time'] < 10 and c.valid:
+                    global_state['steal'][str(qq)]['time'] += 2 ** c.double
                     global_state['steal'][str(qq)]['user'].append(last_qq)
                     save_global_state()
                     user.log << f"触发了{n}次掠夺者啵噗的效果，偷取了{last_qq}击毙，剩余偷取次数{9 - global_state['steal'][str(qq)]['time']}。"

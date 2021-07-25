@@ -41,6 +41,13 @@ class TUserData(TypedDict):
     equipment: str
     event_stage: int
     event_shop: int
+class TCounter(NamedTuple):
+    dodge: bool = False
+    rebound: bool = False
+    double: int = 0
+    @property
+    def valid(self):
+        return not (self.dodge or self.rebound)
 
 with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
     global_state: TGlobalState = json.load(f)
@@ -297,6 +304,8 @@ class User:
         self.qq = qq
         self.data = Game.userdata(qq)
         self.buf = buf
+    def __eq__(self, other):
+        return self.qq == other.qq and self.buf == other.buf
     @property
     def char(self):
         return self.buf.char(self.qq)
@@ -370,10 +379,20 @@ class User:
         if is_buy and not dodge:
             self.data.spend_shop += abs(jibi)
             self.log << f"累计今日商店购买至{self.data.spend_shop}。"
-    async def kill(self, hour: int=2, minute: int=0):
+    async def kill(self, hour: int=2, minute: int=0, killer=None):
         """击杀玩家。"""
-        dodge = False
+        killer = killer or self
         config.logger.dragon << f"【LOG】尝试击杀玩家{self.qq}。"
+        c = await self.check_attacked(killer)
+        if c.dodge:
+            return
+        elif c.rebound:
+            await killer.kill(self)
+            return
+        elif c.double:
+            hour *= 2 ** c.double
+            minute *= 2 ** c.double
+        dodge = False
         if self.data.check_status('r') and not dodge:
             dodge = True
             self.send_log("触发了免死的效果，免除死亡！")
@@ -542,6 +561,22 @@ class User:
             current = current.parent
             u.data.event_stage = current
             t = (current.data_saved, u.qq)
+    async def check_attacked(self, killer: 'User'):
+        if self == killer:
+            return TCounter()
+        if self.data.check_status('0'):
+            self.data.remove_status('0', remove_all=False)
+            return TCounter(dodge=True)
+        elif killer.data.check_status('0'):
+            killer.data.remove_status('0', remove_all=False)
+            return TCounter()
+        elif self.data.check_status('v'):
+            self.data.remove_status('v', remove_all=False)
+            return TCounter(rebound=True)
+        elif (n := killer.data.check_status('v')):
+            killer.data.remove_status('v')
+            return TCounter(double=n)
+        return TCounter()
 
 me = UserData(config.selfqq)
 
@@ -740,7 +775,7 @@ class high_priestess(_card):
         else:
             user.buf.send(f"当前周期内接龙次数最多的玩家有{''.join(f'[CQ:at,qq={q}]' for q in l)}！")
         for q in ql:
-            await User(q, user.buf).kill()
+            await User(q, user.buf).kill(killer=user)
 
 class lovers(_card):
     name = "VI - 恋人"
@@ -833,7 +868,7 @@ class devil(_card):
         q = global_state['last_card_user']
         u = User(q, user.buf)
         user.buf.send(f'[CQ:at,qq={q}]被你击毙了！')
-        await u.kill()
+        await u.kill(killer=user)
 
 class star(_card):
     name = "XVII - 星星"
@@ -910,14 +945,23 @@ class tiesuolianhuan(_card):
                     validators.fit_size(1, 2, message="请at正确的人数。"),
                 ])
         config.logger.dragon << f"【LOG】用户{user.qq}铁索连环选择{l}。"
-        global global_state
-        for target in l:
+        def toggle(target):
+            global global_state
             if target in global_state['lianhuan']:
                 global_state['lianhuan'].remove(target)
             else:
                 global_state['lianhuan'].append(target)
+        for target in l:
+            u = User(target, user.buf)
+            if (c := await u.check_attacked(user)).dodge:
+                continue
+            elif c.rebound:
+                toggle(user.qq)
+                user.buf.send('成功切换' + user.char() + '的连环状态！')
+            else:
+                toggle(target)
+                user.buf.send('成功切换' + u.char() + '的连环状态！')
         save_global_state()
-        user.buf.send('成功切换玩家的连环状态！')
 
 class minus1ma(_card):
     name = "-1马"
@@ -1142,17 +1186,19 @@ class liwujiaohuan(_card):
         config.logger.dragon << f"【LOG】用户{user.qq}交换了所有人的手牌。"
         l = [User(t['qq'], user.buf) for t in config.userdata.execute("select qq from dragon_data").fetchall() if t['qq'] != config.selfqq]
         config.logger.dragon << f"【LOG】所有人的手牌为：{','.join(f'{user.qq}: {cards_to_str(user.data.hand_card)}' for user in l)}。"
-        def _():
-            for u in l:
-                if not u.data.check_status('G'):
-                    for c in u.data.hand_card:
-                        yield (u, c)
-        all_cards = list(_())
-        random.shuffle(all_cards)
+        all_cards: List[Tuple[User, TCard]] = []
+        all_users: List[User] = []
         for u in l:
             if u.data.check_status('G'):
                 u.data.remove_status("G")
-                continue
+            elif not (await u.check_attacked(user)).valid:
+                pass
+            else:
+                for c in u.data.hand_card:
+                    all_cards.append((u, c))
+                    all_users.append(u)
+        random.shuffle(all_cards)
+        for u in l:
             if (n := len(u.data.hand_card)):
                 cards_temp = [c1 for q1, c1 in all_cards[:n]]
                 u.data.hand_card.clear()
@@ -1358,6 +1404,20 @@ class shenmouyuanlv(_card):
     description = "当你一次使用/损失了超过你现有击毙一半以上的击毙时，恢复这些击毙。"
     status = 'n'
     status_des = "深谋远虑之策：当你一次使用/损失了超过你现有击毙一半以上的击毙时，恢复这些击毙。"
+
+class imaginebreaker(_card):
+    name = "幻想杀手"
+    id = 120
+    description = "你的下一张攻击卡无视对方的所有反制效果，下一张目标为你的攻击卡无效。以上两项只能发动一项。"
+    status = '0'
+    status_des = "幻想杀手：你的下一张攻击卡无视对方的所有反制效果，下一张目标为你的攻击卡无效。以上两项只能发动一项。"
+
+class vector(_card):
+    name = "矢量操作"
+    id = 121
+    description = "你的下一张攻击卡效果加倍，下一张对你的攻击卡反弹至攻击者，免除你下一次触雷。以上三项只能发动一项。"
+    status = 'v'
+    status_des = "矢量操作：你的下一张攻击卡效果加倍，下一张对你的攻击卡反弹至攻击者，免除你下一次触雷。以上三项只能发动一项。"
 
 class steamsummer(_card):
     name = "Steam夏季特卖"
