@@ -501,7 +501,8 @@ class User:
         await self.buf.flush()
         save_data()
     async def event_move(self, n):
-        current = self.data.event_stage
+        current: Grid = self.data.event_stage
+        begin = current.stage
         while n != 0:
             for i in range(abs(n)):
                 if n > 0:
@@ -525,7 +526,22 @@ class User:
             self.log << f"行走至格子{current}。"
             self.data.event_stage = current
             n = await current.do(self)
-        # 踢人
+        end = current.stage
+        if begin // 50 < (e := end // 50) and e <= 8:
+            pt = (10, 20, 10, 50, 10, 20, 10, 50)[e - 1]
+            self.send_log(f"经过了{e * 50}层，获得了{pt}pt！")
+            await self.add_event_pt(pt)
+        t = (current.data_saved, self.qq)
+        u = self
+        while 1:
+            l = config.userdata.execute("select qq from dragon_data where event_stage=? and qq<>?", t).fetchone()
+            if l is None:
+                break
+            u.send_log(f"将玩家{l['qq']}踢回了一格！")
+            u = User(l['qq'], self.buf)
+            current = current.parent
+            u.data.event_stage = current
+            t = (current.data_saved, u.qq)
 
 me = UserData(config.selfqq)
 
@@ -1498,7 +1514,9 @@ class Grid:
         if self.data_saved in global_state["event_route"]:
             route += [i for i, d in enumerate(global_state["event_route"]) if d == self.data_saved]
         return [Grid(self.stage + 1, r) for r in route]
-    async def do(self, user: User) -> int:
+    def fork(self):
+        global_state["event_route"].append(self.data_saved)
+    async def do(self, user: User):
         i = self.hashed
         await user.add_event_pt(2 + i % 4)
         i //= 4
