@@ -254,7 +254,7 @@ class UserData:
         else:
             self.status_time[s] = max(datetime.fromisoformat(self.status_time[s]), end_time).isoformat()
         self.log << f"增加了限时状态{s}，结束时间为{end_time}。"
-    def remove_status(self, s: str, *, remove_all=True):
+    def remove_status(self, s: str, /, remove_all=True):
         if remove_all:
             self.status = ''.join([t for t in self.status if t != s])
         else:
@@ -263,7 +263,7 @@ class UserData:
                 l.remove(s)
             self.status = ''.join(l)
         self.log << f"移除了{'一层' if not remove_all else ''}永久状态{s}，当前状态为{self.status}。"
-    def remove_daily_status(self, s: str, *, remove_all=True):
+    def remove_daily_status(self, s: str, /, remove_all=True):
         if remove_all:
             self.daily_status = ''.join([t for t in self.daily_status if t != s])
         else:

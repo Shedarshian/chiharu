@@ -499,6 +499,10 @@ async def dragon_construct(buf: SessionBuffer):
                 buf.send("你成功触发了炸弹，被炸死了！")
                 user.log << f"触发了炸弹，被炸死了。"
                 remove_bomb(word)
+                if user.data.check_status('v'):
+                    user.data.remove_status('v', remove_all=False)
+                    user.log << f"触发了矢量操作的效果，没死。"
+                    user.send_char("触发了矢量操作的效果，没死。")
                 if user.data.check_daily_status('Y'):
                     user.log << f"触发了IX - 隐者的效果，没死。"
                     user.send_char("触发了IX - 隐者的效果，没死。")
