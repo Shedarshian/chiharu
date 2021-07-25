@@ -588,12 +588,24 @@ async def dragon_check(buf: SessionBuffer):
     活动词/active：查询当前可以接的词。
     复活时间/recover_time：查询自己的复活时间。
     状态/status：查询自己当前状态。
+    全局状态/global_status：查询当前全局状态。
     资料/profile：查询自己当前资料。
     手牌/hand_cards：查询自己当前手牌。
     击毙/jibi：查询自己的击毙数。
     商店/shop：查询可购买项目。"""
     with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         d = json.load(f)
+    def _(d, qq=None):
+        for s in d.status:
+            yield _card.status_dict[s]
+        for s in d.daily_status:
+            yield _card.daily_status_dict[s]
+        for key in d.status_time:
+            time = d.get_limited_time(key)
+            if time is not None:
+                yield f"{_card.limited_status_dict[key]}\n\t结束时间：{time}分钟。"
+        if qq and qq in global_state['lianhuan']:
+            yield logic_dragon_file.tiesuolianhuan.status_des
     data = buf.current_arg_text
     if data in ("奖励词", "keyword"):
         buf.finish("当前奖励词为：" + keyword)
@@ -607,6 +619,12 @@ async def dragon_check(buf: SessionBuffer):
         buf.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
     elif data in ("商店", "shop"):
         buf.finish("1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. (35击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。\n8. (25击毙)抽一张卡，每日限一次。" + ("\n16. (5击毙)🎰🎲💰选我抽奖！💰🎲🎰" if me.check_daily_status('O') else ''))
+    elif data in ("全局状态", "global_status"):
+        ret = '\n'.join(_(me))
+        if ret == '':
+            buf.finish("目前没有全局状态！")
+        else:
+            buf.finish("全局状态为：\n" + ret)
     qq = buf.ctx['user_id']
     user = User(qq, buf)
     if data in ("复活时间", "recover_time"):
@@ -623,18 +641,7 @@ async def dragon_check(buf: SessionBuffer):
     elif data in ("击毙", "jibi"):
         buf.finish("你的击毙数为：" + str(user.data.jibi))
     elif data in ("状态", "status"):
-        def _():
-            for s in user.data.status:
-                yield _card.status_dict[s]
-            for s in user.data.daily_status:
-                yield _card.daily_status_dict[s]
-            for key in user.data.status_time:
-                time = user.data.get_limited_time(key)
-                if time is not None:
-                    yield f"{_card.limited_status_dict[key]}\n\t结束时间：{time}分钟。"
-            if qq in global_state['lianhuan']:
-                yield logic_dragon_file.tiesuolianhuan.status_des
-        ret = '\n'.join(_())
+        ret = '\n'.join(_(user.data, qq))
         if ret == '':
             buf.finish("你目前没有状态！")
         else:
