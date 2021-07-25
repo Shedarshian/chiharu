@@ -261,7 +261,7 @@ def cancellation(session):
         return value
     return control
 
-from .logic_dragon_file import Equipment, TQuest, global_state, save_global_state, save_data, mission, get_mission, me, draw_card, Card, _card, Game, User
+from .logic_dragon_file import Equipment, TCounter, TQuest, global_state, save_global_state, save_data, mission, get_mission, me, draw_card, Card, _card, Game, User
 from . import logic_dragon_file
 
 async def update_begin_word(is_daily: bool):
@@ -429,7 +429,7 @@ async def dragon_construct(buf: SessionBuffer):
                     await user.add_jibi(n * 10)
                 if global_state['exchange_stack']:
                     to_exchange = User(global_state['exchange_stack'][-1], buf)
-                    if (await user.check_attacked(to_exchange)).valid:
+                    if (await user.check_attacked(to_exchange, TCounter(double=1))).valid:
                         global_state['exchange_stack'].pop(-1)
                         user.log << f"触发了互相交换，来自{to_exchange.qq}。"
                         save_global_state()
@@ -474,11 +474,12 @@ async def dragon_construct(buf: SessionBuffer):
                 last = User(last_qq, buf)
                 c = await last.check_attacked(user)
                 if last_qq not in global_state['steal'][str(qq)]['user'] and global_state['steal'][str(qq)]['time'] < 10 and c.valid:
-                    global_state['steal'][str(qq)]['time'] += 2 ** c.double
+                    global_state['steal'][str(qq)]['time'] += 1
                     global_state['steal'][str(qq)]['user'].append(last_qq)
                     save_global_state()
                     user.log << f"触发了{n}次掠夺者啵噗的效果，偷取了{last_qq}击毙，剩余偷取次数{9 - global_state['steal'][str(qq)]['time']}。"
                     if (p := last.data.jibi) > 0:
+                        n *= 2 ** c.double
                         buf.send(f"你从上一名玩家处偷取了{min(n, p)}击毙！")
                         await last.add_jibi(-n)
                         await user.add_jibi(min(n, p))

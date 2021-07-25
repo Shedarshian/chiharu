@@ -561,19 +561,23 @@ class User:
             current = current.parent
             u.data.event_stage = current
             t = (current.data_saved, u.qq)
-    async def check_attacked(self, killer: 'User'):
+    async def check_attacked(self, killer: 'User', not_valid: TCounter=TCounter()):
         if self == killer:
             return TCounter()
-        if self.data.check_status('0'):
+        def _():
+            if killer.data.check_status('0'):
+                killer.data.remove_status('0', remove_all=False)
+                return True
+            return False
+        if self.data.check_status('0') and not not_valid.dodge:
             self.data.remove_status('0', remove_all=False)
             return TCounter(dodge=True)
-        elif killer.data.check_status('0'):
-            killer.data.remove_status('0', remove_all=False)
-            return TCounter()
-        elif self.data.check_status('v'):
+        elif self.data.check_status('v') and not not_valid.rebound:
+            if _():
+                return TCounter()
             self.data.remove_status('v', remove_all=False)
             return TCounter(rebound=True)
-        elif (n := killer.data.check_status('v')):
+        elif (n := killer.data.check_status('v')) and not not_valid.double:
             killer.data.remove_status('v')
             return TCounter(double=n)
         return TCounter()
@@ -953,7 +957,7 @@ class tiesuolianhuan(_card):
                 global_state['lianhuan'].append(target)
         for target in l:
             u = User(target, user.buf)
-            if (c := await u.check_attacked(user)).dodge:
+            if (c := await u.check_attacked(user, TCounter(double=1))).dodge:
                 continue
             elif c.rebound:
                 toggle(user.qq)
@@ -1191,7 +1195,7 @@ class liwujiaohuan(_card):
         for u in l:
             if u.data.check_status('G'):
                 u.data.remove_status("G")
-            elif not (await u.check_attacked(user)).valid:
+            elif not (await u.check_attacked(user, TCounter(double=1))).valid:
                 pass
             else:
                 for c in u.data.hand_card:
