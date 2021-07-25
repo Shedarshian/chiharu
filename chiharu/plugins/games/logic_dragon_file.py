@@ -1402,6 +1402,7 @@ add_mission("前两个字的韵母相同。")(lambda s: len(p := pinyin(s[0:2], 
 add_mission("首字没有声母。")(lambda s: len(p := pinyin(s[0:1], style=Style.INITIALS, strict=True, errors='ignore', heteronym=True)) >= 1 and '' in p[0])
 add_mission("首字是多音字。")(lambda s: len(p := pinyin(s[0:1], style=Style.INITIALS, strict=True, errors='ignore', heteronym=True)) >= 1 and len(p[0]) > 1)
 add_mission("所有字音调相同且至少包含两个字。")(lambda s: len(p := pinyin(s, style=Style.FINALS_TONE3, neutral_tone_with_five=True, strict=True, errors='ignore', heteronym=True)) > 1 and len(reduce(lambda x, y: x & y, (set(c[-1] for c in s) for s in p))) != 0)
+add_mission("首字与尾字相同且至少包含两个字。。")(lambda s: len(s) >= 2 and s[0] == s[-1])
 
 from collections import namedtuple
 @lru_cache(10)
