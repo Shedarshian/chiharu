@@ -1,6 +1,6 @@
 import itertools, hashlib
 import random, more_itertools, json, re
-from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, List, NamedTuple, Optional, Set, Tuple, Type, TypeVar, TypedDict, Union
+from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, List, NamedTuple, Optional, Set, Tuple, Type, TypeVar, TypedDict, Union, final
 from collections import Counter, UserDict
 from functools import lru_cache, partial, wraps
 from copy import copy
@@ -491,76 +491,80 @@ class User:
     async def settlement(self, to_do: Coroutine):
         """结算卡牌相关。请不要递归调用此函数。"""
         self.log << "开始结算。"
-        await to_do
-        # discard
-        x = len(self.data.hand_card) - self.data.card_limit
-        while x > 0:
-            save_data()
-            if self.buf.active != self.qq:
-                self.buf.send(f"该玩家手牌已超出上限{x}张！多余的牌已被弃置。")
-                self.log << f"手牌为{cards_to_str(self.data.hand_card)}，超出上限{self.data.card_limit}，自动弃置。"
-                await self.discard_cards(copy(self.data.hand_card[self.data.card_limit:]))
-            else:
-                ret2 = f"您的手牌已超出上限{x}张！请先选择一些牌弃置（输入id号，使用空格分隔）：\n" + \
-                    "\n".join(c.full_description(self.qq) for c in self.data.hand_card)
-                self.log << f"手牌超出上限，用户选择弃牌。"
-                await self.buf.flush()
-                l = await self.buf.aget(prompt=ret2,
-                    arg_filters=[
-                        extractors.extract_text,
-                        lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
-                        validators.fit_size(x, x, message="请输入正确的张数。"),
-                        validators.ensure_true(lambda l: self.data.check_throw_card(l), message="您选择了错误的卡牌！"),
-                        validators.ensure_true(lambda l: 53 not in l, message="空白卡牌不可因超出手牌上限而被弃置！")
-                    ])
-                self.buf.send("成功弃置。")
-                await self.discard_cards([Card(i) for i in l])
+        try:
+            await to_do
+            # discard
             x = len(self.data.hand_card) - self.data.card_limit
-        self.data.set_cards()
-        await self.buf.flush()
-        save_data()
+            while x > 0:
+                save_data()
+                if self.buf.active != self.qq:
+                    self.buf.send(f"该玩家手牌已超出上限{x}张！多余的牌已被弃置。")
+                    self.log << f"手牌为{cards_to_str(self.data.hand_card)}，超出上限{self.data.card_limit}，自动弃置。"
+                    await self.discard_cards(copy(self.data.hand_card[self.data.card_limit:]))
+                else:
+                    ret2 = f"您的手牌已超出上限{x}张！请先选择一些牌弃置（输入id号，使用空格分隔）：\n" + \
+                        "\n".join(c.full_description(self.qq) for c in self.data.hand_card)
+                    self.log << f"手牌超出上限，用户选择弃牌。"
+                    await self.buf.flush()
+                    l = await self.buf.aget(prompt=ret2,
+                        arg_filters=[
+                            extractors.extract_text,
+                            lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
+                            validators.fit_size(x, x, message="请输入正确的张数。"),
+                            validators.ensure_true(lambda l: self.data.check_throw_card(l), message="您选择了错误的卡牌！"),
+                            validators.ensure_true(lambda l: 53 not in l, message="空白卡牌不可因超出手牌上限而被弃置！")
+                        ])
+                    self.buf.send("成功弃置。")
+                    await self.discard_cards([Card(i) for i in l])
+                x = len(self.data.hand_card) - self.data.card_limit
+            await self.buf.flush()
+        finally:
+            self.data.set_cards()
+            save_data()
     async def event_move(self, n):
         current: Grid = self.data.event_stage
         begin = current.stage
-        while n != 0:
-            for i in range(abs(n)):
-                if n > 0:
-                    childs = current.childs
-                    if len(childs) == 1:
-                        current = childs[0]
+        try:
+            while n != 0:
+                for i in range(abs(n)):
+                    if n > 0:
+                        childs = current.childs
+                        if len(childs) == 1:
+                            current = childs[0]
+                        else:
+                            await self.buf.flush()
+                            config.logger.dragon << f"【LOG】询问用户{self.qq}接下来的路线。"
+                            s = await self.buf.session.aget(prompt="请选择你接下来的路线【附图】", force_update=True, arg_filters=[
+                                extractors.extract_text,
+                                lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
+                                validators.fit_size(1, 1, message="请输入数字。"),
+                                lambda l: l[0],
+                                validators.ensure_true(lambda s: 0 <= s < len(childs), message="数字输入错误！"),
+                            ])
+                            current = childs[s]
                     else:
-                        await self.buf.flush()
-                        config.logger.dragon << f"【LOG】询问用户{self.qq}接下来的路线。"
-                        s = await self.buf.session.aget(prompt="请选择你接下来的路线【附图】", force_update=True, arg_filters=[
-                            extractors.extract_text,
-                            lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
-                            validators.fit_size(1, 1, message="请输入数字。"),
-                            lambda l: l[0],
-                            validators.ensure_true(lambda s: 0 <= s < len(childs), message="数字输入错误！"),
-                        ])
-                        current = childs[s]
-                else:
-                    p = current.parent
-                    current = p or current
-            self.log << f"行走至格子{current}。"
+                        p = current.parent
+                        current = p or current
+                self.log << f"行走至格子{current}。"
+                n = await current.do(self)
+        finally:
             self.data.event_stage = current
-            n = await current.do(self)
-        end = current.stage
-        if begin // 50 < (e := end // 50) and e <= 8:
-            pt = (10, 20, 10, 50, 10, 20, 10, 50)[e - 1]
-            self.send_log(f"经过了{e * 50}层，获得了{pt}pt！")
-            await self.add_event_pt(pt)
-        t = (current.data_saved, self.qq)
-        u = self
-        while 1:
-            l = config.userdata.execute("select qq from dragon_data where event_stage=? and qq<>?", t).fetchone()
-            if l is None:
-                break
-            u.send_log(f"将玩家{l['qq']}踢回了一格！")
-            u = User(l['qq'], self.buf)
-            current = current.parent
-            u.data.event_stage = current
-            t = (current.data_saved, u.qq)
+            end = current.stage
+            if begin // 50 < (e := end // 50) and e <= 8:
+                pt = (10, 20, 10, 50, 10, 20, 10, 50)[e - 1]
+                self.send_log(f"经过了{e * 50}层，获得了{pt}pt！")
+                await self.add_event_pt(pt)
+            t = (current.data_saved, self.qq)
+            u = self
+            while 1:
+                l = config.userdata.execute("select qq from dragon_data where event_stage=? and qq<>?", t).fetchone()
+                if l is None:
+                    break
+                u.send_log(f"将玩家{l['qq']}踢回了一格！")
+                u = User(l['qq'], self.buf)
+                current = current.parent
+                u.data.event_stage = current
+                t = (current.data_saved, u.qq)
     async def check_attacked(self, killer: 'User', not_valid: TCounter=TCounter()):
         if self == killer:
             return TCounter()
