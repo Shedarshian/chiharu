@@ -471,18 +471,19 @@ async def dragon_construct(buf: SessionBuffer):
                 add_keyword(word)
             if (n := user.data.check_status('p')):
                 last_qq = parent.qq
-                last = User(last_qq, buf)
-                c = await last.check_attacked(user)
-                if last_qq not in global_state['steal'][str(qq)]['user'] and global_state['steal'][str(qq)]['time'] < 10 and c.valid:
-                    global_state['steal'][str(qq)]['time'] += 1
-                    global_state['steal'][str(qq)]['user'].append(last_qq)
-                    save_global_state()
-                    user.log << f"触发了{n}次掠夺者啵噗的效果，偷取了{last_qq}击毙，剩余偷取次数{9 - global_state['steal'][str(qq)]['time']}。"
-                    if (p := last.data.jibi) > 0:
-                        n *= 2 ** c.double
-                        buf.send(f"你从上一名玩家处偷取了{min(n, p)}击毙！")
-                        await last.add_jibi(-n)
-                        await user.add_jibi(min(n, p))
+                if parent.id != 0:
+                    last = User(last_qq, buf)
+                    c = await last.check_attacked(user)
+                    if last_qq not in global_state['steal'][str(qq)]['user'] and global_state['steal'][str(qq)]['time'] < 10 and c.valid:
+                        global_state['steal'][str(qq)]['time'] += 1
+                        global_state['steal'][str(qq)]['user'].append(last_qq)
+                        save_global_state()
+                        user.log << f"触发了{n}次掠夺者啵噗的效果，偷取了{last_qq}击毙，剩余偷取次数{9 - global_state['steal'][str(qq)]['time']}。"
+                        if (p := last.data.jibi) > 0:
+                            n *= 2 ** c.double
+                            buf.send(f"你从上一名玩家处偷取了{min(n, p)}击毙！")
+                            await last.add_jibi(-n)
+                            await user.add_jibi(min(n, p))
             if fork:
                 buf.send("你触发了Fork Bomb，此词变成了分叉点！")
             if l := global_state['quest'].get(str(qq)):
