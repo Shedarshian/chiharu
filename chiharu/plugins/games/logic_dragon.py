@@ -673,7 +673,7 @@ async def dragon_check(buf: SessionBuffer):
             s = user.data.check_equipment(1)
             p = user.data.event_shop
             nt = '\n\t'
-            buf.finish(f"1. (75pt){'升星' if b else '购买'}比基尼。{'（不可购买）' if s else f'（余{3 - b}次）'}{f'{nt}{Equipment(0).description(b + 1)}' if not s and b != 3 else ''}\n2. (75pt){'升星' if s else '购买'}学校泳装。{'（不可购买）' if b else f'（余{3 - s}次）'}{f'{nt}{Equipment(1).description(s + 1)}' if not b and s != 3 else ''}\n3. (75pt)暴食的蜈蚣。{'（不可购买）' if p else '（余1次）'}\n4. (30pt)抽卡券。")
+            buf.finish(f"1. (75pt){'升星' if b else '购买'}比基尼。{'（不可购买）' if s else f'（余{3 - b}次）'}{f'{nt}{Equipment(0).description(b + 1)}' if not s and b != 3 else ''}\n2. (75pt){'升星' if s else '购买'}学校泳装。{'（不可购买）' if b else f'（余{3 - s}次）'}{f'{nt}{Equipment(1).description(s + 1)}' if not b and s != 3 else ''}\n3. (75pt)暴食的蜈蚣。（余{1 - p}次）\n4. (30pt)抽卡券。")
 
 @on_command(('dragon', 'buy'), aliases="购买", only_to_me=False, short_des="购买逻辑接龙相关商品。", args=("id",), environment=env)
 @config.ErrorHandle(config.logger.dragon)
@@ -808,6 +808,40 @@ async def dragon_buy_event(buf: SessionBuffer):
     qq = buf.ctx['user_id']
     user = User(qq, buf)
     user.log << f"购买活动商品{id}。"
+    if current_event == 'swim':
+        b = user.data.check_equipment(0)
+        s = user.data.check_equipment(1)
+        if id == 1:
+            # （75pt）购买或升星比基尼（拥有学校泳装时不可购买）（余3次）
+            if s != 0:
+                buf.finish("您已拥有学校泳装，不可购买比基尼！")
+            elif b == 3:
+                buf.finish("此商品已售罄！")
+            user.add_event_pt(-75, is_buy=True)
+            user.data.equipment[0] = b + 1
+            buf.send(f"您{'购买了1星比基尼' if b == 0 else f'将比基尼升至了{b + 1}星'}！")
+        elif id == 2:
+            # （75pt）购买或升星学校泳装（拥有比基尼时不可购买）（余3次）
+            if b != 0:
+                buf.finish("您已拥有比基尼，不可购买学校泳装！")
+            elif s == 3:
+                buf.finish("此商品已售罄！")
+            user.add_event_pt(-75, is_buy=True)
+            user.data.equipment[0] = s + 1
+            buf.send(f"您{'购买了1星学校泳装' if s == 0 else f'将学校泳装升至了{s + 1}星'}！")
+        elif id == 3:
+            # （75pt）暴食的蜈蚣（余1次）
+            p = user.data.event_shop
+            if p == 1:
+                buf.finish("此商品已售罄！")
+            user.add_event_pt(-75, is_buy=True)
+            user.data.event_shop = 1
+            buf.send("您购买了暴食的蜈蚣！")
+            await user.settlement(user.draw(0, cards=[Card(56)]))
+        elif id == 4:
+            # （30pt）抽卡券
+            user.data.draw_time += 1
+            buf.send("您购买了1张抽卡券！")
 
 @on_command(('dragon', 'fork'), aliases="分叉", only_to_me=False, short_des="分叉接龙。", args=("id",), environment=env)
 @config.ErrorHandle(config.logger.dragon)

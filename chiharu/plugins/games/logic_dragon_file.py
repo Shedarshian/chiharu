@@ -326,7 +326,7 @@ class User:
     @property
     def log(self):
         return self.data.log
-    async def add_event_pt(self, pt: int):
+    async def add_event_pt(self, pt: int, /, is_buy: bool=False):
         self.data.event_pt += pt
         self.send_char(f"收到了{pt}活动pt！")
         self.log << f"增加了{pt}活动pt。现有{self.data.event_pt}活动pt。"
@@ -557,13 +557,14 @@ class User:
             t = (current.data_saved, self.qq)
             u = self
             while 1:
-                l = config.userdata.execute("select qq from dragon_data where event_stage=? and qq<>?", t).fetchone()
-                if l is None:
+                l = config.userdata.execute("select qq from dragon_data where event_stage=? and qq<>?", t).fetchall()
+                if len(l) == 0:
                     break
-                u.send_log(f"将玩家{l['qq']}踢回了一格！")
-                u = User(l['qq'], self.buf)
+                u.send_log(f"将玩家{','.join(r['qq'] for r in l)}踢回了一格！")
                 current = current.parent
-                u.data.event_stage = current
+                for r in l:
+                    u = User(r['qq'], self.buf)
+                    u.data.event_stage = current
                 t = (current.data_saved, u.qq)
     async def check_attacked(self, killer: 'User', not_valid: TCounter=TCounter()):
         if self == killer:
