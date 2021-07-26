@@ -186,12 +186,14 @@ def wrapper_file(_func):
     return func
 # pylint: disable=no-value-for-parameter
 @wrapper_file
-def update_keyword(d, if_delete=False):
+def update_keyword(d: TWords, if_delete=False):
     global keyword
-    if len(d['keyword'][1]) == 0:
+    s = set(d['keyword'][1]) - log_set - set(bombs)
+    if len(s) == 0:
+        keyword = ""
         config.logger.dragon << "【LOG】更新关键词失败！"
         return False
-    keyword = random.choice(d['keyword'][1])
+    keyword = random.choice(list(s))
     d['keyword'][1].remove(keyword)
     if not if_delete:
         d['keyword'][1].append(d['keyword'][0])
@@ -199,7 +201,7 @@ def update_keyword(d, if_delete=False):
     config.logger.dragon << f"【LOG】关键词更新为：{keyword}。"
     return True
 @wrapper_file
-def update_hidden_keyword(d, which, if_delete=False):
+def update_hidden_keyword(d: TWords, which, if_delete=False):
     global hidden_keyword
     if which == -1:
         n = {0, 1, 2}
@@ -219,13 +221,13 @@ def update_hidden_keyword(d, which, if_delete=False):
     config.logger.dragon << f"【LOG】隐藏关键词更新为：{'，'.join(hidden_keyword)}。"
     return True
 @wrapper_file
-def remove_bomb(d, word):
+def remove_bomb(d: TWords, word):
     global bombs
     d["bombs"].remove(word)
     bombs.remove(word)
     config.logger.dragon << f"【LOG】移除了炸弹{word}，当前炸弹：{'，'.join(bombs)}。"
 @wrapper_file
-def remove_all_bomb(d, p: Optional[float]=None):
+def remove_all_bomb(d: TWords, p: Optional[float]=None):
     global bombs
     if p is None:
         d["bombs"] = []
@@ -235,21 +237,21 @@ def remove_all_bomb(d, p: Optional[float]=None):
         d["bombs"] = bombs = [bomb for bomb in bombs if random.random() > p]
         config.logger.dragon << f"【LOG】炸弹变成了{'，'.join(bombs)}。"
 @wrapper_file
-def add_bomb(d, word):
+def add_bomb(d: TWords, word):
     global bombs
     d["bombs"].append(word)
     bombs.append(word)
     config.logger.dragon << f"【LOG】增加了炸弹{word}，当前炸弹：{'，'.join(bombs)}。"
 @wrapper_file
-def add_begin(d, word):
+def add_begin(d: TWords, word):
     d['begin'].append(word)
     config.logger.dragon << f"【LOG】增加了起始词{word}。"
 @wrapper_file
-def add_keyword(d, word):
+def add_keyword(d: TWords, word):
     d['keyword'][1].append(word)
     config.logger.dragon << f"【LOG】增加了起始词{word}。"
 @wrapper_file
-def add_hidden(d, word):
+def add_hidden(d: TWords, word):
     d['hidden'][1].append(word)
     config.logger.dragon << f"【LOG】增加了隐藏关键词{word}。"
 
