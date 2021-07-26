@@ -1559,7 +1559,7 @@ class Grid:
         i //= 4
         content = i % 100
         if content < 10:
-            s += f"被击毙{content // 2 * 5}分钟。"
+            s += f"被击毙{content // 2 * 5 + 5}分钟。"
         elif content < 60:
             s += f"获得{(content - 10) // 10 * 2 + 2}击毙。"
         elif content < 75:
@@ -1567,7 +1567,7 @@ class Grid:
         elif content < 85:
             s += "抽一张卡并立即发动效果。"
         else: # ？
-            pass
+            s += "目前还没设计的效果（？）。"
         return s
     @property
     def parent(self):
