@@ -1538,7 +1538,7 @@ class Grid:
     def __new__(cls, stage: int, route: int) -> Any:
         if i := cls.pool.get((stage, route)):
             return i
-        return object.__new__(cls, stage, route)
+        return super(Grid, cls).__new__(cls, stage, route)
     def __init__(self, stage: int, route: int):
         self.stage = stage
         self.route = route
