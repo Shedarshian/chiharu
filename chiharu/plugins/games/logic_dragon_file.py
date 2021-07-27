@@ -475,9 +475,9 @@ class User:
         self.data.hand_card.clear()
         target.data.hand_card.clear()
         for card in self_hand_cards:
-            await card.on_give(self)
+            await card.on_give(self, target)
         for card in target_hand_cards:
-            await card.on_give(self)
+            await card.on_give(target, self)
         self.data.hand_card.extend(target_hand_cards)
         target.data.hand_card.extend(self_hand_cards)
         self.data.set_cards()
