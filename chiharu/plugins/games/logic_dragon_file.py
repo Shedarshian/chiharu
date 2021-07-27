@@ -216,12 +216,12 @@ class UserData:
     @property
     def event_stage(self):
         if '_event_stage' not in self.__dict__:
-            self._event_stage: Grid = Grid(self.node['event_stage'] % 2048, self.node['event_stage'] // 2048)
+            self._event_stage: Grid = Grid(self.node['event_stage'])
         return self._event_stage
     @event_stage.setter
     def event_stage(self, value: 'Grid'):
         self._event_stage = value
-        config.userdata.execute("update dragon_data set event_stage=? where qq=?", (self._event_stage.data_saved, self.qq))
+        config.userdata.execute("update dragon_data set event_stage=? where qq=?", (self._event_stage.stage, self.qq))
     @property
     def event_shop(self):
         return self.node['event_shop']
@@ -522,50 +522,32 @@ class User:
             self.data.set_cards()
             save_data()
     async def event_move(self, n):
-        current: Grid = self.data.event_stage
+        self.log << f"走了{n}格。"
+        current = self.data.event_stage
         begin = current.stage
-        try:
-            while n != 0:
-                for i in range(abs(n)):
-                    if n > 0:
-                        childs = current.childs
-                        if len(childs) == 1:
-                            current = childs[0]
-                        else:
-                            await self.buf.flush()
-                            config.logger.dragon << f"【LOG】询问用户{self.qq}接下来的路线。"
-                            s = await self.buf.session.aget(prompt="请选择你接下来的路线【附图】", force_update=True, arg_filters=[
-                                extractors.extract_text,
-                                lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
-                                validators.fit_size(1, 1, message="请输入数字。"),
-                                lambda l: l[0],
-                                validators.ensure_true(lambda s: 0 <= s < len(childs), message="数字输入错误！"),
-                            ])
-                            current = childs[s]
-                    else:
-                        p = current.parent
-                        current = p or current
-                self.log << f"行走至格子{current}。"
-                n = await current.do(self)
-        finally:
-            self.data.event_stage = current
-            end = current.stage
-            if begin // 50 < (e := end // 50) and e <= 8:
-                pt = (10, 20, 10, 50, 10, 20, 10, 50)[e - 1]
-                self.send_log(f"经过了{e * 50}层，获得了{pt}pt！")
-                await self.add_event_pt(pt)
-            t = (current.data_saved, self.qq)
-            u = self
-            while 1:
-                l = config.userdata.execute("select qq from dragon_data where event_stage=? and qq<>?", t).fetchall()
-                if len(l) == 0:
-                    break
-                u.send_log(f"将玩家{','.join(r['qq'] for r in l)}踢回了一格！")
-                current = current.parent
-                for r in l:
-                    u = User(r['qq'], self.buf)
-                    u.data.event_stage = current
-                t = (current.data_saved, u.qq)
+        while n != 0:
+            current = Grid(min(current.stage + n, 0))
+            self.log << f"行走至格子{current}。"
+            n = await current.do(self)
+        self.data.event_stage = current
+        end = current.stage
+        if begin // 50 < (e := end // 50) and e <= 8:
+            pt = (10, 20, 10, 50, 10, 20, 10, 50)[e - 1]
+            self.send_log(f"经过了{e * 50}层，获得了{pt}pt！")
+            await self.add_event_pt(pt)
+        t = (current.stage, self.qq)
+        u = self
+        while 1:
+            l = config.userdata.execute("select qq from dragon_data where event_stage=? and qq<>?", t).fetchone()
+            if l is None:
+                break
+            u.send_log(f"将玩家{l['qq']}踢回了一格！")
+            current = current.parent
+            if current is None:
+                break
+            u = User(l['qq'], self.buf)
+            u.data.event_stage = current
+            t = (current.stage, u.qq)
     async def check_attacked(self, killer: 'User', not_valid: TCounter=TCounter()):
         if self == killer:
             return TCounter()
@@ -1533,25 +1515,21 @@ class schoolsui(_equipment):
 
 # 爬塔格子
 class Grid:
-    __slots__ = ('stage', 'route', 'hashed')
-    pool: Dict[Tuple[int, int], 'Grid'] = {}
-    def __new__(cls, stage: int, route: int) -> Any:
-        if i := cls.pool.get((stage, route)):
+    __slots__ = ('stage', 'hashed')
+    pool: Dict[int, 'Grid'] = {}
+    def __new__(cls, stage: int) -> Any:
+        if i := cls.pool.get(stage):
             return i
         return super(Grid, cls).__new__(cls)
-    def __init__(self, stage: int, route: int):
+    def __init__(self, stage: int):
         self.stage = stage
-        self.route = route
-        h = f"{stage} {route}".encode('utf-8')
+        h = f"{stage} 0".encode('utf-8')
         b = hashlib.sha1(h).digest()
         self.hashed = int.from_bytes(b[0:3], 'big')
     def __hash__(self):
-        return hash((self.stage, self.route))
+        return hash((self.stage,))
     def __str__(self):
-        return f"{self.stage}层{self.route}列"
-    @property
-    def data_saved(self):
-        return self.stage + self.route * 2048
+        return f"{self.stage}层"
     @property
     def description(self):
         i = self.hashed
@@ -1571,20 +1549,13 @@ class Grid:
         return s
     @property
     def parent(self):
-        if self.route != 0 and (p := global_state["event_route"][self.route - 1]) + 1 == self.stage:
-            return Grid(p % 2048, p // 2048)
-        elif self.stage >= 1:
-            return Grid(self.stage - 1, self.route)
+        if self.stage >= 1:
+            return Grid(self.stage - 1)
         else:
             return None
     @property
-    def childs(self):
-        route = [self.route]
-        if self.data_saved in global_state["event_route"]:
-            route += [i for i, d in enumerate(global_state["event_route"]) if d == self.data_saved]
-        return [Grid(self.stage + 1, r) for r in route]
-    def fork(self):
-        global_state["event_route"].append(self.data_saved)
+    def child(self):
+        return Grid(self.stage + 1)
     async def do(self, user: User):
         i = self.hashed
         await user.add_event_pt(2 + i % 4)

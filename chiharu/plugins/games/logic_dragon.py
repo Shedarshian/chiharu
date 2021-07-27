@@ -473,7 +473,7 @@ async def dragon_construct(buf: SessionBuffer):
                 add_keyword(word)
             if (n := user.data.check_status('p')):
                 last_qq = parent.qq
-                if parent.id != 0:
+                if parent.id != (0, 0):
                     last = User(last_qq, buf)
                     c = await last.check_attacked(user)
                     if last_qq not in global_state['steal'][str(qq)]['user'] and global_state['steal'][str(qq)]['time'] < 10 and c.valid:
