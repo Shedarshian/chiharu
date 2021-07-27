@@ -373,6 +373,7 @@ class User:
             if not dodge and jibi < 0 and -jibi >= self.data.jibi / 2:
                 dodge2 = True
                 self.data.remove_status('n', remove_all=False)
+                self.send_char(f"触发了深谋远虑之策的效果，此次免单！")
         if not dodge and not dodge2:
             self.data.jibi += jibi
         self.log << f"原有击毙{current_jibi}，{f'触发了{s}次告解的效果，' if s > 0 else ''}{f'触发了{n}次变压器的效果，' if n > 0 else ''}{f'触发了比基尼的效果，' if q > 0 else ''}{f'触发了学生泳装的效果，' if dodge else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 else ''}{f'触发了{p}次北京市政交通一卡通的效果，' if p > 0 else ''}{f'触发了深谋远虑之策的效果，' if dodge2 else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
