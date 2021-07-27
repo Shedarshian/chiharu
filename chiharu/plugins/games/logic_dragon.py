@@ -633,7 +633,10 @@ async def dragon_check(buf: SessionBuffer):
     elif data in ("商店", "shop"):
         buf.finish("1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. (35击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。\n8. (25击毙)抽一张卡，每日限一次。" + ("\n16. (5击毙)🎰🎲💰选我抽奖！💰🎲🎰" if me.check_daily_status('O') else ''))
     elif data in ("全局状态", "global_status"):
-        ret = '\n'.join(_(me))
+        l = list(_(me))
+        if n := len(global_state["exchange_stack"]):
+            l += [Card(75).status_des] * n
+        ret = '\n'.join(l)
         if ret == '':
             buf.finish("目前没有全局状态！")
         else:

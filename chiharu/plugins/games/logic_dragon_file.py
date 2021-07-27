@@ -1224,6 +1224,7 @@ class huxiangjiaohuan(_card):
     name = '互相交换'
     id = 75
     positive = 0
+    status_des = "互相交换：下一个接中隐藏奖励词的玩家手牌、击毙与某人互换。"
     description = "下一个接中隐藏奖励词的玩家手牌、击毙与你互换。"
     @classmethod
     async def use(cls, user: User):
