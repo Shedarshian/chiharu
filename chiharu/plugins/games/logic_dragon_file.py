@@ -655,8 +655,8 @@ class _status(metaclass=status_meta):
         pass
     def check(self) -> bool:
         return True
-    def construct_repr(self, s):
-        return f"Status('{self.id}')('{s}')"
+    def construct_repr(self, *args):
+        return f"Status('{self.id}')(" + ', '.join(repr(s) for s in args) + ")"
     def __repr__(self) -> str:
         return ""
     def __str__(self) -> str:
@@ -691,9 +691,31 @@ class TimedStatus(_status):
     def double(self):
         return [self.__class__(self.time + (self.time - datetime.now()))]
 
+@final
 class SDeath(TimedStatus):
     id = 'd'
     des = "死亡：不可接龙。"
+
+@final
+class SCantUse(TimedStatus):
+    id = 'm'
+    @property
+    def des(self):
+        return f"疲劳：不可使用卡牌【{Card(self.card_id).name}】。"
+    def __init__(self, s: Union[str, datetime], card_id: int):
+        super().__init__(s)
+        self.card_id = card_id
+    def __repr__(self) -> str:
+        return self.construct_repr(self.time.isoformat(), self.card_id)
+    def __str__(self) -> str:
+        delta = self.time - datetime.now()
+        return f"{self.des}\n\t结束时间：{delta.seconds // 60}分钟。"
+    def __add__(self, other: timedelta) -> T_status:
+        return self.__class__(self.time + other, self.card_id)
+    def __sub__(self, other: timedelta) -> T_status:
+        return self.__class__(self.time - other, self.card_id)
+    def double(self):
+        return [self.__class__(self.time + (self.time - datetime.now()), self.card_id)]
 
 class NumedStatus(_status):
     def __init__(self, s: Union[str, int]):
@@ -867,6 +889,7 @@ class magician(_card):
         config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
         user.send_char('使用了三次卡牌：\n' + card.full_description(user.qq))
         await user.discard_cards([card])
+        user.data.status_time.append(SCantUse(datetime.now() + timedelta(weeks=1), l[0]))
         await card.use(user)
         await card.use(user)
         await card.use(user)
@@ -926,6 +949,8 @@ class strength(_card):
         if user.data.jibi < 2 ** l - 1:
             user.send_char("太弱小了，没有力量！")
             return
+        else:
+            user.send_char(f"花费了{2 ** l - 1}击毙！")
         await user.add_jibi(-2 ** l + 1)
         user.data.add_status(status)
         user.data.add_daily_status(user.data.daily_status)
