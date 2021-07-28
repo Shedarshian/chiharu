@@ -137,7 +137,9 @@ class property_list(UserList):
     def extend(self, other):
         super().extend(other)
         self.f(self.data)
-    __setitem__ = None
+    def __setitem__(self, i, item):
+        super().__setitem__(i, item)
+        self.f(self.data)
     __delitem__ = None
     __iadd__ = None
     __imul__ = None
@@ -259,7 +261,8 @@ class UserData:
     def status_time_checked(self):
         i = 0
         while i < len(self.status_time):
-            if not self.status_time[i].check():
+            t: T_status = self.status_time[i]
+            if not t.check():
                 self.status_time.pop(i)
             else:
                 i += 1
@@ -283,12 +286,6 @@ class UserData:
     def add_daily_status(self, s: str):
         self.daily_status += s
         self.log << f"增加了每日状态{s}，当前状态为{self.daily_status}。"
-    def add_limited_status(self, s: str, end_time: datetime):
-        if s not in self.status_time:
-            self.status_time[s] = end_time.isoformat()
-        else:
-            self.status_time[s] = max(datetime.fromisoformat(self.status_time[s]), end_time).isoformat()
-        self.log << f"增加了限时状态{s}，结束时间为{end_time}。"
     def remove_status(self, s: str, /, remove_all=True):
         if remove_all:
             self.status = ''.join([t for t in self.status if t != s])
@@ -307,22 +304,21 @@ class UserData:
                 l.remove(s)
             self.daily_status = ''.join(l)
         self.log << f"移除了{'一层' if not remove_all else ''}每日状态{s}，当前状态为{self.daily_status}。"
-    def remove_limited_status(self, s: str):
-        if s in self.status_time:
-            del self.status_time[s]
-        self.log << f"移除了限时状态{s}，当前限时状态为{str(self.status_time)}。"
+    def remove_all_limited_status(self, s: str):
+        i = 0
+        while i < len(self.status_time):
+            t: T_status = self.status_time[i]
+            if not t.check() or t.id == s:
+                self.status_time.pop(i)
+            else:
+                i += 1
+        return self.status_time
     def check_status(self, s: str) -> int:
         return self.status.count(s)
     def check_daily_status(self, s: str) -> int:
         return self.daily_status.count(s)
-    def check_limited_status(self, s: str):
-        if s not in self.status_time:
-            return False
-        t = datetime.fromisoformat(self.status_time[s])
-        if t < datetime.now():
-            del self.status_time[s]
-            return False
-        return True
+    def check_limited_status(self, s: str) -> List[T_status]:
+        return [t for t in self.status_time_checked if t.id == s]
     def check_equipment(self, equip_id: int) -> int:
         return self.equipment.get(equip_id, 0)
 
@@ -451,7 +447,7 @@ class User:
         if (n := me.check_daily_status('D')) and not dodge:
             time *= 2 ** n
         if not dodge:
-            self.data.add_limited_status('d', datetime.now() + time)
+            self.data.status_time.append(Status('d')(datetime.now() + time))
             m = time.seconds // 60
             self.send_char(f"死了！{f'{m // 60}小时' if m >= 60 else ''}{f'{m % 60}分钟' if m % 60 != 0 else ''}不得接龙。")
             if (x := self.data.check_status('x')):
@@ -669,10 +665,15 @@ class _status(metaclass=status_meta):
         pass
     __iadd__ = None
     __isub__ = None
+    def double(self):
+        return [self]
 
 class TimedStatus(_status):
-    def __init__(self, s: str):
-        self.time = datetime.fromisoformat(s)
+    def __init__(self, s: Union[str, datetime]):
+        if isinstance(s, datetime):
+            self.time = s
+        else:
+            self.time = datetime.fromisoformat(s)
     def check(self) -> bool:
         delta = self.time - datetime.now()
         return delta >= timedelta()
@@ -682,16 +683,18 @@ class TimedStatus(_status):
         delta = self.time - datetime.now()
         return f"{self.des}\n\t结束时间：{delta.seconds // 60}分钟。"
     def __add__(self, other: timedelta) -> T_status:
-        return self.__class__((self.time + other).isoformat())
+        return self.__class__(self.time + other)
     def __sub__(self, other: timedelta) -> T_status:
-        return self.__class__((self.time - other).isoformat())
+        return self.__class__(self.time - other)
+    def double(self):
+        return [self.__class__(self.time + (self.time - datetime.now()))]
 
 class SDeath(TimedStatus):
     id = 'd'
     des = "死亡：不可接龙。"
 
 class NumedStatus(_status):
-    def __init__(self, s: str):
+    def __init__(self, s: Union[str, int]):
         self.num = int(s)
     def check(self) -> bool:
         return self.num > 0
@@ -703,6 +706,8 @@ class NumedStatus(_status):
         return self.__class__(self.num + other)
     def __sub__(self, other: int) -> T_status:
         return self.__class__(self.num - other)
+    def double(self):
+        return [self, self.__class__(self.num)]
 
 @lru_cache(10)
 def Card(id):
@@ -730,10 +735,9 @@ class card_meta(type):
                 attrs['use'] = use
             elif 'limited_status' in attrs and attrs['limited_status']:
                 status = attrs['limited_status']
-                bases[0].add_limited_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, user: User):
-                    user.data.add_limited_status(status, datetime.now() + attrs['limited_time'])
+                    user.data.status_time.append(status, Status(status)(attrs['limited_init']))
                 attrs['use'] = use
             elif 'global_status' in attrs and attrs['global_status']:
                 status = attrs['global_status']
@@ -751,10 +755,9 @@ class card_meta(type):
                 attrs['use'] = use
             elif 'global_limited_status' in attrs and attrs['global_limited_status']:
                 status = attrs['global_limited_status']
-                bases[0].add_limited_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, user: User):
-                    me.add_limited_status(status, datetime.now() + attrs['global_limited_time'])
+                    me.status_time.append(Status(status)(attrs['global_limited_init']))
                 attrs['use'] = use
             elif 'hold_status' in attrs and attrs['hold_status']:
                 status = attrs['hold_status']
@@ -898,8 +901,8 @@ class lovers(_card):
                     validators.fit_size(1, 1, message="请at正确的人数。"),
                 ])
         u = User(l[0], user.buf)
-        n = u.data.check_limited_status('d')
-        u.data.remove_limited_status('d')
+        n = len(u.data.check_limited_status('d')) == 0
+        u.data.remove_all_limited_status('d')
         user.buf.send("已复活！" + ("（虽然目标并没有死亡）" if n else ''))
 
 class strength(_card):
@@ -911,27 +914,27 @@ class strength(_card):
     @classmethod
     def can_use(cls, user: User) -> bool:
         l = len(''.join(s for s in user.data.status if s not in _card.is_hold)) + len(user.data.daily_status)
-        for k in user.data.status_time:
-            if user.data.check_limited_status(k):
-                l += 1
+        l += len(user.data.status_time_checked)
         return user.data.jibi >= 2 ** l - 1
     @classmethod
     async def use(cls, user: User):
         status = ''.join(s for s in user.data.status if s not in _card.is_hold)
+        l = len(status) + len(user.data.daily_status) + len(user.data.status_time_checked)
         status_time = user.data.status_time
-        l = len(status) + len(user.data.daily_status)
-        for k, val in status_time.items():
-            if user.data.check_limited_status(k):
-                l += 1
         if user.data.jibi < 2 ** l - 1:
             user.send_char("太弱小了，没有力量！")
             return
-        await user.add_jibi(-2 ** l - 1)
+        await user.add_jibi(-2 ** l + 1)
         user.data.add_status(status)
         user.data.add_daily_status(user.data.daily_status)
-        for k, val in status_time.items():
-            if user.data.check_limited_status(k):
-                user.data.add_limited_status(k, datetime.now() + (datetime.fromisoformat(val) - datetime.now()) * 2)
+        i = 0
+        while i < len(status_time):
+            t = status_time[i].double()
+            status_time[i] = t[0]
+            if len(t) == 2:
+                status_time.insert(i + 1, t[1])
+                i += 1
+            i += 1
 
 class hermit(_card):
     name = "IX - 隐者"
@@ -956,10 +959,7 @@ class justice(_card):
     description = "现在你身上每有一个buff，奖励你5击毙。"
     @classmethod
     async def use(cls, user: User):
-        n = len(user.data.status) + len(user.data.daily_status)
-        for k in user.data.status_time:
-            if user.data.check_limited_status(k):
-                n += 1
+        n = len(user.data.status) + len(user.data.daily_status) + len(user.data.status_time_checked)
         user.buf.send(f"你身上有{n}个buff，奖励你{n * 5}个击毙。")
         await user.add_jibi(n * 5)
 
