@@ -1,7 +1,7 @@
 import itertools, hashlib
 import random, more_itertools, json, re
 from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, List, NamedTuple, Optional, Set, Tuple, Type, TypeVar, TypedDict, Union, final
-from collections import Counter, UserDict
+from collections import Counter, UserDict, UserList
 from functools import lru_cache, partial, wraps
 from copy import copy
 from datetime import datetime, timedelta
@@ -121,6 +121,30 @@ class property_dict(UserDict):
     def __delitem__(self, name):
         super().__delitem__(name)
         self.f(self.data)
+class property_list(UserList):
+    def __init__(self, f: Callable, initlist=None) -> None:
+        super().__init__(initlist)
+        self.f = f
+    def append(self, item):
+        super().append(item)
+        self.f(self.data)
+    def remove(self, item):
+        super().remove(item)
+        self.f(self.data)
+    def pop(self, i):
+        super().pop(i)
+        self.f(self.data)
+    def extend(self, other):
+        super().extend(other)
+        self.f(self.data)
+    __setitem__ = None
+    __delitem__ = None
+    __iadd__ = None
+    __imul__ = None
+    insert = None
+    clear = None
+    reverse = None
+    sort = None
 class Wrapper:
     def __init__(self, qq):
         self.qq = qq
@@ -133,7 +157,7 @@ class UserData:
         self.hand_card = [] if self.node['card'] == '' else [Card(int(x)) for x in self.node['card'].split(',')]
         def save(key, value):
             config.userdata.execute(f"update dragon_data set {key}=? where qq=?", (str(value), self.qq))
-        self.status_time: Dict[str, _status] = property_dict(partial(save, 'status_time'), {})
+        self.status_time: List[T_status] = property_list(partial(save, 'status_time'), [])
         self.status_time.data = eval(self.node['status_time'])
         self.equipment = property_dict(partial(save, 'equipment'), {})
         self.equipment.data = eval(self.node['equipment'])
@@ -231,6 +255,15 @@ class UserData:
     def event_shop(self, value):
         config.userdata.execute("update dragon_data set event_shop=? where qq=?", (value, self.qq))
         self.node['event_shop'] = value
+    @property
+    def status_time_checked(self):
+        i = 0
+        while i < len(self.status_time):
+            if not self.status_time[i].check():
+                self.status_time.pop(i)
+            else:
+                i += 1
+        return self.status_time
     def set_cards(self):
         config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(c.id) for c in self.hand_card), self.qq))
         config.logger.dragon << f"【LOG】设置用户{self.qq}手牌为{cards_to_str(self.hand_card)}。"
@@ -290,13 +323,6 @@ class UserData:
             del self.status_time[s]
             return False
         return True
-    def get_limited_time(self, s: str):
-        if s not in self.status_time:
-            return None
-        if not self.status_time[s].check():
-            del self.status_time[s]
-            return None
-        return str(self.status_time[s])
     def check_equipment(self, equip_id: int) -> int:
         return self.equipment.get(equip_id, 0)
 
@@ -314,13 +340,16 @@ class User:
         self.buf.send(self.char + s)
     def send_log(self, s: str):
         self.buf.send_log.dragon(self.qq, s)
-    def decrease_death_time(self, s: str, time: timedelta):
-        t = self.data.status_time[s] - time
-        if not t.check():
-            del self.data.status_time[s]
+    def decrease_death_time(self, time: timedelta):
+        t = more_itertools.only((i, s) for (i, s) in enumerate(self.data.status_time) if s.id == 'd')
+        if t is None:
+            return False
+        s = t[1] - time
+        if not s.check():
+            self.data.status_time.pop(t[0])
             return False
         else:
-            self.data.status_time[s] = t
+            self.data.status_time[t[0]] = s
             return True
     @property
     def log(self):
@@ -633,7 +662,7 @@ class _status(metaclass=status_meta):
     def __repr__(self) -> str:
         return ""
     def __str__(self) -> str:
-        return ""
+        return self.des
     def __add__(self, other) -> T_status:
         pass
     def __sub__(self, other) -> T_status:
@@ -651,7 +680,7 @@ class TimedStatus(_status):
         return self.construct_repr(self.time.isoformat())
     def __str__(self) -> str:
         delta = self.time - datetime.now()
-        return f"结束时间：{delta.seconds // 60}分钟"
+        return f"{self.des}\n\t结束时间：{delta.seconds // 60}分钟。"
     def __add__(self, other: timedelta) -> T_status:
         return self.__class__((self.time + other).isoformat())
     def __sub__(self, other: timedelta) -> T_status:
@@ -669,7 +698,7 @@ class NumedStatus(_status):
     def __repr__(self) -> str:
         return self.construct_repr(str(self.num))
     def __str__(self) -> str:
-        return f"剩余次数：{self.num}次"
+        return f"{self.des}\n\t剩余次数：{self.num}次。"
     def __add__(self, other: int) -> T_status:
         return self.__class__(self.num + other)
     def __sub__(self, other: int) -> T_status:
@@ -815,7 +844,7 @@ class magician(_card):
     name = "I - 魔术师"
     id = 1
     positive = 1
-    description = "选择一张你的手牌（不可选择暴食的蜈蚣），执行3次该手牌的效果，并弃置该手牌。"
+    description = "选择一张你的手牌（不可选择暴食的蜈蚣），执行3次该手牌的效果，并弃置该手牌。此后一周内不得使用该卡。"
     @classmethod
     async def use(cls, user: User):
         await user.buf.flush()

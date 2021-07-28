@@ -613,11 +613,8 @@ async def dragon_check(buf: SessionBuffer):
             yield _card.status_dict[s]
         for s in d.daily_status:
             yield _card.daily_status_dict[s]
-        keys = list(d.status_time.keys())
-        for key in keys:
-            time = d.get_limited_time(key)
-            if time is not None:
-                yield f"{d.status_time[key].des}\n\t{time}。"
+        for s in d.status_time_checked:
+            yield f"{s.des}\n\t{s}。"
         if qq and qq in global_state['lianhuan']:
             yield logic_dragon_file.tiesuolianhuan.status_des
     data = buf.current_arg_text
@@ -714,7 +711,7 @@ async def dragon_buy(buf: SessionBuffer):
             n = jibi
         config.logger.dragon << f"【LOG】用户{qq}使用{n}击毙减少{15 * n}分钟死亡时间。"
         await user.add_jibi(-n, is_buy=True)
-        b = user.decrease_death_time('d', timedelta(minutes=15 * n))
+        b = user.decrease_death_time(timedelta(minutes=15 * n))
         buf.send(f"您减少了{15 * n}分钟的死亡时间！" + ("您活了！" if b else ""))
     elif id == 3:
         # (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。
