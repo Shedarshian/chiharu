@@ -482,12 +482,12 @@ class User:
         self.data.hand_card.extend(target_hand_cards)
         target.data.hand_card.extend(self_hand_cards)
         self.data.set_cards()
-        target_limit = target.card_limit
+        target_limit = target.data.card_limit
         if len(self_hand_cards) > target_limit:
             self.buf.send(f"该玩家手牌已超出上限{len(self_hand_cards) - target_limit}张！多余的牌已被弃置。")
             target.log << f"手牌为{cards_to_str(self_hand_cards)}，超出上限{target_limit}，自动弃置。"
             await target.discard_cards(copy(self_hand_cards[target_limit:]))
-        target.set_cards()
+        target.data.set_cards()
         config.logger.dragon << f"【LOG】交换完用户{self.qq}与用户{target.qq}的手牌，当前用户{self.qq}的手牌为{cards_to_str(self.data.hand_card)}。"
     async def settlement(self, to_do: Coroutine):
         """结算卡牌相关。请不要递归调用此函数。"""
