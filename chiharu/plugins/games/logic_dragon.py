@@ -263,7 +263,7 @@ def cancellation(session):
         return value
     return control
 
-from .logic_dragon_file import Equipment, TCounter, TQuest, global_state, save_global_state, save_data, mission, get_mission, me, draw_card, Card, _card, Game, User
+from .logic_dragon_file import Equipment, TCounter, TQuest, UserData, global_state, save_global_state, save_data, mission, get_mission, me, draw_card, Card, _card, Game, User
 from . import logic_dragon_file
 
 async def update_begin_word(is_daily: bool):
@@ -608,15 +608,16 @@ async def dragon_check(buf: SessionBuffer):
     商店/shop：查询可购买项目。"""
     with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         d = json.load(f)
-    def _(d, qq=None):
+    def _(d: UserData, qq=None):
         for s in d.status:
             yield _card.status_dict[s]
         for s in d.daily_status:
             yield _card.daily_status_dict[s]
-        for key in d.status_time:
+        keys = list(d.status_time.keys())
+        for key in keys:
             time = d.get_limited_time(key)
             if time is not None:
-                yield f"{_card.limited_status_dict[key]}\n\t结束时间：{time}分钟。"
+                yield f"{d.status_time[key].des}\n\t{time}。"
         if qq and qq in global_state['lianhuan']:
             yield logic_dragon_file.tiesuolianhuan.status_des
     data = buf.current_arg_text

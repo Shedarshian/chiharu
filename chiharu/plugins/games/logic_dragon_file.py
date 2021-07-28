@@ -66,6 +66,8 @@ def find_or_new(qq: int):
 
 T_card = TypeVar('T_card', bound='_card')
 TCard = Type[T_card]
+T_status = TypeVar('T_status', bound='_status')
+TStatus = Type[T_status]
 T_equipment = TypeVar('T_equipment', bound='_equipment')
 TEquipment = Type[T_equipment]
 
@@ -131,7 +133,7 @@ class UserData:
         self.hand_card = [] if self.node['card'] == '' else [Card(int(x)) for x in self.node['card'].split(',')]
         def save(key, value):
             config.userdata.execute(f"update dragon_data set {key}=? where qq=?", (str(value), self.qq))
-        self.status_time = property_dict(partial(save, 'status_time'), {})
+        self.status_time: Dict[str, _status] = property_dict(partial(save, 'status_time'), {})
         self.status_time.data = eval(self.node['status_time'])
         self.equipment = property_dict(partial(save, 'equipment'), {})
         self.equipment.data = eval(self.node['equipment'])
@@ -291,11 +293,10 @@ class UserData:
     def get_limited_time(self, s: str):
         if s not in self.status_time:
             return None
-        delta = datetime.fromisoformat(self.status_time[s]) - datetime.now()
-        if delta < timedelta():
+        if not self.status_time[s].check():
             del self.status_time[s]
             return None
-        return delta.seconds // 60
+        return str(self.status_time[s])
     def check_equipment(self, equip_id: int) -> int:
         return self.equipment.get(equip_id, 0)
 
@@ -609,6 +610,49 @@ def ensure_true_lambda(bool_func: Callable[[Any], bool], message_lambda: Callabl
 
     return validate
 
+class status_meta(type):
+    def __new__(cls, clsname, bases, attrs):
+        if len(bases) != 0 and 'id' in attrs:
+            c = type.__new__(cls, clsname, bases, attrs)
+            bases[0].id_dict[attrs['id']] = c
+        else:
+            c = type.__new__(cls, clsname, bases, attrs)
+        return c
+
+def Status(id: str):
+    return _status.id_dict[id]
+
+class _status(metaclass=status_meta):
+    id_dict: Dict[str, TStatus] = {}
+    id = ""
+    des = ""
+    def __init__(self, s: str):
+        pass
+    def check(self) -> bool:
+        return True
+    def construct_repr(self, s):
+        return f"Status('{self.id}')('{s}')"
+    def __repr__(self) -> str:
+        return ""
+    def __str__(self) -> str:
+        return ""
+
+class TimedStatus(_status):
+    def __init__(self, s: str):
+        self.time = datetime.fromisoformat(s)
+    def check(self) -> bool:
+        delta = self.time - datetime.now()
+        return delta >= timedelta()
+    def __repr__(self) -> str:
+        return self.construct_repr(self.time.isoformat())
+    def __str__(self) -> str:
+        delta = self.time - datetime.now()
+        return f"结束时间：{delta.seconds // 60}分钟"
+
+class SDeath(TimedStatus):
+    id = 'd'
+    des = "死亡：不可接龙。"
+
 @lru_cache(10)
 def Card(id):
     if id in _card.card_id_dict:
@@ -692,7 +736,6 @@ class _card(metaclass=card_meta):
     card_id_dict: Dict[int, TCard] = {}
     status_dict: Dict[str, str] = {'d': "永久死亡。"}
     daily_status_dict: Dict[str, str] = {}
-    limited_status_dict: Dict[str, str] = {'d': "死亡：不可接龙。"}
     is_hold = ''
     debuffs = 'd'
     daily_debuffs = 'd'
@@ -729,11 +772,6 @@ class _card(metaclass=card_meta):
         if s in cls.status_dict:
             raise ImportError
         cls.status_dict[s] = des
-    @classmethod
-    def add_limited_status(cls, s, des):
-        if s in cls.limited_status_dict:
-            raise ImportError
-        cls.limited_status_dict[s] = des
     @classmethod
     def full_description(cls, qq):
         return f"{cls.id}. {cls.name}\n\t{cls.description}"
