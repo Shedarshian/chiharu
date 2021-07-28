@@ -263,7 +263,7 @@ def cancellation(session):
         return value
     return control
 
-from .logic_dragon_file import Equipment, TCounter, TQuest, UserData, global_state, save_global_state, save_data, mission, get_mission, me, draw_card, Card, _card, Game, User
+from .logic_dragon_file import Equipment, TCounter, TQuest, UserData, global_state, save_global_state, save_data, mission, get_mission, me, draw_card, Card, _card, Game, User, _status
 from . import logic_dragon_file
 
 async def update_begin_word(is_daily: bool):
@@ -714,7 +714,7 @@ async def dragon_buy(buf: SessionBuffer):
             n = jibi
         config.logger.dragon << f"【LOG】用户{qq}使用{n}击毙减少{15 * n}分钟死亡时间。"
         await user.add_jibi(-n, is_buy=True)
-        b = user.decrease_death_time(timedelta(minutes=15 * n))
+        b = user.decrease_death_time('d', timedelta(minutes=15 * n))
         buf.send(f"您减少了{15 * n}分钟的死亡时间！" + ("您活了！" if b else ""))
     elif id == 3:
         # (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。
@@ -984,4 +984,4 @@ async def dragon_update(session: CommandSession):
 @on_command(('dragon', 'char'), only_to_me=False, hide=True, permission=permission.SUPERUSER)
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_char(session: CommandSession):
-    await session.send(f"status: {''.join(sorted(_card.status_dict.keys()))}\ndaily_status: {''.join(sorted(_card.daily_status_dict.keys()))}\nlimited_status: {''.join(sorted(_card.limited_status_dict.keys()))}")
+    await session.send(f"status: {''.join(sorted(_card.status_dict.keys()))}\ndaily_status: {''.join(sorted(_card.daily_status_dict.keys()))}\nlimited_status: {''.join(sorted(_status.id_dict.keys()))}")

@@ -314,16 +314,14 @@ class User:
         self.buf.send(self.char + s)
     def send_log(self, s: str):
         self.buf.send_log.dragon(self.qq, s)
-    def decrease_death_time(self, time: timedelta):
-        if 'd' in self.data.status_time:
-            t = datetime.fromisoformat(self.data.status_time['d'])
-            t -= time
-            if t < datetime.now():
-                self.data.status_time.pop('d')
-            else:
-                self.data.status_time['d'] = t.isoformat()
-            return 'd' not in self.data.status_time
-        return True
+    def decrease_death_time(self, s: str, time: timedelta):
+        t = self.data.status_time[s] - time
+        if not t.check():
+            del self.data.status_time[s]
+            return False
+        else:
+            self.data.status_time[s] = t
+            return True
     @property
     def log(self):
         return self.data.log
@@ -636,6 +634,12 @@ class _status(metaclass=status_meta):
         return ""
     def __str__(self) -> str:
         return ""
+    def __add__(self, other) -> T_status:
+        pass
+    def __sub__(self, other) -> T_status:
+        pass
+    __iadd__ = None
+    __isub__ = None
 
 class TimedStatus(_status):
     def __init__(self, s: str):
@@ -648,10 +652,28 @@ class TimedStatus(_status):
     def __str__(self) -> str:
         delta = self.time - datetime.now()
         return f"结束时间：{delta.seconds // 60}分钟"
+    def __add__(self, other: timedelta) -> T_status:
+        return self.__class__((self.time + other).isoformat())
+    def __sub__(self, other: timedelta) -> T_status:
+        return self.__class__((self.time - other).isoformat())
 
 class SDeath(TimedStatus):
     id = 'd'
     des = "死亡：不可接龙。"
+
+class NumedStatus(_status):
+    def __init__(self, s: str):
+        self.num = int(s)
+    def check(self) -> bool:
+        return self.num > 0
+    def __repr__(self) -> str:
+        return self.construct_repr(str(self.num))
+    def __str__(self) -> str:
+        return f"剩余次数：{self.num}次"
+    def __add__(self, other: int) -> T_status:
+        return self.__class__(self.num + other)
+    def __sub__(self, other: int) -> T_status:
+        return self.__class__(self.num - other)
 
 @lru_cache(10)
 def Card(id):
