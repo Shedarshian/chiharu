@@ -637,6 +637,8 @@ class status_meta(type):
     def __new__(cls, clsname, bases, attrs):
         if len(bases) != 0 and 'id' in attrs:
             c = type.__new__(cls, clsname, bases, attrs)
+            if attrs['id'] in bases[0].id_dict:
+                raise ValueError
             bases[0].id_dict[attrs['id']] = c
         else:
             c = type.__new__(cls, clsname, bases, attrs)
