@@ -877,7 +877,7 @@ class strength(_card):
     name = "VIII - 力量"
     id = 8
     positive = 0
-    description = "加倍你身上所有的非持有性buff，每个buff花3击毙。击毙不足则无法使用。"
+    description = "加倍你身上所有的非持有性buff，消耗2^n-1击毙。击毙不足则无法使用。"
     failure_message = "你的击毙不足！"
     @classmethod
     def can_use(cls, user: User) -> bool:
@@ -885,7 +885,7 @@ class strength(_card):
         for k in user.data.status_time:
             if user.data.check_limited_status(k):
                 l += 1
-        return user.data.jibi >= 3 * l
+        return user.data.jibi >= 2 ** l - 1
     @classmethod
     async def use(cls, user: User):
         status = ''.join(s for s in user.data.status if s not in _card.is_hold)
@@ -894,10 +894,10 @@ class strength(_card):
         for k, val in status_time.items():
             if user.data.check_limited_status(k):
                 l += 1
-        if user.data.jibi < 3 * l:
+        if user.data.jibi < 2 ** l - 1:
             user.send_char("太弱小了，没有力量！")
             return
-        await user.add_jibi(-3 * l)
+        await user.add_jibi(-2 ** l - 1)
         user.data.add_status(status)
         user.data.add_daily_status(user.data.daily_status)
         for k, val in status_time.items():
