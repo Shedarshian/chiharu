@@ -330,8 +330,10 @@ class User:
         self.data.event_pt += pt
         self.send_char(f"收到了{pt}活动pt！")
         self.log << f"增加了{pt}活动pt。现有{self.data.event_pt}活动pt。"
-    async def add_jibi(self, jibi: int, /, is_buy: bool=False):
+    async def add_jibi(self, jibi: int, /, is_buy: bool=False) -> bool:
         current_jibi = self.data.jibi
+        if is_buy and current_jibi + jibi < 0:
+            return False
         if s := self.data.check_daily_status('@'):
             if jibi > 0:
                 jibi += s
@@ -375,11 +377,12 @@ class User:
                 self.data.remove_status('n', remove_all=False)
                 self.send_char(f"触发了深谋远虑之策的效果，此次免单！")
         if not dodge and not dodge2:
-            self.data.jibi += jibi
+            self.data.jibi = max(self.data.jibi + jibi, 0)
         self.log << f"原有击毙{current_jibi}，{f'触发了{s}次告解的效果，' if s > 0 else ''}{f'触发了{n}次变压器的效果，' if n > 0 else ''}{f'触发了比基尼的效果，' if q > 0 else ''}{f'触发了学生泳装的效果，' if dodge else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 else ''}{f'触发了{p}次北京市政交通一卡通的效果，' if p > 0 else ''}{f'触发了深谋远虑之策的效果，' if dodge2 else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
         if is_buy and not dodge:
             self.data.spend_shop += abs(jibi)
             self.log << f"累计今日商店购买至{self.data.spend_shop}。"
+        return True
     async def kill(self, hour: int=2, minute: int=0, killer=None):
         """击杀玩家。"""
         killer = killer or self
@@ -591,6 +594,21 @@ def draw_card(positive: Optional[Set[int]]=None):
 def equips_to_str(equips: Dict[int, TEquipment]):
     return '，'.join(f"{count}*{c.name}" for c, count in equips.items())
 
+from nonebot.typing import Filter_T
+from nonebot.command.argfilter.validators import _raise_failure
+def ensure_true_lambda(bool_func: Callable[[Any], bool], message_lambda: Callable[[Any], str]) -> Filter_T:
+    """
+    Validate any object to ensure the result of applying
+    a boolean function to it is True.
+    """
+
+    def validate(value):
+        if bool_func(value) is not True:
+            _raise_failure(message_lambda(value))
+        return value
+
+    return validate
+
 @lru_cache(10)
 def Card(id):
     if id in _card.card_id_dict:
@@ -685,6 +703,7 @@ class _card(metaclass=card_meta):
     description = ""
     arg_num = 0
     consumed_on_draw = False
+    failure_message = ""
     @classmethod
     async def use(cls, user: User) -> None:
         pass
@@ -697,6 +716,9 @@ class _card(metaclass=card_meta):
     @classmethod
     async def on_give(cls, user: User, target: User) -> None:
         pass
+    @classmethod
+    def can_use(cls, user: User) -> bool:
+        return True
     @classmethod
     def add_daily_status(cls, s, des):
         if s in cls.daily_status_dict:
@@ -721,9 +743,13 @@ class jiandiezhixing(_card):
     id = -1
     positive = -1
     description = "此牌不可被使用，通常情况下无法被抽到。当你弃置此牌时立即死亡。"
+    failure_message = "此牌不可被使用！"
     @classmethod
     async def on_discard(cls, user: User):
         await user.kill()
+    @classmethod
+    def can_use(cls, user: User) -> bool:
+        return False
 
 class magician(_card):
     name = "I - 魔术师"
@@ -740,7 +766,7 @@ class magician(_card):
                     lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
                     validators.fit_size(1, 1, message="请输入正确的张数。"),
                     validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！"),
-                    validators.ensure_true(lambda l: -1 not in l, message="此牌不可使用！"),
+                    ensure_true_lambda(lambda l: Card(l[0]).can_use(user), message_lambda=lambda l: Card(l[0]).failure_message),
                     validators.ensure_true(lambda l: 56 not in l, message="此牌不可选择！")
                 ])
         card = Card(l[0])
@@ -791,12 +817,28 @@ class strength(_card):
     name = "VIII - 力量"
     id = 8
     positive = 0
-    description = "加倍你身上所有的非持有性buff。"
+    description = "加倍你身上所有的非持有性buff，每个buff花3击毙。击毙不足则无法使用。"
+    failure_message = "你的击毙不足！"
+    @classmethod
+    def can_use(cls, user: User) -> bool:
+        l = len(''.join(s for s in user.data.status if s not in _card.is_hold)) + len(user.data.daily_status)
+        for k in user.data.status_time:
+            if user.data.check_limited_status(k):
+                l += 1
+        return user.data.jibi >= 3 * l
     @classmethod
     async def use(cls, user: User):
-        status = user.data.status
+        status = ''.join(s for s in user.data.status if s not in _card.is_hold)
         status_time = user.data.status_time
-        user.data.add_status(''.join(s for s in status if s not in _card.is_hold))
+        l = len(status) + len(user.data.daily_status)
+        for k, val in status_time.items():
+            if user.data.check_limited_status(k):
+                l += 1
+        if user.data.jibi < 3 * l:
+            user.send_char("太弱小了，没有力量！")
+            return
+        await user.add_jibi(-3 * l)
+        user.data.add_status(status)
         user.data.add_daily_status(user.data.daily_status)
         for k, val in status_time.items():
             if user.data.check_limited_status(k):
@@ -1002,7 +1044,7 @@ class baiban(_card):
                     lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
                     validators.fit_size(1, 1, message="请输入正确的张数。"),
                     validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！"),
-                    validators.ensure_true(lambda l: -1 not in l, message="此牌不可使用！")
+                    ensure_true_lambda(lambda l: Card(l[0]).can_use(user), message_lambda=lambda l: Card(l[0]).failure_message)
                 ])
         card = Card(l[0])
         config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"

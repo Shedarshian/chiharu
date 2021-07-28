@@ -550,11 +550,11 @@ async def dragon_use_card(buf: SessionBuffer):
     user.log << f"试图使用手牌{card.name}，当前手牌为{user.data.hand_card}。"
     if card not in user.data.hand_card:
         buf.finish("你还未拥有这张牌！")
-    if card.id == -1:
-        user.log << f"无法使用卡牌{card.name}。"
-        buf.finish("此牌不可被使用！")
     if user.data.check_status('y') and card.id != 73:
         buf.finish("你因幸运护符的效果，不可使用其他手牌！")
+    if not card.can_use(user):
+        user.log << f"无法使用卡牌{card.name}。"
+        buf.finish(card.failure_message)
     user.data.hand_card.remove(card)
     user.data.set_cards()
     save_data()
@@ -695,7 +695,8 @@ async def dragon_buy(buf: SessionBuffer):
     user.log << f"购买商品{id}。"
     if id == 1:
         # (25击毙)从起始词库中刷新一条接龙词。
-        await user.add_jibi(-25, is_buy=True)
+        if not await user.add_jibi(-25, is_buy=True):
+            buf.finish("您的击毙不足！")
         buf.send("您刷新的关键词为：" + await update_begin_word() + "，id为【0】。")
     elif id == 2:
         # (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。
@@ -719,13 +720,15 @@ async def dragon_buy(buf: SessionBuffer):
         config.logger.dragon << f"【LOG】询问用户{qq}提交起始词与图。"
         s = await buf.aget(prompt="请提交起始词和一张图。（审核不通过不返还击毙），输入取消退出。", arg_filters=[cancellation(buf.session)])
         config.logger.dragon << f"【LOG】用户{qq}提交起始词：{s}。"
-        await user.add_jibi(-70, is_buy=True)
+        if not await user.add_jibi(-70, is_buy=True):
+            buf.finish("您的击毙不足！")
         for group in config.group_id_dict['logic_dragon_supervise']:
             await get_bot().send_group_msg(group_id=group, message=s)
         buf.send("您已成功提交！")
     elif id == 4:
         # (35击毙)回溯一条接龙。
-        await user.add_jibi(-35, is_buy=True)
+        if not await user.add_jibi(-35, is_buy=True):
+            buf.finish("您的击毙不足！")
         buf.send("成功回溯！")
     elif id == 5:
         # (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。
@@ -737,12 +740,14 @@ async def dragon_buy(buf: SessionBuffer):
                 validators.ensure_true(lambda c: c in log_set, message="请输入一周以内接过的词汇。输入取消退出。")
             ])
         config.logger.dragon << f"【LOG】用户{qq}标记{c}为雷。"
-        await user.add_jibi(-10, is_buy=True)
+        if not await user.add_jibi(-10, is_buy=True):
+            buf.finish("您的击毙不足！")
         add_bomb(c)
         buf.send(f"成功添加词汇{c}！")
     elif id == 6:
         # (5击毙)刷新一组隐藏奖励词。
-        await user.add_jibi(-5, is_buy=True)
+        if not await user.add_jibi(-5, is_buy=True):
+            buf.finish("您的击毙不足！")
         update_hidden_keyword(-1)
         buf.send("成功刷新！")
     elif id == 7:
@@ -750,7 +755,8 @@ async def dragon_buy(buf: SessionBuffer):
         config.logger.dragon << f"【LOG】询问用户{qq}提交的卡牌。"
         s = await buf.aget(prompt="请提交卡牌名、来源、与卡牌效果描述。（审核不通过不返还击毙），输入取消退出。", arg_filters=[cancellation(buf.session)])
         config.logger.dragon << f"【LOG】用户{qq}提交卡牌{s}。"
-        await user.add_jibi(-50, is_buy=True)
+        if not await user.add_jibi(-50, is_buy=True):
+            buf.finish("您的击毙不足！")
         for group in config.group_id_dict['logic_dragon_supervise']:
             await get_bot().send_group_msg(group_id=group, message=s)
         buf.send("您已成功提交！")
@@ -760,7 +766,8 @@ async def dragon_buy(buf: SessionBuffer):
             buf.send("您今日已在商店购买过抽卡！")
         else:
             user.data.shop_drawn_card += 1
-            await user.add_jibi(-25, is_buy=True)
+            if not await user.add_jibi(-25, is_buy=True):
+                buf.finish("您的击毙不足！")
             await user.settlement(user.draw(1))
             save_data()
     elif id == 16 and me.check_daily_status('O'):
@@ -770,7 +777,8 @@ async def dragon_buy(buf: SessionBuffer):
         # 15%几率在过去一周内随机标记一个雷
         # 5%几率抽奖机爆炸击毙抽奖人，抽奖机消失
         # 35%几率什么都不掉
-        await user.add_jibi(-5, is_buy=True)
+        if not await user.add_jibi(-5, is_buy=True):
+            buf.finish("您的击毙不足！")
         r = random.random()
         user.log << f"抽奖机抽到了{r}。"
         if r < 0.15:
