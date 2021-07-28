@@ -614,7 +614,7 @@ async def dragon_check(buf: SessionBuffer):
         for s in d.daily_status:
             yield _card.daily_status_dict[s]
         for s in d.status_time_checked:
-            yield f"{s.des}\n\t{s}。"
+            yield str(s)
         if qq and qq in global_state['lianhuan']:
             yield logic_dragon_file.tiesuolianhuan.status_des
     data = buf.current_arg_text
