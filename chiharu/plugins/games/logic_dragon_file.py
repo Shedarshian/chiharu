@@ -44,6 +44,7 @@ class TUserData(TypedDict):
 class TCounter(NamedTuple):
     dodge: bool = False
     rebound: bool = False
+    pierce: bool = False
     double: int = 0
     @property
     def valid(self):
@@ -422,24 +423,36 @@ class User:
             minute *= 2 ** c.double
         dodge = False
         if self.data.check_status('r') and not dodge:
-            dodge = True
-            self.send_log("触发了免死的效果，免除死亡！")
-            self.data.remove_status('r', remove_all=False)
+            if c.pierce:
+                self.send_log("免死的效果被幻想杀手消除了！")
+                self.data.remove_status('r', remove_all=True)
+            else:
+                dodge = True
+                self.send_log("触发了免死的效果，免除死亡！")
+                self.data.remove_status('r', remove_all=False)
         if (n := self.data.check_status('s')) and not dodge:
             if self.data.jibi >= 5 * 2 ** self.data.check_status('2'):
-                await self.add_jibi(-5)
-                self.send_log("触发了死秽回避之药的效果，免除死亡！")
-                dodge = True
-                self.data.remove_status('s', remove_all=False)
-        if (n := self.data.check_status('h')) and not dodge:
-            for a in range(n):
-                self.data.remove_status('h', remove_all=False)
-                if random.randint(0, 1) == 0:
-                    self.send_log("触发了虹色之环，闪避了死亡！")
-                    dodge = True
-                    break
+                if c.pierce:
+                    self.send_log("死秽回避之药的效果被幻想杀手消除了！")
+                    self.data.remove_status('s', remove_all=True)
                 else:
-                    self.send_log("触发虹色之环闪避失败，死亡时间+1h！")
+                    await self.add_jibi(-5)
+                    self.send_log("触发了死秽回避之药的效果，免除死亡！")
+                    dodge = True
+                    self.data.remove_status('s', remove_all=False)
+        if (n := self.data.check_status('h')) and not dodge:
+            if c.pierce:
+                self.send_log("虹色之环的效果被幻想杀手消除了！")
+                self.data.remove_status('h', remove_all=True)
+            else:
+                for a in range(n):
+                    self.data.remove_status('h', remove_all=False)
+                    if random.randint(0, 1) == 0:
+                        self.send_log("触发了虹色之环，闪避了死亡！")
+                        dodge = True
+                        break
+                    else:
+                        self.send_log("触发虹色之环闪避失败，死亡时间+1h！")
         if (n := self.data.check_status('p')) and not dodge:
             self.log << f"的{n}张掠夺者啵噗因死亡被弃置。"
             await self.discard_cards([Card(77) for i in range(n)])
@@ -452,18 +465,26 @@ class User:
             self.send_char(f"死了！{f'{m // 60}小时' if m >= 60 else ''}{f'{m % 60}分钟' if m % 60 != 0 else ''}不得接龙。")
             if (x := self.data.check_status('x')):
                 self.data.remove_status('x')
-                self.send_log(f"触发了辉夜姬的秘密宝箱！奖励抽卡{x}张。")
-                await self.draw(x)
+                if c.pierce:
+                    self.send_log("辉夜姬的秘密宝箱的效果被幻想杀手消除了！")
+                else:
+                    self.send_log(f"触发了辉夜姬的秘密宝箱！奖励抽卡{x}张。")
+                    await self.draw(x)
             global global_state
             if self.qq in global_state['lianhuan']:
-                l = copy(global_state['lianhuan'])
-                global_state['lianhuan'] = []
-                save_global_state()
-                l.remove(self.qq)
-                self.buf.send(f"由于铁索连环的效果，{' '.join(f'[CQ:at,qq={target}]' for target in l)}个人也一起死了！")
-                self.log << f"触发了铁索连环的效果至{l}。"
-                for target in l:
-                    await User(target, self.buf).kill(hour=hour)
+                if c.pierce:
+                    global_state['lianhuan'].remove(self.qq)
+                    save_global_state()
+                    self.send_log("铁索连环的效果被幻想杀手消除了！")
+                else:
+                    l = copy(global_state['lianhuan'])
+                    global_state['lianhuan'] = []
+                    save_global_state()
+                    l.remove(self.qq)
+                    self.buf.send(f"由于铁索连环的效果，{' '.join(f'[CQ:at,qq={target}]' for target in l)}个人也一起死了！")
+                    self.log << f"触发了铁索连环的效果至{l}。"
+                    for target in l:
+                        await User(target, self.buf).kill(hour=hour)
     async def draw(self, n: int, /, positive=None, cards=None):
         """抽卡。将卡牌放入手牌。"""
         cards = draw_cards(positive, n) if cards is None else cards
@@ -579,20 +600,17 @@ class User:
     async def check_attacked(self, killer: 'User', not_valid: TCounter=TCounter()):
         if self == killer:
             return TCounter()
-        def _():
-            if killer.data.check_status('0'):
-                killer.data.remove_status('0', remove_all=False)
-                return True
-            return False
+        if killer.data.check_status('0'):
+            killer.data.remove_status('0', remove_all=False)
+            pierce = True
         if self.data.check_status('0') and not not_valid.dodge:
             self.data.remove_status('0', remove_all=False)
             return TCounter(dodge=True)
-        elif self.data.check_status('v') and not not_valid.rebound:
-            if _():
-                return TCounter()
+        if self.data.check_status('v') and not not_valid.rebound:
             self.data.remove_status('v', remove_all=False)
-            return TCounter(rebound=True)
-        elif (n := killer.data.check_status('v')) and not not_valid.double:
+            if not pierce:
+                return TCounter(rebound=True)
+        if (n := killer.data.check_status('v')) and not not_valid.double:
             killer.data.remove_status('v')
             return TCounter(double=n)
         return TCounter()
