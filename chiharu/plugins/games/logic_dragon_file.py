@@ -339,14 +339,14 @@ class User:
     def decrease_death_time(self, time: timedelta):
         t = more_itertools.only((i, s) for (i, s) in enumerate(self.data.status_time) if s.id == 'd')
         if t is None:
-            return False
+            return True
         s = t[1] - time
         if not s.check():
             self.data.status_time.pop(t[0])
-            return False
+            return True
         else:
             self.data.status_time[t[0]] = s
-            return True
+            return False
     @property
     def log(self):
         return self.data.log
