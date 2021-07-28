@@ -677,8 +677,7 @@ class TimedStatus(_status):
         else:
             self.time = datetime.fromisoformat(s)
     def check(self) -> bool:
-        delta = self.time - datetime.now()
-        return delta >= timedelta()
+        return self.time >= datetime.now()
     def __repr__(self) -> str:
         return self.construct_repr(self.time.isoformat())
     def __str__(self) -> str:
