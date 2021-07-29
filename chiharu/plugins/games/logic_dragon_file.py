@@ -1557,6 +1557,7 @@ class dihuopenfa(_card):
     name = "地火喷发"
     id = 114
     description = "今天之内所有的接龙词都有10%的几率变成地雷。"
+    positive = 0
     global_daily_status = 'B'
     status_des = "地火喷发：今天之内所有的接龙词都有10%的几率变成地雷。"
 
@@ -1564,6 +1565,7 @@ class gaojie(_card):
     name = "告解"
     id = 116
     description = "今日每次你获得击毙时额外获得1击毙。"
+    positive = 1
     daily_status = "@"
     status_des = "告解：今日每次你获得击毙时额外获得1击毙。"
 
@@ -1571,6 +1573,7 @@ class shenmouyuanlv(_card):
     name = "深谋远虑之策"
     id = 117
     description = "当你一次使用/损失了超过你现有击毙一半以上的击毙时，恢复这些击毙。"
+    positive = 0
     status = 'n'
     status_des = "深谋远虑之策：当你一次使用/损失了超过你现有击毙一半以上的击毙时，恢复这些击毙。"
 
@@ -1578,6 +1581,7 @@ class imaginebreaker(_card):
     name = "幻想杀手"
     id = 120
     description = "你的下一张攻击卡无视对方的所有反制效果，下一张目标为你的攻击卡无效。以上两项只能发动一项。"
+    positive = 1
     status = '0'
     status_des = "幻想杀手：你的下一张攻击卡无视对方的所有反制效果，下一张目标为你的攻击卡无效。以上两项只能发动一项。"
 
@@ -1585,6 +1589,7 @@ class vector(_card):
     name = "矢量操作"
     id = 121
     description = "你的下一张攻击卡效果加倍，下一张对你的攻击卡反弹至攻击者，免除你下一次触雷。以上三项只能发动一项。"
+    positive = 1
     status = 'v'
     status_des = "矢量操作：你的下一张攻击卡效果加倍，下一张对你的攻击卡反弹至攻击者，免除你下一次触雷。以上三项只能发动一项。"
 
@@ -1714,10 +1719,12 @@ class Grid:
         s = f"增加{2 + i % 4}pt，"
         i //= 4
         content = i % 100
-        if content < 10:
+        if content < 6:
             s += f"被击毙{content // 2 * 5 + 5}分钟。"
+        elif content < 10:
+            s += f"扣除{content // 2 * 2 - 4}击毙。"
         elif content < 60:
-            s += f"获得{(content - 10) // 10 * 2 + 2}击毙。"
+            s += f"获得{content // 10 * 2}击毙。"
         elif content < 75:
             s += f"获得活动pt后，再扔一次骰子{'前进' if content < 70 else '后退'}。"
         elif content < 85:
@@ -1739,12 +1746,15 @@ class Grid:
         await user.add_event_pt(2 + i % 4)
         i //= 4
         content = i % 100
-        if content < 10: # 被击毙5/10/15/20/25分钟
+        if content < 6: # 被击毙5/10/15/20/25分钟
             user.send_log(f"走到了：被击毙{content // 2 * 5}分钟。")
             await user.kill(minute=content // 2 * 5 + 5)
+        elif content < 10: # 扣除2/4击毙
+            user.send_log(f"走到了：扣除{content // 2 * 2 - 4}击毙。")
+            await user.add_jibi(-(content // 2 * 2 - 4))
         elif content < 60: # 获得2/4/6/8/10击毙
-            user.send_log(f"走到了：获得{(content - 10) // 10 * 2 + 2}击毙。")
-            await user.add_jibi((content - 10) // 10 * 2 + 2)
+            user.send_log(f"走到了：获得{content // 10 * 2}击毙。")
+            await user.add_jibi(content // 10 * 2)
         elif content < 75: # 获得活动pt后，再扔一次骰子前进（10）/后退（5）
             n = random.randint(1, 6)
             user.send_log(f"走到了：获得活动pt后，再扔一次骰子{'前进' if content < 70 else '后退'}。{user.char}扔到了{n}。")
