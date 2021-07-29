@@ -518,6 +518,8 @@ class User:
         self.log << f"弃完卡牌，当前手牌为{cards_to_str(self.data.hand_card)}。"
     async def exchange(self, target: 'User'):
         """交换两人手牌。"""
+        if self == target:
+            return
         target_hand_cards = copy(target.data.hand_card)
         self_hand_cards = copy(self.data.hand_card)
         config.logger.dragon << f"【LOG】交换用户{self.qq}与用户{target.qq}的手牌。{self.qq}手牌为{cards_to_str(self_hand_cards)}，{target.qq}手牌为{cards_to_str(target_hand_cards)}。"
