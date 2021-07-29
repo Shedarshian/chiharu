@@ -26,6 +26,7 @@ Change:
 再次大改结算逻辑。"""
 
 current_event = ''#"swim"
+current_shop = current_event#"swim"
 
 class TWords(TypedDict):
     keyword: Tuple[str, List[str]]
@@ -819,7 +820,7 @@ async def dragon_buy_event(buf: SessionBuffer):
     qq = buf.ctx['user_id']
     user = User(qq, buf)
     user.log << f"购买活动商品{id}。"
-    if current_event == 'swim':
+    if current_shop == 'swim':
         b = user.data.check_equipment(0)
         s = user.data.check_equipment(1)
         if id == 1:
