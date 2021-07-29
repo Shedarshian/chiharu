@@ -318,8 +318,8 @@ class UserData:
         return self.status.count(s)
     def check_daily_status(self, s: str) -> int:
         return self.daily_status.count(s)
-    def check_limited_status(self, s: str) -> List[T_status]:
-        return [t for t in self.status_time_checked if t.id == s]
+    def check_limited_status(self, s: str, extra: Optional[Callable[[T_status], bool]]=None) -> List[T_status]:
+        return [t for t in self.status_time_checked if t.id == s and (extra is None or extra(t))]
     def check_equipment(self, equip_id: int) -> int:
         return self.equipment.get(equip_id, 0)
 
@@ -856,7 +856,7 @@ class _card(metaclass=card_meta):
         pass
     @classmethod
     def can_use(cls, user: User) -> bool:
-        return True
+        return len(user.data.check_limited_status('m', lambda t: t.card_id == cls.id)) == 0
     @classmethod
     def add_daily_status(cls, s, des):
         if s in cls.daily_status_dict:
@@ -1021,6 +1021,7 @@ _card.add_status('r', "免死：免疫你下一次死亡。")
 class death(_card):
     name = "XIII - 死神"
     id = 13
+    positive = 0
     description = "今天的所有死亡时间加倍。"
     global_daily_status = 'D'
     status_des = "XIII - 死神：今天的所有死亡时间加倍。"
