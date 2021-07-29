@@ -843,13 +843,22 @@ async def dragon_buy_event(buf: SessionBuffer):
         elif id == 3:
             # （75pt）暴食的蜈蚣（余1次）
             p = user.data.event_shop
-            if p == 1:
+            if p % 2 == 1:
                 buf.finish("此商品已售罄！")
             user.add_event_pt(-75, is_buy=True)
-            user.data.event_shop = 1
+            user.data.event_shop += 1
             buf.send("您购买了暴食的蜈蚣！")
             await user.settlement(user.draw(0, cards=[Card(56)]))
         elif id == 4:
+            # （50pt）幻想杀手（余1次）
+            p = user.data.event_shop
+            if p // 2 == 1:
+                buf.finish("此商品已售罄！")
+            user.add_event_pt(-50, is_buy=True)
+            user.data.event_shop += 2
+            buf.send("您购买了幻想杀手！")
+            await user.settlement(user.draw(0, cards=[Card(120)]))
+        elif id == 5:
             # （30pt）抽卡券
             user.data.draw_time += 1
             buf.send("您购买了1张抽卡券！")
