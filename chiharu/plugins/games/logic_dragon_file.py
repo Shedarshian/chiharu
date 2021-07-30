@@ -1555,6 +1555,30 @@ class McGuffium239(_card):
     status_des = 'Mc Guffium 239：下一次礼物交换不对你生效。'
     description = "下一次礼物交换不对你生效。"
 
+class panjuea(_card):
+    name = "判决α"
+    id = 111
+    description = "抽到时附加buff：判决α。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。"
+    positive = -1
+    consumed_on_draw = True
+    @classmethod
+    async def on_draw(cls, user: User) -> None:
+        user.data.add_status('a')
+_card.add_status('a', "判决α：将此buff传递给你上次接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。")
+_card.add_status('A', "判决α：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。")
+
+class panjueb(_card):
+    name = "判决β"
+    id = 111
+    description = "抽到时附加buff：判决β。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。"
+    positive = -1
+    consumed_on_draw = True
+    @classmethod
+    async def on_draw(cls, user: User) -> None:
+        user.data.add_status('b')
+_card.add_status('b', "判决β：将此buff传递给你上次接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。")
+_card.add_status('B', "判决β：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。")
+
 class dihuopenfa(_card):
     name = "地火喷发"
     id = 114

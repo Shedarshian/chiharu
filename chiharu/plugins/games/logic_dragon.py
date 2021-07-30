@@ -118,6 +118,11 @@ class Tree:
                 break
         if self.parent is not None:
             self.parent.childs.remove(self)
+    def before(self, n):
+        node = self
+        for i in range(n):
+            node = node and node.parent
+        return node
     @classmethod
     def graph(self):
         pass
@@ -444,7 +449,7 @@ async def dragon_construct(buf: SessionBuffer):
         fork = False
         if (n := me.check_daily_status('b')):
             fork = random.random() > 0.95 ** n
-        if not (tree_node := check_and_add_log_and_contruct_tree(parent, word, qq, kwd=kwd, hdkwd=hdkwd, fork=fork)):
+        if (tree_node := check_and_add_log_and_contruct_tree(parent, word, qq, kwd=kwd, hdkwd=hdkwd, fork=fork)) is None:
             user.log << f"由于过去一周接过此词，死了。"
             buf.send("过去一周之内接过此词，你死了！")
             if user.data.check_daily_status('Y'):
@@ -500,6 +505,41 @@ async def dragon_construct(buf: SessionBuffer):
                             await user.add_jibi(3)
                             save_global_state()
                             break
+            if n := user.data.check_status('A'):
+                user.data.remove_status('A')
+                user.data.add_status('a' * n)
+            if n := user.data.check_status('B'):
+                user.data.remove_status('B')
+                user.data.add_status('b' * n)
+            if (nd := tree_node.before(5)) and (u := User(nd.qq, buf)) != user:
+                def _(a: int, b1: int, b2: int):
+                    if a >= b1 + b2:
+                        return b1 + b2, a - b1 - b2, 0, 0
+                    if a > b2:
+                        return a, 0, b1 + b2 - a, 0
+                    return a, 0, b1, b2 - a
+                if na := u.data.check_status('a'):
+                    u.data.remove_status('a')
+                    user.log << "从五个人前面接来了判决α。"
+                    n, na, nb1, nb2 = _(na, user.data.check_status('b'), user.data.check_status('B'))
+                    if n:
+                        buf.send("你从五个人前面接来了判决α！")
+                        user.kill()
+                        user.data.remove_status('b')
+                        user.data.remove_status('B')
+                        user.data.add_status('b' * nb1 + 'B' * nb2)
+                    user.data.add_status('A' * na)
+                if nb := u.data.check_status('b'):
+                    u.data.remove_status('b')
+                    user.log << "从五个人前面接来了判决β。"
+                    n, nb, na1, na2 = _(nb, user.data.check_status('a'), user.data.check_status('A'))
+                    if n:
+                        buf.send("你从五个人前面接来了判决β！")
+                        user.kill()
+                        user.data.remove_status('a')
+                        user.data.remove_status('A')
+                        user.data.add_status('a' * na1 + 'A' * na2)
+                    user.data.add_status('B' * nb)
             if word in bombs:
                 buf.send("你成功触发了炸弹，被炸死了！")
                 user.log << f"触发了炸弹，被炸死了。"
