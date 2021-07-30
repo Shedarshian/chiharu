@@ -511,7 +511,7 @@ async def dragon_construct(buf: SessionBuffer):
             if n := user.data.check_status('B'):
                 user.data.remove_status('B')
                 user.data.add_status('b' * n)
-            if (nd := tree_node.before(5)) and (u := User(nd.qq, buf)) != user:
+            if (nd := tree_node.before(5)) and nd.qq != config.selfqq and (u := User(nd.qq, buf)) != user:
                 def _(a: int, b1: int, b2: int):
                     if a >= b1 + b2:
                         return b1 + b2, a - b1 - b2, 0, 0
