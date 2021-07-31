@@ -504,7 +504,6 @@ async def dragon_construct(buf: SessionBuffer):
                             m['remain'] -= 1
                             await user.add_jibi(3)
                             save_global_state()
-                            break
             if n := user.data.check_status('A'):
                 user.data.remove_status('A')
                 user.data.add_status('a' * n)
