@@ -1806,6 +1806,6 @@ class Grid:
             user.send_log("走到了：随机获得10~30活动pt。")
             n = random.randint(10, 30)
             user.send_log(f"获得了{n}pt！")
-            user.add_event_pt(n)
+            await user.add_event_pt(n)
         return 0
 _card.add_status('D', "在活动中，你下次行走距离加倍。")
