@@ -1454,6 +1454,7 @@ class lveduozhebopu(_card):
             del global_state['steal'][str(user.qq)]
         save_global_state()
 _card.add_status('p', '掠夺者啵噗：每天可从所接龙的人处偷取1击毙，每人限一次，最多10击毙，若目标没有击毙则不可偷取。')
+_card.is_hold += 'p'
 
 class jiandieyubei(_card):
     name = "邪恶的间谍行动～预备"
