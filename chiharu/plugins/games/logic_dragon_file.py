@@ -580,7 +580,7 @@ class User:
             if p := self.data.check_status('D'):
                 self.data.remove_status('D')
                 n *= 2 ** p
-            current = Grid(min(current.stage + n, 0))
+            current = Grid(max(current.stage + n, 0))
             self.log << f"行走至格子{current}。"
             n = await current.do(self)
         self.data.event_stage = current
