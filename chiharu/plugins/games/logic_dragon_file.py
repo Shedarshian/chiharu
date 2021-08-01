@@ -335,8 +335,8 @@ class User:
         return self.buf.char(self.qq)
     def send_char(self, s: str):
         self.buf.send(self.char + s)
-    def send_log(self, s: str):
-        self.buf.send_log.dragon(self.qq, s)
+    def send_log(self, s: str, /, end='\n'):
+        self.buf.send_log.dragon(self.qq, s, end=end)
     def decrease_death_time(self, time: timedelta):
         t = more_itertools.only((i, s) for (i, s) in enumerate(self.data.status_time) if s.id == 'd')
         if t is None:
@@ -577,6 +577,9 @@ class User:
         current = self.data.event_stage
         begin = current.stage
         while n != 0:
+            if p := self.data.check_status('D'):
+                self.data.remove_status('D')
+                n *= 2 ** p
             current = Grid(min(current.stage + n, 0))
             self.log << f"行走至格子{current}。"
             n = await current.do(self)
@@ -1755,8 +1758,10 @@ class Grid:
             s += f"获得活动pt后，再扔一次骰子{'前进' if content < 70 else '后退'}。"
         elif content < 85:
             s += "抽一张卡并立即发动效果。"
-        else: # ？
-            s += "目前还没设计的效果（？）。"
+        elif content < 95:
+            s += "你下次行走距离加倍。"
+        else:
+            s += "随机获得10~30活动pt。"
         return s
     @property
     def parent(self):
@@ -1793,6 +1798,13 @@ class Grid:
             await c.on_draw(user)
             await c.use(user)
             await c.on_discard(user)
-        else: # ？
-            pass
+        elif content < 95: # 你下次行走距离加倍。
+            user.send_log("走到了：你下次行走距离加倍。")
+            user.data.add_status('D')
+        else: # 随机获得10~30活动pt。
+            user.send_log("走到了：随机获得10~30活动pt。")
+            n = random.randint(10, 30)
+            user.send_log(f"获得了{n}pt！")
+            user.add_event_pt(n)
         return 0
+_card.add_status('D', "在活动中，你下次行走距离加倍。")

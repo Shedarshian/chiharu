@@ -504,6 +504,11 @@ async def dragon_construct(buf: SessionBuffer):
                             m['remain'] -= 1
                             await user.add_jibi(3)
                             save_global_state()
+            if current_event == "swim":
+                n = random.randint(1, 6)
+                user.send_log(f"移动了{n}格，", end='')
+                await user.event_move(n)
+                user.send_log(f"现在位于{user.data.event_stage}层。")
             if n := user.data.check_status('A'):
                 user.data.remove_status('A')
                 user.data.add_status('a' * n)

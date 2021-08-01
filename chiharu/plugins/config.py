@@ -214,7 +214,7 @@ class _helper:
     def __init__(self, session):
         self.session = session
     def __getattr__(self, name):
-        def _(qq, s, end='\n'):
+        def _(qq, s, /, end='\n'):
             self.session.buffer += self.session.char(qq)
             self.session.buffer += s
             self.session.buffer += end
