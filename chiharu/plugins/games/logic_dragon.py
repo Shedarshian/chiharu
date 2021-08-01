@@ -25,8 +25,8 @@ changelog = """0.3.1 Changelog:
 Change:
 再次大改结算逻辑。"""
 
-current_event = ''#"swim"
-current_shop = current_event#"swim"
+current_event = "swim" if datetime.now() > datetime.fromisoformat("2021-08-01T16:00:00") else ""
+current_shop = current_event
 
 class TWords(TypedDict):
     keyword: Tuple[str, List[str]]
@@ -1014,6 +1014,9 @@ async def dragon_daily():
     if last_update_date == date.today().isoformat():
         return
     graph = Tree.graph()
+    if date.today().isoformat() == "2021-08-01":
+        global current_event, current_shop
+        current_event = current_shop = "swim"
     # for group in config.group_id_dict['logic_dragon_send']:
     #     await get_bot().send_group_msg(group_id=group, message=[config.cq.text("昨天的接龙图："), config.cq.img(graph)])
     ret = await daily_update()
