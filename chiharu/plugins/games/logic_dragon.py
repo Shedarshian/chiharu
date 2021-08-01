@@ -1014,12 +1014,13 @@ async def dragon_daily():
     if last_update_date == date.today().isoformat():
         return
     graph = Tree.graph()
-    if date.today().isoformat() == "2021-08-01":
-        global current_event, current_shop
-        current_event = current_shop = "swim"
     # for group in config.group_id_dict['logic_dragon_send']:
     #     await get_bot().send_group_msg(group_id=group, message=[config.cq.text("昨天的接龙图："), config.cq.img(graph)])
     ret = await daily_update()
+    if date.today().isoformat() == "2021-08-01":
+        global current_event, current_shop
+        current_event = current_shop = "swim"
+        ret += "\n泳装活动今天开始！接龙即可获得活动pt，发送“查询活动商店”以及“购买活动 xx”来购买活动商品！"
     for group in config.group_id_dict['logic_dragon_send']:
         await get_bot().send_group_msg(group_id=group, message=ret)
 
