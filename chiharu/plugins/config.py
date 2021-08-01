@@ -226,7 +226,7 @@ class SessionBuffer:
         self.buffer: str = ''
         self.send_end: str = ''
         self.session: BaseSession = session
-        self.active = session.ctx['user_id']
+        self.active: int = session.ctx['user_id']
     def send(self, s, end='\n'):
         self.buffer += s
         self.buffer += end

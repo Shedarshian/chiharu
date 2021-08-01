@@ -328,6 +328,9 @@ class User:
         self.qq = qq
         self.data = Game.userdata(qq)
         self.buf = buf
+    @property
+    def active(self):
+        return self.buf.active == self.qq
     def __eq__(self, other):
         return self.qq == other.qq and self.buf == other.buf
     @property
@@ -548,7 +551,7 @@ class User:
             x = len(self.data.hand_card) - self.data.card_limit
             while x > 0:
                 save_data()
-                if self.buf.active != self.qq:
+                if not self.active:
                     self.buf.send(f"该玩家手牌已超出上限{x}张！多余的牌已被弃置。")
                     self.log << f"手牌为{cards_to_str(self.data.hand_card)}，超出上限{self.data.card_limit}，自动弃置。"
                     await self.discard_cards(copy(self.data.hand_card[self.data.card_limit:]))
@@ -896,25 +899,29 @@ class magician(_card):
     description = "选择一张你的手牌（不可选择暴食的蜈蚣），执行3次该手牌的效果，并弃置该手牌。此后一周内不得使用该卡。"
     @classmethod
     async def use(cls, user: User):
-        await user.buf.flush()
-        config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行I - 魔术师。"
-        l = await user.buf.aget(prompt="请选择你手牌中的一张牌（不可选择暴食的蜈蚣），输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
-            arg_filters=[
-                    extractors.extract_text,
-                    lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
-                    validators.fit_size(1, 1, message="请输入正确的张数。"),
-                    validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！"),
-                    ensure_true_lambda(lambda l: Card(l[0]).can_use(user), message_lambda=lambda l: Card(l[0]).failure_message),
-                    validators.ensure_true(lambda l: 56 not in l, message="此牌不可选择！")
-                ])
-        card = Card(l[0])
-        config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
-        user.send_char('使用了三次卡牌：\n' + card.full_description(user.qq))
-        await user.discard_cards([card])
-        user.data.status_time.append(SCantUse(datetime.now() + timedelta(weeks=1), l[0]))
-        await card.use(user)
-        await card.use(user)
-        await card.use(user)
+        if not user.active:
+            config.logger.dragon << f"【LOG】用户{user.qq}非活跃，无法选择。"
+            user.send_char("非活跃，无法选择卡牌！")
+        else:
+            await user.buf.flush()
+            config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行I - 魔术师。"
+            l = await user.buf.aget(prompt="请选择你手牌中的一张牌（不可选择暴食的蜈蚣），输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
+                arg_filters=[
+                        extractors.extract_text,
+                        lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
+                        validators.fit_size(1, 1, message="请输入正确的张数。"),
+                        validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！"),
+                        ensure_true_lambda(lambda l: Card(l[0]).can_use(user), message_lambda=lambda l: Card(l[0]).failure_message),
+                        validators.ensure_true(lambda l: 56 not in l, message="此牌不可选择！")
+                    ])
+            card = Card(l[0])
+            config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
+            user.send_char('使用了三次卡牌：\n' + card.full_description(user.qq))
+            await user.discard_cards([card])
+            user.data.status_time.append(SCantUse(datetime.now() + timedelta(weeks=1), l[0]))
+            await card.use(user)
+            await card.use(user)
+            await card.use(user)
 
 class high_priestess(_card):
     name = "II - 女祭司"
@@ -941,16 +948,20 @@ class lovers(_card):
     description = "复活1名指定玩家。"
     @classmethod
     async def use(cls, user: User):
-        await user.buf.flush()
-        l = await user.buf.aget(prompt="请at一名玩家复活。\n",
-            arg_filters=[
-                    lambda s: re.findall(r'qq=(\d+)', str(s)),
-                    validators.fit_size(1, 1, message="请at正确的人数。"),
-                ])
-        u = User(l[0], user.buf)
-        n = len(u.data.check_limited_status('d')) == 0
-        u.data.remove_all_limited_status('d')
-        user.buf.send("已复活！" + ("（虽然目标并没有死亡）" if n else ''))
+        if not user.active:
+            config.logger.dragon << f"【LOG】用户{user.qq}非活跃，无法选择。"
+            user.send_char("非活跃，无法选择卡牌！")
+        else:
+            await user.buf.flush()
+            l = await user.buf.aget(prompt="请at一名玩家复活。\n",
+                arg_filters=[
+                        lambda s: re.findall(r'qq=(\d+)', str(s)),
+                        validators.fit_size(1, 1, message="请at正确的人数。"),
+                    ])
+            u = User(l[0], user.buf)
+            n = len(u.data.check_limited_status('d')) == 0
+            u.data.remove_all_limited_status('d')
+            user.buf.send("已复活！" + ("（虽然目标并没有死亡）" if n else ''))
 
 class strength(_card):
     name = "VIII - 力量"
@@ -1110,31 +1121,35 @@ class tiesuolianhuan(_card):
     description = "指定至多两名玩家进入连环状态。任何处于连环状态的玩家被击毙时所有连环状态的玩家也被击毙并失去此效果。也可用于解除至多两人的连环状态。"
     @classmethod
     async def use(cls, user: User):
-        await user.buf.flush()
-        config.logger.dragon << f"【LOG】询问用户{user.qq}铁索连环。"
-        l: List[int] = await user.buf.aget(prompt="请at群内至多两名玩家进行铁索连环。\n",
-            arg_filters=[
-                    lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
-                    validators.fit_size(1, 2, message="请at正确的人数。"),
-                ])
-        config.logger.dragon << f"【LOG】用户{user.qq}铁索连环选择{l}。"
-        def toggle(target):
-            global global_state
-            if target in global_state['lianhuan']:
-                global_state['lianhuan'].remove(target)
-            else:
-                global_state['lianhuan'].append(target)
-        for target in l:
-            u = User(target, user.buf)
-            if (c := await u.check_attacked(user, TCounter(double=1))).dodge:
-                continue
-            elif c.rebound:
-                toggle(user.qq)
-                user.buf.send('成功切换' + user.char() + '的连环状态！')
-            else:
-                toggle(target)
-                user.buf.send('成功切换' + u.char() + '的连环状态！')
-        save_global_state()
+        if not user.active:
+            config.logger.dragon << f"【LOG】用户{user.qq}非活跃，无法选择。"
+            user.send_char("非活跃，无法选择玩家！")
+        else:
+            await user.buf.flush()
+            config.logger.dragon << f"【LOG】询问用户{user.qq}铁索连环。"
+            l: List[int] = await user.buf.aget(prompt="请at群内至多两名玩家进行铁索连环。\n",
+                arg_filters=[
+                        lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
+                        validators.fit_size(1, 2, message="请at正确的人数。"),
+                    ])
+            config.logger.dragon << f"【LOG】用户{user.qq}铁索连环选择{l}。"
+            def toggle(target):
+                global global_state
+                if target in global_state['lianhuan']:
+                    global_state['lianhuan'].remove(target)
+                else:
+                    global_state['lianhuan'].append(target)
+            for target in l:
+                u = User(target, user.buf)
+                if (c := await u.check_attacked(user, TCounter(double=1))).dodge:
+                    continue
+                elif c.rebound:
+                    toggle(user.qq)
+                    user.buf.send('成功切换' + user.char() + '的连环状态！')
+                else:
+                    toggle(target)
+                    user.buf.send('成功切换' + u.char() + '的连环状态！')
+            save_global_state()
 
 class minus1ma(_card):
     name = "-1马"
@@ -1175,20 +1190,24 @@ class baiban(_card):
     description = "复制你手牌中一张牌的效果。"
     @classmethod
     async def use(cls, user: User):
-        await user.buf.flush()
-        config.logger.dragon << f"【LOG】询问用户{user.qq}复制牌。"
-        l: List[int] = await user.buf.aget(prompt="请选择你手牌中的一张牌复制，输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
-            arg_filters=[
-                    extractors.extract_text,
-                    lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
-                    validators.fit_size(1, 1, message="请输入正确的张数。"),
-                    validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！"),
-                    ensure_true_lambda(lambda l: Card(l[0]).can_use(user), message_lambda=lambda l: Card(l[0]).failure_message)
-                ])
-        card = Card(l[0])
-        config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
-        user.send_char('使用了卡牌：\n' + card.full_description(user.qq))
-        await card.use(user)
+        if not user.active:
+            config.logger.dragon << f"【LOG】用户{user.qq}非活跃，无法选择。"
+            user.send_char("非活跃，无法选择卡牌！")
+        else:
+            await user.buf.flush()
+            config.logger.dragon << f"【LOG】询问用户{user.qq}复制牌。"
+            l: List[int] = await user.buf.aget(prompt="请选择你手牌中的一张牌复制，输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
+                arg_filters=[
+                        extractors.extract_text,
+                        lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
+                        validators.fit_size(1, 1, message="请输入正确的张数。"),
+                        validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！"),
+                        ensure_true_lambda(lambda l: Card(l[0]).can_use(user), message_lambda=lambda l: Card(l[0]).failure_message)
+                    ])
+            card = Card(l[0])
+            config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
+            user.send_char('使用了卡牌：\n' + card.full_description(user.qq))
+            await card.use(user)
 
 class hongzhong(_card):
     name = "红中（🀄）"
