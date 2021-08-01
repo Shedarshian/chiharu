@@ -1778,7 +1778,7 @@ class Grid:
         i //= 4
         content = i % 100
         if content < 6: # 被击毙5/10/15/20/25分钟
-            user.send_log(f"走到了：被击毙{content // 2 * 5}分钟。")
+            user.send_log(f"走到了：被击毙{content // 2 * 5 + 5}分钟。")
             await user.kill(minute=content // 2 * 5 + 5)
         elif content < 10: # 扣除2/4击毙
             user.send_log(f"走到了：扣除{content // 2 * 2 - 4}击毙。")
