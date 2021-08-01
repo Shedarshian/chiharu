@@ -459,7 +459,7 @@ async def dragon_construct(buf: SessionBuffer):
                 await user.settlement(user.kill())
         else:
             buf.send(f"成功接龙！接龙词：{word}，id为【{tree_node.id_str}】。", end='')
-            if user.data.today_jibi > 0:
+            if first10 := user.data.today_jibi > 0:
                 user.log << f"仍有{user.data.today_jibi}次奖励机会。"
                 jibi_to_add = 1
                 if (n := user.data.check_status('y')) and user.data.today_jibi % 2 == 1:
@@ -504,7 +504,7 @@ async def dragon_construct(buf: SessionBuffer):
                             m['remain'] -= 1
                             await user.add_jibi(3)
                             save_global_state()
-            if current_event == "swim":
+            if current_event == "swim" and first10:
                 n = random.randint(1, 6)
                 user.send_log(f"移动了{n}格，", end='')
                 await user.event_move(n)
