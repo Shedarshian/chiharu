@@ -714,14 +714,14 @@ async def dragon_check(buf: SessionBuffer):
         m = user.data.check_daily_status('m')
         buf.finish("当前活动词为：\n" + '\n'.join(f"{s.word}，{'⚠️' if s.qq == qq or s.parent is not None and s.parent.qq == qq and not m else ''}id为{s.id_str}" for s in words))
     elif data in ("资料", "profile"):
-        buf.finish(f"你的资料为：\n今日剩余获得击毙次数：{user.data.today_jibi}。\n今日剩余获得关键词击毙：{user.data.today_keyword_jibi}。\n剩余抽卡券：{user.data.draw_time}。\n手牌上限：{user.data.card_limit}。" + (f"\n当前在活动第{user.data.event_stage}。" if current_event == "swim" else ""))
+        buf.finish(f"你的资料为：\n今日剩余获得击毙次数：{user.data.today_jibi}。\n今日剩余获得关键词击毙：{user.data.today_keyword_jibi}。\n剩余抽卡券：{user.data.draw_time}。\n手牌上限：{user.data.card_limit}。" + (f"\n活动pt：{user.data.event_pt}。\n当前在活动第{user.data.event_stage}。" if current_event == "swim" else ""))
     elif data in ("活动商店", "event_shop"):
         if current_event == "swim":
             b = user.data.check_equipment(0)
             s = user.data.check_equipment(1)
             p = user.data.event_shop
             nt = '\n\t'
-            buf.finish(f"1. (75pt){'升星' if b else '购买'}比基尼。{'（不可购买）' if s else f'（余{3 - b}次）'}{f'{nt}{Equipment(0).description(b + 1)}' if not s and b != 3 else ''}\n2. (75pt){'升星' if s else '购买'}学校泳装。{'（不可购买）' if b else f'（余{3 - s}次）'}{f'{nt}{Equipment(1).description(s + 1)}' if not b and s != 3 else ''}\n3. (75pt)暴食的蜈蚣。（余{1 - p % 2}次）\n4. (50pt)幻想杀手。（余{1 - p // 2}次）\n5. (30pt)抽卡券。")
+            buf.finish(f"1. (75pt){'升星' if b else '购买'}比基尼。（{'不可购买' if s else (f'余{3 - b}次' + ('，拥有学校泳装时不可购买' if b == 0 else ''))}{f'{nt}{Equipment(0).description(b + 1)}' if not s and b != 3 else ''}）\n2. (75pt){'升星' if s else '购买'}学校泳装。（{'不可购买' if b else (f'余{3 - s}次' + ('，拥有比基尼时不可购买' if s == 0 else ''))}{f'{nt}{Equipment(1).description(s + 1)}' if not b and s != 3 else ''}）\n3. (75pt)暴食的蜈蚣。（余{1 - p % 2}次）\n4. (50pt)幻想杀手。（余{1 - p // 2}次）\n5. (30pt)抽卡券。")
 
 @on_command(('dragon', 'buy'), aliases="购买", only_to_me=False, short_des="购买逻辑接龙相关商品。", args=("id",), environment=env)
 @config.ErrorHandle(config.logger.dragon)
