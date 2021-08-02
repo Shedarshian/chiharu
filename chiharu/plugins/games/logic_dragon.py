@@ -873,7 +873,8 @@ async def dragon_buy_event(buf: SessionBuffer):
                 buf.finish("您已拥有学校泳装，不可购买比基尼！")
             elif b == 3:
                 buf.finish("此商品已售罄！")
-            user.add_event_pt(-75, is_buy=True)
+            if not await user.add_event_pt(-75, is_buy=True):
+                buf.finish("您的击毙不足！")
             user.data.equipment[0] = b + 1
             buf.send(f"您{'购买了1星比基尼' if b == 0 else f'将比基尼升至了{b + 1}星'}！")
         elif id == 2:
@@ -882,7 +883,8 @@ async def dragon_buy_event(buf: SessionBuffer):
                 buf.finish("您已拥有比基尼，不可购买学校泳装！")
             elif s == 3:
                 buf.finish("此商品已售罄！")
-            user.add_event_pt(-75, is_buy=True)
+            if not await user.add_event_pt(-75, is_buy=True):
+                buf.finish("您的击毙不足！")
             user.data.equipment[0] = s + 1
             buf.send(f"您{'购买了1星学校泳装' if s == 0 else f'将学校泳装升至了{s + 1}星'}！")
         elif id == 3:
@@ -890,7 +892,8 @@ async def dragon_buy_event(buf: SessionBuffer):
             p = user.data.event_shop
             if p % 2 == 1:
                 buf.finish("此商品已售罄！")
-            user.add_event_pt(-75, is_buy=True)
+            if not await user.add_event_pt(-75, is_buy=True):
+                buf.finish("您的击毙不足！")
             user.data.event_shop += 1
             buf.send("您购买了暴食的蜈蚣！")
             await user.settlement(user.draw(0, cards=[Card(56)]))
@@ -899,12 +902,15 @@ async def dragon_buy_event(buf: SessionBuffer):
             p = user.data.event_shop
             if p // 2 == 1:
                 buf.finish("此商品已售罄！")
-            user.add_event_pt(-50, is_buy=True)
+            if not await user.add_event_pt(-50, is_buy=True):
+                buf.finish("您的击毙不足！")
             user.data.event_shop += 2
             buf.send("您购买了幻想杀手！")
             await user.settlement(user.draw(0, cards=[Card(120)]))
         elif id == 5:
             # （30pt）抽卡券
+            if not await user.add_event_pt(-30, is_buy=True):
+                buf.finish("您的击毙不足！")
             user.data.draw_time += 1
             buf.send("您购买了1张抽卡券！")
 
