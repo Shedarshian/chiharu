@@ -1260,9 +1260,12 @@ class xingyuntujiao(_card):
     @classmethod
     async def use(cls, user: User):
         c = draw_card({1})
+        if c.id == 67:
+            await c.on_draw(user)
         config.logger.dragon << f"【LOG】用户{user.qq}幸运兔脚抽取了卡牌{c.name}。"
         user.send_char('抽到并使用了卡牌：\n' + c.full_description(user.qq))
-        await c.on_draw(user)
+        if c.id != 67:
+            await c.on_draw(user)
         await c.use(user)
         await c.on_discard(user)
 
@@ -1441,9 +1444,12 @@ class zhongshendexixi(_card):
     @classmethod
     async def use(cls, user: User):
         c = draw_card()
+        if c.id == 67:
+            await c.on_draw(user)
         user.send_char('抽到并使用了卡牌：\n' + c.full_description(user.qq))
         user.log << f"众神的嬉戏抽取了卡牌{c.name}。"
-        await c.on_draw(user)
+        if c.id != 67:
+            await c.on_draw(user)
         await c.use(user)
         await c.on_discard(user)
 
@@ -1813,9 +1819,12 @@ class Grid:
         elif content < 85: # 抽一张卡并立即发动效果
             user.send_log("走到了：抽一张卡并立即发动效果。")
             c = draw_card()
+            if c.id == 67:
+                await c.on_draw(user)
             user.send_char('抽到并使用了卡牌：\n' + c.full_description(user.qq))
             user.log << f"抽取了卡牌{c.name}。"
-            await c.on_draw(user)
+            if c.id != 67:
+                await c.on_draw(user)
             await c.use(user)
             await c.on_discard(user)
         elif content < 95: # 你下次行走距离加倍。
