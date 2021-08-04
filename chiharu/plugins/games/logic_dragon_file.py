@@ -547,7 +547,7 @@ class User:
             await target.discard_cards(copy(self_hand_cards[target_limit:]))
         target.data.set_cards()
         config.logger.dragon << f"【LOG】交换完用户{self.qq}与用户{target.qq}的手牌，当前用户{self.qq}的手牌为{cards_to_str(self.data.hand_card)}。"
-    async def settlement(self, to_do: Coroutine):
+    async def settlement(self, to_do: Coroutine, /, not_flush=False):
         """结算卡牌相关。请不要递归调用此函数。"""
         self.log << "开始结算。"
         try:
@@ -576,7 +576,8 @@ class User:
                     self.buf.send("成功弃置。")
                     await self.discard_cards([Card(i) for i in l])
                 x = len(self.data.hand_card) - self.data.card_limit
-            await self.buf.flush()
+            if not not_flush:
+                await self.buf.flush()
         finally:
             self.data.set_cards()
             save_data()
