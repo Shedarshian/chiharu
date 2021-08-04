@@ -614,18 +614,22 @@ class User:
         if self == killer:
             return TCounter()
         if killer.data.check_status('0'):
+            killer.send_char("触发了幻想杀手的效果，无视了对方的反制！")
             killer.data.remove_status('0', remove_all=False)
             pierce = True
         else:
             pierce = False
         if self.data.check_status('0') and not not_valid.dodge:
+            self.send_char("触发了幻想杀手的效果，防住了对方的攻击！")
             self.data.remove_status('0', remove_all=False)
             return TCounter(dodge=True)
         if self.data.check_status('v') and not not_valid.rebound:
+            self.send_char("触发了矢量操作的效果，反弹了对方的攻击！")
             self.data.remove_status('v', remove_all=False)
             if not pierce:
                 return TCounter(rebound=True)
         if (n := killer.data.check_status('v')) and not not_valid.double:
+            killer.send_char("触发了矢量操作的效果，攻击加倍！")
             killer.data.remove_status('v')
             return TCounter(double=n)
         return TCounter()
