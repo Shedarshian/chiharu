@@ -361,6 +361,7 @@ class User:
         if not is_buy:
             self.send_char(f"收到了{pt}活动pt！")
         self.log << f"增加了{pt}活动pt。现有{self.data.event_pt}活动pt。"
+        return True
     async def add_jibi(self, jibi: int, /, is_buy: bool=False) -> bool:
         current_jibi = self.data.jibi
         if is_buy and current_jibi + jibi < 0:
