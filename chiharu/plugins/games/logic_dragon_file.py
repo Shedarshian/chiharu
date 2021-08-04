@@ -355,8 +355,11 @@ class User:
     def log(self):
         return self.data.log
     async def add_event_pt(self, pt: int, /, is_buy: bool=False):
+        if is_buy and self.data.event_pt + pt < 0:
+            return False
         self.data.event_pt += pt
-        self.send_char(f"收到了{pt}活动pt！")
+        if not is_buy:
+            self.send_char(f"收到了{pt}活动pt！")
         self.log << f"增加了{pt}活动pt。现有{self.data.event_pt}活动pt。"
     async def add_jibi(self, jibi: int, /, is_buy: bool=False) -> bool:
         current_jibi = self.data.jibi
