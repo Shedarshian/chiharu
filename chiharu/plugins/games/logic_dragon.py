@@ -508,7 +508,7 @@ async def dragon_construct(buf: SessionBuffer):
             if current_event == "swim" and first10:
                 n = random.randint(1, 6)
                 user.send_log(f"移动了{n}格，", end='')
-                await user.event_move(n)
+                await user.settlement(user.event_move(n))
                 user.send_log(f"现在位于{user.data.event_stage}。")
             if n := user.data.check_status('A'):
                 user.data.remove_status('A')

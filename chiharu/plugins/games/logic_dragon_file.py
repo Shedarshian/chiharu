@@ -459,6 +459,7 @@ class User:
                         dodge = True
                         break
                     else:
+                        hour += 1
                         self.send_log("触发虹色之环闪避失败，死亡时间+1h！")
         if (n := self.data.check_status('p')) and not dodge:
             self.log << f"的{n}张掠夺者啵噗因死亡被弃置。"
@@ -615,6 +616,8 @@ class User:
         if killer.data.check_status('0'):
             killer.data.remove_status('0', remove_all=False)
             pierce = True
+        else:
+            pierce = False
         if self.data.check_status('0') and not not_valid.dodge:
             self.data.remove_status('0', remove_all=False)
             return TCounter(dodge=True)
@@ -1610,6 +1613,7 @@ class jujifashu(_card):
                         validators.ensure_true(lambda l: l[1] in _card.card_id_dict and Card(l[1]) in user.data.hand_card, message="您选择了错误的卡牌！")
                     ])
             user.log << f"选择了卡牌{l[0]}与{l[1]}。"
+            await user.discard_cards([Card(l[0]), Card(l[1])])
             id_new = l[0] + l[1]
             if id_new not in _card.card_id_dict:
                 user.buf.send(f"不存在id为{id_new}的牌！")
@@ -1617,11 +1621,7 @@ class jujifashu(_card):
             else:
                 user.send_char(f"将这两张牌合成为了id为{id_new}的牌！")
             c = Card(id_new)
-            if c.id == 67:
-                await c.on_draw(user)
-            user.send_char(f"获得了卡牌：\n" + c.full_description(user.qq))
-            if c.id != 67:
-                await c.on_draw(user)
+            await user.draw(0, cards=[c])
 
 class liebianfashu(_card):
     name = "裂变法术"
@@ -1644,6 +1644,7 @@ class liebianfashu(_card):
                         validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！")
                     ])
             user.log << f"选择了卡牌{l[0]}。"
+            await user.discard_cards([Card(l[0])])
             l2 = [(id, l[0] - id) for id in _card.card_id_dict if l[0] - id in _card.card_id_dict]
             if len(l2) == 0:
                 user.buf.send(f"不存在两张和为{l[0]}的牌！")
@@ -1651,16 +1652,7 @@ class liebianfashu(_card):
             else:
                 id_new = random.choice(l2)
                 user.send_char(f"将这张牌分解为了id为{id_new[0]}与{id_new[1]}的牌！")
-            c1, c2 = Card(id_new[0]), Card(id_new[1])
-            if c1.id == 67:
-                await c1.on_draw(user)
-            if c2.id == 67:
-                await c2.on_draw(user)
-            user.send_char(f"获得了卡牌：\n" + c1.full_description(user.qq) + '\n' + c2.full_description(user.qq))
-            if c1.id != 67:
-                await c1.on_draw(user)
-            if c2.id != 67:
-                await c2.on_draw(user)
+            await user.draw([Card(id_new[0]), Card(id_new[1])])
 
 class panjuea(_card):
     name = "判决α"
