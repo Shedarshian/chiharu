@@ -1588,6 +1588,80 @@ class McGuffium239(_card):
     status_des = 'Mc Guffium 239：下一次礼物交换不对你生效。'
     description = "下一次礼物交换不对你生效。"
 
+class jujifashu(_card):
+    name = "聚集法术"
+    id = 105
+    positive = 1
+    description = "将两张手牌的id相加变为新的手牌。若这两牌id之和不是已有卡牌的id，则变为id是-1的卡牌。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if not user.active:
+            config.logger.dragon << f"【LOG】用户{user.qq}非活跃，无法选择。"
+            user.send_char("非活跃，无法选择卡牌！")
+        else:
+            await user.buf.flush()
+            config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行聚集法术。"
+            l = await user.buf.aget(prompt="请选择你手牌中的两张牌，输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
+                arg_filters=[
+                        extractors.extract_text,
+                        lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
+                        validators.fit_size(2, 2, message="请输入正确的张数。"),
+                        validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！"),
+                        validators.ensure_true(lambda l: l[1] in _card.card_id_dict and Card(l[1]) in user.data.hand_card, message="您选择了错误的卡牌！")
+                    ])
+            user.log << f"选择了卡牌{l[0]}与{l[1]}。"
+            id_new = l[0] + l[1]
+            if id_new not in _card.card_id_dict:
+                user.buf.send(f"不存在id为{id_new}的牌！")
+                id_new = -1
+            else:
+                user.send_char(f"将这两张牌合成为了id为{id_new}的牌！")
+            c = Card(id_new)
+            if c.id == 67:
+                await c.on_draw(user)
+            user.send_char(f"获得了卡牌：\n" + c.full_description(user.qq))
+            if c.id != 67:
+                await c.on_draw(user)
+
+class liebianfashu(_card):
+    name = "裂变法术"
+    id = 106
+    positive = 1
+    description = "将一张手牌变为两张随机牌，这两张牌的id之和为之前的卡牌的id。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if not user.active:
+            config.logger.dragon << f"【LOG】用户{user.qq}非活跃，无法选择。"
+            user.send_char("非活跃，无法选择卡牌！")
+        else:
+            await user.buf.flush()
+            config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行裂变法术。"
+            l = await user.buf.aget(prompt="请选择你手牌中的一张牌，输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
+                arg_filters=[
+                        extractors.extract_text,
+                        lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
+                        validators.fit_size(1, 1, message="请输入正确的张数。"),
+                        validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！")
+                    ])
+            user.log << f"选择了卡牌{l[0]}。"
+            l2 = [(id, l[0] - id) for id in _card.card_id_dict if l[0] - id in _card.card_id_dict]
+            if len(l2) == 0:
+                user.buf.send(f"不存在两张和为{l[0]}的牌！")
+                id_new = (-1, -1)
+            else:
+                id_new = random.choice(l2)
+                user.send_char(f"将这张牌分解为了id为{id_new[0]}与{id_new[1]}的牌！")
+            c1, c2 = Card(id_new[0]), Card(id_new[1])
+            if c1.id == 67:
+                await c1.on_draw(user)
+            if c2.id == 67:
+                await c2.on_draw(user)
+            user.send_char(f"获得了卡牌：\n" + c1.full_description(user.qq) + '\n' + c2.full_description(user.qq))
+            if c1.id != 67:
+                await c1.on_draw(user)
+            if c2.id != 67:
+                await c2.on_draw(user)
+
 class panjuea(_card):
     name = "判决α"
     id = 111
