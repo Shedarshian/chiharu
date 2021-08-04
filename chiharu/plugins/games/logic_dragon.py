@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, date, time
+from math import ceil
 from typing import Dict, List, Set, Tuple, Type, TypedDict, Union, Optional
 import itertools, more_itertools
 import json, random, re
@@ -750,7 +751,7 @@ async def dragon_buy(buf: SessionBuffer):
                 lambda s: list(map(int, re.findall(r'\d+', str(s)))),
                 validators.fit_size(1, 1, message="请输入一个自然数。"),
             ]))[0]
-        n //= 15
+        n = ceil(n / 15)
         if (jibi := user.data.jibi) < n:
             buf.send(f"您只有{jibi}击毙！")
             n = jibi
