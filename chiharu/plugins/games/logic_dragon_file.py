@@ -440,6 +440,13 @@ class User:
             hour *= 2 ** c.double
             minute *= 2 ** c.double
         dodge = False
+        if self.data.check_limited_status('v') and not dodge:
+            if c.pierce:
+                self.send_log("无敌的效果被幻想杀手消除了！")
+                self.data.remove_all_limited_status('v')
+            else:
+                dodge = True
+                self.send_log("触发了无敌的效果，免除死亡！")
         if self.data.check_status('r') and not dodge:
             if c.pierce:
                 self.send_log("免死的效果被幻想杀手消除了！")
