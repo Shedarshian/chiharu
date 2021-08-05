@@ -164,6 +164,8 @@ class UserData:
         self.status_time.data = eval(self.node['status_time'])
         self.equipment = property_dict(partial(save, 'equipment'), {})
         self.equipment.data = eval(self.node['equipment'])
+    def save_status_time(self):
+        self.status_time.f(self.status_time.data)
     def reload(self) -> None:
         self.node = dict(find_or_new(self.qq))
     @property
@@ -705,7 +707,7 @@ class _status(metaclass=status_meta):
         pass
     __iadd__ = None
     __isub__ = None
-    def double(self):
+    def double(self) -> List[T_status]:
         return [self]
 
 class TimedStatus(_status):
@@ -751,7 +753,7 @@ class SCantUse(TimedStatus):
         return self.__class__(self.time + other, self.card_id)
     def __sub__(self, other: timedelta) -> T_status:
         return self.__class__(self.time - other, self.card_id)
-    def double(self):
+    def double(self) -> List[T_status]:
         return [self.__class__(self.time + (self.time - datetime.now()), self.card_id)]
 
 class NumedStatus(_status):
@@ -767,8 +769,25 @@ class NumedStatus(_status):
         return self.__class__(self.num + other)
     def __sub__(self, other: int) -> T_status:
         return self.__class__(self.num - other)
-    def double(self):
+    def double(self) -> List[T_status]:
         return [self, self.__class__(self.num)]
+
+@final
+class SQuest(NumedStatus):
+    id = 'q'
+    @property
+    def des(self):
+        return f"今日任务：{mission[self.quest_id][1]}。"
+    def __init__(self, s: Union[str, int], jibi: int, quest_id: int):
+        super().__init__(s)
+        self.jibi = jibi
+        self.quest_id = quest_id
+    def __repr__(self) -> str:
+        return self.construct_repr(str(self.num), self.jibi, self.quest_id)
+    def __str__(self) -> str:
+        return f"{self.des}\n\t剩余次数：{self.num}次，完成获得击毙：{self.jibi}。"
+    def double(self):
+        return [self.__class__(self.num * 2, self.jibi, self.quest_id)]
 
 @lru_cache(10)
 def Card(id):
@@ -952,6 +971,21 @@ class high_priestess(_card):
             user.buf.send(f"当前周期内接龙次数最多的玩家有{''.join(f'[CQ:at,qq={q}]' for q in l)}！")
         for q in ql:
             await User(q, user.buf).kill(killer=user)
+
+class empress(_card):
+    name = "III - 女皇"
+    id = 3
+    description = "你当前所有任务的可完成次数+5。如果当前手牌无任务之石，则为你派发一个可完成3次的任务，每次完成获得3击毙，下次刷新时消失。"
+    positive = 1
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if Card(67) in user.data.hand_card:
+            for q in global_state['quest'][user.qq]:
+                q["remain"] += 5
+            user.send_char("的任务剩余次数增加了5！")
+        else:
+            user.data.status_time.append(SQuest(3, 3, n := get_mission()))
+            user.send_char(f"获得了一个任务：{mission[n][1]}")
 
 class lovers(_card):
     name = "VI - 恋人"

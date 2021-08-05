@@ -320,6 +320,9 @@ async def daily_update() -> str:
                 User(r['qq'], None).data.remove_daily_status('d')
     else:
         config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=0, spend_shop=0', ('',))
+    for r in config.userdata.execute("select qq, status_time from dragon_data").fetchall():
+        if "'q'" in r['status_time']:
+            User(r['qq'], None).data.remove_all_limited_status('q')
     save_data()
     me.reload()
     word = await update_begin_word(is_daily=True)
@@ -505,6 +508,17 @@ async def dragon_construct(buf: SessionBuffer):
                             m['remain'] -= 1
                             await user.add_jibi(3)
                             save_global_state()
+            if l := user.data.check_limited_status('q'):
+                changed = False
+                for q in l:
+                    if (id, name, func := mission[q.quest_id])[2](word):
+                        buf.send(f"你完成了每日任务：{name[:-1]}！奖励3击毙。此任务还可完成{q.num - 1}次。")
+                        user.log << f"完成了一次任务{name}，剩余{q.num - 1}次。"
+                        q.num -= 1
+                        await user.add_jibi(q.jibi)
+                        changed = True
+                if changed:
+                    user.data.save_status_time()
             if current_event == "swim" and first10:
                 n = random.randint(1, 6)
                 user.send_log(f"移动了{n}格，", end='')
