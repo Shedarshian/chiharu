@@ -353,6 +353,14 @@ class User:
         else:
             self.data.status_time[t[0]] = s
             return False
+    async def choose(self):
+        if not self.active:
+            config.logger.dragon << f"【LOG】用户{self.qq}非活跃，无法选择。"
+            self.send_char("非活跃，无法选择卡牌！")
+            return False
+        else:
+            await self.buf.flush()
+            return True
     @property
     def log(self):
         return self.data.log
@@ -930,11 +938,7 @@ class magician(_card):
     description = "选择一张你的手牌（不可选择暴食的蜈蚣），执行3次该手牌的效果，并弃置该手牌。此后一周内不得使用该卡。"
     @classmethod
     async def use(cls, user: User):
-        if not user.active:
-            config.logger.dragon << f"【LOG】用户{user.qq}非活跃，无法选择。"
-            user.send_char("非活跃，无法选择卡牌！")
-        else:
-            await user.buf.flush()
+        if await user.choose():
             config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行I - 魔术师。"
             l = await user.buf.aget(prompt="请选择你手牌中的一张牌（不可选择暴食的蜈蚣），输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
                 arg_filters=[
@@ -1004,11 +1008,7 @@ class lovers(_card):
     description = "复活1名指定玩家。"
     @classmethod
     async def use(cls, user: User):
-        if not user.active:
-            config.logger.dragon << f"【LOG】用户{user.qq}非活跃，无法选择。"
-            user.send_char("非活跃，无法选择卡牌！")
-        else:
-            await user.buf.flush()
+        if await user.choose():
             l = await user.buf.aget(prompt="请at一名玩家复活。\n",
                 arg_filters=[
                         lambda s: re.findall(r'qq=(\d+)', str(s)),
@@ -1177,11 +1177,7 @@ class tiesuolianhuan(_card):
     description = "指定至多两名玩家进入连环状态。任何处于连环状态的玩家被击毙时所有连环状态的玩家也被击毙并失去此效果。也可用于解除至多两人的连环状态。"
     @classmethod
     async def use(cls, user: User):
-        if not user.active:
-            config.logger.dragon << f"【LOG】用户{user.qq}非活跃，无法选择。"
-            user.send_char("非活跃，无法选择玩家！")
-        else:
-            await user.buf.flush()
+        if await user.choose():
             config.logger.dragon << f"【LOG】询问用户{user.qq}铁索连环。"
             l: List[int] = await user.buf.aget(prompt="请at群内至多两名玩家进行铁索连环。\n",
                 arg_filters=[
@@ -1246,11 +1242,7 @@ class baiban(_card):
     description = "复制你手牌中一张牌的效果。"
     @classmethod
     async def use(cls, user: User):
-        if not user.active:
-            config.logger.dragon << f"【LOG】用户{user.qq}非活跃，无法选择。"
-            user.send_char("非活跃，无法选择卡牌！")
-        else:
-            await user.buf.flush()
+        if await user.choose():
             config.logger.dragon << f"【LOG】询问用户{user.qq}复制牌。"
             l: List[int] = await user.buf.aget(prompt="请选择你手牌中的一张牌复制，输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
                 arg_filters=[
@@ -1647,11 +1639,7 @@ class jujifashu(_card):
     description = "将两张手牌的id相加变为新的手牌。若这两牌id之和不是已有卡牌的id，则变为id是-1的卡牌。"
     @classmethod
     async def use(cls, user: User) -> None:
-        if not user.active:
-            config.logger.dragon << f"【LOG】用户{user.qq}非活跃，无法选择。"
-            user.send_char("非活跃，无法选择卡牌！")
-        else:
-            await user.buf.flush()
+        if await user.choose():
             config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行聚集法术。"
             l = await user.buf.aget(prompt="请选择你手牌中的两张牌，输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
                 arg_filters=[
@@ -1679,11 +1667,7 @@ class liebianfashu(_card):
     description = "将一张手牌变为两张随机牌，这两张牌的id之和为之前的卡牌的id。"
     @classmethod
     async def use(cls, user: User) -> None:
-        if not user.active:
-            config.logger.dragon << f"【LOG】用户{user.qq}非活跃，无法选择。"
-            user.send_char("非活跃，无法选择卡牌！")
-        else:
-            await user.buf.flush()
+        if await user.choose():
             config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行裂变法术。"
             l = await user.buf.aget(prompt="请选择你手牌中的一张牌，输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
                 arg_filters=[
