@@ -996,7 +996,7 @@ class high_priestess(_card):
         if len(ql) == 1:
             user.buf.send(f"当前周期内接龙次数最多的玩家是[CQ:at,qq={ql[0]}]！")
         else:
-            user.buf.send(f"当前周期内接龙次数最多的玩家有{''.join(f'[CQ:at,qq={q}]' for q in l)}！")
+            user.buf.send(f"当前周期内接龙次数最多的玩家有{''.join(f'[CQ:at,qq={q}]' for q in ql)}！")
         for q in ql:
             await User(q, user.buf).kill(killer=user)
 
