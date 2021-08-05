@@ -6,6 +6,7 @@ from functools import lru_cache, partial, wraps
 from copy import copy
 from datetime import datetime, timedelta
 from functools import reduce
+from contextlib import asynccontextmanager
 from nonebot.command import CommandSession
 from pypinyin import pinyin, Style
 from nonebot.command.argfilter import extractors, validators
@@ -557,11 +558,12 @@ class User:
             await target.discard_cards(copy(self_hand_cards[target_limit:]))
         target.data.set_cards()
         config.logger.dragon << f"【LOG】交换完用户{self.qq}与用户{target.qq}的手牌，当前用户{self.qq}的手牌为{cards_to_str(self.data.hand_card)}。"
-    async def settlement(self, to_do: Coroutine, /, not_flush=False):
+    @asynccontextmanager
+    async def settlement(self):
         """结算卡牌相关。请不要递归调用此函数。"""
         self.log << "开始结算。"
         try:
-            await to_do
+            yield
             # discard
             x = len(self.data.hand_card) - self.data.card_limit
             while x > 0:
@@ -586,8 +588,7 @@ class User:
                     self.buf.send("成功弃置。")
                     await self.discard_cards([Card(i) for i in l])
                 x = len(self.data.hand_card) - self.data.card_limit
-            if not not_flush:
-                await self.buf.flush()
+            await self.buf.flush()
         finally:
             self.data.set_cards()
             save_data()
@@ -764,6 +765,11 @@ class SCantUse(TimedStatus):
     def double(self) -> List[T_status]:
         return [self.__class__(self.time + (self.time - datetime.now()), self.card_id)]
 
+@final
+class SInvincible(TimedStatus):
+    id = 'v'
+    des = '无敌：免疫死亡。'
+
 class NumedStatus(_status):
     def __init__(self, s: Union[str, int]):
         self.num = int(s)
@@ -922,6 +928,7 @@ class jiandiezhixing(_card):
     name = "邪恶的间谍行动～执行"
     id = -1
     positive = -1
+    weight = 0
     description = "此牌不可被使用，通常情况下无法被抽到。当你弃置此牌时立即死亡。"
     failure_message = "此牌不可被使用！"
     @classmethod
@@ -930,6 +937,16 @@ class jiandiezhixing(_card):
     @classmethod
     def can_use(cls, user: User) -> bool:
         return False
+
+class vampire(_card):
+    name = "吸血鬼"
+    id = -2
+    positive = 1
+    weight = 0
+    description = "此牌通常情况下无法被抽到。2小时内免疫死亡。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        user.data.status_time.append(SInvincible(datetime.now() + timedelta(hours=2)))
 
 class magician(_card):
     name = "I - 魔术师"
@@ -1750,6 +1767,14 @@ class vector(_card):
     positive = 1
     status = 'v'
     status_des = "矢量操作：你的下一张攻击卡效果加倍，下一张对你的攻击卡反弹至攻击者，免除你下一次触雷。以上三项只能发动一项。"
+
+class xixueshashou(_card):
+    name = "吸血杀手"
+    id = 124
+    positive = 1
+    description = "今天你每次接龙时有5%几率获得一张【吸血鬼】。"
+    daily_status = "x"
+    status_des = "吸血杀手：今天你每次接龙时有5%几率获得一张【吸血鬼】。"
 
 class steamsummer(_card):
     name = "Steam夏季特卖"
