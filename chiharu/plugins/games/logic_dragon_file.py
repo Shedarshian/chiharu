@@ -987,6 +987,16 @@ class empress(_card):
             user.data.status_time.append(SQuest(3, 3, n := get_mission()))
             user.send_char(f"获得了一个任务：{mission[n][1]}")
 
+class emperor(_card):
+    name = "IV - 皇帝"
+    id = 4
+    positive = 1
+    description = "为你派发一个随机任务，可完成10次，每次完成获得2击毙，下次刷新时消失。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        user.data.status_time.append(SQuest(10, 2, n := get_mission()))
+        user.send_char(f"获得了一个任务：{mission[n][1]}")
+
 class lovers(_card):
     name = "VI - 恋人"
     id = 6
