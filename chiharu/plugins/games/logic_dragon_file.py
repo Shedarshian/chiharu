@@ -1752,6 +1752,7 @@ class yuexiabianhua(_card):
     name = "月下彼岸花"
     id = 110
     description = "抽到时附加buff：你每接龙三次会损失1击毙，效果发动20次消失。"
+    consumed_on_draw = True
     @classmethod
     async def on_draw(cls, user: User) -> None:
         user.data.status_time.append(SBian(60))
