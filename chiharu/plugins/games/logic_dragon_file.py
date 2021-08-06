@@ -791,6 +791,12 @@ class NumedStatus(_status):
         return self.__class__(self.num + other)
     def __sub__(self, other: int) -> T_status:
         return self.__class__(self.num - other)
+    def __iadd__(self, other: int) -> T_status:
+        self.num += other
+        return self
+    def __isub__(self, other: int) -> T_status:
+        self.num -= other
+        return self
     def double(self) -> List[T_status]:
         return [self, self.__class__(self.num)]
 
@@ -810,6 +816,13 @@ class SQuest(NumedStatus):
         return f"{self.des}\n\t剩余次数：{self.num}次，完成获得击毙：{self.jibi}。"
     def double(self):
         return [self.__class__(self.num * 2, self.jibi, self.quest_id)]
+
+@final
+class SBian(NumedStatus):
+    id = 'b'
+    des = '你每接龙三次会损失1击毙。'
+    def __str__(self) -> str:
+        return f"{self.des}\n\t剩余次数：{self.num // 3}次。"
 
 @lru_cache(10)
 def Card(id):
@@ -1734,6 +1747,14 @@ class liebianfashu(_card):
                 id_new = random.choice(l2)
                 user.send_char(f"将这张牌分解为了id为{id_new[0]}与{id_new[1]}的牌！")
             await user.draw([Card(id_new[0]), Card(id_new[1])])
+
+class yuexiabianhua(_card):
+    name = "月下彼岸花"
+    id = 110
+    description = "抽到时附加buff：你每接龙三次会损失1击毙，效果发动20次消失。"
+    @classmethod
+    async def on_draw(cls, user: User) -> None:
+        user.data.status_time.append(SBian(60))
 
 class panjuea(_card):
     name = "判决α"
