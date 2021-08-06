@@ -1843,8 +1843,11 @@ class _equipment(metaclass=equipment_meta):
     name = ''
     des_shop = ''
     @classmethod
-    def description(cls, count: int):
+    def description(cls, count: int) -> str:
         pass
+    @classmethod
+    def full_description(cls, count: int) -> str:
+        return f"{cls.id}. {cls.name}\n\t{cls.description(count)}"
 
 class bikini(_equipment):
     id = 0

@@ -666,6 +666,7 @@ async def dragon_check(buf: SessionBuffer):
     全局状态/global_status：查询当前全局状态。
     资料/profile：查询自己当前资料。
     手牌/hand_cards：查询自己当前手牌。
+    装备/equipments：查询自己当前装备。
     击毙/jibi：查询自己的击毙数。
     商店/shop：查询可购买项目。"""
     with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
@@ -717,6 +718,11 @@ async def dragon_check(buf: SessionBuffer):
         if len(cards) == 0:
             buf.finish("你没有手牌！")
         buf.finish("你的手牌为：\n" + '\n'.join(s.full_description(qq) for s in cards))
+    elif data in ("装备", "equipments"):
+        equipments = user.data.equipment
+        if len(equipments) == 0:
+            buf.finish("你没有手牌！")
+        buf.finish("你的装备为：\n" + '\n'.join(Equipment(id).description(num) for id, num in equipments.items()))
     elif data in ("击毙", "jibi"):
         buf.finish("你的击毙数为：" + str(user.data.jibi))
     elif data in ("状态", "status"):
@@ -741,7 +747,7 @@ async def dragon_check(buf: SessionBuffer):
             s = user.data.check_equipment(1)
             p = user.data.event_shop
             nt = '\n\t'
-            buf.finish(f"1. (75pt){'升星' if b else '购买'}比基尼。（{'不可购买' if s else (f'余{3 - b}次' + ('，拥有学校泳装时不可购买' if b == 0 else ''))}）{f'{nt}{Equipment(0).description(b + 1)}' if not s and b != 3 else ''}\n2. (75pt){'升星' if s else '购买'}学校泳装。（{'不可购买' if b else (f'余{3 - s}次' + ('，拥有比基尼时不可购买' if s == 0 else ''))}）{f'{nt}{Equipment(1).description(s + 1)}' if not b and s != 3 else ''}\n3. (75pt)暴食的蜈蚣。（余{1 - p % 2}次）\n4. (50pt)幻想杀手。（余{1 - p // 2}次）\n5. (30pt)抽卡券。")
+            buf.finish(f"1. (75pt){'升星' if b else '购买'}比基尼。（{'不可购买' if s else (f'余{3 - b}次' + ('，拥有学校泳装时不可购买' if b == 0 else ''))}）\n\t{Equipment(0).des_shop}\n2. (75pt){'升星' if s else '购买'}学校泳装。（{'不可购买' if b else (f'余{3 - s}次' + ('，拥有比基尼时不可购买' if s == 0 else ''))}）\n\t{Equipment(1).des_shop}\n3. (75pt)暴食的蜈蚣。（余{1 - p % 2}次）\n4. (50pt)幻想杀手。（余{1 - p // 2}次）\n5. (30pt)抽卡券。")
 
 @on_command(('dragon', 'buy'), aliases="购买", only_to_me=False, short_des="购买逻辑接龙相关商品。", args=("id",), environment=env)
 @config.ErrorHandle(config.logger.dragon)
