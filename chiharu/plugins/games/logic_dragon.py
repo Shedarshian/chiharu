@@ -228,7 +228,7 @@ def update_hidden_keyword(d: TWords, which, if_delete=False):
     config.logger.dragon << f"【LOG】隐藏关键词更新为：{'，'.join(hidden_keyword)}。"
     return True
 @wrapper_file
-def remove_bomb(d: TWords, word):
+def remove_bomb(d: TWords, word: str):
     global bombs
     d["bombs"].remove(word)
     bombs.remove(word)
@@ -244,21 +244,21 @@ def remove_all_bomb(d: TWords, p: Optional[float]=None):
         d["bombs"] = bombs = [bomb for bomb in bombs if random.random() > p]
         config.logger.dragon << f"【LOG】炸弹变成了{'，'.join(bombs)}。"
 @wrapper_file
-def add_bomb(d: TWords, word):
+def add_bomb(d: TWords, word: str):
     global bombs
     d["bombs"].append(word)
     bombs.append(word)
     config.logger.dragon << f"【LOG】增加了炸弹{word}，当前炸弹：{'，'.join(bombs)}。"
 @wrapper_file
-def add_begin(d: TWords, word):
+def add_begin(d: TWords, word: str):
     d['begin'].append(word)
     config.logger.dragon << f"【LOG】增加了起始词{word}。"
 @wrapper_file
-def add_keyword(d: TWords, word):
+def add_keyword(d: TWords, word: str):
     d['keyword'][1].append(word)
     config.logger.dragon << f"【LOG】增加了起始词{word}。"
 @wrapper_file
-def add_hidden(d: TWords, word):
+def add_hidden(d: TWords, word: str):
     d['hidden'][1].append(word)
     config.logger.dragon << f"【LOG】增加了隐藏关键词{word}。"
 

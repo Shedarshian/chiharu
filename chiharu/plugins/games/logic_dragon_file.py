@@ -1141,6 +1141,29 @@ class devil(_card):
         user.buf.send(f'[CQ:at,qq={q}]被你击毙了！')
         await u.kill(killer=user)
 
+class tower(_card):
+    name = "XVI - 高塔"
+    id = 16
+    positive = 0
+    description = "随机解除至多3个雷，随机击毙3个玩家。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        from .logic_dragon import bombs, remove_bomb
+        for i in range(3):
+            if len(bombs) == 0:
+                break
+            b = random.choice(bombs)
+            remove_bomb(b)
+        l = config.userdata.execute("select qq from dragon_data where qq<>?", (config.selfqq,)).fetchall()
+        p = []
+        for i in range(3):
+            c = random.choice(l)
+            p.append(c['qq'])
+            l.remove(p[-1])
+        user.send_char(f"抽到了{'，'.join(f'[CQ:at,qq={q}]' for q in p)}！")
+        for q in p:
+            await User(q, user.buf).kill(killer=user)
+
 class star(_card):
     name = "XVII - 星星"
     id = 17
