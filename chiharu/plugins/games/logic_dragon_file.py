@@ -479,7 +479,7 @@ class User:
                     else:
                         hour += 1
                         self.send_log("触发虹色之环闪避失败，死亡时间+1h！")
-        if (n := self.data.check_status('p')) and not dodge:
+        if (n := self.data.hand_card.count(Card(77))) and not dodge:
             self.send_char(f"的{f'{n}张' if n > 1 else ''}掠夺者啵噗被弃了！")
             self.log << f"的{n}张掠夺者啵噗因死亡被弃置。"
             await self.discard_cards([Card(77) for i in range(n)])
@@ -633,16 +633,16 @@ class User:
     async def check_attacked(self, killer: 'User', not_valid: TCounter=TCounter()):
         if self == killer:
             return TCounter()
+        if self.data.check_status('0') and not not_valid.dodge:
+            self.send_char("触发了幻想杀手的效果，防住了对方的攻击！")
+            self.data.remove_status('0', remove_all=False)
+            return TCounter(dodge=True)
         if killer.data.check_status('0'):
             killer.send_char("触发了幻想杀手的效果，无视了对方的反制！")
             killer.data.remove_status('0', remove_all=False)
             pierce = True
         else:
             pierce = False
-        if self.data.check_status('0') and not not_valid.dodge:
-            self.send_char("触发了幻想杀手的效果，防住了对方的攻击！")
-            self.data.remove_status('0', remove_all=False)
-            return TCounter(dodge=True)
         if self.data.check_status('v') and not not_valid.rebound:
             self.send_char("触发了矢量操作的效果，反弹了对方的攻击！")
             self.data.remove_status('v', remove_all=False)
@@ -902,15 +902,19 @@ class _card(metaclass=card_meta):
     def can_use(cls, user: User) -> bool:
         return len(user.data.check_limited_status('m', lambda t: t.card_id == cls.id)) == 0
     @classmethod
-    def add_daily_status(cls, s, des):
+    def add_daily_status(cls, s, des, /, is_debuff=False):
         if s in cls.daily_status_dict:
             raise ImportError
         cls.daily_status_dict[s] = des
+        if is_debuff:
+            cls.debuffs += s
     @classmethod
-    def add_status(cls, s, des):
+    def add_status(cls, s, des, /, is_debuff=False):
         if s in cls.status_dict:
             raise ImportError
         cls.status_dict[s] = des
+        if is_debuff:
+            cls.debuffs += s
     @classmethod
     def full_description(cls, qq):
         return f"{cls.id}. {cls.name}\n\t{cls.description}"
@@ -1104,6 +1108,26 @@ class death(_card):
     description = "今天的所有死亡时间加倍。"
     global_daily_status = 'D'
     status_des = "XIII - 死神：今天的所有死亡时间加倍。"
+
+class temperance(_card):
+    name = "XIV - 节制"
+    id = 14
+    positive = 0
+    description = "随机抽取1名玩家，下次刷新前祂不能使用卡牌。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        l = config.userdata.execute("select qq from dragon_data where qq<>?", (config.selfqq,)).fetchall()
+        q: int = random.choice(l)["qq"]
+        user.send_char(f"抽到了[CQ:at,qq={q}]！")
+        u = User(q, user.buf)
+        c = await u.check_attacked(user, not_valid=TCounter(double=1))
+        if c.dodge:
+            return
+        elif c.rebound:
+            user.data.add_daily_status('T')
+        else:
+            u.data.add_daily_status('T')
+_card.add_daily_status('T', "节制：下次刷新前你不能使用卡牌。")
 
 class devil(_card):
     name = "XV - 恶魔"
@@ -1697,8 +1721,8 @@ class panjuea(_card):
     @classmethod
     async def on_draw(cls, user: User) -> None:
         user.data.add_status('a')
-_card.add_status('a', "判决α：将此buff传递给你上次接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。")
-_card.add_status('A', "判决α：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。")
+_card.add_status('a', "判决α：将此buff传递给你上次接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。", is_debuff=True)
+_card.add_status('A', "判决α：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。", is_debuff=True)
 
 class panjueb(_card):
     name = "判决β"
@@ -1709,8 +1733,8 @@ class panjueb(_card):
     @classmethod
     async def on_draw(cls, user: User) -> None:
         user.data.add_status('b')
-_card.add_status('b', "判决β：将此buff传递给你上次接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。")
-_card.add_status('B', "判决β：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。")
+_card.add_status('b', "判决β：将此buff传递给你上次接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。", is_debuff=True)
+_card.add_status('B', "判决β：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。", is_debuff=True)
 
 class dihuopenfa(_card):
     name = "地火喷发"
