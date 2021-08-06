@@ -1847,7 +1847,7 @@ class _equipment(metaclass=equipment_meta):
         pass
     @classmethod
     def full_description(cls, count: int) -> str:
-        return f"{cls.id}. {cls.name}\n\t{cls.description(count)}"
+        return f"{cls.id}. {count * '☆'}{cls.name}\n\t{cls.description(count)}"
 
 class bikini(_equipment):
     id = 0
