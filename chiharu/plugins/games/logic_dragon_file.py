@@ -1751,6 +1751,7 @@ class liebianfashu(_card):
 class yuexiabianhua(_card):
     name = "月下彼岸花"
     id = 110
+    positive = -1
     description = "抽到时附加buff：你每接龙三次会损失1击毙，效果发动20次消失。"
     consumed_on_draw = True
     @classmethod
@@ -1804,6 +1805,14 @@ class shenmouyuanlv(_card):
     positive = 0
     status = 'n'
     status_des = "深谋远虑之策：当你一次使用/损失了超过你现有击毙一半以上的击毙时，恢复这些击毙。"
+
+class mixidiyatu(_card):
+    name = "通灵之术-密西迪亚兔"
+    id = 118
+    description = "你的头上会出现一只可爱的小兔子。"
+    positive = 0
+    status = 'R'
+    status_des = "通灵之术-密西迪亚兔：你的头上出现了一只可爱的小兔子。"
 
 class imaginebreaker(_card):
     name = "幻想杀手"
