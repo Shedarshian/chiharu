@@ -402,7 +402,7 @@ class User:
                 self.send_char(f"触发了{f'{m}次' if m > 1 else ''}Steam夏季特卖的效果，花费击毙减半为{abs(jibi)}！")
                 self.data.remove_status('S')
             else: m = 0
-        if p := self.data.check_status('1'):
+        if p := self.data.hand_card.count(Card(153)):
             if is_buy and not dodge:
                 if 100 <= self.data.spend_shop < 150:
                     jibi  = int(jibi * 0.8 ** p)
@@ -480,6 +480,7 @@ class User:
                         hour += 1
                         self.send_log("触发虹色之环闪避失败，死亡时间+1h！")
         if (n := self.data.check_status('p')) and not dodge:
+            self.send_char(f"的{f'{n}张' if n > 1 else ''}掠夺者啵噗被弃了！")
             self.log << f"的{n}张掠夺者啵噗因死亡被弃置。"
             await self.discard_cards([Card(77) for i in range(n)])
         time = timedelta(hours=hour, minutes=minute)
@@ -860,23 +861,6 @@ class card_meta(type):
                 async def use(self, user: User):
                     me.status_time.append(Status(status)(attrs['global_limited_init']))
                 attrs['use'] = use
-            elif 'hold_status' in attrs and attrs['hold_status']:
-                status = attrs['hold_status']
-                bases[0].add_status(status, attrs['status_des'])
-                bases[0].is_hold += attrs['status_des']
-                @classmethod
-                async def on_draw(cls, user: User):
-                    user.data.add_status(status)
-                @classmethod
-                async def on_discard(cls, user: User):
-                    user.data.remove_status(status, remove_all=False)
-                @classmethod
-                async def on_give(cls, user: User, target: User):
-                    user.data.remove_status(status)
-                    target.data.add_status(status)
-                attrs['on_draw'] = on_draw
-                attrs['on_discard'] = on_discard
-                attrs['on_give'] = on_give
             c = type.__new__(cls, clsname, bases, attrs)
             bases[0].card_id_dict[attrs['id']] = c
         else:
@@ -891,10 +875,10 @@ class _card(metaclass=card_meta):
     card_id_dict: Dict[int, TCard] = {}
     status_dict: Dict[str, str] = {'d': "永久死亡。"}
     daily_status_dict: Dict[str, str] = {}
-    is_hold = ''
     debuffs = 'd'
     daily_debuffs = 'd'
     name = ""
+    hold_des = None
     id = -127
     weight = 1
     positive = 0
@@ -1051,13 +1035,12 @@ class strength(_card):
     failure_message = "你的击毙不足！"
     @classmethod
     def can_use(cls, user: User) -> bool:
-        l = len(''.join(s for s in user.data.status if s not in _card.is_hold)) + len(user.data.daily_status)
+        l = len(user.data.status) + len(user.data.daily_status)
         l += len(user.data.status_time_checked)
         return user.data.jibi >= 2 ** l - 1
     @classmethod
     async def use(cls, user: User):
-        status = ''.join(s for s in user.data.status if s not in _card.is_hold)
-        l = len(status) + len(user.data.daily_status) + len(user.data.status_time_checked)
+        l = len(user.data.status) + len(user.data.daily_status) + len(user.data.status_time_checked)
         status_time = user.data.status_time
         if user.data.jibi < 2 ** l - 1:
             user.send_char("太弱小了，没有力量！")
@@ -1065,7 +1048,7 @@ class strength(_card):
         else:
             user.send_char(f"花费了{2 ** l - 1}击毙！")
         await user.add_jibi(-2 ** l + 1)
-        user.data.add_status(status)
+        user.data.add_status(user.data.status)
         user.data.add_daily_status(user.data.daily_status)
         i = 0
         while i < len(status_time):
@@ -1483,8 +1466,7 @@ class liwujiaohuan(_card):
 class xingyunhufu(_card):
     name = "幸运护符"
     id = 73
-    hold_status = 'y'
-    status_des = '幸运护符：无法使用其他卡牌。每进行两次接龙额外获得一个击毙（每天上限为5击毙）。'
+    hold_des = '幸运护符：无法使用其他卡牌。每进行两次接龙额外获得一个击毙（每天上限为5击毙）。'
     positive = 1
     description = "持有此卡时，你无法使用其他卡牌。你每进行两次接龙额外获得一个击毙（每天上限为5击毙）。使用将丢弃这张卡。"
 
@@ -1529,29 +1511,24 @@ class lveduozhebopu(_card):
     name = "掠夺者啵噗"
     id = 77
     positive = 1
+    hold_des = '掠夺者啵噗：每天可从所接龙的人处偷取1击毙，每人限一次，最多10击毙，若目标没有击毙则不可偷取。'
     description = "每天你可从你所接龙的人处偷取1击毙，每人限一次，最多10击毙，若目标没有击毙则不可偷取。死亡时或使用将丢弃这张卡。"
     @classmethod
     async def on_draw(cls, user: User):
-        user.data.add_status('p')
         if str(user.qq) not in global_state['steal']:
             global_state['steal'][str(user.qq)] = {'time': 0, 'user': []}
         save_global_state()
     @classmethod
     async def on_discard(cls, user: User):
-        user.data.remove_status('p', remove_all=False)
-        if not user.data.check_status('p'):
+        if Card(77) not in user.data.hand_card:
             del global_state['steal'][str(user.qq)]
         save_global_state()
     @classmethod
     async def on_give(cls, user: User, target: User):
-        user.data.remove_status('p')
-        target.data.add_status('p')
         global_state['steal'][str(target.qq)] = global_state['steal'][str(user.qq)]
-        if not user.data.check_status('p'):
+        if Card(77) not in user.data.hand_card:
             del global_state['steal'][str(user.qq)]
         save_global_state()
-_card.add_status('p', '掠夺者啵噗：每天可从所接龙的人处偷取1击毙，每人限一次，最多10击毙，若目标没有击毙则不可偷取。')
-_card.is_hold += 'p'
 
 class jiandieyubei(_card):
     name = "邪恶的间谍行动～预备"
@@ -1803,9 +1780,8 @@ class beijingcard(_card):
     name = "北京市市政交通一卡通"
     id = 153
     positive = 1
-    hold_status = '1'
     description = "持有此卡时，你当天在商店总消费达100击毙后商店所有物品变为8折，当天在商店总消费达150击毙后商店所有物品变为5折，当天在商店总消费达400击毙后不再打折。"
-    status_des = "北京市市政交通一卡通：你当天在商店总消费达100击毙后商店所有物品变为8折，当天在商店总消费达150击毙后商店所有物品变为5折，当天在商店总消费达400击毙后不再打折。"
+    hold_des = "北京市市政交通一卡通：你当天在商店总消费达100击毙后商店所有物品变为8折，当天在商店总消费达150击毙后商店所有物品变为5折，当天在商店总消费达400击毙后不再打折。"
 
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):

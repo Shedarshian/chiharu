@@ -467,7 +467,7 @@ async def dragon_construct(buf: SessionBuffer):
                 if first10 := user.data.today_jibi > 0:
                     user.log << f"仍有{user.data.today_jibi}次奖励机会。"
                     jibi_to_add = 1
-                    if (n := user.data.check_status('y')) and user.data.today_jibi % 2 == 1:
+                    if (n := user.data.hand_card.count(Card(73))) and user.data.today_jibi % 2 == 1:
                         user.log << f"触发了幸运护符{n}次。"
                         jibi_to_add += n
                         buf.send("\n你因为幸运护符的效果，", end='')
@@ -482,7 +482,7 @@ async def dragon_construct(buf: SessionBuffer):
                     buf.send("")
                 if (n := me.check_daily_status('t')) and random.random() > 0.9 ** n:
                     add_keyword(word)
-                if (n := user.data.check_status('p')):
+                if (n := user.data.hand_card.count(Card(77))):
                     last_qq = parent.qq
                     if parent.id != (0, 0):
                         last = User(last_qq, buf)
@@ -613,7 +613,7 @@ async def dragon_use_card(buf: SessionBuffer):
     user.log << f"试图使用手牌{card.name}，当前手牌为{user.data.hand_card}。"
     if card not in user.data.hand_card:
         buf.finish("你还未拥有这张牌！")
-    if user.data.check_status('y') and card.id != 73:
+    if Card(73) in user.data.hand_card and card.id != 73:
         buf.finish("你因幸运护符的效果，不可使用其他手牌！")
     if not card.can_use(user):
         user.log << f"无法使用卡牌{card.name}。"
@@ -677,6 +677,9 @@ async def dragon_check(buf: SessionBuffer):
             yield _card.daily_status_dict[s]
         for s in d.status_time_checked:
             yield str(s)
+        for s in d.hand_card:
+            if s.hold_des:
+                yield s.hold_des
         if qq and qq in global_state['lianhuan']:
             yield logic_dragon_file.tiesuolianhuan.status_des
     data = buf.current_arg_text
@@ -1067,3 +1070,12 @@ async def dragon_update(session: CommandSession):
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_char(session: CommandSession):
     await session.send(f"status: {''.join(sorted(_card.status_dict.keys()))}\ndaily_status: {''.join(sorted(_card.daily_status_dict.keys()))}\nlimited_status: {''.join(sorted(_status.id_dict.keys()))}")
+
+@on_command(('dragon', 'test'), only_to_me=False, hide=True, permission=permission.SUPERUSER)
+@config.ErrorHandle(config.logger.dragon)
+async def dragon_test(session: CommandSession):
+    for r in config.userdata.execute("select qq, status from dragon_data").fetchall():
+        if 'y' in r['status'] or 'p' in r['status'] or '1' in r['status']:
+            User(r['qq'], None).data.remove_status('y')
+            User(r['qq'], None).data.remove_status('p')
+            User(r['qq'], None).data.remove_status('1')
