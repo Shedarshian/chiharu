@@ -341,8 +341,8 @@ class User:
     @property
     def char(self):
         return self.buf.char(self.qq)
-    def send_char(self, s: str):
-        self.buf.send(self.char + s)
+    def send_char(self, s: str, /, end='\n'):
+        self.buf.send(self.char + s, end=end)
     def send_log(self, s: str, /, end='\n'):
         self.buf.send_log.dragon(self.qq, s, end=end)
     def decrease_death_time(self, time: timedelta):
@@ -1778,6 +1778,23 @@ class liebianfashu(_card):
                 id_new = random.choice(l2)
                 user.send_char(f"将这张牌分解为了id为{id_new[0]}与{id_new[1]}的牌！")
             await user.draw([Card(id_new[0]), Card(id_new[1])])
+
+class jingxingfashu(_card):
+    name = "警醒法术"
+    id = 107
+    positive = 1
+    description = "揭示至多三个雷。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        from .logic_dragon import bombs
+        k = min(len(bombs), 3)
+        user.send_char(f"揭示的{k}个雷为：", end='')
+        l = []
+        for i in range(k):
+            l.append(random.choice(bombs))
+            while l[-1] in l[:-1]:
+                l[-1] = random.choice(bombs)
+        user.buf.send('，'.join(l) + '。')
 
 class yuexiabianhua(_card):
     name = "月下彼岸花"
