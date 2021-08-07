@@ -1415,6 +1415,16 @@ class baoshidewugong(_card):
         user.data.card_limit += 1
         config.logger.dragon << f"【LOG】用户{user.qq}增加了手牌上限至{user.data.card_limit}。"
 
+class zhaocaimao(_card):
+    name = "擅长做生意的招财猫"
+    id = 57
+    positive = 1
+    description = "你今天可以额外购买3次商店里的购买卡牌。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        user.data.shop_drawn_card += 3
+        config.logger.dragon << f"【LOG】用户{user.qq}增加了可购买卡牌至{user.data.shop_drawn_card}。"
+
 class plus2(_card):
     name = "+2"
     id = 60
