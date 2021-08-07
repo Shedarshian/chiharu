@@ -708,6 +708,7 @@ class _status(metaclass=status_meta):
     id_dict: Dict[str, TStatus] = {}
     id = ""
     des = ""
+    is_debuff = False
     def __init__(self, s: str):
         pass
     def check(self) -> bool:
@@ -821,6 +822,7 @@ class SQuest(NumedStatus):
 class SBian(NumedStatus):
     id = 'b'
     des = '你每接龙三次会损失1击毙。'
+    is_debuff = True
     def __str__(self) -> str:
         return f"{self.des}\n\t剩余次数：{(self.num + 2) // 3}次。"
 
