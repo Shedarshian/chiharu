@@ -822,7 +822,7 @@ class SBian(NumedStatus):
     id = 'b'
     des = '你每接龙三次会损失1击毙。'
     def __str__(self) -> str:
-        return f"{self.des}\n\t剩余次数：{self.num // 3}次。"
+        return f"{self.des}\n\t剩余次数：{(self.num + 2) // 3}次。"
 
 @lru_cache(10)
 def Card(id):
@@ -1963,7 +1963,7 @@ class Grid:
     @property
     def description(self):
         i = self.hashed
-        s = f"增加{2 + i % 4}pt，"
+        s = "" if self.stage > 400 else f"增加{2 + i % 4}pt，"
         i //= 4
         content = i % 100
         if content < 6:
@@ -1992,7 +1992,8 @@ class Grid:
         return Grid(self.stage + 1)
     async def do(self, user: User):
         i = self.hashed
-        await user.add_event_pt(2 + i % 4)
+        if self.stage <= 400:
+            await user.add_event_pt(2 + i % 4)
         i //= 4
         content = i % 100
         if content < 6: # 被击毙5/10/15/20/25分钟
