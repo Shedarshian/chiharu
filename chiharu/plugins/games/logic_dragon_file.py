@@ -62,7 +62,7 @@ quest_print_aux: Dict[int, int] = {qq: 0 for qq in global_state['quest'].keys()}
 def find_or_new(qq: int):
     t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     if t is None:
-        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop, equipment) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 0, 0, 0, ?)', (qq, '', '', '', '', '{}', '{}'))
+        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop, equipment) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 1, 0, 0, ?)', (qq, '', '', '', '', '{}', '{}'))
         t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     return t
 
@@ -142,11 +142,13 @@ class property_list(UserList):
     def __setitem__(self, i, item):
         super().__setitem__(i, item)
         self.f(self.data)
+    def clear(self):
+        super().clear()
+        self.f(self.data)
     __delitem__ = None
     __iadd__ = None
     __imul__ = None
     insert = None
-    clear = None
     reverse = None
     sort = None
 class Wrapper:
@@ -1234,6 +1236,17 @@ class caipiaozhongjiang(_card):
         user.send_char("中奖了！获得20击毙与两张牌。")
         await user.add_jibi(20)
         await user.draw(2)
+
+class wenhuazixin(_card):
+    name = "文化自信"
+    id = 32
+    positive = 0
+    description = "清除所有全局状态。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        me.status = ""
+        me.daily_status = ""
+        me.status_time.clear()
 
 class wuzhongshengyou(_card):
     name = "无中生有"
