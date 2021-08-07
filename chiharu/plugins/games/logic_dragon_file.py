@@ -534,6 +534,12 @@ class User:
         await card.use(self)
         await card.on_discard(self)
         self.log << f"使用完卡牌，当前手牌为{cards_to_str(self.data.hand_card)}。"
+    async def destroy_cards(self, cards: List[TCard]):
+        """将cards里的卡牌移出手牌，不结算弃牌。"""
+        self.log << f"烧牌{cards_to_str(cards)}。"
+        for c in cards:
+            self.data.hand_card.remove(c)
+        self.data.set_cards()
     async def discard_cards(self, cards: List[TCard]):
         """弃牌。将cards里的卡牌移出手牌。弃光手牌时请复制hand_card作为cards传入。"""
         self.log << f"弃牌{cards_to_str(cards)}。"
@@ -1713,7 +1719,7 @@ class jujifashu(_card):
                         validators.ensure_true(lambda l: l[1] in _card.card_id_dict and Card(l[1]) in user.data.hand_card, message="您选择了错误的卡牌！")
                     ])
             user.log << f"选择了卡牌{l[0]}与{l[1]}。"
-            await user.discard_cards([Card(l[0]), Card(l[1])])
+            await user.destroy_cards([Card(l[0]), Card(l[1])])
             id_new = l[0] + l[1]
             if id_new not in _card.card_id_dict:
                 user.buf.send(f"不存在id为{id_new}的牌！")
@@ -1740,7 +1746,7 @@ class liebianfashu(_card):
                         validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！")
                     ])
             user.log << f"选择了卡牌{l[0]}。"
-            await user.discard_cards([Card(l[0])])
+            await user.destroy_cards([Card(l[0])])
             l2 = [(id, l[0] - id) for id in _card.card_id_dict if l[0] - id in _card.card_id_dict]
             if len(l2) == 0:
                 user.buf.send(f"不存在两张和为{l[0]}的牌！")
