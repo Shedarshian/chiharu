@@ -1539,7 +1539,7 @@ class liwujiaohuan(_card):
                     all_cards.append((u, c))
                     all_users.append(u)
         random.shuffle(all_cards)
-        for u in l:
+        for u in all_users:
             if (n := len(u.data.hand_card)):
                 cards_temp = [c1 for q1, c1 in all_cards[:n]]
                 u.data.hand_card.clear()
