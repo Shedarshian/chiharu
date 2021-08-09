@@ -814,7 +814,7 @@ class SQuest(NumedStatus):
     id = 'q'
     @property
     def des(self):
-        return f"今日任务：{mission[self.quest_id][1]}。"
+        return f"今日任务：{mission[self.quest_id][1]}"
     def __init__(self, s: Union[str, int], jibi: int, quest_id: int):
         super().__init__(s)
         self.jibi = jibi
