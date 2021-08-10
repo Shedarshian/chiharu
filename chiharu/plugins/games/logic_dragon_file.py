@@ -436,7 +436,7 @@ class User:
         if c.dodge:
             return
         elif c.rebound:
-            await killer.kill(self)
+            await killer.kill(killer=self)
             return
         elif c.double:
             hour *= 2 ** c.double
