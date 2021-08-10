@@ -520,7 +520,7 @@ async def dragon_construct(buf: SessionBuffer):
                     changed = False
                     for q in l:
                         id, name, func = mission[q.quest_id]
-                        if func[2](word):
+                        if func(word):
                             buf.send(f"你完成了每日任务：{name[:-1]}！奖励{q.jibi}击毙。此任务还可完成{q.num - 1}次。")
                             user.log << f"完成了一次任务{name}，剩余{q.num - 1}次。"
                             q.num -= 1
