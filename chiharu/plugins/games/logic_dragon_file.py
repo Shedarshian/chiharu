@@ -1777,7 +1777,7 @@ class liebianfashu(_card):
             else:
                 id_new = random.choice(l2)
                 user.send_char(f"将这张牌分解为了id为{id_new[0]}与{id_new[1]}的牌！")
-            await user.draw([Card(id_new[0]), Card(id_new[1])])
+            await user.draw(0, cards=[Card(id_new[0]), Card(id_new[1])])
 
 class jingxingfashu(_card):
     name = "警醒法术"
