@@ -1729,9 +1729,16 @@ class jujifashu(_card):
     id = 105
     positive = 1
     description = "将两张手牌的id相加变为新的手牌。若这两牌id之和不是已有卡牌的id，则变为id是-1的卡牌。"
+    failure_message = "你的手牌不足，无法使用！"
+    @classmethod
+    async def can_use(cls, user: User) -> bool:
+        return len(user.data.hand_card) >= 3
     @classmethod
     async def use(cls, user: User) -> None:
         if await user.choose():
+            if len(user.data.hand_card) < 2:
+                user.send_char("的手牌不足，无法使用！")
+                return
             config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行聚集法术。"
             l = await user.buf.aget(prompt="请选择你手牌中的两张牌，输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
                 arg_filters=[
@@ -1757,9 +1764,16 @@ class liebianfashu(_card):
     id = 106
     positive = 1
     description = "将一张手牌变为两张随机牌，这两张牌的id之和为之前的卡牌的id。"
+    failure_message = "你的手牌不足，无法使用！"
+    @classmethod
+    async def can_use(cls, user: User) -> bool:
+        return len(user.data.hand_card) >= 2
     @classmethod
     async def use(cls, user: User) -> None:
         if await user.choose():
+            if len(user.data.hand_card) < 1:
+                user.send_char("的手牌不足，无法使用！")
+                return
             config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行裂变法术。"
             l = await user.buf.aget(prompt="请选择你手牌中的一张牌，输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
                 arg_filters=[
