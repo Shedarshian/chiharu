@@ -774,7 +774,7 @@ async def dragon_buy(buf: SessionBuffer):
         # (25击毙)从起始词库中刷新一条接龙词。
         if not await user.add_jibi(-25, is_buy=True):
             buf.finish("您的击毙不足！")
-        buf.send("您刷新的关键词为：" + await update_begin_word() + "，id为【0】。")
+        buf.send("您刷新的关键词为：" + await update_begin_word(is_daily=False) + "，id为【0】。")
     elif id == 2:
         # (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。
         config.logger.dragon << f"【LOG】询问用户{qq}减少的死亡时间。"
