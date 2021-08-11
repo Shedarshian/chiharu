@@ -352,7 +352,7 @@ class User:
             self.remove_status('8', remove_all=False)
             self.send_log("触发了胶带的效果，免除此debuff！")
         else:
-            self.data.status_time.append()
+            self.status_time.append(ss)
             self.log << f"增加了限时状态{ss}。"
     def remove_status(self, s: str, /, remove_all=True):
         if remove_all:
