@@ -13,9 +13,6 @@ from pypinyin import pinyin, Style
 from nonebot.command.argfilter import extractors, validators
 from .. import config
 
-class UserChooseMe(Exception):
-    pass
-
 TQuest = TypedDict('TQuest', id=int, remain=int)
 TSteal = TypedDict('TSteal', user=List[int], time=int)
 class TGlobalState(TypedDict):
@@ -94,8 +91,6 @@ class Game:
             buf = config.SessionBuffer(session)
             try:
                 await f(buf)
-            except UserChooseMe:
-                buf.send("呀！不能选我！")
             finally:
                 await buf.flush()
                 cls.remove_session(session)
@@ -108,7 +103,7 @@ class Game:
     @classmethod
     def userdata(cls, qq: int):
         if qq == config.selfqq:
-            raise UserChooseMe()
+            return me
         if qq in cls.userdatas:
             return cls.userdatas[qq]
         u = UserData(qq)
@@ -277,6 +272,12 @@ class UserData:
     def set_cards(self):
         config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(c.id) for c in self.hand_card), self.qq))
         config.logger.dragon << f"【LOG】设置用户{self.qq}手牌为{cards_to_str(self.hand_card)}。"
+    def check_status(self, s: str) -> int:
+        return self.data.status.count(s)
+    def check_daily_status(self, s: str) -> int:
+        return self.data.daily_status.count(s)
+    def check_limited_status(self, s: str, extra: Optional[Callable[[T_status], bool]]=None) -> List[T_status]:
+        return [t for t in self.data.status_time_checked if t.id == s and (extra is None or extra(t))]
     def check_throw_card(self, card_ids: List[int]):
         if len(card_ids) == 1:
             if card_ids[0] not in [c.id for c in self.hand_card]:
@@ -287,59 +288,13 @@ class UserData:
             if -hand_counter != Counter():
                 return False
         return True
-    def add_status(self, s: str):
-        self.status += s
-        self.log << f"增加了永久状态{s}，当前状态为{self.status}。"
-    def add_daily_status(self, s: str):
-        self.daily_status += s
-        self.log << f"增加了每日状态{s}，当前状态为{self.daily_status}。"
-    def add_limited_status(self, s: Union[str, T_status], *args, **kwargs):
-        if isinstance(s, str):
-            self.status_time.append(ss := Status(s)(*args, **kwargs))
-        else:
-            self.status_time.append(ss := s)
-        self.log << f"增加了限时状态{ss}。"
-    def remove_status(self, s: str, /, remove_all=True):
-        if remove_all:
-            self.status = ''.join([t for t in self.status if t != s])
-        else:
-            l = list(self.status)
-            if s in l:
-                l.remove(s)
-            self.status = ''.join(l)
-        self.log << f"移除了{'一层' if not remove_all else ''}永久状态{s}，当前状态为{self.status}。"
-    def remove_daily_status(self, s: str, /, remove_all=True):
-        if remove_all:
-            self.daily_status = ''.join([t for t in self.daily_status if t != s])
-        else:
-            l = list(self.daily_status)
-            if s in l:
-                l.remove(s)
-            self.daily_status = ''.join(l)
-        self.log << f"移除了{'一层' if not remove_all else ''}每日状态{s}，当前状态为{self.daily_status}。"
-    def remove_all_limited_status(self, s: str):
-        i = 0
-        while i < len(self.status_time):
-            t: T_status = self.status_time[i]
-            if not t.check() or t.id == s:
-                self.status_time.pop(i)
-            else:
-                i += 1
-        self.log << f"移除了所有限时状态{s}。"
-        return self.status_time
-    def check_status(self, s: str) -> int:
-        return self.status.count(s)
-    def check_daily_status(self, s: str) -> int:
-        return self.daily_status.count(s)
-    def check_limited_status(self, s: str, extra: Optional[Callable[[T_status], bool]]=None) -> List[T_status]:
-        return [t for t in self.status_time_checked if t.id == s and (extra is None or extra(t))]
     def check_equipment(self, equip_id: int) -> int:
         return self.equipment.get(equip_id, 0)
 
 class User:
-    def __init__(self, qq: int, buf: config.SessionBuffer):
+    def __init__(self, qq: int, buf: config.SessionBuffer, /, data: UserData=None):
         self.qq = qq
-        self.data = Game.userdata(qq)
+        self.data = data or Game.userdata(qq)
         self.buf = buf
     @property
     def active(self):
@@ -374,6 +329,54 @@ class User:
     @property
     def log(self):
         return self.data.log
+    def add_status(self, s: str):
+        if s in _card.debuffs and self.check_status('8'):
+            self.remove_status('8', remove_all=False)
+        self.data.status += s
+        self.log << f"增加了永久状态{s}，当前状态为{self.data.status}。"
+    def add_daily_status(self, s: str):
+        self.data.daily_status += s
+        self.log << f"增加了每日状态{s}，当前状态为{self.data.daily_status}。"
+    def add_limited_status(self, s: Union[str, T_status], *args, **kwargs):
+        if isinstance(s, str):
+            self.data.status_time.append(ss := Status(s)(*args, **kwargs))
+        else:
+            self.data.status_time.append(ss := s)
+        self.log << f"增加了限时状态{ss}。"
+    def remove_status(self, s: str, /, remove_all=True):
+        if remove_all:
+            self.data.status = ''.join([t for t in self.data.status if t != s])
+        else:
+            l = list(self.data.status)
+            if s in l:
+                l.remove(s)
+            self.data.status = ''.join(l)
+        self.log << f"移除了{'一层' if not remove_all else ''}永久状态{s}，当前状态为{self.data.status}。"
+    def remove_daily_status(self, s: str, /, remove_all=True):
+        if remove_all:
+            self.data.daily_status = ''.join([t for t in self.data.daily_status if t != s])
+        else:
+            l = list(self.data.daily_status)
+            if s in l:
+                l.remove(s)
+            self.data.daily_status = ''.join(l)
+        self.log << f"移除了{'一层' if not remove_all else ''}每日状态{s}，当前状态为{self.data.daily_status}。"
+    def remove_all_limited_status(self, s: str):
+        i = 0
+        while i < len(self.data.status_time):
+            t: T_status = self.data.status_time[i]
+            if not t.check() or t.id == s:
+                self.data.status_time.pop(i)
+            else:
+                i += 1
+        self.log << f"移除了所有限时状态{s}。"
+        return self.data.status_time
+    def check_status(self, s: str) -> int:
+        return self.data.check_status(s)
+    def check_daily_status(self, s: str) -> int:
+        return self.data.check_daily_status(s)
+    def check_limited_status(self, s: str, extra: Optional[Callable[[T_status], bool]]=None) -> List[T_status]:
+        return self.data.check_limited_status(s, extra)
     async def add_event_pt(self, pt: int, /, is_buy: bool=False):
         if is_buy and self.data.event_pt + pt < 0:
             return False
@@ -386,20 +389,20 @@ class User:
         current_jibi = self.data.jibi
         if is_buy and current_jibi + jibi < 0:
             return False
-        if s := self.data.check_daily_status('@'):
+        if s := self.check_daily_status('@'):
             if jibi > 0:
                 jibi += s
                 self.send_char(f"触发了{f'{s}次' if s > 1 else ''}告解的效果，获得击毙加{s}。")
             else: s = 0
-        if z := self.data.check_status('Z'):
+        if z := self.check_status('Z'):
             if -16 <= jibi < 0:
                 jibi *= 3 ** z
                 self.send_char(f"触发了{f'{z}次' if s > 1 else ''}电路组装机的效果，损失击毙变为{jibi}。")
             else: z = 0
-        if n := self.data.check_status('2'):
+        if n := self.check_status('2'):
             jibi *= 2 ** n
             self.send_char(f"触发了{f'{n}次' if n > 1 else ''}变压器的效果，{'获得' if jibi >= 0 else '损失'}击毙加倍为{abs(jibi)}！")
-            self.data.remove_status('2')
+            self.remove_status('2')
         if q := self.data.check_equipment(0):
             if jibi > 0 and random.random() < 0.05 * q:
                 jibi *= 2
@@ -410,11 +413,11 @@ class User:
             if jibi < 0 and random.random() < r / (20 + r):
                 dodge = True
                 self.send_char(f"触发了学生泳装的效果，本次免单！")
-        if m := self.data.check_status('S'):
+        if m := self.check_status('S'):
             if is_buy and not dodge:
                 jibi //= 2 ** m
                 self.send_char(f"触发了{f'{m}次' if m > 1 else ''}Steam夏季特卖的效果，花费击毙减半为{abs(jibi)}！")
-                self.data.remove_status('S')
+                self.remove_status('S')
             else: m = 0
         if p := self.data.hand_card.count(Card(153)):
             if is_buy and not dodge:
@@ -428,10 +431,10 @@ class User:
                     self.send_char("今日已花费400击毙，不再打折！")
             else: p = 0
         dodge2 = False
-        if t := self.data.check_status('n'):
+        if t := self.check_status('n'):
             if not dodge and jibi < 0 and -jibi >= self.data.jibi / 2:
                 dodge2 = True
-                self.data.remove_status('n', remove_all=False)
+                self.remove_status('n', remove_all=False)
                 self.send_char(f"触发了深谋远虑之策的效果，此次免单！")
         if not dodge and not dodge2:
             self.data.jibi = max(self.data.jibi + jibi, 0)
@@ -454,38 +457,38 @@ class User:
             hour *= 2 ** c.double
             minute *= 2 ** c.double
         dodge = False
-        if self.data.check_limited_status('v') and not dodge:
+        if self.check_limited_status('v') and not dodge:
             if c.pierce:
                 self.send_log("无敌的效果被幻想杀手消除了！")
-                self.data.remove_all_limited_status('v')
+                self.remove_all_limited_status('v')
             else:
                 dodge = True
                 self.send_log("触发了无敌的效果，免除死亡！")
-        if self.data.check_status('r') and not dodge:
+        if self.check_status('r') and not dodge:
             if c.pierce:
                 self.send_log("免死的效果被幻想杀手消除了！")
-                self.data.remove_status('r', remove_all=True)
+                self.remove_status('r', remove_all=True)
             else:
                 dodge = True
                 self.send_log("触发了免死的效果，免除死亡！")
-                self.data.remove_status('r', remove_all=False)
-        if (n := self.data.check_status('s')) and not dodge:
-            if self.data.jibi >= 5 * 2 ** self.data.check_status('2'):
+                self.remove_status('r', remove_all=False)
+        if (n := self.check_status('s')) and not dodge:
+            if self.data.jibi >= 5 * 2 ** self.check_status('2'):
                 if c.pierce:
                     self.send_log("死秽回避之药的效果被幻想杀手消除了！")
-                    self.data.remove_status('s', remove_all=True)
+                    self.remove_status('s', remove_all=True)
                 else:
                     await self.add_jibi(-5)
                     self.send_log("触发了死秽回避之药的效果，免除死亡！")
                     dodge = True
-                    self.data.remove_status('s', remove_all=False)
-        if (n := self.data.check_status('h')) and not dodge:
+                    self.remove_status('s', remove_all=False)
+        if (n := self.check_status('h')) and not dodge:
             if c.pierce:
                 self.send_log("虹色之环的效果被幻想杀手消除了！")
-                self.data.remove_status('h', remove_all=True)
+                self.remove_status('h', remove_all=True)
             else:
                 for a in range(n):
-                    self.data.remove_status('h', remove_all=False)
+                    self.remove_status('h', remove_all=False)
                     if random.randint(0, 1) == 0:
                         self.send_log("触发了虹色之环，闪避了死亡！")
                         dodge = True
@@ -498,14 +501,14 @@ class User:
             self.log << f"的{n}张掠夺者啵噗因死亡被弃置。"
             await self.discard_cards([Card(77) for i in range(n)])
         time = timedelta(hours=hour, minutes=minute)
-        if (n := me.check_daily_status('D')) and not dodge:
+        if (n := Userme(self).check_daily_status('D')) and not dodge:
             time *= 2 ** n
         if not dodge:
-            self.data.add_limited_status('d', datetime.now() + time)
+            self.add_limited_status('d', datetime.now() + time)
             m = time.seconds // 60
             self.send_char(f"死了！{f'{m // 60}小时' if m >= 60 else ''}{f'{m % 60}分钟' if m % 60 != 0 else ''}不得接龙。")
-            if (x := self.data.check_status('x')):
-                self.data.remove_status('x')
+            if (x := self.check_status('x')):
+                self.remove_status('x')
                 if c.pierce:
                     self.send_log("辉夜姬的秘密宝箱的效果被幻想杀手消除了！")
                 else:
@@ -625,8 +628,8 @@ class User:
         current = self.data.event_stage
         begin = current.stage
         while n != 0:
-            if p := self.data.check_status('D'):
-                self.data.remove_status('D')
+            if p := self.check_status('D'):
+                self.remove_status('D')
                 n *= 2 ** p
             current = Grid(max(current.stage + n, 0))
             self.log << f"行走至格子{current}。"
@@ -653,28 +656,29 @@ class User:
     async def check_attacked(self, killer: 'User', not_valid: TCounter=TCounter()):
         if self == killer:
             return TCounter()
-        if self.data.check_status('0') and not not_valid.dodge:
+        if self.check_status('0') and not not_valid.dodge:
             self.send_char("触发了幻想杀手的效果，防住了对方的攻击！")
-            self.data.remove_status('0', remove_all=False)
+            self.remove_status('0', remove_all=False)
             return TCounter(dodge=True)
-        if killer.data.check_status('0'):
+        if killer.check_status('0'):
             killer.send_char("触发了幻想杀手的效果，无视了对方的反制！")
-            killer.data.remove_status('0', remove_all=False)
+            killer.remove_status('0', remove_all=False)
             pierce = True
         else:
             pierce = False
-        if self.data.check_status('v') and not not_valid.rebound:
+        if self.check_status('v') and not not_valid.rebound:
             self.send_char("触发了矢量操作的效果，反弹了对方的攻击！")
-            self.data.remove_status('v', remove_all=False)
+            self.remove_status('v', remove_all=False)
             if not pierce:
                 return TCounter(rebound=True)
-        if (n := killer.data.check_status('v')) and not not_valid.double:
+        if (n := killer.check_status('v')) and not not_valid.double:
             killer.send_char("触发了矢量操作的效果，攻击加倍！")
-            killer.data.remove_status('v')
+            killer.remove_status('v')
             return TCounter(double=n)
         return TCounter()
 
 me = UserData(config.selfqq)
+Userme = lambda user: User(config.selfqq, user.buf)
 
 def save_data():
     config.userdata_db.commit()
@@ -863,40 +867,40 @@ class card_meta(type):
                 bases[0].add_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, user: User):
-                    user.data.add_status(status)
+                    user.add_status(status)
                 attrs['use'] = use
             elif 'daily_status' in attrs and attrs['daily_status']:
                 status = attrs['daily_status']
                 bases[0].add_daily_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, user: User):
-                    user.data.add_daily_status(status)
+                    user.add_daily_status(status)
                 attrs['use'] = use
             elif 'limited_status' in attrs and attrs['limited_status']:
                 status = attrs['limited_status']
                 @classmethod
                 async def use(self, user: User):
-                    user.data.add_limited_status(status, *attrs['limited_init'])
+                    user.add_limited_status(status, *attrs['limited_init'])
                 attrs['use'] = use
             elif 'global_status' in attrs and attrs['global_status']:
                 status = attrs['global_status']
                 bases[0].add_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, user: User):
-                    me.add_status(status)
+                    Userme(user).add_status(status)
                 attrs['use'] = use
             elif 'global_daily_status' in attrs and attrs['global_daily_status']:
                 status = attrs['global_daily_status']
                 bases[0].add_daily_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, user: User):
-                    me.add_daily_status(status)
+                    Userme(user).add_daily_status(status)
                 attrs['use'] = use
             elif 'global_limited_status' in attrs and attrs['global_limited_status']:
                 status = attrs['global_limited_status']
                 @classmethod
                 async def use(self, user: User):
-                    me.add_limited_status(status, *attrs['global_limited_init'])
+                    Userme(user).add_limited_status(status, *attrs['global_limited_init'])
                 attrs['use'] = use
             elif 'on_draw_status' in attrs and attrs['on_draw_status']:
                 status = attrs['on_draw_status']
@@ -905,7 +909,7 @@ class card_meta(type):
                 to_send_char = attrs.get('on_draw_send_char')
                 @classmethod
                 async def on_draw(self, user: User):
-                    user.data.add_status(status)
+                    user.add_status(status)
                     if to_send:
                         user.buf.send(to_send)
                     if to_send_char:
@@ -918,7 +922,7 @@ class card_meta(type):
                 to_send_char = attrs.get('on_draw_send_char')
                 @classmethod
                 async def on_draw(self, user: User):
-                    user.data.add_daily_status(status)
+                    user.add_daily_status(status)
                     if to_send:
                         user.buf.send(to_send)
                     if to_send_char:
@@ -930,7 +934,7 @@ class card_meta(type):
                 to_send_char = attrs.get('on_draw_send_char')
                 @classmethod
                 async def on_draw(self, user: User):
-                    user.data.add_limited_status(status, *attrs['limited_init'])
+                    user.add_limited_status(status, *attrs['limited_init'])
                     if to_send:
                         user.buf.send(to_send)
                     if to_send_char:
@@ -975,7 +979,7 @@ class _card(metaclass=card_meta):
         pass
     @classmethod
     def can_use(cls, user: User) -> bool:
-        return len(user.data.check_limited_status('m', lambda t: t.card_id == cls.id)) == 0
+        return len(user.check_limited_status('m', lambda t: t.card_id == cls.id)) == 0
     @classmethod
     def add_daily_status(cls, s, des, /, is_debuff=False):
         if s in cls.daily_status_dict:
@@ -1016,7 +1020,7 @@ class vampire(_card):
     description = "此牌通常情况下无法被抽到。2小时内免疫死亡。"
     @classmethod
     async def use(cls, user: User) -> None:
-        user.data.add_limited_status(SInvincible(datetime.now() + timedelta(hours=2)))
+        user.add_limited_status(SInvincible(datetime.now() + timedelta(hours=2)))
 
 class magician(_card):
     name = "I - 魔术师"
@@ -1040,7 +1044,7 @@ class magician(_card):
             config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
             user.send_char('使用了三次卡牌：\n' + card.full_description(user.qq))
             await user.discard_cards([card])
-            user.data.add_limited_status(SCantUse(datetime.now() + timedelta(weeks=1), l[0]))
+            user.add_limited_status(SCantUse(datetime.now() + timedelta(weeks=1), l[0]))
             await card.use(user)
             await card.use(user)
             await card.use(user)
@@ -1075,7 +1079,7 @@ class empress(_card):
                 q["remain"] += 5
             user.send_char("的任务剩余次数增加了5！")
         else:
-            user.data.add_limited_status(SQuest(3, 3, n := get_mission()))
+            user.add_limited_status(SQuest(3, 3, n := get_mission()))
             user.send_char(f"获得了一个任务：{mission[n][1]}")
 
 class emperor(_card):
@@ -1085,7 +1089,7 @@ class emperor(_card):
     description = "为你派发一个随机任务，可完成10次，每次完成获得2击毙，下次刷新时消失。"
     @classmethod
     async def use(cls, user: User) -> None:
-        user.data.add_limited_status(SQuest(10, 2, n := get_mission()))
+        user.add_limited_status(SQuest(10, 2, n := get_mission()))
         user.send_char(f"获得了一个任务：{mission[n][1]}")
 
 class lovers(_card):
@@ -1102,8 +1106,8 @@ class lovers(_card):
                         validators.fit_size(1, 1, message="请at正确的人数。"),
                     ])
             u = User(l[0], user.buf)
-            n = len(u.data.check_limited_status('d')) == 0
-            u.data.remove_all_limited_status('d')
+            n = len(u.check_limited_status('d')) == 0
+            u.remove_all_limited_status('d')
             user.buf.send("已复活！" + ("（虽然目标并没有死亡）" if n else ''))
 
 class strength(_card):
@@ -1127,8 +1131,8 @@ class strength(_card):
         else:
             user.send_char(f"花费了{2 ** l - 1}击毙！")
         await user.add_jibi(-2 ** l + 1)
-        user.data.add_status(user.data.status)
-        user.data.add_daily_status(user.data.daily_status)
+        user.add_status(user.data.status)
+        user.add_daily_status(user.data.daily_status)
         i = 0
         while i < len(status_time):
             t = status_time[i].double()
@@ -1174,7 +1178,7 @@ class hanged_man(_card):
     @classmethod
     async def use(cls, user: User):
         await user.kill()
-        user.data.add_status('r')
+        user.add_status('r')
 _card.add_status('r', "免死：免疫你下一次死亡。")
 
 class death(_card):
@@ -1200,9 +1204,9 @@ class temperance(_card):
         if c.dodge:
             return
         elif c.rebound:
-            user.data.add_daily_status('T')
+            user.add_daily_status('T')
         else:
-            u.data.add_daily_status('T')
+            u.add_daily_status('T')
 _card.add_daily_status('T', "节制：下次刷新前你不能使用卡牌。", is_debuff=True)
 
 class devil(_card):
@@ -1582,8 +1586,8 @@ class liwujiaohuan(_card):
         all_cards: List[Tuple[User, TCard]] = []
         all_users: List[User] = []
         for u in l:
-            if u.data.check_status('G'):
-                u.data.remove_status("G")
+            if u.check_status('G'):
+                u.remove_status("G")
             elif not (await u.check_attacked(user, TCounter(double=1))).valid:
                 pass
             else:
@@ -1780,25 +1784,25 @@ class jiaodai(_card):
                 has -= 1
                 des = _card.status_dict[c]
                 user.send_char(f"的{des[:des.index('：')]}被取消了！")
-                user.data.remove_status(c, remove_all=False)
+                user.remove_status(c, remove_all=False)
         for c in user.data.daily_status:
             if c in _card.debuffs and has > 0:
                 has -= 1
                 des = _card.daily_status_dict[c]
                 user.send_char(f"的{des[:des.index('：')]}被取消了！")
-                user.data.remove_daily_status(c, remove_all=False)
+                user.remove_daily_status(c, remove_all=False)
         i = 0
         while i < len(user.data.status_time_checked):
             s = user.data.status_time[i]
             if s.id != 'd' and s.is_debuff and has > 0:
                 has -= 1
                 des = s.des
-                user.send_char(f"的{des[:des.index('：')]}被取消了！")
+                user.send_log(f"的{des[:des.index('：')]}被取消了！")
                 user.data.status_time.pop(i)
             else:
                 i += 1
         user.data.save_status_time()
-        user.data.add_status('8')
+        user.add_status('8')
 _card.add_status('8', '布莱恩科技航空专用强化胶带FAL84型：免疫你下次即刻生效的负面状态（不包括死亡）。')
 
 class xijunpeiyanggang(_card):
@@ -2194,7 +2198,7 @@ class Grid:
             await c.on_discard(user)
         elif content < 95: # 你下次行走距离加倍。
             user.send_log("走到了：你下次行走距离加倍。")
-            user.data.add_status('D')
+            user.add_status('D')
         else: # 随机获得10~30活动pt。
             user.send_log("走到了：随机获得10~30活动pt。")
             n = random.randint(10, 30)
