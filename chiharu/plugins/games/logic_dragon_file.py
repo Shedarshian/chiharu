@@ -1,4 +1,5 @@
 import itertools, hashlib
+from os import remove
 import random, more_itertools, json, re
 from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, List, NamedTuple, Optional, Set, Tuple, Type, TypeVar, TypedDict, Union, final
 from collections import Counter, UserDict, UserList
@@ -267,7 +268,7 @@ class UserData:
     def status_time_checked(self):
         i = 0
         while i < len(self.status_time):
-            t: T_status = self.status_time[i]
+            t = self.status_time[i]
             if not t.check():
                 self.status_time.pop(i)
             else:
@@ -292,6 +293,12 @@ class UserData:
     def add_daily_status(self, s: str):
         self.daily_status += s
         self.log << f"增加了每日状态{s}，当前状态为{self.daily_status}。"
+    def add_limited_status(self, s: Union[str, T_status], *args, **kwargs):
+        if isinstance(s, str):
+            self.status_time.append(ss := Status(s)(*args, **kwargs))
+        else:
+            self.status_time.append(ss := s)
+        self.log << f"增加了限时状态{ss}。"
     def remove_status(self, s: str, /, remove_all=True):
         if remove_all:
             self.status = ''.join([t for t in self.status if t != s])
@@ -318,6 +325,7 @@ class UserData:
                 self.status_time.pop(i)
             else:
                 i += 1
+        self.log << f"移除了所有限时状态{s}。"
         return self.status_time
     def check_status(self, s: str) -> int:
         return self.status.count(s)
@@ -346,16 +354,15 @@ class User:
     def send_log(self, s: str, /, end='\n'):
         self.buf.send_log.dragon(self.qq, s, end=end)
     def decrease_death_time(self, time: timedelta):
-        t = more_itertools.only((i, s) for (i, s) in enumerate(self.data.status_time) if s.id == 'd')
-        if t is None:
+        t = self.data.check_limited_status('d')
+        if len(t) == 0:
             return True
-        s = t[1] - time
-        if not s.check():
-            self.data.status_time.pop(t[0])
-            return True
-        else:
-            self.data.status_time[t[0]] = s
-            return False
+        ret = True
+        for c in t:
+            c -= time
+            if c.check():
+                ret = False
+        return ret
     async def choose(self):
         if not self.active:
             config.logger.dragon << f"【LOG】用户{self.qq}非活跃，无法选择。"
@@ -494,7 +501,7 @@ class User:
         if (n := me.check_daily_status('D')) and not dodge:
             time *= 2 ** n
         if not dodge:
-            self.data.status_time.append(Status('d')(datetime.now() + time))
+            self.data.add_limited_status('d', datetime.now() + time)
             m = time.seconds // 60
             self.send_char(f"死了！{f'{m // 60}小时' if m >= 60 else ''}{f'{m % 60}分钟' if m % 60 != 0 else ''}不得接龙。")
             if (x := self.data.check_status('x')):
@@ -736,8 +743,10 @@ class _status(metaclass=status_meta):
         pass
     def __sub__(self, other) -> T_status:
         pass
-    __iadd__ = None
-    __isub__ = None
+    def __add__(self, other) -> T_status:
+        return self
+    def __sub__(self, other) -> T_status:
+        return self
     def double(self) -> List[T_status]:
         return [self]
 
@@ -834,7 +843,7 @@ class SQuest(NumedStatus):
 @final
 class SBian(NumedStatus):
     id = 'b'
-    des = '你每接龙三次会损失1击毙。'
+    des = '月下彼岸花：你每接龙三次会损失1击毙。'
     is_debuff = True
     def __str__(self) -> str:
         return f"{self.des}\n\t剩余次数：{(self.num + 2) // 3}次。"
@@ -867,7 +876,7 @@ class card_meta(type):
                 status = attrs['limited_status']
                 @classmethod
                 async def use(self, user: User):
-                    user.data.status_time.append(Status(status)(*attrs['limited_init']))
+                    user.data.add_limited_status(status, *attrs['limited_init'])
                 attrs['use'] = use
             elif 'global_status' in attrs and attrs['global_status']:
                 status = attrs['global_status']
@@ -887,7 +896,7 @@ class card_meta(type):
                 status = attrs['global_limited_status']
                 @classmethod
                 async def use(self, user: User):
-                    me.status_time.append(Status(status)(*attrs['global_limited_init']))
+                    me.add_limited_status(status, *attrs['global_limited_init'])
                 attrs['use'] = use
             elif 'on_draw_status' in attrs and attrs['on_draw_status']:
                 status = attrs['on_draw_status']
@@ -921,7 +930,7 @@ class card_meta(type):
                 to_send_char = attrs.get('on_draw_send_char')
                 @classmethod
                 async def on_draw(self, user: User):
-                    user.data.status_time.append(Status(status)(*attrs['limited_init']))
+                    user.data.add_limited_status(status, *attrs['limited_init'])
                     if to_send:
                         user.buf.send(to_send)
                     if to_send_char:
@@ -1007,7 +1016,7 @@ class vampire(_card):
     description = "此牌通常情况下无法被抽到。2小时内免疫死亡。"
     @classmethod
     async def use(cls, user: User) -> None:
-        user.data.status_time.append(SInvincible(datetime.now() + timedelta(hours=2)))
+        user.data.add_limited_status(SInvincible(datetime.now() + timedelta(hours=2)))
 
 class magician(_card):
     name = "I - 魔术师"
@@ -1031,7 +1040,7 @@ class magician(_card):
             config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
             user.send_char('使用了三次卡牌：\n' + card.full_description(user.qq))
             await user.discard_cards([card])
-            user.data.status_time.append(SCantUse(datetime.now() + timedelta(weeks=1), l[0]))
+            user.data.add_limited_status(SCantUse(datetime.now() + timedelta(weeks=1), l[0]))
             await card.use(user)
             await card.use(user)
             await card.use(user)
@@ -1066,7 +1075,7 @@ class empress(_card):
                 q["remain"] += 5
             user.send_char("的任务剩余次数增加了5！")
         else:
-            user.data.status_time.append(SQuest(3, 3, n := get_mission()))
+            user.data.add_limited_status(SQuest(3, 3, n := get_mission()))
             user.send_char(f"获得了一个任务：{mission[n][1]}")
 
 class emperor(_card):
@@ -1076,7 +1085,7 @@ class emperor(_card):
     description = "为你派发一个随机任务，可完成10次，每次完成获得2击毙，下次刷新时消失。"
     @classmethod
     async def use(cls, user: User) -> None:
-        user.data.status_time.append(SQuest(10, 2, n := get_mission()))
+        user.data.add_limited_status(SQuest(10, 2, n := get_mission()))
         user.send_char(f"获得了一个任务：{mission[n][1]}")
 
 class lovers(_card):
@@ -1128,6 +1137,7 @@ class strength(_card):
                 status_time.insert(i + 1, t[1])
                 i += 1
             i += 1
+        user.data.save_status_time()
 
 class hermit(_card):
     name = "IX - 隐者"
@@ -1757,6 +1767,39 @@ class guanggaopai(_card):
             "下蛋公鸡，公鸡中的战斗鸡，哦也",
             "欢迎关注甜品站弹幕研究协会，国内一流的东方STG学术交流平台，从避弹，打分到neta，可以学到各种高端姿势：https://www.isndes.com/ms?m=2"
         ])
+
+class jiaodai(_card):
+    name = "布莱恩科技航空专用强化胶带FAL84型"
+    id = 100
+    description = "取消掉至多6种负面状态（不包括死亡），并免疫下次即刻生效的负面状态（不包括死亡）。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        has = 6
+        for c in user.data.status:
+            if c != 'd' and c in _card.debuffs and has > 0:
+                has -= 1
+                des = _card.status_dict[c]
+                user.send_char(f"的{des[:des.index('：')]}被取消了！")
+                user.data.remove_status(c, remove_all=False)
+        for c in user.data.daily_status:
+            if c in _card.debuffs and has > 0:
+                has -= 1
+                des = _card.daily_status_dict[c]
+                user.send_char(f"的{des[:des.index('：')]}被取消了！")
+                user.data.remove_daily_status(c, remove_all=False)
+        i = 0
+        while i < len(user.data.status_time_checked):
+            s = user.data.status_time[i]
+            if s.id != 'd' and s.is_debuff and has > 0:
+                has -= 1
+                des = s.des
+                user.send_char(f"的{des[:des.index('：')]}被取消了！")
+                user.data.status_time.pop(i)
+            else:
+                i += 1
+        user.data.save_status_time()
+        user.data.add_status('8')
+_card.add_status('8', '布莱恩科技航空专用强化胶带FAL84型：免疫你下次即刻生效的负面状态（不包括死亡）。')
 
 class xijunpeiyanggang(_card):
     name = "仿·细菌培养缸"
