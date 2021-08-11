@@ -689,7 +689,7 @@ class User:
         return TCounter()
 
 me = UserData(config.selfqq)
-Userme = lambda user: User(config.selfqq, user.buf)
+Userme: Callable[[User], User] = lambda user: User(config.selfqq, user.buf)
 
 def save_data():
     config.userdata_db.commit()

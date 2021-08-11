@@ -270,7 +270,7 @@ def cancellation(session):
         return value
     return control
 
-from .logic_dragon_file import Equipment, TCounter, TQuest, UserData, global_state, save_global_state, save_data, mission, get_mission, me, draw_card, Card, _card, Game, User, _status
+from .logic_dragon_file import Equipment, TCounter, TQuest, UserData, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status
 from . import logic_dragon_file
 
 async def update_begin_word(is_daily: bool):
@@ -313,16 +313,16 @@ async def daily_update() -> str:
         global_state['steal'][qq] = {'time': 0, 'user': []}
     save_global_state()
     if me.check_daily_status('s'):
-        me.remove_daily_status('s', remove_all=False)
+        User(config.selfqq, None).remove_daily_status('s', remove_all=False)
         config.userdata.execute('update dragon_data set today_jibi=10, today_keyword_jibi=10, shop_drawn_card=1, spend_shop=0')
         for r in config.userdata.execute("select qq, daily_status from dragon_data").fetchall():
             if 'd' in r['daily_status']:
-                User(r['qq'], None).data.remove_daily_status('d')
+                User(r['qq'], None).remove_daily_status('d')
     else:
         config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=1, spend_shop=0', ('',))
     for r in config.userdata.execute("select qq, status_time from dragon_data").fetchall():
         if "'q'" in r['status_time']:
-            User(r['qq'], None).data.remove_all_limited_status('q')
+            User(r['qq'], None).remove_all_limited_status('q')
     save_data()
     me.reload()
     word = await update_begin_word(is_daily=True)
@@ -379,7 +379,7 @@ async def dragon_construct(buf: SessionBuffer):
         async with user.settlement():
             global global_state
             to_exchange = None
-            if user.data.check_limited_status('d') or user.data.check_daily_status('d'):
+            if user.check_limited_status('d') or user.check_daily_status('d'):
                 await buf.session.send('你已死，不能接龙！')
                 user.log << f"已死，接龙失败。"
                 return
@@ -401,12 +401,12 @@ async def dragon_construct(buf: SessionBuffer):
                 if parent.word != '' and word != '' and parent.word[-1] != word[0]:
                     await buf.session.send("当前规则为首尾接龙，接龙失败。")
                     return
-            m = user.data.check_daily_status('m')
+            m = user.check_daily_status('m')
             if m and qq == parent.qq or not m and (qq == parent.qq or parent.parent is not None and qq == parent.parent.qq):
-                if user.data.check_status('z'):
+                if user.check_status('z'):
                     buf.send("你触发了极速装置！")
                     user.log << f"触发了极速装置。"
-                    user.data.remove_status('z', remove_all=False)
+                    user.remove_status('z', remove_all=False)
                 else:
                     await buf.session.send(f"你接太快了！两次接龙之间至少要隔{'一' if m else '两'}个人。")
                     user.log << f"接龙过快，失败。"
@@ -438,7 +438,7 @@ async def dragon_construct(buf: SessionBuffer):
                     if n:
                         user.log << f"触发了存钱罐{n}次。"
                         buf.send(f"\n你触发了存钱罐，奖励+{n * 10}击毙！")
-                        me.remove_status('m')
+                        Userme(user).remove_status('m')
                         await user.add_jibi(n * 10)
                     if global_state['exchange_stack']:
                         to_exchange = User(global_state['exchange_stack'][-1], buf)
@@ -457,7 +457,7 @@ async def dragon_construct(buf: SessionBuffer):
             if (tree_node := check_and_add_log_and_contruct_tree(parent, word, qq, kwd=kwd, hdkwd=hdkwd, fork=fork)) is None:
                 user.log << f"由于过去一周接过此词，死了。"
                 buf.send("过去一周之内接过此词，你死了！")
-                if user.data.check_daily_status('Y'):
+                if user.check_daily_status('Y'):
                     user.log << f"触发了IX - 隐者的效果，没死。"
                     user.send_char("触发了IX - 隐者的效果，没死。")
                 else:
@@ -516,7 +516,7 @@ async def dragon_construct(buf: SessionBuffer):
                                 m['remain'] -= 1
                                 await user.add_jibi(3)
                                 save_global_state()
-                if l := user.data.check_limited_status('q'):
+                if l := user.check_limited_status('q'):
                     changed = False
                     for q in l:
                         id, name, func = mission[q.quest_id]
@@ -533,12 +533,12 @@ async def dragon_construct(buf: SessionBuffer):
                     user.send_log(f"移动了{n}格，", end='')
                     await user.event_move(n)
                     user.send_log(f"现在位于{user.data.event_stage}。")
-                if n := user.data.check_status('A'):
-                    user.data.remove_status('A')
-                    user.data.add_status('a' * n)
-                if n := user.data.check_status('B'):
-                    user.data.remove_status('B')
-                    user.data.add_status('b' * n)
+                if n := user.check_status('A'):
+                    user.remove_status('A')
+                    user.add_status('a' * n)
+                if n := user.check_status('B'):
+                    user.remove_status('B')
+                    user.add_status('b' * n)
                 if (nd := tree_node.before(5)) and nd.qq != config.selfqq and (u := User(nd.qq, buf)) != user:
                     def _(a: int, b1: int, b2: int):
                         if a >= b1 + b2:
@@ -546,29 +546,29 @@ async def dragon_construct(buf: SessionBuffer):
                         if a > b2:
                             return a, 0, b1 + b2 - a, 0
                         return a, 0, b1, b2 - a
-                    if na := u.data.check_status('a'):
-                        u.data.remove_status('a')
+                    if na := u.check_status('a'):
+                        u.remove_status('a')
                         user.log << "从五个人前面接来了判决α。"
-                        n, na, nb1, nb2 = _(na, user.data.check_status('b'), user.data.check_status('B'))
+                        n, na, nb1, nb2 = _(na, user.check_status('b'), user.check_status('B'))
                         if n:
                             buf.send("你从五个人前面接来了判决α！")
                             user.kill()
-                            user.data.remove_status('b')
-                            user.data.remove_status('B')
-                            user.data.add_status('b' * nb1 + 'B' * nb2)
-                        user.data.add_status('A' * na)
-                    if nb := u.data.check_status('b'):
-                        u.data.remove_status('b')
+                            user.remove_status('b')
+                            user.remove_status('B')
+                            user.add_status('b' * nb1 + 'B' * nb2)
+                        user.add_status('A' * na)
+                    if nb := u.check_status('b'):
+                        u.remove_status('b')
                         user.log << "从五个人前面接来了判决β。"
-                        n, nb, na1, na2 = _(nb, user.data.check_status('a'), user.data.check_status('A'))
+                        n, nb, na1, na2 = _(nb, user.check_status('a'), user.check_status('A'))
                         if n:
                             buf.send("你从五个人前面接来了判决β！")
                             user.kill()
-                            user.data.remove_status('a')
-                            user.data.remove_status('A')
-                            user.data.add_status('a' * na1 + 'A' * na2)
-                        user.data.add_status('B' * nb)
-                if n := user.data.check_daily_status('x'):
+                            user.remove_status('a')
+                            user.remove_status('A')
+                            user.add_status('a' * na1 + 'A' * na2)
+                        user.add_status('B' * nb)
+                if n := user.check_daily_status('x'):
                     for i in range(n):
                         if random.random() > 0.9:
                             buf.send("你获得了一张【吸血鬼】！")
@@ -576,17 +576,17 @@ async def dragon_construct(buf: SessionBuffer):
                     buf.send("你成功触发了炸弹，被炸死了！")
                     user.log << f"触发了炸弹，被炸死了。"
                     remove_bomb(word)
-                    if user.data.check_status('v'):
-                        user.data.remove_status('v', remove_all=False)
+                    if user.check_status('v'):
+                        user.remove_status('v', remove_all=False)
                         user.log << f"触发了矢量操作的效果，没死。"
                         user.send_char("触发了矢量操作的效果，没死。")
-                    if user.data.check_daily_status('Y'):
+                    if user.check_daily_status('Y'):
                         user.log << f"触发了IX - 隐者的效果，没死。"
                         user.send_char("触发了IX - 隐者的效果，没死。")
                     else:
                         await user.kill()
                 if (n := me.check_status('+')):
-                    me.remove_status('+')
+                    Userme(user).remove_status('+')
                     buf.send(f"你触发了{n}次+2的效果，摸{n}张非正面牌与{n}张非负面牌！")
                     user.log << f"触发了+2的效果。"
                     cards = list(itertools.chain(*[[draw_card({-1, 0}), draw_card({0, 1})] for i in range(n)]))
@@ -715,13 +715,7 @@ async def dragon_check(buf: SessionBuffer):
             buf.finish("全局状态为：\n" + ret)
     qq = buf.ctx['user_id']
     user = User(qq, buf)
-    if data in ("复活时间", "recover_time"):
-        time = user.data.get_limited_time('d')
-        if time is None:
-            buf.finish("你目前没有复活时间！")
-        else:
-            buf.finish(f"你的复活时间为：{time}分钟。")
-    elif data in ("手牌", "hand_cards"):
+    if data in ("手牌", "hand_cards"):
         cards = user.data.hand_card
         if len(cards) == 0:
             buf.finish("你没有手牌！")
@@ -874,7 +868,7 @@ async def dragon_buy(buf: SessionBuffer):
             add_bomb(w)
         elif r < 0.65:
             buf.send("💥💥💥抽奖机爆炸了！")
-            me.remove_daily_status('O')
+            Userme(user).remove_daily_status('O')
             await user.kill()
         else:
             r = '   '
@@ -1090,6 +1084,6 @@ async def dragon_char(session: CommandSession):
 async def dragon_test(session: CommandSession):
     for r in config.userdata.execute("select qq, status from dragon_data").fetchall():
         if 'y' in r['status'] or 'p' in r['status'] or '1' in r['status']:
-            User(r['qq'], None).data.remove_status('y')
-            User(r['qq'], None).data.remove_status('p')
-            User(r['qq'], None).data.remove_status('1')
+            User(r['qq'], None).remove_status('y')
+            User(r['qq'], None).remove_status('p')
+            User(r['qq'], None).remove_status('1')
