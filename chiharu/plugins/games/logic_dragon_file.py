@@ -1716,6 +1716,25 @@ class guanggaopai(_card):
             "欢迎关注甜品站弹幕研究协会，国内一流的东方STG学术交流平台，从避弹，打分到neta，可以学到各种高端姿势：https://www.isndes.com/ms?m=2"
         ])
 
+class xijunpeiyanggang(_card):
+    name = "仿·细菌培养缸"
+    id = 101
+    description = "抽到时，若使用者当前击毙小于50，则越靠近50获得的击毙越多，最多为25；若使用者当前击毙大于50小于100，则越靠近100获得的击毙越少，直至0，若使用者当前击毙大于100，则随着击毙增加倒扣击毙的值逐渐增大直至150击毙时扣除20。"
+    consumed_on_draw = True
+    @classmethod
+    async def on_draw(cls, user: User) -> None:
+        jibi = user.data.jibi
+        if jibi <= 50:
+            out = jibi // 2
+        elif jibi <= 100:
+            out = (100 - jibi) // 2
+        elif jibi <= 150:
+            out = (100 - jibi) * 2 // 5
+        else:
+            out = -20
+        user.send_char(("获得" if out >= 0 else "损失") + f"了{out}击毙！")
+        await user.add_jibi(out)
+
 class McGuffium239(_card):
     name = "Mc Guffium 239"
     id = 102
