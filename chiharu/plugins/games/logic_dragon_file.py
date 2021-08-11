@@ -332,17 +332,28 @@ class User:
     def add_status(self, s: str):
         if s in _card.debuffs and self.check_status('8'):
             self.remove_status('8', remove_all=False)
-        self.data.status += s
-        self.log << f"增加了永久状态{s}，当前状态为{self.data.status}。"
+            self.send_log("触发了胶带的效果，免除此debuff！")
+        else:
+            self.data.status += s
+            self.log << f"增加了永久状态{s}，当前状态为{self.data.status}。"
     def add_daily_status(self, s: str):
-        self.data.daily_status += s
-        self.log << f"增加了每日状态{s}，当前状态为{self.data.daily_status}。"
+        if s in _card.daily_debuffs and self.check_status('8'):
+            self.remove_status('8', remove_all=False)
+            self.send_log("触发了胶带的效果，免除此debuff！")
+        else:
+            self.data.daily_status += s
+            self.log << f"增加了每日状态{s}，当前状态为{self.data.daily_status}。"
     def add_limited_status(self, s: Union[str, T_status], *args, **kwargs):
         if isinstance(s, str):
-            self.data.status_time.append(ss := Status(s)(*args, **kwargs))
+            ss = Status(s)(*args, **kwargs)
         else:
-            self.data.status_time.append(ss := s)
-        self.log << f"增加了限时状态{ss}。"
+            ss = s
+        if ss.is_debuff and self.check_status('8'):
+            self.remove_status('8', remove_all=False)
+            self.send_log("触发了胶带的效果，免除此debuff！")
+        else:
+            self.data.status_time.append()
+            self.log << f"增加了限时状态{ss}。"
     def remove_status(self, s: str, /, remove_all=True):
         if remove_all:
             self.data.status = ''.join([t for t in self.data.status if t != s])
