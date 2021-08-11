@@ -273,11 +273,11 @@ class UserData:
         config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(c.id) for c in self.hand_card), self.qq))
         config.logger.dragon << f"【LOG】设置用户{self.qq}手牌为{cards_to_str(self.hand_card)}。"
     def check_status(self, s: str) -> int:
-        return self.data.status.count(s)
+        return self.status.count(s)
     def check_daily_status(self, s: str) -> int:
-        return self.data.daily_status.count(s)
+        return self.daily_status.count(s)
     def check_limited_status(self, s: str, extra: Optional[Callable[[T_status], bool]]=None) -> List[T_status]:
-        return [t for t in self.data.status_time_checked if t.id == s and (extra is None or extra(t))]
+        return [t for t in self.status_time_checked if t.id == s and (extra is None or extra(t))]
     def check_throw_card(self, card_ids: List[int]):
         if len(card_ids) == 1:
             if card_ids[0] not in [c.id for c in self.hand_card]:
