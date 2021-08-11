@@ -384,6 +384,11 @@ class User:
                 jibi += s
                 self.send_char(f"触发了{f'{s}次' if s > 1 else ''}告解的效果，获得击毙加{s}。")
             else: s = 0
+        if z := self.data.check_status('Z'):
+            if -16 <= jibi < 0:
+                jibi *= 3 ** z
+                self.send_char(f"触发了{f'{z}次' if s > 1 else ''}电路组装机的效果，损失击毙变为{jibi}。")
+            else: z = 0
         if n := self.data.check_status('2'):
             jibi *= 2 ** n
             self.send_char(f"触发了{f'{n}次' if n > 1 else ''}变压器的效果，{'获得' if jibi >= 0 else '损失'}击毙加倍为{abs(jibi)}！")
@@ -423,7 +428,7 @@ class User:
                 self.send_char(f"触发了深谋远虑之策的效果，此次免单！")
         if not dodge and not dodge2:
             self.data.jibi = max(self.data.jibi + jibi, 0)
-        self.log << f"原有击毙{current_jibi}，{f'触发了{s}次告解的效果，' if s > 0 else ''}{f'触发了{n}次变压器的效果，' if n > 0 else ''}{f'触发了比基尼的效果，' if q > 0 else ''}{f'触发了学生泳装的效果，' if dodge else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 else ''}{f'触发了{p}次北京市政交通一卡通的效果，' if p > 0 else ''}{f'触发了深谋远虑之策的效果，' if dodge2 else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
+        self.log << f"原有击毙{current_jibi}，{f'触发了{s}次告解的效果，' if s > 0 else ''}{f'触发了{z}次电路组装机的效果，' if z > 0 else ''}{f'触发了比基尼的效果，' if q > 0 else ''}{f'触发了学生泳装的效果，' if dodge else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 else ''}{f'触发了{p}次北京市政交通一卡通的效果，' if p > 0 else ''}{f'触发了深谋远虑之策的效果，' if dodge2 else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
         if is_buy and not dodge:
             self.data.spend_shop += abs(jibi)
             self.log << f"累计今日商店购买至{self.data.spend_shop}。"
@@ -862,7 +867,7 @@ class card_meta(type):
                 status = attrs['limited_status']
                 @classmethod
                 async def use(self, user: User):
-                    user.data.status_time.append(status, Status(status)(attrs['limited_init']))
+                    user.data.status_time.append(Status(status)(*attrs['limited_init']))
                 attrs['use'] = use
             elif 'global_status' in attrs and attrs['global_status']:
                 status = attrs['global_status']
@@ -882,8 +887,46 @@ class card_meta(type):
                 status = attrs['global_limited_status']
                 @classmethod
                 async def use(self, user: User):
-                    me.status_time.append(Status(status)(attrs['global_limited_init']))
+                    me.status_time.append(Status(status)(*attrs['global_limited_init']))
                 attrs['use'] = use
+            elif 'on_draw_status' in attrs and attrs['on_draw_status']:
+                status = attrs['on_draw_status']
+                bases[0].add_status(status, attrs['status_des'], attrs.get('is_debuff', False))
+                to_send = attrs.get('on_draw_send')
+                to_send_char = attrs.get('on_draw_send_char')
+                @classmethod
+                async def on_draw(self, user: User):
+                    user.data.add_status(status)
+                    if to_send:
+                        user.buf.send(to_send)
+                    if to_send_char:
+                        user.send_char(to_send_char)
+                attrs['on_draw'] = on_draw
+            elif 'on_draw_daily_status' in attrs and attrs['on_draw_daily_status']:
+                status = attrs['on_draw_daily_status']
+                bases[0].add_daily_status(status, attrs['status_des'], attrs.get('is_debuff', False))
+                to_send = attrs.get('on_draw_send')
+                to_send_char = attrs.get('on_draw_send_char')
+                @classmethod
+                async def on_draw(self, user: User):
+                    user.data.add_daily_status(status)
+                    if to_send:
+                        user.buf.send(to_send)
+                    if to_send_char:
+                        user.send_char(to_send_char)
+                attrs['on_draw'] = on_draw
+            elif 'on_draw_limited_status' in attrs and attrs['on_draw_limited_status']:
+                status = attrs['on_draw_limited_status']
+                to_send = attrs.get('on_draw_send')
+                to_send_char = attrs.get('on_draw_send_char')
+                @classmethod
+                async def on_draw(self, user: User):
+                    user.data.status_time.append(Status(status)(*attrs['limited_init']))
+                    if to_send:
+                        user.buf.send(to_send)
+                    if to_send_char:
+                        user.send_char(to_send_char)
+                attrs['on_draw'] = on_draw
             c = type.__new__(cls, clsname, bases, attrs)
             bases[0].card_id_dict[attrs['id']] = c
         else:
@@ -899,7 +942,7 @@ class _card(metaclass=card_meta):
     status_dict: Dict[str, str] = {'d': "永久死亡。"}
     daily_status_dict: Dict[str, str] = {}
     debuffs = 'd'
-    daily_debuffs = 'd'
+    daily_debuffs = ''
     name = ""
     hold_des = None
     id = -127
@@ -1150,7 +1193,7 @@ class temperance(_card):
             user.data.add_daily_status('T')
         else:
             u.data.add_daily_status('T')
-_card.add_daily_status('T', "节制：下次刷新前你不能使用卡牌。")
+_card.add_daily_status('T', "节制：下次刷新前你不能使用卡牌。", is_debuff=True)
 
 class devil(_card):
     name = "XV - 恶魔"
@@ -1218,12 +1261,11 @@ class dabingyichang(_card):
     id = 30
     positive = -1
     description = "抽到时，直到下一次主题出现前不得接龙。"
+    on_draw_daily_status = 'd'
+    on_draw_send_char = "病了！直到下一次主题出现前不得接龙。"
+    is_debuff = True
+    status_des = "生病：直到下一次主题出现前不可接龙。"
     consumed_on_draw = True
-    @classmethod
-    async def on_draw(cls, user: User):
-        user.data.add_daily_status('d')
-        user.send_char("病了！直到下一次主题出现前不得接龙。")
-_card.add_daily_status('d', "生病：直到下一次主题出现前不可接龙。")
 
 class caipiaozhongjiang(_card):
     name = "彩票中奖"
@@ -1720,6 +1762,7 @@ class xijunpeiyanggang(_card):
     name = "仿·细菌培养缸"
     id = 101
     description = "抽到时，若使用者当前击毙小于50，则越靠近50获得的击毙越多，最多为25；若使用者当前击毙大于50小于100，则越靠近100获得的击毙越少，直至0，若使用者当前击毙大于100，则随着击毙增加倒扣击毙的值逐渐增大直至150击毙时扣除20。"
+    positive = 0
     consumed_on_draw = True
     @classmethod
     async def on_draw(cls, user: User) -> None:
@@ -1742,6 +1785,14 @@ class McGuffium239(_card):
     status = 'G'
     status_des = 'Mc Guffium 239：下一次礼物交换不对你生效。'
     description = "下一次礼物交换不对你生效。"
+
+class dianluzuzhuangji(_card):
+    name = "电路组装机"
+    id = 103
+    description = "抽到时附加buff：每次你花费/损失击毙时，若该损失小于16击毙，则该损失变为三倍。"
+    on_draw_status = 'Z'
+    is_debuff = True
+    status_des = "电路组装机：每次你花费/损失击毙时，若该损失小于16击毙，则该损失变为三倍。"
 
 class jujifashu(_card):
     name = "聚集法术"
@@ -1834,21 +1885,19 @@ class yuexiabianhua(_card):
     id = 110
     positive = -1
     description = "抽到时附加buff：你每接龙三次会损失1击毙，效果发动20次消失。"
+    on_draw_limited_status = 'b'
     consumed_on_draw = True
-    @classmethod
-    async def on_draw(cls, user: User) -> None:
-        user.data.status_time.append(SBian(60))
+    limited_init = (60,)
 
 class panjuea(_card):
     name = "判决α"
     id = 111
     description = "抽到时附加buff：判决α。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。"
     positive = -1
+    on_draw_status = 'a'
+    status_des = "判决α：将此buff传递给你上次接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。"
+    is_debuff = True
     consumed_on_draw = True
-    @classmethod
-    async def on_draw(cls, user: User) -> None:
-        user.data.add_status('a')
-_card.add_status('a', "判决α：将此buff传递给你上次接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。", is_debuff=True)
 _card.add_status('A', "判决α：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。", is_debuff=True)
 
 class panjueb(_card):
@@ -1856,11 +1905,10 @@ class panjueb(_card):
     id = 111
     description = "抽到时附加buff：判决β。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。"
     positive = -1
+    on_draw_status = 'b'
+    status_des = "判决β：将此buff传递给你上次接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。"
+    is_debuff = True
     consumed_on_draw = True
-    @classmethod
-    async def on_draw(cls, user: User) -> None:
-        user.data.add_status('b')
-_card.add_status('b', "判决β：将此buff传递给你上次接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。", is_debuff=True)
 _card.add_status('B', "判决β：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。", is_debuff=True)
 
 class dihuopenfa(_card):
