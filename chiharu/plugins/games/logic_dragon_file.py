@@ -330,7 +330,7 @@ class User:
     def log(self):
         return self.data.log
     def add_status(self, s: str):
-        if s in _card.debuffs and self.check_status('8'):
+        if s in _card.debuffs and s != 'd' and self.check_status('8'):
             self.remove_status('8', remove_all=False)
             self.send_log("触发了胶带的效果，免除此debuff！")
         else:
@@ -348,7 +348,7 @@ class User:
             ss = Status(s)(*args, **kwargs)
         else:
             ss = s
-        if ss.is_debuff and self.check_status('8'):
+        if ss.is_debuff and ss.id != 'd' and self.check_status('8'):
             self.remove_status('8', remove_all=False)
             self.send_log("触发了胶带的效果，免除此debuff！")
         else:
