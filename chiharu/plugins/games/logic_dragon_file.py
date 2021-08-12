@@ -40,6 +40,7 @@ class TUserData(TypedDict):
     equipment: str
     event_stage: int
     event_shop: int
+    last_dragon_time: str
 class TCounter(NamedTuple):
     dodge: bool = False
     rebound: bool = False
@@ -259,6 +260,13 @@ class UserData:
     def event_shop(self, value):
         config.userdata.execute("update dragon_data set event_shop=? where qq=?", (value, self.qq))
         self.node['event_shop'] = value
+    @property
+    def last_dragon_time(self):
+        return self.node['last_dragon_time']
+    @last_dragon_time.setter
+    def last_dragon_time(self, value):
+        config.userdata.execute("update dragon_data set last_dragon_time=? where qq=?", (value, self.qq))
+        self.node['last_dragon_time'] = value
     @property
     def status_time_checked(self):
         i = 0
