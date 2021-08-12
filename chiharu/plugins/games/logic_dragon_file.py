@@ -1327,6 +1327,9 @@ class wenhuazixin(_card):
         me.status = ""
         me.daily_status = ""
         me.status_time.clear()
+        global global_state
+        global_state["exchange_stack"] = []
+        save_global_state()
 
 class wuzhongshengyou(_card):
     name = "无中生有"
