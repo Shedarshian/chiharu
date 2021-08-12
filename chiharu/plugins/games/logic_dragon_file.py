@@ -1812,7 +1812,7 @@ class jiaodai(_card):
                 des = _card.status_dict[c]
                 user.send_char(f"的{des[:des.index('：')]}被取消了！")
                 user.remove_status(c, remove_all=False)
-        if user.qq in global_state['lianhuan']:
+        if user.qq in global_state['lianhuan'] and has > 0:
             user.send_char("的铁索连环被取消了！")
             global_state['lianhuan'].remove(user.qq)
         for c in user.data.daily_status:
