@@ -1259,10 +1259,10 @@ class tower(_card):
             b = random.choice(bombs)
             remove_bomb(b)
         l = config.userdata.execute("select qq from dragon_data where qq<>?", (config.selfqq,)).fetchall()
-        p = []
+        l: List[int] = [c['qq'] for c in l]
+        p: List[int] = []
         for i in range(3):
-            c = random.choice(l)
-            p.append(c['qq'])
+            p.append(random.choice(l))
             l.remove(p[-1])
         user.send_char(f"抽到了{'，'.join(f'[CQ:at,qq={q}]' for q in p)}！")
         for q in p:
