@@ -568,6 +568,8 @@ class User:
         for c in cards:
             self.data.hand_card.remove(c)
         self.data.set_cards()
+        for card in cards:
+            await card.on_remove(self)
     async def discard_cards(self, cards: List[TCard]):
         """弃牌。将cards里的卡牌移出手牌。弃光手牌时请复制hand_card作为cards传入。"""
         self.log << f"弃牌{cards_to_str(cards)}。"
@@ -980,11 +982,14 @@ class _card(metaclass=card_meta):
     async def use(cls, user: User) -> None:
         pass
     @classmethod
+    async def on_remove(cls, user: User) -> None:
+        pass
+    @classmethod
     async def on_draw(cls, user: User) -> None:
         pass
     @classmethod
     async def on_discard(cls, user: User) -> None:
-        pass
+        await cls.on_remove(user)
     @classmethod
     async def on_give(cls, user: User, target: User) -> None:
         pass
@@ -1470,7 +1475,7 @@ class xingyuntujiao(_card):
         if c.id != 67:
             await c.on_draw(user)
         await c.use(user)
-        await c.on_discard(user)
+        await c.on_remove(user)
 
 class baoshidewugong(_card):
     name = "暴食的蜈蚣"
@@ -1542,7 +1547,7 @@ class queststone(_card):
         config.logger.dragon << f"【LOG】用户{user.qq}刷新了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][q]]}。"
         save_global_state()
     @classmethod
-    async def on_discard(cls, user: User):
+    async def on_remove(cls, user: User):
         q = str(user.qq)
         i = global_state['quest'][q][quest_print_aux[q]]['id']
         del global_state['quest'][q][quest_print_aux[q]]
@@ -1663,7 +1668,7 @@ class zhongshendexixi(_card):
         if c.id != 67:
             await c.on_draw(user)
         await c.use(user)
-        await c.on_discard(user)
+        await c.on_remove(user)
 
 class lveduozhebopu(_card):
     name = "掠夺者啵噗"
@@ -1677,7 +1682,7 @@ class lveduozhebopu(_card):
             global_state['steal'][str(user.qq)] = {'time': 0, 'user': []}
         save_global_state()
     @classmethod
-    async def on_discard(cls, user: User):
+    async def on_remove(cls, user: User):
         if Card(77) not in user.data.hand_card:
             del global_state['steal'][str(user.qq)]
         save_global_state()
@@ -2206,7 +2211,7 @@ class Grid:
             if c.id != 67:
                 await c.on_draw(user)
             await c.use(user)
-            await c.on_discard(user)
+            await c.on_remove(user)
         elif content < 95: # 你下次行走距离加倍。
             user.send_log("走到了：你下次行走距离加倍。")
             user.add_status('D')
