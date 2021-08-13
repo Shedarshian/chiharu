@@ -798,11 +798,13 @@ class TimedStatus(_status):
 @final
 class SDeath(TimedStatus):
     id = 'd'
+    is_debuff = True
     des = "死亡：不可接龙。"
 
 @final
 class SCantUse(TimedStatus):
     id = 'm'
+    is_debuff = True
     @property
     def des(self):
         return f"疲劳：不可使用卡牌【{Card(self.card_id).name}】。"
@@ -1855,7 +1857,7 @@ class xijunpeiyanggang(_card):
             out = (100 - jibi) * 2 // 5
         else:
             out = -20
-        user.send_char(("获得" if out >= 0 else "损失") + f"了{out}击毙！")
+        user.send_char(("获得" if out >= 0 else "损失") + f"了{abs(out)}击毙！")
         await user.add_jibi(out)
 
 class McGuffium239(_card):
