@@ -125,6 +125,14 @@ class Tree:
             node = node and node.parent
         return node
     @classmethod
+    def get_active(cls):
+        words = [s[-1] for s in cls._objs if len(s) != 0 and len(s[-1].childs) == 0]
+        for s in cls._objs:
+            for word in s:
+                if word.fork and len(word.childs) == 1:
+                    words.append(word)
+        return words
+    @classmethod
     def graph(self):
         pass
 
@@ -735,11 +743,7 @@ async def dragon_check(buf: SessionBuffer):
         else:
             buf.finish("你的状态为：\n" + ret)
     elif data in ("活动词", "active"):
-        words = [s[-1] for s in Tree._objs if len(s) != 0 and len(s[-1].childs) == 0]
-        for s in Tree._objs:
-            for word in s:
-                if word.fork and len(word.childs) == 1:
-                    words.append(word)
+        words = Tree.get_active()
         m = user.data.check_daily_status('m')
         buf.finish("当前活动词为：\n" + '\n'.join(f"{s.word}，{'⚠️' if s.qq == qq or s.parent is not None and s.parent.qq == qq and not m else ''}id为{s.id_str}" for s in words))
     elif data in ("资料", "profile"):
