@@ -1869,7 +1869,7 @@ async def thwiki_punish(session: CommandSession):
         if 3 <= node['punish'] < FRIENDLY_MAX:
             await get_bot().set_group_ban(group_id=group, user_id=node['qq'], duration=3600)
         reason = session.get('reason')
-        await get_bot().send_group_msg(group_id=group, message=[config.cq.text('管理员认为'), config.cq.at(record.qq), config.cq.text(f'于{record.time.strftime("%H:%M:%S")} CST{node["card"]}作出了不妥当的发言，扣除该群员{session.get("severity")}点友善度' + ('，理由为：' + reason + '\n' if reason else '') + f'剩余{max(0, FRIENDLY_MAX - node["punish"])}友善度' + ('，已移出群聊。' if node['punish'] >= FRIENDLY_MAX else '。'))])
+        await get_bot().send_group_msg(group_id=group, message=[config.cq.text('管理员认为'), config.cq.at(record.qq), config.cq.text(f'于{(record.time.strftime("%H:%M:%S") if record.time.date() == date.today() else record.time.strftime("%m-%d %H:%M:%S"))} CST作出了不妥当的发言，扣除该群员{session.get("severity")}点友善度' + ('，理由为：' + reason + '\n' if reason else '') + f'剩余{max(0, FRIENDLY_MAX - node["punish"])}友善度' + ('，已移出群聊。' if node['punish'] >= FRIENDLY_MAX else '。'))])
         if node['punish'] >= FRIENDLY_MAX:
             await get_bot().set_group_kick(group_id=group, user_id=node['qq'])
         session.finish('已撤回')
