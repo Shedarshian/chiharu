@@ -325,6 +325,7 @@ class User:
             c -= time
             if c.check():
                 ret = False
+        self.data.save_status_time()
         return ret
     async def choose(self):
         if not self.active:
@@ -878,32 +879,34 @@ class SBian(NumedStatus):
 class ListStatus(_status):
     def __init__(self, s: Union[str, List]):
         if isinstance(s, str):
-            self.num : List = eval(s)
+            self.list : List = eval(s)
         else:
-            self.num = s
+            self.list = s
     def check(self) -> bool:
-        return len(self.num) > 0
+        return len(self.list) > 0
     def __repr__(self) -> str:
-        return self.construct_repr(str(self.num))
+        return self.construct_repr(str(self.list))
     def __add__(self, other: List) -> T_status:
-        return self.__class__(self.num + other)
+        return self.__class__(self.list + other)
     __sub__ = None
     def __iadd__(self, other: List) -> T_status:
         self.num += other
         return self
     __isub__ = None
     def double(self) -> List[T_status]:
-        return [self.__class__(self.num * 2)]
+        return [self.__class__(self.list * 2)]
 
 @final
 class SLe(ListStatus):
     id = 'l'
     is_debuff = True
     des = '乐不思蜀：不能从以下节点接龙：'
+    def check(self) -> bool:
+        return True
     def __str__(self) -> str:
         from .logic_dragon import Tree
         ids = [tree.id_str for tree in Tree.get_active()]
-        return f"{self.des}\n\t{','.join(c for c in self.num if c in ids)}。"
+        return f"{self.des}\n\t{','.join(c for c in self.list if c in ids)}。"
     def double(self) -> List[T_status]:
         return [self]
 
