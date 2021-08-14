@@ -769,9 +769,9 @@ class _status(metaclass=status_meta):
         pass
     def __sub__(self, other) -> T_status:
         pass
-    def __add__(self, other) -> T_status:
+    def __iadd__(self, other) -> T_status:
         return self
-    def __sub__(self, other) -> T_status:
+    def __isub__(self, other) -> T_status:
         return self
     def double(self) -> List[T_status]:
         return [self]
@@ -793,6 +793,12 @@ class TimedStatus(_status):
         return self.__class__(self.time + other)
     def __sub__(self, other: timedelta) -> T_status:
         return self.__class__(self.time - other)
+    def __iadd__(self, other: timedelta) -> T_status:
+        self.time += other
+        return self
+    def __isub__(self, other: timedelta) -> T_status:
+        self.time -= other
+        return self
     def double(self):
         return [self.__class__(self.time + (self.time - datetime.now()))]
 
