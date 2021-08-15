@@ -2194,6 +2194,7 @@ class wallnut(_card):
 class iceshroom(_card):
     name = "寒冰菇"
     id = 132
+    positive = -1
     description = "抽到时附加全局buff：今天每个人都需要额外隔一个才能接龙。"
     on_draw_global_daily_status = 'i'
     status_des = "寒冰菇：今天每个人都需要额外隔一个才能接龙。"
@@ -2221,6 +2222,7 @@ _card.add_status(')', "双子向日葵：跨日结算时你获得2击毙。此bu
 class imitator(_card):
     name = "模仿者"
     id = 134
+    positive = 0
     description = "你下一张抽到的卡会额外再给你一张。"
     status = 'i'
     status_des = "模仿者：你下一张抽到的卡会额外再给你一张。"
