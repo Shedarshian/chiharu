@@ -3,7 +3,7 @@ import re
 import requests
 import json
 import asyncio
-import functools
+import functools, getopt
 import itertools, more_itertools
 import random
 from collections import namedtuple
@@ -2078,6 +2078,31 @@ async def thwiki_set_alias(session: CommandSession):
     if changed:
         await _save(l)
         await change_des_to_list()
+
+@on_command(('thwiki', 'check_alias'), only_to_me=False, environment=env_supervise, args=("name/id"))
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_check_alias(session: CommandSession):
+    """查询别名。输入申请id或名字可以查询该申请或该名字对应的qq号。"""
+    i = name = None
+    try:
+        i = int(session.current_arg_text)
+    except ValueError:
+        name = session.current_arg_text
+    if i is not None:
+        global l
+        c = [e for e in l if e.id == i]
+        if c:
+            await session.send("该申请的申请人是：" + str(c[0].qq))
+        else:
+            await session.send("未找到此id的申请。")
+    else:
+        c = config.userdata.execute("select qq from thwiki_user where alias=?", (name,)).fetchall()
+        if len(c) == 0:
+            await session.send("未找到该别名。")
+        elif len(c) == 1:
+            await session.send("该别名对应的人是：" + str(c[0]['qq']))
+        else:
+            await session.send("该别名对应的人有：" + '，'.join(str(x['qq']) for x in c))
 
 # Handler for command '-thwiki.test'
 # Yet another undocumented command...?
