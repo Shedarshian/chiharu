@@ -308,7 +308,7 @@ async def update_begin_word(is_daily: bool):
     return c
 
 @Game.wrapper_noarg
-async def daily_update() -> str:
+async def daily_update(buf: SessionBuffer) -> str:
     global global_state
     m: TQuest = {}
     for qq, quests in global_state['quest'].items():
@@ -321,16 +321,21 @@ async def daily_update() -> str:
         global_state['steal'][qq] = {'time': 0, 'user': []}
     save_global_state()
     if me.check_daily_status('s'):
-        User(config.selfqq, None).remove_daily_status('s', remove_all=False)
+        User(config.selfqq, buf).remove_daily_status('s', remove_all=False)
         config.userdata.execute('update dragon_data set today_jibi=10, today_keyword_jibi=10, shop_drawn_card=1, spend_shop=0')
         for r in config.userdata.execute("select qq, daily_status from dragon_data").fetchall():
             if 'd' in r['daily_status']:
-                User(r['qq'], None).remove_daily_status('d')
+                User(r['qq'], buf).remove_daily_status('d')
     else:
         config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=1, spend_shop=0', ('',))
-    for r in config.userdata.execute("select qq, status_time from dragon_data").fetchall():
+    for r in config.userdata.execute("select qq, status, status_time from dragon_data").fetchall():
         if "'q'" in r['status_time']:
-            User(r['qq'], None).remove_all_limited_status('q')
+            User(r['qq'], buf).remove_all_limited_status('q')
+        if '(' or ')' in r['status']:
+            u = User(r['qq'], buf)
+            n = u.check_status('(') + 2 * u.check_status(')')
+            buf.send(f"玩家{r['qq']}种下的向日葵产出了{n}击毙！")
+            await u.add_jibi(n)
     save_data()
     me.reload()
     word = await update_begin_word(is_daily=True)
@@ -1059,7 +1064,9 @@ async def dragon_daily():
     graph = Tree.graph()
     # for group in config.group_id_dict['logic_dragon_send']:
     #     await get_bot().send_group_msg(group_id=group, message=[config.cq.text("昨天的接龙图："), config.cq.img(graph)])
-    ret = await daily_update()
+    buf = SessionBuffer(None, group_id=list(config.group_id_dict['logic_dragon_send'])[0])
+    ret = await daily_update(buf)
+    await buf.flush()
     if date.today().isoformat() == "2021-08-01":
         global current_event, current_shop
         current_event = current_shop = "swim"
@@ -1075,7 +1082,9 @@ async def dragon_update(session: CommandSession):
     graph = Tree.graph()
     # for group in config.group_id_dict['logic_dragon_send']:
     #     await get_bot().send_group_msg(group_id=group, message=[config.cq.text("昨天的接龙图："), config.cq.img(graph)])
-    ret = await daily_update()
+    buf = SessionBuffer(session)
+    ret = await daily_update(buf)
+    await buf.flush()
     for group in config.group_id_dict['logic_dragon_send']:
         await get_bot().send_group_msg(group_id=group, message=ret)
 

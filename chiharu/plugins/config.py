@@ -4,7 +4,7 @@ import json
 import datetime
 import getopt
 from os import path
-from typing import Awaitable, Generator, Set, Callable, Tuple, Dict, Union
+from typing import Awaitable, Generator, Set, Callable, Tuple, Dict, Union, Optional
 from nonebot import CommandSession, get_bot, permission
 from nonebot.natural_language import NLPSession
 from nonebot.session import BaseSession
@@ -222,11 +222,11 @@ class _helper:
         return _
 class SessionBuffer:
     __slots__ = ('buffer', 'session', 'active', 'send_end')
-    def __init__(self, session: BaseSession):
+    def __init__(self, session: BaseSession, /, group_id=None):
         self.buffer: str = ''
         self.send_end: str = ''
-        self.session: BaseSession = session
-        self.active: int = session.ctx['user_id']
+        self.session: Optional[BaseSession] = session or group_id
+        self.active: int = -1 if session is None else session.ctx['user_id']
     def send(self, s, end='\n'):
         self.buffer += s
         self.buffer += end
@@ -238,7 +238,10 @@ class SessionBuffer:
         self.send_end += end
     async def flush(self):
         if self.buffer or self.send_end:
-            await self.session.send((self.buffer + self.send_end).strip())
+            if self.session is None:
+                await get_bot().send_group_msg(group_id=group, message=(self.buffer + self.send_end).strip())
+            else:
+                await self.session.send((self.buffer + self.send_end).strip())
             self.buffer = ''
             self.send_end = ''
     def __getattr__(self, name: str):
