@@ -521,17 +521,43 @@ class User:
                     else:
                         hour += 1
                         self.send_log("触发虹色之环闪避失败，死亡时间+1h！")
+        time_num = hour * 60 + minute
+        if (n := Userme(self).check_daily_status('D')) and not dodge:
+            time_num *= 2 ** n
+        if (l := self.check_limited_status('o')) and not dodge:
+            o1 = o2 = None
+            for o in l:
+                if o.is_pumpkin:
+                    o2 = o
+                else:
+                    o1 = o
+            if o2 is not None:
+                m = min(o2.num, time_num)
+                o2 -= m
+                time_num -= m
+                self.send_log(f"的南瓜头为你吸收了{m}分钟的死亡时间！", end='')
+                if time_num == 0:
+                    dodge = True
+                    self.send_char("没死！")
+                else:
+                    self.buf.send("")
+            if o1 is not None and not dodge:
+                m = min(o1.num, time_num)
+                o1 -= m
+                time_num -= m
+                self.send_log(f"的坚果墙为你吸收了{m}分钟的死亡时间！", end='')
+                if time_num == 0:
+                    dodge = True
+                    self.send_char("没死！")
+                else:
+                    self.buf.send("")
         if (n := self.data.hand_card.count(Card(77))) and not dodge:
             self.send_char(f"的{f'{n}张' if n > 1 else ''}掠夺者啵噗被弃了！")
             self.log << f"的{n}张掠夺者啵噗因死亡被弃置。"
             await self.discard_cards([Card(77) for i in range(n)])
-        time = timedelta(hours=hour, minutes=minute)
-        if (n := Userme(self).check_daily_status('D')) and not dodge:
-            time *= 2 ** n
         if not dodge:
-            self.add_limited_status('d', datetime.now() + time)
-            m = time.seconds // 60
-            self.send_char(f"死了！{f'{m // 60}小时' if m >= 60 else ''}{f'{m % 60}分钟' if m % 60 != 0 else ''}不得接龙。")
+            self.add_limited_status('d', datetime.now() + timedelta(minutes=time_num))
+            self.send_char(f"死了！{f'{time_num // 60}小时' if time_num >= 60 else ''}{f'{time_num % 60}分钟' if time_num % 60 != 0 else ''}不得接龙。")
             if (x := self.check_status('x')):
                 self.remove_status('x')
                 if c.pierce:
@@ -741,15 +767,16 @@ def ensure_true_lambda(bool_func: Callable[[Any], bool], message_lambda: Callabl
 
     return validate
 
-class status_meta(type):
+from abc import ABCMeta, abstractmethod
+class status_meta(ABCMeta):
     def __new__(cls, clsname, bases, attrs):
         if len(bases) != 0 and 'id' in attrs:
-            c = type.__new__(cls, clsname, bases, attrs)
+            c = super().__new__(cls, clsname, bases, attrs)
             if attrs['id'] in bases[0].id_dict:
                 raise ValueError
             bases[0].id_dict[attrs['id']] = c
         else:
-            c = type.__new__(cls, clsname, bases, attrs)
+            c = super().__new__(cls, clsname, bases, attrs)
         return c
 
 def Status(id: str):
@@ -778,6 +805,7 @@ class _status(metaclass=status_meta):
         return self
     def __isub__(self, other) -> T_status:
         return self
+    @abstractmethod
     def double(self) -> List[T_status]:
         return [self]
 
@@ -859,8 +887,6 @@ class NumedStatus(_status):
     def __isub__(self, other: int) -> T_status:
         self.num -= other
         return self
-    def double(self) -> List[T_status]:
-        return [self, self.__class__(self.num)]
 
 @final
 class SQuest(NumedStatus):
@@ -886,6 +912,24 @@ class SBian(NumedStatus):
     is_debuff = True
     def __str__(self) -> str:
         return f"{self.des}\n\t剩余次数：{(self.num + 2) // 3}次。"
+    def double(self) -> List[T_status]:
+        return [self, self.__class__(self.num)]
+
+@final
+class SAbsorb(NumedStatus):
+    id = 'o'
+    @property
+    def des(self):
+        return ('南瓜头' if self.is_pumpkin else '坚果墙') + '：为你吸收死亡时间。'
+    def __init__(self, s: Union[str, int], is_pumpkin=False):
+        super().__init__(s)
+        self.is_pumpkin = is_pumpkin
+    def __repr__(self) -> str:
+        return self.construct_repr(str(self.num), self.is_pumpkin)
+    def __str__(self) -> str:
+        return f"{self.des}\n\t剩余时间：{self.num}分钟。"
+    def double(self):
+        return [self.__class__(self.num * 2)]
 
 class ListStatus(_status):
     def __init__(self, s: Union[str, List]):
@@ -901,11 +945,9 @@ class ListStatus(_status):
         return self.__class__(self.list + other)
     __sub__ = None
     def __iadd__(self, other: List) -> T_status:
-        self.num += other
+        self.list += other
         return self
     __isub__ = None
-    def double(self) -> List[T_status]:
-        return [self.__class__(self.list * 2)]
 
 @final
 class SLe(ListStatus):
@@ -2103,6 +2145,22 @@ class sunflower(_card):
     positive = 1
     status_des = "向日葵：跨日结算时你获得1击毙。此buff最多叠加10层。"
 
+class wallnut(_card):
+    name = "坚果墙"
+    id = 131
+    description = "坚果墙：为你吸收死亡时间总计4小时。"
+    positive = 1
+    @classmethod
+    async def use(cls, user: User) -> None:
+        o = user.check_limited_status('o', lambda x: not x.is_pumpkin)
+        if len(o) > 0:
+            o[0].num = 240
+            user.data.save_status_time()
+            user.send_log("修补了" + user.char() + "的坚果墙！")
+        else:
+            user.add_limited_status(SAbsorb(240, False))
+            user.send_log("种植了坚果墙！")
+
 class twinsunflower(_card):
     name = "双子向日葵"
     id = 133
@@ -2121,6 +2179,22 @@ class twinsunflower(_card):
         user.add_status(')')
         user.send_char("的一株“向日葵”变成了“双子向日葵”！")
 _card.add_status(')', "双子向日葵：跨日结算时你获得2击毙。此buff与“向日葵”buff加在一起最多叠加10层。")
+
+class pumpkin(_card):
+    name = "南瓜头"
+    id = 134
+    description = "南瓜头：为你吸收死亡时间总计6小时。可与坚果墙叠加。"
+    positive = 1
+    @classmethod
+    async def use(cls, user: User) -> None:
+        o = user.check_limited_status('o', lambda x: x.is_pumpkin)
+        if len(o) > 0:
+            o[0].num = 360
+            user.data.save_status_time()
+            user.send_log("修补了" + user.char() + "的南瓜头！")
+        else:
+            user.add_limited_status(SAbsorb(360, True))
+            user.send_log("种植了南瓜头！")
 
 class steamsummer(_card):
     name = "Steam夏季特卖"
