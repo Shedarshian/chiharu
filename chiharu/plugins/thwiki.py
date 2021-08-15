@@ -2082,7 +2082,7 @@ async def thwiki_set_alias(session: CommandSession):
 @on_command(('thwiki', 'check_alias'), only_to_me=False, environment=env_supervise, args=("name/id"))
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_check_alias(session: CommandSession):
-    """查询别名。输入申请id或名字可以查询该申请或该名字对应的qq号。"""
+    """监视者可用，查询别名。输入申请id或名字可以查询该申请或该名字对应的qq号。"""
     i = name = None
     try:
         i = int(session.current_arg_text)
