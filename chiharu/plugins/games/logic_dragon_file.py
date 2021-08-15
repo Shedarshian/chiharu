@@ -342,16 +342,21 @@ class User:
         if s in _card.debuffs and s != 'd' and self.check_status('8'):
             self.remove_status('8', remove_all=False)
             self.send_log("触发了胶带的效果，免除此debuff！")
-        else:
-            self.data.status += s
-            self.log << f"增加了永久状态{s}，当前状态为{self.data.status}。"
+            return
+        if s in '()':
+            num = self.check_status('(') + self.check_status(')')
+            if num >= 10:
+                self.send_log("的向日葵已经种满了10株，种植失败！")
+                return
+        self.data.status += s
+        self.log << f"增加了永久状态{s}，当前状态为{self.data.status}。"
     def add_daily_status(self, s: str):
-        if s in _card.daily_debuffs and self.check_status('8'):
+        if s in _card.daily_debuffs and s != 'd' and self.check_status('8'):
             self.remove_status('8', remove_all=False)
             self.send_log("触发了胶带的效果，免除此debuff！")
-        else:
-            self.data.daily_status += s
-            self.log << f"增加了每日状态{s}，当前状态为{self.data.daily_status}。"
+            return
+        self.data.daily_status += s
+        self.log << f"增加了每日状态{s}，当前状态为{self.data.daily_status}。"
     def add_limited_status(self, s: Union[str, T_status], *args, **kwargs):
         if isinstance(s, str):
             ss = Status(s)(*args, **kwargs)
@@ -2089,6 +2094,33 @@ class xixueshashou(_card):
     description = "今天你每次接龙时有5%几率获得一张【吸血鬼】。"
     daily_status = "x"
     status_des = "吸血杀手：今天你每次接龙时有5%几率获得一张【吸血鬼】。"
+
+class sunflower(_card):
+    name = "向日葵"
+    id = 130
+    description = "附加buff：跨日结算时你获得1击毙。此buff最多叠加10层。"
+    status = '('
+    positive = 1
+    status_des = "向日葵：跨日结算时你获得1击毙。此buff最多叠加10层。"
+
+class twinsunflower(_card):
+    name = "双子向日葵"
+    id = 133
+    description = "只能在你有“向日葵”buff时使用。使你的一层“向日葵”buff变成“双子向日葵”buff（跨日结算时你获得2击毙）。此buff与“向日葵”buff加在一起最多叠加10层。"
+    positive = 1
+    failure_message = "你场地上没有“向日葵”！"
+    @classmethod
+    async def can_use(cls, user: User) -> bool:
+        return user.check_status('(') > 0
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if user.check_status('(') == 0:
+            user.send_char("场地上没有“向日葵”！")
+            return
+        user.remove_status('(', remove_all=False)
+        user.add_status(')')
+        user.send_char("的一株“向日葵”变成了“双子向日葵”！")
+_card.add_status(')', "双子向日葵：跨日结算时你获得2击毙。此buff与“向日葵”buff加在一起最多叠加10层。")
 
 class steamsummer(_card):
     name = "Steam夏季特卖"
