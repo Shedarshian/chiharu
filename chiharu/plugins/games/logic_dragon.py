@@ -124,6 +124,15 @@ class Tree:
         for i in range(n):
             node = node and node.parent
         return node
+    def get_parent_qq_list(self, n: int):
+        parent_qqs: List[int] = []
+        begin = self
+        for j in range(n):
+            parent_qqs.append(begin.qq)
+            begin = begin.parent
+            if begin is None:
+                break
+        return parent_qqs
     @classmethod
     def get_active(cls):
         words = [s[-1] for s in cls._objs if len(s) != 0 and len(s[-1].childs) == 0]
@@ -397,7 +406,7 @@ async def dragon_construct(buf: SessionBuffer):
                 user.log << f"已死，接龙失败。"
                 return
             parent = Tree.find(Tree.match_to_id(match))
-            if not parent:
+            if parent is None:
                 await buf.session.send("请输入存在的id号。")
                 return
             word: str = match.group(3).strip()
@@ -415,13 +424,15 @@ async def dragon_construct(buf: SessionBuffer):
                     await buf.session.send("当前规则为首尾接龙，接龙失败。")
                     return
             m = user.check_daily_status('m')
-            if m and qq == parent.qq or not m and (qq == parent.qq or parent.parent is not None and qq == parent.parent.qq):
+            i = me.check_daily_status('i')
+            dis = 2 + i - (1 if m else 0)
+            if qq in parent.get_parent_qq_list(dis):
                 if user.check_status('z'):
                     buf.send("你触发了极速装置！")
                     user.log << f"触发了极速装置。"
                     user.remove_status('z', remove_all=False)
                 else:
-                    await buf.session.send(f"你接太快了！两次接龙之间至少要隔{'一' if m else '两'}个人。")
+                    await buf.session.send(f"你接太快了！两次接龙之间至少要隔{dis}个人。")
                     user.log << f"接龙过快，失败。"
                     return
             save_global_state()

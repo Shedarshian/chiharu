@@ -980,48 +980,41 @@ def Card(id):
 class card_meta(type):
     def __new__(cls, clsname, bases, attrs):
         if len(bases) != 0 and 'status_dict' in bases[0].__dict__:
-            if 'status' in attrs and attrs['status']:
-                status = attrs['status']
+            if status := attrs.get('status'):
                 bases[0].add_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, user: User):
                     user.add_status(status)
                 attrs['use'] = use
-            elif 'daily_status' in attrs and attrs['daily_status']:
-                status = attrs['daily_status']
+            elif status := attrs.get('daily_status'):
                 bases[0].add_daily_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, user: User):
                     user.add_daily_status(status)
                 attrs['use'] = use
-            elif 'limited_status' in attrs and attrs['limited_status']:
-                status = attrs['limited_status']
+            elif status := attrs.get('limited_status'):
                 @classmethod
                 async def use(self, user: User):
                     user.add_limited_status(status, *attrs['limited_init'])
                 attrs['use'] = use
-            elif 'global_status' in attrs and attrs['global_status']:
-                status = attrs['global_status']
+            elif status := attrs.get('global_status'):
                 bases[0].add_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, user: User):
                     Userme(user).add_status(status)
                 attrs['use'] = use
-            elif 'global_daily_status' in attrs and attrs['global_daily_status']:
-                status = attrs['global_daily_status']
+            elif status := attrs.get('global_daily_status'):
                 bases[0].add_daily_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, user: User):
                     Userme(user).add_daily_status(status)
                 attrs['use'] = use
-            elif 'global_limited_status' in attrs and attrs['global_limited_status']:
-                status = attrs['global_limited_status']
+            elif status := attrs.get('global_limited_status'):
                 @classmethod
                 async def use(self, user: User):
                     Userme(user).add_limited_status(status, *attrs['global_limited_init'])
                 attrs['use'] = use
-            elif 'on_draw_status' in attrs and attrs['on_draw_status']:
-                status = attrs['on_draw_status']
+            elif status := attrs.get('on_draw_status'):
                 bases[0].add_status(status, attrs['status_des'], attrs.get('is_debuff', False))
                 to_send = attrs.get('on_draw_send')
                 to_send_char = attrs.get('on_draw_send_char')
@@ -1033,8 +1026,7 @@ class card_meta(type):
                     if to_send_char:
                         user.send_char(to_send_char)
                 attrs['on_draw'] = on_draw
-            elif 'on_draw_daily_status' in attrs and attrs['on_draw_daily_status']:
-                status = attrs['on_draw_daily_status']
+            elif status := attrs.get('on_draw_daily_status'):
                 bases[0].add_daily_status(status, attrs['status_des'], attrs.get('is_debuff', False))
                 to_send = attrs.get('on_draw_send')
                 to_send_char = attrs.get('on_draw_send_char')
@@ -1046,8 +1038,7 @@ class card_meta(type):
                     if to_send_char:
                         user.send_char(to_send_char)
                 attrs['on_draw'] = on_draw
-            elif 'on_draw_limited_status' in attrs and attrs['on_draw_limited_status']:
-                status = attrs['on_draw_limited_status']
+            elif status := attrs.get('on_draw_limited_status'):
                 to_send = attrs.get('on_draw_send')
                 to_send_char = attrs.get('on_draw_send_char')
                 @classmethod
@@ -1057,6 +1048,35 @@ class card_meta(type):
                         user.buf.send(to_send)
                     if to_send_char:
                         user.send_char(to_send_char)
+                attrs['on_draw'] = on_draw
+            elif status := attrs.get('on_draw_global_status'):
+                bases[0].add_status(status, attrs['status_des'], attrs.get('is_debuff', False))
+                to_send = attrs.get('on_draw_send')
+                to_send_char = attrs.get('on_draw_send_char')
+                @classmethod
+                async def on_draw(self, user: User):
+                    Userme(user).add_status(status)
+                    if to_send:
+                        user.buf.send(to_send)
+                attrs['on_draw'] = on_draw
+            elif status := attrs.get('on_draw_global_daily_status'):
+                bases[0].add_daily_status(status, attrs['status_des'], attrs.get('is_debuff', False))
+                to_send = attrs.get('on_draw_send')
+                to_send_char = attrs.get('on_draw_send_char')
+                @classmethod
+                async def on_draw(self, user: User):
+                    Userme(user).add_daily_status(status)
+                    if to_send:
+                        user.buf.send(to_send)
+                attrs['on_draw'] = on_draw
+            elif status := attrs.get('on_draw_global_limited_status'):
+                to_send = attrs.get('on_draw_send')
+                to_send_char = attrs.get('on_draw_send_char')
+                @classmethod
+                async def on_draw(self, user: User):
+                    Userme(user).add_limited_status(status, *attrs['limited_init'])
+                    if to_send:
+                        user.buf.send(to_send)
                 attrs['on_draw'] = on_draw
             c = type.__new__(cls, clsname, bases, attrs)
             bases[0].card_id_dict[attrs['id']] = c
@@ -2170,6 +2190,14 @@ class wallnut(_card):
         else:
             user.add_limited_status(SAbsorb(240, False))
             user.send_log("种植了坚果墙！")
+
+class iceshroom(_card):
+    name = "寒冰菇"
+    id = 132
+    description = "抽到时附加全局buff：今天每个人都需要额外隔一个才能接龙。"
+    on_draw_global_daily_status = 'i'
+    status_des = "寒冰菇：今天每个人都需要额外隔一个才能接龙。"
+    is_debuff = True
 
 class twinsunflower(_card):
     name = "双子向日葵"
