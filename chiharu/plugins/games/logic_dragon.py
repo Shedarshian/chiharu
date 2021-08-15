@@ -425,7 +425,7 @@ async def dragon_construct(buf: SessionBuffer):
                     return
             m = user.check_daily_status('m')
             i = me.check_daily_status('i')
-            dis = 2 + i - (1 if m else 0)
+            dis = max(2 + i - m, 1)
             if qq in parent.get_parent_qq_list(dis):
                 if user.check_status('z'):
                     buf.send("你触发了极速装置！")
