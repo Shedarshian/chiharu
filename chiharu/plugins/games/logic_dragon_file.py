@@ -1962,6 +1962,7 @@ class dianluzuzhuangji(_card):
     description = "抽到时附加buff：每次你花费/损失击毙时，若该损失小于16击毙，则该损失变为三倍。"
     on_draw_status = 'Z'
     is_debuff = True
+    consumed_on_draw = True
     status_des = "电路组装机：每次你花费/损失击毙时，若该损失小于16击毙，则该损失变为三倍。"
 
 class jujifashu(_card):
