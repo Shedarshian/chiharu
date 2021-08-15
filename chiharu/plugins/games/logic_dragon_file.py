@@ -583,15 +583,22 @@ class User:
     async def draw(self, n: int, /, positive=None, cards=None):
         """抽卡。将卡牌放入手牌。"""
         cards = draw_cards(positive, n) if cards is None else cards
-        if n := cards.count(Card(67)):
-            for i in range(n):
-                await Card(67).on_draw(self)
-        self.send_char('抽到的卡牌是：\n' + '\n'.join(c.full_description(self.qq) for c in cards))
         self.log << f"抽到的卡牌为{cards_to_str(cards)}。"
+        self.send_char('抽到的卡牌是：')
         for c in cards:
+            if c.des_need_init:
+                await c.on_draw(self)
+            self.buf.send(c.full_description(self.qq))
+        for c in cards:
+            if self.check_status('i'):
+                self.remove_status('i', remove_all=False)
+                self.send_log("触发了模仿者的效果，额外获得一张！")
+                if not c.consumed_on_draw:
+                    self.data.hand_card.append(c)
+                await c.on_draw(self)
             if not c.consumed_on_draw:
                 self.data.hand_card.append(c)
-            if c.id != 67:
+            if not c.des_need_init:
                 await c.on_draw(self)
         self.data.set_cards()
         self.log << f"抽完卡牌，当前手牌为{cards_to_str(self.data.hand_card)}。"
@@ -1076,6 +1083,7 @@ class _card(metaclass=card_meta):
     arg_num = 0
     consumed_on_draw = False
     failure_message = ""
+    des_need_init = False
     @classmethod
     async def use(cls, user: User) -> None:
         pass
@@ -1572,11 +1580,11 @@ class xingyuntujiao(_card):
     @classmethod
     async def use(cls, user: User):
         c = draw_card({1})
-        if c.id == 67:
+        if c.des_need_init:
             await c.on_draw(user)
         config.logger.dragon << f"【LOG】用户{user.qq}幸运兔脚抽取了卡牌{c.name}。"
         user.send_char('抽到并使用了卡牌：\n' + c.full_description(user.qq))
-        if c.id != 67:
+        if not c.des_need_init:
             await c.on_draw(user)
         await c.use(user)
         await c.on_remove(user)
@@ -1632,6 +1640,7 @@ class queststone(_card):
     id = 67
     positive = 1
     description = "持有此石时，你每天会刷新一个接龙任务。每次完成接龙任务可以获得3击毙，每天最多3次。使用将丢弃此石。"
+    des_need_init = True
     @classmethod
     def full_description(cls, qq: int):
         q = str(qq)
@@ -1765,11 +1774,11 @@ class zhongshendexixi(_card):
     @classmethod
     async def use(cls, user: User):
         c = draw_card()
-        if c.id == 67:
+        if c.des_need_init:
             await c.on_draw(user)
         user.send_char('抽到并使用了卡牌：\n' + c.full_description(user.qq))
         user.log << f"众神的嬉戏抽取了卡牌{c.name}。"
-        if c.id != 67:
+        if not c.des_need_init:
             await c.on_draw(user)
         await c.use(user)
         await c.on_remove(user)
@@ -2181,6 +2190,13 @@ class twinsunflower(_card):
         user.send_char("的一株“向日葵”变成了“双子向日葵”！")
 _card.add_status(')', "双子向日葵：跨日结算时你获得2击毙。此buff与“向日葵”buff加在一起最多叠加10层。")
 
+class imitator(_card):
+    name = "模仿者"
+    id = 134
+    description = "你下一张抽到的卡会额外再给你一张。"
+    status = 'i'
+    status_des = "模仿者：你下一张抽到的卡会额外再给你一张。"
+
 class pumpkin(_card):
     name = "南瓜头"
     id = 134
@@ -2371,11 +2387,11 @@ class Grid:
         elif content < 85: # 抽一张卡并立即发动效果
             user.send_log("走到了：抽一张卡并立即发动效果。")
             c = draw_card()
-            if c.id == 67:
+            if c.des_need_init:
                 await c.on_draw(user)
             user.send_char('抽到并使用了卡牌：\n' + c.full_description(user.qq))
             user.log << f"抽取了卡牌{c.name}。"
-            if c.id != 67:
+            if not c.des_need_init:
                 await c.on_draw(user)
             await c.use(user)
             await c.on_remove(user)
