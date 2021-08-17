@@ -78,9 +78,9 @@ class Game:
     @classmethod
     def wrapper_noarg(cls, f: Awaitable):
         @wraps(f)
-        async def _f():
+        async def _f(*args, **kwargs):
             try:
-                return await f()
+                return await f(*args, **kwargs)
             finally:
                 cls.userdatas.clear()
         return _f
