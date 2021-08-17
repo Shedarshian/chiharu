@@ -1486,13 +1486,13 @@ class tiesuolianhuan(_card):
                     continue
                 elif c.rebound:
                     toggle(user.qq)
-                    user.buf.send('成功切换' + user.char() + '的连环状态！')
+                    user.buf.send('成功切换' + user.char + '的连环状态！')
                 elif u.check_status('8'):
                     u.remove_status('8', remove_all=False)
                     u.send_log("触发了胶带的效果，免除此debuff！")
                 else:
                     toggle(target)
-                    user.buf.send('成功切换' + u.char() + '的连环状态！')
+                    user.buf.send('成功切换' + u.char + '的连环状态！')
             save_global_state()
 
 class minus1ma(_card):
