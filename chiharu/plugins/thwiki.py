@@ -744,9 +744,11 @@ async def thwiki_cancel(session: CommandSession):
         elif e.supervise == 0 and e.begin < now:
             today = str(date.today().isoformat())
             if 'last_cancel_day' not in node or node['last_cancel_day'] != today:
+                config.logger.thwiki << f"【LOG】用户{session.ctx['user_id']} 今日第一次取消。"
                 config.userdata.execute(f'update thwiki_user set last_cancel_day=? where id=?', (today, node['id']))
                 save_whiteforest()
             else:
+                config.logger.thwiki << f"【LOG】用户{session.ctx['user_id']} 被加入冷静期60分钟。"
                 new = datetime.now() + timedelta(minutes=60)
                 global banlist
                 if uqq not in banlist or banlist[uqq] < new:
@@ -952,11 +954,13 @@ async def _():
             node = find_or_new(e.qq)
             today = str(date.today().isoformat())
             if node['last_cancel_day'] != today:
+                config.logger.thwiki << f"【LOG】用户{e.qq} 今日第一次取消。"
                 config.userdata.execute(f'update thwiki_user set last_cancel_day=? where id=?', (today, node['id']))
                 save_whiteforest()
                 for id in config.group_id_dict['thwiki_send']:
                     await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('您的直播无人监视，已被自动取消')])
             else:
+                config.logger.thwiki << f"【LOG】用户{e.qq} 被加入冷静期60分钟。"
                 new = datetime.now() + timedelta(minutes=60)
                 global banlist
                 if e.qq not in banlist or banlist[e.qq] < new:
