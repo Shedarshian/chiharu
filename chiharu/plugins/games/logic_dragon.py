@@ -340,7 +340,7 @@ async def daily_update(buf: SessionBuffer) -> str:
     for r in config.userdata.execute("select qq, status, status_time from dragon_data").fetchall():
         if "'q'" in r['status_time']:
             User(r['qq'], buf).remove_all_limited_status('q')
-        if '(' in r['status'] or ')' in r['status']:
+        if '(' or ')' in r['status']:
             u = User(r['qq'], buf)
             n = u.check_status('(') + 2 * u.check_status(')')
             buf.send(f"玩家{r['qq']}种下的向日葵产出了{n}击毙！")
