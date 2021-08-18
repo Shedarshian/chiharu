@@ -733,6 +733,7 @@ async def thwiki_cancel(session: CommandSession):
         await session.send('成功删除')
         
         lunbo = False
+        config.logger.thwiki << f"【DEBUG】e.begin：{repr(e.begin)}，now：{repr(now)}，e.supervise：{e.supervise}。"
         # In this case, a shutdown of room should be performed...?
         if e.supervise != 0 and e.begin < now:
             d = int((now - e.begin).total_seconds() - 1) // 60 + 1
