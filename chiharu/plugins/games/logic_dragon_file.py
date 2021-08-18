@@ -2196,6 +2196,7 @@ class iceshroom(_card):
     id = 132
     positive = -1
     description = "抽到时附加全局buff：今天每个人都需要额外隔一个才能接龙。"
+    consumed_on_draw = True
     on_draw_global_daily_status = 'i'
     status_des = "寒冰菇：今天每个人都需要额外隔一个才能接龙。"
     is_debuff = True

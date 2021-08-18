@@ -760,8 +760,10 @@ async def dragon_check(buf: SessionBuffer):
             buf.finish("你的状态为：\n" + ret)
     elif data in ("活动词", "active"):
         words = Tree.get_active()
-        m = user.data.check_daily_status('m')
-        buf.finish("当前活动词为：\n" + '\n'.join(f"{s.word}，{'⚠️' if s.qq == qq or s.parent is not None and s.parent.qq == qq and not m else ''}id为{s.id_str}" for s in words))
+        m = user.check_daily_status('m')
+        i = me.check_daily_status('i')
+        dis = max(2 + i - m, 1)
+        buf.finish("当前活动词为：\n" + '\n'.join(f"{s.word}，{'⚠️' if qq in s.get_parent_qq_list(dis)else ''}id为{s.id_str}" for s in words))
     elif data in ("资料", "profile"):
         buf.finish(f"你的资料为：\n今日剩余获得击毙次数：{user.data.today_jibi}。\n今日剩余获得关键词击毙：{user.data.today_keyword_jibi}。\n剩余抽卡券：{user.data.draw_time}。\n手牌上限：{user.data.card_limit}。" + (f"\n活动pt：{user.data.event_pt}。\n当前在活动第{user.data.event_stage}。" if current_event == "swim" else ""))
     elif data in ("活动商店", "event_shop"):
