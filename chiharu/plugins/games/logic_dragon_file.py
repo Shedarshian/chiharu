@@ -551,6 +551,7 @@ class User:
                     self.send_char("没死！")
                 else:
                     self.buf.send("")
+            self.data.save_status_time()
         if (n := self.data.hand_card.count(Card(77))) and not dodge:
             self.send_char(f"的{f'{n}张' if n > 1 else ''}掠夺者啵噗被弃了！")
             self.log << f"的{n}张掠夺者啵噗因死亡被弃置。"
