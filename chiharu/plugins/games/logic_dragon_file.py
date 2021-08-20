@@ -419,11 +419,14 @@ class User:
                 jibi += s
                 self.send_char(f"触发了{f'{s}次' if s > 1 else ''}告解的效果，获得击毙加{s}。")
             else: s = 0
-        if z := self.check_status('Z'):
-            if -16 <= jibi < 0:
-                jibi *= 3 ** z
-                self.send_char(f"触发了{f'{z}次' if s > 1 else ''}电路组装机的效果，损失击毙变为{jibi}。")
-            else: z = 0
+        if z0 := self.check_status('Z'):
+            z = 0
+            for i in range(z0):
+                if -16 <= jibi < 0:
+                    z += 1
+                    jibi *= 3
+            if z != 0:
+                self.send_char(f"触发了{f'{z}次' if z > 1 else ''}电路组装机的效果，损失击毙变为{jibi}。")
         if n := self.check_status('2'):
             jibi *= 2 ** n
             self.send_char(f"触发了{f'{n}次' if n > 1 else ''}变压器的效果，{'获得' if jibi >= 0 else '损失'}击毙加倍为{abs(jibi)}！")
