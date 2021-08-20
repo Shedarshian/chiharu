@@ -225,7 +225,7 @@ class SessionBuffer:
     def __init__(self, session: BaseSession, /, group_id=None):
         self.buffer: str = ''
         self.send_end: str = ''
-        self.session: Optional[BaseSession] = session or group_id
+        self.session: Optional[BaseSession] = session
         self.active: int = -1 if session is None else session.ctx['user_id']
     def send(self, s, end='\n'):
         self.buffer += s
