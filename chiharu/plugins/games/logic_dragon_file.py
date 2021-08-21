@@ -541,7 +541,7 @@ class User:
             else:
                 await self.add_jibi(5)
                 self.send_log("触发了反转·死秽回避之药的效果，免除死亡！")
-                dodge = True
+                hour += 2
                 self.remove_status('s', remove_all=False)
         if (n := self.check_status('h')) and not dodge:
             if c.pierce:
@@ -2474,7 +2474,7 @@ for c in ('YZ', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]'):
     revert_status_map[c[0]] = c[1]
     revert_status_map[c[1]] = c[0]
 _card.add_status('Y', "反转·电路组装机：每次你获得击毙时，若该获得小于16击毙，则该获得变为三倍。")
-_card.add_status('t', '反转·死秽回避之药：下次死亡时获得5击毙，然后免除死亡。')
+_card.add_status('t', '反转·死秽回避之药：下次死亡时获得5击毙，但是死亡时间增加2h。')
 _card.add_status('y', "反转·辉夜姬的秘密宝箱：你下一次死亡的时候随机弃一张牌。")
 _card.add_status('M', "反转·存钱罐：下次触发隐藏词的奖励-10击毙。")
 _card.add_status('Q', "反转·通灵之术-密西迪亚兔：你的屁股上出现了一只可爱的小兔子。")
