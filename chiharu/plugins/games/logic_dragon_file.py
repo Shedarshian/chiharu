@@ -2448,6 +2448,8 @@ class upsidedown(_card):
         # 带附加值的状态
         l = user.data.status_time_checked
         for i in range(len(l)):
+            if random.random() > 0.5:
+                continue
             if l[i].id == 'q':
                 l[i].jibi = -l[i].jibi
             elif l[i].id == 'b':
