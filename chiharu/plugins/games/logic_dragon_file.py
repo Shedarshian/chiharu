@@ -474,7 +474,7 @@ class User:
             self.data.spend_shop += abs(jibi)
             self.log << f"累计今日商店购买至{self.data.spend_shop}。"
         return True
-    async def kill(self, hour: int=2, minute: int=0, killer=None):
+    async def kill(self, hour: int=2, minute: int=0, killer=None, jump=False):
         """击杀玩家。"""
         killer = killer or self
         config.logger.dragon << f"【LOG】尝试击杀玩家{self.qq}。"
@@ -530,7 +530,7 @@ class User:
         time_num = hour * 60 + minute
         if (n := Userme(self).check_daily_status('D')) and not dodge:
             time_num *= 2 ** n
-        if (l := self.check_limited_status('o')) and not dodge:
+        if (l := self.check_limited_status('o')) and not dodge and not jump:
             o1 = o2 = None
             for o in l:
                 if o.is_pumpkin:
@@ -2262,11 +2262,11 @@ class jack_in_the_box(_card):
     is_debuff = True
     consumed_on_draw = True
 
-class bungee(_card):
+class bungeezombie(_card):
     name = "蹦极僵尸"
     id = 137
     positive = -1
-    description = "抽到时依照优先级移除你的一层植物效果。"
+    description = "抽到时依照优先级移除你的一层植物效果。若你没有植物，则放下一只僵尸，你死亡一个小时。"
     consumed_on_draw = True
     @classmethod
     async def on_draw(cls, user: User) -> None:
@@ -2285,6 +2285,16 @@ class bungee(_card):
         else:
             user.send_log("没有植物，蹦极僵尸放下了一只僵尸！")
             await user.kill(hour=1)
+
+class polezombie(_card):
+    name = "撑杆僵尸"
+    id = 138
+    positive = -1
+    description = "抽到时击毙你一次，此击毙不会被坚果墙或南瓜保护套阻挡。"
+    consumed_on_draw = True
+    @classmethod
+    async def on_draw(cls, user: User) -> None:
+        await user.kill(jump=True)
 
 class steamsummer(_card):
     name = "Steam夏季特卖"
