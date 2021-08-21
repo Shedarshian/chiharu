@@ -592,7 +592,7 @@ async def dragon_construct(buf: SessionBuffer):
                     for i in range(n):
                         if random.random() > 0.9:
                             buf.send("你获得了一张【吸血鬼】！")
-                if j := user.check_status('j') and random.random() > 0.95:
+                if j := user.check_status('j') and not me.check_daily_status('i') and random.random() > 0.95:
                     user.send_log("的玩偶匣爆炸了！")
                     qqs = {user.qq}
                     id = tree_node.id

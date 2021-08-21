@@ -2255,9 +2255,9 @@ class jack_in_the_box(_card):
     name = "玩偶匣"
     id = 136
     positive = -1
-    description = "抽到时附加buff：你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。"
+    description = "抽到时附加buff：你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。若场上有寒冰菇状态则不会爆炸。"
     on_draw_status = 'j'
-    status_des = "你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。"
+    status_des = "你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。若场上有寒冰菇状态则不会爆炸。"
     on_draw_send_char = "获得了玩偶匣！"
     is_debuff = True
     consumed_on_draw = True
@@ -2266,11 +2266,14 @@ class bungeezombie(_card):
     name = "蹦极僵尸"
     id = 137
     positive = -1
-    description = "抽到时依照优先级移除你的一层植物效果。若你没有植物，则放下一只僵尸，你死亡一个小时。"
+    description = "抽到时依照优先级移除你的一层植物效果。若你没有植物，则放下一只僵尸，你死亡一个小时。若场上有寒冰菇状态则不会生效。"
     consumed_on_draw = True
     @classmethod
     async def on_draw(cls, user: User) -> None:
-        if o := more_itertools.only(user.check_limited_status('o', lambda x: not x.is_pumpkin)):
+        if me.check_daily_status('i'):
+            user.buf.send("蹦极僵尸被寒冰菇冻住了！")
+            user.log << "蹦极僵尸被寒冰菇冻住了！"
+        elif o := more_itertools.only(user.check_limited_status('o', lambda x: not x.is_pumpkin)):
             user.send_log("的坚果墙被偷走了！")
             user.remove_limited_status(o)
         elif user.check_status(')'):
@@ -2287,14 +2290,18 @@ class bungeezombie(_card):
             await user.kill(hour=1)
 
 class polezombie(_card):
-    name = "撑杆僵尸"
+    name = "撑杆跳僵尸"
     id = 138
     positive = -1
-    description = "抽到时击毙你一次，此击毙不会被坚果墙或南瓜保护套阻挡。"
+    description = "抽到时击毙你一次，此击毙不会被坚果墙或南瓜保护套阻挡。若场上有寒冰菇状态则不会生效。"
     consumed_on_draw = True
     @classmethod
     async def on_draw(cls, user: User) -> None:
-        await user.kill(jump=True)
+        if me.check_daily_status('i'):
+            user.buf.send("撑杆跳僵尸被寒冰菇冻住了！")
+            user.log << "撑杆跳僵尸被寒冰菇冻住了！"
+        else:
+            await user.kill(jump=True)
 
 class steamsummer(_card):
     name = "Steam夏季特卖"
