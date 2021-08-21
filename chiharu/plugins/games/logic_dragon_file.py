@@ -386,6 +386,9 @@ class User:
                 l.remove(s)
             self.data.daily_status = ''.join(l)
         self.log << f"移除了{'一层' if not remove_all else ''}每日状态{s}，当前状态为{self.data.daily_status}。"
+    def remove_limited_status(self, s: T_status):
+        self.data.status_time.remove(s)
+        self.log << f"移除了一个限时状态{s}。"
     def remove_all_limited_status(self, s: str):
         i = 0
         while i < len(self.data.status_time):
@@ -2258,6 +2261,30 @@ class jack_in_the_box(_card):
     on_draw_send_char = "获得了玩偶匣！"
     is_debuff = True
     consumed_on_draw = True
+
+class bungee(_card):
+    name = "蹦极僵尸"
+    id = 137
+    positive = -1
+    description = "抽到时依照优先级移除你的一层植物效果。"
+    consumed_on_draw = True
+    @classmethod
+    async def on_draw(cls, user: User) -> None:
+        if o := more_itertools.only(user.check_limited_status('o', lambda x: not x.is_pumpkin)):
+            user.send_log("的坚果墙被偷走了！")
+            user.remove_limited_status(o)
+        elif user.check_status(')'):
+            user.send_log("的双子向日葵被偷走了！")
+            user.remove_status(')', remove_all=False)
+        elif user.check_status('('):
+            user.send_log("的向日葵被偷走了！")
+            user.remove_status('(', remove_all=False)
+        elif p := more_itertools.only(user.check_limited_status('o', lambda x: x.is_pumpkin)):
+            user.send_log("的南瓜头被偷走了！")
+            user.remove_limited_status(p)
+        else:
+            user.send_log("没有植物，蹦极僵尸放下了一只僵尸！")
+            await user.kill(hour=1)
 
 class steamsummer(_card):
     name = "Steam夏季特卖"
