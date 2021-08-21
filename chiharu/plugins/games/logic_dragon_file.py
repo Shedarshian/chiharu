@@ -2452,14 +2452,19 @@ class upsidedown(_card):
                 continue
             if l[i].id == 'q':
                 l[i].jibi = -l[i].jibi
+                user.send_log("的每日任务被反转了！")
             elif l[i].id == 'b':
                 l[i] = SCian(l[i].num)
+                user.send_log("的月下彼岸花被反转了！")
             elif l[i].id == 'c':
                 l[i] = SBian(l[i].num)
+                user.send_log("的反转·月下彼岸花被反转了！")
             elif l[i].id == 'l':
                 l[i] = SMe(l[i].list)
+                user.send_log("的乐不思蜀被反转了！")
             elif l[i].id == 'm':
                 l[i] = SLe(l[i].list)
+                user.send_log("的反转·乐不思蜀被反转了！")
         user.data.save_status_time()
         # 全局状态
         _s(Userme(user))
