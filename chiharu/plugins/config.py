@@ -211,7 +211,7 @@ userdata = userdata_db.cursor()
 
 class _helper:
     __slots__ = ("session",)
-    def __init__(self, session):
+    def __init__(self, session: 'SessionBuffer'):
         self.session = session
     def __getattr__(self, name):
         def _(qq, s, /, end='\n'):
@@ -221,12 +221,13 @@ class _helper:
             logger._l[name] << f"【LOG】用户{qq}" + s
         return _
 class SessionBuffer:
-    __slots__ = ('buffer', 'session', 'active', 'send_end')
-    def __init__(self, session: BaseSession, /, group_id=None):
+    __slots__ = ('buffer', 'session', 'active', 'send_end', 'group_id')
+    def __init__(self, session: Optional[BaseSession], /, group_id=None):
         self.buffer: str = ''
         self.send_end: str = ''
         self.session: Optional[BaseSession] = session
         self.active: int = -1 if session is None else session.ctx['user_id']
+        self.group_id = group_id
     def send(self, s, end='\n'):
         self.buffer += s
         self.buffer += end
@@ -239,7 +240,7 @@ class SessionBuffer:
     async def flush(self):
         if self.buffer or self.send_end:
             if self.session is None:
-                await get_bot().send_group_msg(group_id=group, message=(self.buffer + self.send_end).strip())
+                await get_bot().send_group_msg(group_id=self.group_id, message=(self.buffer + self.send_end).strip())
             else:
                 await self.session.send((self.buffer + self.send_end).strip())
             self.buffer = ''
