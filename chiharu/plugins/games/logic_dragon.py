@@ -345,6 +345,11 @@ async def daily_update(buf: SessionBuffer) -> str:
             n = u.check_status('(') + 2 * u.check_status(')')
             buf.send(f"玩家{r['qq']}种下的向日葵产出了{n}击毙！")
             await u.add_jibi(n)
+        if '[' in r['status'] or ']' in r['status']:
+            u = User(r['qq'], buf)
+            n = u.check_status('[') + 2 * u.check_status(']')
+            buf.send(f"玩家{r['qq']}种下的背日葵使其损失了{n}击毙！")
+            await u.add_jibi(-n)
     save_data()
     me.reload()
     word = await update_begin_word(is_daily=True)
@@ -423,9 +428,15 @@ async def dragon_construct(buf: SessionBuffer):
                 if parent.word != '' and word != '' and parent.word[-1] != word[0]:
                     await buf.session.send("当前规则为首尾接龙，接龙失败。")
                     return
+            if me.check_daily_status('p'):
+                if parent.word != '' and word != '' and parent.word[0] != word[-1]:
+                    await buf.session.send("当前规则为尾首接龙，接龙失败。")
+                    return
             m = user.check_daily_status('m')
+            M = user.check_daily_status('M')
             i = me.check_daily_status('i')
-            dis = max(2 + i - m, 1)
+            I = me.check_daily_status('I')
+            dis = max(2 + i - I - m + M, 1)
             if qq in parent.get_parent_qq_list(dis):
                 if user.check_status('z'):
                     buf.send("你触发了极速装置！")
@@ -457,13 +468,18 @@ async def dragon_construct(buf: SessionBuffer):
                     hdkwd = k
                     user.log << f"接到了隐藏奖励词{k}。"
                     buf.send(f"你接到了隐藏奖励词{k}！奖励10击毙。")
-                    await user.add_jibi(10)
-                    n = me.check_status('m')
-                    if n:
+                    to_add = 10
+                    if n := me.check_status('m'):
                         user.log << f"触发了存钱罐{n}次。"
                         buf.send(f"\n你触发了存钱罐，奖励+{n * 10}击毙！")
                         Userme(user).remove_status('m')
-                        await user.add_jibi(n * 10)
+                        to_add += n * 10
+                    if n := me.check_status('M'):
+                        user.log << f"触发了反转·存钱罐{n}次。"
+                        buf.send(f"\n你触发了反转·存钱罐，奖励-{n * 10}击毙！")
+                        Userme(user).remove_status('M')
+                        to_add -= n * 10
+                    await user.add_jibi(to_add)
                     if global_state['exchange_stack']:
                         to_exchange = User(global_state['exchange_stack'][-1], buf)
                         if (await user.check_attacked(to_exchange, TCounter(double=1))).valid:
@@ -775,7 +791,9 @@ async def dragon_check(buf: SessionBuffer):
         words = Tree.get_active()
         m = user.check_daily_status('m')
         i = me.check_daily_status('i')
-        dis = max(2 + i - m, 1)
+        I = me.check_daily_status('I')
+        M = user.check_daily_status('M')
+        dis = max(2 + i - I - m + M, 1)
         buf.finish("当前活动词为：\n" + '\n'.join(f"{s.word}，{'⚠️' if qq in s.get_parent_qq_list(dis)else ''}id为{s.id_str}" for s in words))
     elif data in ("资料", "profile"):
         buf.finish(f"你的资料为：\n今日剩余获得击毙次数：{user.data.today_jibi}。\n今日剩余获得关键词击毙：{user.data.today_keyword_jibi}。\n剩余抽卡券：{user.data.draw_time}。\n手牌上限：{user.data.card_limit}。" + (f"\n活动pt：{user.data.event_pt}。\n当前在活动第{user.data.event_stage}。" if current_event == "swim" else ""))

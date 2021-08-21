@@ -341,7 +341,11 @@ class User:
     def add_status(self, s: str):
         if s in _card.debuffs and s != 'd' and self.check_status('8'):
             self.remove_status('8', remove_all=False)
-            self.send_log("触发了胶带的效果，免除此debuff！")
+            self.send_log("触发了胶带的效果，免除此负面状态！")
+            return
+        if s not in _card.debuffs and self.check_status('9'):
+            self.remove_status('9', remove_all=False)
+            self.send_log("触发了反转·胶带的效果，免除此非负面状态！")
             return
         if s in '()':
             num = self.check_status('(') + self.check_status(')')
@@ -422,6 +426,19 @@ class User:
                 jibi += s
                 self.send_char(f"触发了{f'{s}次' if s > 1 else ''}告解的效果，获得击毙加{s}。")
             else: s = 0
+        if u := self.check_daily_status('#'):
+            if jibi > 0:
+                jibi = max(jibi - u, 0)
+                self.send_char(f"触发了{f'{u}次' if u > 1 else ''}反转·告解的效果，获得击毙减{u}。")
+            else: u = 0
+        if y0 := self.check_status('Y'):
+            y = 0
+            for i in range(y0):
+                if 0 < jibi <= 16:
+                    y += 1
+                    jibi *= 3
+            if y != 0:
+                self.send_char(f"触发了{f'{y}次' if y > 1 else ''}反转·电路组装机的效果，获得击毙变为{abs(jibi)}。")
         if z0 := self.check_status('Z'):
             z = 0
             for i in range(z0):
@@ -434,6 +451,10 @@ class User:
             jibi *= 2 ** n
             self.send_char(f"触发了{f'{n}次' if n > 1 else ''}变压器的效果，{'获得' if jibi >= 0 else '损失'}击毙加倍为{abs(jibi)}！")
             self.remove_status('2')
+        if n := self.check_status('1'):
+            jibi //= 2 ** n
+            self.send_char(f"触发了{f'{n}次' if n > 1 else ''}反转·变压器的效果，{'获得' if jibi >= 0 else '损失'}击毙减半为{abs(jibi)}！")
+            self.remove_status('1')
         if q := self.data.check_equipment(0):
             if jibi > 0 and random.random() < 0.05 * q:
                 jibi *= 2
@@ -469,7 +490,7 @@ class User:
                 self.send_char(f"触发了深谋远虑之策的效果，此次免单！")
         if not dodge and not dodge2:
             self.data.jibi = max(self.data.jibi + jibi, 0)
-        self.log << f"原有击毙{current_jibi}，{f'触发了{s}次告解的效果，' if s > 0 else ''}{f'触发了{z}次电路组装机的效果，' if z0 > 0 and z > 0 else ''}{f'触发了比基尼的效果，' if q > 0 else ''}{f'触发了学生泳装的效果，' if dodge else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 else ''}{f'触发了{p}次北京市政交通一卡通的效果，' if p > 0 else ''}{f'触发了深谋远虑之策的效果，' if dodge2 else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
+        self.log << f"原有击毙{current_jibi}，{f'触发了{s}次告解的效果，' if s > 0 else ''}{f'触发了{z}次电路组装机的效果，' if z0 > 0 and z > 0 else ''}{f'触发了{y}次反转·电路组装机的效果，' if y0 > 0 and y > 0 else ''}{f'触发了比基尼的效果，' if q > 0 else ''}{f'触发了学生泳装的效果，' if dodge else ''}{f'触发了{m}次Steam夏季特卖的效果，' if m > 0 else ''}{f'触发了{p}次北京市政交通一卡通的效果，' if p > 0 else ''}{f'触发了深谋远虑之策的效果，' if dodge2 else ''}{'获得' if jibi >= 0 else '损失'}了{abs(jibi)}。"
         if is_buy and not dodge:
             self.data.spend_shop += abs(jibi)
             self.log << f"累计今日商店购买至{self.data.spend_shop}。"
@@ -513,6 +534,15 @@ class User:
                     self.send_log("触发了死秽回避之药的效果，免除死亡！")
                     dodge = True
                     self.remove_status('s', remove_all=False)
+        if (n := self.check_status('t')) and not dodge:
+            if c.pierce:
+                self.send_log("反转·死秽回避之药的效果被幻想杀手消除了！")
+                self.remove_status('s', remove_all=True)
+            else:
+                await self.add_jibi(5)
+                self.send_log("触发了反转·死秽回避之药的效果，免除死亡！")
+                dodge = True
+                self.remove_status('s', remove_all=False)
         if (n := self.check_status('h')) and not dodge:
             if c.pierce:
                 self.send_log("虹色之环的效果被幻想杀手消除了！")
@@ -572,6 +602,20 @@ class User:
                 else:
                     self.send_log(f"触发了辉夜姬的秘密宝箱！奖励抽卡{x}张。")
                     await self.draw(x)
+            if (y := self.check_status('y')):
+                self.remove_status('y')
+                if c.pierce:
+                    self.send_log("反转·辉夜姬的秘密宝箱的效果被幻想杀手消除了！")
+                else:
+                    self.send_log(f"触发了反转·辉夜姬的秘密宝箱！随机弃{x}张卡。")
+                    x = min(len(self.data.hand_card), x)
+                    l = copy(self.data.hand_card)
+                    l2: List[TCard] = []
+                    for i in range(x):
+                        l2.append(random.choice(l))
+                        l.remove(l2[-1])
+                    self.send_log("弃了：" + '，'.join(c.name for c in l2) + "。")
+                    await self.discard_cards(l2)
             global global_state
             if self.qq in global_state['lianhuan']:
                 if c.pierce:
@@ -908,6 +952,9 @@ class SQuest(NumedStatus):
     @property
     def des(self):
         return f"今日任务：{mission[self.quest_id][1]}"
+    @property
+    def is_debuff(self):
+        return self.jibi < 0
     def __init__(self, s: Union[str, int], jibi: int, quest_id: int):
         super().__init__(s)
         self.jibi = jibi
@@ -924,6 +971,15 @@ class SBian(NumedStatus):
     id = 'b'
     des = '月下彼岸花：你每接龙三次会损失1击毙。'
     is_debuff = True
+    def __str__(self) -> str:
+        return f"{self.des}\n\t剩余次数：{(self.num + 2) // 3}次。"
+    def double(self) -> List[T_status]:
+        return [self, self.__class__(self.num)]
+
+@final
+class SCian(NumedStatus):
+    id = 'c'
+    des = '反转·月下彼岸花：你每接龙三次会获得1击毙。'
     def __str__(self) -> str:
         return f"{self.des}\n\t剩余次数：{(self.num + 2) // 3}次。"
     def double(self) -> List[T_status]:
@@ -968,6 +1024,20 @@ class SLe(ListStatus):
     id = 'l'
     is_debuff = True
     des = '乐不思蜀：不能从以下节点接龙：'
+    def check(self) -> bool:
+        return True
+    def __str__(self) -> str:
+        from .logic_dragon import Tree
+        ids = [tree.id_str for tree in Tree.get_active()]
+        return f"{self.des}\n\t{','.join(c for c in self.list if c in ids)}。"
+    def double(self) -> List[T_status]:
+        return [self]
+
+@final
+class SMe(ListStatus):
+    id = 'm'
+    is_debuff = True
+    des = '反转·乐不思蜀：不能从以下节点接龙：'
     def check(self) -> bool:
         return True
     def __str__(self) -> str:
@@ -1097,7 +1167,7 @@ class card_meta(type):
 
 class _card(metaclass=card_meta):
     card_id_dict: Dict[int, TCard] = {}
-    status_dict: Dict[str, str] = {'d': "永久死亡。"}
+    status_dict: Dict[str, str] = {'d': "永久死亡"}
     daily_status_dict: Dict[str, str] = {}
     debuffs = 'd'
     daily_debuffs = ''
@@ -1273,21 +1343,22 @@ class strength(_card):
     @classmethod
     async def use(cls, user: User):
         l = len(user.data.status) + len(user.data.daily_status) + len(user.data.status_time_checked)
-        status_time = user.data.status_time
         if user.data.jibi < 2 ** l - 1:
             user.send_char("太弱小了，没有力量！")
             return
         else:
             user.send_char(f"花费了{2 ** l - 1}击毙！")
         await user.add_jibi(-2 ** l + 1)
-        user.add_status(user.data.status)
-        user.add_daily_status(user.data.daily_status)
+        for c in user.data.status:
+            user.add_status(c)
+        for c in user.data.daily_status:
+            user.add_daily_status(c)
         i = 0
-        while i < len(status_time):
-            t = status_time[i].double()
-            status_time[i] = t[0]
+        while i < len(user.data.status_time):
+            t = user.data.status_time[i].double()
+            user.data.status_time[i] = t[0]
             if len(t) == 2:
-                status_time.insert(i + 1, t[1])
+                user.data.status_time.insert(i + 1, t[1])
                 i += 1
             i += 1
         user.data.save_status_time()
@@ -1506,9 +1577,9 @@ class minus1ma(_card):
     name = "-1马"
     id = 39
     daily_status = 'm'
-    status_des = "-1马：直到下次主题刷新为止，你隔一次就可以接龙。"
+    status_des = "-1马：直到下次主题刷新为止，你可以少隔一个接龙，但最少隔一个。"
     positive = 1
-    description = "直到下次主题刷新为止，你隔一次就可以接龙。"
+    description = "直到下次主题刷新为止，你可以少隔一个接龙，但最少隔一个。"
 
 class dongfeng(_card):
     name = "东风（🀀）"
@@ -1657,10 +1728,17 @@ class hezuowujian(_card):
 class ourostone(_card):
     name = "衔尾蛇之石"
     id = 66
-    global_daily_status = 'o'
-    status_des = "衔尾蛇之石：规则为首尾接龙直至下次刷新。首尾接龙时，每个汉语词必须至少包含3个汉字，英语词必须至少包含4个字母。"
     positive = 0
-    description = "修改当前规则至首尾接龙直至下次刷新。首尾接龙时，每个汉语词必须至少包含3个汉字，英语词必须至少包含4个字母。"
+    description = "修改当前规则至首尾接龙直至下次刷新。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        u = Userme(user)
+        if u.check_daily_status('o'):
+            u.remove_daily_status('o')
+        if u.check_daily_status('p'):
+            u.remove_daily_status('p')
+        u.add_daily_status('o')
+_card.add_daily_status('o', "衔尾蛇之石：规则为首尾接龙直至下次刷新。")
 
 class queststone(_card):
     name = "任务之石"
@@ -2325,6 +2403,86 @@ class beijingcard(_card):
     positive = 1
     description = "持有此卡时，你当天在商店总消费达100击毙后商店所有物品变为8折，当天在商店总消费达150击毙后商店所有物品变为5折，当天在商店总消费达400击毙后不再打折。"
     hold_des = "北京市市政交通一卡通：你当天在商店总消费达100击毙后商店所有物品变为8折，当天在商店总消费达150击毙后商店所有物品变为5折，当天在商店总消费达400击毙后不再打折。"
+
+class upsidedown(_card):
+    name = "天下翻覆"
+    id = 156
+    positive = 0
+    description = "每条全局状态和你的状态有50%的概率反转，除了那些不能反转的以外。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        # 永久状态
+        def _s(u: User):
+            to_remove = ""
+            to_add = ""
+            for c in u.data.status:
+                if random.random() > 0.5:
+                    continue
+                if c in revert_status_map:
+                    des = _card.status_dict[c]
+                    user.send_log(f"的{des[:des.index('：')]}被反转了！")
+                    to_remove += c
+                    to_add += revert_status_map[c]
+            for c in to_remove:
+                u.remove_status(c, remove_all=False)
+            for c in to_add:
+                u.add_status(c)
+        _s(user)
+        # 每日状态
+        def _d(u: User):
+            to_remove = ""
+            to_add = ""
+            for c in u.data.daily_status:
+                if random.random() > 0.5:
+                    continue
+                if c in revert_daily_status_map:
+                    des = _card.daily_status_dict[c]
+                    user.send_log(f"的{des[:des.index('：')]}被反转了！")
+                    to_remove += c
+                    to_add += revert_daily_status_map[c]
+            for c in to_remove:
+                u.remove_daily_status(c, remove_all=False)
+            for c in to_add:
+                u.add_daily_status(c)
+        _d(user)
+        # 带附加值的状态
+        l = user.data.status_time_checked
+        for i in range(len(l)):
+            if l[i].id == 'q':
+                l[i].jibi = -l[i].jibi
+            elif l[i].id == 'b':
+                l[i] = SCian(l[i].num)
+            elif l[i].id == 'c':
+                l[i] = SBian(l[i].num)
+            elif l[i].id == 'l':
+                l[i] = SMe(l[i].list)
+            elif l[i].id == 'm':
+                l[i] = SLe(l[i].list)
+        user.data.save_status_time()
+        # 全局状态
+        _s(Userme(user))
+        _d(Userme(user))
+revert_status_map: Dict[str, str] = {}
+for c in ('YZ', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]'):
+    revert_status_map[c[0]] = c[1]
+    revert_status_map[c[1]] = c[0]
+_card.add_status('Y', "反转·电路组装机：每次你获得击毙时，若该获得小于16击毙，则该获得变为三倍。")
+_card.add_status('t', '反转·死秽回避之药：下次死亡时获得5击毙，然后免除死亡。')
+_card.add_status('y', "反转·辉夜姬的秘密宝箱：你下一次死亡的时候随机弃一张牌。")
+_card.add_status('M', "反转·存钱罐：下次触发隐藏词的奖励-10击毙。")
+_card.add_status('Q', "反转·通灵之术-密西迪亚兔：你的屁股上出现了一只可爱的小兔子。")
+_card.add_status('1', "反转·变压器：下一次你的击毙变动变动值减半。")
+_card.add_status('9', "反转·布莱恩科技航空专用强化胶带FAL84型：免疫你下次即刻生效的非负面状态。")
+_card.add_status('[', "背日葵：跨日结算时你损失1击毙。")
+_card.add_status(']', "双子背日葵：跨日结算时你损失2击毙。")
+revert_daily_status_map: Dict[str, str] = {}
+for c in ('Bt', 'Ii', 'Mm', 'op', '@#'):
+    revert_daily_status_map[c[0]] = c[1]
+    revert_daily_status_map[c[1]] = c[0]
+_card.add_daily_status('I', "炎热菇：今天每个人都可以少隔一个接龙。")
+_card.add_daily_status('M', "+1马：直到下次主题刷新为止，你必须额外隔一个才能接龙。")
+_card.add_daily_status('p', "石之蛇尾衔：规则为尾首接龙直至下次刷新。")
+_card.add_daily_status('#', "反转·告解：今日每次你获得击毙时少获得1击毙。")
 
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):
