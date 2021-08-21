@@ -2224,14 +2224,6 @@ class twinsunflower(_card):
         user.send_char("的一株“向日葵”变成了“双子向日葵”！")
 _card.add_status(')', "双子向日葵：跨日结算时你获得2击毙。此buff与“向日葵”buff加在一起最多叠加10层。")
 
-class imitator(_card):
-    name = "模仿者"
-    id = 134
-    positive = 0
-    description = "你下一张抽到的卡会额外再给你一张。"
-    status = 'i'
-    status_des = "模仿者：你下一张抽到的卡会额外再给你一张。"
-
 class pumpkin(_card):
     name = "南瓜头"
     id = 134
@@ -2247,6 +2239,25 @@ class pumpkin(_card):
         else:
             user.add_limited_status(SAbsorb(360, True))
             user.send_log("种植了南瓜头！")
+
+class imitator(_card):
+    name = "模仿者"
+    id = 135
+    positive = 0
+    description = "你下一张抽到的卡会额外再给你一张。"
+    status = 'i'
+    status_des = "模仿者：你下一张抽到的卡会额外再给你一张。"
+
+class jack_in_the_box(_card):
+    name = "玩偶匣"
+    id = 136
+    positive = -1
+    description = "抽到时附加buff：你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。"
+    on_draw_status = 'j'
+    status_des = "你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。"
+    on_draw_send_char = "获得了玩偶匣！"
+    is_debuff = True
+    consumed_on_draw = True
 
 class steamsummer(_card):
     name = "Steam夏季特卖"

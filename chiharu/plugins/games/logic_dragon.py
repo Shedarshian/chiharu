@@ -73,7 +73,7 @@ class Tree:
         self.kwd = kwd
         self.hdkwd = hdkwd
     @classmethod
-    def find(cls, id: int):
+    def find(cls, id: Tuple[int, int]):
         try:
             if len(cls._objs[id[1]]) == 0:
                 return None
@@ -553,11 +553,6 @@ async def dragon_construct(buf: SessionBuffer):
                             changed = True
                     if changed:
                         user.data.save_status_time()
-                if current_event == "swim" and first10:
-                    n = random.randint(1, 6)
-                    user.send_log(f"移动了{n}格，", end='')
-                    await user.event_move(n)
-                    user.send_log(f"现在位于{user.data.event_stage}。")
                 if n := user.check_status('A'):
                     user.remove_status('A')
                     user.add_status('a' * n)
@@ -597,6 +592,19 @@ async def dragon_construct(buf: SessionBuffer):
                     for i in range(n):
                         if random.random() > 0.9:
                             buf.send("你获得了一张【吸血鬼】！")
+                if j := user.check_status('j') and random.random() > 0.95:
+                    user.send_log("的玩偶匣爆炸了！")
+                    qqs = {user.qq}
+                    id = tree_node.id
+                    for i, j in itertools.product(range(-2, 3), range(-2, 3)):
+                        ret = Tree.find((id[0] + i, id[1] + j))
+                        if ret is not None:
+                            qqs.add(ret.qq)
+                    qqs -= {config.selfqq}
+                    user.send_char("炸死了" + "".join(f"[CQ:at,qq={qqq}]" for qqq in qqs) + "！")
+                    user.log << "炸死了" + ", ".join(str(qqq) for qqq in qqs) + "。"
+                    for qqq in qqs:
+                        await User(qqq, user.buf).kill()
                 if word in bombs:
                     buf.send("你成功触发了炸弹，被炸死了！")
                     user.log << f"触发了炸弹，被炸死了。"
@@ -625,6 +633,11 @@ async def dragon_construct(buf: SessionBuffer):
                     await user.exchange(to_exchange)
                 if (n := me.check_daily_status('B')) and random.random() > 0.9 ** n:
                     add_bomb(word)
+                if current_event == "swim" and first10:
+                    n = random.randint(1, 6)
+                    user.send_log(f"移动了{n}格，", end='')
+                    await user.event_move(n)
+                    user.send_log(f"现在位于{user.data.event_stage}。")
 
 @on_command(('dragon', 'use_card'), aliases="使用手牌", short_des="使用手牌。", only_to_me=False, args=("card"), environment=env)
 @config.ErrorHandle(config.logger.dragon)
