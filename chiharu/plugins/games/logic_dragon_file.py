@@ -1034,8 +1034,8 @@ class SLe(ListStatus):
         return [self]
 
 @final
-class SMe(ListStatus):
-    id = 'm'
+class SKe(ListStatus):
+    id = 'k'
     is_debuff = True
     des = '反转·乐不思蜀：不能从以下节点接龙：'
     def check(self) -> bool:
@@ -1198,7 +1198,7 @@ class _card(metaclass=card_meta):
         pass
     @classmethod
     def can_use(cls, user: User) -> bool:
-        return len(user.check_limited_status('m', lambda t: t.card_id == cls.id)) == 0
+        return len(user.check_limited_status('k', lambda t: t.card_id == cls.id)) == 0
     @classmethod
     def add_daily_status(cls, s, des, /, is_debuff=False):
         if s in cls.daily_status_dict:
@@ -2460,9 +2460,9 @@ class upsidedown(_card):
                 l[i] = SBian(l[i].num)
                 user.send_log("的反转·月下彼岸花被反转了！")
             elif l[i].id == 'l':
-                l[i] = SMe(l[i].list)
+                l[i] = SKe(l[i].list)
                 user.send_log("的乐不思蜀被反转了！")
-            elif l[i].id == 'm':
+            elif l[i].id == 'k':
                 l[i] = SLe(l[i].list)
                 user.send_log("的反转·乐不思蜀被反转了！")
         user.data.save_status_time()
