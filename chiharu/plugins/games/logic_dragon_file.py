@@ -1549,7 +1549,8 @@ class tiesuolianhuan(_card):
             l: List[int] = await user.buf.aget(prompt="请at群内至多两名玩家进行铁索连环。\n",
                 arg_filters=[
                         lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
-                        validators.fit_size(1, 2, message="请at正确的人数。"),
+                        validators.ensure_true(lambda s: config.selfqq not in s, message="不能选我！"),
+                        validators.fit_size(1, 2, message="请at正确的人数。")
                     ])
             config.logger.dragon << f"【LOG】用户{user.qq}铁索连环选择{l}。"
             def toggle(target):
@@ -2164,6 +2165,57 @@ class jingxingfashu(_card):
             while l[-1] in l[:-1]:
                 l[-1] = random.choice(bombs)
         user.buf.send('，'.join(l) + '。')
+
+class xiaohunfashu(_card):
+    name = "销魂法术"
+    id = 108
+    positive = 1
+    description = "对指定玩家发动，该玩家的每条状态都有1/3的概率被清除；或是对千春使用，消除【XXI-世界】外的所有全局状态。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if await user.choose():
+            config.logger.dragon << f"【LOG】询问用户{user.qq}选择玩家。"
+            qq: int = await user.buf.aget(prompt="请at群内一名玩家。\n",
+                arg_filters=[
+                        lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
+                        validators.fit_size(1, 1, message="请at正确的人数。")
+                    ])[0]
+            if qq == config.selfqq:
+                user.send_log("选择了千春！消除了【XXI-世界】外的所有全局状态！")
+                me.status = ""
+                s = me.check_daily_status('s')
+                me.daily_status = s * 's'
+                me.status_time.clear()
+                global global_state
+                global_state["exchange_stack"] = []
+                save_global_state()
+            else:
+                u = User(qq, user.buf)
+                # 永久状态
+                for c in u.data.status:
+                    if random.random() > 0.3333:
+                        continue
+                    u.remove_status(c, remove_all=False)
+                    des = _card.status_dict[c]
+                    u.send_log(f"的{des[:des.index('：')]}被消除了！")
+                # 每日状态
+                for c in u.data.daily_status:
+                    if random.random() > 0.3333:
+                        continue
+                    u.remove_daily_status(c, remove_all=False)
+                    des = _card.daily_status_dict[c]
+                    u.send_log(f"的{des[:des.index('：')]}被消除了！")
+                # 带附加值的状态
+                l = user.data.status_time_checked
+                i = 0
+                while i < len(l):
+                    if random.random() > 0.3333:
+                        i += 1
+                    else:
+                        des = l[i].des
+                        u.send_log(f"的{des[:des.index('：')]}被消除了！")
+                        l.pop(i)
+                u.data.save_status_time()
 
 class yuexiabianhua(_card):
     name = "月下彼岸花"
