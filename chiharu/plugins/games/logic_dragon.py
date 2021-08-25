@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, date, time
 from math import ceil
+from os import remove
 from typing import Dict, List, Set, Tuple, Type, TypedDict, Union, Optional
 import itertools, more_itertools
 import json, random, re
@@ -616,8 +617,9 @@ async def dragon_construct(buf: SessionBuffer):
                         if random.random() > 0.9:
                             buf.send("你获得了一张【吸血鬼】！")
                             await user.draw(0, cards=[Card(-2)])
-                if j := user.check_status('j') and not me.check_daily_status('i') and random.random() > 0.95:
+                if (j := user.check_status('j')) and not me.check_daily_status('i') and random.random() > 0.95 ** j:
                     user.send_log("的玩偶匣爆炸了！")
+                    user.remove_status('j')
                     qqs = {user.qq}
                     id = tree_node.id
                     for i, j in itertools.product(range(-2, 3), range(-2, 3)):
