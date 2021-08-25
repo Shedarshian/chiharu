@@ -1822,13 +1822,13 @@ class liwujiaohuan(_card):
         all_users: List[User] = []
         for u in l:
             if u.check_status('G'):
-                u.remove_status("G")
+                u.remove_status("G", remove_all=False)
             elif not (await u.check_attacked(user, TCounter(double=1))).valid:
                 pass
             else:
                 for c in u.data.hand_card:
                     all_cards.append((u, c))
-                    all_users.append(u)
+                all_users.append(u)
         random.shuffle(all_cards)
         for u in all_users:
             if (n := len(u.data.hand_card)):
@@ -2175,11 +2175,11 @@ class xiaohunfashu(_card):
     async def use(cls, user: User) -> None:
         if await user.choose():
             config.logger.dragon << f"【LOG】询问用户{user.qq}选择玩家。"
-            qq: int = await user.buf.aget(prompt="请at群内一名玩家。\n",
+            qq: int = (await user.buf.aget(prompt="请at群内一名玩家。\n",
                 arg_filters=[
                         lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
                         validators.fit_size(1, 1, message="请at正确的人数。")
-                    ])[0]
+                    ]))[0]
             if qq == config.selfqq:
                 user.send_log("选择了千春！消除了【XXI-世界】外的所有全局状态！")
                 me.status = ""
