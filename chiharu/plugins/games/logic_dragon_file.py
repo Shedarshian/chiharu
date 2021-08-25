@@ -2387,7 +2387,7 @@ class jack_in_the_box(_card):
     positive = -1
     description = "抽到时附加buff：你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。若场上有寒冰菇状态则不会爆炸。"
     on_draw_status = 'j'
-    status_des = "你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。若场上有寒冰菇状态则不会爆炸。"
+    status_des = "玩偶匣：你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。若场上有寒冰菇状态则不会爆炸。"
     on_draw_send_char = "获得了玩偶匣！"
     is_debuff = True
     consumed_on_draw = True
