@@ -909,12 +909,12 @@ async def dragon_buy(buf: SessionBuffer):
             await get_bot().send_group_msg(group_id=group, message=s)
         buf.send("您已成功提交！")
     elif id == 8:
-        # (25击毙)抽一张卡，每日限一次。
+        # (5击毙)抽一张卡，每日限一次。
         if user.data.shop_drawn_card <= 0:
             buf.send("您今日已在商店购买过抽卡！")
         else:
             user.data.shop_drawn_card -= 1
-            if not await user.add_jibi(-25, is_buy=True):
+            if not await user.add_jibi(-5, is_buy=True):
                 buf.finish("您的击毙不足！")
             async with user.settlement():
                 await user.draw(1)
