@@ -578,6 +578,18 @@ async def dragon_construct(buf: SessionBuffer):
                             changed = True
                     if changed:
                         user.data.save_status_time()
+                if f := user.check_limited_status('f'):
+                    for c in f:
+                        c: logic_dragon_file.SFusion
+                        if c.num == c.num_init or tree_node.before(3).qq == user.qq:
+                            c -= 1
+                            if c.num == 0:
+                                user.buf.send(f"你的聚变堆给你带来了{c.jibi}击毙！")
+                                await user.add_jibi(c.jibi)
+                        else:
+                            user.buf.send("你的聚变堆断电了！")
+                            c.num = 0
+                    user.data.save_status_time()
                 if n := user.check_status('A'):
                     user.remove_status('A')
                     user.add_status('a' * n)

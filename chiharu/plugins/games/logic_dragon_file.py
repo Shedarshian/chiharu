@@ -1001,6 +1001,22 @@ class SAbsorb(NumedStatus):
     def double(self):
         return [self.__class__(self.num * 2)]
 
+@final
+class SFusion(NumedStatus):
+    id = 'f'
+    @property
+    def des(self):
+        return f'若你的下{self.num_init}次接龙每两次接龙中间都只间隔两人，则你获得{self.jibi}击毙。'
+    @property
+    def is_debuff(self):
+        return self.jibi < 0
+    def __init__(self, s: Union[str, int], jibi: int, num_init: int):
+        super().__init__(s)
+        self.jibi = jibi
+        self.num_init = num_init
+    def double(self) -> List[T_status]:
+        return [SFusion(self.num, self.jibi * 2, self.num_init)]
+
 class ListStatus(_status):
     def __init__(self, s: Union[str, List]):
         if isinstance(s, str):
@@ -2080,6 +2096,23 @@ class dianluzuzhuangji(_card):
     consumed_on_draw = True
     status_des = "电路组装机：每次你花费/损失击毙时，若该损失小于16击毙，则该损失变为三倍。"
 
+class fusionreactor(_card):
+    name = "聚变堆"
+    id = 104
+    positive = 1
+    description = "使用50击毙发动。若你的下10次接龙每两次接龙中间都只间隔两人，则你获得100击毙。"
+    failure_message = "你的击毙不足！"
+    @classmethod
+    async def can_use(cls, user: User) -> bool:
+        return user.data.jibi >= 50
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if user.data.jibi < 50:
+            user.buf.send(cls.failure_message)
+        else:
+            await user.add_jibi(-50)
+            user.add_limited_status('f', 10, 100, 10)
+
 class jujifashu(_card):
     name = "聚集法术"
     id = 105
@@ -2517,6 +2550,9 @@ class upsidedown(_card):
             elif l[i].id == 'k':
                 l[i] = SLe(l[i].list)
                 user.send_log("的反转·乐不思蜀被反转了！")
+            elif l[i].id == 'f':
+                l[i].jibi = -l[i].jibi
+                user.send_log("的聚变堆被反转了！")
         user.data.save_status_time()
         # 全局状态
         _s(Userme(user))
