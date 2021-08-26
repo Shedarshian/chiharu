@@ -296,7 +296,8 @@ async def update_begin_word(is_daily: bool):
     with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         d: TWords = json.load(f)
     c = random.choice(d['begin'])
-    d['last_update_date'] = last_update_date = date.today().isoformat()
+    if is_daily:
+        d['last_update_date'] = last_update_date = date.today().isoformat()
     d['begin'].remove(c)
     config.logger.dragon << f"【LOG】更新了起始词：{c}。"
     if len(d['begin']) == 0:
