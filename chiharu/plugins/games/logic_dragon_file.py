@@ -788,7 +788,6 @@ class User:
             return TCounter(double=n)
         return TCounter()
 
-me = UserData(config.selfqq)
 Userme: Callable[[User], User] = lambda user: User(config.selfqq, user.buf)
 
 def save_data():
@@ -1062,6 +1061,8 @@ class SKe(ListStatus):
         return f"{self.des}\n\t{','.join(c for c in self.list if c in ids)}。"
     def double(self) -> List[T_status]:
         return [self]
+
+me = UserData(config.selfqq)
 
 @lru_cache(10)
 def Card(id):
