@@ -517,9 +517,9 @@ async def dragon_construct(buf: SessionBuffer):
                     buf.send(f"奖励{jibi_to_add}击毙。")
                     user.data.today_jibi -= 1
                     await user.add_jibi(jibi_to_add)
-                    if user.data.today_jibi == 0:
-                        buf.send("你今日全勤，奖励1抽奖券！")
-                        user.log << f"全勤，奖励1抽奖券。"
+                    if user.data.today_jibi == 9:
+                        buf.send("你今日首次接龙，奖励1抽奖券！")
+                        user.log << f"首次接龙，奖励1抽奖券。"
                         user.data.draw_time += 1
                 else:
                     buf.send("")
