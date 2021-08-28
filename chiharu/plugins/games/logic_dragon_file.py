@@ -61,7 +61,7 @@ quest_print_aux: Dict[int, int] = {qq: 0 for qq in global_state['quest'].keys()}
 def find_or_new(qq: int):
     t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     if t is None:
-        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop, equipment) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 1, 0, 0, ?)', (qq, '', '', '', '', '{}', '{}'))
+        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop, equipment) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 1, 0, 0, ?)', (qq, '', '', '', '', '[]', '{}'))
         t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     return t
 
@@ -160,7 +160,7 @@ class UserData:
         self.hand_card = [] if self.node['card'] == '' else [Card(int(x)) for x in self.node['card'].split(',')]
         def save(key, value):
             config.userdata.execute(f"update dragon_data set {key}=? where qq=?", (str(value), self.qq))
-        self.status_time: List[T_status] = property_dict(partial(save, 'status_time'), [])
+        self.status_time: List[T_status] = property_list(partial(save, 'status_time'), [])
         self.status_time.data = eval(self.node['status_time'])
         self.equipment = property_dict(partial(save, 'equipment'), {})
         self.equipment.data = eval(self.node['equipment'])
