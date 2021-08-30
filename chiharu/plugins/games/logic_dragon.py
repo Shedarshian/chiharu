@@ -991,7 +991,7 @@ async def dragon_buy_event(buf: SessionBuffer):
                 buf.finish("此商品已售罄！")
             if not await user.add_event_pt(-75, is_buy=True):
                 buf.finish("您的活动pt不足！")
-            user.data.equipment[0] = s + 1
+            user.data.equipment[1] = s + 1
             buf.send(f"您{'购买了1星学校泳装' if s == 0 else f'将学校泳装升至了{s + 1}星'}！")
         elif id == 3:
             # （75pt）暴食的蜈蚣（余1次）
