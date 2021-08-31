@@ -12,6 +12,7 @@ from ..inject import CommandGroup, on_command
 from .. import config
 from ..config import SessionBuffer
 env = config.Environment('logic_dragon')
+env_private = config.Environment('logic_dragon', private=True)
 env_supervise = config.Environment('logic_dragon_supervise')
 env_admin = config.Environment(config.Admin('logic_dragon'))
 config.logger.open('dragon')
@@ -735,7 +736,7 @@ async def dragon_draw(buf: SessionBuffer):
         await user.draw(n)
     save_data()
 
-@on_command(('dragon', 'check'), aliases="查询接龙", only_to_me=False, short_des="查询逻辑接龙相关数据。", args=("name",), environment=env)
+@on_command(('dragon', 'check'), aliases="查询接龙", only_to_me=False, short_des="查询逻辑接龙相关数据。", args=("name",), environment=env_private)
 @config.ErrorHandle(config.logger.dragon)
 @Game.wrapper
 async def dragon_check(buf: SessionBuffer):
