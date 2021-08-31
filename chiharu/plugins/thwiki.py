@@ -8,7 +8,7 @@ import itertools, more_itertools
 import random
 from collections import namedtuple
 from copy import copy
-from typing import Optional
+from typing import Optional, Dict, Tuple
 from urllib import parse
 from nonebot import CommandSession, get_bot, permission, scheduler, on_notice, NoticeSession, RequestSession, on_request, message_preprocessor
 from nonebot.message import escape
@@ -312,7 +312,7 @@ with open(config.rel("thwiki_weak_blacklist.txt"), encoding = 'utf-8') as f:
 
 # Initializes the ban list
 with open(config.rel("thwiki_banlist.json"), encoding = 'utf-8') as f:
-    banlist = {int(key): datetime.fromisoformat(val) for key, val in json.load(f).items()}
+    banlist: Dict[int, Tuple[datetime, str]] = {int(key): (datetime.fromisoformat(val[0]), val[1]) for key, val in json.load(f).items()}
 
 # Find whether a user is in the authorized user tree
 # id: internal ID, takes priority to qq
@@ -328,7 +328,8 @@ def save_whiteforest():
 def save_banlist():
     global banlist
     with open(config.rel("thwiki_banlist.json"), 'w', encoding='utf-8') as f:
-        f.write(json.dumps({str(key): val.isoformat(' ') for key, val in banlist.items()}, ensure_ascii=False, indent=4, separators=(',', ': ')))
+        f.write(json.dumps({str(key): [val[0].isoformat(' '), val[1]] for key, val in banlist.items()}, ensure_ascii=False, indent=4, separators=(',', ': ')))
+ban_auto_tooltip = "待监视预约被取消超过2次。"
 
 # So after all what is card??
 async def get_card(qq):
@@ -752,8 +753,8 @@ async def thwiki_cancel(session: CommandSession):
                 config.logger.thwiki << f"【LOG】用户{session.ctx['user_id']} 被加入冷静期60分钟。"
                 new = datetime.now() + timedelta(minutes=60)
                 global banlist
-                if uqq not in banlist or banlist[uqq] < new:
-                    banlist[uqq] = new
+                if uqq not in banlist or banlist[uqq][0] < new:
+                    banlist[uqq] = (new, ban_auto_tooltip)
                     save_banlist()
                 await session.send([config.cq.at(e.qq), config.cq.text('您今日已有过待监视预约被取消，已进入冷静期60分钟。')])
 
@@ -856,8 +857,8 @@ async def thwiki_term(session: CommandSession):
         else:
             new = datetime.now() + timedelta(minutes=60)
             global banlist
-            if e.qq not in banlist or banlist[e.qq] < new:
-                banlist[e.qq] = new
+            if e.qq not in banlist or banlist[e.qq][0] < new:
+                banlist[e.qq] = (new, ban_auto_tooltip)
                 save_banlist()
             s = '已终止，您今日已有过待监视预约被取消，已进入冷静期60分钟。'
     await _save(l)
@@ -964,8 +965,8 @@ async def _():
                 config.logger.thwiki << f"【LOG】用户{e.qq} 被加入冷静期60分钟。"
                 new = datetime.now() + timedelta(minutes=60)
                 global banlist
-                if e.qq not in banlist or banlist[e.qq] < new:
-                    banlist[e.qq] = new
+                if e.qq not in banlist or banlist[e.qq][0] < new:
+                    banlist[e.qq] = (new, ban_auto_tooltip)
                     save_banlist()
                 for id in config.group_id_dict['thwiki_send']:
                     await bot.send_group_msg(group_id=id, message=[config.cq.at(e.qq), config.cq.text('您的直播无人监视，已被自动取消。您今日已有过待监视预约被自动取消，已进入冷静期60分钟。')])
@@ -1966,24 +1967,29 @@ async def thwiki_kick(session: CommandSession):
 @on_command(('thwiki', 'ban'), only_to_me=False, short_des="手动设置用户进入冷静期或查看冷静期成员。", args=('qq', 'time(min)'), environment=env_supervise_only)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_ban(session: CommandSession):
-    """手动设置用户进入冷静期。格式为-thwiki.ban qq号 时间（单位为分钟）。不加参数为查看冷静期成员。"""
+    """手动设置用户进入冷静期。格式为-thwiki.ban qq号 时间（单位为分钟），可以换行加冷静期理由。不加参数为查看冷静期成员。"""
     global banlist
     if session.current_arg_text == '':
         now = datetime.now()
         if len(banlist) == 0:
             session.finish('当前无人在冷静期中。')
-        session.finish('\n'.join(f'{qq}: {(time - now).total_seconds() // 60}分钟' for qq, time in banlist.items()))
+        session.finish('\n'.join(f'{qq}: {(val[0] - now).total_seconds() // 60}分钟：{val[1]}' for qq, val in banlist.items()))
     try:
-        qq, time = session.current_arg_text.split(' ')
+        text, reason = session.current_arg_text.split('\n')
     except ValueError:
-        session.finish('请使用格式 -thwiki.ban qq号 时间（单位为分钟）。')
+        text = session.current_arg_text
+        reason = ""
+    try:
+        qq, time = text.split(' ')
+    except ValueError:
+        session.finish('请使用格式 -thwiki.ban qq号 时间（单位为分钟），可以换行加冷静期理由。')
     new = datetime.now() + timedelta(minutes=int(time))
     qq = int(qq)
-    if qq not in banlist or banlist[qq] < new:
-        banlist[qq] = new
+    if qq not in banlist or banlist[qq][0] < new:
+        banlist[qq] = (new, reason)
         save_banlist()
         for group in config.group_id_dict['thwiki_send']:
-            await get_bot().send_group_msg(group_id=group, message=f"用户{qq}被加入冷静期{time}分钟。")
+            await get_bot().send_group_msg(group_id=group, message=f"用户{qq}被加入冷静期{time}分钟{(f'，理由为：' + reason) if reason != '' else ''}。")
         session.finish('已禁言。')
     else:
         session.finish('该用户已在禁言中，且禁言时间大于您设置的时间。')
