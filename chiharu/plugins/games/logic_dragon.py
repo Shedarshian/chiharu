@@ -368,25 +368,27 @@ async def logical_dragon(session: NLPSession):
 @on_natural_language(only_to_me=False, only_short_message=True)
 @config.ErrorHandle(config.logger.dragon)
 async def logical_dragon_else(session: NLPSession):
-    if not await env.test(session):
+    if not await env_private.test(session):
         return
     text = session.msg_text.strip()
     if text.startswith("查询接龙"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[4:].strip())
     elif text.startswith("查询"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[2:].strip())
-    elif text.startswith("使用手牌") and (len(text) == 4 or text[4] == ' '):
-        await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
-    elif text.startswith("使用卡牌") and (len(text) == 4 or text[4] == ' '):
-        await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
-    elif text.startswith("抽卡") and (len(text) == 2 or text[2] == ' '):
-        await call_command(get_bot(), session.ctx, ('dragon', 'draw'), current_arg=text[2:].strip())
     elif text.startswith("查看手牌"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="手牌")
     elif text.startswith("商店"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="商店")
     elif text.startswith("活动商店"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="活动商店")
+    if not await env.test(session):
+        return
+    if text.startswith("使用手牌") and (len(text) == 4 or text[4] == ' '):
+        await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
+    elif text.startswith("使用卡牌") and (len(text) == 4 or text[4] == ' '):
+        await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
+    elif text.startswith("抽卡") and (len(text) == 2 or text[2] == ' '):
+        await call_command(get_bot(), session.ctx, ('dragon', 'draw'), current_arg=text[2:].strip())
     elif text.startswith("购买") and (len(text) == 2 or text[2] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'buy'), current_arg=text[2:].strip())
     elif text.startswith("购买活动") and (len(text) == 4 or text[4] == ' '):
