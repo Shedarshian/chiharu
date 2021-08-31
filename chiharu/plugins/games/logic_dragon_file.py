@@ -2357,7 +2357,7 @@ class wallnut(_card):
         if len(o) > 0:
             o[0].num = 240
             user.data.save_status_time()
-            user.send_log("修补了" + user.char() + "的坚果墙！")
+            user.send_log("修补了" + user.char + "的坚果墙！")
         else:
             user.add_limited_status(SAbsorb(240, False))
             user.send_log("种植了坚果墙！")
@@ -2402,7 +2402,7 @@ class pumpkin(_card):
         if len(o) > 0:
             o[0].num = 360
             user.data.save_status_time()
-            user.send_log("修补了" + user.char() + "的南瓜头！")
+            user.send_log("修补了" + user.char + "的南瓜头！")
         else:
             user.add_limited_status(SAbsorb(360, True))
             user.send_log("种植了南瓜头！")
