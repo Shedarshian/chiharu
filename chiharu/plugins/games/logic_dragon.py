@@ -824,7 +824,7 @@ async def dragon_check(buf: SessionBuffer):
     elif data in ("资料", "profile"):
         buf.finish(f"你的资料为：\n今日剩余获得击毙次数：{user.data.today_jibi}。\n今日剩余获得关键词击毙：{user.data.today_keyword_jibi}。\n剩余抽卡券：{user.data.draw_time}。\n手牌上限：{user.data.card_limit}。" + (f"\n活动pt：{user.data.event_pt}。\n当前在活动第{user.data.event_stage}。" if current_event == "swim" else ""))
     elif data in ("活动商店", "event_shop"):
-        if current_event == "swim":
+        if current_shop == "swim":
             b = user.data.check_equipment(0)
             s = user.data.check_equipment(1)
             p = user.data.event_shop
