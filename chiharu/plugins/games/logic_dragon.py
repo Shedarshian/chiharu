@@ -964,7 +964,7 @@ async def dragon_buy(buf: SessionBuffer):
 async def dragon_buy_event(buf: SessionBuffer):
     """购买逻辑接龙相关商品。
     使用方法：购买活动 id号"""
-    if current_event == '':
+    if current_shop == '':
         return
     try:
         id = int(buf.current_arg_text)
