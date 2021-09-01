@@ -1218,7 +1218,7 @@ class _card(metaclass=card_meta):
         pass
     @classmethod
     def can_use(cls, user: User) -> bool:
-        return len(user.check_limited_status('k', lambda t: t.card_id == cls.id)) == 0
+        return len(user.check_limited_status('m', lambda t: t.card_id == cls.id)) == 0
     @classmethod
     def add_daily_status(cls, s, des, /, is_debuff=False):
         if s in cls.daily_status_dict:
