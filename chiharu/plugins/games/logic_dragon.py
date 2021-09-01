@@ -958,7 +958,7 @@ async def dragon_buy(buf: SessionBuffer):
         save_data()
     await buf.flush()
 
-@on_command(('dragon', 'buy_event'), aliases="购买活动", only_to_me=False, short_des="购买逻辑接龙活动商店相关商品。", args=("id",), environment=env, hide=(current_event == ''))
+@on_command(('dragon', 'buy_event'), aliases="购买活动", only_to_me=False, short_des="购买逻辑接龙活动商店相关商品。", args=("id",), environment=env, hide=(current_shop == ''))
 @config.ErrorHandle(config.logger.dragon)
 @Game.wrapper
 async def dragon_buy_event(buf: SessionBuffer):
