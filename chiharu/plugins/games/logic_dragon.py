@@ -28,8 +28,8 @@ changelog = """0.3.1 Changelog:
 Change:
 再次大改结算逻辑。"""
 
-current_event = "swim" if datetime.now() > datetime.fromisoformat("2021-08-01T16:00:00") else ""
-current_shop = current_event
+current_event = ""
+current_shop = "swim"
 
 class TWords(TypedDict):
     keyword: Tuple[str, List[str]]
