@@ -23,7 +23,7 @@ def not_banned(session):
     now = datetime.now()
     if qq in banlist:
         if banlist[qq][0] > now:
-            return False, "千春生气了，接下来{0}分钟不会跟你说话了！".format(int(((banlist[qq][0] - now).total_seconds() - 1) // 60 + 1)) + (f"因为：{banlist[qq][1]}" if banlist[qq][1] != "" else "")
+            return False, "千春生气了，接下来{0}分钟不会跟你说话了！".format(int(((banlist[qq][0] - now).total_seconds() - 1) // 60 + 1)) + (f"因为：{banlist[qq][1]}。" if banlist[qq][1] != "" else "")
         else:
             banlist.pop(qq)
             save_banlist()

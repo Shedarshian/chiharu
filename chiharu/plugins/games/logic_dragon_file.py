@@ -772,15 +772,18 @@ class User:
             self.remove_status('0', remove_all=False)
             return TCounter(dodge=True)
         if killer.check_status('0'):
-            killer.send_char("触发了幻想杀手的效果，无视了对方的反制！")
-            killer.remove_status('0', remove_all=False)
             pierce = True
+            def pierce_f():
+                killer.buf.send(f"但{killer.char}触发了幻想杀手的效果，无视了对方的反制！")
+                killer.remove_status('0', remove_all=False)
         else:
             pierce = False
         if self.check_status('v') and not not_valid.rebound:
             self.send_char("触发了矢量操作的效果，反弹了对方的攻击！")
             self.remove_status('v', remove_all=False)
-            if not pierce:
+            if pierce:
+                pierce_f()
+            else:
                 return TCounter(rebound=True)
         if (n := killer.check_status('v')) and not not_valid.double:
             killer.send_char("触发了矢量操作的效果，攻击加倍！")
@@ -1215,7 +1218,7 @@ class _card(metaclass=card_meta):
         pass
     @classmethod
     def can_use(cls, user: User) -> bool:
-        return len(user.check_limited_status('k', lambda t: t.card_id == cls.id)) == 0
+        return len(user.check_limited_status('m', lambda t: t.card_id == cls.id)) == 0
     @classmethod
     def add_daily_status(cls, s, des, /, is_debuff=False):
         if s in cls.daily_status_dict:
@@ -2227,14 +2230,14 @@ class xiaohunfashu(_card):
                 u = User(qq, user.buf)
                 # 永久状态
                 for c in u.data.status:
-                    if random.random() > 0.3333:
+                    if random.random() > 0.5:
                         continue
                     u.remove_status(c, remove_all=False)
                     des = _card.status_dict[c]
                     u.send_log(f"的{des[:des.index('：')]}被消除了！")
                 # 每日状态
                 for c in u.data.daily_status:
-                    if random.random() > 0.3333:
+                    if random.random() > 0.5:
                         continue
                     u.remove_daily_status(c, remove_all=False)
                     des = _card.daily_status_dict[c]
@@ -2243,7 +2246,7 @@ class xiaohunfashu(_card):
                 l = user.data.status_time_checked
                 i = 0
                 while i < len(l):
-                    if random.random() > 0.3333:
+                    if random.random() > 0.5:
                         i += 1
                     else:
                         des = l[i].des
