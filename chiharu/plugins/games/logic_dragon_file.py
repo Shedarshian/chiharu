@@ -1,7 +1,5 @@
 import itertools, hashlib
-from os import remove
 import random, more_itertools, json, re
-from enum import Enum, auto
 from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, List, NamedTuple, Optional, Set, Tuple, Type, TypeVar, TypedDict, Union, final
 from collections import Counter, UserDict, UserList
 from functools import lru_cache, partial, wraps
@@ -509,7 +507,6 @@ class User:
         elif c.double:
             hour *= 2 ** c.double
             minute *= 2 ** c.double
-        # await Game.HandleDeath(self, killer, hour, minute, jump)
         dodge = False
         if self.check_limited_status('v') and not dodge:
             if c.pierce:

@@ -404,7 +404,7 @@ def add_time(qq, time):
     b = False # What is the purpose??
     if time_new >= TRAIL_TIME and qq not in weak_blacklist:
         b = node['trail'] != 0
-        if 'parent' not in node or node['parent'] != -1:
+        if node['parent'] != -1:
             if node['trail'] != 0:
                 config.logger.thwiki << f'【LOG】用户{qq} 已通过试用期转正'
                 config.userdata.execute(f'update thwiki_user set trail=0 where id=?', (node['id'],))
@@ -745,7 +745,7 @@ async def thwiki_cancel(session: CommandSession):
             lunbo = True
         elif e.supervise == 0 and e.begin < now:
             today = str(date.today().isoformat())
-            if 'last_cancel_day' not in node or node['last_cancel_day'] != today:
+            if node['last_cancel_day'] != today:
                 config.logger.thwiki << f"【LOG】用户{session.ctx['user_id']} 今日第一次取消。"
                 config.userdata.execute(f'update thwiki_user set last_cancel_day=? where id=?', (today, node['id']))
                 save_whiteforest()
@@ -851,7 +851,7 @@ async def thwiki_term(session: CommandSession):
     elif e.supervise == 0 and e.begin < now:
         today = str(date.today().isoformat())
         node = find_or_new(e.qq)
-        if 'last_cancel_day' not in node or node['last_cancel_day'] != today:
+        if node['last_cancel_day'] != today:
             config.userdata.execute(f'update thwiki_user set last_cancel_day=? where id=?', (today, node['id']))
             save_whiteforest()
         else:
@@ -1475,7 +1475,7 @@ async def thwiki_grantlist(session: CommandSession):
     await session.send(escape('\n'.join(
         [f"id: {node['id']} qq: {node['qq']} 名片: {node['card']}\nparent id: {node['parent']}" +
             (f" 名片: {find_whiteforest(id=node['parent'])['card']}" if node['parent'] != -1 else '') +
-            (f"\nchilds id: {' '.join(map(str, node['child']))}" if 'child' in node and len(node['child']) > 0 else "")
+            (f"\nchilds id: {' '.join(map(str, node['child']))}" if len(node['child']) > 0 else "")
             for node in config.userdata.execute('select * from thwiki_user where trail=0').fetchall()]
         )), ensure_private=True)
 
