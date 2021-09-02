@@ -2227,31 +2227,38 @@ class xiaohunfashu(_card):
                 save_global_state()
             else:
                 u = User(qq, user.buf)
+                ret = await u.check_attacked(user)
+                u2 = u
+                if ret.dodge:
+                    return
+                elif ret.rebound:
+                    u2 = user
+                double = ret.double
                 # 永久状态
-                for c in u.data.status:
-                    if random.random() > 0.5:
+                for c in u2.data.status:
+                    if random.random() < 0.5 ** (2 ** double):
                         continue
-                    u.remove_status(c, remove_all=False)
+                    u2.remove_status(c, remove_all=False)
                     des = _card.status_dict[c]
-                    u.send_log(f"的{des[:des.index('：')]}被消除了！")
+                    u2.send_log(f"的{des[:des.index('：')]}被消除了！")
                 # 每日状态
-                for c in u.data.daily_status:
-                    if random.random() > 0.5:
+                for c in u2.data.daily_status:
+                    if random.random() < 0.5 ** (2 ** double):
                         continue
-                    u.remove_daily_status(c, remove_all=False)
+                    u2.remove_daily_status(c, remove_all=False)
                     des = _card.daily_status_dict[c]
-                    u.send_log(f"的{des[:des.index('：')]}被消除了！")
+                    u2.send_log(f"的{des[:des.index('：')]}被消除了！")
                 # 带附加值的状态
                 l = user.data.status_time_checked
                 i = 0
                 while i < len(l):
-                    if random.random() > 0.5:
+                    if random.random() < 0.5 ** (2 ** double):
                         i += 1
                     else:
                         des = l[i].des
-                        u.send_log(f"的{des[:des.index('：')]}被消除了！")
+                        u2.send_log(f"的{des[:des.index('：')]}被消除了！")
                         l.pop(i)
-                u.data.save_status_time()
+                u2.data.save_status_time()
 
 class yuexiabianhua(_card):
     name = "月下彼岸花"
@@ -2319,18 +2326,18 @@ class mixidiyatu(_card):
 class imaginebreaker(_card):
     name = "幻想杀手"
     id = 120
-    description = "你的下一张攻击卡无视对方的所有反制效果，下一张目标为你的攻击卡无效。以上两项只能发动一项。"
+    description = "你的下一次攻击无视对方的所有反制效果，下一次目标为你的攻击无效。以上两项只能发动一项。"
     positive = 1
     status = '0'
-    status_des = "幻想杀手：你的下一张攻击卡无视对方的所有反制效果，下一张目标为你的攻击卡无效。以上两项只能发动一项。"
+    status_des = "幻想杀手：你的下一次攻击无视对方的所有反制效果，下一次目标为你的攻击无效。以上两项只能发动一项。"
 
 class vector(_card):
     name = "矢量操作"
     id = 121
-    description = "你的下一张攻击卡效果加倍，下一张对你的攻击卡反弹至攻击者，免除你下一次触雷。以上三项只能发动一项。"
+    description = "你的下一次攻击效果加倍，下一次对你的攻击反弹至攻击者，免除你下一次触雷。以上三项只能发动一项。"
     positive = 1
     status = 'v'
-    status_des = "矢量操作：你的下一张攻击卡效果加倍，下一张对你的攻击卡反弹至攻击者，免除你下一次触雷。以上三项只能发动一项。"
+    status_des = "矢量操作：你的下一次攻击效果加倍，下一次对你的攻击反弹至攻击者，免除你下一次触雷。以上三项只能发动一项。"
 
 class xixueshashou(_card):
     name = "吸血杀手"
@@ -2750,4 +2757,4 @@ class Grid:
             user.send_log(f"获得了{n}pt！")
             await user.add_event_pt(n)
         return 0
-_card.add_status('D', "快走！：在活动中，你下次行走距离加倍。")
+_card.add_status('D', "快走：在活动中，你下次行走距离加倍。")
