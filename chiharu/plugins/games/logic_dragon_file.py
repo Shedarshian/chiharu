@@ -2750,4 +2750,4 @@ class Grid:
             user.send_log(f"获得了{n}pt！")
             await user.add_event_pt(n)
         return 0
-_card.add_status('D', "在活动中，你下次行走距离加倍。")
+_card.add_status('D', "快走！：在活动中，你下次行走距离加倍。")
