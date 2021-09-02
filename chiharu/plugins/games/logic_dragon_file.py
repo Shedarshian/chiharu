@@ -2206,7 +2206,7 @@ class xiaohunfashu(_card):
     name = "销魂法术"
     id = 108
     positive = 1
-    description = "对指定玩家发动，该玩家的每条状态都有1/3的概率被清除；或是对千春使用，消除【XXI-世界】外的所有全局状态。"
+    description = "对指定玩家发动，该玩家的每条状态都有1/2的概率被清除；或是对千春使用，消除【XXI-世界】外的所有全局状态。"
     @classmethod
     async def use(cls, user: User) -> None:
         if await user.choose():
