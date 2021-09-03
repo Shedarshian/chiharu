@@ -495,6 +495,7 @@ class User:
         if is_buy and not dodge:
             self.data.spend_shop += abs(jibi)
             self.log << f"累计今日商店购买至{self.data.spend_shop}。"
+        self.data.save_status_time()
         return True
     async def kill(self, hour: int=2, minute: int=0, killer=None, jump=False):
         """击杀玩家。"""
