@@ -330,6 +330,7 @@ async def daily_update(buf: SessionBuffer) -> str:
         config.logger.dragon << f"【LOG】更新了用户{qq}的任务为：{[c['id'] for c in m[qq]]}。"
     global_state['quest'] = m
     for qq in global_state['steal']:
+        config.logger.dragon << f"【LOG】更新了用户{qq}的偷状态。"
         global_state['steal'][qq] = {'time': 0, 'user': []}
     save_global_state()
     if me.check_daily_status('s'):
