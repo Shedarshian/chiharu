@@ -430,20 +430,22 @@ class User:
                 jibi = max(jibi - u, 0)
                 self.send_char(f"触发了{f'{u}次' if u > 1 else ''}反转·告解的效果，获得击毙减{u}。")
             else: u = 0
-        if y0 := self.check_status('Y'):
+        if y0 := self.check_limited_status('Y'):
             y = 0
-            for i in range(y0):
-                if 0 < jibi <= 16 and random.random() < 0.1666:
+            for i in y0:
+                if 0 < jibi <= 16:
                     y += 1
-                    jibi *= 6
+                    jibi *= 3
+                    i -= 1
             if y != 0:
                 self.send_char(f"触发了{f'{y}次' if y > 1 else ''}反转·电路组装机的效果，获得击毙变为{abs(jibi)}。")
-        if z0 := self.check_status('Z'):
+        if z0 := self.check_limited_status('Z'):
             z = 0
-            for i in range(z0):
-                if -16 <= jibi < 0 and random.random() < 0.1666:
+            for i in z0:
+                if -16 <= jibi < 0:
                     z += 1
-                    jibi *= 6
+                    jibi *= 3
+                    i -= 1
             if z != 0:
                 self.send_char(f"触发了{f'{z}次' if z > 1 else ''}电路组装机的效果，损失击毙变为{abs(jibi)}。")
         if n := self.check_status('2'):
@@ -1007,7 +1009,7 @@ class SFusion(NumedStatus):
     id = 'f'
     @property
     def des(self):
-        return f'若你的下{self.num_init}次接龙每两次接龙中间都只间隔两人，则你获得{self.jibi}击毙。'
+        return f'聚变堆：若你的下{self.num_init}次接龙每两次接龙中间都只间隔两人，则你获得{self.jibi}击毙。'
     @property
     def is_debuff(self):
         return self.jibi < 0
@@ -1017,6 +1019,22 @@ class SFusion(NumedStatus):
         self.num_init = num_init
     def double(self) -> List[T_status]:
         return [SFusion(self.num, self.jibi * 2, self.num_init)]
+
+@final
+class SZuzhuangji(NumedStatus):
+    id = 'Z'
+    des = "电路组装机：每次你花费/损失击毙时，若该损失小于16击毙，则该损失变为三倍。"
+    is_debuff = True
+    def double(self):
+        return [self.__class__(self.num * 2)]
+
+@final
+class SYuzhuangji(NumedStatus):
+    id = 'Y'
+    des = "反转·电路组装机：每次你获得击毙时，若该获得小于16击毙，则该获得变为三倍。"
+    is_debuff = True
+    def double(self):
+        return [self.__class__(self.num * 2)]
 
 class ListStatus(_status):
     def __init__(self, s: Union[str, List]):
@@ -2093,11 +2111,12 @@ class McGuffium239(_card):
 class dianluzuzhuangji(_card):
     name = "电路组装机"
     id = 103
-    description = "抽到时附加buff：每次你花费/损失击毙时，若该损失小于16击毙，则有1/6的几率该损失变为六倍。"
-    on_draw_status = 'Z'
-    is_debuff = True
+    description = "抽到时附加buff：每次你花费/损失击毙时，若该损失小于16击毙，则该损失变为三倍。持续20次。"
+    on_draw_limited_status = 'Z'
+    # is_debuff = True
     consumed_on_draw = True
-    status_des = "电路组装机：每次你花费/损失击毙时，若该损失小于16击毙，则有1/6的几率该损失变为六倍。"
+    limited_init = (20,)
+    # status_des = "电路组装机：每次你花费/损失击毙时，若该损失小于16击毙，则有1/6的几率该损失变为六倍。"
 
 class fusionreactor(_card):
     name = "聚变堆"
@@ -2571,7 +2590,7 @@ revert_status_map: Dict[str, str] = {}
 for c in ('YZ', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]'):
     revert_status_map[c[0]] = c[1]
     revert_status_map[c[1]] = c[0]
-_card.add_status('Y', "反转·电路组装机：每次你获得击毙时，若该获得小于16击毙，则有1/6的几率该获得变为六倍。")
+# _card.add_status('Y', "反转·电路组装机：每次你获得击毙时，若该获得小于16击毙，则有1/6的几率该获得变为六倍。")
 _card.add_status('t', '反转·死秽回避之药：下次死亡时获得5击毙，但是死亡时间增加2h。')
 _card.add_status('y', "反转·辉夜姬的秘密宝箱：你下一次死亡的时候随机弃一张牌。")
 _card.add_status('M', "反转·存钱罐：下次触发隐藏词的奖励-10击毙。")
