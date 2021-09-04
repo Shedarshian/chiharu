@@ -356,7 +356,11 @@ class User:
     def add_daily_status(self, s: str):
         if s in _card.daily_debuffs and s != 'd' and self.check_status('8'):
             self.remove_status('8', remove_all=False)
-            self.send_log("触发了胶带的效果，免除此debuff！")
+            self.send_log("触发了胶带的效果，免除此负面状态！")
+            return
+        if s not in _card.daily_debuffs and self.check_status('9'):
+            self.remove_status('9', remove_all=False)
+            self.send_log("触发了反转·胶带的效果，免除此非负面状态！")
             return
         self.data.daily_status += s
         self.log << f"增加了每日状态{s}，当前状态为{self.data.daily_status}。"
@@ -367,10 +371,14 @@ class User:
             ss = s
         if ss.is_debuff and ss.id != 'd' and self.check_status('8'):
             self.remove_status('8', remove_all=False)
-            self.send_log("触发了胶带的效果，免除此debuff！")
-        else:
-            self.data.status_time.append(ss)
-            self.log << f"增加了限时状态{ss}。"
+            self.send_log("触发了胶带的效果，免除此负面状态！")
+            return
+        if not ss.is_debuff and self.check_status('9'):
+            self.remove_status('9', remove_all=False)
+            self.send_log("触发了反转·胶带的效果，免除此非负面状态！")
+            return
+        self.data.status_time.append(ss)
+        self.log << f"增加了限时状态{ss}。"
     def remove_status(self, s: str, /, remove_all=True):
         if remove_all:
             self.data.status = ''.join([t for t in self.data.status if t != s])
@@ -2592,7 +2600,6 @@ revert_status_map: Dict[str, str] = {}
 for c in ('YZ', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]'):
     revert_status_map[c[0]] = c[1]
     revert_status_map[c[1]] = c[0]
-# _card.add_status('Y', "反转·电路组装机：每次你获得击毙时，若该获得小于16击毙，则有1/6的几率该获得变为六倍。")
 _card.add_status('t', '反转·死秽回避之药：下次死亡时获得5击毙，但是死亡时间增加2h。')
 _card.add_status('y', "反转·辉夜姬的秘密宝箱：你下一次死亡的时候随机弃一张牌。")
 _card.add_status('M', "反转·存钱罐：下次触发隐藏词的奖励-10击毙。")
