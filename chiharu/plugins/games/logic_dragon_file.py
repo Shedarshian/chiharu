@@ -1948,13 +1948,13 @@ class lveduozhebopu(_card):
         save_global_state()
     @classmethod
     async def on_remove(cls, user: User):
-        if Card(77) not in user.data.hand_card:
+        if Card(77) not in user.data.hand_card and str(user.qq) in global_state['steal']:
             del global_state['steal'][str(user.qq)]
         save_global_state()
     @classmethod
     async def on_give(cls, user: User, target: User):
         global_state['steal'][str(target.qq)] = global_state['steal'][str(user.qq)]
-        if Card(77) not in user.data.hand_card:
+        if Card(77) not in user.data.hand_card and str(user.qq) in global_state['steal']:
             del global_state['steal'][str(user.qq)]
         save_global_state()
 
