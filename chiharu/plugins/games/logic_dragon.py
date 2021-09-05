@@ -136,12 +136,13 @@ class Tree:
                 break
         return parent_qqs
     @classmethod
-    def get_active(cls):
+    def get_active(cls, have_fork=True):
         words = [s[-1] for s in cls._objs if len(s) != 0 and len(s[-1].childs) == 0]
-        for s in cls._objs:
-            for word in s:
-                if word.fork and len(word.childs) == 1:
-                    words.append(word)
+        if have_fork:
+            for s in cls._objs:
+                for word in s:
+                    if word.fork and len(word.childs) == 1:
+                        words.append(word)
         return words
     @classmethod
     def graph(self):
@@ -878,10 +879,28 @@ async def dragon_buy(buf: SessionBuffer):
             await get_bot().send_group_msg(group_id=group, message=s)
         buf.send("您已成功提交！")
     elif id == 4:
-        # (35击毙)回溯一条接龙。
-        if not await user.add_jibi(-35, is_buy=True):
-            buf.finish("您的击毙不足！")
-        buf.send("成功回溯！")
+        # (35击毙)回溯一条接龙。首尾接龙时10击毙。
+        nodes = Tree.get_active(have_fork=False)
+        if len(nodes) == 1:
+            to_do = nodes[0]
+        else:
+            to_do = await buf.aget(prompt="请选择一个节点回溯，输入id号，输入取消退出。\n" + "\n".join(f"{tree.id_str}：{tree.word}" for tree in nodes),
+                arg_filters=[
+                    extractors.extract_text,
+                    cancellation(buf.session),
+                    lambda s: list(re.findall(r'(\d+)([a-z])?', str(s))),
+                    validators.fit_size(1, 1, message="请输入一个节点的id号。"),
+                    lambda l: Tree.find(Tree.str_to_id(l[0])),
+                    validators.ensure_true(lambda s: s is not None, message="请从活动词中选择一个。")
+                ])
+        if to_do.id == (0, 0):
+            buf.send("不可回溯根节点！")
+        else:
+            cost = -10 if me.check_status('o') or me.check_status('p') else -35
+            if not await user.add_jibi(cost, is_buy=True):
+                buf.finish("您的击毙不足！")
+            to_do.remove()
+            buf.send("成功回溯！")
     elif id == 5:
         # (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。
         config.logger.dragon << f"【LOG】询问用户{qq}标记的雷。"
