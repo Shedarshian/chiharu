@@ -441,7 +441,7 @@ class User:
         if y0 := self.check_limited_status('Y'):
             y = 0
             for i in y0:
-                if 0 < jibi <= 16:
+                if 0 < jibi < 16:
                     y += 1
                     jibi *= 3
                     i -= 1
@@ -450,7 +450,7 @@ class User:
         if z0 := self.check_limited_status('Z'):
             z = 0
             for i in z0:
-                if -16 <= jibi < 0:
+                if -16 < jibi < 0:
                     z += 1
                     jibi *= 3
                     i -= 1
