@@ -1,6 +1,6 @@
 import itertools, hashlib
 import random, more_itertools, json, re
-from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, List, NamedTuple, Optional, Set, Tuple, Type, TypeVar, TypedDict, Union, final
+from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, List, NamedTuple, Optional, Set, Tuple, Type, TypeVar, TypedDict, Union, final, Iterable, Annotated
 from collections import Counter, UserDict, UserList
 from functools import lru_cache, partial, wraps
 from copy import copy
@@ -70,6 +70,29 @@ T_status = TypeVar('T_status', bound='_status')
 TStatus = Type[T_status]
 T_equipment = TypeVar('T_equipment', bound='_equipment')
 TEquipment = Type[T_equipment]
+_var = 0
+def auto():
+    global _var
+    _var = _var + 1
+    return _var
+class UsrEvt:
+    OnUserUseCard = auto(), Callable[[TCard, bool], Tuple[bool]]
+    OnCardUse = auto(), Callable[[TCard], Tuple[()]]
+    OnCardDraw = auto(), Callable[[Iterable[TCard]], Tuple[()]]
+    OnCardDiscard = auto(), Callable[[Iterable[TCard]], Tuple[()]]
+    OnCardDestroy = auto(), Callable[[Iterable[TCard]], Tuple[()]]
+    OnExchange = auto(), Callable[['User', Iterable[TCard], Iterable[TCard]], Tuple[()]]
+    OnDeath = auto(), Callable[['User', int, bool], Tuple[int, bool]]
+    OnAttacked = auto(), Callable[[], Tuple[bool]]
+    OnDodged = auto(), Callable[[], Tuple[()]]
+    OnStatusAdd = auto(), Callable[[Any], Tuple[bool]]
+    OnStatusRemove = auto(), Callable[[Any], Tuple[bool]]
+    OnJibiGet = auto(), Callable[[int], Tuple[()]]
+    OnJibiDecrease = auto(), Callable[[int], Tuple[()]]
+    OnJibiSpend = auto(), Callable[[int], Tuple[()]]
+    OnEventptGet = auto(), Callable[[int], Tuple[()]]
+    OnEventptDecrease = auto(), Callable[[int], Tuple[()]]
+    OnEventptSpend = auto(), Callable[[int], Tuple[()]]
 
 class Game:
     session_list: List[CommandSession] = []
@@ -303,6 +326,7 @@ class User:
         self.qq = qq
         self.data = data or Game.userdata(qq)
         self.buf = buf
+        self.event_listener: dict[int, Tuple[int, Callable[[Any], tuple]]] = {}
     @property
     def active(self):
         return self.buf.active == self.qq
