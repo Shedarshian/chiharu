@@ -2626,6 +2626,7 @@ _card.add_daily_status('X', "失败：对不起，今天你输了！")
 class excalibur(_card):
     id = 158
     name = "EX咖喱棒"
+    positive = 1
     description = "只可在胜利时使用。统治不列颠。"
     @classmethod
     async def can_use(cls, user: User) -> bool:
