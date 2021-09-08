@@ -115,7 +115,7 @@ async def chess_begin_complete(session: CommandSession, data: Dict[str, Any]):
     data['black'] = data['players'][black]
     data['board'] = BwBoard()
     data['nowBlack'] = True
-    await session.send(str(data['board']), auto_escape=True)
+    await session.send(str(data['board']))
 
 @bw.end(('play', 'bw', 'end'))
 async def chess_end(session: CommandSession, data: Dict[str, Any]):
@@ -153,13 +153,13 @@ async def chess_test(session: CommandSession):
     try:
         board.process(*session.get('args'), session.get('isBlack'))
         session.get('ifSuccess')()
-        await session.send(str(board), auto_escape=True)
+        await session.send(str(board))
     except ChessCantMove as e:
-        await session.send(str(board), auto_escape=True)
-        await session.send(e.args[0], auto_escape=True)
+        await session.send(str(board))
+        await session.send(e.args[0])
     except ChessWin as e:
-        await session.send(str(board), auto_escape=True)
-        await session.send(e.args[0], auto_escape=True)
+        await session.send(str(board))
+        await session.send(e.args[0])
         await session.get('ifWin')()
     except ChessError as e:
-        await session.send(e.args[0], auto_escape=True)
+        await session.send(e.args[0])

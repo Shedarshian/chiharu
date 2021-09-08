@@ -168,7 +168,7 @@ class ExpressionParser:
             match = re_x.match(p[1])
             if match:
                 y = match.group(1)
-                n = 0 if y is '' else int(y)
+                n = 0 if y == '' else int(y)
                 p[0] = lambda *args, **kwargs: args[n]
                 return
         elif self.state == 'dy':
@@ -176,7 +176,7 @@ class ExpressionParser:
             match = re_dy.match(p[1])
             if match:
                 d1, d2, y = match.groups()
-                n = 0 if y is '' else int(y)
+                n = 0 if y == '' else int(y)
                 m = len(d2) if d1 is None else int(d1)
                 p[0] = lambda *args, **kwargs: args[n][m]
                 return

@@ -150,6 +150,9 @@ async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func
     p = data['boards'][data['current_player']]
     command = session.msg_text.strip()
     if command.startswith('重扔') and session.ctx['user_id'] == data['players'][data['current_player']]:
+        if p.rolled_count <= 0:
+            await session.send("您没有重扔次数！")
+            return
         if p.unfix([int(c) for c in command[2:].strip().split(',')]) == -1:
             await session.send('未发现骰子，请重新输入')
             return

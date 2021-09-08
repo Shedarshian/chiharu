@@ -741,7 +741,7 @@ async def chess_begin(session: CommandSession):
 #         qq_red = duizhan_uncomplete.pop(group_id)
 #         duizhan[group_id] = {'red': qq_red, 'black': qq, 'board': ChessBoard(), 'nowRed': True}
 #         await session.send('已为您安排黑方')
-#         await session.send(str(duizhan[group_id]['board']), auto_escape=True)
+#         await session.send(str(duizhan[group_id]['board']))
 #         bot = get_bot()
 #         for group in config.group_id_dict['log']:
 #             await bot.send_group_msg(group_id=group, message='chess begin in group %s' % group_id)
@@ -820,7 +820,7 @@ async def chess_end(session: CommandSession):
 #     if group_id in dict_group:
 #         await session.send('本群已有对局')
 #     dict_group[group_id] = ChessBoard()
-#     await session.send(str(dict_group[group_id]), auto_escape=True)
+#     await session.send(str(dict_group[group_id]))
     
 # @on_command(('chess', 'test', 'end'), only_to_me=False)
 # @config.ErrorHandle
@@ -839,12 +839,12 @@ async def chess_end(session: CommandSession):
 #     try:
 #         board.process(session.get('args'), session.get('isRed'))
 #         session.get('ifSuccess')()
-#         await session.send(str(board), auto_escape=True)
+#         await session.send(str(board))
 #     except ChessWin as e:
-#         await session.send(''.join(e.args), auto_escape=True)
+#         await session.send(''.join(e.args))
 #         session.get('ifWin')()
 #     except ChessError as e:
-#         await session.send(''.join(e.args), auto_escape=True)
+#         await session.send(''.join(e.args))
 
 # @chess_test.args_parser
 # @config.ErrorHandle
@@ -867,12 +867,12 @@ async def chess_end(session: CommandSession):
 #     board = dict_group[int(session.ctx['group_id'])]
 #     try:
 #         board.insert(session.get('pos'), name_dict[session.get('args')])
-#         await session.send(str(board), auto_escape=True)
+#         await session.send(str(board))
 #     except ChessWin as e:
-#         await session.send(''.join(e.args), auto_escape=True)
+#         await session.send(''.join(e.args))
 #         dict_group.pop(int(session.ctx['group_id']))
 #     except ChessError as e:
-#         await session.send(''.join(e.args), auto_escape=True)
+#         await session.send(''.join(e.args))
 
 # @chess_add.args_parser
 # @config.ErrorHandle
@@ -892,12 +892,12 @@ async def chess_end(session: CommandSession):
 #             board.pop(pos)
 #         else:
 #             raise ChessError('无棋子')
-#         await session.send(str(board), auto_escape=True)
+#         await session.send(str(board))
 #     except ChessWin as e:
-#         await session.send(''.join(e.args), auto_escape=True)
+#         await session.send(''.join(e.args))
 #         dict_group.pop(int(session.ctx['group_id']))
 #     except ChessError as e:
-#         await session.send(''.join(e.args), auto_escape=True)
+#         await session.send(''.join(e.args))
 
 # @chess_add.args_parser
 # @config.ErrorHandle
@@ -912,15 +912,15 @@ async def chess_end(session: CommandSession):
 #     board = dict_group[int(session.ctx['group_id'])]
 #     try:
 #         board.redo()
-#         await session.send(str(board), auto_escape=True)
+#         await session.send(str(board))
 #     except ChessWin as e:
-#         await session.send(''.join(e.args), auto_escape=True)
+#         await session.send(''.join(e.args))
 #         dict_group.pop(int(session.ctx['group_id']))
 #     except ChessError as e:
-#         await session.send(''.join(e.args), auto_escape=True)
+#         await session.send(''.join(e.args))
 
 # @on_command(('chess', 'check'), only_to_me=False)
 # @config.ErrorHandle
 # async def chess_check(session: CommandSession):
 #     global dict_group, duizhan
-#     await session.send('测试局：%s\n对战：%s' % (''.join(map(str, dict_group.keys())), ''.join(map(str, duizhan.keys()))), auto_escape=True)
+#     await session.send('测试局：%s\n对战：%s' % (''.join(map(str, dict_group.keys())), ''.join(map(str, duizhan.keys()))))

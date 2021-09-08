@@ -24,7 +24,7 @@ class _achievement:
     def __init__(self, name: str, val: dict):
         self.name = name
         self.val = val
-        self.has_progress = False if 'has_progress' not in val else val['has_progress']
+        self.has_progress = val.get('has_progress', False)
     def progress(self, _f: Callable):
         self._progress_get = _f
     def check(self, qq):
@@ -62,3 +62,14 @@ class _temp:
         return _all[name]
 achievement = _temp()
 
+def cp(qq):
+    r = config.userdata.execute('select cp from game where qq=?', (qq,)).fetchone()
+    if r is None:
+        config.userdata.execute('insert into game (qq, cp) values (?, 0)', (qq,))
+        return 0
+    return r['cp']
+
+def cp_add(qq, cp):
+    cp_new = cp + cp(qq)
+    config.userdata.execute('update game set cp=? where qq=?', (cp_new, qq))
+    return cp_new

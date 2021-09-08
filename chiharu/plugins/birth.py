@@ -22,9 +22,9 @@ async def GetSeiyuuToday(session: CommandSession):
     数据来自https://sakuhindb.com/"""
     try:
         strout = await _GetSeiyuuToday()
-        await session.send(strout, auto_escape=True)
+        await session.send(strout)
     except asyncio.TimeoutError:
-        await session.send("timeout!", auto_escape=True)
+        await session.send("timeout!")
 
 @on_command(('seiyuu', 'check'), only_to_me=False, shell_like=True, short_des="查询声优信息。", args=("name", "[count]", "[-m max=15]"))
 @config.ErrorHandle
@@ -70,10 +70,10 @@ async def CheckSeiyuu(session: CommandSession):
             find = True
     if not find:
         if len(list_seiyuu) <= max_count:
-            await session.send("\n".join(list_seiyuu), auto_escape=True)
+            await session.send("\n".join(list_seiyuu))
         else:
             ret = min(len(list_seiyuu), max_count)
-            await session.send("Too Many! These are first %s:\n" % ret + "\n".join(list_seiyuu[:ret]), auto_escape=True)
+            await session.send("Too Many! These are first %s:\n" % ret + "\n".join(list_seiyuu[:ret]))
     else:
         url = await loop.run_in_executor(None, requests.get, path)
         seiyuu_this = url.text.encode(url.encoding).decode("utf-8")
@@ -99,7 +99,7 @@ async def CheckSeiyuu(session: CommandSession):
                 begin_pos += match.span()[1] + match2.span()[1]
             else:
                 break
-        await session.send("\n".join(liststr), auto_escape=True)
+        await session.send("\n".join(liststr))
 
 @on_command(('birth', 'today'), only_to_me=False, short_des="查询今天生日的角色。", shell_like=True, args=("range", "[-d date=today]"))
 @config.ErrorHandle
@@ -116,9 +116,9 @@ async def BirthToday(session: CommandSession):
     which = args[0]
     dictout = _GetBirth(which, date=date)
     if len(dictout[which]) != 0:
-        await session.send("今天是：\n%s的生日\nお誕生日おめでとう~" % u"，\n".join(dictout[which]), auto_escape=True)
+        await session.send("今天是：\n%s的生日\nお誕生日おめでとう~" % u"，\n".join(dictout[which]))
     else:
-        await session.send("今天没有%s的角色过生日哦~" % which, auto_escape=True)
+        await session.send("今天没有%s的角色过生日哦~" % which)
 
 @on_command(('birth', 'add'), only_to_me=False, hide=True, permission=permission.SUPERUSER, shell_like=True)
 @config.ErrorHandle

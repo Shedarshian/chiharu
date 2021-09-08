@@ -127,21 +127,19 @@ async def help_f(session: CommandSession):
     else:
         strout = str_tail
     # if name == 'thwiki' and str_tail != '' and group_id in config.group_id_dict['thwiki_live']:
-    #     await session.send(strout, auto_escape=True, ensure_private=True)
+    #     await session.send(strout, ensure_private=True)
     # else:
-    #     await session.send(strout, auto_escape=True)
-    await session.send(strout, auto_escape=True)
+    #     await session.send(strout)
+    await session.send(strout)
 
 @on_command('reload', only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def reload_plugin(session: CommandSession):
     name = 'chiharu.plugins.' + session.current_arg_text
-    l = list(filter(lambda x: x.module.__name__ == name, plugin._plugins))
-    if len(l) == 0:
-        await session.send('no plugin named ' + session.current_arg_text, auto_escape=True)
+    if plugin.reload_plugin(name):
+        await session.send('Successfully reloaded ' + session.current_arg_text)
     else:
-        l[0].module = importlib.reload(l[0].module)
-        await session.send('Successfully reloaded ' + session.current_arg_text, auto_escape=True)
+        await session.send('Failed to reload plugin')
 
 from nonebot.command import Command
 from .config import find_help
@@ -151,7 +149,7 @@ from .config import find_help
 async def help_reflection(session: CommandSession):
     """查询指令帮助。指令名不需要前缀"-"。"""
     if session.current_arg_text != '':
-        cmd_name = session.current_arg_text.split('.')
+        cmd_name = tuple(session.current_arg_text.split('.'))
     else:
         cmd_name = ()
     ret = await find_help(cmd_name, session)
@@ -160,5 +158,5 @@ async def help_reflection(session: CommandSession):
     else:
         await session.send('未发现指令。')
 
-config.CommandGroup('me', short_des='关于我®', des='こんにちは～七海千春です～\n维护者：小大圣\n献给：yuyu♥\n友情协助：Randolph（snakebird关卡信息），小石\n鸣谢：Python®  c\u0336o\u0336o\u0336l\u0336q\u0336  mirai® cqhttp®  nonebot®  阿里云®\nContact me：shedarshian@gmail.com', display_id=998)
+config.CommandGroup('me', short_des='关于我®', des='こんにちは～七海千春です～\n维护者：小大圣\n献给：yuyu♥\n友情协助：Randolph（snakebird关卡信息），小石\n鸣谢：Python®  c\u0336o\u0336o\u0336l\u0336q\u0336  m\u0336i\u0336r\u0336a\u0336i\u0336 go-cqhttp® cqhttp®  nonebot®  阿里云®\nContact me：shedarshian@gmail.com', display_id=998)
 config.CommandGroup((), des="指令：")

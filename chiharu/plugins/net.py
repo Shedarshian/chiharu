@@ -91,7 +91,7 @@ async def event(session: CommandSession):
             yield "%s\n%s\n出演者: %s" % (m.name, m.place, actor_str)
     l = list(_())
     for strout in l:
-        await session.send(strout, auto_escape=True)
+        await session.send(escape(strout))
 
 @event.args_parser
 async def _(session: CommandSession):
@@ -537,10 +537,10 @@ async def bibtex(session: CommandSession):
             await session.send('not found!')
         else:
             if len(url.text) >= 2000:
-                await session.send(url.text[0:2000], auto_escape=True)
-                await session.send(url.text[2000:], auto_escape=True)
+                await session.send(url.text[0:2000])
+                await session.send(url.text[2000:])
             else:
-                await session.send(url.text, auto_escape=True)
+                await session.send(url.text)
     except ValueError:
         await session.send('请输入合理的期刊卷数与页码。')
     except asyncio.TimeoutError:
@@ -620,4 +620,4 @@ async def check_github_thtk():
         with open(config.rel('thtk_github_last_update.txt'), 'w') as f:
             f.write(t)
         for group in config.group_id_dict['thtk_update']:
-            await get_bot().send_group_msg(message='Thtk commit detected.\n' + '\n'.join(f"Commit in {d['commit']['committer']['date']}:\n{d['commit']['message']}" for d in j[:i]), group_id=group, auto_escape=True)
+            await get_bot().send_group_msg(message='Thtk commit detected.\n' + '\n'.join(f"Commit in {d['commit']['committer']['date']}:\n{d['commit']['message']}" for d in j[:i]), group_id=group)

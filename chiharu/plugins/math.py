@@ -18,6 +18,7 @@ from matplotlib import pyplot
 import numpy
 from . import config
 from nonebot import CommandSession, get_bot, permission
+from nonebot.message import escape
 from .helper.function.function import parser, ParserError
 from .inject import on_command
 #pylint: disable=no-member
@@ -240,7 +241,7 @@ async def quiz(session: CommandSession):
 async def quiz_submit(session: CommandSession):
     """提交每月趣题答案。"""
     for group in config.group_id_dict['aaa']:
-        await get_bot().send_group_msg(group_id=group, message=f'用户{session.ctx["user_id"]} 提交答案：\n{session.current_arg}', auto_escape=True)
+        await get_bot().send_group_msg(group_id=group, message=f'用户{session.ctx["user_id"]} 提交答案：\n{session.current_arg}')
     await session.send('您已成功提交答案')
 
 @concurrent.process(timeout=30)
@@ -286,11 +287,11 @@ async def calculator(session: CommandSession):
     except (TimeoutError, _base.CancelledError):
         session.finish("time out!")
     if type(result) is float:
-        await session.send(str(result), auto_escape=True)
+        await session.send(escape(str(result)))
     elif type(result) is str:
-        await session.send(result, auto_escape=True)
+        await session.send(escape(result))
     else:
-        await session.send('TypeError ' + str(result), auto_escape=True)
+        await session.send(escape('TypeError ' + str(result)))
 
 @on_command(('tools', 'function'), only_to_me=False, short_des="绘制函数。", args=("[-b begin=0]", "[-e end=10]", "[-s step=0.01]"))
 @config.ErrorHandle
@@ -319,17 +320,17 @@ async def plot_function(session: CommandSession):
                     future = calculate(a)
                     begin = await loop.run_in_executor(pool, future.result)
                     if type(begin) is str:
-                        session.finish(begin, auto_escape=True)
+                        session.finish(escape(begin))
                 elif o in ('-e', '--end'):
                     future = calculate(a)
                     end = await loop.run_in_executor(pool, future.result)
                     if type(end) is str:
-                        session.finish(end, auto_escape=True)
+                        session.finish(escape(end))
                 elif o in ('-s', '--step'):
                     step = calculate(a)
                     begin = await loop.run_in_executor(pool, future.result)
                     if type(step) is str:
-                        session.finish(step, auto_escape=True)
+                        session.finish(escape(step))
     except (TimeoutError, _base.CancelledError):
         session.finish("time out!")
     if len(els) == 1:
@@ -361,9 +362,9 @@ async def plot_function(session: CommandSession):
     except IndexError:
         session.finish('请输入一元函数。')
     except ParserError as e:
-        session.finish('SyntaxError: ' + str(e), auto_escape=True)
+        session.finish('SyntaxError: ' + str(e))
     except Exception as e:
-        session.finish(type(e).__name__ + ': ' + str(e), auto_escape=True)
+        session.finish(type(e).__name__ + ': ' + str(e))
     pyplot.clf()
     pyplot.plot(x, y)
     name = f'func_{hash(session.current_arg_text)}.png'

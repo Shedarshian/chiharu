@@ -1,12 +1,16 @@
 # hack `on_command` and `handle_command` in order to insert custom behaviour
 # namely, allow sub-command, and insert `short_des`, `args`, `environment`, `hide` args.
-from typing import Union, Iterable, Callable, Optional, Tuple, Awaitable
+from typing import Union, Iterable, Callable, Optional, Tuple, Awaitable, Type
 import warnings, shlex, itertools
 import functools
-from nonebot import permission
-from nonebot.command import CommandHandler_T, Command, CommandFunc
-from nonebot.typing import CommandName_T
+from datetime import timedelta
+from more_itertools import only
+from nonebot import permission, get_bot
+from nonebot.command import CommandHandler_T, Command, CommandSession, CommandManager
+from nonebot.typing import CommandName_T, Patterns_T, PermChecker_T
 from nonebot.session import BaseSession
+from nonebot.permission import check_permission
+from nonebot.plugin import Plugin
 
 class Admin:
     def __init__(self, s):
@@ -51,7 +55,10 @@ class Environment:
             elif group_id in self.constraint:
                 ret = self.constraint[group_id]._f(session)
                 if not ret and self.constraint[group_id].ret and not no_reply:
-                    await session.send(self.constraint[group_id].ret)
+                    if isinstance(self.constraint[group_id].ret, str):
+                        await session.send(self.constraint[group_id].ret)
+                    else:
+                        await session.send(self.constraint[group_id].ret(session))
                 return ret
             elif group_id in self.group:
                 return True
@@ -62,7 +69,10 @@ class Environment:
         except KeyError:
             if not self.private:
                 if self.ret != "" and not no_reply:
-                    await session.send(self.ret)
+                    if isinstance(self.ret, str):
+                        await session.send(self.ret)
+                    else:
+                        await session.send(self.ret(session))
                 return False
             else:
                 return True
@@ -70,7 +80,7 @@ class Environment:
 # and add a 'block' class property in 'config_data.py'
 
 class Constraint:
-    def __init__(self, *args, can_respond: Callable[..., bool], ret: str = ""):
+    def __init__(self, *args, can_respond: Callable[..., bool], ret: Union[str, Callable[..., str]] = ""):
         from .config import group_id_dict
         self.group = set()
         for arg in args:
@@ -90,35 +100,42 @@ class Constraint:
                 return
             if group_id in self.group and not self._f(session):
                 if self.ret != "":
-                    await session.send(self.ret, auto_escape=True)
+                    if isinstance(self.ret, str):
+                        await session.send(self.ret)
+                    else:
+                        await session.send(self.ret(session))
             else:
                 await f(session, *args, **kwargs)
         return _f
 
-class _CommandGroup:
-    def __init__(self, des="", short_des="", args=(), environment=None, hide=False, command=None, name=(), hide_in_parent=False, display_id: int = 0):
-        self.short_des = short_des
+class MyCommand(Command):
+    __slots__ = ('des', 'short_des', 'environment', 'hide', 'hide_in_parent', 'args', 'display_id', 'is_help')
+    def __init__(self, *, name: CommandName_T, func: CommandHandler_T,
+                 only_to_me: bool, privileged: bool,
+                 perm_checker_func: PermChecker_T,
+                 expire_timeout: Optional[timedelta],
+                 run_timeout: Optional[timedelta],
+                 session_class: Optional[Type[CommandSession]],
+                 des: str, short_des: str,
+                 environment: Optional[Environment],
+                 hide: bool, hide_in_parent: bool,
+                 args: Optional[tuple], display_id: int):
+        super().__init__(name=name, func=func, only_to_me=only_to_me,
+                privileged=privileged, perm_checker_func=perm_checker_func,
+                expire_timeout=expire_timeout, run_timeout=run_timeout,
+                session_class=session_class)
         self.des = des
+        self.short_des = short_des
         self.environment = environment
         self.hide = hide
-        self.hide_in_parent = hide_in_parent or hide
-        self.args = args if type(args) is not str else (args,)
-        self.name = name
+        self.hide_in_parent = hide_in_parent
+        self.args = args
         self.display_id = display_id
-        self.leaf = {}
-        self.help_addition = set()
-        self.command = command
         self.is_help = False
-    def get(self, item):
-        if item not in self.leaf:
-            self.leaf[item] = _CommandGroup(name=self.name + (item,))
-        return self.leaf[item]
-    def __contains__(self, item):
-        return item in self.leaf
 
-_registry = _CommandGroup()
-
-def CommandGroup(name: Union[str, CommandName_T], 
+class CommandGroup:
+    command_group_dict = {}
+    def __init__(self, name: Union[str, CommandName_T], 
                des: str = "", *,
                short_des: str = "",
                environment: Environment = None,
@@ -126,36 +143,69 @@ def CommandGroup(name: Union[str, CommandName_T],
                hide_in_parent: bool = False,
                display_parents: Union[None, str, Tuple[str], Iterable[Tuple[str]]] = None,
                display_id: int = 0):
-    cmd_name = (name,) if isinstance(name, str) else name
-    current_parent = _registry
-    for parent_key in cmd_name:
-        current_parent = current_parent.get(parent_key)
-    current_parent.des = des or short_des
-    current_parent.short_des = short_des
-    current_parent.environment = environment
-    current_parent.hide = hide
-    current_parent.hide_in_parent = hide_in_parent or hide
-    current_parent.display_id = display_id
-    if display_parents:
-        if type(display_parents) is str:
-            parents = ((display_parents,),)
-        elif type(display_parents[0]) is str:
-            parents = (display_parents,)
-        else:
-            parents = display_parents
-        for parent_name in parents:
-            c = _registry
-            for parent_key in parent_name:
-                c = c.get(parent_key)
-            c.help_addition.add(current_parent)
+        if isinstance(name, str):
+            name = (name,)
+        self.short_des = short_des
+        self.des = des or short_des
+        self.environment = environment
+        self.hide = hide
+        self.hide_in_parent = hide_in_parent or hide
+        self.name = name
+        self.display_id = display_id
+        self.leaf = {}
+        self.help_addition = set()
+        self.is_help = False
+        self.args = ()
+        async def _(session: CommandSession):
+            ret = await find_help(name, session)
+            if ret:
+                await session.send(ret, ensure_private=('.'.join(name) == 'thwiki' and session.ctx['group_id'] in config.group_id_dict['thwiki_send']))
+        cmd = MyCommand(name=name, func=_,
+                only_to_me=False, privileged=False,
+                perm_checker_func=functools.partial(check_permission, permission_required=permission.EVERYBODY),
+                expire_timeout=..., run_timeout=..., session_class=None,
+                des=des, short_des=short_des, environment=environment,
+                hide=hide, hide_in_parent=hide_in_parent or hide, display_id=display_id, args=())
+        cmd.is_help = True
+        CommandManager.add_command(name, cmd)
+        if name in CommandGroup.command_group_dict and isinstance(CommandGroup.command_group_dict[name], dict):
+            self.leaf.update(CommandGroup.command_group_dict[name]['leaf'])
+            self.help_addition |= CommandGroup.command_group_dict[name]['help_addition']
+        CommandGroup.command_group_dict[name] = self
+        if len(name) != 0:
+            parent_name = name[:-1]
+            if parent_name not in CommandGroup.command_group_dict:
+                CommandGroup.command_group_dict[parent_name] = {'help_addition': set(), 'leaf': {name[-1]: cmd}}
+            elif isinstance(CommandGroup.command_group_dict[parent_name], dict):
+                CommandGroup.command_group_dict[parent_name]['leaf'][name[-1]] = cmd
+            else:
+                CommandGroup.command_group_dict[parent_name].leaf[name[-1]] = cmd
+        if display_parents:
+            if type(display_parents) is str:
+                parents = ((display_parents,),)
+            elif type(display_parents[0]) is str:
+                parents = (display_parents,)
+            else:
+                parents = display_parents
+            for parent_name in parents:
+                if parent_name not in CommandGroup.command_group_dict:
+                    CommandGroup.command_group_dict[parent_name] = {'help_addition': {self}, 'leaf': {}}
+                elif isinstance(CommandGroup.command_group_dict[parent_name], dict):
+                    CommandGroup.command_group_dict[parent_name]['help_addition'].add(self)
+                else:
+                    CommandGroup.command_group_dict[parent_name].help_addition.add(self)
 
 from . import config
 def on_command(name: Union[str, CommandName_T], *,
                aliases: Union[Iterable[str], str] = (),
                permission: int = permission.EVERYBODY,
+               patterns: Patterns_T = (),
                only_to_me: bool = True,
                privileged: bool = False,
                shell_like: bool = False,
+               expire_timeout: Optional[timedelta] = ...,
+               run_timeout: Optional[timedelta] = ...,
+               session_class: Optional[Type[CommandSession]] = None,
                short_des: str = "",
                args: Union[str, Tuple[str]] = (),
                environment: Environment = None,
@@ -171,6 +221,9 @@ def on_command(name: Union[str, CommandName_T], *,
     :param only_to_me: only handle messages to me
     :param privileged: can be run even when there is already a session
     :param shell_like: use shell-like syntax to split arguments
+    :param expire_timeout: will override SESSION_EXPIRE_TIMEOUT if provided
+    :param run_timeout: will override SESSION_RUN_TIMEOUT if provided
+    :param session_class: session class
     :param short_des: inline help text
     :param args: args for this command
     :param environment: environment for this command
@@ -181,6 +234,10 @@ def on_command(name: Union[str, CommandName_T], *,
     """
     if type(args) is str:
         args = (args,)
+    if session_class is not None and not issubclass(session_class,
+                                                        CommandSession):
+            raise TypeError(
+                'session_class must be a subclass of CommandSession')
     def deco(func_original: CommandHandler_T) -> CommandHandler_T:
         if not isinstance(name, (str, tuple)):
             raise TypeError('the name of a command must be a str or tuple')
@@ -198,28 +255,33 @@ def on_command(name: Union[str, CommandName_T], *,
                 return await func_original(session, *args, **kwargs)
         func = _f
 
-        cmd = Command(name=cmd_name, func=func, permission=permission,
-                      only_to_me=only_to_me, privileged=privileged)
+        perm_checker = functools.partial(check_permission, permission_required=permission)
+        cmd = MyCommand(name=cmd_name, func=func, perm_checker_func=perm_checker,
+                      only_to_me=only_to_me, privileged=privileged,
+                      expire_timeout=expire_timeout, run_timeout=run_timeout, session_class=session_class,
+                      des=func.__doc__,
+                      short_des=short_des or func.__doc__,
+                      environment=environment, hide=hide,
+                      hide_in_parent=hide_in_parent or hide,
+                      args=args, display_id=display_id)
         if shell_like:
             async def shell_like_args_parser(session):
                 session.args['argv'] = shlex.split(session.current_arg)
 
             cmd.args_parser_func = shell_like_args_parser
         
-        current_parent = _registry
-        for parent_key in cmd_name:
-            current_parent = current_parent.get(parent_key)
-        if current_parent.command is not None:
-            warnings.warn(f'There is already a command named {cmd_name}')
-            return func
-        current_parent.command = cmd
-        current_parent.des = func.__doc__
-        current_parent.short_des = short_des or func.__doc__
-        current_parent.environment = environment
-        current_parent.hide = hide
-        current_parent.hide_in_parent = hide_in_parent or hide
-        current_parent.args = args
-        current_parent.display_id = display_id
+        nonlocal aliases
+        global CommandManager
+        CommandManager.add_command(cmd_name, cmd)
+        CommandManager.add_aliases(aliases, cmd)
+        CommandManager.add_patterns(patterns, cmd)
+        parent_name = cmd_name[:-1]
+        if parent_name not in CommandGroup.command_group_dict:
+            CommandGroup.command_group_dict[parent_name] = {'help_addition': set(), 'leaf': {cmd_name[-1]: cmd}}
+        elif isinstance(CommandGroup.command_group_dict[parent_name], dict):
+            CommandGroup.command_group_dict[parent_name]['leaf'][cmd_name[-1]] = cmd
+        else:
+            CommandGroup.command_group_dict[parent_name].leaf[cmd_name[-1]] = cmd
         if display_parents:
             if type(display_parents) is str:
                 parents = ((display_parents,),)
@@ -228,65 +290,44 @@ def on_command(name: Union[str, CommandName_T], *,
             else:
                 parents = display_parents
             for parent_name in parents:
-                c = _registry
-                for parent_key in parent_name:
-                    c = c.get(parent_key)
-                c.help_addition.add(current_parent)
+                if parent_name not in CommandGroup.command_group_dict:
+                    CommandGroup.command_group_dict[parent_name] = {'help_addition': {cmd}, 'leaf': {}}
+                elif isinstance(CommandGroup.command_group_dict[parent_name], dict):
+                    CommandGroup.command_group_dict[parent_name]['help_addition'].add(cmd)
+                else:
+                    CommandGroup.command_group_dict[parent_name].help_addition.add(cmd)
+        
+        Plugin.GlobalTemp.commands.add(cmd)
+        func.args_parser = cmd.args_parser
 
-        from nonebot.command import _aliases
-        nonlocal aliases
-        if isinstance(aliases, str):
-            aliases = (aliases,)
-        for alias in aliases:
-            _aliases[alias] = cmd_name
-
-        return CommandFunc(cmd, func)
+        return func
         
     return deco
 
-from nonebot import CommandSession, get_bot
-from nonebot.command import call_command
-def _find_command(name: Union[str, CommandName_T]) -> Optional[Command]:
-    cmd_name = (name,) if isinstance(name, str) else name
-    if not cmd_name:
-        return None
-
-    cmd_tree = _registry
-    for part in cmd_name:
-        if part not in cmd_tree:
-            return None
-        cmd_tree = cmd_tree.leaf[part]
-
-    if cmd_tree.command is None:
-        async def _(session: CommandSession):
-            ret = await find_help(cmd_name, session)
-            if ret:
-                await session.send(ret, ensure_private=('.'.join(cmd_name) == 'thwiki' and session.ctx['group_id'] in config.group_id_dict['thwiki_send']))
-            # await call_command(get_bot(), session.ctx, ('help',), current_arg='.'.join(cmd_name))
-        cmd_tree.command = Command(name=cmd_name, func=_, permission=permission.EVERYBODY,
-                      only_to_me=False, privileged=False)
-        cmd_tree.is_help = True
-    return cmd_tree.command
-
 import nonebot.command
 nonebot.command.on_command = on_command
-nonebot.command._find_command = _find_command
 nonebot.on_command = on_command
+nonebot.command.CommandGroup = CommandGroup
+nonebot.CommandGroup = CommandGroup
 
 from nonebot.log import logger as _nonebot_logger
 _nonebot_logger.info('Successfully injected "on_command" and "_find_command"')
 del _nonebot_logger
 
 async def find_help(cmd_name: tuple, session: CommandSession):
-    cmd_tree = _registry
-    for part in cmd_name:
-        if part not in cmd_tree:
-            return
-        cmd_tree = cmd_tree.leaf[part]
+    if (is_command_group := cmd_name in CommandGroup.command_group_dict):
+        cmd_tree = CommandGroup.command_group_dict[cmd_name]
+        if isinstance(cmd_tree, dict):
+            t = CommandGroup(cmd_name)
+            t.leaf.update(cmd_tree['leaf'])
+            t.help_addition |= cmd_tree['help_addition']
+            cmd_tree = CommandGroup.command_group_dict[cmd_name] = t
+    else:
+        cmd_tree = CommandManager()._find_command(cmd_name)
 
-    if cmd_tree.hide or (cmd_tree.environment and not await cmd_tree.environment.test(session, no_reply=True)):
+    if cmd_tree is None or cmd_tree.hide or (cmd_tree.environment and not await cmd_tree.environment.test(session, no_reply=True)):
         return
-    if cmd_tree.command and not cmd_tree.is_help:
+    if not is_command_group:
         # command
         return f"-{'.'.join(cmd_name)}{''.join(' ' + x for x in cmd_tree.args)}\n{cmd_tree.des}"
     else:

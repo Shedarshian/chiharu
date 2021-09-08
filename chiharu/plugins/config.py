@@ -4,16 +4,17 @@ import json
 import datetime
 import getopt
 from os import path
-from typing import Awaitable, Generator, Set, Callable, Tuple, Dict
-from nonebot import get_bot, permission
+from typing import Awaitable, Generator, Set, Callable, Tuple, Dict, Union, Optional
+from nonebot import CommandSession, get_bot, permission
+from nonebot.natural_language import NLPSession
 from nonebot.session import BaseSession
 from nonebot.command import _PauseException, _FinishException, SwitchException
 import traceback
 from collections import UserDict
-from .inject import find_help, CommandGroup, Environment, AllGroup, Admin, Constraint, on_command, _find_command
+from .inject import find_help, CommandGroup, Environment, AllGroup, Admin, Constraint, on_command
 
 PATH = "C:\\coolq_data\\"
-PATH_IMG = "C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\image"
+PATH_IMG = "C:\\coolq\\image"
 PATH_REC = "C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\record"
 
 def rel(rel_path):
@@ -23,6 +24,7 @@ def img(rel_path):
 def rec(rel_path):
     return path.join(PATH_REC, rel_path)
 
+selfqq = 2711644761
 group_id_dict = {}
 tiemu_basic = {}
 headers = {}
@@ -45,17 +47,17 @@ class cq:
     def text(s: str):
         return {'type': 'text', 'data': {'text': s}}
     @staticmethod
-    def at(s: (int, str)):
+    def at(s: Union[int, str]):
         if type(s) == str:
             return {'type': 'at', 'data': {'qq': s}}
         elif type(s) == int:
             return {'type': 'at', 'data': {'qq': str(s)}}
     @staticmethod
     def img(s: str):
-        return {'type': 'image', 'data': {'file': 'file:///' + s}}
+        return {'type': 'image', 'data': {'file': 'file:///' + img(s)}}
     @staticmethod
     def rec(s: str):
-        return {'type': 'record', 'data': {'file': 'file:///' + s}}
+        return {'type': 'record', 'data': {'file': 'file:///' + rec(s)}}
 
 def group(n, *iterables):
     def _(n, it):
@@ -111,12 +113,12 @@ def ErrorHandle(f):
             return await f(*args, **kwargs)
         except getopt.GetoptError as e:
             if session is not None:
-                await session.send('参数错误！' + str(e.args), auto_escape=True)
+                await session.send('参数错误！' + str(e.args))
         except (_PauseException, _FinishException, SwitchException):
             raise
         except Exception:
             if session is not None:
-                await args[0].send(traceback.format_exc(), auto_escape=True)
+                await args[0].send(traceback.format_exc())
                 qq = session.ctx['user_id']
                 if achievement.bug.get(qq):
                     await args[0].send(achievement.bug.get_str())
@@ -135,14 +137,14 @@ def _(g: _logger, if_send=True):
                 if len(args) >= 1 and isinstance(args[0], BaseSession):
                     g << f"【ERR】用户{args[0].ctx['user_id']} 使用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
                     if if_send:
-                        await args[0].send(traceback.format_exc(), auto_escape=True)
+                        await args[0].send(traceback.format_exc())
                         qq = args[0].ctx['user_id']
                         if achievement.bug.get(qq):
                             await args[0].send(achievement.bug.get_str())
                 elif 'session' in kwargs and isinstance(kwargs['session'], BaseSession):
                     g << f"【ERR】用户{kwargs['session'].ctx['user_id']} 使用{f.__name__}时 抛出如下错误：\n{traceback.format_exc()}"
                     if if_send:
-                        await kwargs['session'].send(traceback.format_exc(), auto_escape=True)
+                        await kwargs['session'].send(traceback.format_exc())
                         qq = kwargs['session'].ctx['user_id']
                         if achievement.bug.get(qq):
                             await kwargs['session'].send(achievement.bug.get_str())
@@ -173,7 +175,7 @@ def maintain(s):
                 if group_id in group_id_dict['aaa']:
                     await f(*args, **kwargs)
                 else:
-                    await session.send(maintain_str[s], auto_escape=True)
+                    await session.send(maintain_str[s])
         return _f
     return _
 
@@ -201,3 +203,61 @@ class AvBvConverter:
 
 for i in range(58):
     AvBvConverter.tr[AvBvConverter.table[i]]=i
+
+import sqlite3
+userdata_db = sqlite3.connect(rel('users.db'))
+userdata_db.row_factory = sqlite3.Row
+userdata = userdata_db.cursor()
+
+class _helper:
+    __slots__ = ("session",)
+    def __init__(self, session: 'SessionBuffer'):
+        self.session = session
+    def __getattr__(self, name):
+        def _(qq, s, /, end='\n'):
+            self.session.buffer += self.session.char(qq)
+            self.session.buffer += s
+            self.session.buffer += end
+            logger._l[name] << f"【LOG】用户{qq}" + s
+        return _
+class SessionBuffer:
+    __slots__ = ('buffer', 'session', 'active', 'send_end', 'group_id')
+    def __init__(self, session: Optional[BaseSession], /, group_id=None):
+        self.buffer: str = ''
+        self.send_end: str = ''
+        self.session: Optional[BaseSession] = session
+        self.active: int = -1 if session is None else session.ctx['user_id']
+        self.group_id = group_id
+    def send(self, s, end='\n'):
+        self.buffer += s
+        self.buffer += end
+    @property
+    def send_log(self):
+        return _helper(self)
+    def end(self, s, end='\n'):
+        self.send_end += s
+        self.send_end += end
+    async def flush(self):
+        if self.buffer or self.send_end:
+            if self.session is None:
+                await get_bot().send_group_msg(group_id=self.group_id, message=(self.buffer + self.send_end).strip())
+            else:
+                await self.session.send((self.buffer + self.send_end).strip())
+            self.buffer = ''
+            self.send_end = ''
+    def __getattr__(self, name: str):
+        return getattr(self.session, name)
+    def char(self, qq):
+        if qq == self.active:
+            return '你'
+        else:
+            return '该玩家'
+
+def buffer_dec(f):
+    async def _f(session: CommandSession):
+        buf = SessionBuffer(session)
+        try:
+            await f(buf)
+        finally:
+            await buf.flush()
+    return _f

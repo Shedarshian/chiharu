@@ -25,6 +25,9 @@ class IPos(ABC):
     @abstractmethod
     def __isub__(self, other):
         pass
+    @abstractmethod
+    def __bool__(self):
+        pass
 TPos = TypeVar('TPos', bound=IPos)
 
 @dataclass(frozen=True)
@@ -41,8 +44,14 @@ class Grid2D(IPos):
         return self.__class__(self.x - other.x, self.y - other.y)
     def __isub__(self, other):
         return self.__class__(self.x - other.x, self.y - other.y)
+    def __imul__(self, other):
+        if isinstance(other, int):
+            return self.__class__(other * self.x, other * self.y)
+        return NotImplemented
     def __neg__(self):
         return self.__class__(-self.x, -self.y)
+    def __bool__(self):
+        return self.x != 0 or self.y != 0
 
 class Grid2DSquare(Grid2D):
     pass
@@ -82,6 +91,8 @@ class Grid3D(IPos):
         return self.__class__(self.x - other.x, self.y - other.y, self.z - other.z)
     def __isub__(self, other):
         return self.__class__(self.x - other.x, self.y - other.y, self.z - other.z)
+    def __bool__(self):
+        return self.x != 0 or self.y != 0 or self.z != 0
 
 class IBox(ABC):
     pos_type = None

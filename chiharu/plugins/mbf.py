@@ -6,6 +6,7 @@ from pebble import concurrent
 from concurrent.futures import TimeoutError, ThreadPoolExecutor, _base
 import getopt
 from nonebot import CommandSession, permission
+from nonebot.message import escape
 from . import config
 from .inject import on_command
 
@@ -34,21 +35,21 @@ async def SaveSub(session: CommandSession):
         _SaveSub(token, els[0])
     if des is not None:
         _SetSubStr(token, des)
-    await session.send("Successfully Saved sub %s !" % token, auto_escape=True)
+    await session.send(escape("Successfully Saved sub %s !" % token))
 
 @on_command(('mbf', 'check'), only_to_me=False, args=("subname",))
 @config.ErrorHandle
 async def Check(session: CommandSession):
     """查看mbf子程序内容。"""
     try:
-        await session.send("Sub content is:\n%s\nDescription:\n%s" % tuple(_GetSub(session.current_arg_text)), auto_escape=True)
+        await session.send(escape("Sub content is:\n%s\nDescription:\n%s" % tuple(_GetSub(session.current_arg_text))))
     except KeyError:
         await session.send('未找到子程序。')
 
 @on_command(('mbf', 'ls'), only_to_me=False)
 async def List(session: CommandSession):
     """列出所有mbf子程序。"""
-    await session.send("\n".join(_ListSub()), auto_escape=True)
+    await session.send(escape("\n".join(_ListSub())))
 
 @on_command(('mbf', 'time'), only_to_me=False, args=("code [\\n stdin]"))
 @config.ErrorHandle
@@ -68,7 +69,7 @@ async def Time(session: CommandSession):
         await session.send("time out!")
     if _break:
         await session.send("stdin used out!")
-    await session.send(str(runtime), auto_escape=True)
+    await session.send(str(runtime))
 
 @on_command(('mbf', 'run'), only_to_me=False, short_des="运行mbf程序。输入第二行内容作为standard input。", args=("code [\\n stdin]"))
 @config.ErrorHandle
@@ -89,11 +90,11 @@ async def Run(session: CommandSession):
         await session.send("stdin used out!")
     if len(strout) >= 1000:
         await session.send("stdout too long!")
-        await session.send('程序输出结果：\n' + strout[0:1000], auto_escape=True)
+        await session.send(escape('程序输出结果：\n' + strout[0:1000]))
     elif strout == "":
         await session.send("No Output!")
     else:
-        await session.send('程序输出结果：\n' + strout, auto_escape=True)
+        await session.send(escape('程序输出结果：\n' + strout))
 
 @Time.args_parser
 @Run.args_parser
