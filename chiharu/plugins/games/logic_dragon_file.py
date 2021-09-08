@@ -1995,7 +1995,7 @@ class PC(_card):
         user.buf.send("今天接龙的所有人都赢了！恭喜你们！")
         from .logic_dragon import Tree
         qqs = [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))]
-        for qq in qqs:
+        for qq in set(qqs):
             User(qq, user.buf).add_daily_status('W')
 _card.add_daily_status('W', "胜利：恭喜，今天你赢了！")
 
