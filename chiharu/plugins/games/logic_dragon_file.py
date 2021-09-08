@@ -1994,7 +1994,7 @@ class PC(_card):
     async def use(cls, user: User):
         user.buf.send("今天接龙的所有人都赢了！恭喜你们！")
         from .logic_dragon import Tree
-        qqs = [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forest))]
+        qqs = [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))]
         for qq in qqs:
             User(qq, user.buf).add_daily_status('W')
 _card.add_daily_status('W', "胜利：恭喜，今天你赢了！")
