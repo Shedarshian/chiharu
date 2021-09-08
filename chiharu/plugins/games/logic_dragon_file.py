@@ -2269,7 +2269,7 @@ class xiaohunfashu(_card):
                 double = ret.double
                 # 永久状态
                 for c in u2.data.status:
-                    if random.random() < 0.5 ** (2 ** double):
+                    if random.random() < 0.5 ** (2 ** double) or c == 'W':
                         continue
                     u2.remove_status(c, remove_all=False)
                     des = _card.status_dict[c]
