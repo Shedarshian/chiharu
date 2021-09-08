@@ -1,7 +1,7 @@
 import itertools, hashlib
 import random, more_itertools, json, re
 from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, List, NamedTuple, Optional, Set, Tuple, Type, TypeVar, TypedDict, Union, final, Iterable, Annotated
-from collections import Counter, UserDict, UserList
+from collections import Counter, UserDict, UserList, defaultdict
 from functools import lru_cache, partial, wraps
 from copy import copy
 from datetime import datetime, timedelta
@@ -75,24 +75,38 @@ def auto():
     global _var
     _var = _var + 1
     return _var
-class UsrEvt:
-    OnUserUseCard = auto(), Callable[[TCard, bool], Tuple[bool]]
-    OnCardUse = auto(), Callable[[TCard], Tuple[()]]
-    OnCardDraw = auto(), Callable[[Iterable[TCard]], Tuple[()]]
-    OnCardDiscard = auto(), Callable[[Iterable[TCard]], Tuple[()]]
-    OnCardDestroy = auto(), Callable[[Iterable[TCard]], Tuple[()]]
-    OnExchange = auto(), Callable[['User', Iterable[TCard], Iterable[TCard]], Tuple[()]]
-    OnDeath = auto(), Callable[['User', int, bool], Tuple[int, bool]]
-    OnAttacked = auto(), Callable[[], Tuple[bool]]
-    OnDodged = auto(), Callable[[], Tuple[()]]
-    OnStatusAdd = auto(), Callable[[Any], Tuple[bool]]
-    OnStatusRemove = auto(), Callable[[Any], Tuple[bool]]
-    OnJibiGet = auto(), Callable[[int], Tuple[()]]
-    OnJibiDecrease = auto(), Callable[[int], Tuple[()]]
-    OnJibiSpend = auto(), Callable[[int], Tuple[()]]
-    OnEventptGet = auto(), Callable[[int], Tuple[()]]
-    OnEventptDecrease = auto(), Callable[[int], Tuple[()]]
-    OnEventptSpend = auto(), Callable[[int], Tuple[()]]
+class UserEvt:
+    OnUserUseCard = auto(),     Callable[[int, 'User', TCard],              Tuple[bool, str]]
+    OnCardUse = auto(),         Callable[[int, 'User', TCard],              Tuple[()]]
+    OnCardDraw = auto(),        Callable[[int, 'User', Iterable[TCard]],    Tuple[()]]
+    OnCardDiscard = auto(),     Callable[[int, 'User', Iterable[TCard]],    Tuple[()]]
+    OnCardDestroy = auto(),     Callable[[int, 'User', Iterable[TCard]],    Tuple[()]]
+    OnExchange = auto(),        Callable[[int, 'User', 'User', Iterable[TCard], Iterable[TCard]],   Tuple[()]]
+    OnDeath = auto(),           Callable[[int, 'User', 'User', int],        Tuple[int, bool]]
+    OnAttacked = auto(),        Callable[[int, 'User'],                     Tuple[bool]]
+    OnDodged = auto(),          Callable[[int, 'User'],                     Tuple[()]]
+    OnStatusAdd = auto(),       Callable[[int, 'User', Any],                Tuple[bool]]
+    OnStatusRemove = auto(),    Callable[[int, 'User', Any],                Tuple[bool]]
+    OnJibiGet = auto(),         Callable[[int, 'User', int],                Tuple[int]]
+    OnJibiDecrease = auto(),    Callable[[int, 'User', int],                Tuple[int]]
+    OnJibiSpend = auto(),       Callable[[int, 'User', int],                Tuple[int]]
+    OnEventptGet = auto(),      Callable[[int, 'User', int],                Tuple[int]]
+    OnEventptDecrease = auto(), Callable[[int, 'User', int],                Tuple[int]]
+    OnEventptSpend = auto(),    Callable[[int, 'User', int],                Tuple[int]]
+    OnDragoned = auto(),        Callable[[int, 'User', 'Tree'],             Tuple[int]]
+del auto
+from enum import IntEnum, auto
+class Priority: # 依照每个优先级从前往后find，而不是iterate
+    class OnUserUseCard(IntEnum):
+        xingyunhufu = auto()
+    class OnDeath(IntEnum):
+        hongsezhihuan = auto()
+        lveduozhebopu = auto()
+    class OnJibiSpend(IntEnum):
+        beijingcard = auto()
+    class OnDragoned(IntEnum):
+        xingyunhufu = auto()
+        lveduozhebopu = auto()
 
 class Game:
     session_list: List[CommandSession] = []
@@ -326,7 +340,11 @@ class User:
         self.qq = qq
         self.data = data or Game.userdata(qq)
         self.buf = buf
-        self.event_listener: dict[int, Tuple[int, Callable[[Any], tuple]]] = {}
+        self.event_listener: defaultdict[int, dict[int, Tuple[Any, Callable[[Any], tuple]]]] = defaultdict(dict)
+        for c in self.data.hand_card:
+            if c.hold_des is not None:
+                for key, val in c.register().items():
+                    self.event_listener[key] |= val
     @property
     def active(self):
         return self.buf.active == self.qq
@@ -1267,6 +1285,9 @@ class _card(metaclass=card_meta):
     async def on_give(cls, user: User, target: User) -> None:
         pass
     @classmethod
+    def register(cls) -> dict[int, dict[int, Tuple[Any, Callable[[Any], tuple]]]]:
+        pass
+    @classmethod
     def can_use(cls, user: User) -> bool:
         return len(user.check_limited_status('m', lambda t: t.card_id == cls.id)) == 0
     @classmethod
@@ -1921,6 +1942,21 @@ class xingyunhufu(_card):
     hold_des = '幸运护符：无法使用其他卡牌。每进行两次接龙额外获得一个击毙（每天上限为5击毙）。'
     positive = 1
     description = "持有此卡时，你无法使用其他卡牌。你每进行两次接龙额外获得一个击毙（每天上限为5击毙）。使用将丢弃这张卡。"
+    @classmethod
+    def register(cls):
+        async def OnUserUseCard(count: int, user: User, card: TCard):
+            if card.id != 73:
+                return False, "你因幸运护符的效果，不可使用其他手牌！"
+            return True, ""
+        async def OnDragoned(count: int, user: User, s: str):
+            if user.data.today_jibi % 2 == 1:
+                user.buf.send(f"你因为幸运护符的效果，额外奖励{count}击毙。")
+                return count,
+            return 0,
+        # name = 'xingyunhufu'
+        # {UserEvt.__dict__[func.__name__][0]: {Priority.__dict__[func.__name__][name]: (cls, func)} for func in (OnUserUseCard, OnDragoned)}
+        return {UserEvt.OnUserUseCard[0]: {Priority.OnUserUseCard.xingyunhufu: (cls, OnUserUseCard)},
+            UserEvt.OnDragoned[0]: {Priority.OnDragoned.xingyunhufu: (cls, OnDragoned)}}
 
 class jisuzhuangzhi(_card):
     name = "极速装置"
@@ -1981,6 +2017,31 @@ class lveduozhebopu(_card):
         if Card(77) not in user.data.hand_card and str(user.qq) in global_state['steal']:
             del global_state['steal'][str(user.qq)]
         save_global_state()
+    @classmethod
+    def register(cls):
+        async def OnDeath(count: int, user: User, killer: User, m: int) -> tuple[bool]:
+            user.send_log(f"的{f'{count}张' if count > 1 else ''}掠夺者啵噗被弃了！")
+            await user.discard_cards([cls] * count)
+            return False,
+        async def OnDragoned(count: int, user: User, parent: 'Tree'):
+            last_qq = parent.qq
+            qq = user.qq
+            if parent.id != (0, 0):
+                last = User(last_qq, user.buf)
+                c = await last.check_attacked(user)
+                if last_qq not in global_state['steal'][str(qq)]['user'] and global_state['steal'][str(qq)]['time'] < 10 and c.valid:
+                    global_state['steal'][str(qq)]['time'] += 1
+                    global_state['steal'][str(qq)]['user'].append(last_qq)
+                    save_global_state()
+                    user.log << f"触发了{count}次掠夺者啵噗的效果，偷取了{last_qq}击毙，剩余偷取次数{9 - global_state['steal'][str(qq)]['time']}。"
+                    if (p := last.data.jibi) > 0:
+                        n = count * 2 ** c.double
+                        user.buf.send(f"你从上一名玩家处偷取了{min(n, p)}击毙！")
+                        await last.add_jibi(-n)
+                        await user.add_jibi(min(n, p))
+            return 0,
+        return {UserEvt.OnDeath[0]: {Priority.OnDeath.lveduozhebopu: (cls, OnDeath)},
+            UserEvt.OnDragoned[0]: {Priority.OnDragoned.lveduozhebopu: (cls, OnDragoned)}}
 
 class jiandieyubei(_card):
     name = "邪恶的间谍行动～预备"
@@ -2550,6 +2611,20 @@ class beijingcard(_card):
     positive = 1
     description = "持有此卡时，你当天在商店总消费达100击毙后商店所有物品变为8折，当天在商店总消费达150击毙后商店所有物品变为5折，当天在商店总消费达400击毙后不再打折。"
     hold_des = "北京市市政交通一卡通：你当天在商店总消费达100击毙后商店所有物品变为8折，当天在商店总消费达150击毙后商店所有物品变为5折，当天在商店总消费达400击毙后不再打折。"
+    @classmethod
+    def register(cls):
+        async def OnJibiSpend(count: int, user: User, jibi: int):
+            if 100 <= user.data.spend_shop < 150:
+                jibi = int(jibi * 0.8 ** count)
+                user.send_char(f"触发了{f'{count}次' if count > 1 else ''}北京市政交通一卡通的效果，花费击毙打了8折变为{jibi}！")
+            elif 150 <= user.data.spend_shop < 400:
+                jibi = int(jibi * 0.5 ** count)
+                user.send_char(f"触发了{f'{count}次' if count > 1 else ''}北京市政交通一卡通的效果，花费击毙打了5折变为{jibi}！")
+            elif user.data.spend_shop >= 400:
+                user.send_char("今日已花费400击毙，不再打折！")
+            user.send_log(f"触发了{count}次北京市政交通一卡通的效果，花费击毙变为{jibi}。")
+            return jibi,
+        return {UserEvt.OnJibiSpend[0]: {Priority.OnJibiSpend.beijingcard: (cls, OnJibiSpend)}}
 
 class upsidedown(_card):
     name = "天下翻覆"
@@ -2810,3 +2885,107 @@ class Grid:
             await user.add_event_pt(n)
         return 0
 _card.add_status('D', "快走：在活动中，你下次行走距离加倍。")
+
+
+class Tree:
+    __slots__ = ('id', 'parent', 'childs', 'word', 'fork', 'kwd', 'hdkwd', 'qq')
+    forests: List[List[List['Tree']]] = []
+    _objs: List[List['Tree']] = [] # [[wd0, wd1, wd2], [wd2a], [wd2b]]
+    max_branches = 0
+    def __init__(self, parent: 'Tree', word: str, qq: int, kwd: str, hdkwd: str, *, id: Optional[Tuple[int, int]]=None, fork: bool=False):
+        self.parent = parent
+        if parent:
+            parent.childs.append(self)
+            id = id or (parent.id[0] + 1, parent.id[1])
+        else:
+            id = id or (0, 0)
+        if not self.find(id):
+            self.id: Tuple[int, int] = id
+            if Tree.max_branches <= id[1]:
+                for i in range(id[1] + 1 - Tree.max_branches):
+                    self._objs.append([])
+                Tree.max_branches = id[1] + 1
+        else:
+            self.id = (id[0], Tree.max_branches)
+            Tree.max_branches += 1
+            self._objs.append([])
+        self._objs[self.id[1]].append(self)
+        self.childs: List['Tree'] = []
+        self.word = word
+        self.fork = fork
+        self.qq = qq
+        self.kwd = kwd
+        self.hdkwd = hdkwd
+    @classmethod
+    def find(cls, id: Tuple[int, int]):
+        try:
+            if len(cls._objs[id[1]]) == 0:
+                return None
+            return cls._objs[id[1]][id[0] - cls._objs[id[1]][0].id[0]]
+        except IndexError:
+            return None
+    @property
+    def id_str(self):
+        return str(self.id[0]) + ('' if self.id[1] == 0 else chr(96 + self.id[1]))
+    @staticmethod
+    def str_to_id(str):
+        match = re.match(r'(\d+)([a-z])?', str)
+        return int(match.group(1)), (0 if match.group(2) is None else ord(match.group(2)) - 96)
+    @staticmethod
+    def match_to_id(match):
+        return int(match.group(1)), (0 if match.group(2) is None else ord(match.group(2)) - 96)
+    @classmethod
+    def init(cls, is_daily: bool):
+        cls._objs = []
+        cls.max_branches = 0
+        if is_daily:
+            cls.forests = []
+    def __repr__(self):
+        return f"<id: {self.id}, parent_id: {'None' if self.parent is None else self.parent.id}, word: \"{self.word}\">"
+    def __str__(self):
+        return f"{self.id_str}{'+' if self.fork else ''}<{'-1' if self.parent is None else self.parent.id_str}/{self.qq}/{self.kwd}/{self.hdkwd}/ {self.word}"
+    def remove(self):
+        id = self.id
+        begin = id[0] - Tree._objs[id[1]][0].id[0]
+        to_remove = set(Tree._objs[id[1]][begin:])
+        Tree._objs[id[1]] = Tree._objs[id[1]][:begin]
+        while True:
+            count = 0
+            for s in Tree._objs:
+                if len(s) == 0 or (parent := s[0].parent) is None:
+                    continue
+                if parent in to_remove:
+                    to_remove.update(Tree._objs[s[0].id[1]])
+                    Tree._objs[s[0].id[1]] = []
+                    count += 1
+            # TODO 额外判断有多个parents的节点
+            if count == 0:
+                break
+        if self.parent is not None:
+            self.parent.childs.remove(self)
+    def before(self, n):
+        node = self
+        for i in range(n):
+            node = node and node.parent
+        return node
+    def get_parent_qq_list(self, n: int):
+        parent_qqs: List[int] = []
+        begin = self
+        for j in range(n):
+            parent_qqs.append(begin.qq)
+            begin = begin.parent
+            if begin is None:
+                break
+        return parent_qqs
+    @classmethod
+    def get_active(cls, have_fork=True):
+        words = [s[-1] for s in cls._objs if len(s) != 0 and len(s[-1].childs) == 0]
+        if have_fork:
+            for s in cls._objs:
+                for word in s:
+                    if word.fork and len(word.childs) == 1:
+                        words.append(word)
+        return words
+    @classmethod
+    def graph(self):
+        pass
