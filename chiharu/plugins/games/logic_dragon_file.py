@@ -2602,7 +2602,7 @@ class upsidedown(_card):
         _s(Userme(user))
         _d(Userme(user))
 revert_status_map: Dict[str, str] = {}
-for c in ('YZ', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]'):
+for c in ('YZ', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'WX'):
     revert_status_map[c[0]] = c[1]
     revert_status_map[c[1]] = c[0]
 _card.add_status('t', '反转·死秽回避之药：下次死亡时获得5击毙，但是死亡时间增加2h。')
@@ -2639,6 +2639,7 @@ class excalibur(_card):
             user.send_log("统治了不列颠！")
             user.add_status('W')
 _card.add_status('W', "统治不列颠：使用塔罗牌时，若你没有对应的“魔力-{塔罗牌名}”状态，取消其原来的效果并获得效果“魔力-{塔罗牌名}”状态。")
+_card.add_status('X', "被不列颠统治：若你有对应的“魔力-{塔罗牌名}”状态，你可取消效果“魔力-{塔罗牌名}”状态并使用一张对应塔罗牌。")
 
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):
