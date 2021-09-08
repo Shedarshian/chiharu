@@ -48,6 +48,7 @@ class TCounter(NamedTuple):
     @property
     def valid(self):
         return not (self.dodge or self.rebound)
+TEventList = dict[int, Tuple[Any, Callable[[Any], tuple]]]
 
 with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
     global_state: TGlobalState = json.load(f)
@@ -68,6 +69,10 @@ T_card = TypeVar('T_card', bound='_card')
 TCard = Type[T_card]
 T_status = TypeVar('T_status', bound='_status')
 TStatus = Type[T_status]
+T_statusnull = TypeVar('T_statusnull', bound='_statusnull')
+TNStatus = Type[T_statusnull]
+T_statusdaily = TypeVar('T_statusdaily', bound='_statusdaily')
+TDStatus = Type[T_statusdaily]
 T_equipment = TypeVar('T_equipment', bound='_equipment')
 TEquipment = Type[T_equipment]
 _var = 0
@@ -76,13 +81,13 @@ def auto():
     _var = _var + 1
     return _var
 class UserEvt:
-    OnUserUseCard = auto(),     Callable[[int, 'User', TCard],              Tuple[bool, str]]
+    OnUserUseCard = auto(),     Callable[[int, 'User', TCard],              Tuple[bool, str]],      "return if can use"
     OnCardUse = auto(),         Callable[[int, 'User', TCard],              Tuple[()]]
     OnCardDraw = auto(),        Callable[[int, 'User', Iterable[TCard]],    Tuple[()]]
     OnCardDiscard = auto(),     Callable[[int, 'User', Iterable[TCard]],    Tuple[()]]
     OnCardDestroy = auto(),     Callable[[int, 'User', Iterable[TCard]],    Tuple[()]]
     OnExchange = auto(),        Callable[[int, 'User', 'User', Iterable[TCard], Iterable[TCard]],   Tuple[()]]
-    OnDeath = auto(),           Callable[[int, 'User', 'User', int],        Tuple[int, bool]]
+    OnDeath = auto(),           Callable[[int, 'User', 'User', int],        Tuple[int, bool]],      "return if dodged"
     OnAttacked = auto(),        Callable[[int, 'User'],                     Tuple[bool]]
     OnDodged = auto(),          Callable[[int, 'User'],                     Tuple[()]]
     OnStatusAdd = auto(),       Callable[[int, 'User', Any],                Tuple[bool]]
@@ -93,17 +98,29 @@ class UserEvt:
     OnEventptGet = auto(),      Callable[[int, 'User', int],                Tuple[int]]
     OnEventptDecrease = auto(), Callable[[int, 'User', int],                Tuple[int]]
     OnEventptSpend = auto(),    Callable[[int, 'User', int],                Tuple[int]]
+    BeforeDragoned = auto(),    Callable[[int, 'User', str],                Tuple[bool, int, str]], \
+        "return if can dragon & modify distance"
+    OnDuplicatedWord = auto(),  Callable[[int, 'User', str],                Tuple[bool]],           "return if dodged"
+    OnBombed = auto(),          Callable[[int, 'User', str],                Tuple[bool]],           "return if dodged"
     OnDragoned = auto(),        Callable[[int, 'User', 'Tree'],             Tuple[int]]
 del auto
 from enum import IntEnum, auto
 class Priority: # 依照每个优先级从前往后find，而不是iterate
     class OnUserUseCard(IntEnum):
+        temperance = auto()
         xingyunhufu = auto()
     class OnDeath(IntEnum):
+        miansi = auto()
         hongsezhihuan = auto()
         lveduozhebopu = auto()
     class OnJibiSpend(IntEnum):
         beijingcard = auto()
+    class BeforeDragoned(IntEnum):
+        shengbing = auto()
+    class OnDuplicatedWord(IntEnum):
+        hermit = auto()
+    class OnBombed(IntEnum):
+        hermit = auto()
     class OnDragoned(IntEnum):
         xingyunhufu = auto()
         lveduozhebopu = auto()
@@ -340,11 +357,17 @@ class User:
         self.qq = qq
         self.data = data or Game.userdata(qq)
         self.buf = buf
-        self.event_listener: defaultdict[int, dict[int, Tuple[Any, Callable[[Any], tuple]]]] = defaultdict(dict)
+        self.event_listener: defaultdict[int, TEventList] = defaultdict(dict)
         for c in self.data.hand_card:
             if c.hold_des is not None:
                 for key, val in c.register().items():
                     self.event_listener[key] |= val
+        for c in self.data.status:
+            for key, val in StatusNull(c).register().items():
+                self.event_listener[key] |= val
+        for c in self.data.daily_status:
+            for key, val in StatusDaily(c).register().items():
+                self.event_listener[key] |= val
     @property
     def active(self):
         return self.buf.active == self.qq
@@ -1135,6 +1158,27 @@ class SKe(ListStatus):
 
 me = UserData(config.selfqq)
 
+class _statusnull(metaclass=status_meta):
+    id_dict: Dict[str, TNStatus] = {}
+    id = ""
+    des = ""
+    is_debuff = False
+    @classmethod
+    def register(cls) -> dict[int, TEventList]:
+        pass
+def StatusNull(id: str):
+    return _statusnull.id_dict[id]
+class _statusdaily(metaclass=status_meta):
+    id_dict: Dict[str, TDStatus] = {}
+    id = ""
+    des = ""
+    is_debuff = False
+    @classmethod
+    def register(cls) -> dict[int, TEventList]:
+        pass
+def StatusDaily(id: str):
+    return _statusdaily.id_dict[id]
+
 @lru_cache(10)
 def Card(id):
     if id in _card.card_id_dict:
@@ -1146,13 +1190,11 @@ class card_meta(type):
     def __new__(cls, clsname, bases, attrs):
         if len(bases) != 0 and 'status_dict' in bases[0].__dict__:
             if status := attrs.get('status'):
-                bases[0].add_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, user: User):
                     user.add_status(status)
                 attrs['use'] = use
             elif status := attrs.get('daily_status'):
-                bases[0].add_daily_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, user: User):
                     user.add_daily_status(status)
@@ -1163,13 +1205,11 @@ class card_meta(type):
                     user.add_limited_status(status, *attrs['limited_init'])
                 attrs['use'] = use
             elif status := attrs.get('global_status'):
-                bases[0].add_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, user: User):
                     Userme(user).add_status(status)
                 attrs['use'] = use
             elif status := attrs.get('global_daily_status'):
-                bases[0].add_daily_status(status, attrs['status_des'])
                 @classmethod
                 async def use(self, user: User):
                     Userme(user).add_daily_status(status)
@@ -1180,7 +1220,6 @@ class card_meta(type):
                     Userme(user).add_limited_status(status, *attrs['global_limited_init'])
                 attrs['use'] = use
             elif status := attrs.get('on_draw_status'):
-                bases[0].add_status(status, attrs['status_des'], attrs.get('is_debuff', False))
                 to_send = attrs.get('on_draw_send')
                 to_send_char = attrs.get('on_draw_send_char')
                 @classmethod
@@ -1192,7 +1231,6 @@ class card_meta(type):
                         user.send_char(to_send_char)
                 attrs['on_draw'] = on_draw
             elif status := attrs.get('on_draw_daily_status'):
-                bases[0].add_daily_status(status, attrs['status_des'], attrs.get('is_debuff', False))
                 to_send = attrs.get('on_draw_send')
                 to_send_char = attrs.get('on_draw_send_char')
                 @classmethod
@@ -1215,7 +1253,6 @@ class card_meta(type):
                         user.send_char(to_send_char)
                 attrs['on_draw'] = on_draw
             elif status := attrs.get('on_draw_global_status'):
-                bases[0].add_status(status, attrs['status_des'], attrs.get('is_debuff', False))
                 to_send = attrs.get('on_draw_send')
                 to_send_char = attrs.get('on_draw_send_char')
                 @classmethod
@@ -1225,7 +1262,6 @@ class card_meta(type):
                         user.buf.send(to_send)
                 attrs['on_draw'] = on_draw
             elif status := attrs.get('on_draw_global_daily_status'):
-                bases[0].add_daily_status(status, attrs['status_des'], attrs.get('is_debuff', False))
                 to_send = attrs.get('on_draw_send')
                 to_send_char = attrs.get('on_draw_send_char')
                 @classmethod
@@ -1255,10 +1291,6 @@ class card_meta(type):
 
 class _card(metaclass=card_meta):
     card_id_dict: Dict[int, TCard] = {}
-    status_dict: Dict[str, str] = {'d': "永久死亡"}
-    daily_status_dict: Dict[str, str] = {}
-    debuffs = 'd'
-    daily_debuffs = ''
     name = ""
     hold_des = None
     id = -127
@@ -1285,25 +1317,11 @@ class _card(metaclass=card_meta):
     async def on_give(cls, user: User, target: User) -> None:
         pass
     @classmethod
-    def register(cls) -> dict[int, dict[int, Tuple[Any, Callable[[Any], tuple]]]]:
+    def register(cls) -> dict[int, TEventList]:
         pass
     @classmethod
     def can_use(cls, user: User) -> bool:
         return len(user.check_limited_status('m', lambda t: t.card_id == cls.id)) == 0
-    @classmethod
-    def add_daily_status(cls, s, des, /, is_debuff=False):
-        if s in cls.daily_status_dict:
-            raise ImportError
-        cls.daily_status_dict[s] = des
-        if is_debuff:
-            cls.debuffs += s
-    @classmethod
-    def add_status(cls, s, des, /, is_debuff=False):
-        if s in cls.status_dict:
-            raise ImportError
-        cls.status_dict[s] = des
-        if is_debuff:
-            cls.debuffs += s
     @classmethod
     def full_description(cls, qq):
         return f"{cls.id}. {cls.name}\n\t{cls.description}"
@@ -1459,8 +1477,20 @@ class hermit(_card):
     id = 9
     positive = 1
     daily_status = 'Y'
-    status_des = "IX - 隐者：今天你不会因为接到重复词或触雷而死亡。"
     description = "今天你不会因为接到重复词或触雷而死亡。"
+class hermit_s(_statusdaily):
+    id = 'Y'
+    des = "IX - 隐者：今天你不会因为接到重复词或触雷而死亡。"
+    @classmethod
+    def register(cls) -> dict[int, TEventList]:
+        async def OnDuplicatedWord(count: int, user: User, word: str):
+            user.send_log("触发了IX - 隐者的效果，没死。")
+            return True,
+        async def OnBombed(count: int, user: User, word: str):
+            user.send_log("触发了IX - 隐者的效果，没死。")
+            return True,
+        return {UserEvt.OnDuplicatedWord[0]: {Priority.OnDuplicatedWord.hermit: (cls, OnDuplicatedWord)},
+            UserEvt.OnBombed[0]: {Priority.OnBombed.hermit: (cls, OnBombed)}}
 
 class wheel_of_fortune(_card):
     name = "X - 命运之轮"
@@ -1490,7 +1520,16 @@ class hanged_man(_card):
     async def use(cls, user: User):
         await user.kill()
         user.add_status('r')
-_card.add_status('r', "免死：免疫你下一次死亡。")
+class miansi(_statusnull):
+    id = 'r'
+    des = "免死：免疫你下一次死亡。"
+    @classmethod
+    def register(cls) -> dict[int, TEventList]:
+        async def OnDeath(count: int, user: User, time: int):
+            user.send_log("触发了免死的效果，免除死亡！")
+            user.remove_status('r', remove_all=False)
+            return True,
+        return {UserEvt.OnDeath[0]: {Priority.OnDeath.miansi: (cls, OnDeath)}}
 
 class death(_card):
     name = "XIII - 死神"
@@ -1518,7 +1557,15 @@ class temperance(_card):
             user.add_daily_status('T')
         else:
             u.add_daily_status('T')
-_card.add_daily_status('T', "节制：下次刷新前你不能使用卡牌。", is_debuff=True)
+class temperance_s(_statusdaily):
+    id = 'T'
+    des = "XIV - 节制：下次刷新前你不能使用卡牌。"
+    is_debuff = True
+    @classmethod
+    def register(cls) -> dict[int, TEventList]:
+        async def OnUserUseCard(count: int, user: User, card: TCard):
+            return False, "你因XIV - 节制的效果，不能使用卡牌！"
+        return {UserEvt.OnUserUseCard[0]: {Priority.OnUserUseCard.temperance: (cls, OnUserUseCard)}}
 
 class devil(_card):
     name = "XV - 恶魔"
@@ -1589,8 +1636,15 @@ class dabingyichang(_card):
     on_draw_daily_status = 'd'
     on_draw_send_char = "病了！直到下一次主题出现前不得接龙。"
     is_debuff = True
-    status_des = "生病：直到下一次主题出现前不可接龙。"
     consumed_on_draw = True
+class shengbing(_statusdaily):
+    id = 'd'
+    des = "生病：直到下一次主题出现前不可接龙。"
+    @classmethod
+    def register(cls) -> dict[int, TEventList]:
+        async def BeforeDragoned(count: int, user: User, word: str):
+            return False, 0, "你病了，不能接龙！"
+        return {UserEvt.BeforeDragoned: {Priority.BeforeDragoned.shengbing: (cls, BeforeDragoned)}}
 
 class caipiaozhongjiang(_card):
     name = "彩票中奖"
