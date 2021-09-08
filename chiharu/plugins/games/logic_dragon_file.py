@@ -2537,7 +2537,7 @@ class upsidedown(_card):
     id = 156
     positive = 0
     description = "每条全局状态和你的状态有50%的概率反转，除了那些不能反转的以外。"
-    weight = 10
+    weight = 5
     @classmethod
     async def use(cls, user: User) -> None:
         # 永久状态
