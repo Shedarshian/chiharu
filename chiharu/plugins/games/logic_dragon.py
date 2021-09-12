@@ -45,7 +45,7 @@ with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
     last_update_date = d["last_update_date"]
     del d
 
-from .logic_dragon_file import Equipment, TCounter, TQuest, UserData, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree
+from .logic_dragon_file import Equipment, Priority, TCounter, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree
 from . import logic_dragon_file
 
 # log
@@ -600,13 +600,17 @@ async def dragon_use_card(buf: SessionBuffer):
     user.log << f"试图使用手牌{card.name}，当前手牌为{user.data.hand_card}。"
     if card not in user.data.hand_card:
         buf.finish("你还未拥有这张牌！")
-    if Card(73) in user.data.hand_card and card.id != 73:
-        buf.finish("你因幸运护符的效果，不可使用其他手牌！")
+    # Event OnUserUseCard
+    for el, n in user.IterAllEventList(UserEvt.OnUserUseCard, Priority.OnUserUseCard):
+        can_use, msg = await el.OnUserUseCard(n, user, card)
+        if not can_use:
+            buf.finish(msg)
+    # if Card(73) in user.data.hand_card and card.id != 73:
+    #     buf.finish("你因幸运护符的效果，不可使用其他手牌！")
     if not card.can_use(user):
         user.log << f"无法使用卡牌{card.name}。"
         buf.finish(card.failure_message)
     async with user.settlement():
-        user.data.hand_card.remove(card)
         await user.use_card(card)
     global_state['last_card_user'] = qq
     save_global_state()
