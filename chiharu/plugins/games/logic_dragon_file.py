@@ -170,7 +170,8 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
     class OnKeyword(IntEnum):
         pass
     class OnHiddenKeyword(IntEnum):
-        pass
+        cunqianguan = auto()
+        inv_cunqianguan = auto()
     class OnDuplicatedWord(IntEnum):
         hermit = auto()
     class OnBombed(IntEnum):
@@ -178,6 +179,9 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
     class OnDragoned(IntEnum):
         xingyunhufu = auto()
         lveduozhebopu = auto()
+        plus2 = auto()
+        star = auto()
+        dihuopenfa = auto()
 class IEventListener:
     @classmethod
     async def OnUserUseCard(cls, count: int, user: 'User', card: TCard) -> Tuple[bool, str]:
@@ -334,22 +338,28 @@ class IEventListener:
         bool: represents if accelerated."""
         pass
     @classmethod
-    async def OnKeyword(cls, count: int, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[()]:
+    async def OnKeyword(cls, count: int, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
         """Called when a user hit a keyword.
         
         Arguments:
         word: the dragon word.
         parent: the parent tree node.
-        keyword: the keyword."""
+        keyword: the keyword.
+        
+        Returns:
+        int: the amount of jibi to add."""
         pass
     @classmethod
-    async def OnHiddenKeyword(cls, count: int, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[()]:
+    async def OnHiddenKeyword(cls, count: int, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
         """Called when a user hit a hidden keyword.
         
         Arguments:
         word: the dragon word.
         parent: the parent tree node.
-        keyword: the hidden keyword."""
+        keyword: the hidden keyword.
+        
+        Returns:
+        int: the amount of jibi to add."""
         pass
     @classmethod
     async def OnDuplicatedWord(cls, count: int, user: 'User', word: str) -> Tuple[bool]:
@@ -372,7 +382,15 @@ class IEventListener:
         bool: represents whether the hit is dodged."""
         pass
     @classmethod
-    async def OnDragoned(cls, count: int, user: 'User', branch: 'Tree') -> Tuple[int]:
+    async def OnDragoned(cls, count: int, user: 'User', branch: 'Tree') -> Tuple[()]:
+        """Called when the user complete a dragon.
+        
+        Arguments:
+        branch: the dragon branch."""
+        pass
+    @classmethod
+    async def OnNewDay(cls, count: int, user: 'User') -> Tuple[()]:
+        """Called when new day begins."""
         pass
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -814,6 +832,8 @@ class User:
         self.log << f"增加了{pt}活动pt。现有{self.data.event_pt}活动pt。"
         return True
     async def add_jibi(self, jibi: int, /, is_buy: bool=False) -> bool:
+        if jibi == 0:
+            return True,
         current_jibi = self.data.jibi
         if is_buy and jibi < 0:
             jibi = -jibi
@@ -1855,8 +1875,14 @@ class wheel_of_fortune(_card):
     id = 10
     positive = 0
     global_daily_status = 'O'
-    status_des = "X - 命运之轮：直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
     description = "直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
+class wheel_of_fortune_s(_statusnull):
+    id = 'O'
+    des = "X - 命运之轮：直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
+    is_global = True
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {}
 
 class justice(_card):
     name = "XI - 正义"
@@ -1968,7 +1994,18 @@ class star(_card):
     positive = 0
     description = "今天的每个词有10%的几率进入奖励词池。"
     global_daily_status = 't'
-    status_des = "XVII - 星星：今天的每个词有10%的几率进入奖励词池。"
+class star_s(_statusdaily):
+    id = 't'
+    des = "XVII - 星星：今天的每个词有10%的几率进入奖励词池。"
+    is_global = True
+    @classmethod
+    async def OnDragoned(cls, count: int, user: 'User', branch: 'Tree') -> Tuple[()]:
+        if random.random() > 0.9 ** count:
+            from .logic_dragon import add_keyword
+            add_keyword(branch.word)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.star, cls)}
 
 class sun(_card):
     name = "XIX - 太阳"
@@ -2293,9 +2330,21 @@ class plus2(_card):
     name = "+2"
     id = 60
     global_status = '+'
-    status_des = '+2：下一个接龙的人抽一张非负面卡和一张非正面卡。'
     positive = 0
     description = "下一个接龙的人抽一张非负面卡和一张非正面卡。"
+class plus2_s(_card):
+    id = '+'
+    des = "+2：下一个接龙的人抽一张非负面卡和一张非正面卡。"
+    @classmethod
+    async def OnDragoned(cls, count: int, user: 'User', branch: 'Tree') -> Tuple[()]:
+        Userme(user).remove_status('+')
+        user.send_char(f"触发了{count}次+2的效果，摸{count}张非正面牌与{count}张非负面牌！")
+        user.log << f"触发了+2的效果。"
+        cards = list(itertools.chain(*[[draw_card({-1, 0}), draw_card({0, 1})] for i in range(count)]))
+        await user.draw(0, cards=cards)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.plus2, cls)}
 
 class hezuowujian(_card):
     name = "合作无间"
@@ -2399,9 +2448,32 @@ class cunqianguan(_card):
     name = "存钱罐"
     id = 70
     global_status = 'm'
-    status_des = '存钱罐：下次触发隐藏词的奖励+10击毙。'
-    positive = 0
+    positive = 1
     description = "下次触发隐藏词的奖励+10击毙。"
+class cunqianguan_s(_statusnull):
+    id = 'm'
+    des = "存钱罐：下次触发隐藏词的奖励+10击毙。"
+    is_global = True
+    @classmethod
+    async def OnHiddenKeyword(cls, count: int, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
+        user.send_log(f"触发了存钱罐，奖励+{count * 10}击毙！")
+        Userme(user).remove_status('m')
+        return count * 10,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnHiddenKeyword: (Priority.OnHiddenKeyword.cunqianguan, cls)}
+class inv_cunqianguan_s(_statusnull):
+    id = 'M'
+    des = "反转·存钱罐：下次触发隐藏词的奖励-10击毙。"
+    is_global = True
+    @classmethod
+    async def OnHiddenKeyword(cls, count: int, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
+        user.send_log(f"触发了反转·存钱罐，奖励-{count * 10}击毙！")
+        Userme(user).remove_status('M')
+        return -count * 10,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnHiddenKeyword: (Priority.OnHiddenKeyword.inv_cunqianguan, cls)}
 
 class hongsezhihuan(_card):
     name = "虹色之环"
@@ -2413,6 +2485,18 @@ class hongsezhihuan_s(_statusnull):
     des = '虹色之环：下次死亡时，有1/2几率闪避，1/2几率死亡时间+1小时。'
     @classmethod
     async def OnDeath(cls, count: int, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+        if c.pierce:
+            user.send_log("虹色之环的效果被幻想杀手消除了！")
+            user.remove_status('h', remove_all=True)
+            return time, False
+        for a in range(count):
+            user.remove_status('h', remove_all=False)
+            if random.randint(0, 1) == 0:
+                user.send_log("触发了虹色之环，闪避了死亡！")
+                return time, True
+            else:
+                time += 60
+                user.send_log("触发虹色之环闪避失败，死亡时间+1h！")
         return time, False
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -2468,11 +2552,10 @@ class xingyunhufu(_card):
             return False, "你因幸运护符的效果，不可使用其他手牌！"
         return True, ""
     @classmethod
-    async def OnDragoned(cls, count: int, user: User, branch: 'Tree') -> Tuple[int]:
+    async def OnDragoned(cls, count: int, user: User, branch: 'Tree') -> Tuple[()]:
         if user.data.today_jibi % 2 == 1:
             user.buf.send(f"你因为幸运护符的效果，额外奖励{count}击毙。")
-            return count,
-        return 0,
+            await user.add_jibi(count)
     @classmethod
     def register(cls):
         return {UserEvt.OnUserUseCard: (Priority.OnUserUseCard.xingyunhufu, cls),
@@ -2536,7 +2619,7 @@ class lveduozhebopu(_card):
         await user.discard_cards([cls] * count)
         return time, False
     @classmethod
-    async def OnDragoned(cls, count: int, user: User, branch: 'Tree') -> Tuple[int]:
+    async def OnDragoned(cls, count: int, user: User, branch: 'Tree') -> Tuple[()]:
         last_qq = branch.qq
         qq = user.qq
         if branch.id != (0, 0):
@@ -2552,7 +2635,6 @@ class lveduozhebopu(_card):
                     user.buf.send(f"你从上一名玩家处偷取了{min(n, p)}击毙！")
                     await last.add_jibi(-n)
                     await user.add_jibi(min(n, p))
-        return 0,
     @classmethod
     def register(cls):
         return {UserEvt.OnDeath: (Priority.OnDeath.lveduozhebopu, cls),
@@ -2925,7 +3007,18 @@ class dihuopenfa(_card):
     description = "今天之内所有的接龙词都有10%的几率变成地雷。"
     positive = 0
     global_daily_status = 'B'
-    status_des = "地火喷发：今天之内所有的接龙词都有10%的几率变成地雷。"
+class dihuopenfa_s(_statusdaily):
+    id = 'B'
+    des = "地火喷发：今天之内所有的接龙词都有10%的几率变成地雷。"
+    is_global = True
+    @classmethod
+    async def OnDragoned(cls, count: int, user: 'User', branch: 'Tree') -> Tuple[()]:
+        if random.random() > 0.9 ** count:
+            from .logic_dragon import add_bomb
+            add_bomb(branch.word)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.dihuopenfa, cls)}
 
 class gaojie(_card):
     name = "告解"
@@ -3225,7 +3318,7 @@ for c in ('YZ', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]'):
     revert_status_map[c[1]] = c[0]
 # _card.add_status('t', '反转·死秽回避之药：下次死亡时获得5击毙，但是死亡时间增加2h。')
 # _card.add_status('y', "反转·辉夜姬的秘密宝箱：你下一次死亡的时候随机弃一张牌。")
-_card.add_status('M', "反转·存钱罐：下次触发隐藏词的奖励-10击毙。")
+# _card.add_status('M', "反转·存钱罐：下次触发隐藏词的奖励-10击毙。")
 _card.add_status('Q', "反转·通灵之术-密西迪亚兔：你的屁股上出现了一只可爱的小兔子。")
 _card.add_status('1', "反转·变压器：下一次你的击毙变动变动值减半。")
 _card.add_status('9', "反转·布莱恩科技航空专用强化胶带FAL84型：免疫你下次即刻生效的非负面状态。")

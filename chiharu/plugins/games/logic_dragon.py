@@ -401,11 +401,11 @@ async def dragon_construct(buf: SessionBuffer):
             if (tree_node := check_and_add_log_and_contruct_tree(parent, word, qq, kwd=kwd, hdkwd=hdkwd, fork=fork)) is None:
                 user.log << f"由于过去一周接过此词，死了。"
                 buf.send("过去一周之内接过此词，你死了！")
-                if user.check_daily_status('Y'):
-                    user.log << f"触发了IX - 隐者的效果，没死。"
-                    user.send_char("触发了IX - 隐者的效果，没死。")
-                else:
-                    await user.kill()
+                # if user.check_daily_status('Y'):
+                #     user.log << f"触发了IX - 隐者的效果，没死。"
+                #     user.send_char("触发了IX - 隐者的效果，没死。")
+                # else:
+                await user.kill()
             else:
                 buf.send(f"成功接龙！接龙词：{word}，id为【{tree_node.id_str}】。", end='')
                 user.data.last_dragon_time = datetime.now().isoformat()
@@ -439,23 +439,23 @@ async def dragon_construct(buf: SessionBuffer):
                             user.send_char("触发了反转·月下彼岸花的效果，获得1击毙！")
                             await user.add_jibi(1)
                     user.data.save_status_time()
-                if (n := me.check_daily_status('t')) and random.random() > 0.9 ** n:
-                    add_keyword(word)
-                if (n := user.data.hand_card.count(Card(77))):
-                    last_qq = parent.qq
-                    if parent.id != (0, 0):
-                        last = User(last_qq, buf)
-                        c = await last.check_attacked(user)
-                        if last_qq not in global_state['steal'][str(qq)]['user'] and global_state['steal'][str(qq)]['time'] < 10 and c.valid:
-                            global_state['steal'][str(qq)]['time'] += 1
-                            global_state['steal'][str(qq)]['user'].append(last_qq)
-                            save_global_state()
-                            user.log << f"触发了{n}次掠夺者啵噗的效果，偷取了{last_qq}击毙，剩余偷取次数{9 - global_state['steal'][str(qq)]['time']}。"
-                            if (p := last.data.jibi) > 0:
-                                n *= 2 ** c.double
-                                buf.send(f"你从上一名玩家处偷取了{min(n, p)}击毙！")
-                                await last.add_jibi(-n)
-                                await user.add_jibi(min(n, p))
+                # if (n := me.check_daily_status('t')) and random.random() > 0.9 ** n:
+                #     add_keyword(word)
+                # if (n := user.data.hand_card.count(Card(77))):
+                #     last_qq = parent.qq
+                #     if parent.id != (0, 0):
+                #         last = User(last_qq, buf)
+                #         c = await last.check_attacked(user)
+                #         if last_qq not in global_state['steal'][str(qq)]['user'] and global_state['steal'][str(qq)]['time'] < 10 and c.valid:
+                #             global_state['steal'][str(qq)]['time'] += 1
+                #             global_state['steal'][str(qq)]['user'].append(last_qq)
+                #             save_global_state()
+                #             user.log << f"触发了{n}次掠夺者啵噗的效果，偷取了{last_qq}击毙，剩余偷取次数{9 - global_state['steal'][str(qq)]['time']}。"
+                #             if (p := last.data.jibi) > 0:
+                #                 n *= 2 ** c.double
+                #                 buf.send(f"你从上一名玩家处偷取了{min(n, p)}击毙！")
+                #                 await last.add_jibi(-n)
+                #                 await user.add_jibi(min(n, p))
                 if fork:
                     buf.send("你触发了Fork Bomb，此词变成了分叉点！")
                 if l := global_state['quest'].get(str(qq)):
@@ -554,17 +554,17 @@ async def dragon_construct(buf: SessionBuffer):
                         user.remove_status('v', remove_all=False)
                         user.log << f"触发了矢量操作的效果，没死。"
                         user.send_char("触发了矢量操作的效果，没死。")
-                    if user.check_daily_status('Y'):
-                        user.log << f"触发了IX - 隐者的效果，没死。"
-                        user.send_char("触发了IX - 隐者的效果，没死。")
-                    else:
-                        await user.kill()
-                if (n := me.check_status('+')):
-                    Userme(user).remove_status('+')
-                    buf.send(f"你触发了{n}次+2的效果，摸{n}张非正面牌与{n}张非负面牌！")
-                    user.log << f"触发了+2的效果。"
-                    cards = list(itertools.chain(*[[draw_card({-1, 0}), draw_card({0, 1})] for i in range(n)]))
-                    await user.draw(0, cards=cards)
+                    # if user.check_daily_status('Y'):
+                    #     user.log << f"触发了IX - 隐者的效果，没死。"
+                    #     user.send_char("触发了IX - 隐者的效果，没死。")
+                    # else:
+                    await user.kill()
+                # if (n := me.check_status('+')):
+                #     Userme(user).remove_status('+')
+                #     buf.send(f"你触发了{n}次+2的效果，摸{n}张非正面牌与{n}张非负面牌！")
+                #     user.log << f"触发了+2的效果。"
+                #     cards = list(itertools.chain(*[[draw_card({-1, 0}), draw_card({0, 1})] for i in range(n)]))
+                #     await user.draw(0, cards=cards)
                 if to_exchange is not None:
                     buf.send(f"你与[CQ:at,qq={to_exchange.qq}]交换了手牌与击毙！")
                     jibi = (user.data.jibi, to_exchange.data.jibi)
@@ -572,8 +572,8 @@ async def dragon_construct(buf: SessionBuffer):
                     await user.add_jibi(jibi[1] - jibi[0])
                     await to_exchange.add_jibi(jibi[0] - jibi[1])
                     await user.exchange(to_exchange)
-                if (n := me.check_daily_status('B')) and random.random() > 0.9 ** n:
-                    add_bomb(word)
+                # if (n := me.check_daily_status('B')) and random.random() > 0.9 ** n:
+                #     add_bomb(word)
                 if current_event == "swim" and first10:
                     n = random.randint(1, 6)
                     user.send_log(f"移动了{n}格，", end='')
