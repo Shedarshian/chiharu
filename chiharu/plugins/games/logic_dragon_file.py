@@ -2674,7 +2674,12 @@ class PC(_card):
     description = '所有人立刻获得胜利。'
     @classmethod
     async def use(cls, user: User):
-        user.buf.send("所有人都赢了！恭喜你们！")
+        user.buf.send("今天接龙的所有人都赢了！恭喜你们！")
+        from .logic_dragon import Tree
+        qqs = [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))]
+        for qq in set(qqs):
+            User(qq, user.buf).add_daily_status('W')
+_card.add_daily_status('W', "胜利：恭喜，今天你赢了！")
 
 class suicideking(_card):
     name = "自杀之王（♥K）"
@@ -2946,7 +2951,7 @@ class xiaohunfashu(_card):
                 double = ret.double
                 # 永久状态
                 for c in u2.data.status:
-                    if random.random() < 0.5 ** (2 ** double):
+                    if random.random() < 0.5 ** (2 ** double) or c == 'W':
                         continue
                     u2.remove_status(c, remove_all=False)
                     des = _card.status_dict[c]
@@ -3248,7 +3253,7 @@ class upsidedown(_card):
     id = 156
     positive = 0
     description = "每条全局状态和你的状态有50%的概率反转，除了那些不能反转的以外。"
-    weight = 10
+    weight = 5
     @classmethod
     async def use(cls, user: User) -> None:
         # 永久状态
@@ -3313,7 +3318,7 @@ class upsidedown(_card):
         _s(Userme(user))
         _d(Userme(user))
 revert_status_map: Dict[str, str] = {}
-for c in ('YZ', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]'):
+for c in ('YZ', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'WX'):
     revert_status_map[c[0]] = c[1]
     revert_status_map[c[1]] = c[0]
 # _card.add_status('t', '反转·死秽回避之药：下次死亡时获得5击毙，但是死亡时间增加2h。')
@@ -3325,13 +3330,32 @@ _card.add_status('9', "反转·布莱恩科技航空专用强化胶带FAL84型�
 _card.add_status('[', "背日葵：跨日结算时你损失1击毙。")
 _card.add_status(']', "双子背日葵：跨日结算时你损失2击毙。")
 revert_daily_status_map: Dict[str, str] = {}
-for c in ('Bt', 'Ii', 'Mm', 'op', '@#'):
+for c in ('Bt', 'Ii', 'Mm', 'op', '@#', 'WX'):
     revert_daily_status_map[c[0]] = c[1]
     revert_daily_status_map[c[1]] = c[0]
 _card.add_daily_status('I', "炎热菇：今天每个人都可以少隔一个接龙。")
 # _card.add_daily_status('M', "+1马：直到下次主题刷新为止，你必须额外隔一个才能接龙。")
 # _card.add_daily_status('p', "石之蛇尾衔：规则为尾首接龙直至下次刷新。")
 _card.add_daily_status('#', "反转·告解：今日每次你获得击毙时少获得1击毙。")
+_card.add_daily_status('X', "失败：对不起，今天你输了！")
+
+class excalibur(_card):
+    id = 158
+    name = "EX咖喱棒"
+    positive = 1
+    description = "只可在胜利时使用。统治不列颠。"
+    @classmethod
+    async def can_use(cls, user: User) -> bool:
+        return user.check_daily_status('W') > 0
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if user.check_daily_status('W') == 0:
+            user.send_char("没有胜利，无法使用！")
+        else:
+            user.send_log("统治了不列颠！")
+            user.add_status('W')
+_card.add_status('W', "统治不列颠：使用塔罗牌时，若你没有对应的“魔力-{塔罗牌名}”状态，取消其原来的效果并获得效果“魔力-{塔罗牌名}”状态。")
+_card.add_status('X', "被不列颠统治：若你有对应的“魔力-{塔罗牌名}”状态，你可取消效果“魔力-{塔罗牌名}”状态并使用一张对应塔罗牌。")
 
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):
