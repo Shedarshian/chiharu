@@ -1204,6 +1204,7 @@ class _card(metaclass=card_meta):
     name = ""
     hold_des = None
     id = -127
+    newer = 0
     weight = 1
     positive = 0
     description = ""
@@ -1247,15 +1248,24 @@ class _card(metaclass=card_meta):
     def full_description(cls, qq):
         return f"{cls.id}. {cls.name}\n\t{cls.description}"
 
-class maintain1(_card):
-    name = "维护补偿1"
+class supernova(_card):
+    name = "超新星"
     id = -65536
     positive = 1
     weight = 0
-    description = "摸一张正面卡。"
+    description = "获得一张炙手可热的新卡。"
     @classmethod
     async def use(cls, user: User) -> None:
-        await user.draw(1, positive={1})
+        max = 0
+        l = []
+        for id, card in _card.card_id_dict.items():
+            if card.newer == max:
+                l.append(card)
+            elif card.newer > max:
+                max = card.newer
+                l = [card]
+        c = random.choice(l)
+        await user.draw(0, cards=[c])
 
 class jiandiezhixing(_card):
     name = "邪恶的间谍行动～执行"
@@ -2575,6 +2585,7 @@ class excalibur(_card):
     name = "EX咖喱棒"
     positive = 1
     description = "只可在胜利时使用。统治不列颠。"
+    newer = 1
     @classmethod
     async def can_use(cls, user: User) -> bool:
         return user.check_daily_status('W') > 0
