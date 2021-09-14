@@ -2568,6 +2568,16 @@ class jisuzhuangzhi(_card):
     status_des = '极速装置：下次可以连续接龙两次。'
     positive = 1
     description = '下次你可以连续接龙两次。'
+class jisuzhuangzhi_s(_statusnull):
+    id = 'z'
+    des = "极速装置：下次可以连续接龙两次。"
+    @classmethod
+    async def CheckSuguri(cls, count: int, user: 'User', word: str, parent: 'Tree') -> Tuple[bool]:
+        user.remove_status('z', remove_all=False)
+        return True,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.CheckSuguri: (Priority.CheckSuguri.jisuzhuangzhi, cls)}
 
 class huxiangjiaohuan(_card):
     name = '互相交换'
