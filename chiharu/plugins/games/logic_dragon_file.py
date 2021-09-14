@@ -1252,7 +1252,7 @@ class maintain1(_card):
     id = -65536
     positive = 1
     weight = 0
-    description = "获得一张正面卡。"
+    description = "摸一张正面卡。"
     @classmethod
     async def use(cls, user: User) -> None:
         await user.draw(1, positive={1})
