@@ -4,6 +4,7 @@ from typing import Any, Awaitable, Callable, Coroutine, Dict, Generic, Iterable,
 from collections import Counter, UserDict, UserList, defaultdict
 from functools import lru_cache, partial, wraps
 from copy import copy
+from math import ceil
 from datetime import datetime, timedelta
 from functools import reduce
 from contextlib import asynccontextmanager
@@ -145,21 +146,25 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         miansi = auto()
         sihuihuibizhiyao = auto()
         hongsezhihuan = auto()
-        invsihuihuibizhiyao = auto()
+        inv_sihuihuibizhiyao = auto()
         lveduozhebopu = auto()
         huiye = auto()
-        invhuiye = auto()
+        inv_huiye = auto()
     class OnAttacked(IntEnum):
         pass
     class OnDodged(IntEnum):
         pass
     class OnStatusAdd(IntEnum):
-        pass
+        jiaodai = auto()
+        inv_jiaodai = auto()
     class OnStatusRemove(IntEnum):
         pass
     class CheckJibiSpend(IntEnum):
+        bianyaqi = auto()
         beijingcard = auto()
     class OnJibiChange(IntEnum):
+        bianyaqi = auto()
+        inv_bianyaqi = auto()
         beijingcard = auto()
     class CheckEventptSpend(IntEnum):
         pass
@@ -2276,7 +2281,7 @@ class inv_sihuihuibizhiyao_s(_statusnull):
         return time + 120 * count, False
     @classmethod
     def register(cls) -> dict[int, TEvent]:
-        return {UserEvt.OnDeath: (Priority.OnDeath.invsihuihuibizhiyao, cls)}
+        return {UserEvt.OnDeath: (Priority.OnDeath.inv_sihuihuibizhiyao, cls)}
 
 class huiye(_card):
     name = "辉夜姬的秘密宝箱"
@@ -2318,7 +2323,7 @@ class inv_huiye_s(_statusnull):
             await user.discard_cards(l2)
     @classmethod
     def register(cls) -> dict[int, TEvent]:
-        return {UserEvt.OnDeath: (Priority.OnDeath.invhuiye, cls)}
+        return {UserEvt.OnDeath: (Priority.OnDeath.inv_huiye, cls)}
 
 class blank(_card):
     name = "空白卡牌"
@@ -2795,9 +2800,36 @@ class bianyaqi(_card):
     name = "变压器（♣10）"
     id = 93
     status = '2'
-    status_des = '变压器（♣10）：下一次击毙变动变动值加倍。'
     positive = 0
     description = "下一次你的击毙变动变动值加倍。"
+class bianyaqi_s(_statusnull):
+    id = '2'
+    des = "变压器（♣10）：下一次击毙变动变动值加倍。"
+    @classmethod
+    async def CheckJibiSpend(cls, count: TCount, user: 'User', jibi: int) -> Tuple[int]:
+        return jibi * 2 ** count,
+    @classmethod
+    async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
+        user.remove_status('2')
+        return jibi * 2 ** count,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.CheckJibiSpend: (Priority.CheckJibiSpend.bianyaqi, cls),
+            UserEvt.OnJibiChange: (Priority.OnJibiChange.bianyaqi, cls)}
+class inv_bianyaqi_s(_statusnull):
+    id = '1'
+    des = "反转·变压器（♣10）：下一次你的击毙变动变动值减半。"
+    @classmethod
+    async def CheckJibiSpend(cls, count: TCount, user: 'User', jibi: int) -> Tuple[int]:
+        return ceil(jibi / 2 ** count),
+    @classmethod
+    async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
+        user.remove_status('2')
+        return ceil(jibi / 2 ** count),
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.CheckJibiSpend: (Priority.CheckJibiSpend.bianyaqi, cls),
+            UserEvt.OnJibiChange: (Priority.OnJibiChange.bianyaqi, cls)}
 
 class guanggaopai(_card):
     name = "广告牌"
@@ -2824,20 +2856,18 @@ class jiaodai(_card):
     @classmethod
     async def use(cls, user: User) -> None:
         has = 6
-        for c in user.data.status:
-            if c != 'd' and c in _card.debuffs and has > 0:
+        for c in map(StatusNull, user.data.status):
+            if c.id != 'd' and c.is_debuff and has > 0:
                 has -= 1
-                des = _card.status_dict[c]
-                user.send_char(f"的{des[:des.index('：')]}被取消了！")
+                user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
                 user.remove_status(c, remove_all=False)
         if user.qq in global_state['lianhuan'] and has > 0:
             user.send_char("的铁索连环被取消了！")
             global_state['lianhuan'].remove(user.qq)
-        for c in user.data.daily_status:
-            if c in _card.debuffs and has > 0:
+        for c in map(StatusDaily, user.data.daily_status):
+            if c.id != 'd' and c.is_debuff and has > 0:
                 has -= 1
-                des = _card.daily_status_dict[c]
-                user.send_char(f"的{des[:des.index('：')]}被取消了！")
+                user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
                 user.remove_daily_status(c, remove_all=False)
         i = 0
         while i < len(user.data.status_time_checked):
@@ -2846,12 +2876,37 @@ class jiaodai(_card):
                 has -= 1
                 des = s.des
                 user.send_log(f"的{des[:des.index('：')]}被取消了！")
-                user.data.status_time.pop(i)
+                user.remove_limited_status(s)
             else:
                 i += 1
         user.data.save_status_time()
         user.add_status('8')
-_card.add_status('8', '布莱恩科技航空专用强化胶带FAL84型：免疫你下次即刻生效的负面状态（不包括死亡）。')
+class jiaodai_s(_statusnull):
+    id = '8'
+    des = "布莱恩科技航空专用强化胶带FAL84型：免疫你下次即刻生效的负面状态（不包括死亡）。"
+    @classmethod
+    async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll) -> Tuple[bool]:
+        if status.is_debuff and status.id != 'd':
+            user.remove_status('8', remove_all=False)
+            user.send_log("触发了胶带的效果，免除此负面状态！")
+            return True,
+        return False,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnStatusAdd: (Priority.OnStatusAdd.jiaodai, cls)}
+class inv_jiaodai_s(_statusnull):
+    id = '9'
+    des = "反转·布莱恩科技航空专用强化胶带FAL84型：免疫你下次即刻生效的非负面状态。"
+    @classmethod
+    async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll) -> Tuple[bool]:
+        if not status.is_debuff:
+            user.remove_status('9', remove_all=False)
+            user.send_log("触发了胶带的效果，免除此负面状态！")
+            return True,
+        return False,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnStatusAdd: (Priority.OnStatusAdd.inv_jiaodai, cls)}
 
 class xijunpeiyanggang(_card):
     name = "仿·细菌培养缸"
@@ -3402,8 +3457,8 @@ for c in ('YZ', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'WX'
 # _card.add_status('y', "反转·辉夜姬的秘密宝箱：你下一次死亡的时候随机弃一张牌。")
 # _card.add_status('M', "反转·存钱罐：下次触发隐藏词的奖励-10击毙。")
 _card.add_status('Q', "反转·通灵之术-密西迪亚兔：你的屁股上出现了一只可爱的小兔子。")
-_card.add_status('1', "反转·变压器：下一次你的击毙变动变动值减半。")
-_card.add_status('9', "反转·布莱恩科技航空专用强化胶带FAL84型：免疫你下次即刻生效的非负面状态。")
+# _card.add_status('1', "反转·变压器：下一次你的击毙变动变动值减半。")
+# _card.add_status('9', "反转·布莱恩科技航空专用强化胶带FAL84型：免疫你下次即刻生效的非负面状态。")
 _card.add_status('[', "背日葵：跨日结算时你损失1击毙。")
 _card.add_status(']', "双子背日葵：跨日结算时你损失2击毙。")
 revert_daily_status_map: Dict[str, str] = {}
