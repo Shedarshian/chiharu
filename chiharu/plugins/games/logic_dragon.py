@@ -861,7 +861,7 @@ async def dragon_buy(buf: SessionBuffer):
             add_bomb(w)
         elif r < 0.65:
             buf.send("💥💥💥抽奖机爆炸了！")
-            Userme(user).remove_daily_status('O')
+            Userme(user).remove_daily_status('O', remove_all=False)
             await user.kill()
         else:
             r = '   '

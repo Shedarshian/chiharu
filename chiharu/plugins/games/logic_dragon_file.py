@@ -1537,22 +1537,6 @@ class SFusion(NumedStatus):
     def double(self) -> List[T_status]:
         return [SFusion(self.num, self.jibi * 2, self.num_init)]
 
-@final
-class SZuzhuangji(NumedStatus):
-    id = 'Z'
-    des = "电路组装机：每次你花费/损失击毙时，若该损失小于16击毙，则该损失变为三倍。"
-    is_debuff = True
-    def double(self):
-        return [self.__class__(self.num * 2)]
-
-@final
-class SYuzhuangji(NumedStatus):
-    id = 'Y'
-    des = "反转·电路组装机：每次你获得击毙时，若该获得小于16击毙，则该获得变为三倍。"
-    is_debuff = True
-    def double(self):
-        return [self.__class__(self.num * 2)]
-
 class ListStatus(_status):
     def __init__(self, s: Union[str, List]):
         if isinstance(s, str):
@@ -1723,6 +1707,7 @@ class _card(IEventListener, metaclass=card_meta):
     name = ""
     hold_des = None
     id = -127
+    newer = 0
     weight = 1
     positive = 0
     description = ""
@@ -1751,6 +1736,25 @@ class _card(IEventListener, metaclass=card_meta):
     @classmethod
     def full_description(cls, qq):
         return f"{cls.id}. {cls.name}\n\t{cls.description}"
+
+class supernova(_card):
+    name = "超新星"
+    id = -65536
+    positive = 1
+    weight = 0
+    description = "获得一张炙手可热的新卡。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        max = 0
+        l = []
+        for id, card in _card.card_id_dict.items():
+            if card.newer == max:
+                l.append(card)
+            elif card.newer > max:
+                max = card.newer
+                l = [card]
+        c = random.choice(l)
+        await user.draw(0, cards=[c])
 
 class jiandiezhixing(_card):
     name = "邪恶的间谍行动～执行"
@@ -2908,26 +2912,6 @@ class inv_jiaodai_s(_statusnull):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnStatusAdd: (Priority.OnStatusAdd.inv_jiaodai, cls)}
 
-class xijunpeiyanggang(_card):
-    name = "仿·细菌培养缸"
-    id = 101
-    description = "抽到时，若使用者当前击毙小于50，则越靠近50获得的击毙越多，最多为25；若使用者当前击毙大于50小于100，则越靠近100获得的击毙越少，直至0，若使用者当前击毙大于100，则随着击毙增加倒扣击毙的值逐渐增大直至150击毙时扣除20。"
-    positive = 0
-    consumed_on_draw = True
-    @classmethod
-    async def on_draw(cls, user: User) -> None:
-        jibi = user.data.jibi
-        if jibi <= 50:
-            out = jibi // 2
-        elif jibi <= 100:
-            out = (100 - jibi) // 2
-        elif jibi <= 150:
-            out = (100 - jibi) * 2 // 5
-        else:
-            out = -20
-        user.send_char(("获得" if out >= 0 else "损失") + f"了{abs(out)}击毙！")
-        await user.add_jibi(out)
-
 class McGuffium239(_card):
     name = "Mc Guffium 239"
     id = 102
@@ -2935,33 +2919,6 @@ class McGuffium239(_card):
     status = 'G'
     status_des = 'Mc Guffium 239：下一次礼物交换不对你生效。'
     description = "下一次礼物交换不对你生效。"
-
-class dianluzuzhuangji(_card):
-    name = "电路组装机"
-    id = 103
-    description = "抽到时附加buff：每次你花费/损失击毙时，若该损失小于16击毙，则该损失变为三倍。持续20次。"
-    on_draw_limited_status = 'Z'
-    # is_debuff = True
-    consumed_on_draw = True
-    limited_init = (20,)
-    # status_des = "电路组装机：每次你花费/损失击毙时，若该损失小于16击毙，则有1/6的几率该损失变为六倍。"
-
-class fusionreactor(_card):
-    name = "聚变堆"
-    id = 104
-    positive = 1
-    description = "使用50击毙发动。若你的下10次接龙每两次接龙中间都只间隔两人，则你获得100击毙。"
-    failure_message = "你的击毙不足！"
-    @classmethod
-    async def can_use(cls, user: User) -> bool:
-        return user.data.jibi >= 50
-    @classmethod
-    async def use(cls, user: User) -> None:
-        if user.data.jibi < 50:
-            user.buf.send(cls.failure_message)
-        else:
-            await user.add_jibi(-50)
-            user.add_limited_status('f', 10, 100, 10)
 
 class jujifashu(_card):
     name = "聚集法术"
@@ -3476,6 +3433,7 @@ class excalibur(_card):
     name = "EX咖喱棒"
     positive = 1
     description = "只可在胜利时使用。统治不列颠。"
+    newer = 1
     @classmethod
     async def can_use(cls, user: User) -> bool:
         return user.check_daily_status('W') > 0
