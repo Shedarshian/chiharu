@@ -337,20 +337,7 @@ async def dragon_construct(buf: SessionBuffer):
             #     await buf.session.send('你已死，不能接龙！')
             #     user.log << f"已死，接龙失败。"
             #     return
-            # if me.check_daily_status('o'):
-            #     if parent.word != '' and word != '' and parent.word[-1] != word[0]:
-            #         await buf.session.send("当前规则为首尾接龙，接龙失败。")
-            #         return
-            # if me.check_daily_status('p'):
-            #     if parent.word != '' and word != '' and parent.word[0] != word[-1]:
-            #         await buf.session.send("当前规则为尾首接龙，接龙失败。")
-            #         return
-            # m = user.check_daily_status('m')
-            # M = user.check_daily_status('M')
-            # i = me.check_daily_status('i')
-            # I = me.check_daily_status('I')
-            # dis = max(2 + i - I - m + M, 1)
-            dist = max(dist, 2)
+            dist = max(dist, 1)
             if qq in parent.get_parent_qq_list(dist):
                 # Event CheckSuguri
                 for eln, n in user.IterAllEventList(UserEvt.CheckSuguri, Priority.CheckSuguri):
@@ -414,16 +401,9 @@ async def dragon_construct(buf: SessionBuffer):
                     if not update_hidden_keyword(i, True):
                         buf.end("隐藏奖励词池已空！")
                     break
-            # fork = False
-            # if (n := me.check_daily_status('b')):
-            #     fork = random.random() > 0.95 ** n
             if (tree_node := check_and_add_log_and_contruct_tree(parent, word, qq, kwd=kwd, hdkwd=hdkwd, fork=False)) is None:
                 user.log << f"由于过去一周接过此词，死了。"
                 buf.send("过去一周之内接过此词，你死了！")
-                # if user.check_daily_status('Y'):
-                #     user.log << f"触发了IX - 隐者的效果，没死。"
-                #     user.send_char("触发了IX - 隐者的效果，没死。")
-                # else:
                 # Event OnDuplicatedWord
                 for eln, n in user.IterAllEventList(UserEvt.OnDuplicatedWord, Priority.OnDuplicatedWord):
                     dodged, = await eln.OnDuplicatedWord(n, user, word)
@@ -486,60 +466,6 @@ async def dragon_construct(buf: SessionBuffer):
                 #             changed = True
                 #     if changed:
                 #         user.data.save_status_time()
-                # if n := user.check_status('A'):
-                #     user.remove_status('A')
-                #     user.add_status('a' * n)
-                # if n := user.check_status('B'):
-                #     user.remove_status('B')
-                #     user.add_status('b' * n)
-                # if (nd := tree_node.before(5)) and nd.qq != config.selfqq and (u := User(nd.qq, buf)) != user:
-                #     def _(a: int, b1: int, b2: int):
-                #         if a >= b1 + b2:
-                #             return b1 + b2, a - b1 - b2, 0, 0
-                #         if a > b2:
-                #             return a, 0, b1 + b2 - a, 0
-                #         return a, 0, b1, b2 - a
-                #     if na := u.check_status('a'):
-                #         u.remove_status('a')
-                #         user.log << "从五个人前面接来了判决α。"
-                #         n, na, nb1, nb2 = _(na, user.check_status('b'), user.check_status('B'))
-                #         if n:
-                #             buf.send("你从五个人前面接来了判决α！")
-                #             user.kill()
-                #             user.remove_status('b')
-                #             user.remove_status('B')
-                #             user.add_status('b' * nb1 + 'B' * nb2)
-                #         user.add_status('A' * na)
-                #     if nb := u.check_status('b'):
-                #         u.remove_status('b')
-                #         user.log << "从五个人前面接来了判决β。"
-                #         n, nb, na1, na2 = _(nb, user.check_status('a'), user.check_status('A'))
-                #         if n:
-                #             buf.send("你从五个人前面接来了判决β！")
-                #             user.kill()
-                #             user.remove_status('a')
-                #             user.remove_status('A')
-                #             user.add_status('a' * na1 + 'A' * na2)
-                #         user.add_status('B' * nb)
-                # if n := user.check_daily_status('x'):
-                #     for i in range(n):
-                #         if random.random() > 0.9:
-                #             buf.send("你获得了一张【吸血鬼】！")
-                #             await user.draw(0, cards=[Card(-2)])
-                # if (j := user.check_status('j')) and not me.check_daily_status('i') and random.random() > 0.95 ** j:
-                #     user.send_log("的玩偶匣爆炸了！")
-                #     user.remove_status('j')
-                #     qqs = {user.qq}
-                #     id = tree_node.id
-                #     for i, j in itertools.product(range(-2, 3), range(-2, 3)):
-                #         ret = Tree.find((id[0] + i, id[1] + j))
-                #         if ret is not None:
-                #             qqs.add(ret.qq)
-                #     qqs -= {config.selfqq}
-                #     user.send_char("炸死了" + "".join(f"[CQ:at,qq={qqq}]" for qqq in qqs) + "！")
-                #     user.log << "炸死了" + ", ".join(str(qqq) for qqq in qqs) + "。"
-                #     for qqq in qqs:
-                #         await User(qqq, user.buf).kill()
                 if word in bombs:
                     buf.send("你成功触发了炸弹，被炸死了！")
                     user.log << f"触发了炸弹，被炸死了。"
@@ -555,10 +481,6 @@ async def dragon_construct(buf: SessionBuffer):
                     #     user.remove_status('v', remove_all=False)
                     #     user.log << f"触发了矢量操作的效果，没死。"
                     #     user.send_char("触发了矢量操作的效果，没死。")
-                    # if user.check_daily_status('Y'):
-                    #     user.log << f"触发了IX - 隐者的效果，没死。"
-                    #     user.send_char("触发了IX - 隐者的效果，没死。")
-                    # else:
                 if to_exchange is not None:
                     buf.send(f"你与[CQ:at,qq={to_exchange.qq}]交换了手牌与击毙！")
                     jibi = (user.data.jibi, to_exchange.data.jibi)
