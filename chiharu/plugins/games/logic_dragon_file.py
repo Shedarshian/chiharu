@@ -12,6 +12,7 @@ from pypinyin import pinyin, Style
 from nonebot.command.argfilter import extractors, validators
 from .. import config
 
+# TODO 互相交换改成全局status
 TQuest = TypedDict('TQuest', id=int, remain=int)
 TSteal = TypedDict('TSteal', user=List[int], time=int)
 class TGlobalState(TypedDict):
@@ -77,12 +78,16 @@ T_equipment = TypeVar('T_equipment', bound='_equipment')
 TEquipment = Type[T_equipment]
 TIEventListener = TypeVar('TIEventListener', bound='IEventListener')
 TEventListener = Type[TIEventListener]
+TCount = Union[int, list[T_status]]
+class CountWaiter:
+    def __add__(self, var):
+        return var
 T = TypeVar('T')
 class CounterOnly(Generic[T]):
     def __init__(self):
         self.data: T = None
-        self.count: int = 0
-    def __getitem__(self, index):
+        self.count: TCount = CountWaiter()
+    def __getitem__(self, index) -> TCount:
         if self.data is None:
             self.data = index
         elif self.data != index:
@@ -177,6 +182,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
     class OnBombed(IntEnum):
         hermit = auto()
     class OnDragoned(IntEnum):
+        queststone = auto()
         xingyunhufu = auto()
         lveduozhebopu = auto()
         plus2 = auto()
@@ -184,7 +190,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         dihuopenfa = auto()
 class IEventListener:
     @classmethod
-    async def OnUserUseCard(cls, count: int, user: 'User', card: TCard) -> Tuple[bool, str]:
+    async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str]:
         """Called before a user intend to use a card.
 
         Arguments:
@@ -195,42 +201,42 @@ class IEventListener:
         str: failure message."""
         pass
     @classmethod
-    async def AfterCardUse(cls, count: int, user: 'User', card: TCard) -> Tuple[()]:
+    async def AfterCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[()]:
         """Called After a card is used in any cases.
 
         Arguments:
         card: The card used."""
         pass
     @classmethod
-    async def AfterCardDraw(cls, count: int, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
+    async def AfterCardDraw(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
         """Called after cards are drawn.
 
         Parameters:
         cards: The cards drawn."""
         pass
     @classmethod
-    async def AfterCardDiscard(cls, count: int, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
+    async def AfterCardDiscard(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
         """Called after cards are discarded.
 
         Parameters:
         cards: The cards discarded."""
         pass
     @classmethod
-    async def AfterCardRemove(cls, count: int, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
+    async def AfterCardRemove(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
         """Called after cards are removed.
 
         Parameters:
         cards: The cards removed."""
         pass
     @classmethod
-    async def AfterExchange(cls, count: int, user: 'User', user2: 'User') -> Tuple[()]:
+    async def AfterExchange(cls, count: TCount, user: 'User', user2: 'User') -> Tuple[()]:
         """Called after cards are exchanged.
 
         Parameters:
         user2: The user that cards are exchanged."""
         pass
     @classmethod
-    async def OnDeath(cls, count: int, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
         """Called when a user is dead.
         
         Arguments:
@@ -243,13 +249,13 @@ class IEventListener:
         bool: represents whether the death is dodged."""
         pass
     @classmethod
-    async def OnAttacked(cls, count: int, user: 'User') -> Tuple[bool]:
+    async def OnAttacked(cls, count: TCount, user: 'User') -> Tuple[bool]:
         pass
     @classmethod
-    async def OnDodged(cls, count: int, user: 'User') -> Tuple[()]:
+    async def OnDodged(cls, count: TCount, user: 'User') -> Tuple[()]:
         pass
     @classmethod
-    def OnStatusAdd(cls, count: int, user: 'User', status: TStatusAll) -> Tuple[bool]:
+    def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll) -> Tuple[bool]:
         """Called when a status is added.
         
         Arguments:
@@ -259,7 +265,7 @@ class IEventListener:
         bool: whether the addition is dodged."""
         pass
     @classmethod
-    def OnStatusRemove(cls, count: int, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[bool]:
+    def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[bool]:
         """Called when a status is removed.
         
         Arguments:
@@ -270,7 +276,7 @@ class IEventListener:
         bool: whether the removement is dodged."""
         pass
     @classmethod
-    async def CheckJibiSpend(cls, count: int, user: 'User', jibi: int) -> Tuple[int]:
+    async def CheckJibiSpend(cls, count: TCount, user: 'User', jibi: int) -> Tuple[int]:
         """Called when a user intended to use jibi to buy something.
 
         Arguments:
@@ -280,7 +286,7 @@ class IEventListener:
         int: the modified amount of jibi needed to buy."""
         pass
     @classmethod
-    async def OnJibiChange(cls, count: int, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
+    async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
         """Called when a user added some jibi or decreased some jibi.
 
         Arguments:
@@ -292,7 +298,7 @@ class IEventListener:
         int: the modified amount of jibi to add."""
         pass
     @classmethod
-    async def CheckEventptSpend(cls, count: int, user: 'User', event_pt: int) -> Tuple[int]:
+    async def CheckEventptSpend(cls, count: TCount, user: 'User', event_pt: int) -> Tuple[int]:
         """Called when a user intended to use event_pt to buy something.
 
         Arguments:
@@ -302,7 +308,7 @@ class IEventListener:
         int: the modified amount of event_pt needed to buy."""
         pass
     @classmethod
-    async def OnEventptChange(cls, count: int, user: 'User', event_pt: int) -> Tuple[int]:
+    async def OnEventptChange(cls, count: TCount, user: 'User', event_pt: int) -> Tuple[int]:
         """Called when a user added some event_pt or decreased some event_pt.
 
         Arguments:
@@ -314,7 +320,7 @@ class IEventListener:
         int: the modified amount of event_pt to add."""
         pass
     @classmethod
-    async def BeforeDragoned(cls, count: int, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
         """Called before a user dragoning.
 
         Arguments:
@@ -327,7 +333,7 @@ class IEventListener:
         str: failure message."""
         pass
     @classmethod
-    async def CheckSuguri(cls, count: int, user: 'User', word: str, parent: 'Tree') -> Tuple[bool]:
+    async def CheckSuguri(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool]:
         """Called when Suguri's Accelerator is checked to be used.
 
         Arguments:
@@ -338,7 +344,7 @@ class IEventListener:
         bool: represents if accelerated."""
         pass
     @classmethod
-    async def OnKeyword(cls, count: int, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
+    async def OnKeyword(cls, count: TCount, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
         """Called when a user hit a keyword.
         
         Arguments:
@@ -350,7 +356,7 @@ class IEventListener:
         int: the amount of jibi to add."""
         pass
     @classmethod
-    async def OnHiddenKeyword(cls, count: int, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
+    async def OnHiddenKeyword(cls, count: TCount, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
         """Called when a user hit a hidden keyword.
         
         Arguments:
@@ -362,7 +368,7 @@ class IEventListener:
         int: the amount of jibi to add."""
         pass
     @classmethod
-    async def OnDuplicatedWord(cls, count: int, user: 'User', word: str) -> Tuple[bool]:
+    async def OnDuplicatedWord(cls, count: TCount, user: 'User', word: str) -> Tuple[bool]:
         """Called when a user dragoned a duplicated word in one week.
         
         Arguments:
@@ -372,7 +378,7 @@ class IEventListener:
         bool: represents whether the hit is dodged."""
         pass
     @classmethod
-    async def OnBombed(cls, count: int, user: 'User', word: str) -> Tuple[bool]:
+    async def OnBombed(cls, count: TCount, user: 'User', word: str) -> Tuple[bool]:
         """Called when a user hit a mine.
         
         Arguments:
@@ -382,19 +388,19 @@ class IEventListener:
         bool: represents whether the hit is dodged."""
         pass
     @classmethod
-    async def OnDragoned(cls, count: int, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
         """Called when the user complete a dragon.
         
         Arguments:
         branch: the dragon branch."""
         pass
     @classmethod
-    async def OnNewDay(cls, count: int, user: 'User') -> Tuple[()]:
+    async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
         """Called when new day begins."""
         pass
     @classmethod
     def register(cls) -> dict[int, TEvent]:
-        pass
+        return {}
 TBoundIntEnum = TypeVar('TBoundIntEnum', bound=IntEnum)
 
 class Game:
@@ -495,15 +501,41 @@ class UserData:
             self._register_card(c)
         for s in itertools.chain(map(StatusNull, self.status), map(StatusDaily, self.daily_status)):
             self._register_status(s)
+        for s in self.status_time:
+            self._register_status_time(s)
     def _register_card(self, c: TCard):
-        if c.hold_des is not None:
-            self._register(c)
-    def _register_status(self, s: TStatusAll):
+        self._register(c)
+    def _register_status(self, s: Union[T_statusdaily, T_statusnull]):
         if s.is_global == (self.qq == config.selfqq):
             self._register(s)
-    def _register(self, el: 'IEventListener'):
+    def _register_status_time(self, s: T_status):
+        if s.is_global == (self.qq == config.selfqq):
+            self._register(s, [s])
+    def _register(self, el: 'IEventListener', to_add=1):
         for key, (priority, el) in el.register().items():
-            self.event_listener[key][priority][el] += 1
+            self.event_listener[key][priority][el] += to_add
+    def _deregister_card(self, c: TCard, /, is_all=False):
+        self._deregister(c, is_all=is_all)
+    def _deregister_status(self, s: Union[T_statusdaily, T_statusnull], /, is_all=False):
+        if s.is_global == (self.qq == config.selfqq):
+            self._deregister(s, is_all=is_all)
+    def _deregister_status_time(self, el: T_status, /, is_all=False):
+        if el.is_global == (self.qq == config.selfqq):
+            for key, (priority, el) in el.register().items():
+                if is_all:
+                    self.event_listener[key].pop(priority)
+                else:
+                    self.event_listener[key][priority][el].remove(el)
+                    if len(self.event_listener[key][priority][el]) == 0:
+                        self.event_listener[key].pop(priority)
+    def _deregister(self, el: 'IEventListener', /, is_all=False):
+        for key, (priority, el) in el.register().items():
+            if is_all:
+                self.event_listener[key].pop(priority)
+            else:
+                self.event_listener[key][priority][el] -= 1
+                if self.event_listener[key][priority][el] == 0:
+                    self.event_listener[key].pop(priority)
     def save_status_time(self):
         self.status_time.f(self.status_time.data)
     def reload(self) -> None:
@@ -709,6 +741,7 @@ class User:
         #         return
             self.data.status += s
             self.log << f"增加了永久状态{s}，当前状态为{self.data.status}。"
+            self.data._register_status(StatusNull(s))
     def add_daily_status(self, s: str):
         # Event OnStatusAdd
         for eln, n in self.IterAllEventList(UserEvt.OnStatusAdd, Priority.OnStatusAdd):
@@ -726,6 +759,7 @@ class User:
         #     return
             self.data.daily_status += s
             self.log << f"增加了每日状态{s}，当前状态为{self.data.daily_status}。"
+            self.data._register_status(StatusDaily(s))
     def add_limited_status(self, s: Union[str, T_status], *args, **kwargs):
         if isinstance(s, str):
             ss = Status(s)(*args, **kwargs)
@@ -747,6 +781,7 @@ class User:
         #     return
             self.data.status_time.append(ss)
             self.log << f"增加了限时状态{ss}。"
+            self.data._register_status_time(ss)
     def remove_status(self, s: str, /, remove_all=True):
         # Event OnStatusRemove
         for eln, n in self.IterAllEventList(UserEvt.OnStatusRemove, Priority.OnStatusRemove):
@@ -762,6 +797,7 @@ class User:
                     l.remove(s)
                 self.data.status = ''.join(l)
             self.log << f"移除了{'一层' if not remove_all else ''}永久状态{s}，当前状态为{self.data.status}。"
+            self.data._deregister(StatusNull(s), is_all=remove_all)
     def remove_daily_status(self, s: str, /, remove_all=True):
         # Event OnStatusRemove
         for eln, n in self.IterAllEventList(UserEvt.OnStatusRemove, Priority.OnStatusRemove):
@@ -777,6 +813,7 @@ class User:
                     l.remove(s)
                 self.data.daily_status = ''.join(l)
             self.log << f"移除了{'一层' if not remove_all else ''}每日状态{s}，当前状态为{self.data.daily_status}。"
+            self.data._deregister(StatusDaily(s), is_all=remove_all)
     def remove_limited_status(self, s: T_status):
         # Event OnStatusRemove
         for eln, n in self.IterAllEventList(UserEvt.OnStatusRemove, Priority.OnStatusRemove):
@@ -786,6 +823,7 @@ class User:
         else:
             self.data.status_time.remove(s)
             self.log << f"移除了一个限时状态{s}。"
+            self.data._deregister(s, is_all=False)
     def remove_all_limited_status(self, s: str):
         l = [c for c in self.data.status_time if c.id == s]
         if len(l) == 0:
@@ -804,6 +842,7 @@ class User:
                 else:
                     i += 1
             self.log << f"移除了所有限时状态{s}。"
+            self.data._deregister(s, is_all=True)
             return self.data.status_time
     def check_status(self, s: str) -> int:
         return self.data.check_status(s)
@@ -811,6 +850,12 @@ class User:
         return self.data.check_daily_status(s)
     def check_limited_status(self, s: str, extra: Optional[Callable[[T_status], bool]]=None) -> List[T_status]:
         return self.data.check_limited_status(s, extra)
+    def add_card(self, card: TCard):
+        self.data.hand_card.append(card)
+        self.data._register_card(card)
+    def remove_card(self, card: TCard):
+        self.data.hand_card.remove(card)
+        self.data._deregister_card(card)
     async def add_event_pt(self, pt: int, /, is_buy: bool=False):
         current_event_pt = self.data.event_pt
         if is_buy and pt < 0:
@@ -1082,7 +1127,7 @@ class User:
             #         self.data.hand_card.append(c)
             #     await c.on_draw(self)
             if not c.consumed_on_draw:
-                self.data.hand_card.append(c)
+                self.add_card(c)
             if not c.des_need_init:
                 await c.on_draw(self)
         # Event AfterCardDraw
@@ -1111,7 +1156,7 @@ class User:
         """将卡牌移出手牌，使用卡牌然后执行销毁操作。"""
         self.send_char('使用了卡牌：\n' + card.full_description(self.qq))
         self.log << f"使用了卡牌{card.name}。"
-        self.data.hand_card.remove(card)
+        self.remove_card(card)
         await self.use_card_effect(card)
         await card.on_remove(self)
         self.log << f"使用完卡牌，当前手牌为{cards_to_str(self.data.hand_card)}。"
@@ -1119,7 +1164,7 @@ class User:
         """将cards里的卡牌移出手牌，不结算弃牌。"""
         self.log << f"烧牌{cards_to_str(cards)}。"
         for c in cards:
-            self.data.hand_card.remove(c)
+            self.remove_card(c)
         self.data.set_cards()
         for card in cards:
             await card.on_remove(self)
@@ -1130,7 +1175,7 @@ class User:
         """弃牌。将cards里的卡牌移出手牌。弃光手牌时请复制hand_card作为cards传入。"""
         self.log << f"弃牌{cards_to_str(cards)}。"
         for c in cards:
-            self.data.hand_card.remove(c)
+            self.remove_card(c)
         self.data.set_cards()
         for card in cards:
             await card.on_discard(self)
@@ -1858,11 +1903,11 @@ class hermit_s(_statusdaily):
     id = 'Y'
     des = "IX - 隐者：今天你不会因为接到重复词或触雷而死亡。"
     @classmethod
-    async def OnDuplicatedWord(cls, count: int, user: User, word: str) -> Tuple[bool]:
+    async def OnDuplicatedWord(cls, count: TCount, user: User, word: str) -> Tuple[bool]:
         user.send_log("触发了IX - 隐者的效果，没死。")
         return True,
     @classmethod
-    async def OnBombed(cls, count: int, user: User, word: str) -> Tuple[bool]:
+    async def OnBombed(cls, count: TCount, user: User, word: str) -> Tuple[bool]:
         user.send_log("触发了IX - 隐者的效果，没死。")
         return True,
     @classmethod
@@ -1908,7 +1953,7 @@ class miansi(_statusnull):
     id = 'r'
     des = "免死：免疫你下一次死亡。"
     @classmethod
-    async def OnDeath(cls, count: int, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
             user.send_log("触发了免死的效果，免除死亡！")
             user.remove_status('r', remove_all=False)
             return 0, True
@@ -1947,7 +1992,7 @@ class temperance_s(_statusdaily):
     des = "XIV - 节制：下次刷新前你不能使用卡牌。"
     is_debuff = True
     @classmethod
-    async def OnUserUseCard(cls, count: int, user: User, card: TCard) -> Tuple[bool, str]:
+    async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str]:
         return False, "你因XIV - 节制的效果，不能使用卡牌！"
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -1999,7 +2044,7 @@ class star_s(_statusdaily):
     des = "XVII - 星星：今天的每个词有10%的几率进入奖励词池。"
     is_global = True
     @classmethod
-    async def OnDragoned(cls, count: int, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
         if random.random() > 0.9 ** count:
             from .logic_dragon import add_keyword
             add_keyword(branch.word)
@@ -2038,7 +2083,7 @@ class shengbing(_statusdaily):
     id = 'd'
     des = "生病：直到下一次主题出现前不可接龙。"
     @classmethod
-    async def BeforeDragoned(cls, count: int, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
         return False, 0, "你病了，不能接龙！"
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -2127,7 +2172,7 @@ class minus1ma_s(_statusdaily):
     id = 'm'
     des = "-1马：直到下次主题刷新为止，你可以少隔一个接龙，但最少隔一个。"
     @classmethod
-    async def BeforeDragoned(cls, count: int, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
         return True, -1, ""
     @classmethod
     def register(cls):
@@ -2136,7 +2181,7 @@ class plus1ma_s(_statusdaily):
     id = 'M'
     des = "+1马：直到下次主题刷新为止，你必须额外隔一个才能接龙。"
     @classmethod
-    async def BeforeDragoned(cls, count: int, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
         return True, 1, ""
     @classmethod
     def register(cls):
@@ -2203,7 +2248,7 @@ class sihuihuibizhiyao_s(_statusnull):
     id = 's'
     des = '死秽回避之药：下次死亡时自动消耗5击毙免除死亡。'
     @classmethod
-    async def OnDeath(cls, count: int, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         if c.pierce:
             user.send_log("死秽回避之药的效果被幻想杀手消除了！")
             user.remove_status('s', remove_all=True)
@@ -2220,7 +2265,7 @@ class inv_sihuihuibizhiyao_s(_statusnull):
     id = 't'
     des = '反转·死秽回避之药：下次死亡时获得5击毙，但是死亡时间增加2h。'
     @classmethod
-    async def OnDeath(cls, count: int, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         if c.pierce:
             user.send_log("反转·死秽回避之药的效果被幻想杀手消除了！")
             user.remove_status('t')
@@ -2242,7 +2287,7 @@ class huiye_s(_statusnull):
     id = 'x'
     des = '辉夜姬的秘密宝箱：下一次死亡的时候奖励抽一张卡。'
     @classmethod
-    async def OnDeath(cls, count: int, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         user.remove_status('x')
         if c.pierce:
             user.send_log("辉夜姬的秘密宝箱的效果被幻想杀手消除了！")
@@ -2257,7 +2302,7 @@ class inv_huiye_s(_statusnull):
     id = 'y'
     des = '反转·辉夜姬的秘密宝箱：你下一次死亡的时候随机弃一张牌。'
     @classmethod
-    async def OnDeath(cls, count: int, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         user.remove_status('y')
         if c.pierce:
             user.send_log("反转·辉夜姬的秘密宝箱的效果被幻想杀手消除了！")
@@ -2336,7 +2381,7 @@ class plus2_s(_card):
     id = '+'
     des = "+2：下一个接龙的人抽一张非负面卡和一张非正面卡。"
     @classmethod
-    async def OnDragoned(cls, count: int, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
         Userme(user).remove_status('+')
         user.send_char(f"触发了{count}次+2的效果，摸{count}张非正面牌与{count}张非负面牌！")
         user.log << f"触发了+2的效果。"
@@ -2374,7 +2419,7 @@ class ourostone_s(_statusdaily):
     des = "衔尾蛇之石：规则为首尾接龙直至下次刷新。"
     is_global = True
     @classmethod
-    async def BeforeDragoned(cls, count: int, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
         if parent.word != '' and word != '' and parent.word[-1] != word[0]:
             return False, 0, "当前规则为首尾接龙，接龙失败。"
         return True, 0, ""
@@ -2386,7 +2431,7 @@ class inv_ourostone_s(_statusdaily):
     des = "石之蛇尾衔：规则为尾首接龙直至下次刷新。"
     is_global = True
     @classmethod
-    async def BeforeDragoned(cls, count: int, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
         if parent.word != '' and word != '' and parent.word[0] != word[-1]:
             return False, 0, "当前规则为尾首接龙，接龙失败。"
         return True, 0, ""
@@ -2443,6 +2488,21 @@ class queststone(_card):
         global_state['quest'][t].append(m)
         config.logger.dragon << f"【LOG】用户{target.qq}增加了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][t]]}。"
         save_global_state()
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+        l = global_state['quest'].get(str(user.qq))
+        for m in l:
+            if m['remain'] > 0:
+                id, name, func = mission[m['id']]
+                if func(branch.word):
+                    user.send_char(f"完成了任务：{name[:-1]}！奖励3击毙。此任务还可完成{m['remain'] - 1}次。")
+                    user.log << f"完成了一次任务{name}，剩余{m['remain'] - 1}次。"
+                    m['remain'] -= 1
+                    await user.add_jibi(3)
+                    save_global_state()
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.queststone, cls)}
 
 class cunqianguan(_card):
     name = "存钱罐"
@@ -2455,7 +2515,7 @@ class cunqianguan_s(_statusnull):
     des = "存钱罐：下次触发隐藏词的奖励+10击毙。"
     is_global = True
     @classmethod
-    async def OnHiddenKeyword(cls, count: int, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
+    async def OnHiddenKeyword(cls, count: TCount, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
         user.send_log(f"触发了存钱罐，奖励+{count * 10}击毙！")
         Userme(user).remove_status('m')
         return count * 10,
@@ -2467,7 +2527,7 @@ class inv_cunqianguan_s(_statusnull):
     des = "反转·存钱罐：下次触发隐藏词的奖励-10击毙。"
     is_global = True
     @classmethod
-    async def OnHiddenKeyword(cls, count: int, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
+    async def OnHiddenKeyword(cls, count: TCount, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
         user.send_log(f"触发了反转·存钱罐，奖励-{count * 10}击毙！")
         Userme(user).remove_status('M')
         return -count * 10,
@@ -2484,7 +2544,7 @@ class hongsezhihuan_s(_statusnull):
     id = 'h'
     des = '虹色之环：下次死亡时，有1/2几率闪避，1/2几率死亡时间+1小时。'
     @classmethod
-    async def OnDeath(cls, count: int, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         if c.pierce:
             user.send_log("虹色之环的效果被幻想杀手消除了！")
             user.remove_status('h', remove_all=True)
@@ -2547,12 +2607,12 @@ class xingyunhufu(_card):
     positive = 1
     description = "持有此卡时，你无法使用其他卡牌。你每进行两次接龙额外获得一个击毙（每天上限为5击毙）。使用将丢弃这张卡。"
     @classmethod
-    async def OnUserUseCard(cls, count: int, user: User, card: TCard) -> Tuple[bool, str]:
+    async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str]:
         if card.id != 73:
             return False, "你因幸运护符的效果，不可使用其他手牌！"
         return True, ""
     @classmethod
-    async def OnDragoned(cls, count: int, user: User, branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: User, branch: 'Tree') -> Tuple[()]:
         if user.data.today_jibi % 2 == 1:
             user.buf.send(f"你因为幸运护符的效果，额外奖励{count}击毙。")
             await user.add_jibi(count)
@@ -2572,7 +2632,7 @@ class jisuzhuangzhi_s(_statusnull):
     id = 'z'
     des = "极速装置：下次可以连续接龙两次。"
     @classmethod
-    async def CheckSuguri(cls, count: int, user: 'User', word: str, parent: 'Tree') -> Tuple[bool]:
+    async def CheckSuguri(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool]:
         user.remove_status('z', remove_all=False)
         return True,
     @classmethod
@@ -2624,12 +2684,12 @@ class lveduozhebopu(_card):
             del global_state['steal'][str(user.qq)]
         save_global_state()
     @classmethod
-    async def OnDeath(cls, count: int, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         user.send_log(f"的{f'{count}张' if count > 1 else ''}掠夺者啵噗被弃了！")
         await user.discard_cards([cls] * count)
         return time, False
     @classmethod
-    async def OnDragoned(cls, count: int, user: User, branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: User, branch: 'Tree') -> Tuple[()]:
         last_qq = branch.qq
         qq = user.qq
         if branch.id != (0, 0):
@@ -2673,9 +2733,11 @@ class ComicSans(_card): # TODO
     name = "Comic Sans"
     id = 80
     global_daily_status = 'c'
-    status_des = 'Comic Sans：七海千春今天所有生成的图片均使用Comic Sans作为西文字体（中文使用华文彩云）。'
     positive = 0
     description = "七海千春今天所有生成的图片均使用Comic Sans作为西文字体（中文使用华文彩云）。"
+class ComicSans_s(_statusdaily):
+    id = 'c'
+    des = 'Comic Sans：七海千春今天所有生成的图片均使用Comic Sans作为西文字体（中文使用华文彩云）。'
 
 class PC(_card):
     name = "PC"
@@ -2689,7 +2751,12 @@ class PC(_card):
         qqs = [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))]
         for qq in set(qqs):
             User(qq, user.buf).add_daily_status('W')
-_card.add_daily_status('W', "胜利：恭喜，今天你赢了！")
+class win(_statusdaily):
+    id = 'W'
+    des = "胜利：恭喜，今天你赢了！"
+class defeat(_statusdaily):
+    id = 'X'
+    des = "失败：对不起，今天你输了！"
 
 class suicideking(_card):
     name = "自杀之王（♥K）"
@@ -3027,7 +3094,7 @@ class dihuopenfa_s(_statusdaily):
     des = "地火喷发：今天之内所有的接龙词都有10%的几率变成地雷。"
     is_global = True
     @classmethod
-    async def OnDragoned(cls, count: int, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
         if random.random() > 0.9 ** count:
             from .logic_dragon import add_bomb
             add_bomb(branch.word)
@@ -3235,7 +3302,7 @@ class beijingcard(_card):
     description = "持有此卡时，你当天在商店总消费达100击毙后商店所有物品变为8折，当天在商店总消费达150击毙后商店所有物品变为5折，当天在商店总消费达400击毙后不再打折。"
     hold_des = "北京市市政交通一卡通：你当天在商店总消费达100击毙后商店所有物品变为8折，当天在商店总消费达150击毙后商店所有物品变为5折，当天在商店总消费达400击毙后不再打折。"
     @classmethod
-    async def OnJibiChanged(cls, count: int, user: User, jibi: int) -> Tuple[int]:
+    async def OnJibiChanged(cls, count: TCount, user: User, jibi: int) -> Tuple[int]:
         if 100 <= user.data.spend_shop < 150:
             jibi = int(jibi * 0.8 ** count)
             user.send_char(f"触发了{f'{count}次' if count > 1 else ''}北京市政交通一卡通的效果，花费击毙打了8折变为{jibi}！")
@@ -3247,7 +3314,7 @@ class beijingcard(_card):
         user.send_log(f"触发了{count}次北京市政交通一卡通的效果，花费击毙变为{jibi}。")
         return jibi,
     @classmethod
-    async def CheckJibiSpend(cls, count: int, user: User, jibi: int) -> Tuple[int]:
+    async def CheckJibiSpend(cls, count: TCount, user: User, jibi: int) -> Tuple[int]:
         if 100 <= user.data.spend_shop < 150:
             jibi = int(jibi * 0.8 ** count)
         elif 150 <= user.data.spend_shop < 400:
@@ -3347,7 +3414,7 @@ _card.add_daily_status('I', "炎热菇：今天每个人都可以少隔一个接
 # _card.add_daily_status('M', "+1马：直到下次主题刷新为止，你必须额外隔一个才能接龙。")
 # _card.add_daily_status('p', "石之蛇尾衔：规则为尾首接龙直至下次刷新。")
 _card.add_daily_status('#', "反转·告解：今日每次你获得击毙时少获得1击毙。")
-_card.add_daily_status('X', "失败：对不起，今天你输了！")
+# _card.add_daily_status('X', "失败：对不起，今天你输了！")
 
 class excalibur(_card):
     id = 158
@@ -3427,10 +3494,10 @@ class _equipment(metaclass=equipment_meta):
     name = ''
     des_shop = ''
     @classmethod
-    def description(cls, count: int) -> str:
+    def description(cls, count: TCount) -> str:
         pass
     @classmethod
-    def full_description(cls, count: int) -> str:
+    def full_description(cls, count: TCount) -> str:
         return f"{cls.id}. {count * '☆'}{cls.name}\n\t{cls.description(count)}"
 
 class bikini(_equipment):
@@ -3438,7 +3505,7 @@ class bikini(_equipment):
     name = '比基尼'
     des_shop = '你每次获得击毙时都有一定几率加倍。一星为5%，二星为10%，三星为15%。'
     @classmethod
-    def description(cls, count: int):
+    def description(cls, count: TCount):
         return f'你每次获得击毙时都有{5 * count}%几率加倍。'
 
 class schoolsui(_equipment):
@@ -3446,7 +3513,7 @@ class schoolsui(_equipment):
     name = '学校泳装'
     des_shop = '你每次击毙减少或商店购买都有一定几率免单。一星为4.76%，二星为9.09%，三星为13.04%。'
     @classmethod
-    def description(cls, count: int):
+    def description(cls, count: TCount):
         return f'你每次击毙减少或商店购买都有{count / (20 + count) * 100:.2f}%几率免单。'
 
 # 爬塔格子

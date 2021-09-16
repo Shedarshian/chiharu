@@ -417,7 +417,7 @@ async def dragon_construct(buf: SessionBuffer):
             # fork = False
             # if (n := me.check_daily_status('b')):
             #     fork = random.random() > 0.95 ** n
-            if (tree_node := check_and_add_log_and_contruct_tree(parent, word, qq, kwd=kwd, hdkwd=hdkwd, fork=fork)) is None:
+            if (tree_node := check_and_add_log_and_contruct_tree(parent, word, qq, kwd=kwd, hdkwd=hdkwd, fork=False)) is None:
                 user.log << f"由于过去一周接过此词，死了。"
                 buf.send("过去一周之内接过此词，你死了！")
                 # if user.check_daily_status('Y'):
@@ -436,10 +436,6 @@ async def dragon_construct(buf: SessionBuffer):
                 user.data.last_dragon_time = datetime.now().isoformat()
                 if first10 := user.data.today_jibi > 0:
                     user.log << f"仍有{user.data.today_jibi}次奖励机会。"
-                    # if (n := user.data.hand_card.count(Card(73))) and user.data.today_jibi % 2 == 1:
-                    #     user.log << f"触发了幸运护符{n}次。"
-                    #     jibi_to_add += n
-                    #     buf.send("\n你因为幸运护符的效果，", end='')
                     buf.send(f"奖励1击毙。")
                     user.data.today_jibi -= 1
                     await user.add_jibi(jibi_to_add)
@@ -490,18 +486,6 @@ async def dragon_construct(buf: SessionBuffer):
                 #             changed = True
                 #     if changed:
                 #         user.data.save_status_time()
-                # if f := user.check_limited_status('f'):
-                #     for c in f:
-                #         c: logic_dragon_file.SFusion
-                #         if c.num == c.num_init or tree_node.before(3).qq == user.qq:
-                #             c -= 1
-                #             if c.num == 0:
-                #                 user.buf.send(f"你的聚变堆给你带来了{c.jibi}击毙！")
-                #                 await user.add_jibi(c.jibi)
-                #         else:
-                #             user.buf.send("你的聚变堆断电了！")
-                #             c.num = 0
-                #     user.data.save_status_time()
                 # if n := user.check_status('A'):
                 #     user.remove_status('A')
                 #     user.add_status('a' * n)
