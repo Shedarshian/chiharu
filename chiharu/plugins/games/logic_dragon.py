@@ -442,30 +442,6 @@ async def dragon_construct(buf: SessionBuffer):
                 #             user.send_char("触发了反转·月下彼岸花的效果，获得1击毙！")
                 #             await user.add_jibi(1)
                 #     user.data.save_status_time()
-                # if fork:
-                #     buf.send("你触发了Fork Bomb，此词变成了分叉点！")
-                # if l := global_state['quest'].get(str(qq)):
-                #     for m in l:
-                #         if m['remain'] > 0:
-                #             id, name, func = mission[m['id']]
-                #             if func(word):
-                #                 buf.send(f"你完成了任务：{name[:-1]}！奖励3击毙。此任务还可完成{m['remain'] - 1}次。")
-                #                 user.log << f"完成了一次任务{name}，剩余{m['remain'] - 1}次。"
-                #                 m['remain'] -= 1
-                #                 await user.add_jibi(3)
-                #                 save_global_state()
-                # if l := user.check_limited_status('q'):
-                #     changed = False
-                #     for q in l:
-                #         id, name, func = mission[q.quest_id]
-                #         if func(word):
-                #             buf.send(f"你完成了每日任务：{name[:-1]}！奖励{q.jibi}击毙。此任务还可完成{q.num - 1}次。")
-                #             user.log << f"完成了一次任务{name}，剩余{q.num - 1}次。"
-                #             q.num -= 1
-                #             await user.add_jibi(q.jibi)
-                #             changed = True
-                #     if changed:
-                #         user.data.save_status_time()
                 if word in bombs:
                     buf.send("你成功触发了炸弹，被炸死了！")
                     user.log << f"触发了炸弹，被炸死了。"

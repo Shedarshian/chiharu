@@ -137,7 +137,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
     class AfterCardUse(IntEnum):
         pass
     class AfterCardDraw(IntEnum):
-        pass
+        imitator = auto()
     class AfterCardDiscard(IntEnum):
         pass
     class AfterCardRemove(IntEnum):
@@ -150,6 +150,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         sihuihuibizhiyao = auto()
         hongsezhihuan = auto()
         inv_sihuihuibizhiyao = auto()
+        death = auto()
         lveduozhebopu = auto()
         huiye = auto()
         inv_huiye = auto()
@@ -202,6 +203,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         hermit = auto()
     class OnDragoned(IntEnum):
         queststone = auto()
+        quest = auto()
         xingyunhufu = auto()
         lveduozhebopu = auto()
         plus2 = auto()
@@ -960,16 +962,6 @@ class User:
             time_num, dodge = await eln.OnDeath(n, self, killer, time_num, c)
             if dodge:
                 break
-        # if self.check_status('r') and not dodge:
-        #     if c.pierce:
-        #         self.send_log("免死的效果被幻想杀手消除了！")
-        #         self.remove_status('r', remove_all=True)
-        #     else:
-        #         dodge = True
-        #         self.send_log("触发了免死的效果，免除死亡！")
-        #         self.remove_status('r', remove_all=False)
-        # if (n := Userme(self).check_daily_status('D')) and not dodge:
-        #     time_num *= 2 ** n
         # if (l := self.check_limited_status('o')) and not dodge and not jump:
         #     o1 = o2 = None
         #     for o in l:
@@ -1356,6 +1348,22 @@ class SQuest(NumedStatus):
         return f"{self.des}\n\t剩余次数：{self.num}次，完成获得击毙：{self.jibi}。"
     def double(self):
         return [self.__class__(self.num * 2, self.jibi, self.quest_id)]
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+        changed = False
+        for q in count:
+            id, name, func = mission[q.quest_id]
+            if func(branch.word):
+                user.send_char(f"完成了每日任务：{name[:-1]}！奖励{q.jibi}击毙。此任务还可完成{q.num - 1}次。")
+                user.log << f"完成了一次任务{name}，剩余{q.num - 1}次。"
+                q.num -= 1
+                await user.add_jibi(q.jibi)
+                changed = True
+        if changed:
+            user.data.save_status_time()
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.quest, cls)}
 
 @final
 class SBian(NumedStatus):
@@ -1391,22 +1399,6 @@ class SAbsorb(NumedStatus):
         return f"{self.des}\n\t剩余时间：{self.num}分钟。"
     def double(self):
         return [self.__class__(self.num * 2)]
-
-@final
-class SFusion(NumedStatus):
-    id = 'f'
-    @property
-    def des(self):
-        return f'聚变堆：若你的下{self.num_init}次接龙每两次接龙中间都只间隔两人，则你获得{self.jibi}击毙。'
-    @property
-    def is_debuff(self):
-        return self.jibi < 0
-    def __init__(self, s: Union[str, int], jibi: int, num_init: int):
-        super().__init__(s)
-        self.jibi = jibi
-        self.num_init = num_init
-    def double(self) -> List[T_status]:
-        return [SFusion(self.num, self.jibi * 2, self.num_init)]
 
 class ListStatus(_status):
     def __init__(self, s: Union[str, List]):
@@ -1886,7 +1878,15 @@ class death(_card):
     positive = 0
     description = "今天的所有死亡时间加倍。"
     global_daily_status = 'D'
-    status_des = "XIII - 死神：今天的所有死亡时间加倍。"
+class death_s(_statusdaily):
+    id = 'D'
+    des = "XIII - 死神：今天的所有死亡时间加倍。"
+    @classmethod
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+        return time * 2 ** count, False
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDeath: (Priority.OnDeath.death, cls)}
 
 class temperance(_card):
     name = "XIV - 节制"
@@ -3376,6 +3376,9 @@ class imitator_s(_statusnull):
                 user.add_card(c)
             if not c.des_need_init:
                 await c.on_draw(user)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.AfterCardDraw: (Priority.AfterCardDraw.imitator, cls)}
 
 class jack_in_the_box(_card):
     name = "玩偶匣"
