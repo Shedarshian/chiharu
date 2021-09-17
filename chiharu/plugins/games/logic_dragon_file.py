@@ -2239,7 +2239,7 @@ class xiaohunfashu(_card):
                     des = _card.daily_status_dict[c]
                     u2.send_log(f"的{des[:des.index('：')]}被消除了！")
                 # 带附加值的状态
-                l = user.data.status_time_checked
+                l = u2.data.status_time_checked
                 i = 0
                 while i < len(l):
                     if random.random() < 0.5 ** (2 ** double):
