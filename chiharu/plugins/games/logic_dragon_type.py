@@ -116,6 +116,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         hongsezhihuan = auto()
         inv_sihuihuibizhiyao = auto()
         death = auto()
+        absorb = auto()
         tiesuolianhuan = auto()
         lveduozhebopu = auto()
         huiye = auto()
@@ -145,10 +146,13 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
     class OnJibiChange(IntEnum):
         gaojie = auto()
         inv_gaojie = auto()
+        bikini = auto()
+        schoolsui = auto()
         bianyaqi = auto()
         inv_bianyaqi = auto()
         steamsummer = auto()
         beijingcard = auto()
+        shenmouyuanlv = auto()
     class CheckEventptSpend(IntEnum):
         pass
     class OnEventptChange(IntEnum):

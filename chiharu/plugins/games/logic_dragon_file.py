@@ -15,8 +15,6 @@ from nonebot.command.argfilter import extractors, validators
 from .. import config
 from .logic_dragon_type import TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, nothing
 
-# TODO 互相交换改成全局status
-
 with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
     global_state: TGlobalState = json.load(f)
 def save_global_state():
@@ -797,16 +795,6 @@ class User:
             if jibi == 0:
                 break
         self.data.jibi = max(self.data.jibi + jibi, 0)
-        # if q := self.data.check_equipment(0):
-        #     if jibi > 0 and random.random() < 0.05 * q:
-        #         jibi *= 2
-        #         self.send_char(f"触发了比基尼的效果，获得击毙加倍为{abs(jibi)}！")
-        #     else: q = 0
-        # dodge = False
-        # if r := self.data.check_equipment(1):
-        #     if jibi < 0 and random.random() < r / (20 + r):
-        #         dodge = True
-        #         self.send_char(f"触发了学生泳装的效果，本次免单！")
         if is_buy and jibi < 0:
             self.data.spend_shop += abs(jibi)
             self.log << f"累计今日商店购买至{self.data.spend_shop}。"
@@ -844,34 +832,6 @@ class User:
             time_num, dodge = await eln.OnDeath(n, self, killer, minute, c)
             if dodge:
                 break
-        # if (l := self.check_limited_status('o')) and not dodge and not jump:
-        #     o1 = o2 = None
-        #     for o in l:
-        #         if o.is_pumpkin:
-        #             o2 = o
-        #         else:
-        #             o1 = o
-        #     if o2 is not None:
-        #         m = min(o2.num, time_num)
-        #         o2 -= m
-        #         time_num -= m
-        #         self.send_log(f"的南瓜头为你吸收了{m}分钟的死亡时间！", end='')
-        #         if time_num == 0:
-        #             dodge = True
-        #             self.send_char("没死！")
-        #         else:
-        #             self.buf.send("")
-        #     if o1 is not None and not dodge:
-        #         m = min(o1.num, time_num)
-        #         o1 -= m
-        #         time_num -= m
-        #         self.send_log(f"的坚果墙为你吸收了{m}分钟的死亡时间！", end='')
-        #         if time_num == 0:
-        #             dodge = True
-        #             self.send_char("没死！")
-        #         else:
-        #             self.buf.send("")
-        #     self.data.save_status_time()
     async def draw(self, n: int, /, positive=None, cards=None):
         """抽卡。将卡牌放入手牌。"""
         cards = draw_cards(positive, n) if cards is None else cards
@@ -1168,22 +1128,6 @@ class NumedStatus(_status):
     def __isub__(self, other: int) -> T_status:
         self.num -= other
         return self
-
-@final
-class SAbsorb(NumedStatus):
-    id = 'o'
-    @property
-    def des(self):
-        return ('南瓜头' if self.is_pumpkin else '坚果墙') + '：为你吸收死亡时间。'
-    def __init__(self, s: Union[str, int], is_pumpkin=False):
-        super().__init__(s)
-        self.is_pumpkin = is_pumpkin
-    def __repr__(self) -> str:
-        return self.construct_repr(str(self.num), self.is_pumpkin)
-    def __str__(self) -> str:
-        return f"{self.des}\n\t剩余时间：{self.num}分钟。"
-    def double(self):
-        return [self.__class__(self.num * 2)]
 
 class ListStatus(_status):
     def __init__(self, s: Union[str, List]):
@@ -2417,6 +2361,7 @@ class huxiangjiaohuan(_card):
         user.log << f"被加入交换堆栈，现为{global_state['exchange_stack']}。"
         global_state['exchange_stack'].append(user.qq)
         save_global_state()
+# TODO
 
 class zhongshendexixi(_card):
     name = "众神的嬉戏"
@@ -3075,6 +3020,9 @@ class shenmouyuanlv_s(_statusnull):
             user.send_char(f"触发了深谋远虑之策的效果，此次免单！")
             return 0,
         return jibi,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnJibiChange: (Priority.OnJibiChange.shenmouyuanlv, cls)}
 
 class mixidiyatu(_card):
     name = "通灵之术-密西迪亚兔"
@@ -3225,6 +3173,52 @@ class wallnut(_card):
         else:
             user.add_limited_status(SAbsorb(240, False))
             user.send_log("种植了坚果墙！")
+@final
+class SAbsorb(NumedStatus):
+    id = 'o'
+    @property
+    def des(self):
+        return ('南瓜头' if self.is_pumpkin else '坚果墙') + '：为你吸收死亡时间。'
+    def __init__(self, s: Union[str, int], is_pumpkin=False):
+        super().__init__(s)
+        self.is_pumpkin = is_pumpkin
+    def __repr__(self) -> str:
+        return self.construct_repr(str(self.num), self.is_pumpkin)
+    def __str__(self) -> str:
+        return f"{self.des}\n\t剩余时间：{self.num}分钟。"
+    def double(self):
+        return [self.__class__(self.num * 2)]
+    @classmethod
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+        o1 = o2 = None
+        for o in count:
+            if o.is_pumpkin:
+                o2 = o
+            else:
+                o1 = o
+        if o2 is not None:
+            m = min(o2.num, time)
+            o2 -= m
+            time -= m
+            user.send_log(f"的南瓜头为你吸收了{m}分钟的死亡时间！", end='')
+            if time == 0:
+                user.send_char("没死！")
+            else:
+                user.buf.send("")
+        if o1 is not None and time != 0:
+            m = min(o1.num, time)
+            o1 -= m
+            time -= m
+            user.send_log(f"的坚果墙为你吸收了{m}分钟的死亡时间！", end='')
+            if time == 0:
+                user.send_char("没死！")
+            else:
+                user.buf.send("")
+        user.data.save_status_time()
+        return time, (time == 0)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDeath: (Priority.OnDeath.absorb, cls)}
 
 class iceshroom(_card):
     name = "寒冰菇"
@@ -3666,6 +3660,15 @@ class bikini(_equipment):
     @classmethod
     def description(cls, count: TCount):
         return f'你每次获得击毙时都有{5 * count}%几率加倍。'
+    @classmethod
+    async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
+        if jibi > 0 and random.random() < 0.02 * count:
+            jibi *= 2
+            user.send_log(f"触发了比基尼的效果，获得击毙加倍为{abs(jibi)}！")
+        return jibi,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnJibiChange: (Priority.OnJibiChange.bikini, cls)}
 
 class schoolsui(_equipment):
     id = 1
@@ -3674,6 +3677,15 @@ class schoolsui(_equipment):
     @classmethod
     def description(cls, count: TCount):
         return f'你每次击毙减少或商店购买都有{count / (20 + count) * 100:.2f}%几率免单。'
+    @classmethod
+    async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
+        if jibi < 0 and random.random() < count / (20 + count):
+            jibi = 0
+            user.send_log("触发了学生泳装的效果，本次免单！")
+        return jibi,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnJibiChange: (Priority.OnJibiChange.schoolsui, cls)}
 
 # 爬塔格子
 class Grid:
