@@ -360,14 +360,13 @@ async def daily_update(buf: SessionBuffer) -> str:
     save_data()
     me.reload()
     word = await update_begin_word(is_daily=True)
+    global current_event
     if last_update_date == "2021-09-21":
-        global current_event
         current_event = "mid-autumn"
         await buf.flush()
         for group in config.group_id_dict['logic_dragon_send']:
             await get_bot().send_group_msg(group_id=group, message="祝大家中秋快乐，中秋节一日限定活动！期待密西迪亚兔给你带来的奖励吧！")
     else:
-        global current_event
         current_event = ""
     return "今日关键词：" + word + "\nid为【0】。"
 
