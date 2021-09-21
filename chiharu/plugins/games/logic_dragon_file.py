@@ -5,51 +5,17 @@ from collections import Counter, UserDict, UserList, defaultdict
 from functools import lru_cache, partial, wraps
 from copy import copy, deepcopy
 from math import ceil
+from abc import ABC, ABCMeta, abstractmethod
 from datetime import datetime, timedelta
-from functools import reduce
+from functools import reduce, wraps
 from contextlib import asynccontextmanager
 from nonebot.command import CommandSession
 from pypinyin import pinyin, Style
 from nonebot.command.argfilter import extractors, validators
 from .. import config
+from .logic_dragon_type import TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved
 
 # TODO 互相交换改成全局status
-TQuest = TypedDict('TQuest', id=int, remain=int)
-TSteal = TypedDict('TSteal', user=List[int], time=int)
-class TGlobalState(TypedDict):
-    last_card_user: int
-    exchange_stack: List[int]
-    lianhuan: List[int]
-    quest: Dict[int, List[TQuest]]
-    steal: Dict[int, TSteal]
-    event_route: List[int]
-class TUserData(TypedDict):
-    qq: int
-    jibi: int
-    card: str
-    draw_time: int
-    death_time: str
-    today_jibi: int
-    today_keyword_jibi: int
-    status: str
-    daily_status: str
-    status_time: str
-    card_limit: int
-    shop_drawn_card: int
-    event_pt: int
-    spend_shop: int
-    equipment: str
-    event_stage: int
-    event_shop: int
-    last_dragon_time: str
-class TCounter(NamedTuple):
-    dodge: bool = False
-    rebound: bool = False
-    pierce: bool = False
-    double: int = 0
-    @property
-    def valid(self):
-        return not (self.dodge or self.rebound)
 
 with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
     global_state: TGlobalState = json.load(f)
@@ -80,145 +46,10 @@ TEquipment = Type[T_equipment]
 TIEventListener = TypeVar('TIEventListener', bound='IEventListener')
 TEventListener = Type[TIEventListener]
 TCount = Union[int, list[T_status]]
-class CountWaiter:
-    def __add__(self, var):
-        return var
-T = TypeVar('T')
-class CounterOnly(Generic[T]):
-    def __init__(self):
-        self.data: T = None
-        self.count: TCount = CountWaiter()
-    def __getitem__(self, index) -> TCount:
-        if self.data is None:
-            self.data = index
-        elif self.data != index:
-            raise IndexError
-        return self.count
-    def __setitem__(self, index, val):
-        if self.data != index:
-            raise IndexError
-        self.count = val
-    @property
-    def data_pair(self):
-        return self.data, self.count
-del T
-TEventList = dict[int, CounterOnly[TEventListener]]
+
+TEventList = dict[int, CounterOnly[TEventListener, TCount]]
 TEvent = Tuple[int, TEventListener]
-from enum import IntEnum, auto
-class UserEvt(IntEnum):
-    OnUserUseCard = auto()
-    AfterCardUse = auto()
-    AfterCardDraw = auto()
-    AfterCardDiscard = auto()
-    AfterCardRemove = auto()
-    AfterExchange = auto()
-    OnDeath = auto()
-    OnAttacked = auto()
-    OnDodged = auto()
-    OnStatusAdd = auto()
-    OnStatusRemove = auto()
-    CheckJibiSpend = auto()
-    OnJibiChange = auto()
-    CheckEventptSpend = auto()
-    OnEventptChange = auto()
-    BeforeDragoned = auto()
-    CheckSuguri = auto()
-    OnKeyword = auto()
-    OnHiddenKeyword = auto()
-    OnDuplicatedWord = auto()
-    OnBombed = auto()
-    OnDragoned = auto()
-    OnNewDay = auto()
-class Priority: # 依照每个优先级从前往后find，而不是iterate
-    class OnUserUseCard(IntEnum):
-        temperance = auto()
-        xingyunhufu = auto()
-        cantuse = auto()
-    class AfterCardUse(IntEnum):
-        pass
-    class AfterCardDraw(IntEnum):
-        imitator = auto()
-    class AfterCardDiscard(IntEnum):
-        pass
-    class AfterCardRemove(IntEnum):
-        pass
-    class AfterExchange(IntEnum):
-        pass
-    class OnDeath(IntEnum):
-        invincible = auto()
-        miansi = auto()
-        sihuihuibizhiyao = auto()
-        hongsezhihuan = auto()
-        inv_sihuihuibizhiyao = auto()
-        death = auto()
-        lveduozhebopu = auto()
-        huiye = auto()
-        inv_huiye = auto()
-    class OnAttacked(IntEnum):
-        pass
-    class OnDodged(IntEnum):
-        pass
-    class OnStatusAdd(IntEnum):
-        jiaodai = auto()
-        inv_jiaodai = auto()
-        sunflower = auto()
-        twinsunflower = auto()
-        panjue = auto()                 # contains both a and b
-        panjue_activated = auto()       # contains both a and b
-    class OnStatusRemove(IntEnum):
-        pass
-    class CheckJibiSpend(IntEnum):
-        bianyaqi = auto()
-        steamsummer = auto()
-        beijingcard = auto()
-    class OnJibiChange(IntEnum):
-        gaojie = auto()
-        inv_gaojie = auto()
-        bianyaqi = auto()
-        inv_bianyaqi = auto()
-        steamsummer = auto()
-        beijingcard = auto()
-    class CheckEventptSpend(IntEnum):
-        pass
-    class OnEventptChange(IntEnum):
-        pass
-    class BeforeDragoned(IntEnum):
-        death = auto()
-        shengbing = auto()
-        minus1ma = auto()
-        plus1ma = auto()
-        iceshroom = auto()
-        hotshroom = auto()
-        ourostone = auto()              # contains two buffs
-    class CheckSuguri(IntEnum):
-        jisuzhuangzhi = auto()
-    class OnKeyword(IntEnum):
-        pass
-    class OnHiddenKeyword(IntEnum):
-        cunqianguan = auto()
-        inv_cunqianguan = auto()
-    class OnDuplicatedWord(IntEnum):
-        hermit = auto()
-    class OnBombed(IntEnum):
-        hermit = auto()
-    class OnDragoned(IntEnum):
-        queststone = auto()
-        quest = auto()
-        xingyunhufu = auto()
-        lveduozhebopu = auto()
-        plus2 = auto()
-        xixuegui = auto()
-        panjue = auto()                 # contains both a and b
-        panjuecheck = auto()            # contains both a and b
-        jack_in_the_box = auto()
-        star = auto()
-        dihuopenfa = auto()
-    class OnNewDay(IntEnum):
-        sunflower = auto()
-        twinsunflower = auto()
-        inv_sunflower = auto()
-        inv_twinsunflower = auto()
-newday_check = ["", "", ""]
+newday_check: List[str] = ["", "", ""]
 class IEventListener:
     @classmethod
     async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str]:
@@ -280,7 +111,26 @@ class IEventListener:
         bool: represents whether the death is dodged."""
         pass
     @classmethod
-    async def OnAttacked(cls, count: TCount, user: 'User') -> Tuple[bool]:
+    async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
+        """Called when a user attack other.
+
+        Arguments:
+        attack: the Attack object.
+        c: The counter object represents the attack result, mutable.
+
+        Returns:
+        bool: represents whether the attack is dodged."""
+        pass
+    @classmethod
+    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
+        """Called when a user is attacked.
+
+        Arguments:
+        attack: the Attack object.
+        c: The counter object represents the attack result, mutable.
+
+        Returns:
+        bool: represents whether the attack is dodged."""
         pass
     @classmethod
     async def OnDodged(cls, count: TCount, user: 'User') -> Tuple[()]:
@@ -433,7 +283,58 @@ class IEventListener:
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {}
-TBoundIntEnum = TypeVar('TBoundIntEnum', bound=IntEnum)
+
+class Attack(ABC):
+    name = "null"
+    doublable = True
+    reboundable = True
+    def __init__(self, attacker: 'User', defender: 'User'):
+        self.attacker = attacker
+        self.defender = defender
+        self.rebounded = False
+        self.multiplier = 0
+        self.counter = Counter()
+    @abstractmethod
+    async def self_action(self):
+        pass
+    @final
+    async def action(self):
+        if self.rebounded:
+            self.rebounded = False
+            await self.defender.attacked(self.attacker, self)
+        else:
+            await self.self_action()
+    def __repr__(self):
+        return f"<攻击类型：{self.name}，攻击者：{self.attacker.qq}，被攻击者：{self.defender.qq}，倍数：{self.multiplier}>"
+    def double(self) -> bool:
+        """return True if double equals dodge."""
+        self.multiplier *= 2
+        return False
+    def rebound(self) -> bool:
+        """return True if rebound equals dodge."""
+        self.attacker, self.defender = self.defender, self.attacker
+        self.counter = TCounter()
+        self.rebounded = True
+        return False
+
+class Kill(Attack):
+    name = "击毙"
+    def __init__(self, attacker: 'User', defender: 'User', minute: int):
+        self.minute = minute
+        super().__init__(attacker, defender)
+    async def self_action(self):
+        await self.defender.death(self.minute * self.multiplier, self.attacker, self.counter)
+
+class ALiwujiaohuan(Attack):
+    name = "礼物交换"
+    doublable = False
+    def __init__(self, attacker: 'User', defender: 'User', todo_list: List):
+        self.todo_list = todo_list
+        super().__init__(attacker, defender)
+    def rebound(self) -> bool:
+        return True
+    async def self_action(self):
+        self.todo_list.append(self.defender)
 
 class Game:
     session_list: List[CommandSession] = []
@@ -745,15 +646,18 @@ class User:
     @property
     def log(self):
         return self.data.log
-    def IterAllEventList(self, evt: UserEvt, priority: Type[TBoundIntEnum], /, no_global: bool=False):
-        user_list = self.data.event_listener[evt]
-        global_list = me.event_listener[evt]
+    def IterAllEventList(self, evt: UserEvt, priority: Type[TBoundIntEnum], /, no_global: bool=False, extra_listeners: List[TEventList]=None):
+        user_lists = [self.data.event_listener[evt]]
+        if extra_listeners is not None:
+            user_lists += extra_listeners
+        if not no_global:
+            user_lists.append(me.event_listener[evt])
         for p in priority:
-            ret = user_list.get(p)
-            if not no_global:
-                ret = ret or global_list.get(p)
-            if ret is not None:
-                yield ret.data_pair
+            for e in user_lists:
+                ret = e.get(p)
+                if ret is not None:
+                    yield ret.data_pair
+                    break
     def add_status(self, s: str, count=1):
         # Event OnStatusAdd
         for eln, n in self.IterAllEventList(UserEvt.OnStatusAdd, Priority.OnStatusAdd):
@@ -943,23 +847,34 @@ class User:
             self.log << f"累计今日商店购买至{self.data.spend_shop}。"
         self.data.save_status_time()
         return True
-    async def kill(self, hour: int=2, minute: int=0, killer=None, jump=False):
+    async def attacked(self, attacker: 'User', attack: Attack):
+        """受到攻击。"""
+        config.logger.dragon << f"【LOG】玩家受到攻击{attack}。"
+        dodge = False
+        # Event OnAttack
+        for eln, n in attacker.IterAllEventList(UserEvt.OnAttack, Priority.OnAttack):
+            dodge = await eln.OnAttack(n, attacker, attack)
+            if dodge:
+                return
+        # Event OnAttacked
+        for eln, n in self.IterAllEventList(UserEvt.OnAttacked, Priority.OnAttacked):
+            dodge = await eln.OnAttacked(n, self, attack)
+            if dodge:
+                return
+        await attack.action()
+    async def killed(self, killer: 'User', hour: int=2, minute: int=0):
         """击杀玩家。"""
-        killer = killer or self
-        config.logger.dragon << f"【LOG】尝试击杀玩家{self.qq}。"
+        config.logger.dragon << f"【LOG】{killer.qq}尝试击杀玩家{self.qq}。"
         time_num = 60 * hour + minute
-        c = await self.check_attacked(killer)
-        if c.dodge:
-            return
-        elif c.rebound:
-            await killer.kill(killer=self)
-            return
-        elif c.double:
-            time_num *= 2 ** c.double
+        attack = Kill(killer, self, time_num)
+        await self.attacked(killer, attack)
+    async def death(self, minute: int, killer, c: TCounter):
+        """玩家死亡。"""
+        config.logger.dragon << f"【LOG】玩家{self.qq}死亡。"
         dodge = False
         # Event OnDeath
         for eln, n in self.IterAllEventList(UserEvt.OnDeath, Priority.OnDeath):
-            time_num, dodge = await eln.OnDeath(n, self, killer, time_num, c)
+            time_num, dodge = await eln.OnDeath(n, self, killer, minute, c)
             if dodge:
                 break
         # if (l := self.check_limited_status('o')) and not dodge and not jump:
@@ -1164,32 +1079,32 @@ class User:
             u = User(l['qq'], self.buf)
             u.data.event_stage = current
             t = (current.stage, u.qq)
-    async def check_attacked(self, killer: 'User', not_valid: TCounter=TCounter()):
-        if self == killer:
-            return TCounter()
-        if self.check_status('0') and not not_valid.dodge:
-            self.send_char("触发了幻想杀手的效果，防住了对方的攻击！")
-            self.remove_status('0', remove_all=False)
-            return TCounter(dodge=True)
-        if killer.check_status('0'):
-            pierce = True
-            def pierce_f():
-                killer.buf.send(f"但{killer.char}触发了幻想杀手的效果，无视了对方的反制！")
-                killer.remove_status('0', remove_all=False)
-        else:
-            pierce = False
-        if self.check_status('v') and not not_valid.rebound:
-            self.send_char("触发了矢量操作的效果，反弹了对方的攻击！")
-            self.remove_status('v', remove_all=False)
-            if pierce:
-                pierce_f()
-            else:
-                return TCounter(rebound=True)
-        if (n := killer.check_status('v')) and not not_valid.double:
-            killer.send_char("触发了矢量操作的效果，攻击加倍！")
-            killer.remove_status('v')
-            return TCounter(double=n)
-        return TCounter()
+    # async def check_attacked(self, killer: 'User', not_valid: TCounter=TCounter()):
+    #     if self == killer:
+    #         return TCounter()
+    #     if self.check_status('0') and not not_valid.dodge:
+    #         self.send_char("触发了幻想杀手的效果，防住了对方的攻击！")
+    #         self.remove_status('0', remove_all=False)
+    #         return TCounter(dodge=True)
+    #     if killer.check_status('0'):
+    #         pierce = True
+    #         def pierce_f():
+    #             killer.buf.send(f"但{killer.char}触发了幻想杀手的效果，无视了对方的反制！")
+    #             killer.remove_status('0', remove_all=False)
+    #     else:
+    #         pierce = False
+    #     if self.check_status('v') and not not_valid.rebound:
+    #         self.send_char("触发了矢量操作的效果，反弹了对方的攻击！")
+    #         self.remove_status('v', remove_all=False)
+    #         if pierce:
+    #             pierce_f()
+    #         else:
+    #             return TCounter(rebound=True)
+    #     if (n := killer.check_status('v')) and not not_valid.double:
+    #         killer.send_char("触发了矢量操作的效果，攻击加倍！")
+    #         killer.remove_status('v')
+    #         return TCounter(double=n)
+    #     return TCounter()
 
 Userme: Callable[[User], User] = lambda user: User(config.selfqq, user.buf)
 
@@ -1227,7 +1142,6 @@ def ensure_true_lambda(bool_func: Callable[[Any], bool], message_lambda: Callabl
 
     return validate
 
-from abc import ABCMeta, abstractmethod
 class status_meta(ABCMeta):
     def __new__(cls, clsname, bases, attrs):
         if len(bases) != 0 and not clsname.startswith('_') and 'id' in attrs:
@@ -1328,42 +1242,6 @@ class NumedStatus(_status):
     def __isub__(self, other: int) -> T_status:
         self.num -= other
         return self
-
-@final
-class SQuest(NumedStatus):
-    id = 'q'
-    @property
-    def des(self):
-        return f"今日任务：{mission[self.quest_id][1]}"
-    @property
-    def is_debuff(self):
-        return self.jibi < 0
-    def __init__(self, s: Union[str, int], jibi: int, quest_id: int):
-        super().__init__(s)
-        self.jibi = jibi
-        self.quest_id = quest_id
-    def __repr__(self) -> str:
-        return self.construct_repr(str(self.num), self.jibi, self.quest_id)
-    def __str__(self) -> str:
-        return f"{self.des}\n\t剩余次数：{self.num}次，完成获得击毙：{self.jibi}。"
-    def double(self):
-        return [self.__class__(self.num * 2, self.jibi, self.quest_id)]
-    @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
-        changed = False
-        for q in count:
-            id, name, func = mission[q.quest_id]
-            if func(branch.word):
-                user.send_char(f"完成了每日任务：{name[:-1]}！奖励{q.jibi}击毙。此任务还可完成{q.num - 1}次。")
-                user.log << f"完成了一次任务{name}，剩余{q.num - 1}次。"
-                q.num -= 1
-                await user.add_jibi(q.jibi)
-                changed = True
-        if changed:
-            user.data.save_status_time()
-    @classmethod
-    def register(cls) -> dict[int, TEvent]:
-        return {UserEvt.OnDragoned: (Priority.OnDragoned.quest, cls)}
 
 @final
 class SBian(NumedStatus):
@@ -1647,7 +1525,7 @@ class SInvincible(TimedStatus):
     des = '无敌：免疫死亡。'
     @classmethod
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
-        if c.pierce:
+        if await c.pierce():
             user.send_log("无敌的效果被幻想杀手消除了！")
             user.remove_all_limited_status('v')
         else:
@@ -1725,7 +1603,7 @@ class high_priestess(_card):
         else:
             user.buf.send(f"当前周期内接龙次数最多的玩家有{''.join(f'[CQ:at,qq={q}]' for q in ql)}！")
         for q in ql:
-            await User(q, user.buf).kill(killer=user)
+            await User(q, user.buf).killed(user)
 
 class empress(_card):
     name = "III - 女皇"
@@ -1751,6 +1629,42 @@ class emperor(_card):
     async def use(cls, user: User) -> None:
         user.add_limited_status(SQuest(10, 2, n := get_mission()))
         user.send_char(f"获得了一个任务：{mission[n][1]}")
+
+@final
+class SQuest(NumedStatus):
+    id = 'q'
+    @property
+    def des(self):
+        return f"今日任务：{mission[self.quest_id][1]}"
+    @property
+    def is_debuff(self):
+        return self.jibi < 0
+    def __init__(self, s: Union[str, int], jibi: int, quest_id: int):
+        super().__init__(s)
+        self.jibi = jibi
+        self.quest_id = quest_id
+    def __repr__(self) -> str:
+        return self.construct_repr(str(self.num), self.jibi, self.quest_id)
+    def __str__(self) -> str:
+        return f"{self.des}\n\t剩余次数：{self.num}次，完成获得击毙：{self.jibi}。"
+    def double(self):
+        return [self.__class__(self.num * 2, self.jibi, self.quest_id)]
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+        changed = False
+        for q in count:
+            id, name, func = mission[q.quest_id]
+            if func(branch.word):
+                user.send_char(f"完成了每日任务：{name[:-1]}！奖励{q.jibi}击毙。此任务还可完成{q.num - 1}次。")
+                user.log << f"完成了一次任务{name}，剩余{q.num - 1}次。"
+                q.num -= 1
+                await user.add_jibi(q.jibi)
+                changed = True
+        if changed:
+            user.data.save_status_time()
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.quest, cls)}
 
 class lovers(_card):
     name = "VI - 恋人"
@@ -1898,14 +1812,13 @@ class temperance(_card):
         l = config.userdata.execute("select qq from dragon_data where qq<>?", (config.selfqq,)).fetchall()
         q: int = random.choice(l)["qq"]
         user.send_char(f"抽到了[CQ:at,qq={q}]！")
-        u = User(q, user.buf)
-        c = await u.check_attacked(user, not_valid=TCounter(double=1))
-        if c.dodge:
-            return
-        elif c.rebound:
-            user.add_daily_status('T')
-        else:
-            u.add_daily_status('T')
+        target = User(q, user.buf)
+        atk = ATemperance(user, target)
+        await target.attacked(user, atk)
+class ATemperance(Attack):
+    name = "攻击：节制"
+    async def self_action(self):
+        self.defender.add_daily_status('T')
 class temperance_s(_statusdaily):
     id = 'T'
     des = "XIV - 节制：下次刷新前你不能使用卡牌。"
@@ -1927,7 +1840,7 @@ class devil(_card):
         q = global_state['last_card_user']
         u = User(q, user.buf)
         user.buf.send(f'[CQ:at,qq={q}]被你击毙了！')
-        await u.kill(killer=user)
+        await u.killed(user)
 
 class tower(_card):
     name = "XVI - 高塔"
@@ -1950,7 +1863,7 @@ class tower(_card):
             l.remove(p[-1])
         user.send_char(f"抽到了{'，'.join(f'[CQ:at,qq={q}]' for q in p)}！")
         for q in p:
-            await User(q, user.buf).kill(killer=user)
+            await User(q, user.buf).killed(user)
 
 class star(_card):
     name = "XVII - 星星"
@@ -2081,6 +1994,9 @@ class tiesuolianhuan(_card):
                     toggle(target)
                     user.buf.send('成功切换' + u.char + '的连环状态！')
             save_global_state()
+class ATiesuolianhuan(Attack):
+    name = "铁索连环"
+    
 
 class minus1ma(_card):
     name = "-1马"
@@ -2170,7 +2086,7 @@ class sihuihuibizhiyao_s(_statusnull):
     des = '死秽回避之药：下次死亡时自动消耗5击毙免除死亡。'
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
-        if c.pierce:
+        if await c.pierce():
             user.send_log("死秽回避之药的效果被幻想杀手消除了！")
             user.remove_status('s', remove_all=True)
             return time, False
@@ -2187,7 +2103,7 @@ class inv_sihuihuibizhiyao_s(_statusnull):
     des = '反转·死秽回避之药：下次死亡时获得5击毙，但是死亡时间增加2h。'
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
-        if c.pierce:
+        if await c.pierce():
             user.send_log("反转·死秽回避之药的效果被幻想杀手消除了！")
             user.remove_status('t')
             return time, False
@@ -2210,7 +2126,7 @@ class huiye_s(_statusnull):
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         user.remove_status('x')
-        if c.pierce:
+        if await c.pierce():
             user.send_log("辉夜姬的秘密宝箱的效果被幻想杀手消除了！")
         else:
             user.send_log(f"触发了辉夜姬的秘密宝箱！奖励抽卡{count}张。")
@@ -2226,7 +2142,7 @@ class inv_huiye_s(_statusnull):
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         user.remove_status('y')
-        if c.pierce:
+        if await c.pierce():
             user.send_log("反转·辉夜姬的秘密宝箱的效果被幻想杀手消除了！")
         else:
             user.send_log(f"触发了反转·辉夜姬的秘密宝箱！随机弃{count}张卡。")
@@ -2468,7 +2384,7 @@ class hongsezhihuan_s(_statusnull):
     des = '虹色之环：下次死亡时，有1/2几率闪避，1/2几率死亡时间+1小时。'
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
-        if c.pierce:
+        if await c.pierce():
             user.send_log("虹色之环的效果被幻想杀手消除了！")
             user.remove_status('h', remove_all=True)
             return time, False
