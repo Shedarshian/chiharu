@@ -428,20 +428,6 @@ async def dragon_construct(buf: SessionBuffer):
                 # Event OnDragoned
                 for eln, n in user.IterAllEventList(UserEvt.OnDragoned, Priority.OnDragoned):
                     await eln.OnDragoned(n, user, tree_node)
-                # if (l := user.data.check_limited_status('b')):
-                #     for b in l:
-                #         b -= 1
-                #         if b.num % 3 == 0:
-                #             user.send_char("触发了月下彼岸花的效果，损失1击毙！")
-                #             await user.add_jibi(-1)
-                #     user.data.save_status_time()
-                # if (l := user.data.check_limited_status('c')):
-                #     for b in l:
-                #         b -= 1
-                #         if b.num % 3 == 0:
-                #             user.send_char("触发了反转·月下彼岸花的效果，获得1击毙！")
-                #             await user.add_jibi(1)
-                #     user.data.save_status_time()
                 if word in bombs:
                     buf.send("你成功触发了炸弹，被炸死了！")
                     user.log << f"触发了炸弹，被炸死了。"

@@ -7,7 +7,7 @@ TSteal = TypedDict('TSteal', user=List[int], time=int)
 class TGlobalState(TypedDict):
     last_card_user: int
     exchange_stack: List[int]
-    lianhuan: List[int]
+    # lianhuan: List[int]
     quest: Dict[int, List[TQuest]]
     steal: Dict[int, TSteal]
     event_route: List[int]
@@ -33,15 +33,9 @@ class TUserData(TypedDict):
 async def nothing(): return False
 @dataclass
 class TCounter:
-    pierce: Awaitable = nothing
+    pierce: Callable = nothing
     jump: bool = False
-    # double: int = 0
-    # @property
-    # def valid(self):
-    #     return not (self.dodge or self.rebound)
-    # def __or__(self, other: 'TCounter'):
-    #     return TCounter(self.pierce or other.pierce, self.jump or other.jump)
-def async_data_saved(f: Awaitable):
+def async_data_saved(f: Callable):
     i = None
     @functools.wraps(f)
     async def _():
@@ -122,6 +116,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         hongsezhihuan = auto()
         inv_sihuihuibizhiyao = auto()
         death = auto()
+        tiesuolianhuan = auto()
         lveduozhebopu = auto()
         huiye = auto()
         inv_huiye = auto()
@@ -177,11 +172,14 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         hermit = auto()
     class OnBombed(IntEnum):
         hermit = auto()
+        vector = auto()
     class OnDragoned(IntEnum):
         queststone = auto()
         quest = auto()
         xingyunhufu = auto()
         lveduozhebopu = auto()
+        bianhua = auto()
+        inv_bianhua = auto()
         plus2 = auto()
         xixuegui = auto()
         panjue = auto()                 # contains both a and b
