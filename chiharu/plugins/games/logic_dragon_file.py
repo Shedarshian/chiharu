@@ -442,14 +442,14 @@ class User:
         if current_event == "mid-autumn" and (t := self.check_status('R')):
             jibi += t
             self.send_log(f"头上的密西迪亚兔为你额外带来了{t}击毙！。")
-            if random.random() > 0.99:
+            if random.random() > 0.99 ** t:
                 self.buf.send("恭喜" + self.char + "抽中大奖，额外获得了一张卡！")
                 self.log << "额外获得了一张卡。"
                 await self.draw(1)
         if current_event == "mid-autumn" and (t := self.check_status('Q')):
             jibi = max(jibi - t, 0)
             self.send_log(f"屁股上的密西迪亚兔让你获得的击毙减少了{t}！。")
-            if random.random() > 0.99:
+            if random.random() > 0.99 ** t:
                 self.buf.send("恭喜" + self.char + "抽中大奖，额外获得了一张卡！")
                 self.log << "额外获得了一张卡。"
                 await self.draw(1)
