@@ -438,6 +438,21 @@ class User:
                 jibi = max(jibi - u, 0)
                 self.send_char(f"触发了{f'{u}次' if u > 1 else ''}反转·告解的效果，获得击毙减{u}。")
             else: u = 0
+        from .logic_dragon import current_event
+        if current_event == "mid-autumn" and (t := self.check_status('R')):
+            jibi += t
+            self.send_log(f"头上的密西迪亚兔为你额外带来了{t}击毙！。")
+            if random.random() > 0.99:
+                self.buf.send("恭喜" + self.char + "抽中大奖，额外获得了一张卡！")
+                self.log << "额外获得了一张卡。"
+                await self.draw(1)
+        if current_event == "mid-autumn" and (t := self.check_status('Q')):
+            jibi = max(jibi - t, 0)
+            self.send_log(f"屁股上的密西迪亚兔让你获得的击毙减少了{t}！。")
+            if random.random() > 0.99:
+                self.buf.send("恭喜" + self.char + "抽中大奖，额外获得了一张卡！")
+                self.log << "额外获得了一张卡。"
+                await self.draw(1)
         if y0 := self.check_limited_status('Y'):
             y = 0
             for i in y0:
