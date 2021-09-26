@@ -270,6 +270,9 @@ class ExpressionParser:
     def p_array_index(self, p):
         """expression : array '[' expression ']'"""
         p[0] = ExpressionParser.optimize(lambda x, y: x[int(y)], p[1], p[3], typ=float)
+    def p_array_slice(self, p):
+        """array : array '[' expression ':' expression ']'"""
+        p[0] = ExpressionParser.optimize(lambda x, y, z: x[int(y):int(z)], p[1], p[3], p[5], typ=float)
     def p_start_error(self, p):
         """final : array EOF
                  | logic EOF"""
