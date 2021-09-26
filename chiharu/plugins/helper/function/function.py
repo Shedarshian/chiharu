@@ -5,7 +5,7 @@ import ply.lex as lex, ply.yacc as yacc
 re_x = re.compile(r'^x(\d*)$')
 re_dy = re.compile(r'^(?:(?:D|d)(\d+)|((?:D|d)*))y(\d*)$')
 tokens = ('NUMBER', 'ID', 'EQ', 'NEQ', 'GE', 'LE', 'AND', 'OR', 'DEFINE', 'SUM', 'ARRAYNAME', 'EOF')
-literals = '+-*/^(),<>?:[]{}'
+literals = '+-*/^(),<>?:[]{}$'
 
 array_dict = {}
 
@@ -95,6 +95,7 @@ nums = _nums()
 class ExpressionParser:
     tokens = tokens
     precedence = (
+        ('right', '$'),
         ('left', 'DEFINE'),
         ('right', ':'),
         ('left', 'OR'),
@@ -108,8 +109,8 @@ class ExpressionParser:
     )
     binary_operator = {'+': lambda x, y: x + y, '-': lambda x, y: x - y, '*': lambda x, y: x * y, '/': lambda x, y: x / y, '^': lambda x, y: x ** y, '==': lambda x, y: x == y, '!=': lambda x, y: x != y, '>=': lambda x, y: x >= y, '<=': lambda x, y: x <= y, '>': lambda x, y: x > y, '<': lambda x, y: x < y, '&&': lambda x, y: x and y, '||': lambda x, y: x or y}
     @staticmethod
-    def optimize(f, *args, typ=float):
-        if all([isinstance(x, (float, bool, list)) for x in args]):
+    def optimize(f, *args, typ=float, optimize_check=True):
+        if optimize_check and all([isinstance(x, (float, bool, list)) for x in args]):
             return typ(f(*args))
         else:
             return lambda *a, **ka: f(*[(x if isinstance(x, (float, bool, list)) else x(*a, **ka)) for x in args])
@@ -148,8 +149,11 @@ class ExpressionParser:
         p[0] = ExpressionParser.optimize(lambda x, y, z: (y if x else z), p[1], p[3], p[5], typ=list)
     def p_paren(self, p):
         """expression : '(' expression ')'
+                      | '$' expression
            logic : '(' logic ')'
+                 | '$' logic
            array : '(' array ')'
+                 | '$' array
                  | '{' list '}'"""
         p[0] = p[2]
     def p_id(self, p):
@@ -188,7 +192,7 @@ class ExpressionParser:
         """expression : ID '(' list ')'"""
         if p[1] not in functions:
             raise ParserError(p[1] + ' not found')
-        p[0] = ExpressionParser.optimize(functions[p[1]], *p[3], typ=float)
+        p[0] = ExpressionParser.optimize(functions[p[1]], *p[3], typ=float, optimize_check=(p[1] not in {'random', 'gauss'}))
     def p_sum(self, p):
         """expression : SUM '[' ID ']' seen_sum '(' list ')'"""
         if len(p[7]) != 3:
