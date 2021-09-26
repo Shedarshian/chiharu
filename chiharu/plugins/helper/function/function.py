@@ -4,7 +4,7 @@ import ply.lex as lex, ply.yacc as yacc
 
 re_x = re.compile(r'^x(\d*)$')
 re_dy = re.compile(r'^(?:(?:D|d)(\d+)|((?:D|d)*))y(\d*)$')
-tokens = ('NUMBER', 'ID', 'EQ', 'NEQ', 'GE', 'LE', 'AND', 'OR', 'DEFINE', 'SUM', 'ARRAYNAME', 'EOF')
+tokens = ('NUMBER', 'ID', 'EQ', 'NEQ', 'GE', 'LE', 'AND', 'OR', 'DEFINE', 'SUM', 'ARRAYNAME', 'EOF', 'ARROW')
 literals = '+-*/^(),<>?:[]{}$'
 
 array_dict = {}
@@ -20,6 +20,7 @@ def ExpressionLexer():
     t_AND = r'&&'
     t_OR = r'\|\|'
     t_DEFINE = r':='
+    t_ARROW = r'=>'
     t_ignore = ' \t'
     def t_NUMBER(t):
         r'\d+(\.\d+)?(e-?\d+)?'
