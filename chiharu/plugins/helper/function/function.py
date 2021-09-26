@@ -189,7 +189,8 @@ class ExpressionParser:
         """expression : NUMBER"""
         p[0] = p[1]
     def p_function(self, p):
-        """expression : ID '(' list ')'"""
+        """expression : ID '(' list ')'
+                      | ID '$' list"""
         if p[1] not in functions:
             raise ParserError(p[1] + ' not found')
         p[0] = ExpressionParser.optimize(functions[p[1]], *p[3], typ=float, optimize_check=(p[1] not in {'random', 'gauss'}))
