@@ -195,7 +195,8 @@ class ExpressionParser:
             raise ParserError(p[1] + ' not found')
         p[0] = ExpressionParser.optimize(functions[p[1]], *p[3], typ=float, optimize_check=(p[1] not in {'random', 'gauss'}))
     def p_sum(self, p):
-        """expression : SUM '[' ID ']' seen_sum '(' list ')'"""
+        """expression : SUM '[' ID ']' seen_sum '(' list ')'
+                      | SUM '[' ID ']' seen_sum '$' list"""
         if len(p[7]) != 3:
             raise TypeError('sum takes 3 positional argument but %i is given' % len(p[7]))
         b, e, func = p[7]
@@ -219,7 +220,8 @@ class ExpressionParser:
             p[0] = result
         self.temp_var.remove(p[3])
     def p_sum_array(self, p):
-        """expression : SUM '[' ID ']' seen_sum '(' array ',' expression ')'"""
+        """expression : SUM '[' ID ']' seen_sum '(' array ',' expression ')'
+                      | SUM '[' ID ']' seen_sum '$' array ',' expression"""
         func = p[9]
         c = str(p[3])
         rg = p[7]
