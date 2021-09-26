@@ -2358,10 +2358,34 @@ class huxiangjiaohuan(_card):
     description = "下一个接中隐藏奖励词的玩家手牌、击毙与你互换。"
     @classmethod
     async def use(cls, user: User):
-        user.log << f"被加入交换堆栈，现为{global_state['exchange_stack']}。"
-        global_state['exchange_stack'].append(user.qq)
-        save_global_state()
-# TODO
+        l = me.check_limited_status('x')
+        if l:
+            l[0] += [user.qq]
+            user.log << f"被加入交换堆栈，现为{l[0].list}。"
+            user.data.save_status_time()
+        else:
+            Userme(user).add_limited_status(SHuxiangjiaohuan([user.qq]))
+class SHuxiangjiaohuan(ListStatus):
+    id = 'x'
+    des = "互相交换：下一个接中隐藏奖励词的玩家手牌、击毙与某人互换。"
+    is_global = True
+    @classmethod
+    async def OnHiddenKeyword(cls, count: TCount, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
+        to_exchange = count[0].list.pop()
+        u = User(to_exchange, user.buf)
+        atk = AHuxiangjiaohuan(u, user)
+        await user.attacked(u, atk)
+        return 0,
+class AHuxiangjiaohuan(Attack):
+    name = "攻击：互相交换"
+    doublable = False
+    async def self_action(self):
+        self.defender.send_char(f"与[CQ:at,qq={self.attacker.qq}]交换了手牌与击毙！")
+        jibi = (self.defender.data.jibi, self.attacker.data.jibi)
+        self.defender.log << f"与{self.attacker.qq}交换了手牌与击毙。{self.defender.qq}击毙为{jibi[0]}，{self.attacker.qq}击毙为{jibi[1]}。"
+        await self.defender.add_jibi(jibi[1] - jibi[0])
+        await self.attacker.add_jibi(jibi[0] - jibi[1])
+        await self.defender.exchange(self.attacker)
 
 class zhongshendexixi(_card):
     name = "众神的嬉戏"
@@ -3585,8 +3609,12 @@ class excalibur(_card):
         else:
             user.send_log("统治了不列颠！")
             user.add_status('W')
-# _card.add_status('W', "统治不列颠：使用塔罗牌时，若你没有对应的“魔力-{塔罗牌名}”状态，取消其原来的效果并获得效果“魔力-{塔罗牌名}”状态。")
-# _card.add_status('X', "被不列颠统治：若你有对应的“魔力-{塔罗牌名}”状态，你可取消效果“魔力-{塔罗牌名}”状态并使用一张对应塔罗牌。")
+class excalibur_s(_statusnull):
+    id = 'W'
+    des = "统治不列颠：使用塔罗牌时，若你没有对应的“魔力-{塔罗牌名}”状态，取消其原来的效果并获得效果“魔力-{塔罗牌名}”状态。"
+class inv_excalibur_s(_statusnull):
+    id = 'X'
+    des = "被不列颠统治：若你有对应的“魔力-{塔罗牌名}”状态，你可取消效果“魔力-{塔罗牌名}”状态并使用一张对应塔罗牌。"
 
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):

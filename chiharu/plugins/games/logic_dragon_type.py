@@ -172,6 +172,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
     class OnHiddenKeyword(IntEnum):
         cunqianguan = auto()
         inv_cunqianguan = auto()
+        huxiangjiaohuan = auto()
     class OnDuplicatedWord(IntEnum):
         hermit = auto()
     class OnBombed(IntEnum):

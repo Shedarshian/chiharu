@@ -333,10 +333,6 @@ async def dragon_construct(buf: SessionBuffer):
                     await buf.flush()
                     return
                 dist += dist_mod
-            # if user.check_limited_status('d') or user.check_daily_status('d'):
-            #     await buf.session.send('你已死，不能接龙！')
-            #     user.log << f"已死，接龙失败。"
-            #     return
             dist = max(dist, 1)
             if qq in parent.get_parent_qq_list(dist):
                 # Event CheckSuguri
@@ -375,29 +371,19 @@ async def dragon_construct(buf: SessionBuffer):
                     user.log << f"接到了隐藏奖励词{k}。"
                     buf.send(f"你接到了隐藏奖励词{k}！奖励10击毙。")
                     jibi_to_add = 10
-                    # if n := me.check_status('m'):
-                    #     user.log << f"触发了存钱罐{n}次。"
-                    #     buf.send(f"\n你触发了存钱罐，奖励+{n * 10}击毙！")
-                    #     Userme(user).remove_status('m')
-                    #     jibi_to_add += n * 10
-                    # if n := me.check_status('M'):
-                    #     user.log << f"触发了反转·存钱罐{n}次。"
-                    #     buf.send(f"\n你触发了反转·存钱罐，奖励-{n * 10}击毙！")
-                    #     Userme(user).remove_status('M')
-                    #     jibi_to_add -= n * 10
                     # Event OnHiddenKeyword
                     for eln, n in user.IterAllEventList(UserEvt.OnHiddenKeyword, Priority.OnHiddenKeyword):
                         jibi, = await eln.OnHiddenKeyword(n, user, word, parent, hdkwd)
                         jibi_to_add += jibi
                     await user.add_jibi(jibi_to_add)
-                    if global_state['exchange_stack']:
-                        to_exchange = User(global_state['exchange_stack'][-1], buf)
-                        if (await user.check_attacked(to_exchange, TCounter(double=1))).valid:
-                            global_state['exchange_stack'].pop(-1)
-                            user.log << f"触发了互相交换，来自{to_exchange.qq}。"
-                            save_global_state()
-                        else:
-                            to_exchange = None
+                    # if global_state['exchange_stack']:
+                    #     to_exchange = User(global_state['exchange_stack'][-1], buf)
+                    #     if (await user.check_attacked(to_exchange, TCounter(double=1))).valid:
+                    #         global_state['exchange_stack'].pop(-1)
+                    #         user.log << f"触发了互相交换，来自{to_exchange.qq}。"
+                    #         save_global_state()
+                    #     else:
+                    #         to_exchange = None
                     if not update_hidden_keyword(i, True):
                         buf.end("隐藏奖励词池已空！")
                     break
@@ -439,17 +425,13 @@ async def dragon_construct(buf: SessionBuffer):
                             break
                     else:
                         await user.kill()
-                    # if user.check_status('v'):
-                    #     user.remove_status('v', remove_all=False)
-                    #     user.log << f"触发了矢量操作的效果，没死。"
-                    #     user.send_char("触发了矢量操作的效果，没死。")
-                if to_exchange is not None:
-                    buf.send(f"你与[CQ:at,qq={to_exchange.qq}]交换了手牌与击毙！")
-                    jibi = (user.data.jibi, to_exchange.data.jibi)
-                    user.log << f"与{to_exchange}交换了手牌与击毙。{qq}击毙为{jibi[0]}，{to_exchange}击毙为{jibi[1]}。"
-                    await user.add_jibi(jibi[1] - jibi[0])
-                    await to_exchange.add_jibi(jibi[0] - jibi[1])
-                    await user.exchange(to_exchange)
+                # if to_exchange is not None:
+                #     buf.send(f"你与[CQ:at,qq={to_exchange.qq}]交换了手牌与击毙！")
+                #     jibi = (user.data.jibi, to_exchange.data.jibi)
+                #     user.log << f"与{to_exchange}交换了手牌与击毙。{qq}击毙为{jibi[0]}，{to_exchange}击毙为{jibi[1]}。"
+                #     await user.add_jibi(jibi[1] - jibi[0])
+                #     await to_exchange.add_jibi(jibi[0] - jibi[1])
+                #     await user.exchange(to_exchange)
                 if current_event == "swim" and first10:
                     n = random.randint(1, 6)
                     user.send_log(f"移动了{n}格，", end='')
