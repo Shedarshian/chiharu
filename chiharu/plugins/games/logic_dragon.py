@@ -624,7 +624,7 @@ async def dragon_construct(buf: SessionBuffer):
                         n, na, nb1, nb2 = _(na, user.check_status('b'), user.check_status('B'))
                         if n:
                             buf.send("你从五个人前面接来了判决α！")
-                            user.kill()
+                            await user.kill()
                             user.remove_status('b')
                             user.remove_status('B')
                             user.add_status('b' * nb1 + 'B' * nb2)
@@ -635,7 +635,7 @@ async def dragon_construct(buf: SessionBuffer):
                         n, nb, na1, na2 = _(nb, user.check_status('a'), user.check_status('A'))
                         if n:
                             buf.send("你从五个人前面接来了判决β！")
-                            user.kill()
+                            uawait ser.kill()
                             user.remove_status('a')
                             user.remove_status('A')
                             user.add_status('a' * na1 + 'A' * na2)
