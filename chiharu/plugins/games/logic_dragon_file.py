@@ -807,14 +807,15 @@ class User:
         """受到攻击。"""
         config.logger.dragon << f"【LOG】玩家受到攻击{attack}。"
         dodge = False
+        c = TCounter()
         # Event OnAttack
         for eln, n in attacker.IterAllEventList(UserEvt.OnAttack, Priority.OnAttack):
-            dodge, = await eln.OnAttack(n, attacker, attack)
+            dodge, = await eln.OnAttack(n, attacker, attack, c)
             if dodge:
                 return
         # Event OnAttacked
         for eln, n in self.IterAllEventList(UserEvt.OnAttacked, Priority.OnAttacked):
-            dodge, = await eln.OnAttacked(n, self, attack)
+            dodge, = await eln.OnAttacked(n, self, attack, c)
             if dodge:
                 return
         await attack.action()
@@ -2088,7 +2089,7 @@ class plus2(_card):
     global_status = '+'
     positive = 0
     description = "下一个接龙的人摸一张非负面卡和一张非正面卡。"
-class plus2_s(_card):
+class plus2_s(_status):
     id = '+'
     des = "+2：下一个接龙的人摸一张非负面卡和一张非正面卡。"
     @classmethod
@@ -2437,11 +2438,15 @@ class lveduozhebopu(_card):
         return time, False
     @classmethod
     async def OnDragoned(cls, count: TCount, user: User, branch: 'Tree') -> Tuple[()]:
+        global global_state
         last_qq = branch.qq
         qq = user.qq
         if branch.id != (0, 0):
             last = User(last_qq, user.buf)
             if last_qq not in global_state['steal'][str(qq)]['user'] and global_state['steal'][str(qq)]['time'] < 10:
+                global_state['steal'][str(qq)]['time'] += 1
+                global_state['steal'][str(qq)]['user'].append(last_qq)
+                save_global_state()
                 atk = AStealJibi(user, last, count)
                 await last.attacked(user, atk)
     @classmethod
@@ -2454,10 +2459,6 @@ class AStealJibi(Attack):
         self.count = count
         super().__init__(attacker, defender)
     async def self_action(self):
-        global global_state
-        global_state['steal'][str(self.attacker.qq)]['time'] += 1
-        global_state['steal'][str(self.attacker.qq)]['user'].append(self.defender.qq)
-        save_global_state()
         self.attacker.log << f"触发了{self.count}次掠夺者啵噗的效果，偷取了{self.defender.qq}击毙，剩余偷取次数{9 - global_state['steal'][str(self.attacker.qq)]['time']}。"
         if (p := self.defender.data.jibi) > 0:
             n = self.count * self.multiplier
