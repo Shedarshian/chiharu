@@ -952,6 +952,11 @@ async def dragon_update(session: CommandSession):
 async def dragon_char(session: CommandSession):
     await session.send(f"status: {''.join(sorted(_card.status_dict.keys()))}\ndaily_status: {''.join(sorted(_card.daily_status_dict.keys()))}\nlimited_status: {''.join(sorted(_status.id_dict.keys()))}")
 
+@on_command(('dragon', 'op'), only_to_me=False, hide=True, permission=permission.SUPERUSER)
+@config.ErrorHandle(config.logger.dragon)
+async def dragon_op(session: CommandSession):
+    pass
+
 @on_command(('dragon', 'test'), only_to_me=False, hide=True, permission=permission.SUPERUSER)
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_test(session: CommandSession):
