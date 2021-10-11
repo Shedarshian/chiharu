@@ -2874,7 +2874,7 @@ class SCian(NumedStatus):
             user.data.save_status_time()
     @classmethod
     def register(cls) -> dict[int, TEvent]:
-        return {UserEvt.OnDragoned: (Priority.OnDragoned.bianhua, cls)}
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.inv_bianhua, cls)}
 
 class panjuea(_card):
     name = "判决α"
@@ -3538,7 +3538,7 @@ class upsidedown(_card):
     @classmethod
     async def use(cls, user: User) -> None:
         # 永久状态
-        def _s(u: User):
+        async def _s(u: User):
             to_remove = ""
             to_add = ""
             for c in u.data.status:
@@ -3553,9 +3553,9 @@ class upsidedown(_card):
                 await u.remove_status(c, remove_all=False)
             for c in to_add:
                 await u.add_status(c)
-        _s(user)
+        await _s(user)
         # 每日状态
-        def _d(u: User):
+        async def _d(u: User):
             to_remove = ""
             to_add = ""
             for c in u.data.daily_status:
@@ -3570,7 +3570,7 @@ class upsidedown(_card):
                 await u.remove_daily_status(c, remove_all=False)
             for c in to_add:
                 await u.add_daily_status(c)
-        _d(user)
+        await _d(user)
         # 带附加值的状态
         l = user.data.status_time_checked
         for i in range(len(l)):
@@ -3596,8 +3596,8 @@ class upsidedown(_card):
                 user.send_log("的聚变堆被反转了！")
         user.data.save_status_time()
         # 全局状态
-        _s(Userme(user))
-        _d(Userme(user))
+        await _s(Userme(user))
+        await _d(Userme(user))
         # l = me.status_time_checked
         # for i in range(len(l)):
         #     if random.random() > 0.5:
