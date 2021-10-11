@@ -676,6 +676,7 @@ class User:
             ss = Status(s)(*args, **kwargs)
         else:
             ss = s
+        count = 1
         # Event OnStatusAdd
         for eln, n in self.IterAllEventList(UserEvt.OnStatusAdd, Priority.OnStatusAdd):
             count, = eln.OnStatusAdd(n, self, ss, count)
@@ -3169,11 +3170,13 @@ class sunflower_s(_statusnull):
         await user.add_jibi(count)
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
-        num = count + user.check_status(')')
-        if num >= 10:
-            user.send_log("的向日葵已经种满了10株，种植失败！")
-            return 0,
-        return min(count2, 10 - num),
+        if status is sunflower_s:
+            num = count + user.check_status(')')
+            if num >= 10:
+                user.send_log("的向日葵已经种满了10株，种植失败！")
+                return 0,
+            return min(count2, 10 - num),
+        return count2,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnNewDay: (Priority.OnNewDay.sunflower, cls),
@@ -3309,11 +3312,13 @@ class twinsunflower_s(_statusnull):
         await user.add_jibi(2 * count)
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
-        num = count + user.check_status('(')
-        if num >= 10:
-            user.send_log("的向日葵已经种满了10株，种植失败！")
-            return 0,
-        return min(count2, 10 - num),
+        if status is sunflower_s:
+            num = count + user.check_status('(')
+            if num >= 10:
+                user.send_log("的向日葵已经种满了10株，种植失败！")
+                return 0,
+            return min(count2, 10 - num),
+        return count2,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnNewDay: (Priority.OnNewDay.twinsunflower, cls),
@@ -3408,6 +3413,9 @@ class jack_in_the_box_s(_statusnull):
             user.log << "炸死了" + ", ".join(str(qqq) for qqq in qqs) + "。"
             for qqq in qqs:
                 await User(qqq, user.buf).killed(user)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.jack_in_the_box, cls)}
 
 class bungeezombie(_card):
     name = "蹦极僵尸"
