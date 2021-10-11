@@ -47,7 +47,7 @@ with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         current_event = "mid-autumn"
     del d
 
-from .logic_dragon_file import Equipment, Priority, TCounter, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree
+from .logic_dragon_file import Equipment, Priority, TCounter, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily
 from . import logic_dragon_file
 
 # log
@@ -406,7 +406,7 @@ async def dragon_construct(buf: SessionBuffer):
                     if dodged:
                         break
                 else:
-                    await user.kill()
+                    await user.death()
             else:
                 buf.send(f"成功接龙！接龙词：{word}，id为【{tree_node.id_str}】。", end='')
                 user.data.last_dragon_time = datetime.now().isoformat()
@@ -414,7 +414,7 @@ async def dragon_construct(buf: SessionBuffer):
                     user.log << f"仍有{user.data.today_jibi}次奖励机会。"
                     buf.send(f"奖励1击毙。")
                     user.data.today_jibi -= 1
-                    await user.add_jibi(jibi_to_add)
+                    await user.add_jibi(1)
                     if user.data.today_jibi == 9:
                         buf.send("你今日首次接龙，奖励1抽奖券！")
                         user.log << f"首次接龙，奖励1抽奖券。"
@@ -434,7 +434,7 @@ async def dragon_construct(buf: SessionBuffer):
                         if dodged:
                             break
                     else:
-                        await user.kill()
+                        await user.death()
                 # if to_exchange is not None:
                 #     buf.send(f"你与[CQ:at,qq={to_exchange.qq}]交换了手牌与击毙！")
                 #     jibi = (user.data.jibi, to_exchange.data.jibi)
@@ -532,16 +532,14 @@ async def dragon_check(buf: SessionBuffer):
         d = json.load(f)
     def _(d: UserData, qq=None):
         for s in d.status:
-            yield _card.status_dict[s]
+            yield StatusNull(s).des
         for s in d.daily_status:
-            yield _card.daily_status_dict[s]
+            yield StatusDaily(s).des
         for s in d.status_time_checked:
             yield str(s)
         for s in d.hand_card:
             if s.hold_des:
                 yield s.hold_des
-        if qq and qq in global_state['lianhuan']:
-            yield logic_dragon_file.tiesuolianhuan.status_des
     data = buf.current_arg_text
     if data in ("奖励词", "keyword"):
         buf.finish("当前奖励词为：" + keyword)
@@ -738,7 +736,7 @@ async def dragon_buy(buf: SessionBuffer):
         elif r < 0.65:
             buf.send("💥💥💥抽奖机爆炸了！")
             Userme(user).remove_daily_status('O', remove_all=False)
-            await user.kill()
+            await user.death()
         else:
             r = '   '
             while r[0] == r[1] == r[2]:
@@ -866,7 +864,7 @@ async def dragon_delete(buf: SessionBuffer):
     if not f:
         n = User(node.qq, buf)
         async with n.settlement():
-            await n.kill()
+            await n.death()
     else:
         await buf.flush()
 
@@ -901,7 +899,7 @@ async def dragon_kill(buf: SessionBuffer):
         buf.finish("没有@人！")
     qq = match.group(1)
     n = User(qq, buf)
-    await n.settlement(n.kill())
+    await n.settlement(n.death())
 
 @on_command(('dragon', 'version'), only_to_me=False, short_des="查看逻辑接龙版本。", args=("[-c]",))
 @config.ErrorHandle(config.logger.dragon)

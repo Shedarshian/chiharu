@@ -13,7 +13,7 @@ from nonebot.command import CommandSession
 from pypinyin import pinyin, Style
 from nonebot.command.argfilter import extractors, validators
 from .. import config
-from .logic_dragon_type import TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, nothing
+from .logic_dragon_type import TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, nothing, TQuest
 
 with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
     global_state: TGlobalState = json.load(f)
@@ -290,7 +290,7 @@ class Attack(ABC):
         self.attacker = attacker
         self.defender = defender
         self.rebounded = False
-        self.multiplier = 0
+        self.multiplier = 1
         self.counter = Counter()
     @abstractmethod
     async def self_action(self):
@@ -428,7 +428,7 @@ class UserData:
             self._register_status(s)
         for s in self.status_time_checked:
             self._register_status_time(s)
-        for id, star in self.equipment:
+        for id, star in self.equipment.items():
             self._register_equipment(Equipment(id), star)
     def _register_card(self, c: TCard, count=1):
         self._register(c, to_add=count)
@@ -1196,7 +1196,7 @@ def Card(id):
 
 class card_meta(type):
     def __new__(cls, clsname, bases, attrs):
-        if len(bases) != 0 and 'status_dict' in bases[0].__dict__:
+        if len(bases) != 0 and 'card_id_dict' in bases[0].__dict__:
             if status := attrs.get('status'):
                 @classmethod
                 async def use(self, user: User):
@@ -3304,7 +3304,7 @@ class twinsunflower(_card):
         user.add_status(')')
         user.send_char("的一株“向日葵”变成了“双子向日葵”！")
 class twinsunflower_s(_statusnull):
-    id = '('
+    id = ')'
     des = "双子向日葵：跨日结算时你获得2击毙。此buff与“向日葵”buff加在一起最多叠加10层。"
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
@@ -3487,7 +3487,7 @@ class forkbomb(_card):
     positive = 0
     global_daily_status = 'b'
     description = "今天每个接龙词都有5%几率变成分叉点。"
-class forkbomb_s(_statusnull):
+class forkbomb_s(_statusdaily):
     id = 'b'
     des = "Fork Bomb：今天每个接龙词都有5%几率变成分叉点。"
     is_global = True
