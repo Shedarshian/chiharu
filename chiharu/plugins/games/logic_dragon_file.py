@@ -651,27 +651,27 @@ class User:
                 if ret is not None:
                     yield ret.data_pair
                     break
-    def add_status(self, s: str, count=1):
+    async def add_status(self, s: str, count=1):
         # Event OnStatusAdd
         for eln, n in self.IterAllEventList(UserEvt.OnStatusAdd, Priority.OnStatusAdd):
-            count, = eln.OnStatusAdd(n, self, StatusNull(s), count)
+            count, = await eln.OnStatusAdd(n, self, StatusNull(s), count)
             if count == 0:
                 break
         else:
             self.data.status += s * count
             self.log << f"增加了永久状态{s}，当前状态为{self.data.status}。"
             self.data._register_status(StatusNull(s), count=count)
-    def add_daily_status(self, s: str, count=1):
+    async def add_daily_status(self, s: str, count=1):
         # Event OnStatusAdd
         for eln, n in self.IterAllEventList(UserEvt.OnStatusAdd, Priority.OnStatusAdd):
-            count, = eln.OnStatusAdd(n, self, StatusDaily(s), count)
+            count, = await eln.OnStatusAdd(n, self, StatusDaily(s), count)
             if count == 0:
                 break
         else:
             self.data.daily_status += s * count
             self.log << f"增加了每日状态{s}，当前状态为{self.data.daily_status}。"
             self.data._register_status(StatusDaily(s), count=count)
-    def add_limited_status(self, s: Union[str, T_status], *args, **kwargs):
+    async def add_limited_status(self, s: Union[str, T_status], *args, **kwargs):
         if isinstance(s, str):
             ss = Status(s)(*args, **kwargs)
         else:
@@ -679,17 +679,17 @@ class User:
         count = 1
         # Event OnStatusAdd
         for eln, n in self.IterAllEventList(UserEvt.OnStatusAdd, Priority.OnStatusAdd):
-            count, = eln.OnStatusAdd(n, self, ss, count)
+            count, = await eln.OnStatusAdd(n, self, ss, count)
             if count == 0:
                 break
         else:
             self.data.status_time.append(ss)
             self.log << f"增加了限时状态{ss}。"
             self.data._register_status_time(ss)
-    def remove_status(self, s: str, /, remove_all=True):
+    async def remove_status(self, s: str, /, remove_all=True):
         # Event OnStatusRemove
         for eln, n in self.IterAllEventList(UserEvt.OnStatusRemove, Priority.OnStatusRemove):
-            dodge, = eln.OnStatusRemove(n, self, StatusNull(s), remove_all)
+            dodge, = await eln.OnStatusRemove(n, self, StatusNull(s), remove_all)
             if dodge:
                 break
         else:
@@ -702,10 +702,10 @@ class User:
                 self.data.status = ''.join(l)
             self.log << f"移除了{'一层' if not remove_all else ''}永久状态{s}，当前状态为{self.data.status}。"
             self.data._deregister(StatusNull(s), is_all=remove_all)
-    def remove_daily_status(self, s: str, /, remove_all=True):
+    async def remove_daily_status(self, s: str, /, remove_all=True):
         # Event OnStatusRemove
         for eln, n in self.IterAllEventList(UserEvt.OnStatusRemove, Priority.OnStatusRemove):
-            dodge, = eln.OnStatusRemove(n, self, StatusDaily(s), remove_all)
+            dodge, = await eln.OnStatusRemove(n, self, StatusDaily(s), remove_all)
             if dodge:
                 break
         else:
@@ -718,23 +718,23 @@ class User:
                 self.data.daily_status = ''.join(l)
             self.log << f"移除了{'一层' if not remove_all else ''}每日状态{s}，当前状态为{self.data.daily_status}。"
             self.data._deregister(StatusDaily(s), is_all=remove_all)
-    def remove_limited_status(self, s: T_status):
+    async def remove_limited_status(self, s: T_status):
         # Event OnStatusRemove
         for eln, n in self.IterAllEventList(UserEvt.OnStatusRemove, Priority.OnStatusRemove):
-            dodge, = eln.OnStatusRemove(n, self, s, False)
+            dodge, = await eln.OnStatusRemove(n, self, s, False)
             if dodge:
                 break
         else:
             self.data.status_time.remove(s)
             self.log << f"移除了一个限时状态{s}。"
             self.data._deregister(s, is_all=False)
-    def remove_all_limited_status(self, s: str):
+    async def remove_all_limited_status(self, s: str):
         l = [c for c in self.data.status_time if c.id == s]
         if len(l) == 0:
             return self.data.status_time
         # Event OnStatusRemove
         for eln, n in self.IterAllEventList(UserEvt.OnStatusRemove, Priority.OnStatusRemove):
-            dodge, = eln.OnStatusRemove(n, self, l[0], True)
+            dodge, = await eln.OnStatusRemove(n, self, l[0], True)
             if dodge:
                 break
         else:
