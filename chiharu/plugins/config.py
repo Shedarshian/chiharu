@@ -250,6 +250,8 @@ class SessionBuffer:
     def char(self, qq):
         if qq == self.active:
             return '你'
+        elif qq == selfqq:
+            return '全局'
         else:
             return '该玩家'
 
