@@ -234,16 +234,16 @@ async def daily_update(buf: SessionBuffer) -> str:
         global_state['steal'][qq] = {'time': 0, 'user': []}
     save_global_state()
     if me.check_daily_status('s'):
-        User(config.selfqq, buf).remove_daily_status('s', remove_all=False)
+        await User(config.selfqq, buf).remove_daily_status('s', remove_all=False)
         config.userdata.execute('update dragon_data set today_jibi=10, today_keyword_jibi=10, shop_drawn_card=1, spend_shop=0')
         for r in config.userdata.execute("select qq, daily_status from dragon_data").fetchall():
             if 'd' in r['daily_status']:
-                User(r['qq'], buf).remove_daily_status('d')
+                await User(r['qq'], buf).remove_daily_status('d')
     else:
         config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=1, spend_shop=0', ('',))
     for r in config.userdata.execute("select qq, status, status_time from dragon_data").fetchall():
         if "'q'" in r['status_time']:
-            User(r['qq'], buf).remove_all_limited_status('q')
+            await User(r['qq'], buf).remove_all_limited_status('q')
         if '(' in r['status'] or ')' in r['status']:
             u = User(r['qq'], buf)
             n = u.check_status('(') + 2 * u.check_status(')')
@@ -257,14 +257,6 @@ async def daily_update(buf: SessionBuffer) -> str:
     save_data()
     me.reload()
     word = await update_begin_word(is_daily=True)
-    global current_event
-    if last_update_date == "2021-09-21":
-        current_event = "mid-autumn"
-        await buf.flush()
-        for group in config.group_id_dict['logic_dragon_send']:
-            await get_bot().send_group_msg(group_id=group, message="祝大家中秋快乐，中秋节一日限定活动！期待密西迪亚兔给你带来的奖励吧！")
-    else:
-        current_event = ""
     return "今日关键词：" + word + "\nid为【0】。"
 
 @on_natural_language(keywords="接", only_to_me=False, only_short_message=False)
@@ -421,9 +413,6 @@ async def dragon_construct(buf: SessionBuffer):
                         user.data.draw_time += 1
                 else:
                     buf.send("")
-                # Event OnDragoned
-                for eln, n in user.IterAllEventList(UserEvt.OnDragoned, Priority.OnDragoned):
-                    await eln.OnDragoned(n, user, tree_node)
                 if word in bombs:
                     buf.send("你成功触发了炸弹，被炸死了！")
                     user.log << f"触发了炸弹，被炸死了。"
@@ -435,6 +424,9 @@ async def dragon_construct(buf: SessionBuffer):
                             break
                     else:
                         await user.death()
+                # Event OnDragoned
+                for eln, n in user.IterAllEventList(UserEvt.OnDragoned, Priority.OnDragoned):
+                    await eln.OnDragoned(n, user, tree_node)
                 # if to_exchange is not None:
                 #     buf.send(f"你与[CQ:at,qq={to_exchange.qq}]交换了手牌与击毙！")
                 #     jibi = (user.data.jibi, to_exchange.data.jibi)
@@ -735,7 +727,7 @@ async def dragon_buy(buf: SessionBuffer):
             add_bomb(w)
         elif r < 0.65:
             buf.send("💥💥💥抽奖机爆炸了！")
-            Userme(user).remove_daily_status('O', remove_all=False)
+            await Userme(user).remove_daily_status('O', remove_all=False)
             await user.death()
         else:
             r = '   '

@@ -291,7 +291,7 @@ class Attack(ABC):
         self.defender = defender
         self.rebounded = False
         self.multiplier = 1
-        self.counter = Counter()
+        self.counter = TCounter()
     @abstractmethod
     async def self_action(self):
         pass
@@ -727,7 +727,7 @@ class User:
         else:
             self.data.status_time.remove(s)
             self.log << f"移除了一个限时状态{s}。"
-            self.data._deregister(s, is_all=False)
+            self.data._deregister_status_time(s, is_all=False)
     async def remove_all_limited_status(self, s: str):
         l = [c for c in self.data.status_time if c.id == s]
         if len(l) == 0:
@@ -746,7 +746,7 @@ class User:
                 else:
                     i += 1
             self.log << f"移除了所有限时状态{s}。"
-            self.data._deregister(s, is_all=True)
+            self.data._deregister_status_time(s, is_all=True)
             return self.data.status_time
     def check_status(self, s: str) -> int:
         return self.data.check_status(s)
@@ -1603,7 +1603,7 @@ class wheel_of_fortune(_card):
     positive = 0
     global_daily_status = 'O'
     description = "直至下次刷新前，在商店增加抽奖机，可以花费5击毙抽奖。"
-class wheel_of_fortune_s(_statusnull):
+class wheel_of_fortune_s(_statusdaily):
     id = 'O'
     des = "X - 命运之轮：直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
     is_global = True
