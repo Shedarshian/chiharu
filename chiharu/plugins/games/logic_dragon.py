@@ -891,7 +891,8 @@ async def dragon_kill(buf: SessionBuffer):
         buf.finish("没有@人！")
     qq = match.group(1)
     n = User(qq, buf)
-    await n.settlement(n.death())
+    async with n.settlement():
+        await n.death()
 
 @on_command(('dragon', 'version'), only_to_me=False, short_des="查看逻辑接龙版本。", args=("[-c]",))
 @config.ErrorHandle(config.logger.dragon)

@@ -836,6 +836,9 @@ class User:
             minute, dodge = await eln.OnDeath(n, self, killer, minute, c)
             if dodge:
                 break
+        else:
+            self.send_char(f"死了！{minute}分钟不得接龙。")
+            await self.add_limited_status(SDeath(datetime.now() + timedelta(minutes=minute)))
     async def draw(self, n: int, /, positive=None, cards=None):
         """抽卡。将卡牌放入手牌。"""
         cards = draw_cards(positive, n) if cards is None else cards
@@ -1471,7 +1474,7 @@ class empress(_card):
     @classmethod
     async def use(cls, user: User) -> None:
         if Card(67) in user.data.hand_card:
-            for q in global_state['quest'][user.qq]:
+            for q in global_state['quest'][str(user.qq)]:
                 q["remain"] += 3
             user.send_char("的任务剩余次数增加了3！")
         else:
@@ -2631,7 +2634,7 @@ class jiaodai(_card):
             else:
                 i += 1
         user.data.save_status_time()
-        user.add_status('8')
+        await user.add_status('8')
 class jiaodai_s(_statusnull):
     id = '8'
     des = "布莱恩科技航空专用强化胶带FAL84型：免疫你下次即刻生效的负面状态（不包括死亡）。"
@@ -3522,7 +3525,7 @@ class beijingcard(_card):
                 user.send_char(f"触发了{f'{count}次' if count > 1 else ''}北京市政交通一卡通的效果，花费击毙打了5折变为{jibi}！")
             elif user.data.spend_shop >= 400:
                 user.send_char("今日已花费400击毙，不再打折！")
-            user.send_log(f"触发了{count}次北京市政交通一卡通的效果，花费击毙变为{jibi}。")
+            user.log << f"触发了{count}次北京市政交通一卡通的效果，花费击毙变为{jibi}。"
         return jibi,
     @classmethod
     def register(cls):
