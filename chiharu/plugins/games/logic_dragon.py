@@ -256,6 +256,7 @@ async def daily_update(buf: SessionBuffer) -> str:
             await u.add_jibi(-n)
     save_data()
     me.reload()
+    me._reregister_things()
     word = await update_begin_word(is_daily=True)
     return "今日关键词：" + word + "\nid为【0】。"
 
