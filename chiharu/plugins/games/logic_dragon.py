@@ -285,6 +285,8 @@ async def logical_dragon_else(session: NLPSession):
     text = session.msg_text.strip()
     if text.startswith("查询接龙"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[4:].strip())
+    elif text.startswith("查询查询"):
+        await call_command(get_bot(), session.ctx, ('help'), current_arg="dragon.check")
     elif text.startswith("查询"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[2:].strip())
     elif text.startswith("查看手牌"):
@@ -535,6 +537,7 @@ async def dragon_check(buf: SessionBuffer):
     资料/profile：查询自己当前资料。
     手牌/hand_cards：查询自己当前手牌。
     装备/equipments：查询自己当前装备。
+    任务/quest：查询自己手牌中的任务之石的任务。
     击毙/jibi：查询自己的击毙数。
     商店/shop：查询可购买项目。"""
     with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
@@ -578,6 +581,11 @@ async def dragon_check(buf: SessionBuffer):
         if len(cards) == 0:
             buf.finish("你没有手牌！")
         buf.finish("你的手牌为：\n" + '\n'.join(s.full_description(qq) for s in cards))
+    elif data in ("任务", "quest"):
+        n = user.data.hand_card.count(Card(67))
+        if n == 0:
+            buf.finish("你的手牌中没有任务之石！")
+        buf.finish("你的任务为：\n" + '\n'.join(Card(67).quest_des(qq) for s in range(n)))
     elif data in ("装备", "equipments"):
         equipments = user.data.equipment
         if len(equipments) == 0:

@@ -2162,14 +2162,17 @@ class queststone(_card):
     description = "持有此石时，你每天会刷新一个接龙任务。每次完成接龙任务可以获得3击毙，每天最多3次。使用将丢弃此石。"
     des_need_init = True
     @classmethod
-    def full_description(cls, qq: int):
+    def quest_des(cls, qq: int):
         q = str(qq)
         m = mission[global_state['quest'][q][quest_print_aux[q]]['id']][1]
         remain = global_state['quest'][q][quest_print_aux[q]]['remain']
         quest_print_aux[q] += 1
         if quest_print_aux[q] >= len(global_state['quest'][q]):
             quest_print_aux[q] = 0
-        return super().full_description(qq) + "\n\t当前任务：" + m + f"剩余{remain}次。"
+        return "\t当前任务：" + m + f"剩余{remain}次。"
+    @classmethod
+    def full_description(cls, qq: int):
+        return super().full_description(qq) + "\n" + cls.quest_des(qq)
     @classmethod
     async def on_draw(cls, user: User):
         q = str(user.qq)
