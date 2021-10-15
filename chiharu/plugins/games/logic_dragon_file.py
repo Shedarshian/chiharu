@@ -1075,7 +1075,6 @@ class _status(_statusall):
         return self
     def __isub__(self, other) -> T_status:
         return self
-    @abstractmethod
     def double(self) -> List[T_status]:
         return [self]
 
@@ -1138,19 +1137,19 @@ class NumedStatus(_status):
         return self
 
 class ListStatus(_status):
-    def __init__(self, s: Union[str, List]):
+    def __init__(self, s: Union[str, list]):
         if isinstance(s, str):
-            self.list : List = eval(s)
+            self.list : list = eval(s)
         else:
             self.list = s
     def check(self) -> bool:
         return len(self.list) > 0
     def __repr__(self) -> str:
         return self.construct_repr(str(self.list))
-    def __add__(self, other: List) -> T_status:
+    def __add__(self, other: list) -> T_status:
         return self.__class__(self.list + other)
     __sub__ = None
-    def __iadd__(self, other: List) -> T_status:
+    def __iadd__(self, other: list) -> T_status:
         self.list += other
         return self
     __isub__ = None
@@ -1166,8 +1165,6 @@ class SLe(ListStatus):
         from .logic_dragon import Tree
         ids = [tree.id_str for tree in Tree.get_active()]
         return f"{self.des}\n\t{','.join(c for c in self.list if c in ids)}。"
-    def double(self) -> List[T_status]:
-        return [self]
 
 @final
 class SKe(ListStatus):
@@ -1180,8 +1177,6 @@ class SKe(ListStatus):
         from .logic_dragon import Tree
         ids = [tree.id_str for tree in Tree.get_active()]
         return f"{self.des}\n\t{','.join(c for c in self.list if c in ids)}。"
-    def double(self) -> List[T_status]:
-        return [self]
 
 class _statusnull(_statusall):
     id_dict: Dict[str, TNStatus] = {}
@@ -2380,7 +2375,7 @@ class huxiangjiaohuan(_card):
         if l:
             l[0] += [user.qq]
             user.log << f"被加入交换堆栈，现为{l[0].list}。"
-            user.data.save_status_time()
+            me.save_status_time()
         else:
             await Userme(user).add_limited_status(SHuxiangjiaohuan([user.qq]))
 class SHuxiangjiaohuan(ListStatus):
@@ -3619,6 +3614,12 @@ class upsidedown(_card):
             elif l[i].id == 'f':
                 l[i].jibi = -l[i].jibi
                 user.send_log("的聚变堆被反转了！")
+            if l[i].id == 'W':
+                l[i] = SInvBritian(l[i].list)
+                user.send_log("的统治不列颠被反转了！")
+            if l[i].id == 'X':
+                l[i] = SBritian(l[i].list)
+                user.send_log("的被不列颠统治被反转了！")
         user.data.save_status_time()
         # 全局状态
         await _s(Userme(user))
@@ -3629,7 +3630,7 @@ class upsidedown(_card):
         #         continue
         # me.save_status_time()
 revert_status_map: Dict[str, str] = {}
-for c in ('YZ', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'WX'):
+for c in ('YZ', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]'):
     revert_status_map[c[0]] = c[1]
     revert_status_map[c[1]] = c[0]
 revert_daily_status_map: Dict[str, str] = {}
@@ -3652,13 +3653,36 @@ class excalibur(_card):
             user.send_char("没有胜利，无法使用！")
         else:
             user.send_log("统治了不列颠！")
-            await user.add_status('W')
+            await user.add_limited_status(SBritian([]))
 class excalibur_s(_statusnull):
     id = 'W'
-    des = "统治不列颠：使用塔罗牌时，若你没有对应的“魔力-{塔罗牌名}”状态，取消其原来的效果并获得效果“魔力-{塔罗牌名}”状态。"
+    des = "统治不列颠：使用塔罗牌时，若你没有对应的“魔力 - {塔罗牌名}”状态，取消其原来的效果并获得效果“魔力 - {塔罗牌名}”状态。"
 class inv_excalibur_s(_statusnull):
     id = 'X'
-    des = "被不列颠统治：若你有对应的“魔力-{塔罗牌名}”状态，你可取消效果“魔力-{塔罗牌名}”状态并使用一张对应塔罗牌。"
+    des = "被不列颠统治：若你有对应的“魔力 - {塔罗牌名}”状态，你可取消效果“魔力 - {塔罗牌名}”状态并使用一张对应塔罗牌。"
+class SBritian(ListStatus):
+    id = 'W'
+    des = "统治不列颠：使用塔罗牌系列牌时，若本效果不包含“魔力 - {该塔罗牌名}”，取消该牌的原本使用效果，并为本效果增加“魔力 - {该塔罗牌名}”。"
+    def __str__(self) -> str:
+        return f"{self.des}\n\t包含：{'，'.join(('“魔力 - ' + Card(i).name[Card(i).name.index[' - '] + 3:]) for i in self.list)}”"
+    @classmethod
+    async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str, Optional[Awaitable]]:
+        if card.id <= 22:
+            for c in count:
+                if card.id not in c.list:
+                    async def f():
+                        user.send_log(f"获得了“魔力 - {card.name[card.name.index[' - '] + 3:]}”！")
+                        c.list.append(card.id)
+                        c.list.sort()
+                        user.data.save_status_time()
+                    return True, "", f()
+        return True, "", None
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnUserUseCard: (Priority.OnUserUseCard.britian, cls)}
+class SInvBritian(ListStatus):
+    id = 'X'
+    des = "被不列颠统治：若本效果包含“魔力 - {某塔罗牌名}”，你可取消“魔力 - {该塔罗牌名}”，并凭空使用一张该塔罗牌。"
 
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):

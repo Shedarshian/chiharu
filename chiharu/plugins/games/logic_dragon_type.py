@@ -99,6 +99,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         temperance = auto()
         xingyunhufu = auto()
         cantuse = auto()
+        britian = auto()
     class AfterCardUse(IntEnum):
         pass
     class AfterCardDraw(IntEnum):
