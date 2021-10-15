@@ -3209,7 +3209,7 @@ class inv_sunflower_s(_statusnull):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnNewDay: (Priority.OnNewDay.inv_sunflower, cls)}
-newday_check[0] += set("()[]")
+newday_check[0] |= set("()[]")
 
 class wallnut(_card):
     name = "坚果墙"
