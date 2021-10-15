@@ -50,7 +50,7 @@ TEvent = Tuple[int, TEventListener]
 newday_check: List[str] = [{}, {}, {}]
 class IEventListener:
     @classmethod
-    async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str]:
+    async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str, Optional[Awaitable]]:
         """Called before a user intend to use a card.
 
         Arguments:
@@ -58,7 +58,8 @@ class IEventListener:
 
         Returns:
         bool: represents whether the card can be used;
-        str: failure message."""
+        str: failure message;
+        Optional[Awaitable]: if not None, replace the card use."""
         pass
     @classmethod
     async def AfterCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[()]:
@@ -1440,10 +1441,11 @@ class SCantUse(TimedStatus):
     def double(self) -> List[T_status]:
         return [self.__class__(self.time + (self.time - datetime.now()), self.card_id)]
     @classmethod
-    async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str]:
+    async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str, Optional[Awaitable]]:
         for s in count:
             if s.card_id == card.id:
-                return False, f"你太疲劳了，不能使用{card.name}！"
+                return False, f"你太疲劳了，不能使用{card.name}！", None
+        return True, "",None
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnUserUseCard: (Priority.OnUserUseCard.cantuse, cls)}
@@ -1692,8 +1694,8 @@ class temperance_s(_statusdaily):
     des = "XIV - 节制：今天你不能使用卡牌。"
     is_debuff = True
     @classmethod
-    async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str]:
-        return False, "你因XIV - 节制的效果，不能使用卡牌！"
+    async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str, Optional[Awaitable]]:
+        return False, "你因XIV - 节制的效果，不能使用卡牌！", None
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnUserUseCard: (Priority.OnUserUseCard.temperance, cls)}
@@ -2335,10 +2337,10 @@ class xingyunhufu(_card):
     positive = 1
     description = "持有此卡时，你无法使用其他卡牌。你每进行两次接龙额外获得一个击毙（每天上限为5击毙）。使用将丢弃这张卡。"
     @classmethod
-    async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str]:
+    async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str, Optional[Awaitable]]:
         if card.id != 73:
-            return False, "你因幸运护符的效果，不可使用其他手牌！"
-        return True, ""
+            return False, "你因幸运护符的效果，不可使用其他手牌！", None
+        return True, "", None
     @classmethod
     async def OnDragoned(cls, count: TCount, user: User, branch: 'Tree') -> Tuple[()]:
         if user.data.today_jibi % 2 == 1:
