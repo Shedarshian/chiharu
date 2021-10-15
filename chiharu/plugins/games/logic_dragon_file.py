@@ -47,7 +47,7 @@ TCount = Union[int, list[T_status]]
 
 TEventList = dict[int, CounterOnly[TEventListener, TCount]]
 TEvent = Tuple[int, TEventListener]
-newday_check: List[str] = [{}, {}, {}]
+newday_check: List[str] = [set(), set(), set()]
 class IEventListener:
     @classmethod
     async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str, Optional[Awaitable]]:
