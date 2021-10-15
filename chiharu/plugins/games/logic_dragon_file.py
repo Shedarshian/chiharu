@@ -47,7 +47,7 @@ TCount = Union[int, list[T_status]]
 
 TEventList = dict[int, CounterOnly[TEventListener, TCount]]
 TEvent = Tuple[int, TEventListener]
-newday_check: List[str] = ["", "", ""]
+newday_check: List[str] = [{}, {}, {}]
 class IEventListener:
     @classmethod
     async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str]:
@@ -1523,8 +1523,12 @@ class SQuest(NumedStatus):
         if changed:
             user.data.save_status_time()
     @classmethod
+    async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
+        await user.remove_all_limited_status('q')
+    @classmethod
     def register(cls) -> dict[int, TEvent]:
-        return {UserEvt.OnDragoned: (Priority.OnDragoned.quest, cls)}
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.quest, cls),
+            UserEvt.OnNewDay: (Priority.OnNewDay.quest, cls)}
 
 class lovers(_card):
     name = "VI - 恋人"
@@ -3174,7 +3178,7 @@ class sunflower_s(_statusnull):
         await user.add_jibi(count)
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
-        if status is sunflower_s:
+        if status is sunflower_s or status is twinsunflower_s:
             num = count + user.check_status(')')
             if num >= 10:
                 user.send_log("的向日葵已经种满了10株，种植失败！")
@@ -3192,10 +3196,18 @@ class inv_sunflower_s(_statusnull):
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
         user.buf.send(f"玩家{user.qq}种下的背日葵使其损失了{count}击毙！")
         await user.add_jibi(-count)
+        n = 0
+        for i in range(count):
+            if random.random() > 0.5:
+                await user.remove_status('[')
+                n += 1
+        user.buf.send(f"玩家{user.qq}的{n}朵背日葵转了过来！")
+        for i in range(n):
+            await user.add_status('(')
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnNewDay: (Priority.OnNewDay.inv_sunflower, cls)}
-newday_check[0] += "()[]"
+newday_check[0] += set("()[]")
 
 class wallnut(_card):
     name = "坚果墙"
@@ -3316,7 +3328,7 @@ class twinsunflower_s(_statusnull):
         await user.add_jibi(2 * count)
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
-        if status is sunflower_s:
+        if status is sunflower_s or status is twinsunflower_s:
             num = count + user.check_status('(')
             if num >= 10:
                 user.send_log("的向日葵已经种满了10株，种植失败！")
@@ -3334,6 +3346,14 @@ class inv_twinsunflower_s(_statusnull):
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
         user.buf.send(f"玩家{user.qq}种下的双子背日葵使其损失了{2 * count}击毙！")
         await user.add_jibi(-2 * count)
+        n = 0
+        for i in range(count):
+            if random.random() > 0.5:
+                await user.remove_status(']')
+                n += 1
+        user.buf.send(f"玩家{user.qq}的{n}朵双子背日葵转了过来！")
+        for i in range(n):
+            await user.add_status(')')
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnNewDay: (Priority.OnNewDay.inv_twinsunflower, cls)}

@@ -47,7 +47,7 @@ with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         current_event = "mid-autumn"
     del d
 
-from .logic_dragon_file import Equipment, Priority, TCounter, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily
+from .logic_dragon_file import Equipment, Priority, TCounter, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check
 from . import logic_dragon_file
 
 # log
@@ -242,18 +242,28 @@ async def daily_update(buf: SessionBuffer) -> str:
     else:
         config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=1, spend_shop=0', ('',))
     for r in config.userdata.execute("select qq, status, status_time from dragon_data").fetchall():
-        if "'q'" in r['status_time']:
-            await User(r['qq'], buf).remove_all_limited_status('q')
-        if '(' in r['status'] or ')' in r['status']:
-            u = User(r['qq'], buf)
-            n = u.check_status('(') + 2 * u.check_status(')')
-            buf.send(f"玩家{r['qq']}种下的向日葵产出了{n}击毙！")
-            await u.add_jibi(n)
-        if '[' in r['status'] or ']' in r['status']:
-            u = User(r['qq'], buf)
-            n = u.check_status('[') + 2 * u.check_status(']')
-            buf.send(f"玩家{r['qq']}种下的背日葵使其损失了{n}击毙！")
-            await u.add_jibi(-n)
+        def _(s, st):
+            for c in s:
+                if "'" + c + "'" in st:
+                    return True
+            return False
+        if (newday_check[0] & r['status']) or (newday_check[1] & r['daily_status']) or _(newday_check[2], r['status_time']):
+            user = User(r['qq'], buf)
+            # Event OnNewDay
+            for eln, n in user.IterAllEventList(UserEvt.OnNewDay, Priority.OnNewDay):
+                await eln.OnNewDay(n, user)
+        # if "'q'" in r['status_time']:
+        #     await User(r['qq'], buf).remove_all_limited_status('q')
+        # if '(' in r['status'] or ')' in r['status']:
+        #     u = User(r['qq'], buf)
+        #     n = u.check_status('(') + 2 * u.check_status(')')
+        #     buf.send(f"玩家{r['qq']}种下的向日葵产出了{n}击毙！")
+        #     await u.add_jibi(n)
+        # if '[' in r['status'] or ']' in r['status']:
+        #     u = User(r['qq'], buf)
+        #     n = u.check_status('[') + 2 * u.check_status(']')
+        #     buf.send(f"玩家{r['qq']}种下的背日葵使其损失了{n}击毙！")
+        #     await u.add_jibi(-n)
     save_data()
     me.reload()
     me._reregister_things()

@@ -193,6 +193,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         star = auto()
         dihuopenfa = auto()
     class OnNewDay(IntEnum):
+        quest = auto()
         sunflower = auto()
         twinsunflower = auto()
         inv_sunflower = auto()
