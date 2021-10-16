@@ -549,11 +549,11 @@ async def dragon_check(buf: SessionBuffer):
             yield StatusNull(s).des
         for s in d.daily_status:
             yield StatusDaily(s).des
-        for s in d.status_time_checked:
-            yield str(s)
         for s in d.hand_card:
             if s.hold_des:
                 yield s.hold_des
+        for s in d.status_time_checked:
+            yield str(s)
     data = buf.current_arg_text
     if data in ("奖励词", "keyword"):
         buf.finish("当前奖励词为：" + keyword)
