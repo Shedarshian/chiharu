@@ -607,7 +607,7 @@ async def dragon_check(buf: SessionBuffer):
         else:
             buf.finish("你的状态为：\n" + ret)
     elif data in ("状态", "status"):
-        ret = '\n'.join(s[:s.index['：']] for s in _(user.data, qq))
+        ret = '\n'.join(s[:s.index('：')] for s in _(user.data, qq))
         if ret == '':
             buf.finish("你目前没有状态！")
         else:
