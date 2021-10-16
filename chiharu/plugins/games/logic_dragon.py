@@ -536,6 +536,7 @@ async def dragon_check(buf: SessionBuffer):
     全局状态/global_status：查询当前全局状态。
     资料/profile：查询自己当前资料。
     手牌/hand_cards：查询自己当前手牌。
+    详细手牌/full_hand_cards：查询自己当前手牌。
     装备/equipments：查询自己当前装备。
     任务/quest：查询自己手牌中的任务之石的任务。
     击毙/jibi：查询自己的击毙数。
@@ -576,11 +577,16 @@ async def dragon_check(buf: SessionBuffer):
             buf.finish("全局状态为：\n" + ret)
     qq = buf.ctx['user_id']
     user = User(qq, buf)
-    if data in ("手牌", "hand_cards"):
+    if data in ("详细手牌/full_hand_cards"):
         cards = user.data.hand_card
         if len(cards) == 0:
             buf.finish("你没有手牌！")
         buf.finish("你的手牌为：\n" + '\n'.join(s.full_description(qq) for s in cards))
+    elif data in ("手牌", "hand_cards"):
+        cards = user.data.hand_card
+        if len(cards) == 0:
+            buf.finish("你没有手牌！")
+        buf.finish("你的手牌为：\n" + '\n'.join(s.brief_description(qq) for s in cards))
     elif data in ("任务", "quest"):
         n = user.data.hand_card.count(Card(67))
         if n == 0:

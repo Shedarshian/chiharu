@@ -1329,6 +1329,9 @@ class _card(IEventListener, metaclass=card_meta):
     def can_use(cls, user: User) -> bool:
         return True
     @classmethod
+    def brief_description(cls, qq):
+        return f"{cls.id}. {cls.name}"
+    @classmethod
     def full_description(cls, qq):
         return f"{cls.id}. {cls.name}\n\t{cls.description}"
 
