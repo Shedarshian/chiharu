@@ -578,7 +578,7 @@ async def dragon_check(buf: SessionBuffer):
             buf.finish("全局状态为：\n" + ret)
     qq = buf.ctx['user_id']
     user = User(qq, buf)
-    if data in ("详细手牌/full_hand_cards"):
+    if data in ("详细手牌", "full_hand_cards"):
         cards = user.data.hand_card
         if len(cards) == 0:
             buf.finish("你没有手牌！")
