@@ -289,10 +289,8 @@ async def logical_dragon_else(session: NLPSession):
         await call_command(get_bot(), session.ctx, ('help'), current_arg="dragon.check")
     elif text.startswith("查询"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[2:].strip())
-    elif text.startswith("查看手牌"):
-        await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="手牌")
-    elif text.startswith("查看详细手牌"):
-        await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="详细手牌")
+    elif text.startswith("查看"):
+        await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[2:].strip())
     elif text.startswith("商店"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="商店")
     elif text.startswith("活动商店"):
