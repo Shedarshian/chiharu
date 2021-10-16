@@ -353,10 +353,12 @@ async def dragon_construct(buf: SessionBuffer):
                 # Event CheckSuguri
                 for eln, n in user.IterAllEventList(UserEvt.CheckSuguri, Priority.CheckSuguri):
                     allowed, = await eln.CheckSuguri(n, user, word, parent)
-                    if not allowed:
-                        await buf.session.send(f"你接太快了！两次接龙之间至少要隔{dist}个人。")
-                        user.log << f"接龙过快，失败。"
-                        return
+                    if allowed:
+                        break
+                else:
+                    await buf.session.send(f"你接太快了！两次接龙之间至少要隔{dist}个人。")
+                    user.log << f"接龙过快，失败。"
+                    return
             save_global_state()
             kwd = hdkwd = ""
             if word == keyword:
