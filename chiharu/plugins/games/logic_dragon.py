@@ -473,7 +473,7 @@ async def dragon_use_card(buf: SessionBuffer):
     user.log << f"试图使用手牌{card.name}，当前手牌为{user.data.hand_card}。"
     if card not in user.data.hand_card:
         buf.finish("你还未拥有这张牌！")
-    block = False
+    block = None
     # Event OnUserUseCard
     for el, n in user.IterAllEventList(UserEvt.OnUserUseCard, Priority.OnUserUseCard):
         can_use, msg, block = await el.OnUserUseCard(n, user, card)
