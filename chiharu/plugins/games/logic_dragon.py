@@ -241,13 +241,13 @@ async def daily_update(buf: SessionBuffer) -> str:
                 await User(r['qq'], buf).remove_daily_status('d')
     else:
         config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=1, spend_shop=0', ('',))
-    for r in config.userdata.execute("select qq, status, status_time from dragon_data").fetchall():
+    for r in config.userdata.execute("select qq, status, daily_status, status_time from dragon_data").fetchall():
         def _(s, st):
             for c in s:
                 if "'" + c + "'" in st:
                     return True
             return False
-        if (newday_check[0] & r['status']) or (newday_check[1] & r['daily_status']) or _(newday_check[2], r['status_time']):
+        if (newday_check[0] & set(r['status'])) or (newday_check[1] & set(r['daily_status'])) or _(newday_check[2], r['status_time']):
             user = User(r['qq'], buf)
             # Event OnNewDay
             for eln, n in user.IterAllEventList(UserEvt.OnNewDay, Priority.OnNewDay):
