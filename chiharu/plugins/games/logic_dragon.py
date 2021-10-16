@@ -533,10 +533,11 @@ async def dragon_check(buf: SessionBuffer):
     活动词/active：查询当前可以接的词。
     复活时间/recover_time：查询自己的复活时间。
     状态/status：查询自己当前状态。
+    详细状态/full_status：查询自己当前详细状态。
     全局状态/global_status：查询当前全局状态。
     资料/profile：查询自己当前资料。
     手牌/hand_cards：查询自己当前手牌。
-    详细手牌/full_hand_cards：查询自己当前手牌。
+    详细手牌/full_hand_cards：查询自己当前详细手牌。
     装备/equipments：查询自己当前装备。
     任务/quest：查询自己手牌中的任务之石的任务。
     击毙/jibi：查询自己的击毙数。
@@ -599,8 +600,14 @@ async def dragon_check(buf: SessionBuffer):
         buf.finish("你的装备为：\n" + '\n'.join(Equipment(id).full_description(num) for id, num in equipments.items()))
     elif data in ("击毙", "jibi"):
         buf.finish("你的击毙数为：" + str(user.data.jibi))
-    elif data in ("状态", "status"):
+    elif data in ("详细状态", "full_status"):
         ret = '\n'.join(_(user.data, qq))
+        if ret == '':
+            buf.finish("你目前没有状态！")
+        else:
+            buf.finish("你的状态为：\n" + ret)
+    elif data in ("状态", "status"):
+        ret = '\n'.join(s[:s.index['：']] for s in _(user.data, qq))
         if ret == '':
             buf.finish("你目前没有状态！")
         else:
