@@ -1391,7 +1391,7 @@ class SInvincible(TimedStatus):
             user.send_log("触发了无敌的效果，免除死亡！")
             return time, True
     @classmethod
-    async def register(cls) -> dict[int, TEvent]:
+    def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDeath: (Priority.OnDeath.invincible, cls)}
 
 class magician(_card):
@@ -2398,7 +2398,7 @@ class SHuxiangjiaohuan(ListStatus):
         await user.attacked(u, atk)
         return 0,
     @classmethod
-    async def register(cls) -> dict[int, TEvent]:
+    def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnHiddenKeyword: (Priority.OnHiddenKeyword.huxiangjiaohuan, cls)}
 class AHuxiangjiaohuan(Attack):
     name = "攻击：互相交换"
