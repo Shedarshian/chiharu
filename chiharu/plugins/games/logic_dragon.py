@@ -992,18 +992,12 @@ async def dragon_op(session: CommandSession):
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_test(session: CommandSession):
     buf = SessionBuffer(session)
-    for r in config.userdata.execute("select * from dragon_data where status like '%W%'").fetchall():
-        u = User(r['qq'], buf)
-        n = u.check_status('W')
-        await u.remove_status('W')
-        for i in range(n):
-            await u.add_limited_status(Status('W')([]))
+    for r in [1569603950, 1469335215, 1440962524, 1440962524, 1440962524, 3068954061, 1198645569]:
+        u = User(r, buf)
+        await u.add_limited_status(Status('W')([]))
         u.data.save_status_time()
-    for r in config.userdata.execute("select * from dragon_data where status like '%X%'").fetchall():
-        u = User(r['qq'], buf)
-        n = u.check_status('X')
-        await u.remove_status('X')
-        for i in range(n):
-            await u.add_limited_status(Status('X')([]))
+    for r in [2652088766, 1569603950]:
+        u = User(r, buf)
+        await u.add_limited_status(Status('X')([]))
         u.data.save_status_time()
     save_data()

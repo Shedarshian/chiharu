@@ -3675,6 +3675,8 @@ class SBritian(ListStatus):
         if len(self.list) == 0:
             return self.des
         return f"{self.des}\n\t包含：{'，'.join(('“魔力 - ' + Card(i).name[Card(i).name.index[' - '] + 3:]) for i in self.list)}。"
+    def check(self) -> bool:
+        return True
     @classmethod
     async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str, Optional[Awaitable]]:
         if card.id <= 21:
