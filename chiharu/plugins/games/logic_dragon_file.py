@@ -3672,7 +3672,9 @@ class SBritian(ListStatus):
     id = 'W'
     des = "统治不列颠：使用塔罗牌系列牌时，若本效果不包含“魔力 - {该塔罗牌名}”，取消该牌的原本使用效果，并为本效果增加“魔力 - {该塔罗牌名}”。当拥有所有22种“魔力 - {塔罗牌名}时，获得装备“塔罗原典”。"
     def __str__(self) -> str:
-        return f"{self.des}\n\t包含：{'，'.join(('“魔力 - ' + Card(i).name[Card(i).name.index[' - '] + 3:]) for i in self.list)}”"
+        if len(self.list) == 0:
+            return self.des
+        return f"{self.des}\n\t包含：{'，'.join(('“魔力 - ' + Card(i).name[Card(i).name.index[' - '] + 3:]) for i in self.list)}。"
     @classmethod
     async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str, Optional[Awaitable]]:
         if card.id <= 21:
