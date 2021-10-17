@@ -3683,7 +3683,7 @@ class SBritian(ListStatus):
             for c in count:
                 if card.id not in c.list:
                     async def f():
-                        user.send_log(f"获得了“魔力 - {card.name[card.name.index[' - '] + 3:]}”！")
+                        user.send_log(f"获得了“魔力 - {card.name[card.name.index(' - ') + 3:]}”！")
                         c.list.append(card.id)
                         c.list.sort()
                         user.log << f"现有{c.list}。"
