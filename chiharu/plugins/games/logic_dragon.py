@@ -47,7 +47,7 @@ with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         current_event = "mid-autumn"
     del d
 
-from .logic_dragon_file import Equipment, Priority, TCounter, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check, _statusnull, _statusdaily
+from .logic_dragon_file import Equipment, Priority, TCounter, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check, _statusnull, _statusdaily, Status
 from . import logic_dragon_file
 
 # log
@@ -991,8 +991,16 @@ async def dragon_op(session: CommandSession):
 @on_command(('dragon', 'test'), only_to_me=False, hide=True, permission=permission.SUPERUSER)
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_test(session: CommandSession):
-    for r in config.userdata.execute("select qq, status from dragon_data").fetchall():
-        if 'y' in r['status'] or 'p' in r['status'] or '1' in r['status']:
-            User(r['qq'], None).remove_status('y')
-            User(r['qq'], None).remove_status('p')
-            User(r['qq'], None).remove_status('1')
+    buf = SessionBuffer(session)
+    for r in config.userdata.execute("select * from dragon_data where status like '%W%'").fetchall():
+        u = User(r['qq'], buf)
+        n = u.check_status('W')
+        await u.remove_status('W')
+        for i in range(n):
+            await u.add_limited_status(Status('W')([]))
+    for r in config.userdata.execute("select * from dragon_data where status like '%X%'").fetchall():
+        u = User(r['qq'], buf)
+        n = u.check_status('X')
+        await u.remove_status('X')
+        for i in range(n):
+            await u.add_limited_status(Status('X')([]))
