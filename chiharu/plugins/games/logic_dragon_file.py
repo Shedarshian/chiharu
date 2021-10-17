@@ -2513,7 +2513,7 @@ class PC(_card):
     name = "PC"
     id = 81
     positive = 1
-    description = '所有人立刻获得胜利。'
+    description = '今天接过龙的所有人立刻获得胜利。'
     @classmethod
     async def use(cls, user: User):
         user.buf.send("今天接龙的所有人都赢了！恭喜你们！")
