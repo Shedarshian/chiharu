@@ -451,9 +451,8 @@ class UserData:
     def _deregister_status(self, s: Union[T_statusdaily, T_statusnull], /, is_all=False):
         if s.is_global == (self.qq == config.selfqq):
             self._deregister(s, is_all=is_all)
-    def _deregister_status_time(self, eln: T_status, /, is_all=False):
-        if is_all:
-            eln = Status(eln)
+    def _deregister_status_time(self, eln: Union[str, T_status], /, is_all=False):
+        # str -> is_all = True
         if eln.is_global == (self.qq == config.selfqq):
             for key, (priority, el) in eln.register().items():
                 if is_all:
@@ -751,7 +750,7 @@ class User:
                 else:
                     i += 1
             self.log << f"移除了所有限时状态{s}。"
-            self.data._deregister_status_time(s, is_all=True)
+            self.data._deregister_status_time(Status(s), is_all=True)
             return self.data.status_time
     def check_status(self, s: str) -> int:
         return self.data.check_status(s)
