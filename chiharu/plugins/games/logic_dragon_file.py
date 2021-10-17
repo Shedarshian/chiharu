@@ -3674,7 +3674,7 @@ class SBritian(ListStatus):
     def __str__(self) -> str:
         if len(self.list) == 0:
             return self.des
-        return f"{self.des}\n\t包含：{'，'.join(('“魔力 - ' + Card(i).name[Card(i).name.index(' - ') + 3:]) for i in self.list)}。"
+        return f"{self.des}\n\t包含：{'，'.join(('“魔力 - ' + Card(i).name[Card(i).name.index(' - ') + 3:] + '”') for i in self.list)}。"
     def check(self) -> bool:
         return True
     @classmethod
