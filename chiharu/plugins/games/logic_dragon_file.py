@@ -421,6 +421,8 @@ class UserData:
         self.equipment: Dict[int, int] = property_dict(partial(save, 'equipment'), {})
         self.equipment.data = eval(self.node['equipment'])
         self._reregister_things()
+    def __del__(self):
+        self.save_status_time()
     def _reregister_things(self):
         self.event_listener: defaultdict[int, TEventList] = deepcopy(self.event_listener_init)
         for c in self.hand_card:
