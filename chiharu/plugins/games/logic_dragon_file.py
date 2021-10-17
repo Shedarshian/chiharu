@@ -452,6 +452,8 @@ class UserData:
         if s.is_global == (self.qq == config.selfqq):
             self._deregister(s, is_all=is_all)
     def _deregister_status_time(self, eln: T_status, /, is_all=False):
+        if is_all:
+            eln = Status(eln)
         if eln.is_global == (self.qq == config.selfqq):
             for key, (priority, el) in eln.register().items():
                 if is_all:
