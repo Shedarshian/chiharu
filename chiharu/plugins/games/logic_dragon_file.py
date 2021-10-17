@@ -3668,18 +3668,27 @@ class inv_excalibur_s(_statusnull):
     des = "被不列颠统治：若你有对应的“魔力 - {塔罗牌名}”状态，你可取消效果“魔力 - {塔罗牌名}”状态并使用一张对应塔罗牌。"
 class SBritian(ListStatus):
     id = 'W'
-    des = "统治不列颠：使用塔罗牌系列牌时，若本效果不包含“魔力 - {该塔罗牌名}”，取消该牌的原本使用效果，并为本效果增加“魔力 - {该塔罗牌名}”。"
+    des = "统治不列颠：使用塔罗牌系列牌时，若本效果不包含“魔力 - {该塔罗牌名}”，取消该牌的原本使用效果，并为本效果增加“魔力 - {该塔罗牌名}”。当拥有所有22种“魔力 - {塔罗牌名}时，获得装备“塔罗原典”。"
     def __str__(self) -> str:
         return f"{self.des}\n\t包含：{'，'.join(('“魔力 - ' + Card(i).name[Card(i).name.index[' - '] + 3:]) for i in self.list)}”"
     @classmethod
     async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str, Optional[Awaitable]]:
-        if card.id <= 22:
+        if card.id <= 21:
             for c in count:
                 if card.id not in c.list:
                     async def f():
                         user.send_log(f"获得了“魔力 - {card.name[card.name.index[' - '] + 3:]}”！")
                         c.list.append(card.id)
                         c.list.sort()
+                        user.log << f"现有{c.list}。"
+                        if len(c.list) == 22:
+                            await user.remove_limited_status(c)
+                            b = user.data.check_equipment(2)
+                            user.data.equipment[2] = b + 1
+                            if b == 0:
+                                user.send_log("获得了装备“塔罗原典”！")
+                            else:
+                                user.send_log(f"将装备“塔罗原典”升星至{b + 1}星！")
                         user.data.save_status_time()
                     return True, "", f()
         return True, "", None
@@ -3788,6 +3797,13 @@ class schoolsui(_equipment):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnJibiChange: (Priority.OnJibiChange.schoolsui, cls)}
+
+class tarot(_equipment):
+    id = 2
+    name = "塔罗原典"
+    @classmethod
+    def description(cls, count: TCount) -> str:
+        return f"每天限一次，可以从{2 * count}张塔罗牌中选择一张发动。"
 
 # 爬塔格子
 class Grid:
