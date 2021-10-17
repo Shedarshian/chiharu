@@ -568,7 +568,7 @@ async def dragon_check(buf: SessionBuffer):
     elif data in ("卡池", "card_pool"):
         buf.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
     elif data in ("商店", "shop"):
-        buf.finish(f"1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. ({10 if me.check_status('o') or me.check_status('p') else 35}击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。\n8. (5击毙)抽一张卡，每日限一次。" + ("\n16. (5击毙)🎰🎲💰选我抽奖！💰🎲🎰" if me.check_daily_status('O') else ''))
+        buf.finish(f"1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. ({10 if me.check_daily_status('o') or me.check_daily_status('p') else 35}击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。\n8. (5击毙)抽一张卡，每日限一次。" + ("\n16. (5击毙)🎰🎲💰选我抽奖！💰🎲🎰" if me.check_daily_status('O') else ''))
     elif data in ("全局状态", "global_status"):
         l = list(_(me))
         if n := len(global_state["exchange_stack"]):
@@ -687,7 +687,7 @@ async def dragon_buy(buf: SessionBuffer):
                 arg_filters=[
                     extractors.extract_text,
                     cancellation(buf.session),
-                    lambda s: list(re.findall(r'(\d+)([a-z])?', str(s))),
+                    lambda s: list(re.findall(r'\d+[a-z]?', str(s))),
                     validators.fit_size(1, 1, message="请输入一个节点的id号。"),
                     lambda l: Tree.find(Tree.str_to_id(l[0])),
                     validators.ensure_true(lambda s: s is not None, message="请从活动词中选择一个。")
@@ -695,7 +695,7 @@ async def dragon_buy(buf: SessionBuffer):
         if to_do.id == (0, 0):
             buf.send("不可回溯根节点！")
         else:
-            cost = -10 if me.check_status('o') or me.check_status('p') else -35
+            cost = -10 if me.check_daily_status('o') or me.check_daily_status('p') else -35
             if not await user.add_jibi(cost, is_buy=True):
                 buf.finish("您的击毙不足！")
             to_do.remove()
