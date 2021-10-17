@@ -492,6 +492,7 @@ async def dragon_use_card(buf: SessionBuffer):
         if block is None:
             await user.use_card(card)
         else:
+            await user.remove_cards([card])
             await block
     global_state['last_card_user'] = qq
     save_global_state()
