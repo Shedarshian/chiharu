@@ -3705,6 +3705,8 @@ class SBritian(ListStatus):
 class SInvBritian(ListStatus):
     id = 'X'
     des = "被不列颠统治：若本效果包含“魔力 - {某塔罗牌名}”，你可取消“魔力 - {该塔罗牌名}”，并凭空使用一张该塔罗牌。"
+    def check(self) -> bool:
+        return True
 
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):
