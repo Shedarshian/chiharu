@@ -134,6 +134,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
     class OnStatusAdd(IntEnum):
         jiaodai = auto()
         inv_jiaodai = auto()
+        paean = auto()
         sunflower = auto()
         twinsunflower = auto()
         panjue = auto()                 # contains both a and b

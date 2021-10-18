@@ -3084,6 +3084,44 @@ class inv_mixidiyatu_s(_statusnull):
     id = 'Q'
     des = "反转·通灵之术-密西迪亚兔：你的屁股上出现了一只可爱的小兔子。"
 
+class wardenspaean(_card):
+	name = "光阴神的礼赞凯歌"
+	id = 119
+	description = "免疫三次负面状态或消耗全部次数治愈大病一场"
+	positive = 1
+	status = 'w'
+	limited_init = (3,)
+class wardenspaean_s(NumedStatus):
+	id = 'w'
+	des = "光阴神的礼赞凯歌：免疫负面状态"
+	def __str__(self) -> str:
+        return f"{self.des}\n\t剩余次数：{self.num}次。"
+    def double(self) -> List[T_status]:
+        return [self, self.__class__(self.num)]
+    @classmethod
+    async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
+        for i in count:
+        	if status.is_debuff and status.id != 'd':
+            	if self.num >= count2:
+                    self.num -= count2
+                    user.send_log(f"触发了凯歌的效果，免除此负面状态！")
+                    user.data.save_status_time()
+                    return 0,
+                else :
+                    count2 -= self.num
+                    self.num = 0
+                    user.send_log(f"触发了凯歌的效果，免除此负面状态！")
+                    user.data.save_status_time()
+                    continue
+        	else if status is 'dabingyichang_s' and self.num == 3:
+        		self.num -= 3
+                user.data.save_status_time()
+                return 0,
+        return count2,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnStatusAdd: (Priority.OnStatusAdd.paean, cls)}
+
 class imaginebreaker(_card):
     name = "幻想杀手"
     id = 120
