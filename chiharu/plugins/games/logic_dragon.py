@@ -485,7 +485,7 @@ async def dragon_use_card(buf: SessionBuffer):
             break
     # if Card(73) in user.data.hand_card and card.id != 73:
     #     buf.finish("你因幸运护符的效果，不可使用其他手牌！")
-    if not card.can_use(user):
+    if not await card.can_use(user):
         user.log << f"无法使用卡牌{card.name}。"
         buf.finish(card.failure_message)
     async with user.settlement():
