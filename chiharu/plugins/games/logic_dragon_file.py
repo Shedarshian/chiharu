@@ -2038,6 +2038,7 @@ class inv_huiye_s(_statusnull):
                 l.remove(l2[-1])
             user.send_log("弃了：" + '，'.join(c.name for c in l2) + "。")
             await user.discard_cards(l2)
+        return time, False
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDeath: (Priority.OnDeath.inv_huiye, cls)}
