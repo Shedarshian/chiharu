@@ -3089,7 +3089,7 @@ class wardenspaean(_card):
     id = 119
     description = "免疫三次负面状态或消耗全部次数治愈大病一场"
     positive = 1
-    status = 'w'
+    limited_status = 'w'
     limited_init = (3,)
 class wardenspaean_s(NumedStatus):
     id = 'w'
@@ -3101,22 +3101,22 @@ class wardenspaean_s(NumedStatus):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         for i in count:
-            if status.is_debuff and status.id != 'd':
-                if self.num >= count2:
-                    self.num -= count2
+            if status.is_debuff and status is not shengbing:
+                if i.num >= count2:
+                    i.num -= count2
                     user.send_log(f"触发了凯歌的效果，免除此负面状态！")
                     user.data.save_status_time()
                     return 0,
-                else :
-                    count2 -= self.num
-                    self.num = 0
+                else:
+                    count2 -= i.num
+                    i.num = 0
                     user.send_log(f"触发了凯歌的效果，免除此负面状态！")
-                    user.data.save_status_time()
                     continue
-            else if status is 'dabingyichang_s' and self.num == 3:
-                self.num -= 3
+            elif status is shengbing and i.num == 3:
+                i.num -= 3
                 user.data.save_status_time()
                 return 0,
+        user.data.save_status_time()
         return count2,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
