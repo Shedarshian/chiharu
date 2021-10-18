@@ -3087,13 +3087,13 @@ class inv_mixidiyatu_s(_statusnull):
 class wardenspaean(_card):
     name = "光阴神的礼赞凯歌"
     id = 119
-    description = "免疫三次负面状态或消耗全部次数治愈大病一场"
+    description = "免疫三次负面状态或消耗全部次数免疫大病一场。"
     positive = 1
     limited_status = 'w'
     limited_init = (3,)
 class wardenspaean_s(NumedStatus):
     id = 'w'
-    des = "光阴神的礼赞凯歌：免疫负面状态"
+    des = "光阴神的礼赞凯歌：免疫三次负面状态或消耗全部次数免疫大病一场。"
     def __str__(self) -> str:
         return f"{self.des}\n\t剩余次数：{self.num}次。"
     def double(self) -> List[T_status]:
