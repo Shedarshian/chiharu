@@ -50,7 +50,7 @@ TEvent = Tuple[int, TEventListener]
 newday_check: List[str] = [set(), set(), set()]
 class IEventListener:
     @classmethod
-    async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str, Optional[Awaitable]]:
+    async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str]:
         """Called before a user intend to use a card.
 
         Arguments:
@@ -58,7 +58,16 @@ class IEventListener:
 
         Returns:
         bool: represents whether the card can be used;
-        str: failure message;
+        str: failure message."""
+        pass
+    @classmethod
+    async def BeforeCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[Optional[Awaitable]]:
+        """Called After a card is used in any cases. Includes cards consumed when drawn.
+
+        Arguments:
+        card: The card used.
+        
+        Returns:
         Optional[Awaitable]: if not None, replace the card use."""
         pass
     @classmethod
@@ -135,7 +144,7 @@ class IEventListener:
     async def OnDodged(cls, count: TCount, user: 'User') -> Tuple[()]:
         pass
     @classmethod
-    def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
+    async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         """Called when a status is added.
         
         Arguments:
@@ -146,7 +155,7 @@ class IEventListener:
         int: the count of the status really add."""
         pass
     @classmethod
-    def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[bool]:
+    async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[bool]:
         """Called when a status is removed.
         
         Arguments:
@@ -857,13 +866,13 @@ class User:
         self.send_char('抽到的卡牌是：')
         for c in cards:
             if c.des_need_init:
-                await c.on_draw(self)
+                await self.draw_card_effect(c)
             self.buf.send(c.full_description(self.qq))
         for c in cards:
             if not c.consumed_on_draw:
                 self.add_card(c)
             if not c.des_need_init:
-                await c.on_draw(self)
+                await self.draw_card_effect(c)
         # Event AfterCardDraw
         for el, n in self.IterAllEventList(UserEvt.AfterCardDraw, Priority.AfterCardDraw):
             await el.AfterCardDraw(n, self, cards)
@@ -872,16 +881,35 @@ class User:
     async def draw_and_use(self, card: TCard):
         """抽取卡牌，立即使用，并发动卡牌的销毁效果。不经过手牌。"""
         if card.des_need_init:
-            await card.on_draw(self)
+            await self.draw_card_effect(c)
         self.log << f"抽取并使用了卡牌{card.name}。"
         self.send_char('抽到并使用了卡牌：\n' + card.full_description(self.qq))
         if not card.des_need_init:
-            await card.on_draw(self)
+            await self.draw_card_effect(c)
         await self.use_card_effect(card)
         await card.on_remove(self)
+    async def draw_card_effect(self, card: TCard):
+        """抽卡时的结算。"""
+        if card.consumed_on_draw:
+            # Event BeforeCardUse
+            for el, n in self.IterAllEventList(UserEvt.BeforeCardUse, Priority.BeforeCardUse):
+                block, = await el.BeforeCardUse(n, self, card)
+                if block is not None:
+                    self.log << f"卡牌使用被阻挡！"
+                    await block
+                    return
+        await card.on_draw(self)
     async def use_card_effect(self, card: TCard):
         """发动卡牌的使用效果。"""
         self.log << f"发动卡牌的使用效果{card.name}。"
+        block = None
+        # Event BeforeCardUse
+        for el, n in self.IterAllEventList(UserEvt.BeforeCardUse, Priority.BeforeCardUse):
+            block, = await el.BeforeCardUse(n, self, card)
+            if block is not None:
+                self.log << f"卡牌使用被阻挡！"
+                await block
+                return
         await card.use(self)
         # Event AfterCardUse
         for el, n in self.IterAllEventList(UserEvt.AfterCardUse, Priority.AfterCardUse):
@@ -1449,11 +1477,11 @@ class SCantUse(TimedStatus):
     def double(self) -> List[T_status]:
         return [self.__class__(self.time + (self.time - datetime.now()), self.card_id)]
     @classmethod
-    async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str, Optional[Awaitable]]:
+    async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str]:
         for s in count:
             if s.card_id == card.id:
-                return False, f"你太疲劳了，不能使用{card.name}！", None
-        return True, "",None
+                return False, f"你太疲劳了，不能使用{card.name}！"
+        return True, ""
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnUserUseCard: (Priority.OnUserUseCard.cantuse, cls)}
@@ -1702,8 +1730,8 @@ class temperance_s(_statusdaily):
     des = "XIV - 节制：今天你不能使用卡牌。"
     is_debuff = True
     @classmethod
-    async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str, Optional[Awaitable]]:
-        return False, "你因XIV - 节制的效果，不能使用卡牌！", None
+    async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str]:
+        return False, "你因XIV - 节制的效果，不能使用卡牌！"
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnUserUseCard: (Priority.OnUserUseCard.temperance, cls)}
@@ -2349,10 +2377,10 @@ class xingyunhufu(_card):
     positive = 1
     description = "持有此卡时，你无法使用其他卡牌。你每进行两次接龙额外获得一个击毙（每天上限为5击毙）。使用将丢弃这张卡。"
     @classmethod
-    async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str, Optional[Awaitable]]:
+    async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str]:
         if card.id != 73:
-            return False, "你因幸运护符的效果，不可使用其他手牌！", None
-        return True, "", None
+            return False, "你因幸运护符的效果，不可使用其他手牌！"
+        return True, ""
     @classmethod
     async def OnDragoned(cls, count: TCount, user: User, branch: 'Tree') -> Tuple[()]:
         if user.data.today_jibi % 2 == 1:
@@ -3725,7 +3753,7 @@ class SBritian(ListStatus):
     def check(self) -> bool:
         return True
     @classmethod
-    async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str, Optional[Awaitable]]:
+    async def BeforeCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[Optional[Awaitable]]:
         if card.id <= 21:
             for c in count:
                 if card.id not in c.list:
@@ -3743,11 +3771,11 @@ class SBritian(ListStatus):
                             else:
                                 user.send_log(f"将装备“塔罗原典”升星至{b + 1}星！")
                         user.data.save_status_time()
-                    return True, "", f()
-        return True, "", None
+                    return f()
+        return None
     @classmethod
     def register(cls) -> dict[int, TEvent]:
-        return {UserEvt.OnUserUseCard: (Priority.OnUserUseCard.britian, cls)}
+        return {UserEvt.BeforeCardUse: (Priority.BeforeCardUse.britian, cls)}
 class SInvBritian(ListStatus):
     id = 'X'
     des = "被不列颠统治：若本效果包含“魔力 - {某塔罗牌名}”，你可取消“魔力 - {该塔罗牌名}”，并凭空使用一张该塔罗牌。"

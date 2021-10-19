@@ -71,6 +71,7 @@ class CounterOnly(Generic[T, TCount]):
 from enum import IntEnum, auto
 class UserEvt(IntEnum):
     OnUserUseCard = auto()
+    BeforeCardUse = auto()
     AfterCardUse = auto()
     AfterCardDraw = auto()
     AfterCardDiscard = auto()
@@ -99,6 +100,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         temperance = auto()
         xingyunhufu = auto()
         cantuse = auto()
+    class BeforeCardUse(IntEnum):
         britian = auto()
     class AfterCardUse(IntEnum):
         pass
