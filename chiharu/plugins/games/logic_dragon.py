@@ -736,9 +736,9 @@ async def dragon_buy(buf: SessionBuffer):
         if user.data.shop_drawn_card <= 0:
             buf.send("您今日已在商店购买过抽卡！")
         else:
-            user.data.shop_drawn_card -= 1
             if not await user.add_jibi(-5, is_buy=True):
                 buf.finish("您的击毙不足！")
+            user.data.shop_drawn_card -= 1
             async with user.settlement():
                 await user.draw(1)
     elif id == 16 and me.check_daily_status('O'):
