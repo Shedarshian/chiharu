@@ -1434,6 +1434,7 @@ class fool(_card):
     name = "0 - 愚者"
     id = 0
     positive = -1
+    newer = 2
     description = "抽到时附加效果：你下次使用卡牌无效。"
     consumed_on_draw = True
     on_draw_status = 'O'
