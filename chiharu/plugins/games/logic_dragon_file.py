@@ -2708,7 +2708,7 @@ class jujifashu(_card):
     description = "将两张手牌的id相加变为新的手牌。若这两牌id之和不是已有卡牌的id，则变为【邪恶的间谍行动～执行】。"
     failure_message = "你的手牌不足，无法使用！"
     @classmethod
-    async def can_use(cls, user: User) -> bool:
+    def can_use(cls, user: User) -> bool:
         return len(user.data.hand_card) >= 3
     @classmethod
     async def use(cls, user: User) -> None:
@@ -2743,7 +2743,7 @@ class liebianfashu(_card):
     description = "将一张手牌变为两张随机牌，这两张牌的id之和为之前的卡牌的id。若不存在这样的组合，则变为两张【邪恶的间谍行动～执行】。"
     failure_message = "你的手牌不足，无法使用！"
     @classmethod
-    async def can_use(cls, user: User) -> bool:
+    def can_use(cls, user: User) -> bool:
         return len(user.data.hand_card) >= 2
     @classmethod
     async def use(cls, user: User) -> None:
@@ -3354,7 +3354,7 @@ class twinsunflower(_card):
     positive = 1
     failure_message = "你场地上没有“向日葵”！"
     @classmethod
-    async def can_use(cls, user: User) -> bool:
+    def can_use(cls, user: User) -> bool:
         return user.check_status('(') > 0
     @classmethod
     async def use(cls, user: User) -> None:
@@ -3693,7 +3693,7 @@ class excalibur(_card):
     description = "只可在胜利时使用。统治不列颠。"
     newer = 1
     @classmethod
-    async def can_use(cls, user: User) -> bool:
+    def can_use(cls, user: User) -> bool:
         return user.check_daily_status('W') > 0
     @classmethod
     async def use(cls, user: User) -> None:
