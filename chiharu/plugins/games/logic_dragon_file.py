@@ -660,21 +660,23 @@ class User:
         for eln, n in self.IterAllEventList(UserEvt.OnStatusAdd, Priority.OnStatusAdd):
             count, = await eln.OnStatusAdd(n, self, StatusNull(s), count)
             if count == 0:
-                break
+                return False
         else:
             self.data.status += s * count
             self.log << f"增加了永久状态{s}，当前状态为{self.data.status}。"
             self.data._register_status(StatusNull(s), count=count)
+            return True
     async def add_daily_status(self, s: str, count=1):
         # Event OnStatusAdd
         for eln, n in self.IterAllEventList(UserEvt.OnStatusAdd, Priority.OnStatusAdd):
             count, = await eln.OnStatusAdd(n, self, StatusDaily(s), count)
             if count == 0:
-                break
+                return False
         else:
             self.data.daily_status += s * count
             self.log << f"增加了每日状态{s}，当前状态为{self.data.daily_status}。"
             self.data._register_status(StatusDaily(s), count=count)
+            return True
     async def add_limited_status(self, s: Union[str, T_status], *args, **kwargs):
         if isinstance(s, str):
             ss = Status(s)(*args, **kwargs)
@@ -685,17 +687,18 @@ class User:
         for eln, n in self.IterAllEventList(UserEvt.OnStatusAdd, Priority.OnStatusAdd):
             count, = await eln.OnStatusAdd(n, self, ss, count)
             if count == 0:
-                break
+                return False
         else:
             self.data.status_time.append(ss)
             self.log << f"增加了限时状态{ss}。"
             self.data._register_status_time(ss)
+            return True
     async def remove_status(self, s: str, /, remove_all=True):
         # Event OnStatusRemove
         for eln, n in self.IterAllEventList(UserEvt.OnStatusRemove, Priority.OnStatusRemove):
             dodge, = await eln.OnStatusRemove(n, self, StatusNull(s), remove_all)
             if dodge:
-                break
+                return False
         else:
             if remove_all:
                 self.data.status = ''.join([t for t in self.data.status if t != s])
@@ -706,12 +709,13 @@ class User:
                 self.data.status = ''.join(l)
             self.log << f"移除了{'一层' if not remove_all else ''}永久状态{s}，当前状态为{self.data.status}。"
             self.data._deregister(StatusNull(s), is_all=remove_all)
+            return True
     async def remove_daily_status(self, s: str, /, remove_all=True):
         # Event OnStatusRemove
         for eln, n in self.IterAllEventList(UserEvt.OnStatusRemove, Priority.OnStatusRemove):
             dodge, = await eln.OnStatusRemove(n, self, StatusDaily(s), remove_all)
             if dodge:
-                break
+                return False
         else:
             if remove_all:
                 self.data.daily_status = ''.join([t for t in self.data.daily_status if t != s])
@@ -722,16 +726,18 @@ class User:
                 self.data.daily_status = ''.join(l)
             self.log << f"移除了{'一层' if not remove_all else ''}每日状态{s}，当前状态为{self.data.daily_status}。"
             self.data._deregister(StatusDaily(s), is_all=remove_all)
+            return True
     async def remove_limited_status(self, s: T_status):
         # Event OnStatusRemove
         for eln, n in self.IterAllEventList(UserEvt.OnStatusRemove, Priority.OnStatusRemove):
             dodge, = await eln.OnStatusRemove(n, self, s, False)
             if dodge:
-                break
+                return False
         else:
             self.data.status_time.remove(s)
             self.log << f"移除了一个限时状态{s}。"
             self.data._deregister_status_time(s, is_all=False)
+            return True
     async def remove_all_limited_status(self, s: str):
         l = [c for c in self.data.status_time if c.id == s]
         if len(l) == 0:
@@ -740,7 +746,7 @@ class User:
         for eln, n in self.IterAllEventList(UserEvt.OnStatusRemove, Priority.OnStatusRemove):
             dodge, = await eln.OnStatusRemove(n, self, l[0], True)
             if dodge:
-                break
+                return False
         else:
             i = 0
             while i < len(self.data.status_time):
@@ -751,7 +757,8 @@ class User:
                     i += 1
             self.log << f"移除了所有限时状态{s}。"
             self.data._deregister_status_time(Status(s), is_all=True)
-            return self.data.status_time
+            return True
+            # return self.data.status_time
     def check_status(self, s: str) -> int:
         return self.data.check_status(s)
     def check_daily_status(self, s: str) -> int:
@@ -1235,10 +1242,10 @@ class card_meta(type):
                 to_send_char = attrs.get('on_draw_send_char')
                 @classmethod
                 async def on_draw(self, user: User):
-                    await user.add_status(status)
-                    if to_send:
+                    ret = await user.add_status(status)
+                    if to_send and ret:
                         user.buf.send(to_send)
-                    if to_send_char:
+                    if to_send_char and ret:
                         user.send_char(to_send_char)
                 attrs['on_draw'] = on_draw
             elif status := attrs.get('on_draw_daily_status'):
@@ -1246,10 +1253,10 @@ class card_meta(type):
                 to_send_char = attrs.get('on_draw_send_char')
                 @classmethod
                 async def on_draw(self, user: User):
-                    await user.add_daily_status(status)
-                    if to_send:
+                    ret = await user.add_daily_status(status)
+                    if to_send and ret:
                         user.buf.send(to_send)
-                    if to_send_char:
+                    if to_send_char and ret:
                         user.send_char(to_send_char)
                 attrs['on_draw'] = on_draw
             elif status := attrs.get('on_draw_limited_status'):
@@ -1257,10 +1264,10 @@ class card_meta(type):
                 to_send_char = attrs.get('on_draw_send_char')
                 @classmethod
                 async def on_draw(self, user: User):
-                    await user.add_limited_status(status, *attrs['limited_init'])
-                    if to_send:
+                    ret = await user.add_limited_status(status, *attrs['limited_init'])
+                    if to_send and ret:
                         user.buf.send(to_send)
-                    if to_send_char:
+                    if to_send_char and ret:
                         user.send_char(to_send_char)
                 attrs['on_draw'] = on_draw
             elif status := attrs.get('on_draw_global_status'):
@@ -1268,8 +1275,8 @@ class card_meta(type):
                 to_send_char = attrs.get('on_draw_send_char')
                 @classmethod
                 async def on_draw(self, user: User):
-                    await Userme(user).add_status(status)
-                    if to_send:
+                    ret = await Userme(user).add_status(status)
+                    if to_send and ret:
                         user.buf.send(to_send)
                 attrs['on_draw'] = on_draw
             elif status := attrs.get('on_draw_global_daily_status'):
@@ -1277,8 +1284,8 @@ class card_meta(type):
                 to_send_char = attrs.get('on_draw_send_char')
                 @classmethod
                 async def on_draw(self, user: User):
-                    await Userme(user).add_daily_status(status)
-                    if to_send:
+                    ret = await Userme(user).add_daily_status(status)
+                    if to_send and ret:
                         user.buf.send(to_send)
                 attrs['on_draw'] = on_draw
             elif status := attrs.get('on_draw_global_limited_status'):
@@ -1286,8 +1293,8 @@ class card_meta(type):
                 to_send_char = attrs.get('on_draw_send_char')
                 @classmethod
                 async def on_draw(self, user: User):
-                    await Userme(user).add_limited_status(status, *attrs['limited_init'])
-                    if to_send:
+                    ret = await Userme(user).add_limited_status(status, *attrs['limited_init'])
+                    if to_send and ret:
                         user.buf.send(to_send)
                 attrs['on_draw'] = on_draw
             c = type.__new__(cls, clsname, bases, attrs)
