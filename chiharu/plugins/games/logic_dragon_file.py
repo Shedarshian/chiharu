@@ -3469,7 +3469,7 @@ class jack_in_the_box(_card):
     consumed_on_draw = True
 class jack_in_the_box_s(_statusnull):
     id = 'j'
-    status_des = "玩偶匣：你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。若场上有寒冰菇状态则不会爆炸。"
+    des = "玩偶匣：你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。若场上有寒冰菇状态则不会爆炸。"
     is_debuff = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
