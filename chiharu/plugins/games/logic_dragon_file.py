@@ -3124,6 +3124,7 @@ class wardenspaean(_card):
     id = 119
     description = "免疫三次负面状态或消耗全部次数免疫大病一场。"
     positive = 1
+    newer = 2
     limited_status = 'w'
     limited_init = (3,)
 class wardenspaean_s(NumedStatus):
