@@ -1430,6 +1430,26 @@ class SInvincible(TimedStatus):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDeath: (Priority.OnDeath.invincible, cls)}
 
+class fool(_card):
+    name = "0 - 愚者"
+    id = 0
+    positive = -1
+    description = "抽到时附加效果：你下次使用卡牌无效。"
+    consumed_on_draw = True
+    on_draw_status = 'O'
+class fool_s(_statusnull):
+    id = 'O'
+    des = "0 - 愚者：你下次使用卡牌无效。"
+    @classmethod
+    async def BeforeCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[Optional[Awaitable]]:
+        async def f():
+            user.send_log("你太笨了！这张卡的使用无效！")
+            await user.remove_status('O', remove_all=False)
+        return f()
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeCardUse: (Priority.BeforeCardUse.fool, cls)}
+
 class magician(_card):
     name = "I - 魔术师"
     id = 1

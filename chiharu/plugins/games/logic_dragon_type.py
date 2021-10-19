@@ -101,6 +101,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         xingyunhufu = auto()
         cantuse = auto()
     class BeforeCardUse(IntEnum):
+        fool = auto()
         britian = auto()
     class AfterCardUse(IntEnum):
         pass
