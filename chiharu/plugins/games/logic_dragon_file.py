@@ -3202,7 +3202,7 @@ class imaginebreaker_s(_statusnull):
             c.pierce = nothing
             user.buf.send("但", end='')
             return False,
-        user.buf.send_log("触发了幻想杀手的效果，防住了对方的攻击！")
+        user.send_log("触发了幻想杀手的效果，防住了对方的攻击！")
         await user.remove_status('0', remove_all=False)
         return True,
     @classmethod
