@@ -3264,6 +3264,9 @@ class xixueshashou_s(_statusdaily):
             if random.random() > 0.9:
                 user.buf.send("你获得了一张【吸血鬼】！")
                 await user.draw(0, cards=[Card(-2)])
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.xixueshashou, cls)}
 
 class sunflower(_card):
     name = "向日葵"
