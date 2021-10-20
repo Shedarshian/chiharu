@@ -3622,6 +3622,9 @@ class forkbomb_s(_statusdaily):
         if random.random() > 0.95 ** count:
             user.send_log("触发了Fork Bomb，此词变成了分叉点！")
             branch.fork = True
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.forkbomb, cls)}
 
 class beijingcard(_card):
     name = "北京市市政交通一卡通"

@@ -197,6 +197,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         jack_in_the_box = auto()
         star = auto()
         dihuopenfa = auto()
+        forkbomb = auto()
     class OnNewDay(IntEnum):
         quest = auto()
         sunflower = auto()
