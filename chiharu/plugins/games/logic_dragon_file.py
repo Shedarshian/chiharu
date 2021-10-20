@@ -3765,12 +3765,6 @@ class excalibur(_card):
         else:
             user.send_log("统治了不列颠！")
             await user.add_limited_status(SBritian([]))
-class excalibur_s(_statusnull):
-    id = 'W'
-    des = "统治不列颠：使用塔罗牌时，若你没有对应的“魔力 - {塔罗牌名}”状态，取消其原来的效果并获得效果“魔力 - {塔罗牌名}”状态。"
-class inv_excalibur_s(_statusnull):
-    id = 'X'
-    des = "被不列颠统治：若你有对应的“魔力 - {塔罗牌名}”状态，你可取消效果“魔力 - {塔罗牌名}”状态并使用一张对应塔罗牌。"
 class SBritian(ListStatus):
     id = 'W'
     des = "统治不列颠：使用塔罗牌系列牌时，若本效果不包含“魔力 - {该塔罗牌名}”，取消该牌的原本使用效果，并为本效果增加“魔力 - {该塔罗牌名}”。当拥有所有22种“魔力 - {塔罗牌名}时，获得装备“塔罗原典”。"
