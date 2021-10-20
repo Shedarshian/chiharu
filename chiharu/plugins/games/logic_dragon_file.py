@@ -3793,8 +3793,8 @@ class SBritian(ListStatus):
                             else:
                                 user.send_log(f"将装备“塔罗原典”升星至{b + 1}星！")
                         user.data.save_status_time()
-                    return f()
-        return None
+                    return f(),
+        return None,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeCardUse: (Priority.BeforeCardUse.britian, cls)}
