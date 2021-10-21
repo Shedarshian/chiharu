@@ -345,6 +345,7 @@ class Game:
             try:
                 return await f(*args, **kwargs)
             finally:
+                await buf.flush()
                 cls.userdatas.clear()
         return _f
     @classmethod
