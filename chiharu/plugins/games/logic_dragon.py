@@ -219,7 +219,7 @@ async def update_begin_word(is_daily: bool):
     root = Tree(None, word_stripped, 2711644761, '', '')
     return c
 
-@Game.wrapper_noarg
+@Game.wrapper
 async def daily_update(buf: SessionBuffer) -> str:
     global global_state
     m: TQuest = {}
