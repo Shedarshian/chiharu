@@ -339,12 +339,13 @@ class Game:
     session_list: List[CommandSession] = []
     userdatas: Dict[int, 'UserData'] = {}
     @classmethod
-    def wrapper_noarg(cls, f: Awaitable):
+    def wrapper_noarg(cls, f: Awaitable[config.SessionBuffer]):
         @wraps(f)
-        async def _f(*args, **kwargs):
+        async def _f(buf: config.SessionBuffer, *args, **kwargs):
             try:
-                return await f(*args, **kwargs)
+                return await f(buf, *args, **kwargs)
             finally:
+                await buf.flush()
                 cls.userdatas.clear()
         return _f
     @classmethod
