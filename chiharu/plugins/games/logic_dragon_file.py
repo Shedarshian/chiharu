@@ -2157,7 +2157,7 @@ class plus2(_card):
     global_status = '+'
     positive = 0
     description = "下一个接龙的人摸一张非负面卡和一张非正面卡。"
-class plus2_s(_status):
+class plus2_s(_statusnull):
     id = '+'
     des = "+2：下一个接龙的人摸一张非负面卡和一张非正面卡。"
     @classmethod
