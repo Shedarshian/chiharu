@@ -1447,7 +1447,7 @@ class fool_s(_statusnull):
         async def f():
             user.send_log("你太笨了！这张卡的使用无效！")
             await user.remove_status('O', remove_all=False)
-        return f()
+        return f(),
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeCardUse: (Priority.BeforeCardUse.fool, cls)}
