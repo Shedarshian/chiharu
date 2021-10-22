@@ -3,8 +3,10 @@ from math import ceil
 from os import remove
 from typing import Dict, List, Set, Tuple, Type, TypedDict, Union, Optional
 import itertools, more_itertools
-import json, random, re
+import json, random, re, base64
 from PIL import Image, ImageDraw
+from io import BytesIO
+import requests
 from nonebot import CommandSession, NLPSession, on_natural_language, get_bot, permission, scheduler
 from nonebot.command import call_command
 from nonebot.command.argfilter import extractors, validators
@@ -898,8 +900,15 @@ async def dragon_delete(buf: SessionBuffer):
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_add_begin(session: CommandSession):
     """添加起始词。黑幕群可用。"""
-    
-    add_begin(session.current_arg.strip())
+    if len(session.current_arg_images) != 1:
+        session.finish("请附1张图！")
+    url = session.current_arg_images[0]
+    response = requests.get(url)
+    img = Image.open(BytesIO(response.content))
+    buffered = BytesIO()
+    img.save(buffered, format="JPEG")
+    b64 = 'base64://' + base64.b64encode(buffered.getvalue()).decode()
+    add_begin(session.current_arg_text.strip() + "[CQ:image,file=" + b64 + "]")
     await session.send('成功添加起始词。')
 
 @on_command(('dragon', 'add_keyword'), only_to_me=False, environment=env_supervise)
