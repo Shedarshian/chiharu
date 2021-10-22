@@ -2021,6 +2021,7 @@ class sihuihuibizhiyao(_card):
     name = "死秽回避之药"
     id = 50
     positive = 1
+    status = 's'
     description = "你下次死亡时自动消耗5击毙免除死亡。若击毙不足则不发动。"
 class sihuihuibizhiyao_s(_statusnull):
     id = 's'
@@ -2060,6 +2061,7 @@ class huiye(_card):
     name = "辉夜姬的秘密宝箱"
     id = 52
     positive = 1
+    status = 'x'
     description = "你下一次死亡的时候奖励你抽一张卡。"
 class huiye_s(_statusnull):
     id = 'x'
@@ -2324,6 +2326,7 @@ class hongsezhihuan(_card):
     name = "虹色之环"
     id = 71
     positive = 0
+    status = 'h'
     description = "下次你死亡时，有1/2几率闪避，1/2几率死亡时间+1小时。"
 class hongsezhihuan_s(_statusnull):
     id = 'h'
