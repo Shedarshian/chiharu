@@ -905,18 +905,19 @@ class User:
     async def use_card_effect(self, card: TCard):
         """发动卡牌的使用效果。"""
         self.log << f"发动卡牌的使用效果{card.name}。"
-        block = None
-        # Event BeforeCardUse
-        for el, n in self.IterAllEventList(UserEvt.BeforeCardUse, Priority.BeforeCardUse):
-            block, = await el.BeforeCardUse(n, self, card)
-            if block is not None:
-                self.log << f"卡牌使用被阻挡！"
-                await block
-                return
-        await card.use(self)
-        # Event AfterCardUse
-        for el, n in self.IterAllEventList(UserEvt.AfterCardUse, Priority.AfterCardUse):
-            await el.AfterCardUse(n, self, card)
+        if not card.consumed_on_draw:
+            block = None
+            # Event BeforeCardUse
+            for el, n in self.IterAllEventList(UserEvt.BeforeCardUse, Priority.BeforeCardUse):
+                block, = await el.BeforeCardUse(n, self, card)
+                if block is not None:
+                    self.log << f"卡牌使用被阻挡！"
+                    await block
+                    return
+            await card.use(self)
+            # Event AfterCardUse
+            for el, n in self.IterAllEventList(UserEvt.AfterCardUse, Priority.AfterCardUse):
+                await el.AfterCardUse(n, self, card)
     async def use_card(self, card: TCard):
         """将卡牌移出手牌，使用卡牌然后执行销毁操作。"""
         self.send_char('使用了卡牌：\n' + card.full_description(self.qq))
