@@ -409,7 +409,9 @@ class property_list(UserList):
     __delitem__ = None
     __iadd__ = None
     __imul__ = None
-    insert = None
+    def insert(self):
+        super().insert()
+        self.f(self.data)
     reverse = None
     sort = None
 class Wrapper:
