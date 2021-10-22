@@ -14,7 +14,7 @@ from collections import UserDict
 from .inject import find_help, CommandGroup, Environment, AllGroup, Admin, Constraint, on_command
 
 PATH = "C:\\coolq_data\\"
-PATH_IMG = "C:\\coolq\\image"
+PATH_IMG = "C:\\go\\data\\images"
 PATH_REC = "C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\record"
 
 def rel(rel_path):

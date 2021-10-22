@@ -905,9 +905,9 @@ async def dragon_add_begin(session: CommandSession):
     url = session.current_arg_images[0]
     response = requests.get(url)
     name = hash(url)
-    with open(config.rel(f"games\\logic_dragon\\{name}.jpg"), 'wb') as f:
+    with open(config.img(f"{name}.jpg"), 'wb') as f:
         f.write(response.content)
-    add_begin(session.current_arg_text.strip() + "[CQ:image,file=file://" + config.rel(f"games\\logic_dragon\\{name}.jpg") + "]")
+    add_begin(session.current_arg_text.strip() + f"[CQ:image,file={name}.jpg]")
     await session.send('成功添加起始词。')
 
 @on_command(('dragon', 'add_keyword'), only_to_me=False, environment=env_supervise)
