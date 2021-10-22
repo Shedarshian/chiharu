@@ -898,6 +898,7 @@ async def dragon_delete(buf: SessionBuffer):
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_add_begin(session: CommandSession):
     """添加起始词。黑幕群可用。"""
+    
     add_begin(session.current_arg.strip())
     await session.send('成功添加起始词。')
 

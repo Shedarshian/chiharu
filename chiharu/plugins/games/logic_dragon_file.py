@@ -2160,6 +2160,7 @@ class plus2(_card):
 class plus2_s(_statusnull):
     id = '+'
     des = "+2：下一个接龙的人摸一张非负面卡和一张非正面卡。"
+    is_global = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
         await Userme(user).remove_status('+')
