@@ -904,11 +904,10 @@ async def dragon_add_begin(session: CommandSession):
         session.finish("请附1张图！")
     url = session.current_arg_images[0]
     response = requests.get(url)
-    img = Image.open(BytesIO(response.content))
-    buffered = BytesIO()
-    img.save(buffered, format="JPEG")
-    b64 = 'base64://' + base64.b64encode(buffered.getvalue()).decode()
-    add_begin(session.current_arg_text.strip() + "[CQ:image,file=" + b64 + "]")
+    name = hash(url)
+    with open(config.rel(f"games\\logic_dragon\\{name}.jpg"), 'wb') as f:
+        f.write(response.content)
+    add_begin(session.current_arg_text.strip() + "[CQ:image,file=file://" + config.rel(f"games\\logic_dragon\\{name}.jpg") + "]")
     await session.send('成功添加起始词。')
 
 @on_command(('dragon', 'add_keyword'), only_to_me=False, environment=env_supervise)
