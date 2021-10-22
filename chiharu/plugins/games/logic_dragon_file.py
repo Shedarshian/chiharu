@@ -1445,6 +1445,7 @@ class fool(_card):
 class fool_s(_statusnull):
     id = 'O'
     des = "0 - 愚者：你下次使用卡牌无效。"
+    is_debuff = True
     @classmethod
     async def BeforeCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[Optional[Awaitable]]:
         async def f():
