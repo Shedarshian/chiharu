@@ -409,8 +409,8 @@ class property_list(UserList):
     __delitem__ = None
     __iadd__ = None
     __imul__ = None
-    def insert(self):
-        super().insert()
+    def insert(self, i, item):
+        super().insert(i, item)
         self.f(self.data)
     reverse = None
     sort = None
