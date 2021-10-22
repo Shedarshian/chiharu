@@ -882,11 +882,11 @@ class User:
     async def draw_and_use(self, card: TCard):
         """抽取卡牌，立即使用，并发动卡牌的销毁效果。不经过手牌。"""
         if card.des_need_init:
-            await self.draw_card_effect(c)
+            await self.draw_card_effect(card)
         self.log << f"抽取并使用了卡牌{card.name}。"
         self.send_char('抽到并使用了卡牌：\n' + card.full_description(self.qq))
         if not card.des_need_init:
-            await self.draw_card_effect(c)
+            await self.draw_card_effect(card)
         await self.use_card_effect(card)
         await card.on_remove(self)
     async def draw_card_effect(self, card: TCard):
