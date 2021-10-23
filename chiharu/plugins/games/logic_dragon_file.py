@@ -3776,7 +3776,7 @@ class excalibur(_card):
             await user.add_limited_status(SBritian([]))
 class SBritian(ListStatus):
     id = 'W'
-    des = "统治不列颠：使用塔罗牌系列牌时，若本效果不包含“魔力 - {该塔罗牌名}”，取消该牌的原本使用效果，并为本效果增加“魔力 - {该塔罗牌名}”。当拥有所有22种“魔力 - {塔罗牌名}时，获得装备“塔罗原典”。"
+    des = "统治不列颠：使用塔罗牌系列牌时，若本效果不包含“魔力 - {该塔罗牌名}”，不发动该牌的原本使用效果，并为本效果增加“魔力 - {该塔罗牌名}”。当拥有所有22种“魔力 - {塔罗牌名}”时，获得装备“塔罗原典”。"
     def __str__(self) -> str:
         if len(self.list) == 0:
             return self.des
@@ -3809,7 +3809,7 @@ class SBritian(ListStatus):
         return {UserEvt.BeforeCardUse: (Priority.BeforeCardUse.britian, cls)}
 class SInvBritian(ListStatus):
     id = 'X'
-    des = "被不列颠统治：若本效果包含“魔力 - {某塔罗牌名}”，你可取消“魔力 - {该塔罗牌名}”，并凭空使用一张该塔罗牌。"
+    des = "被不列颠统治：若本效果包含“魔力 - {某塔罗牌名}”，你可取消本效果中的“魔力 - {该塔罗牌名}”，并凭空使用一张该塔罗牌。"
     def check(self) -> bool:
         return True
 
