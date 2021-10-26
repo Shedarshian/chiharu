@@ -1600,7 +1600,7 @@ class hierophant(_card):
     positive = 1
     description = "你的下10次接龙中每次额外获得2击毙，但额外要求首尾接龙。"
     status = 'c'
-    newer = 2
+    newer = 3
 class hierophant_s(_statusnull):
     id = 'c'
     des = "V - 教皇：你的下10次接龙中每次额外获得2击毙，但额外要求首尾接龙。"
@@ -1871,7 +1871,7 @@ class judgement(_card):
     name = "XX - 审判"
     id = 20
     positive = 0
-    newer = 2
+    newer = 3
     description = "若你今天接龙次数小于5，则扣除20击毙，若你今天接龙次数大于20，则获得20击毙。"
     @classmethod
     async def use(cls, user: User):
