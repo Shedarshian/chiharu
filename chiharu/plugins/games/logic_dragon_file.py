@@ -15,6 +15,7 @@ from nonebot.command.argfilter import extractors, validators
 from .. import config
 from .logic_dragon_type import TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, nothing, TQuest
 
+# TODO change TCount to a real obj, in order to unify 'count' and 'count2' in OnStatusAdd, also _status.on_add
 with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
     global_state: TGlobalState = json.load(f)
 def save_global_state():
@@ -677,6 +678,7 @@ class User:
             self.data.status += s * count
             self.log << f"增加了永久状态{s}，当前状态为{self.data.status}。"
             self.data._register_status(StatusNull(s), count=count)
+            await StatusNull(s).on_add(count)
             return True
     async def add_daily_status(self, s: str, count=1):
         # Event OnStatusAdd
@@ -688,6 +690,7 @@ class User:
             self.data.daily_status += s * count
             self.log << f"增加了每日状态{s}，当前状态为{self.data.daily_status}。"
             self.data._register_status(StatusDaily(s), count=count)
+            await StatusDaily(s).on_add(count)
             return True
     async def add_limited_status(self, s: Union[str, T_status], *args, **kwargs):
         if isinstance(s, str):
@@ -704,6 +707,7 @@ class User:
             self.data.status_time.append(ss)
             self.log << f"增加了限时状态{ss}。"
             self.data._register_status_time(ss)
+            await ss.on_add([ss])
             return True
     async def remove_status(self, s: str, /, remove_all=True):
         # Event OnStatusRemove
@@ -1097,6 +1101,9 @@ class _statusall(IEventListener, metaclass=status_meta):
     des = ""
     is_debuff = False
     is_global = False
+    @classmethod
+    async def on_add(cls, count: TCount):
+        pass
 class _status(_statusall):
     id_dict: Dict[str, TStatus] = {}
     def __init__(self, s: str):
@@ -1856,6 +1863,25 @@ class star_s(_statusdaily):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.star, cls)}
+
+class moon(_card):
+    name = "XVIII - 月亮"
+    id = 18
+    positive = 1
+    description = "下次有人接到隐藏奖励词前，隐藏奖励词数量加1。"
+    global_status = 'k'
+        # from .logic_dragon import hidden_keyword, wrapper_file, TWords
+        # @wrapper_file
+        # def _(d: TWords):
+        #     new = random.choice(d['hidden'][1])
+        #     d['hidden'][1].remove(new)
+        #     hidden_keyword.append(new)
+        #     d['hidden'][0].append(new)
+        # _()
+        # config.logger.dragon << f"【LOG】隐藏关键词更新为：{'，'.join(hidden_keyword)}。"
+class moon_s(_statusnull):
+    id = 'k'
+    des = "XVIII - 月亮：下次有人接到隐藏奖励词前，隐藏奖励词数量加1。"
 
 class sun(_card):
     name = "XIX - 太阳"
