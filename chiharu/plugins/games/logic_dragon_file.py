@@ -725,6 +725,7 @@ class User:
                 self.data.status = ''.join(l)
             self.log << f"移除了{'一层' if not remove_all else ''}永久状态{s}，当前状态为{self.data.status}。"
             self.data._deregister(StatusNull(s), is_all=remove_all)
+            await StatusNull(s).on_remove(remove_all)
             return True
     async def remove_daily_status(self, s: str, /, remove_all=True):
         # Event OnStatusRemove
@@ -742,6 +743,7 @@ class User:
                 self.data.daily_status = ''.join(l)
             self.log << f"移除了{'一层' if not remove_all else ''}每日状态{s}，当前状态为{self.data.daily_status}。"
             self.data._deregister(StatusDaily(s), is_all=remove_all)
+            await StatusDaily(s).on_remove(remove_all)
             return True
     async def remove_limited_status(self, s: T_status):
         # Event OnStatusRemove
@@ -753,6 +755,7 @@ class User:
             self.data.status_time.remove(s)
             self.log << f"移除了一个限时状态{s}。"
             self.data._deregister_status_time(s, is_all=False)
+            await s.on_remove(False)
             return True
     async def remove_all_limited_status(self, s: str):
         l = [c for c in self.data.status_time if c.id == s]
@@ -773,6 +776,7 @@ class User:
                     i += 1
             self.log << f"移除了所有限时状态{s}。"
             self.data._deregister_status_time(Status(s), is_all=True)
+            await Status(s).on_remove(True)
             return True
             # return self.data.status_time
     def check_status(self, s: str) -> int:
@@ -1103,6 +1107,9 @@ class _statusall(IEventListener, metaclass=status_meta):
     is_global = False
     @classmethod
     async def on_add(cls, count: TCount):
+        pass
+    @classmethod
+    async def on_remove(cls, remove_all: bool=True):
         pass
 class _status(_statusall):
     id_dict: Dict[str, TStatus] = {}
@@ -1868,20 +1875,57 @@ class moon(_card):
     name = "XVIII - 月亮"
     id = 18
     positive = 1
+    newer = 3
     description = "下次有人接到隐藏奖励词前，隐藏奖励词数量加1。"
     global_status = 'k'
-        # from .logic_dragon import hidden_keyword, wrapper_file, TWords
-        # @wrapper_file
-        # def _(d: TWords):
-        #     new = random.choice(d['hidden'][1])
-        #     d['hidden'][1].remove(new)
-        #     hidden_keyword.append(new)
-        #     d['hidden'][0].append(new)
-        # _()
-        # config.logger.dragon << f"【LOG】隐藏关键词更新为：{'，'.join(hidden_keyword)}。"
 class moon_s(_statusnull):
     id = 'k'
     des = "XVIII - 月亮：下次有人接到隐藏奖励词前，隐藏奖励词数量加1。"
+    is_global = True
+    @classmethod
+    async def on_add(cls, count: TCount):
+        from .logic_dragon import add_hidden_keyword
+        to_add_amount = count - min(0, 2 + me.check_status('k') - me.check_status('o'))
+        if to_add_amount != 0:
+            add_hidden_keyword(count=to_add_amount)
+    @classmethod
+    async def on_remove(cls, remove_all=True):
+        from .logic_dragon import remove_hidden_keyword
+        count = me.check_status('k') if remove_all else 1
+        to_remove_amount = count - min(0, 2 + me.check_status('k') - me.check_status('o'))
+        if to_remove_amount != 0:
+            remove_hidden_keyword(count=to_remove_amount)
+    @classmethod
+    async def OnHiddenKeyword(cls, count: TCount, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
+        await Userme(user).remove_status('k', remove_all=False)
+        return 0,
+    @classmethod
+    async def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnHiddenKeyword: (Priority.OnHiddenKeyword.moon, cls)}
+class inv_moon_s(_statusnull):
+    id = 'o'
+    des = "反转 - 月亮：下次有人接到隐藏奖励词前，隐藏奖励词数量减1，但最少为1。"
+    is_global = True
+    @classmethod
+    async def on_add(cls, count: TCount):
+        from .logic_dragon import remove_hidden_keyword
+        to_remove_amount = count - min(0, 2 + me.check_status('k') - me.check_status('o'))
+        if to_remove_amount != 0:
+            remove_hidden_keyword(count=to_remove_amount)
+    @classmethod
+    async def on_remove(cls, remove_all=True):
+        from .logic_dragon import add_hidden_keyword
+        count = me.check_status('o') if remove_all else 1
+        to_add_amount = count - min(0, 2 + me.check_status('k') - me.check_status('o'))
+        if to_add_amount != 0:
+            add_hidden_keyword(count=to_add_amount)
+    @classmethod
+    async def OnHiddenKeyword(cls, count: TCount, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
+        await Userme(user).remove_status('o', remove_all=False)
+        return 0,
+    @classmethod
+    async def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnHiddenKeyword: (Priority.OnHiddenKeyword.inv_moon, cls)}
 
 class sun(_card):
     name = "XIX - 太阳"

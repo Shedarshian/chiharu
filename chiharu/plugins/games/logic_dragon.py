@@ -132,6 +132,29 @@ def update_keyword(d: TWords, if_delete=False):
     config.logger.dragon << f"【LOG】关键词更新为：{keyword}。"
     return True
 @wrapper_file
+def add_hidden_keyword(d: TWords, count=1):
+    global hidden_keyword
+    if len(d['hidden'][1]) < count:
+        config.logger.dragon << "【LOG】隐藏关键词增加失败！"
+        return False
+    for i in range(count):
+        new = random.choice(d['hidden'][1])
+        d['hidden'][1].remove(new)
+        hidden_keyword.append(new)
+        d['hidden'][0].append(new)
+    config.logger.dragon << f"【LOG】隐藏关键词更新为：{'，'.join(hidden_keyword)}。"
+    return True
+@wrapper_file
+def remove_hidden_keyword(d: TWords, count=1, if_delete=False):
+    global hidden_keyword
+    for i in range(count):
+        old = hidden_keyword.pop()
+        if not if_delete:
+            d['hidden'][1].append(old)
+        d['hidden'][0].remove(old)
+    config.logger.dragon << f"【LOG】隐藏关键词更新为：{'，'.join(hidden_keyword)}。"
+    return True
+@wrapper_file
 def update_hidden_keyword(d: TWords, which, if_delete=False):
     global hidden_keyword
     if which == -1:
@@ -390,21 +413,13 @@ async def dragon_construct(buf: SessionBuffer):
                     user.log << f"接到了隐藏奖励词{k}。"
                     buf.send(f"你接到了隐藏奖励词{k}！奖励10击毙。")
                     jibi_to_add = 10
+                    if not update_hidden_keyword(i, True):
+                        buf.end("隐藏奖励词池已空！")
                     # Event OnHiddenKeyword
                     for eln, n in user.IterAllEventList(UserEvt.OnHiddenKeyword, Priority.OnHiddenKeyword):
                         jibi, = await eln.OnHiddenKeyword(n, user, word, parent, hdkwd)
                         jibi_to_add += jibi
                     await user.add_jibi(jibi_to_add)
-                    # if global_state['exchange_stack']:
-                    #     to_exchange = User(global_state['exchange_stack'][-1], buf)
-                    #     if (await user.check_attacked(to_exchange, TCounter(double=1))).valid:
-                    #         global_state['exchange_stack'].pop(-1)
-                    #         user.log << f"触发了互相交换，来自{to_exchange.qq}。"
-                    #         save_global_state()
-                    #     else:
-                    #         to_exchange = None
-                    if not update_hidden_keyword(i, True):
-                        buf.end("隐藏奖励词池已空！")
                     break
             if (tree_node := check_and_add_log_and_contruct_tree(parent, word, qq, kwd=kwd, hdkwd=hdkwd, fork=False)) is None:
                 user.log << f"由于过去一周接过此词，死了。"

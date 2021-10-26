@@ -180,6 +180,8 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         cunqianguan = auto()
         inv_cunqianguan = auto()
         huxiangjiaohuan = auto()
+        moon = auto()
+        inv_moon = auto()
     class OnDuplicatedWord(IntEnum):
         hermit = auto()
     class OnBombed(IntEnum):
