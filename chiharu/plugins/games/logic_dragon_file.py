@@ -1600,6 +1600,7 @@ class hierophant(_card):
     positive = 1
     description = "你的下10次接龙中每次额外获得2击毙，但额外要求首尾接龙。"
     status = 'c'
+    newer = 2
 class hierophant_s(_statusnull):
     id = 'c'
     des = "V - 教皇：你的下10次接龙中每次额外获得2击毙，但额外要求首尾接龙。"
