@@ -1826,6 +1826,25 @@ class sun(_card):
         from .logic_dragon import hidden_keyword
         user.buf.send("你揭示的一个隐藏奖励词是：" + random.choice(hidden_keyword))
 
+class judgement(_card):
+    name = "XX - 审判"
+    id = 20
+    positive = 0
+    newer = 2
+    description = "若你今天接龙次数小于5，则扣除20击毙，若你今天接龙次数大于20，则获得20击毙。"
+    @classmethod
+    async def use(cls, user: User):
+        n = [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))].count(user.qq)
+        user.send_log(f"今天的接龙次数是{n}次，", end='')
+        if n < 5:
+            user.buf.send("扣除" + user.char + "20击毙！")
+            await user.add_jibi(-20)
+        elif n > 20:
+            user.send_char("获得20击毙！")
+            await user.add_jibi(20)
+        else:
+            user.buf.send('')
+
 class world(_card):
     name = "XXI - 世界"
     id = 21
