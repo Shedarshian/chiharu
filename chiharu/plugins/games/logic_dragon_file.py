@@ -1594,6 +1594,46 @@ class SQuest(NumedStatus):
         return {UserEvt.OnDragoned: (Priority.OnDragoned.quest, cls),
             UserEvt.OnNewDay: (Priority.OnNewDay.quest, cls)}
 
+class hierophant(_card):
+    name = "V - 教皇"
+    id = 5
+    positive = 1
+    description = "你的下10次接龙中每次额外获得2击毙，但额外要求首尾接龙。"
+    status = 'c'
+class hierophant_s(_statusnull):
+    id = 'c'
+    des = "V - 教皇：你的下10次接龙中每次额外获得2击毙，但额外要求首尾接龙。"
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+        if parent.word != '' and word != '' and parent.word[-1] != word[0]:
+            return False, 0, "教皇说，你需要首尾接龙，接龙失败。"
+        return True, 0, ""
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+        user.send_log("收到了教皇奖励你的2击毙！")
+        await user.add_jibi(2)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.hierophant, cls),
+            UserEvt.OnDragoned: (Priority.OnDragoned.hierophant, cls)}
+class inv_hierophant_s(_statusnull):
+    id = 'd'
+    des = "反转 - 教皇：你的下10次接龙中每次损失2击毙，并且额外要求首尾接龙。"
+    is_debuff = True
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+        if parent.word != '' and word != '' and parent.word[-1] != word[0]:
+            return False, 0, "教皇说，你需要首尾接龙，接龙失败。"
+        return True, 0, ""
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+        user.send_log("被教皇扣除了2击毙！")
+        await user.add_jibi(-2)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.inv_hierophant, cls),
+            UserEvt.OnDragoned: (Priority.OnDragoned.inv_hierophant, cls)}
+
 class lovers(_card):
     name = "VI - 恋人"
     id = 6
@@ -3769,7 +3809,7 @@ class upsidedown(_card):
         #         continue
         # me.save_status_time()
 revert_status_map: Dict[str, str] = {}
-for c in ('YZ', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]'):
+for c in ('YZ', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'cd'):
     revert_status_map[c[0]] = c[1]
     revert_status_map[c[1]] = c[0]
 revert_daily_status_map: Dict[str, str] = {}

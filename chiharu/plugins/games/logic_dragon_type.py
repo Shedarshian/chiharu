@@ -170,6 +170,8 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         iceshroom = auto()
         hotshroom = auto()
         ourostone = auto()              # contains two buffs
+        hierophant = auto()
+        inv_hierophant = auto()
     class CheckSuguri(IntEnum):
         jisuzhuangzhi = auto()
     class OnKeyword(IntEnum):
@@ -187,6 +189,8 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         queststone = auto()
         quest = auto()
         xingyunhufu = auto()
+        hierophant = auto()
+        inv_hierophant = auto()
         lveduozhebopu = auto()
         bianhua = auto()
         inv_bianhua = auto()
