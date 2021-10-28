@@ -2909,12 +2909,12 @@ class inv_jiaodai_s(_statusnull):
 class ZPM(_card):
     name = "Zero-Point Module"
     id = 101
-    des = "抽到时附加buff：若你当前击毙少于100，则每次接龙为你额外提供1击毙，若你当前击毙多于100，此buff立即消失。"
+    positive = 1
+    description = "抽到时附加buff：若你当前击毙少于100，则每次接龙为你额外提供1击毙，若你当前击毙多于100，此buff立即消失。"
     on_draw_status = 'Z'
     consumed_on_draw = True
 class SZPM(_statusnull):
     id = 'Z'
-    positive = 1
     des = "零点模块：若你当前击毙少于100，则每次接龙为你额外提供1击毙，若你当前击毙多于100，此buff立即消失。"
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
