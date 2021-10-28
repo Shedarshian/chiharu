@@ -1714,6 +1714,8 @@ class strength(_card):
     failure_message = "你的击毙不足！"
     @classmethod
     def can_use(cls, user: User) -> bool:
+        if len(user.check_limited_status('W', lambda o: 8 not in o.list)) > 0:
+            return True
         l = len(user.data.status) + len(user.data.daily_status)
         l += len(user.data.status_time_checked)
         return user.data.jibi >= 2 ** l - 1
