@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, date, time
 from math import ceil
 from os import remove
+from collections import Counter
 from typing import Dict, List, Set, Tuple, Type, TypedDict, Union, Optional
 import itertools, more_itertools
 import json, random, re, base64
@@ -563,15 +564,15 @@ async def dragon_check(buf: SessionBuffer):
     with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         d = json.load(f)
     def _(d: UserData, qq=None):
-        for s in d.status:
-            yield StatusNull(s).des
-        for s in d.daily_status:
-            yield StatusDaily(s).des
-        for s in d.hand_card:
+        for k, s in Counter(d.status).items():
+            yield k, StatusNull(s).des
+        for k, s in Counter(d.daily_status).items():
+            yield k, StatusDaily(s).des
+        for k, s in Counter(d.hand_card).items():
             if s.hold_des:
-                yield s.hold_des
+                yield k, s.hold_des
         for s in d.status_time_checked:
-            yield str(s)
+            yield 1, str(s)
     data = buf.current_arg_text
     if data in ("奖励词", "keyword"):
         buf.finish("当前奖励词为：" + keyword)
@@ -588,8 +589,8 @@ async def dragon_check(buf: SessionBuffer):
     elif data in ("全局状态", "global_status"):
         l = list(_(me))
         if n := len(global_state["exchange_stack"]):
-            l += [Card(75).status_des] * n
-        ret = '\n'.join(l)
+            l += [(n, Card(75).status_des)]
+        ret = '\n'.join((s if k == 1 else f'{k}* ' + s) for k, s in l)
         if ret == '':
             buf.finish("目前没有全局状态！")
         else:
@@ -619,7 +620,7 @@ async def dragon_check(buf: SessionBuffer):
     elif data in ("击毙", "jibi"):
         buf.finish("你的击毙数为：" + str(user.data.jibi))
     elif data in ("详细状态", "full_status"):
-        ret = '\n'.join(_(user.data, qq))
+        ret = '\n'.join((s if k == 1 else f'{k}* ' + s) for k, s in _(user.data, qq))
         if ret == '':
             buf.finish("你目前没有状态！")
         else:
