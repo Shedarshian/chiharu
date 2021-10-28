@@ -1,5 +1,5 @@
 import functools
-from typing import Callable, TypedDict, List, Dict, TypeVar, Generic, Awaitable
+from typing import Callable, TypedDict, List, Dict, TypeVar, Generic, Awaitable, Any
 from dataclasses import dataclass
 
 TQuest = TypedDict('TQuest', id=int, remain=int)
@@ -213,3 +213,30 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         inv_twinsunflower = auto()
 TBoundIntEnum = TypeVar('TBoundIntEnum', bound=IntEnum)
 
+from nonebot.typing import Filter_T
+from nonebot.command.argfilter.validators import _raise_failure
+def ensure_true_lambda(bool_func: Callable[[Any], bool], message_lambda: Callable[[Any], str]) -> Filter_T:
+    """
+    Validate any object to ensure the result of applying
+    a boolean function to it is True.
+    """
+
+    def validate(value):
+        if bool_func(value) is not True:
+            _raise_failure(message_lambda(value))
+        return value
+
+    return validate
+
+def check_handcard(user):
+    def validate(value):
+        if value == "查询手牌":
+            _raise_failure("你的手牌为：\n" + '\n'.join(s.brief_description(user.qq) for s in user.data.hand_card))
+        return value
+    return validate
+
+def check_can_use(user, can_use_func):
+    def validate(value):
+        if not can_use_func(user):
+            pass
+    return validate

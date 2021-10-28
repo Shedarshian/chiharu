@@ -15,7 +15,7 @@ from nonebot.command import CommandSession
 from pypinyin import pinyin, Style
 from nonebot.command.argfilter import extractors, validators
 from .. import config
-from .logic_dragon_type import TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, nothing, TQuest
+from .logic_dragon_type import TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, nothing, TQuest, ensure_true_lambda, check_handcard
 
 # TODO change TCount to a real obj, in order to unify 'count' and 'count2' in OnStatusAdd, also _status.on_add
 with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
@@ -1047,6 +1047,7 @@ class User:
                     l = await self.buf.aget(prompt=ret2,
                         arg_filters=[
                             extractors.extract_text,
+                            check_handcard(self),
                             lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
                             validators.fit_size(x, x, message="请输入正确的张数。"),
                             validators.ensure_true(lambda l: self.data.check_throw_card(l), message="您选择了错误的卡牌！"),
@@ -1110,21 +1111,6 @@ def draw_card(positive: Optional[Set[int]]=None):
     return draw_cards(positive, k=1)[0]
 def equips_to_str(equips: Dict[int, TEquipment]):
     return '，'.join(f"{count}*{c.name}" for c, count in equips.items())
-
-from nonebot.typing import Filter_T
-from nonebot.command.argfilter.validators import _raise_failure
-def ensure_true_lambda(bool_func: Callable[[Any], bool], message_lambda: Callable[[Any], str]) -> Filter_T:
-    """
-    Validate any object to ensure the result of applying
-    a boolean function to it is True.
-    """
-
-    def validate(value):
-        if bool_func(value) is not True:
-            _raise_failure(message_lambda(value))
-        return value
-
-    return validate
 
 class status_meta(ABCMeta):
     def __new__(cls, clsname, bases, attrs):
@@ -1516,12 +1502,16 @@ class magician(_card):
     positive = 1
     description = "选择一张你的手牌（不可选择暴食的蜈蚣），发动3次该手牌的使用效果，并弃置之。此后一周内不得使用该卡。"
     @classmethod
+    def can_use(cls, user: User) -> bool:
+        return len(user.data.hand_card >= 1)
+    @classmethod
     async def use(cls, user: User):
         if await user.choose():
             config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行I - 魔术师。"
             l = await user.buf.aget(prompt="请选择你手牌中的一张牌（不可选择暴食的蜈蚣），输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
                 arg_filters=[
                         extractors.extract_text,
+                        check_handcard(user),
                         lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
                         validators.fit_size(1, 1, message="请输入正确的张数。"),
                         validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！"),
@@ -2177,6 +2167,7 @@ class baiban(_card):
             l: List[int] = await user.buf.aget(prompt="请选择你手牌中的一张牌复制，输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
                 arg_filters=[
                         extractors.extract_text,
+                        check_handcard(user),
                         lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
                         validators.fit_size(1, 1, message="请输入正确的张数。"),
                         validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！"),
@@ -2816,6 +2807,7 @@ class bianyaqi_s(_statusnull):
     @classmethod
     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
         await user.remove_status('2')
+        user.send_log(f'触发了{f"{count}次" if count != 1 else ""}变压器的效果，获得击毙变为{jibi * 2 ** count}！')
         return jibi * 2 ** count,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -2957,6 +2949,7 @@ class jujifashu(_card):
             l = await user.buf.aget(prompt="请选择你手牌中的两张牌，输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
                 arg_filters=[
                         extractors.extract_text,
+                        check_handcard(user),
                         lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
                         validators.fit_size(2, 2, message="请输入正确的张数。"),
                         validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！"),
@@ -2992,6 +2985,7 @@ class liebianfashu(_card):
             l = await user.buf.aget(prompt="请选择你手牌中的一张牌，输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
                 arg_filters=[
                         extractors.extract_text,
+                        check_handcard(user),
                         lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
                         validators.fit_size(1, 1, message="请输入正确的张数。"),
                         validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！")
@@ -4114,6 +4108,7 @@ class tarot(_equipment):
             c = await user.buf.aget(prompt="你今天可以从以下牌中选择一张使用，请输入id号。\n" + cards,
                 arg_filters=[
                         extractors.extract_text,
+                        check_handcard(user),
                         lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
                         validators.fit_size(1, 1, message="请输入正确的张数。"),
                         validators.ensure_true(lambda l: l[0] in l2)
