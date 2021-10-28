@@ -3691,7 +3691,7 @@ class imitator_s(_statusnull):
     @classmethod
     async def AfterCardDraw(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
         if count > len(cards):
-            for i in range(count):
+            for i in range(len(cards)):
                 await user.remove_status('i', remove_all=False)
             to_add = cards
         else:
