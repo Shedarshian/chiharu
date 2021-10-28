@@ -2906,6 +2906,29 @@ class inv_jiaodai_s(_statusnull):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnStatusAdd: (Priority.OnStatusAdd.inv_jiaodai, cls)}
 
+class ZPM(_card):
+    name = "Zero-Point Module"
+    id = 101
+    positive = 1
+    description = "抽到时附加buff：若你当前击毙少于100，则每次接龙为你额外提供1击毙，若你当前击毙多于100，此buff立即消失。"
+    on_draw_status = 'Z'
+    newer = 3
+    consumed_on_draw = True
+class SZPM(_statusnull):
+    id = 'Z'
+    des = "零点模块：若你当前击毙少于100，则每次接龙为你额外提供1击毙，若你当前击毙多于100，此buff立即消失。"
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+        if user.data.jibi > 100:
+            await user.remove_status('Z')
+            user.send_char(f"已经不再需要零点模块了！")
+        else:
+            await user.add_jibi(1)
+            user.send_char(f"因为零点模块获得1击毙！")
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.zpm, cls)}
+
 class McGuffium239(_card):
     name = "Mc Guffium 239"
     id = 102
