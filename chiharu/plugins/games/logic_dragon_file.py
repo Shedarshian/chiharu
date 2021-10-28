@@ -2920,7 +2920,7 @@ class SZPM(_statusnull):
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
         if user.data.jibi > 100:
-            await user.remove_status('', remove_all=False)
+            await user.remove_status('Z')
             user.send_char(f"已经不再需要零点模块了！")
         else:
             await user.add_jibi(1)
