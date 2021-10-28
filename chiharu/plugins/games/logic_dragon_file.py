@@ -2911,6 +2911,7 @@ class ZPM(_card):
     id = 101
     des = "抽到时附加buff：若你当前击毙少于100，则每次接龙为你额外提供1击毙，若你当前击毙多于100，此buff立即消失。"
     on_draw_status = 'Z'
+    newer = 3
     consumed_on_draw = True
 class SZPM(_statusnull):
     id = 'Z'
