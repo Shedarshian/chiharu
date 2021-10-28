@@ -3,10 +3,12 @@ import random, more_itertools, json, re
 from typing import Any, Awaitable, Callable, Coroutine, Dict, Generic, Iterable, List, NamedTuple, Optional, Set, Tuple, Type, TypeVar, TypedDict, Union, final, Iterable, Annotated
 from collections import Counter, UserDict, UserList, defaultdict
 from functools import lru_cache, partial, wraps
+from struct import unpack, pack
 from copy import copy, deepcopy
+from dataclasses import dataclass, astuple, field
 from math import ceil
 from abc import ABC, ABCMeta, abstractmethod
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from functools import reduce, wraps
 from contextlib import asynccontextmanager
 from nonebot.command import CommandSession
@@ -421,6 +423,40 @@ class Wrapper:
     def __lshift__(self, log):
         config.logger.dragon << f"【LOG】用户{self.qq}" + log
 
+extra_data_format = '!B'
+@dataclass
+class ExtraData:
+    tarot_time: int # unsigned char
+    @classmethod
+    def make(cls, data, save):
+        return cls(*unpack(extra_data_format, data), lambda self: save(pack(extra_data_format, *self)))
+@dataclass
+class DynamicExtraData:
+    data: ExtraData
+    save_func_old: Callable
+    save_func: Callable = field(init=False)
+    def __post_init__(self):
+        self.data = ExtraData(*unpack(extra_data_format, self.data))
+        self.save_func = lambda value: self.save_func_old(pack(extra_data_format, *astuple(value)))
+    @property
+    def tarot_time(self):
+        return self.data.tarot_time
+    @tarot_time.setter
+    def tarot_time(self, value):
+        self.data.tarot_time = value
+        self.save_func(self.data)
+    # def __getattr__(self, name: str):
+    #     if name not in ('data', 'save_func', 'save_func_old'):
+    #         return getattr(self.data, name)
+    #     else:
+    #         return self.__dict__[name]
+    # def __setattr__(self, name: str, value: Any) -> None:
+    #     if name not in ('data', 'save_func', 'save_func_old'):
+    #         setattr(self.data, name, value)
+    #         self.save_func(self.data)
+    #     else:
+    #         self.__dict__[name] = value
+
 class UserData:
     event_listener_init: defaultdict[int, TEventList] = defaultdict(lambda: defaultdict(CounterOnly))
     def __init__(self, qq: int):
@@ -433,6 +469,9 @@ class UserData:
         self.status_time.data = eval(self.node['status_time'])
         self.equipment: Dict[int, int] = property_dict(partial(save, 'equipment'), {})
         self.equipment.data = eval(self.node['equipment'])
+        def save2(value):
+            config.userdata.execute(f"update dragon_data set extra_data=? where qq=?", (value, self.qq))
+        self.extra = DynamicExtraData(self.node['extra_data'], save2)
         self._reregister_things()
     def __del__(self):
         self.save_status_time()
@@ -4007,6 +4046,12 @@ class _equipment(IEventListener, metaclass=equipment_meta):
     @classmethod
     def full_description(cls, count: TCount) -> str:
         return f"{cls.id}. {count * '☆'}{cls.name}\n\t{cls.description(count)}"
+    @classmethod
+    def can_use(cls, user: User) -> bool:
+        return True
+    @classmethod
+    async def use(cls, user: User, count: int):
+        pass
 
 class bikini(_equipment):
     id = 0
@@ -4048,6 +4093,23 @@ class tarot(_equipment):
     @classmethod
     def description(cls, count: TCount) -> str:
         return f"每天限一次，可以从{2 * count}张塔罗牌中选择一张发动。"
+    @classmethod
+    async def use(cls, user: User, count: int):
+        if user.data.extra.tarot_time == 0:
+            user.send_char("今日使用次数已完！")
+            return
+        h = f"{user.qq} {date.today().isoformat()}"
+        state = random.getstate()
+        random.seed(h)
+        l = list(range(22))
+        random.shuffle(l)
+        l2 = sorted(l[:2 * count])
+        random.setstate(state)
+        # aget
+        
+    @classmethod
+    async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
+        user.data.extra.tarot_time = 1
 
 # 爬塔格子
 class Grid:
