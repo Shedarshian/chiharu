@@ -564,11 +564,11 @@ async def dragon_check(buf: SessionBuffer):
     with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         d = json.load(f)
     def _(d: UserData, qq=None):
-        for k, s in Counter(d.status).items():
+        for s, k in Counter(d.status).items():
             yield k, StatusNull(s).des
-        for k, s in Counter(d.daily_status).items():
+        for s, k in Counter(d.daily_status).items():
             yield k, StatusDaily(s).des
-        for k, s in Counter(d.hand_card).items():
+        for s, k in Counter(d.hand_card).items():
             if s.hold_des:
                 yield k, s.hold_des
         for s in d.status_time_checked:
