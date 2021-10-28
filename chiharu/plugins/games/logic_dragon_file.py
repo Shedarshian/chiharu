@@ -1504,7 +1504,7 @@ class magician(_card):
     description = "选择一张你的手牌（不可选择暴食的蜈蚣），发动3次该手牌的使用效果，并弃置之。此后一周内不得使用该卡。"
     @classmethod
     def can_use(cls, user: User) -> bool:
-        return len(user.data.hand_card >= 1)
+        return len(user.data.hand_card) >= 1
     @classmethod
     async def use(cls, user: User):
         if await user.choose():
