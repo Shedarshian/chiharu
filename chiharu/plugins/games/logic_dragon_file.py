@@ -18,6 +18,7 @@ from .. import config
 from .logic_dragon_type import TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, nothing, TQuest, ensure_true_lambda, check_handcard
 
 # TODO change TCount to a real obj, in order to unify 'count' and 'count2' in OnStatusAdd, also _status.on_add
+# TODO 在aget的时候如果发现手牌数不足使用条件则跳出结算
 with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
     global_state: TGlobalState = json.load(f)
 def save_global_state():
@@ -50,7 +51,7 @@ TCount = Union[int, list[T_status]]
 
 TEventList = dict[int, CounterOnly[TEventListener, TCount]]
 TEvent = Tuple[int, TEventListener]
-newday_check: List[str] = [set(), set(), set()]
+newday_check: List[set[str]] = [set(), set(), set(), set()]
 class IEventListener:
     @classmethod
     async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str]:
@@ -4119,6 +4120,10 @@ class tarot(_equipment):
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
         user.data.extra.tarot_time = 1
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnNewDay: (Priority.OnNewDay.tarot, cls)}
+newday_check[3] |= set(('2: ',))
 
 # 爬塔格子
 class Grid:

@@ -206,6 +206,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         xixueshashou = auto()
         forkbomb = auto()
     class OnNewDay(IntEnum):
+        tarot = auto()
         quest = auto()
         sunflower = auto()
         twinsunflower = auto()
