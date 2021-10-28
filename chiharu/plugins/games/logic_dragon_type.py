@@ -196,6 +196,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         lveduozhebopu = auto()
         bianhua = auto()
         inv_bianhua = auto()
+        zpm = auto()
         plus2 = auto()
         xixuegui = auto()
         panjue = auto()                 # contains both a and b
