@@ -4095,18 +4095,29 @@ class tarot(_equipment):
         return f"每天限一次，可以从{2 * count}张塔罗牌中选择一张发动。"
     @classmethod
     async def use(cls, user: User, count: int):
-        if user.data.extra.tarot_time == 0:
-            user.send_char("今日使用次数已完！")
-            return
-        h = f"{user.qq} {date.today().isoformat()}"
-        state = random.getstate()
-        random.seed(h)
-        l = list(range(22))
-        random.shuffle(l)
-        l2 = sorted(l[:2 * count])
-        random.setstate(state)
-        # aget
-        
+        if await user.choose():
+            if user.data.extra.tarot_time == 0:
+                user.send_char("今日使用次数已完！")
+                return
+            h = f"{user.qq} {date.today().isoformat()}"
+            state = random.getstate()
+            random.seed(h)
+            l1 = list(range(22))
+            random.shuffle(l1)
+            l2 = sorted(l1[:2 * count])
+            random.setstate(state)
+            config.logger.dragon << f"【LOG】询问用户{user.qq}选择塔罗原典。"
+            cards = "\n".join(Card(i).full_description(user.qq) for i in l2)
+            c = await user.buf.aget(prompt="你今天可以从以下牌中选择一张使用，请输入id号。\n" + cards,
+                arg_filters=[
+                        extractors.extract_text,
+                        lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
+                        validators.fit_size(1, 1, message="请输入正确的张数。"),
+                        validators.ensure_true(lambda l: l[0] in l2)
+                    ])[0]
+            user.log << f"选择了卡牌{c}。"
+            user.data.extra.tarot_time -= 1
+            await user.draw_and_use(Card(c))
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
         user.data.extra.tarot_time = 1
