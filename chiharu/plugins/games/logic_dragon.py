@@ -1002,7 +1002,7 @@ async def dragon_update(session: CommandSession):
     for group in config.group_id_dict['logic_dragon_send']:
         await get_bot().send_group_msg(group_id=group, message=ret)
 
-@on_command(('dragon', 'char'), only_to_me=False, hide=True, permission=permission.SUPERUSER)
+@on_command(('dragon', 'char'), only_to_me=False, hide=True)
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_char(session: CommandSession):
     await session.send(f"status: {''.join(sorted(_statusnull.id_dict.keys()))}\ndaily_status: {''.join(sorted(_statusdaily.id_dict.keys()))}\nlimited_status: {''.join(sorted(_status.id_dict.keys()))}")
