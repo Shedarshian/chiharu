@@ -1522,10 +1522,10 @@ class magician(_card):
             card = Card(l[0])
             config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
             user.send_char('使用了三次卡牌：\n' + card.full_description(user.qq))
-            await user.use_card_effect(card)
-            await user.use_card_effect(card)
-            await user.use_card_effect(card)
             await user.discard_cards([card])
+            await user.use_card_effect(card)
+            await user.use_card_effect(card)
+            await user.use_card_effect(card)
             await user.add_limited_status(SCantUse(datetime.now() + timedelta(weeks=1), l[0]))
 class SCantUse(TimedStatus):
     id = 'm'
