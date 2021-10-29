@@ -106,6 +106,17 @@ def check_and_add_log_and_contruct_tree(parent: Tree, word: str, qq: int, kwd: s
     log_file.write(f'{s}\n')
     log_file.flush()
     return s
+def rewrite_log_file():
+    global log_file
+    log_file.close()
+    d = date.today()
+    if datetime.now().time() < time(15, 59):
+        d -= timedelta(days=1)
+    today = rf'log\dragon_log_{d.isoformat()}.txt'
+    with open(config.rel(today), 'w', encoding='utf-8') as f:
+        for node in itertools.chain(*Tree._objs):
+            f.write(f'{node}\n')
+    log_file = open(config.rel(today), 'a', encoding='utf-8')
 
 def wrapper_file(_func):
     def func(*args, **kwargs):
@@ -900,15 +911,7 @@ async def dragon_delete(buf: SessionBuffer):
         buf.finish("已退出。")
     to_delete.remove()
     # 保存到log文件
-    d = date.today()
-    if datetime.now().time() < time(15, 59):
-        d -= timedelta(days=1)
-    today = rf'log\dragon_log_{d.isoformat()}.txt'
-    global log_file
-    log_file.close()
-    with open(config.rel(today), 'w', encoding='utf-8') as file:
-        file.writelines(str(word) + '\n' for word in itertools.chain(*Tree._objs))
-    log_file = open(config.rel(today), 'a', encoding='utf-8')
+    rewrite_log_file()
     buf.send("已成功驳回。")
     if not f:
         n = User(node.qq, buf)

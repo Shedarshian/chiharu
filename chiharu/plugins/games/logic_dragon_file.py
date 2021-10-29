@@ -1241,25 +1241,25 @@ class ListStatus(_status):
 class SLe(ListStatus):
     id = 'l'
     is_debuff = True
-    des = '乐不思蜀：不能从以下节点接龙：'
+    des = '乐不思蜀：今天每次接龙时，你进行一次判定。有3/4的几率你不得从该节点接龙。'
     def check(self) -> bool:
         return True
     def __str__(self) -> str:
         from .logic_dragon import Tree
         ids = [tree.id_str for tree in Tree.get_active()]
-        return f"{self.des}\n\t{','.join(c for c in self.list if c in ids)}。"
+        return f"{self.des}\n\t你不能从{','.join(c for c in self.list if c in ids)}节点接龙。"
 
 @final
 class SKe(ListStatus):
     id = 'k'
     is_debuff = True
-    des = '反转·乐不思蜀：不能从以下节点接龙：'
+    des = '反转·乐不思蜀：今天每次接龙时，你进行一次判定。有1/4的几率你不得从该节点接龙。'
     def check(self) -> bool:
         return True
     def __str__(self) -> str:
         from .logic_dragon import Tree
         ids = [tree.id_str for tree in Tree.get_active()]
-        return f"{self.des}\n\t{','.join(c for c in self.list if c in ids)}。"
+        return f"{self.des}\n\t你不能从{','.join(c for c in self.list if c in ids)}节点接龙。"
 
 class _statusnull(_statusall):
     id_dict: Dict[str, TNStatus] = {}
@@ -2341,6 +2341,26 @@ class plus2_s(_statusnull):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.plus2, cls)}
+
+class dream(_card):
+    name = "这一切都是主角做的一场梦"
+    id = 62
+    newer = 3
+    positive = 0
+    description = "50%概率回溯到随机一个节点，50%概率随机一个节点立即分叉。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        node = random.choice(list(itertools.chain(*Tree._objs)))
+        if random.random() < 0.5:
+            user.buf.send(f"回溯到了节点{node.id_str}！")
+            for n in node.childs:
+                n.remove()
+            from .logic_dragon import rewrite_log_file
+            rewrite_log_file()
+        else:
+            user.buf.send(f"节点{node.id_str}被分叉了！")
+            config.logger.dragon << f"【LOG】节点{node.id_str}被分叉了。"
+            node.fork = True
 
 class hezuowujian(_card):
     name = "合作无间"
