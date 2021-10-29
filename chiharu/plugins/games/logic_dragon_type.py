@@ -170,6 +170,8 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         iceshroom = auto()
         hotshroom = auto()
         ourostone = auto()              # contains two buffs
+        ranshefashu = auto()
+        inv_ranshefashu = auto()
         hierophant = auto()
         inv_hierophant = auto()
     class CheckSuguri(IntEnum):

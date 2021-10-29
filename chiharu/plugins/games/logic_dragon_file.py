@@ -3117,6 +3117,51 @@ class AXiaohunfashu(Attack):
                 l.pop(i)
         self.defender.data.save_status_time()
 
+class ranshefashu(_card):
+    name = "蚺虵法术"
+    id = 109
+    positive = 1
+    newer = 3
+    description = "对指定玩家发动，该玩家当日每次接龙需额外遵循首尾接龙规则。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if await user.choose():
+            config.logger.dragon << f"【LOG】询问用户{user.qq}选择玩家。"
+            qq: int = (await user.buf.aget(prompt="请at群内一名玩家。\n",
+                arg_filters=[
+                        lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
+                        validators.fit_size(1, 1, message="请at正确的人数。")
+                    ]))[0]
+            u = User(qq, user.buf)
+            atk = Aranshefashu(user, u)
+            await u.attacked(user, atk)
+class Aranshefashu(Attack):
+    name = "攻击：蚺虵法术"
+    async def self_action(self):
+        await self.defender.add_status('Y')
+class ranshefashu_s(_statusnull):
+    id = 'Y'
+    des = "蚺虵法术：你当日每次接龙需额外遵循首尾接龙规则。"
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+        if parent.word != '' and word != '' and parent.word[-1] != word[0]:
+            return False, 0, "你需额外遵循首尾接龙规则，接龙失败。"
+        return True, 0, ""
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.ranshefashu, cls)}
+class inv_ranshefashu_s(_statusnull):
+    id = 'X'
+    des = "反转·蚺虵法术：你当日每次接龙需额外遵循尾首接龙规则。"
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+        if parent.word != '' and word != '' and parent.word[0] != word[-1]:
+            return False, 0, "你需额外遵循尾首接龙规则，接龙失败。"
+        return True, 0, ""
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.inv_ranshefashu, cls)}
+
 class yuexiabianhua(_card):
     name = "月下彼岸花"
     id = 110
