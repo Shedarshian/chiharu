@@ -28,9 +28,11 @@ quest_print_aux: Dict[int, int] = {qq: 0 for qq in global_state['quest'].keys()}
 
 # global_status : qq = 2711644761
 def find_or_new(qq: int):
+    if qq == 0:
+        config.logger.dragon << "【WARNING】试图find qq=0的node。"
     t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     if t is None:
-        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop, equipment, event_stage, event_shop, extra_data) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 1, 0, 0, ?, 0, 0, ?)', (qq, '', '', '', '', '[]', '{}', extra_data_init))
+        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop, equipment, event_stage, event_shop, extra_data, dead) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 1, 0, 0, ?, 0, 0, ?, false)', (qq, '', '', '', '', '[]', '{}', extra_data_init))
         t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     return t
 
@@ -1829,7 +1831,7 @@ class temperance(_card):
     description = "随机抽取1名玩家，今天该玩家不能使用卡牌。"
     @classmethod
     async def use(cls, user: User) -> None:
-        l = config.userdata.execute("select qq from dragon_data where qq<>?", (config.selfqq,)).fetchall()
+        l = config.userdata.execute("select qq from dragon_data where dead=false").fetchall()
         q: int = random.choice(l)["qq"]
         user.send_char(f"抽到了[CQ:at,qq={q}]！")
         target = User(q, user.buf)
@@ -1875,7 +1877,7 @@ class tower(_card):
                 break
             b = random.choice(bombs)
             remove_bomb(b)
-        l = config.userdata.execute("select qq from dragon_data where qq<>?", (config.selfqq,)).fetchall()
+        l = config.userdata.execute("select qq from dragon_data where dead=false").fetchall()
         l: List[int] = [c['qq'] for c in l if c['qq'] != 0]
         p: List[int] = []
         for i in range(3):
@@ -2547,7 +2549,7 @@ class liwujiaohuan(_card):
     async def use(cls, user: User):
         user.data.set_cards()
         config.logger.dragon << f"【LOG】用户{user.qq}交换了所有人的手牌。"
-        l = [User(t['qq'], user.buf) for t in config.userdata.execute("select qq from dragon_data").fetchall() if t['qq'] != config.selfqq]
+        l = [User(t['qq'], user.buf) for t in config.userdata.execute("select qq from dragon_data where dead=false").fetchall() if t['qq'] != config.selfqq]
         config.logger.dragon << f"【LOG】所有人的手牌为：{','.join(f'{user.qq}: {cards_to_str(user.data.hand_card)}' for user in l)}。"
         all_users: List[User] = []
         all_cards: List[Tuple[User, TCard]] = []
@@ -3066,7 +3068,7 @@ class xiaohunfashu(_card):
     name = "销魂法术"
     id = 108
     positive = 1
-    description = "对指定玩家发动，该玩家的每条状态都有1/2的概率被清除（统治不列颠除外）；或是对千春使用，消除【XXI-世界】外的所有全局状态。"
+    description = "对指定玩家发动，该玩家的每条状态都有1/2的概率被清除（统治不列颠除外）；或是发送qq=2711644761对千春使用，消除【XXI-世界】外的所有全局状态。"
     @classmethod
     async def use(cls, user: User) -> None:
         if await user.choose():
