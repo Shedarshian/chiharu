@@ -4005,7 +4005,7 @@ class upsidedown(_card):
         #         continue
         # me.save_status_time()
 revert_status_map: Dict[str, str] = {}
-for c in ('YZ', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'cd'):
+for c in ('XY', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'cd'):
     revert_status_map[c[0]] = c[1]
     revert_status_map[c[1]] = c[0]
 revert_daily_status_map: Dict[str, str] = {}
