@@ -3430,7 +3430,7 @@ class wardenspaean_s(NumedStatus):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         for i in count:
-            if status.is_debuff and status is not shengbing:
+            if status.is_debuff and status.id == 'd':
                 if i.num >= count2:
                     i.num -= count2
                     user.send_log(f"触发了凯歌的效果，免除此负面状态！")
