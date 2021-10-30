@@ -2942,11 +2942,11 @@ class SZPM(_statusnull):
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
         if user.data.jibi > 100:
-            await user.remove_status('Z')
             user.send_char(f"已经不再需要零点模块了！")
+            await user.remove_status('Z')
         else:
-            await user.add_jibi(1)
-            user.send_char(f"因为零点模块获得1击毙！")
+            user.send_char(f"因为零点模块额外获得{count}击毙！")
+            await user.add_jibi(count)
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.zpm, cls)}
@@ -3409,11 +3409,17 @@ class inv_mixidiyatu_s(_statusnull):
 class wardenspaean(_card):
     name = "光阴神的礼赞凯歌"
     id = 119
-    description = "免疫三次负面状态或消耗全部次数免疫大病一场。"
+    description = "免疫三次负面状态或消耗全部次数免疫大病一场，或主动使用解除大病一场。"
     positive = 1
     newer = 2
-    limited_status = 'w'
-    limited_init = (3,)
+    @classmethod
+    async def use(cls, user: User) -> None:
+        for c in map(StatusDaily, user.data.daily_status):
+            if c is shengbing:
+                user.send_char(f"的大病一场被取消了！")
+                user.remove_daily_status('d')
+            else:
+                await user.add_limited_status('w',3)
 class wardenspaean_s(NumedStatus):
     id = 'w'
     des = "光阴神的礼赞凯歌：免疫三次负面状态或消耗全部次数免疫大病一场。"
@@ -3437,6 +3443,7 @@ class wardenspaean_s(NumedStatus):
                     continue
             elif status is shengbing and i.num == 3:
                 i.num -= 3
+                user.send_log(f"触发了凯歌的效果，免除大病一场！")
                 user.data.save_status_time()
                 return 0,
         user.data.save_status_time()
