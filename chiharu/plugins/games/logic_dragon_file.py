@@ -2880,12 +2880,12 @@ class jiaodai(_card):
             if c.id != 'd' and c.is_debuff and has > 0:
                 has -= 1
                 user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
-                user.remove_status(c, remove_all=False)
+                await user.remove_status(c, remove_all=False)
         for c in map(StatusDaily, user.data.daily_status):
             if c.id != 'd' and c.is_debuff and has > 0:
                 has -= 1
                 user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
-                user.remove_daily_status(c, remove_all=False)
+                await user.remove_daily_status(c, remove_all=False)
         i = 0
         while i < len(user.data.status_time_checked):
             s = user.data.status_time[i]
@@ -2893,7 +2893,7 @@ class jiaodai(_card):
                 has -= 1
                 des = s.des
                 user.send_log(f"的{des[:des.index('：')]}被取消了！")
-                user.remove_limited_status(s)
+                await user.remove_limited_status(s)
             else:
                 i += 1
         user.data.save_status_time()
