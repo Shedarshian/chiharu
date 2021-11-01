@@ -959,6 +959,17 @@ async def dragon_add_hidden(session: CommandSession):
     add_hidden(session.current_arg_text.strip())
     await session.send('成功添加隐藏关键词。')
 
+@on_command(('dragon', 'compensate'), only_to_me=False, environment=env_supervise)
+@config.ErrorHandle(config.logger.dragon)
+async def dragon_compensate(session: CommandSession):
+    """发放超新星作为补偿。
+    指令后接qq号，可以用空格连接多个。"""
+    qqs = list(map(int, session.current_arg_text.split(' ')))
+    buf = SessionBuffer(None, group_id=list(config.group_id_dict['logic_dragon_send'])[0])
+    for qq in qqs:
+        await User(qq, buf).draw(cards=[Card(-65536)])
+    await buf.flush()
+
 @on_command(('dragon', 'kill'), only_to_me=False, args=('@s',), environment=env_admin)
 @config.ErrorHandle(config.logger.dragon)
 @Game.wrapper
