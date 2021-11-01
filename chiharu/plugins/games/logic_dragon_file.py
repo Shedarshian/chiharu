@@ -2634,7 +2634,7 @@ class huxiangjiaohuan(_card):
     name = '互相交换'
     id = 75
     positive = 0
-    description = "下一个接中隐藏奖励词的玩家手牌、击毙与你互换。"
+    description = "下一个接中隐藏奖励词的玩家手牌与你互换。"
     @classmethod
     async def use(cls, user: User):
         l = me.check_limited_status('x')
@@ -2662,11 +2662,9 @@ class AHuxiangjiaohuan(Attack):
     name = "攻击：互相交换"
     doublable = False
     async def self_action(self):
-        self.defender.send_char(f"与[CQ:at,qq={self.attacker.qq}]交换了手牌与击毙！")
+        self.defender.send_char(f"与[CQ:at,qq={self.attacker.qq}]交换了手牌！")
         jibi = (self.defender.data.jibi, self.attacker.data.jibi)
-        self.defender.log << f"与{self.attacker.qq}交换了手牌与击毙。{self.defender.qq}击毙为{jibi[0]}，{self.attacker.qq}击毙为{jibi[1]}。"
-        await self.defender.add_jibi(jibi[1] - jibi[0])
-        await self.attacker.add_jibi(jibi[0] - jibi[1])
+        self.defender.log << f"与{self.attacker.qq}交换了手牌。"
         await self.defender.exchange(self.attacker)
 
 class zhongshendexixi(_card):
