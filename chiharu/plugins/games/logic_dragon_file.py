@@ -1620,6 +1620,9 @@ class SQuest(NumedStatus):
     def des(self):
         return f"今日任务：{mission[self.quest_id][1]}"
     @property
+    def brief_des(self):
+        return str(self)
+    @property
     def is_debuff(self):
         return self.jibi < 0
     def __init__(self, s: Union[str, int], jibi: int, quest_id: int):
