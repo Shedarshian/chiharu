@@ -1157,7 +1157,7 @@ class _status(_statusall):
         return ""
     @property
     def brief_des(self) -> str:
-        return brief_f(self.des)
+        return brief_f(str(self))
     def __str__(self) -> str:
         return self.des
     def __add__(self, other) -> T_status:
