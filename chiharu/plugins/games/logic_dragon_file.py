@@ -2544,37 +2544,42 @@ class liwujiaohuan(_card):
     name = "礼物交换"
     id = 72
     positive = 1
-    description = "所有玩家手牌集合在一起随机分配，手牌张数不变。"
+    description = "最近接过龙的玩家每人抽出一张手牌集合在一起随机分配。"
     @classmethod
     async def use(cls, user: User):
         user.data.set_cards()
-        config.logger.dragon << f"【LOG】用户{user.qq}交换了所有人的手牌。"
-        l = [User(t['qq'], user.buf) for t in config.userdata.execute("select qq from dragon_data where dead=false").fetchall() if t['qq'] != config.selfqq]
-        config.logger.dragon << f"【LOG】所有人的手牌为：{','.join(f'{user.qq}: {cards_to_str(user.data.hand_card)}' for user in l)}。"
+        config.logger.dragon << f"【LOG】用户{user.qq}交换了最近接过龙的玩家的手牌。"
+        qqs = set(tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests)))
+        from .logic_dragon import get_yesterday_qq
+        qqs |= get_yesterday_qq()
+        l = [User(qq, user.buf) for qq in qqs]
+        config.logger.dragon << f"【LOG】这些人的手牌为：{','.join(f'{user.qq}: {cards_to_str(user.data.hand_card)}' for user in l)}。"
         all_users: List[User] = []
         all_cards: List[Tuple[User, TCard]] = []
         for u in l:
-            atk = ALiwujiaohuan(user, u, all_users)
-            await u.attacked(user, atk)
+            if len(u.data.hand_card) != 0:
+                atk = ALiwujiaohuan(user, u, all_users)
+                await u.attacked(user, atk)
         config.logger.dragon << f"【LOG】所有参与交换的人为{all_users}。"
         for u in all_users:
-            for c in u.data.hand_card:
-                all_cards.append((u, c))
+            c = random.choice(u.data.hand_card)
+            config.logger.dragon << f"【LOG】用户{u.qq}取出了手牌{c.name}。"
+            all_cards.append((u, c))
         random.shuffle(all_cards)
-        for u in all_users:
-            if (n := len(u.data.hand_card)):
-                cards_temp = [c1 for q1, c1 in all_cards[:n]]
-                u.data.hand_card.clear()
-                u.data.hand_card.extend(cards_temp)
-                u.data.set_cards()
-                for userqqq, c in all_cards[:n]:
-                    await c.on_give(userqqq, u)
-                config.logger.dragon << f"【LOG】{u.qq}交换后的手牌为：{cards_to_str(cards_temp)}。"
-                all_cards = all_cards[n:]
-        if len(user.data.hand_card) != 0 and user in all_users:
-            user.buf.send("通过交换，你获得了手牌：\n" + '\n'.join(c.full_description(user.qq) for c in user.data.hand_card))
-        else:
+        lose = get = None
+        for u, (u2, c) in zip(all_users, all_cards):
+            u.data.hand_card.extend(c)
+            u2.data.hand_card.remove(c)
+            await c.on_give(u2, u)
+            config.logger.dragon << f"【LOG】{u.qq}从{u2.qq}处收到了{c}。"
+            if u == user:
+                get = c
+            elif u2 == user:
+                lose = c
+        if lose is None and get is None:
             user.buf.send("你交换了大家的手牌！")
+        else:
+            user.buf.send(f"你用一张：\n{lose}\n换到了一张：\n{get}")
 class ALiwujiaohuan(Attack):
     name = "礼物交换"
     doublable = False

@@ -97,6 +97,17 @@ def load_log(init):
             pass
     log_file = open(config.rel(today), 'a', encoding='utf-8')
 load_log(True)
+def get_yesterday_qq():
+    d = date.today() - timedelta(days=1)
+    if datetime.now().time() < time(15, 59):
+        d -= timedelta(days=1)
+    yesterday = rf'log\dragon_log_{d.isoformat()}.txt'
+    s = set()
+    with open(config.rel(yesterday), encoding='utf-8') as f:
+        for line in f.readlines():
+            if match := re.match(r'(\d+)([a-z])?(?:(\+)?<(-?\d+[a-z]?))?(?:/(\d+)/([^/]*)/([^/]*)/)? (.*)', line.strip("\r\n")):
+                s.add(int(match.group(5)))
+    return s
 def check_and_add_log_and_contruct_tree(parent: Tree, word: str, qq: int, kwd: str, hdkwd: str, fork: bool):
     global log_set
     if word in log_set:
