@@ -595,6 +595,17 @@ async def dragon_check(buf: SessionBuffer):
                 yield k, s.hold_des
         for s in d.status_time_checked:
             yield 1, str(s)
+    def _brief(d: UserData, qq=None):
+        from .logic_dragon_file import brief_f
+        for s, k in Counter(d.status).items():
+            yield k, StatusNull(s).brief_des
+        for s, k in Counter(d.daily_status).items():
+            yield k, StatusDaily(s).brief_des
+        for s, k in Counter(d.hand_card).items():
+            if s.hold_des:
+                yield k, brief_f(s.hold_des)
+        for s in d.status_time_checked:
+            yield 1, s.brief_des
     data = buf.current_arg_text
     if data in ("奖励词", "keyword"):
         buf.finish("当前奖励词为：" + keyword)
@@ -648,7 +659,7 @@ async def dragon_check(buf: SessionBuffer):
         else:
             buf.finish("你的状态为：\n" + ret)
     elif data in ("状态", "status"):
-        ret = '\n'.join((('' if k == 1 else f'{k}* ') + (s if '：' not in s else s[:s.index('：')] + s[s.index('\n\t'):] if '\n\t' in s else s[:s.index('：')])) for k, s in _(user.data, qq))
+        ret = '\n'.join((('' if k == 1 else f'{k}* ') + s) for k, s in _brief(user.data, qq))
         if ret == '':
             buf.finish("你目前没有状态！")
         else:

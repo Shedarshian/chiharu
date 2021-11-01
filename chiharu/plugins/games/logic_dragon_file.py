@@ -1129,11 +1129,16 @@ class status_meta(ABCMeta):
 def Status(id: str):
     return _status.id_dict[id]
 
+brief_f = lambda s: (s if '：' not in s else s[:s.index('：')] + s[s.index('\n\t'):] if '\n\t' in s else s[:s.index('：')])
 class _statusall(IEventListener, metaclass=status_meta):
     id = ""
     des = ""
     is_debuff = False
     is_global = False
+    @classmethod
+    @property
+    def brief_des(cls):
+        return brief_f(cls.des)
     @classmethod
     async def on_add(cls, count: TCount):
         pass
@@ -1150,6 +1155,9 @@ class _status(_statusall):
         return f"Status('{self.id}')(" + ', '.join(repr(s) for s in args) + ")"
     def __repr__(self) -> str:
         return ""
+    @property
+    def brief_des(self) -> str:
+        return brief_f(self.des)
     def __str__(self) -> str:
         return self.des
     def __add__(self, other) -> T_status:
@@ -1535,6 +1543,10 @@ class SCantUse(TimedStatus):
     @property
     def des(self):
         return f"疲劳：不可使用卡牌【{Card(self.card_id).name}】。"
+    @property
+    def brief_des(self):
+        delta = self.time - datetime.now()
+        return f"疲劳【{Card(self.card_id).name}】\n\t结束时间：{delta.seconds // 60}分钟。"
     def __init__(self, s: Union[str, datetime], card_id: int):
         super().__init__(s)
         self.card_id = card_id
