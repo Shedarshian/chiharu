@@ -4236,6 +4236,23 @@ class nuclear_bomb(_card):
         for qq in qqs:
             await User(qq, user.buf).killed(user)
 
+# class flamethrower(_card):
+#     id = 205
+#     name = "火焰喷射器"
+#     description = "抽到时，如果场上有寒冰菇，摧毁一个寒冰菇，获得50击毙，并被誉为今天的英雄。如果没有，自己被击毙。"
+#     positive = 0
+#     newer = 4
+#     consumed_on_draw = True
+#     @classmethod
+#     async def on_draw(cls, user: User) -> None:
+#         if me.check_daily_status('i'):
+#             user.send_char("摧毁了一个寒冰菇，获得了50击毙！" + user.char + "就是今天的英雄！")
+#             Userme(user).remove_daily_status('i', remove_all=False)
+#             await user.add_jibi(50)
+#         else:
+#             user.send_char("今天没有寒冰菇！" + user.char + "被击毙了！")
+#             await user.death()
+
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):
     def _(f: Callable[[str], bool]):
