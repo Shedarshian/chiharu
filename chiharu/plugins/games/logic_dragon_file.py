@@ -1103,6 +1103,18 @@ class User:
             u = User(l['qq'], self.buf)
             u.data.event_stage = current
             t = (current.stage, u.qq)
+    async def choose_card(self, attempt: str, min: int, max: int, can_use=False) -> List[int]:
+        config.logger.dragon << f"【LOG】询问用户{self.qq}选择牌。"
+        extra_args = (ensure_true_lambda(lambda l: Card(l[0]).can_use(self), message_lambda=lambda l: Card(l[0]).failure_message),) if can_use else ()
+        return await self.buf.aget(prompt=attempt + "\n" + "\n".join(c.full_description(self.qq) for c in self.data.hand_card),
+                    arg_filters=[
+                            extractors.extract_text,
+                            check_handcard(self),
+                            lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
+                            validators.fit_size(min, max, message="请输入正确的张数。"),
+                            validators.ensure_true(lambda l: all(i in _card.card_id_dict and Card(i) in self.data.hand_card for i in l), message="您选择了错误的卡牌！"),
+                            *extra_args
+                        ])
 
 Userme: Callable[[User], User] = lambda user: User(config.selfqq, user.buf)
 
@@ -2192,16 +2204,7 @@ class baiban(_card):
     @classmethod
     async def use(cls, user: User):
         if await user.choose():
-            config.logger.dragon << f"【LOG】询问用户{user.qq}复制牌。"
-            l: List[int] = await user.buf.aget(prompt="请选择你手牌中的一张牌复制，输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
-                arg_filters=[
-                        extractors.extract_text,
-                        check_handcard(user),
-                        lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
-                        validators.fit_size(1, 1, message="请输入正确的张数。"),
-                        validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！"),
-                        ensure_true_lambda(lambda l: Card(l[0]).can_use(user), message_lambda=lambda l: Card(l[0]).failure_message)
-                    ])
+            l = await user.choose_card("请选择你手牌中的一张牌复制，输入id号。", 1, 1, can_use=True)
             card = Card(l[0])
             config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
             user.send_char('使用了卡牌：\n' + card.full_description(user.qq))
@@ -3020,16 +3023,7 @@ class jujifashu(_card):
             if len(user.data.hand_card) < 2:
                 user.send_char("的手牌不足，无法使用！")
                 return
-            config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行聚集法术。"
-            l = await user.buf.aget(prompt="请选择你手牌中的两张牌，输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
-                arg_filters=[
-                        extractors.extract_text,
-                        check_handcard(user),
-                        lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
-                        validators.fit_size(2, 2, message="请输入正确的张数。"),
-                        validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！"),
-                        validators.ensure_true(lambda l: l[1] in _card.card_id_dict and Card(l[1]) in user.data.hand_card, message="您选择了错误的卡牌！")
-                    ])
+            l = await user.choose_card("请选择你手牌中的两张牌聚集，输入id号。", 2, 2)
             user.log << f"选择了卡牌{l[0]}与{l[1]}。"
             await user.remove_cards([Card(l[0]), Card(l[1])])
             id_new = l[0] + l[1]
@@ -3057,14 +3051,7 @@ class liebianfashu(_card):
                 user.send_char("的手牌不足，无法使用！")
                 return
             config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行裂变法术。"
-            l = await user.buf.aget(prompt="请选择你手牌中的一张牌，输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
-                arg_filters=[
-                        extractors.extract_text,
-                        check_handcard(user),
-                        lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
-                        validators.fit_size(1, 1, message="请输入正确的张数。"),
-                        validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！")
-                    ])
+            l = await user.choose_card("请选择你手牌中的一张牌裂变，输入id号。", 1, 1)
             user.log << f"选择了卡牌{l[0]}。"
             await user.remove_cards([Card(l[0])])
             l2 = [(id, l[0] - id) for id in _card.card_id_dict if l[0] - id in _card.card_id_dict]
@@ -4231,9 +4218,20 @@ class stack_inserter(_card):
     id = -4
     name = "集装机械臂"
     positive = 1
-    newer = 4
     description = "选择一张卡牌，将其销毁，并获得等同于卡牌编号/5的击毙。如果你有组装机，使其获得等同于卡牌编号的组装量。"
-
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if await user.choose():
+            l = await user.choose_card("请选择你手中的一张牌销毁，输入id号。", 1, 1)
+            card = Card(l[0])
+            config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
+            user.send_char('销毁了卡牌：\n' + card.full_description(user.qq))
+            await user.remove_cards([card])
+            user.send_char(f"获得了{card.id // 5}击毙！")
+            await user.add_jibi(card.id // 5)
+            if user.data.check_equipment(3):
+                user.data.extra.assembling += card.id
+                user.log << f"增加了{card.id}的组装量，现有{user.data.extra.assembling}。"
 
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):
