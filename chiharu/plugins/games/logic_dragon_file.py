@@ -4191,7 +4191,7 @@ class STrain(_status):
             if not user.buf.session.state.get('train'):
                 user.buf.session.state['train'] = set()
             c = [tr for tr in count if tr not in user.buf.session.state['train']]
-            user.buf.session.state['train'] |= set(c)
+            user.buf.session.state['train'] |= set([tr.qq for tr in count])
             for tr in c:
                 if tr.qq == user.qq:
                     continue
