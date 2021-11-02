@@ -1441,7 +1441,7 @@ class _card(IEventListener, metaclass=card_meta):
 
 class supernova(_card):
     name = "超新星"
-    id = -65536
+    id = -65537
     positive = 1
     weight = 0
     description = "获得一张炙手可热的新卡。"
@@ -4226,6 +4226,14 @@ class STrain(_status):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnJibiChange: (Priority.OnJibiChange.train, cls),
             UserEvt.OnStatusRemove: (Priority.OnStatusRemove.train, cls)}
+
+class stack_inserter(_card):
+    id = -4
+    name = "集装机械臂"
+    positive = 1
+    newer = 4
+    description = "选择一张卡牌，将其销毁，并获得等同于卡牌编号/5的击毙。如果你有组装机，使其获得等同于卡牌编号的组装量。"
+
 
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):
