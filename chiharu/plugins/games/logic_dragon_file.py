@@ -4168,13 +4168,18 @@ class inv_belt_s(_statusnull):
 #         await Userme(user).add_limited_status(STrain(user.qq, False))
 class STrain(_status):
     id = 't'
-    des = "其它玩家一次获得5以上击毙时，某玩家便乘1击毙。"
+    des = "火车：其它玩家一次获得5以上击毙时，某玩家便乘1击毙。"
     is_global = True
     def __init__(self, s: Union[str, int], if_def: Union[str, bool]):
         self.qq = int(s)
         self.if_def = if_def in ('True', True)
     def __repr__(self) -> str:
         return self.construct_repr(self.qq, self.if_def)
+    @property
+    def brief_des(self) -> str:
+        return "火车"
+    def __str__(self) -> str:
+        return self.des + ('\n\t存在火车跳板。' if self.if_def else '')
     def double(self) -> List[T_status]:
         return [self, self.__class__(self.qq, self.if_def)]
     @classmethod
@@ -4206,31 +4211,31 @@ class STrain(_status):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnJibiChange: (Priority.OnJibiChange.train, cls),
             UserEvt.OnStatusRemove: (Priority.OnStatusRemove.train, cls)}
-# 火车的描述
-class lab(_card):
-    id = 204
-    name = "科技中心"
-    description = "如果全局状态中存在你的火车，你的所有火车获得火车跳板；如果你的装备中有组装机，你获得一张集装机械臂；如果你的手牌中有插件分享塔，今日你的插件效果会变为全局状态；如果三者都有，你获得一张核弹；如果三者都没有，你抽一张factorio系列的牌。"
-    positive = 1
-    newer = 4
-    @classmethod
-    async def use(cls, user: User) -> None:
-        if t1 := me.check_limited_status('t', lambda c: c.qq == user.qq):
-            user.send_log("有火车，" + user.char + "的每辆火车获得了火车跳板！")
-            for tr in t1:
-                tr.if_def = True
-            user.data.save_status_time()
-        if (t2 := user.data.check_equipment(3) != 0):
-            user.send_log("的装备中有组装机，" + user.char + "获得了一张集装机械臂！")
-            await user.draw(0, cards=[stack_inserter])
-        if (t3 := Card(203) in user.data.hand_card):
-            pass
-        if t1 and t2 and t3:
-            user.send_log("获得了一张核弹！")
-            await user.draw(0, cards=[nuclear_bomb])
-        if not (t1 or t2 or t3):
-            user.send_log("抽了一张factorio系列的牌！")
-            await user.draw(1, extra_lambda=lambda c: c.id >= 200 and c.id < 210)
+
+# class lab(_card):
+#     id = 204
+#     name = "科技中心"
+#     description = "如果全局状态中存在你的火车，你的所有火车获得火车跳板；如果你的装备中有组装机，你获得一张集装机械臂；如果你的手牌中有插件分享塔，今日你的插件效果会变为全局状态；如果三者都有，你获得一张核弹；如果三者都没有，你抽一张factorio系列的牌。"
+#     positive = 1
+#     newer = 4
+#     @classmethod
+#     async def use(cls, user: User) -> None:
+#         if t1 := me.check_limited_status('t', lambda c: c.qq == user.qq):
+#             user.send_log("有火车，" + user.char + "的每辆火车获得了火车跳板！")
+#             for tr in t1:
+#                 tr.if_def = True
+#             user.data.save_status_time()
+#         if (t2 := user.data.check_equipment(3) != 0):
+#             user.send_log("的装备中有组装机，" + user.char + "获得了一张集装机械臂！")
+#             await user.draw(0, cards=[stack_inserter])
+#         if (t3 := Card(203) in user.data.hand_card):
+#             pass
+#         if t1 and t2 and t3:
+#             user.send_log("获得了一张核弹！")
+#             await user.draw(0, cards=[nuclear_bomb])
+#         if not (t1 or t2 or t3):
+#             user.send_log("抽了一张factorio系列的牌！")
+#             await user.draw(1, extra_lambda=lambda c: c.id >= 200 and c.id < 210)
 
 class stack_inserter(_card):
     id = -4
