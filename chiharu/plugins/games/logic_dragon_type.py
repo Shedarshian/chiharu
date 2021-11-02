@@ -107,6 +107,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         pass
     class AfterCardDraw(IntEnum):
         imitator = auto()
+        assembling = auto()
     class AfterCardDiscard(IntEnum):
         pass
     class AfterCardRemove(IntEnum):

@@ -6,7 +6,7 @@ from functools import lru_cache, partial, wraps
 from struct import unpack, pack
 from copy import copy, deepcopy
 from dataclasses import dataclass, astuple, field
-from math import ceil
+from math import ceil, log
 from abc import ABC, ABCMeta, abstractmethod
 from datetime import date, datetime, timedelta
 from functools import reduce, wraps
@@ -449,6 +449,13 @@ class DynamicExtraData:
     @tarot_time.setter
     def tarot_time(self, value):
         self.data.tarot_time = value
+        self.save_func(self.data)
+    @property
+    def assembling(self):
+        return self.data.assembling
+    @assembling.setter
+    def assembling(self, value):
+        self.data.assembling = value
         self.save_func(self.data)
     # def __getattr__(self, name: str):
     #     if name not in ('data', 'save_func', 'save_func_old'):
@@ -4158,7 +4165,7 @@ class _equipment(IEventListener, metaclass=equipment_meta):
     def description(cls, count: TCount) -> str:
         pass
     @classmethod
-    def full_description(cls, count: TCount) -> str:
+    def full_description(cls, count: TCount, user: User) -> str:
         return f"{cls.id}. {count * '☆'}{cls.name}\n\t{cls.description(count)}"
     @classmethod
     def can_use(cls, user: User) -> bool:
@@ -4240,6 +4247,32 @@ class tarot(_equipment):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnNewDay: (Priority.OnNewDay.tarot, cls)}
 newday_check[3] |= set(('2: ',))
+
+class assembling_machine(_equipment):
+    id = 3
+    name = "组装机"
+    @classmethod
+    def description(cls, count: TCount) -> str:
+        d = {0: 100, 1: 80, 2: 50}[count]
+        return f"当你抽卡时，组装机获得等同于卡牌编号的组装量（不小于0）。你每有2^n*{d}组装量，手牌上限+1，其中n为已经生产过的手牌上限个数。"
+    @classmethod
+    def full_description(cls, count: TCount, user: User) -> str:
+        return f"{cls.id}. {cls.name}{count}型\n\t{cls.description(count)}\n\t当前组装量：{user.data.extra.assembling}"
+    @classmethod
+    def get_card_limit(cls, data: int, count: TCount) -> int:
+        d = {0: 100, 1: 80, 2: 50}[count]
+        return int(log(data // d + 1, 2))
+    @classmethod
+    async def AfterCardDraw(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
+        old = cls.get_card_limit(user.data.extra.assembling, count)
+        user.data.extra.assembling += (s := sum(c.id for c in cards))
+        new = cls.get_card_limit(user.data.extra.assembling, count)
+        user.log << f"增加了{s}的组装量，现有{user.data.extra.assembling}。"
+        if new > old:
+            user.send_char(f"的组装机{count}型为你增加了{new - old}的手牌上限！")
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.AfterCardDraw: (Priority.AfterCardDraw.assembling, cls)}
 
 # 爬塔格子
 class Grid:
