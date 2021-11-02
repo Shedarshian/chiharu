@@ -1103,9 +1103,10 @@ class User:
             u = User(l['qq'], self.buf)
             u.data.event_stage = current
             t = (current.stage, u.qq)
-    async def choose_card(self, attempt: str, min: int, max: int, can_use=False) -> List[int]:
+    async def choose_card(self, attempt: str, min: int, max: int, can_use=False, extra_args=()) -> List[int]:
         config.logger.dragon << f"【LOG】询问用户{self.qq}选择牌。"
-        extra_args = (ensure_true_lambda(lambda l: Card(l[0]).can_use(self), message_lambda=lambda l: Card(l[0]).failure_message),) if can_use else ()
+        if can_use:
+            extra_args = (ensure_true_lambda(lambda l: Card(l[0]).can_use(self), message_lambda=lambda l: Card(l[0]).failure_message),) + extra_args
         return await self.buf.aget(prompt=attempt + "\n" + "\n".join(c.full_description(self.qq) for c in self.data.hand_card),
                     arg_filters=[
                             extractors.extract_text,
@@ -1541,17 +1542,7 @@ class magician(_card):
     @classmethod
     async def use(cls, user: User):
         if await user.choose():
-            config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行I - 魔术师。"
-            l = await user.buf.aget(prompt="请选择你手牌中的一张牌（不可选择暴食的蜈蚣），输入id号。\n" + "\n".join(c.full_description(user.qq) for c in user.data.hand_card),
-                arg_filters=[
-                        extractors.extract_text,
-                        check_handcard(user),
-                        lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
-                        validators.fit_size(1, 1, message="请输入正确的张数。"),
-                        validators.ensure_true(lambda l: l[0] in _card.card_id_dict and Card(l[0]) in user.data.hand_card, message="您选择了错误的卡牌！"),
-                        ensure_true_lambda(lambda l: Card(l[0]).can_use(user), message_lambda=lambda l: Card(l[0]).failure_message),
-                        validators.ensure_true(lambda l: 56 not in l, message="此牌不可选择！")
-                    ])
+            l = await user.choose_card("请选择你手牌中的一张牌（不可选择暴食的蜈蚣），输入id号。", 1, 1, can_use=True, extra_args=(validators.ensure_true(lambda l: 56 not in l, message="此牌不可选择！"),))
             card = Card(l[0])
             config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
             user.send_char('使用了三次卡牌：\n' + card.full_description(user.qq))
