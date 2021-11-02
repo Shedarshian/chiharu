@@ -1210,7 +1210,8 @@ class TimedStatus(_status):
         return self.construct_repr(self.time.isoformat())
     def __str__(self) -> str:
         delta = self.time - datetime.now()
-        return f"{self.des}\n\t结束时间：{delta.seconds // 60}分钟。"
+        min = delta.seconds // 60
+        return f"{self.des}\n\t结束时间：{f'{delta.days}日' if delta.days != 0 else ''}{f'{min // 60}时' if min // 60 != 0 else ''}{min % 60}分钟。"
     def __add__(self, other: timedelta) -> T_status:
         return self.__class__(self.time + other)
     def __sub__(self, other: timedelta) -> T_status:
