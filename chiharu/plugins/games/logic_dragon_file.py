@@ -4042,7 +4042,7 @@ class upsidedown(_card):
         #         continue
         # me.save_status_time()
 revert_status_map: Dict[str, str] = {}
-for c in ('XY', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'cd'):
+for c in ('XY', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'cd', '34'):
     revert_status_map[c[0]] = c[1]
     revert_status_map[c[1]] = c[0]
 revert_daily_status_map: Dict[str, str] = {}
@@ -4124,6 +4124,51 @@ class SInvBritian(ListStatus):
 #                 user.send_log(f"将组装机{c}型升级到了组装机{c + 1}型！")
 #             user.data.equipment[3] = c + 1
 #             user.data.save_equipment()
+
+# class belt(_card):
+#     id = 201
+#     name = "传送带"
+#     description = "当其它玩家丢弃第一张手牌时，你获得之。"
+#     positive = 1
+#     newer = 4
+#     status = '3'
+class belt_s(_status):
+    id = '3'
+    des = "传送带：当其它玩家丢弃第一张手牌时，你获得之。"
+class belt_checker(IEventListener):
+    @classmethod
+    async def AfterCardDiscard(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
+        qqs = [t['qq'] for t in config.userdata.execute("select qq from dragon_data where status like '%3%'").fetchall()]
+        if len(qqs) == 0:
+            return
+        users = [User(qq, user.buf) for qq in qqs]
+        for card in cards:
+            if len(users) == 0:
+                return
+            u = random.choice(users)
+            user.buf.send(f"玩家{u.qq}从传送带上捡起了" + user.char + "掉的卡！")
+            await u.draw(0, cards=[card])
+            if u.check_status('3') == 0:
+                users.remove(u)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.AfterCardDiscard: (Priority.AfterCardDiscard.belt, cls)}
+for key, (priority, el) in belt_checker.register().items():
+    UserData.event_listener_init[key][priority][el] += 1
+class inv_belt_s(_status):
+    id = '4'
+    des = "反转·传送带：当你丢弃第一张手牌时，把它丢给随机一名玩家。"
+    @classmethod
+    async def AfterCardDiscard(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
+        qqs = [t['qq'] for t in config.userdata.execute("select qq from dragon_data where dead=false").fetchall()]
+        for card in cards:
+            qq = random.choice(qqs)
+            u = User(qq, user.buf)
+            user.buf.send(f"玩家{u.qq}从传送带上捡起了" + user.char + "掉的卡！")
+            await u.draw(0, card)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.AfterCardDiscard: (Priority.AfterCardDiscard.inv_belt, cls)}
 
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):

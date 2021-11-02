@@ -978,7 +978,7 @@ async def dragon_compensate(session: CommandSession):
     qqs = list(map(int, session.current_arg_text.split(' ')))
     buf = SessionBuffer(None, group_id=list(config.group_id_dict['logic_dragon_send'])[0])
     for qq in qqs:
-        await User(qq, buf).draw(cards=[Card(-65536)])
+        await User(qq, buf).draw(0, cards=[Card(-65536)])
     await buf.flush()
 
 @on_command(('dragon', 'kill'), only_to_me=False, args=('@s',), environment=env_admin)

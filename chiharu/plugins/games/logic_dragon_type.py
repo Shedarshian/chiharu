@@ -109,7 +109,8 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         imitator = auto()
         assembling = auto()
     class AfterCardDiscard(IntEnum):
-        pass
+        inv_belt = auto()
+        belt = auto()
     class AfterCardRemove(IntEnum):
         pass
     class AfterExchange(IntEnum):
