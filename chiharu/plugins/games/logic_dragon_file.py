@@ -923,9 +923,9 @@ class User:
         else:
             self.send_char(f"死了！{minute}分钟不得接龙。")
             await self.add_limited_status(SDeath(datetime.now() + timedelta(minutes=minute)))
-    async def draw(self, n: int, /, positive=None, cards=None):
+    async def draw(self, n: int, /, positive=None, cards=None, extra_lambda=None):
         """抽卡。将卡牌放入手牌。"""
-        cards = draw_cards(positive, n) if cards is None else cards
+        cards = draw_cards(positive, n, extra_lambda=extra_lambda) if cards is None else cards
         self.log << f"抽到的卡牌为{cards_to_str(cards)}。"
         self.send_char('抽到的卡牌是：')
         for c in cards:
@@ -1125,9 +1125,11 @@ def save_data():
 
 def cards_to_str(cards: List[TCard]):
     return '，'.join(c.name for c in cards)
-def draw_cards(positive: Optional[Set[int]]=None, k: int=1):
+def draw_cards(positive: Optional[Set[int]]=None, k: int=1, extra_lambda=None):
     x = positive is not None and len(positive & {-1, 0, 1}) != 0
     cards = [c for c in _card.card_id_dict.values() if c.id >= 0 and (not x or x and c.positive in positive)]
+    if extra_lambda is not None:
+        cards = [c for c in cards if extra_lambda(c)]
     weight = [c.weight for c in cards]
     if me.check_daily_status('j') and (not x or x and (-1 in positive)):
         return [(Card(-1) if random.random() < 0.2 else random.choices(cards, weight)[0]) for i in range(k)]
@@ -4204,6 +4206,31 @@ class STrain(_status):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnJibiChange: (Priority.OnJibiChange.train, cls),
             UserEvt.OnStatusRemove: (Priority.OnStatusRemove.train, cls)}
+# 火车的描述
+class lab(_card):
+    id = 204
+    name = "科技中心"
+    description = "如果全局状态中存在你的火车，你的所有火车获得火车跳板；如果你的装备中有组装机，你获得一张集装机械臂；如果你的手牌中有插件分享塔，今日你的插件效果会变为全局状态；如果三者都有，你获得一张核弹；如果三者都没有，你抽一张factorio系列的牌。"
+    positive = 1
+    newer = 4
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if t1 := me.check_limited_status('t', lambda c: c.qq == user.qq):
+            user.send_log("有火车，" + user.char + "的每辆火车获得了火车跳板！")
+            for tr in t1:
+                tr.if_def = True
+            user.data.save_status_time()
+        if (t2 := user.data.check_equipment(3) != 0):
+            user.send_log("的装备中有组装机，" + user.char + "获得了一张集装机械臂！")
+            await user.draw(0, cards=[stack_inserter])
+        if (t3 := Card(203) in user.data.hand_card):
+            pass
+        if t1 and t2 and t3:
+            user.send_log("获得了一张核弹！")
+            await user.draw(0, cards=[nuclear_bomb])
+        if not (t1 or t2 or t3):
+            user.send_log("抽了一张factorio系列的牌！")
+            await user.draw(1, extra_lambda=lambda c: c.id >= 200 and c.id < 210)
 
 class stack_inserter(_card):
     id = -4
@@ -4257,7 +4284,7 @@ class nuclear_bomb(_card):
 #     id = 206
 #     name = "火箭"
 #     description = "发射一枚火箭，获得游戏的胜利。"
-#     positive = True
+#     positive = 1
 #     newer = 4
 #     @classmethod
 #     async def use(cls, user: User) -> None:
