@@ -145,7 +145,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         panjue = auto()                 # contains both a and b
         panjue_activated = auto()       # contains both a and b
     class OnStatusRemove(IntEnum):
-        pass
+        train = auto()
     class CheckJibiSpend(IntEnum):
         bianyaqi = auto()
         steamsummer = auto()
@@ -160,6 +160,7 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         steamsummer = auto()
         beijingcard = auto()
         shenmouyuanlv = auto()
+        train = auto()
     class CheckEventptSpend(IntEnum):
         pass
     class OnEventptChange(IntEnum):

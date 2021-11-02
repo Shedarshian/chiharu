@@ -1180,6 +1180,7 @@ class _status(_statusall):
         return self
     def double(self) -> List[T_status]:
         return [self]
+# Why construct_repr use str instead of num itself??????
 
 class TimedStatus(_status):
     def __init__(self, s: Union[str, datetime]):
@@ -4132,7 +4133,7 @@ class SInvBritian(ListStatus):
 #     positive = 1
 #     newer = 4
 #     status = '3'
-class belt_s(_status):
+class belt_s(_statusnull):
     id = '3'
     des = "传送带：当其它玩家丢弃第一张手牌时，你获得之。"
 class belt_checker(IEventListener):
@@ -4155,7 +4156,7 @@ class belt_checker(IEventListener):
         return {UserEvt.AfterCardDiscard: (Priority.AfterCardDiscard.belt, cls)}
 for key, (priority, el) in belt_checker.register().items():
     UserData.event_listener_init[key][priority][el] += 1
-class inv_belt_s(_status):
+class inv_belt_s(_statusnull):
     id = '4'
     des = "反转·传送带：当你丢弃第一张手牌时，把它丢给随机一名玩家。"
     @classmethod
@@ -4169,6 +4170,62 @@ class inv_belt_s(_status):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.AfterCardDiscard: (Priority.AfterCardDiscard.inv_belt, cls)}
+
+# class train(_card):
+#     id = 202
+#     name = "火车"
+#     description = "附加全局状态：若你最近接过龙，其它玩家一次获得5以上击毙时，你便乘1击毙。若场上已经有火车，发动新的火车有1/4的几率与已有的每一辆火车发生碰撞，碰撞时两个火车都会消失。"
+#     positive = 1
+#     newer = 4
+#     @classmethod
+#     async def use(cls, user: User) -> None:
+#         l = me.check_limited_status('t')
+#         for tr in l:
+#             if random.random() < 0.25:
+#                 user.send_log(f"的火车和玩家{tr.qq}的火车发生了碰撞！")
+#                 await Userme(user).remove_limited_status(tr)
+#                 return
+#         await Userme(user).add_limited_status(STrain(user.qq, False))
+class STrain(_status):
+    id = 't'
+    des = "其它玩家一次获得5以上击毙时，某玩家便乘1击毙。"
+    is_global = True
+    def __init__(self, s: Union[str, int], if_def: Union[str, bool]):
+        self.qq = int(s)
+        self.if_def = if_def in ('True', True)
+    def __repr__(self) -> str:
+        return self.construct_repr(self.qq, self.if_def)
+    def double(self) -> List[T_status]:
+        return [self, self.__class__(self.qq, self.if_def)]
+    @classmethod
+    async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
+        if jibi >= 5:
+            # 从session里拿有没有结算过火车，保证同一个人的火车在一次结算里只触发一次
+            if not user.buf.session.state.get('train'):
+                user.buf.session.state['train'] = set()
+            for tr in count:
+                if tr.qq == user.qq:
+                    continue
+                if tr.qq not in user.buf.session.state['train']:
+                    user.buf.session.state['train'].add(tr.qq)
+                    # 结算火车
+                    user.send_log(f"玩家{tr.qq}乘坐火车便乘了{count}击毙！")
+                    await User(tr.qq, user.buf).add_jibi(count)
+        return jibi,
+    @classmethod
+    async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[bool]:
+        # TODO structure need change 目前无法处理一部分闪避一部分被消的情况
+        for tr in count:
+            if tr.if_def:
+                tr.if_def = False
+                user.data.save_status_time()
+                user.send_log("你的火车跳板为你的火车防止了碰撞！")
+                return True,
+        return False,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnJibiChange: (Priority.OnJibiChange.train, cls),
+            UserEvt.OnStatusRemove: (Priority.OnStatusRemove.train, cls)}
 
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):
