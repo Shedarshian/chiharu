@@ -4253,6 +4253,17 @@ class nuclear_bomb(_card):
 #             user.send_char("今天没有寒冰菇！" + user.char + "被击毙了！")
 #             await user.death()
 
+# class rocket(_card):
+#     id = 206
+#     name = "火箭"
+#     description = "发射一枚火箭，获得游戏的胜利。"
+#     positive = True
+#     newer = 4
+#     @classmethod
+#     async def use(cls, user: User) -> None:
+#         user.buf.send(f"恭喜{user.char}，今天{user.char}赢了！")
+#         await user.add_daily_status('W')
+
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):
     def _(f: Callable[[str], bool]):
