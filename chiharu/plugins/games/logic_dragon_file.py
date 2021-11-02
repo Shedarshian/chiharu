@@ -4224,6 +4224,18 @@ class stack_inserter(_card):
                 user.data.extra.assembling += card.id
                 user.log << f"增加了{card.id}的组装量，现有{user.data.extra.assembling}。"
 
+class nuclear_bomb(_card):
+    id = -131073
+    name = "核弹"
+    description = "杀死所有人120分钟。"
+    positive = 0
+    @classmethod
+    async def use(cls, user: User) -> None:
+        user.send_char("杀死了所有人！")
+        qqs = [t['qq'] for t in config.userdata.execute("select qq from dragon_data where dead=false").fetchall()]
+        for qq in qqs:
+            await User(qq, user.buf).killed(user)
+
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):
     def _(f: Callable[[str], bool]):
