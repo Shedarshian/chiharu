@@ -4190,14 +4190,14 @@ class STrain(_status):
             # 从session里拿有没有结算过火车，保证同一个人的火车在一次结算里只触发一次
             if not user.buf.session.state.get('train'):
                 user.buf.session.state['train'] = set()
-            for tr in count:
+            c = [tr for tr in count if tr not in user.buf.session.state['train']]
+            user.buf.session.state['train'] |= set(c)
+            for tr in c:
                 if tr.qq == user.qq:
                     continue
-                if tr.qq not in user.buf.session.state['train']:
-                    user.buf.session.state['train'].add(tr.qq)
-                    # 结算火车
-                    user.send_log(f"玩家{tr.qq}乘坐火车便乘了{count}击毙！")
-                    await User(tr.qq, user.buf).add_jibi(count)
+                # 结算火车
+                user.send_log(f"玩家{tr.qq}乘坐火车便乘了{count}击毙！")
+                await User(tr.qq, user.buf).add_jibi(count)
         return jibi,
     @classmethod
     async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[bool]:
