@@ -1051,6 +1051,7 @@ async def dragon_add_extra(session: CommandSession):
         session.finish("请输入b'.*'。")
     for t in config.userdata.execute("select qq, extra_data from dragon_data").fetchall():
         config.userdata.execute(f"update dragon_data set extra_data=? where qq=?", (t['extra_data'] + eval(session.current_arg_text), t['qq']))
+    save_data()
 
 @on_command(('dragon', 'op'), only_to_me=False, hide=True, permission=permission.SUPERUSER)
 @config.ErrorHandle(config.logger.dragon)
