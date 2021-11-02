@@ -535,6 +535,8 @@ class UserData:
                     self.event_listener[key].pop(priority)
     def save_status_time(self):
         self.status_time.f(self.status_time.data)
+    def save_equipment(self):
+        self.equipment.f(self.equipment.data)
     def reload(self) -> None:
         self.node = dict(find_or_new(self.qq))
     @property
@@ -4103,6 +4105,26 @@ class SInvBritian(ListStatus):
     def check(self) -> bool:
         return True
 
+# class assembling_machine(_card):
+#     id = 200
+#     name = "组装机1型"
+#     description = "如果你没有组装机，你获得装备：组装机1型。如果你已有组装机1型，将其升级为组装机2型。如果你已有组装机2型，将其升级为组装机3型。如果你已有组装机3型，你获得200组装量。"
+#     newer = 4
+#     positive = 1
+#     @classmethod
+#     async def use(cls, user: User) -> None:
+#         c = user.data.check_equipment(3)
+#         if c == 3:
+#             user.send_log("获得了200组装量！")
+#             user.data.extra.assembling += 200
+#         else:
+#             if c == 0:
+#                 user.send_log("获得了组装机1型！")
+#             else:
+#                 user.send_log(f"将组装机{c}型升级到了组装机{c + 1}型！")
+#             user.data.equipment[3] = c + 1
+#             user.data.save_equipment()
+
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):
     def _(f: Callable[[str], bool]):
@@ -4248,7 +4270,7 @@ class tarot(_equipment):
         return {UserEvt.OnNewDay: (Priority.OnNewDay.tarot, cls)}
 newday_check[3] |= set(('2: ',))
 
-class assembling_machine(_equipment):
+class assembling(_equipment):
     id = 3
     name = "组装机"
     @classmethod
