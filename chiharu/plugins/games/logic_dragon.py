@@ -50,7 +50,7 @@ with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         current_event = "mid-autumn"
     del d
 
-from .logic_dragon_file import Equipment, Priority, TCounter, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check, _statusnull, _statusdaily, Status
+from .logic_dragon_file import Equipment, Priority, TCounter, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check, _statusnull, _statusdaily, Status, TModule
 from . import logic_dragon_file
 
 # log
@@ -277,6 +277,13 @@ async def daily_update(buf: SessionBuffer) -> str:
         m[qq] = [{'id': get_mission(), 'remain': 3} for i in quests]
         config.logger.dragon << f"【LOG】更新了用户{qq}的任务为：{[c['id'] for c in m[qq]]}。"
     global_state['quest'] = m
+    m: TModule = {}
+    for qq, modules in global_state['module'].items():
+        if len(modules) == 0:
+            continue
+        m[qq] = [{'id': random.randint(0, 2), 'remain': 10} for i in modules]
+        config.logger.dragon << f"【LOG】更新了用户{qq}的插件为：{[c['id'] for c in m[qq]]}。"
+    global_state['module'] = m
     for qq in global_state['steal']:
         config.logger.dragon << f"【LOG】更新了用户{qq}的偷状态。"
         global_state['steal'][qq] = {'time': 0, 'user': []}

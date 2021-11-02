@@ -15,7 +15,7 @@ from nonebot.command import CommandSession
 from pypinyin import pinyin, Style
 from nonebot.command.argfilter import extractors, validators
 from .. import config
-from .logic_dragon_type import TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, nothing, TQuest, ensure_true_lambda, check_handcard
+from .logic_dragon_type import TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, nothing, TQuest, ensure_true_lambda, check_handcard, TModule
 
 # TODO change TCount to a real obj, in order to unify 'count' and 'count2' in OnStatusAdd, also _status.on_add
 # TODO 在aget的时候如果发现手牌数不足使用条件则跳出结算
@@ -25,6 +25,7 @@ def save_global_state():
     with open(config.rel('dragon_state.json'), 'w', encoding='utf-8') as f:
         f.write(json.dumps(global_state, indent=4, separators=(',', ': '), ensure_ascii=False))
 quest_print_aux: Dict[int, int] = {qq: 0 for qq in global_state['quest'].keys()}
+module_print_aux: Dict[int, int] = {qq: 0 for qq in global_state['module'].keys()}
 
 # global_status : qq = 2711644761
 def find_or_new(qq: int):
@@ -4211,6 +4212,159 @@ class STrain(_status):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnJibiChange: (Priority.OnJibiChange.train, cls),
             UserEvt.OnStatusRemove: (Priority.OnStatusRemove.train, cls)}
+
+# class beacon(_card):
+#     name = "插件分享塔"
+#     id = 203
+#     positive = 1
+#     description = "使用将丢弃这张卡。持有时，每天随机获得产率、速度、节能三个增益之一。"
+#     extra_info = {0: "插件——产率：获得击毙时，有15%的几率使其翻倍。", 1: "插件——速度：当有人发动寒冰菇时，该发动无效；如果发动的人是你，你被击毙30分钟。", 2: "插件——节能：消费击毙时，消费的击毙变为九折。"}
+#     des_need_init = True
+#     @classmethod
+#     def module_des(cls, qq: int):
+#         q = str(qq)
+#         m = global_state['module'][q][module_print_aux[q]]
+#         module_print_aux[q] += 1
+#         if module_print_aux[q] >= len(global_state['module'][q]):
+#             module_print_aux[q] = 0
+#         return "\t" + cls.extra_info[m['id']] + f"剩余：{m['remain'] // (10 if m['id'] == 2 else 1)}。"
+#     @classmethod
+#     def full_description(cls, qq: int):
+#         return super().full_description(qq) + "\n" + cls.module_des(qq)
+#     @classmethod
+#     async def on_draw(cls, user: User):
+#         q = str(user.qq)
+#         if q not in global_state['module']:
+#             global_state['module'][q] = []
+#             module_print_aux[q] = 0
+#         global_state['module'][q].append({'id': (r := random.randint(0, 2)), 'remain': 10})
+#         config.logger.dragon << f"【LOG】用户{user.qq}刷新了一个插件{r}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
+#         save_global_state()
+#     @classmethod
+#     async def on_remove(cls, user: User):
+#         q = str(user.qq)
+#         r = global_state['module'][q][module_print_aux[q]]['id']
+#         del global_state['module'][q][module_print_aux[q]]
+#         if module_print_aux[q] >= len(mission):
+#             module_print_aux[q] = 0
+#         config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{r}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
+#         save_global_state()
+#     @classmethod
+#     async def on_give(cls, user: User, target: User):
+#         q = str(user.qq)
+#         m = global_state['module'][q][module_print_aux[q]]
+#         del global_state['module'][q][module_print_aux[q]]
+#         if module_print_aux[q] >= len(mission):
+#             module_print_aux[q] = 0
+#         config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{m['id']}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
+#         t = str(target.qq)
+#         if t not in global_state['module']:
+#             global_state['module'][t] = []
+#             module_print_aux[t] = 0
+#         global_state['module'][t].append(m)
+#         config.logger.dragon << f"【LOG】用户{target.qq}增加了一个插件{m['id']}，现有插件：{[c['id'] for c in global_state['module'][t]]}。"
+#         save_global_state()
+#     @classmethod
+#     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
+#         q = str(user.qq)
+#         l = global_state['module'][q]
+#         if jibi > 0:
+#             for c in l:
+#                 if c['id'] == 0 and c['remain'] > 0 and random.random() < 0.15:
+#                     if c['remain'] >= jibi:
+#                         c['remain'] -= jibi
+#                         jibi *= 2
+#                     else:
+#                         jibi += c['remain']
+#                         c['remain'] = 0
+#                     user.send_log(f"触发了插件——产率的效果，获得击毙加倍为{jibi}！")
+#         elif jibi < 0:
+#             for c in l:
+#                 if jibi != 0 and c['id'] == 2 and c['remain'] > 0:
+#                     d = ceil(-jibi / 10)
+#                     if c['remain'] >= d:
+#                         c['remain'] -= d
+#                         jibi += d
+#                     else:
+#                         jibi += c['remain']
+#                         c['remain'] = 0
+#                     user.send_log(f"触发了插件——节能的效果，失去击毙减少为{-jibi}！")
+#         save_global_state()
+#         return jibi,
+#     @classmethod
+#     def register(cls) -> dict[int, TEvent]:
+#         return {UserEvt.OnJibiChange: (Priority.OnJibiChange.beacon, cls)}
+class beacon_checker(IEventListener):
+    @classmethod
+    async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
+        if status is iceshroom_s:
+            c = count
+            for i in range(count):
+                qqstrs = [q for q, l in global_state['module'] if any(c['id'] == 1 and c['remain'] == 10 for c in l)]
+                if len(qqstrs) == 0:
+                    return
+                if str(user.qq) in qqstrs:
+                    q = str(user.qq)
+                    user.send_log(f"的插件——速度抵消了寒冰菇的效果！但你被击毙了30分钟！")
+                    await user.death(30)
+                else:
+                    q = random.choice(qqstrs)
+                    user.buf.send(f"玩家{q}的插件——速度抵消了寒冰菇的效果！")
+                    config.logger.dragon << f"玩家{q}的插件——速度抵消了寒冰菇的效果。"
+                # u = User(int(q), user.buf)
+                for c in global_state['module'][q]:
+                    if c['id'] == 1 and c['remain'] == 10:
+                        c['remain'] = 0
+                        break
+                c -= 1
+            save_global_state()
+            return c,
+        return count,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnStatusAdd: (Priority.OnStatusAdd.beacon, cls)}
+for key, (priority, el) in beacon_checker.register().items():
+    UserData.event_listener_init[key][priority][el] += 1
+class beacon0(_statusdaily):
+    id = '7'
+    des = "插件——产率：获得击毙时，有15%的几率使其翻倍。"
+    is_global = True
+    @classmethod
+    async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
+        if jibi > 0 and random.random() < 0.15:
+            jibi *= 2
+            user.send_log(f"触发了插件——产率的效果，获得击毙加倍为{jibi}！")
+        return jibi,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnJibiChange: (Priority.OnJibiChange.beacon0, cls)}
+class beacon1(_statusdaily):
+    id = '8'
+    des = "插件——速度：当有人发动寒冰菇时，该发动无效。"
+    is_global = True
+    @classmethod
+    async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
+        if status is iceshroom_s:
+            user.buf.send(f"插件——速度抵消了寒冰菇的效果！")
+            return 0,
+        return count,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnStatusAdd: (Priority.OnStatusAdd.beacon1, cls)}
+class beacon2(_statusdaily):
+    id = '9'
+    des = "插件——节能：消费击毙时，消费的击毙变为九折。"
+    is_global = True
+    @classmethod
+    async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
+        if jibi < 0:
+            d = ceil(-jibi / 10)
+            jibi += d
+            user.send_log(f"触发了插件——节能的效果，失去击毙减少为{-jibi}！")
+        return jibi,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnJibiChange: (Priority.OnJibiChange.beacon2, cls)}
 
 # class lab(_card):
 #     id = 204

@@ -3,12 +3,14 @@ from typing import Callable, TypedDict, List, Dict, TypeVar, Generic, Awaitable,
 from dataclasses import dataclass
 
 TQuest = TypedDict('TQuest', id=int, remain=int)
+TModule = TypedDict('TModule', id=int, remain=int)
 TSteal = TypedDict('TSteal', user=List[int], time=int)
 class TGlobalState(TypedDict):
     last_card_user: int
     exchange_stack: List[int]
     # lianhuan: List[int]
     quest: Dict[int, List[TQuest]]
+    module: Dict[int, List[TModule]]
     steal: Dict[int, TSteal]
     event_route: List[int]
 class TUserData(TypedDict):
@@ -144,6 +146,8 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         twinsunflower = auto()
         panjue = auto()                 # contains both a and b
         panjue_activated = auto()       # contains both a and b
+        beacon = auto()
+        beacon1 = auto()
     class OnStatusRemove(IntEnum):
         train = auto()
     class CheckJibiSpend(IntEnum):
@@ -155,6 +159,9 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         inv_gaojie = auto()
         bikini = auto()
         schoolsui = auto()
+        beacon = auto()
+        beacon0 = auto()
+        beacon2 = auto()
         bianyaqi = auto()
         inv_bianyaqi = auto()
         steamsummer = auto()
