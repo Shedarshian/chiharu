@@ -4384,7 +4384,16 @@ class beacon2(_statusdaily):
 #             user.send_log("的装备中有组装机，" + user.char + "获得了一张集装机械臂！")
 #             await user.draw(0, cards=[stack_inserter])
 #         if (t3 := Card(203) in user.data.hand_card):
-#             pass
+#             q = str(user.qq)
+#             l = global_state["module"][q]
+#             u = Userme(user)
+#             user.send_log("的装备中有组装机，" + user.char + "增加了全局状态：", end='')
+#             config.logger.dragon << ",".join(m['id'] for m in l)
+#             for m in l:
+#                 c = str(m["id"] + 7)
+#                 await u.add_daily_status(c)
+#                 user.buf.send(Status(c).brief_des, end='')
+#             user.buf.send('！')
 #         if t1 and t2 and t3:
 #             user.send_log("获得了一张核弹！")
 #             await user.draw(0, cards=[nuclear_bomb])
