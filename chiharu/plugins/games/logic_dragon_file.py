@@ -427,10 +427,11 @@ class Wrapper:
     def __lshift__(self, log):
         config.logger.dragon << f"【LOG】用户{self.qq}" + log
 
-extra_data_format = '!B'
+extra_data_format = '!BL'
 @dataclass
 class ExtraData:
     tarot_time: int # unsigned char
+    assembling: int # unsigned long
     @classmethod
     def make(cls, data, save):
         return cls(*unpack(extra_data_format, data), lambda self: save(pack(extra_data_format, *self)))
