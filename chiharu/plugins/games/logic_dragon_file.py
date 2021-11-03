@@ -4109,7 +4109,7 @@ class assembling_machine(_card):
             user.data.extra.assembling += 200
         else:
             if c == 0:
-                user.send_log("获得了组装机1型！")
+                user.send_log("获得了装备：组装机1型！")
             else:
                 user.send_log(f"将组装机{c}型升级到了组装机{c + 1}型！")
             user.data.equipment[3] = c + 1
@@ -4138,6 +4138,7 @@ class belt_checker(IEventListener):
             u = random.choice(users)
             user.buf.send(f"玩家{u.qq}从传送带上捡起了" + user.char + "掉的卡！")
             await u.draw(0, cards=[card])
+            await u.remove_status('3')
             if u.check_status('3') == 0:
                 users.remove(u)
     @classmethod
@@ -4154,7 +4155,10 @@ class inv_belt_s(_statusnull):
             qq = random.choice(qqs)
             u = User(qq, user.buf)
             user.buf.send(f"玩家{u.qq}从传送带上捡起了" + user.char + "掉的卡！")
-            await u.draw(0, card)
+            await u.draw(0, [card])
+            await user.remove_status('4', remove_all=False)
+            if not user.check_status('4'):
+                break
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.AfterCardDiscard: (Priority.AfterCardDiscard.inv_belt, cls)}
@@ -4196,10 +4200,15 @@ class STrain(_status):
             # 从session里拿有没有结算过火车，保证同一个人的火车在一次结算里只触发一次
             if not user.buf.session.state.get('train'):
                 user.buf.session.state['train'] = set()
-            c = [tr for tr in count if tr not in user.buf.session.state['train']]
+            c = [tr for tr in count if tr.qq not in user.buf.session.state['train']]
             user.buf.session.state['train'] |= set([tr.qq for tr in count])
+            qqs = set(tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests)))
+            from .logic_dragon import get_yesterday_qq
+            qqs |= get_yesterday_qq()
             for tr in c:
                 if tr.qq == user.qq:
+                    continue
+                if tr.qq not in qqs:
                     continue
                 # 结算火车
                 user.send_log(f"玩家{tr.qq}乘坐火车便乘了{count}击毙！")
@@ -4333,7 +4342,7 @@ class beacon_checker(IEventListener):
 UserData.register_checker(beacon_checker)
 class beacon0(_statusdaily):
     id = '7'
-    des = "插件——产率：获得击毙时，有15%的几率使其翻倍。"
+    des = "插件——产率：今天获得击毙时，有15%的几率使其翻倍。"
     is_global = True
     @classmethod
     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
@@ -4346,7 +4355,7 @@ class beacon0(_statusdaily):
         return {UserEvt.OnJibiChange: (Priority.OnJibiChange.beacon0, cls)}
 class beacon1(_statusdaily):
     id = '8'
-    des = "插件——速度：当有人发动寒冰菇时，该发动无效。"
+    des = "插件——速度：当今天有人发动寒冰菇时，该发动无效。"
     is_global = True
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
@@ -4359,7 +4368,7 @@ class beacon1(_statusdaily):
         return {UserEvt.OnStatusAdd: (Priority.OnStatusAdd.beacon1, cls)}
 class beacon2(_statusdaily):
     id = '9'
-    des = "插件——节能：消费击毙时，消费的击毙变为九折。"
+    des = "插件——节能：今天消费击毙时，消费的击毙变为九折。"
     is_global = True
     @classmethod
     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
