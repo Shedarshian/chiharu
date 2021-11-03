@@ -2687,7 +2687,7 @@ class huxiangjiaohuan(_card):
             await Userme(user).add_limited_status(SHuxiangjiaohuan([user.qq]))
 class SHuxiangjiaohuan(ListStatus):
     id = 'x'
-    des = "互相交换：下一个接中隐藏奖励词的玩家手牌、击毙与某人互换。"
+    des = "互相交换：下一个接中隐藏奖励词的玩家手牌与某人互换。"
     is_global = True
     @classmethod
     async def OnHiddenKeyword(cls, count: TCount, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
