@@ -3290,7 +3290,7 @@ class panjuea_activated_s(_statusnull):
 
 class panjueb(_card):
     name = "判决β"
-    id = 111
+    id = 112
     description = "抽到时附加buff：判决β。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。"
     positive = -1
     on_draw_status = 'B'
