@@ -4088,33 +4088,33 @@ class SInvBritian(ListStatus):
     def check(self) -> bool:
         return True
 
-# class assembling_machine(_card):
-#     id = 200
-#     name = "组装机1型"
-#     description = "如果你没有组装机，你获得装备：组装机1型。如果你已有组装机1型，将其升级为组装机2型。如果你已有组装机2型，将其升级为组装机3型。如果你已有组装机3型，你获得200组装量。"
-#     newer = 4
-#     positive = 1
-#     @classmethod
-#     async def use(cls, user: User) -> None:
-#         c = user.data.check_equipment(3)
-#         if c == 3:
-#             user.send_log("获得了200组装量！")
-#             user.data.extra.assembling += 200
-#         else:
-#             if c == 0:
-#                 user.send_log("获得了组装机1型！")
-#             else:
-#                 user.send_log(f"将组装机{c}型升级到了组装机{c + 1}型！")
-#             user.data.equipment[3] = c + 1
-#             user.data.save_equipment()
+class assembling_machine(_card):
+    id = 200
+    name = "组装机1型"
+    description = "如果你没有组装机，你获得装备：组装机1型。如果你已有组装机1型，将其升级为组装机2型。如果你已有组装机2型，将其升级为组装机3型。如果你已有组装机3型，你获得200组装量。"
+    newer = 4
+    positive = 1
+    @classmethod
+    async def use(cls, user: User) -> None:
+        c = user.data.check_equipment(3)
+        if c == 3:
+            user.send_log("获得了200组装量！")
+            user.data.extra.assembling += 200
+        else:
+            if c == 0:
+                user.send_log("获得了组装机1型！")
+            else:
+                user.send_log(f"将组装机{c}型升级到了组装机{c + 1}型！")
+            user.data.equipment[3] = c + 1
+            user.data.save_equipment()
 
-# class belt(_card):
-#     id = 201
-#     name = "传送带"
-#     description = "当其它玩家丢弃第一张手牌时，你获得之。"
-#     positive = 1
-#     newer = 4
-#     status = '3'
+class belt(_card):
+    id = 201
+    name = "传送带"
+    description = "当其它玩家丢弃第一张手牌时，你获得之。"
+    positive = 1
+    newer = 4
+    status = '3'
 class belt_s(_statusnull):
     id = '3'
     des = "传送带：当其它玩家丢弃第一张手牌时，你获得之。"
@@ -4153,21 +4153,21 @@ class inv_belt_s(_statusnull):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.AfterCardDiscard: (Priority.AfterCardDiscard.inv_belt, cls)}
 
-# class train(_card):
-#     id = 202
-#     name = "火车"
-#     description = "附加全局状态：若你最近接过龙，其它玩家一次获得5以上击毙时，你便乘1击毙。若场上已经有火车，发动新的火车有1/4的几率与已有的每一辆火车发生碰撞，碰撞时两个火车都会消失。"
-#     positive = 1
-#     newer = 4
-#     @classmethod
-#     async def use(cls, user: User) -> None:
-#         l = me.check_limited_status('t')
-#         for tr in l:
-#             if random.random() < 0.25:
-#                 user.send_log(f"的火车和玩家{tr.qq}的火车发生了碰撞！")
-#                 await Userme(user).remove_limited_status(tr)
-#                 return
-#         await Userme(user).add_limited_status(STrain(user.qq, False))
+class train(_card):
+    id = 202
+    name = "火车"
+    description = "附加全局状态：若你最近接过龙，其它玩家一次获得5以上击毙时，你便乘1击毙。若场上已经有火车，发动新的火车有1/4的几率与已有的每一辆火车发生碰撞，碰撞时两个火车都会消失。"
+    positive = 1
+    newer = 4
+    @classmethod
+    async def use(cls, user: User) -> None:
+        l = me.check_limited_status('t')
+        for tr in l:
+            if random.random() < 0.25:
+                user.send_log(f"的火车和玩家{tr.qq}的火车发生了碰撞！")
+                await Userme(user).remove_limited_status(tr)
+                return
+        await Userme(user).add_limited_status(STrain(user.qq, False))
 class STrain(_status):
     id = 't'
     des = "火车：其它玩家一次获得5以上击毙时，某玩家便乘1击毙。"
@@ -4214,87 +4214,87 @@ class STrain(_status):
         return {UserEvt.OnJibiChange: (Priority.OnJibiChange.train, cls),
             UserEvt.OnStatusRemove: (Priority.OnStatusRemove.train, cls)}
 
-# class beacon(_card):
-#     name = "插件分享塔"
-#     id = 203
-#     positive = 1
-#     description = "使用将丢弃这张卡。持有时，每天随机获得产率、速度、节能三个增益之一。"
-#     extra_info = {0: "插件——产率：获得击毙时，有15%的几率使其翻倍。", 1: "插件——速度：当有人发动寒冰菇时，该发动无效；如果发动的人是你，你被击毙30分钟。", 2: "插件——节能：消费击毙时，消费的击毙变为九折。"}
-#     des_need_init = True
-#     @classmethod
-#     def module_des(cls, qq: int):
-#         q = str(qq)
-#         m = global_state['module'][q][module_print_aux[q]]
-#         module_print_aux[q] += 1
-#         if module_print_aux[q] >= len(global_state['module'][q]):
-#             module_print_aux[q] = 0
-#         return "\t" + cls.extra_info[m['id']] + f"剩余：{m['remain'] // (10 if m['id'] == 2 else 1)}。"
-#     @classmethod
-#     def full_description(cls, qq: int):
-#         return super().full_description(qq) + "\n" + cls.module_des(qq)
-#     @classmethod
-#     async def on_draw(cls, user: User):
-#         q = str(user.qq)
-#         if q not in global_state['module']:
-#             global_state['module'][q] = []
-#             module_print_aux[q] = 0
-#         global_state['module'][q].append({'id': (r := random.randint(0, 2)), 'remain': 10})
-#         config.logger.dragon << f"【LOG】用户{user.qq}刷新了一个插件{r}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
-#         save_global_state()
-#     @classmethod
-#     async def on_remove(cls, user: User):
-#         q = str(user.qq)
-#         r = global_state['module'][q][module_print_aux[q]]['id']
-#         del global_state['module'][q][module_print_aux[q]]
-#         if module_print_aux[q] >= len(mission):
-#             module_print_aux[q] = 0
-#         config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{r}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
-#         save_global_state()
-#     @classmethod
-#     async def on_give(cls, user: User, target: User):
-#         q = str(user.qq)
-#         m = global_state['module'][q][module_print_aux[q]]
-#         del global_state['module'][q][module_print_aux[q]]
-#         if module_print_aux[q] >= len(mission):
-#             module_print_aux[q] = 0
-#         config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{m['id']}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
-#         t = str(target.qq)
-#         if t not in global_state['module']:
-#             global_state['module'][t] = []
-#             module_print_aux[t] = 0
-#         global_state['module'][t].append(m)
-#         config.logger.dragon << f"【LOG】用户{target.qq}增加了一个插件{m['id']}，现有插件：{[c['id'] for c in global_state['module'][t]]}。"
-#         save_global_state()
-#     @classmethod
-#     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
-#         q = str(user.qq)
-#         l = global_state['module'][q]
-#         if jibi > 0:
-#             for c in l:
-#                 if c['id'] == 0 and c['remain'] > 0 and random.random() < 0.15:
-#                     if c['remain'] >= jibi:
-#                         c['remain'] -= jibi
-#                         jibi *= 2
-#                     else:
-#                         jibi += c['remain']
-#                         c['remain'] = 0
-#                     user.send_log(f"触发了插件——产率的效果，获得击毙加倍为{jibi}！")
-#         elif jibi < 0:
-#             for c in l:
-#                 if jibi != 0 and c['id'] == 2 and c['remain'] > 0:
-#                     d = ceil(-jibi / 10)
-#                     if c['remain'] >= d:
-#                         c['remain'] -= d
-#                         jibi += d
-#                     else:
-#                         jibi += c['remain']
-#                         c['remain'] = 0
-#                     user.send_log(f"触发了插件——节能的效果，失去击毙减少为{-jibi}！")
-#         save_global_state()
-#         return jibi,
-#     @classmethod
-#     def register(cls) -> dict[int, TEvent]:
-#         return {UserEvt.OnJibiChange: (Priority.OnJibiChange.beacon, cls)}
+class beacon(_card):
+    name = "插件分享塔"
+    id = 203
+    positive = 1
+    description = "使用将丢弃这张卡。持有时，每天随机获得产率、速度、节能三个增益之一。"
+    extra_info = {0: "插件——产率：获得击毙时，有15%的几率使其翻倍。", 1: "插件——速度：当有人发动寒冰菇时，该发动无效；如果发动的人是你，你被击毙30分钟。", 2: "插件——节能：消费击毙时，消费的击毙变为九折。"}
+    des_need_init = True
+    @classmethod
+    def module_des(cls, qq: int):
+        q = str(qq)
+        m = global_state['module'][q][module_print_aux[q]]
+        module_print_aux[q] += 1
+        if module_print_aux[q] >= len(global_state['module'][q]):
+            module_print_aux[q] = 0
+        return "\t" + cls.extra_info[m['id']] + f"剩余：{m['remain'] // (10 if m['id'] == 2 else 1)}。"
+    @classmethod
+    def full_description(cls, qq: int):
+        return super().full_description(qq) + "\n" + cls.module_des(qq)
+    @classmethod
+    async def on_draw(cls, user: User):
+        q = str(user.qq)
+        if q not in global_state['module']:
+            global_state['module'][q] = []
+            module_print_aux[q] = 0
+        global_state['module'][q].append({'id': (r := random.randint(0, 2)), 'remain': 10})
+        config.logger.dragon << f"【LOG】用户{user.qq}刷新了一个插件{r}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
+        save_global_state()
+    @classmethod
+    async def on_remove(cls, user: User):
+        q = str(user.qq)
+        r = global_state['module'][q][module_print_aux[q]]['id']
+        del global_state['module'][q][module_print_aux[q]]
+        if module_print_aux[q] >= len(mission):
+            module_print_aux[q] = 0
+        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{r}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
+        save_global_state()
+    @classmethod
+    async def on_give(cls, user: User, target: User):
+        q = str(user.qq)
+        m = global_state['module'][q][module_print_aux[q]]
+        del global_state['module'][q][module_print_aux[q]]
+        if module_print_aux[q] >= len(mission):
+            module_print_aux[q] = 0
+        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{m['id']}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
+        t = str(target.qq)
+        if t not in global_state['module']:
+            global_state['module'][t] = []
+            module_print_aux[t] = 0
+        global_state['module'][t].append(m)
+        config.logger.dragon << f"【LOG】用户{target.qq}增加了一个插件{m['id']}，现有插件：{[c['id'] for c in global_state['module'][t]]}。"
+        save_global_state()
+    @classmethod
+    async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
+        q = str(user.qq)
+        l = global_state['module'][q]
+        if jibi > 0:
+            for c in l:
+                if c['id'] == 0 and c['remain'] > 0 and random.random() < 0.15:
+                    if c['remain'] >= jibi:
+                        c['remain'] -= jibi
+                        jibi *= 2
+                    else:
+                        jibi += c['remain']
+                        c['remain'] = 0
+                    user.send_log(f"触发了插件——产率的效果，获得击毙加倍为{jibi}！")
+        elif jibi < 0:
+            for c in l:
+                if jibi != 0 and c['id'] == 2 and c['remain'] > 0:
+                    d = ceil(-jibi / 10)
+                    if c['remain'] >= d:
+                        c['remain'] -= d
+                        jibi += d
+                    else:
+                        jibi += c['remain']
+                        c['remain'] = 0
+                    user.send_log(f"触发了插件——节能的效果，失去击毙减少为{-jibi}！")
+        save_global_state()
+        return jibi,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnJibiChange: (Priority.OnJibiChange.beacon, cls)}
 class beacon_checker(IEventListener):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
@@ -4367,39 +4367,39 @@ class beacon2(_statusdaily):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnJibiChange: (Priority.OnJibiChange.beacon2, cls)}
 
-# class lab(_card):
-#     id = 204
-#     name = "科技中心"
-#     description = "如果全局状态中存在你的火车，你的所有火车获得火车跳板；如果你的装备中有组装机，你获得一张集装机械臂；如果你的手牌中有插件分享塔，今日你的插件效果会变为全局状态；如果三者都有，你获得一张核弹；如果三者都没有，你抽一张factorio系列的牌。"
-#     positive = 1
-#     newer = 4
-#     @classmethod
-#     async def use(cls, user: User) -> None:
-#         if t1 := me.check_limited_status('t', lambda c: c.qq == user.qq):
-#             user.send_log("有火车，" + user.char + "的每辆火车获得了火车跳板！")
-#             for tr in t1:
-#                 tr.if_def = True
-#             user.data.save_status_time()
-#         if (t2 := user.data.check_equipment(3) != 0):
-#             user.send_log("的装备中有组装机，" + user.char + "获得了一张集装机械臂！")
-#             await user.draw(0, cards=[stack_inserter])
-#         if (t3 := Card(203) in user.data.hand_card):
-#             q = str(user.qq)
-#             l = global_state["module"][q]
-#             u = Userme(user)
-#             user.send_log("的装备中有组装机，" + user.char + "增加了全局状态：", end='')
-#             config.logger.dragon << ",".join(m['id'] for m in l)
-#             for m in l:
-#                 c = str(m["id"] + 7)
-#                 await u.add_daily_status(c)
-#                 user.buf.send(Status(c).brief_des, end='')
-#             user.buf.send('！')
-#         if t1 and t2 and t3:
-#             user.send_log("获得了一张核弹！")
-#             await user.draw(0, cards=[nuclear_bomb])
-#         if not (t1 or t2 or t3):
-#             user.send_log("抽了一张factorio系列的牌！")
-#             await user.draw(1, extra_lambda=lambda c: c.id >= 200 and c.id < 210)
+class lab(_card):
+    id = 204
+    name = "科技中心"
+    description = "如果全局状态中存在你的火车，你的所有火车获得火车跳板；如果你的装备中有组装机，你获得一张集装机械臂；如果你的手牌中有插件分享塔，今日你的插件效果会变为全局状态；如果三者都有，你获得一张核弹；如果三者都没有，你抽一张factorio系列的牌。"
+    positive = 1
+    newer = 4
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if t1 := me.check_limited_status('t', lambda c: c.qq == user.qq):
+            user.send_log("有火车，" + user.char + "的每辆火车获得了火车跳板！")
+            for tr in t1:
+                tr.if_def = True
+            user.data.save_status_time()
+        if (t2 := user.data.check_equipment(3) != 0):
+            user.send_log("的装备中有组装机，" + user.char + "获得了一张集装机械臂！")
+            await user.draw(0, cards=[stack_inserter])
+        if (t3 := Card(203) in user.data.hand_card):
+            q = str(user.qq)
+            l = global_state["module"][q]
+            u = Userme(user)
+            user.send_log("的装备中有组装机，" + user.char + "增加了全局状态：", end='')
+            config.logger.dragon << ",".join(m['id'] for m in l)
+            for m in l:
+                c = str(m["id"] + 7)
+                await u.add_daily_status(c)
+                user.buf.send(Status(c).brief_des, end='')
+            user.buf.send('！')
+        if t1 and t2 and t3:
+            user.send_log("获得了一张核弹！")
+            await user.draw(0, cards=[nuclear_bomb])
+        if not (t1 or t2 or t3):
+            user.send_log("抽了一张factorio系列的牌！")
+            await user.draw(1, extra_lambda=lambda c: c.id >= 200 and c.id < 210)
 
 class stack_inserter(_card):
     id = -4
@@ -4432,33 +4432,33 @@ class nuclear_bomb(_card):
         for qq in qqs:
             await User(qq, user.buf).killed(user)
 
-# class flamethrower(_card):
-#     id = 205
-#     name = "火焰喷射器"
-#     description = "抽到时，如果场上有寒冰菇，摧毁一个寒冰菇，获得50击毙，并被誉为今天的英雄。如果没有，自己被击毙。"
-#     positive = 0
-#     newer = 4
-#     consumed_on_draw = True
-#     @classmethod
-#     async def on_draw(cls, user: User) -> None:
-#         if me.check_daily_status('i'):
-#             user.send_char("摧毁了一个寒冰菇，获得了50击毙！" + user.char + "就是今天的英雄！")
-#             Userme(user).remove_daily_status('i', remove_all=False)
-#             await user.add_jibi(50)
-#         else:
-#             user.send_char("今天没有寒冰菇！" + user.char + "被击毙了！")
-#             await user.death()
+class flamethrower(_card):
+    id = 205
+    name = "火焰喷射器"
+    description = "抽到时，如果场上有寒冰菇，摧毁一个寒冰菇，获得50击毙，并被誉为今天的英雄。如果没有，自己被击毙。"
+    positive = 0
+    newer = 4
+    consumed_on_draw = True
+    @classmethod
+    async def on_draw(cls, user: User) -> None:
+        if me.check_daily_status('i'):
+            user.send_char("摧毁了一个寒冰菇，获得了50击毙！" + user.char + "就是今天的英雄！")
+            Userme(user).remove_daily_status('i', remove_all=False)
+            await user.add_jibi(50)
+        else:
+            user.send_char("今天没有寒冰菇！" + user.char + "被击毙了！")
+            await user.death()
 
-# class rocket(_card):
-#     id = 206
-#     name = "火箭"
-#     description = "发射一枚火箭，获得游戏的胜利。"
-#     positive = 1
-#     newer = 4
-#     @classmethod
-#     async def use(cls, user: User) -> None:
-#         user.buf.send(f"恭喜{user.char}，今天{user.char}赢了！")
-#         await user.add_daily_status('W')
+class rocket(_card):
+    id = 206
+    name = "火箭"
+    description = "发射一枚火箭，获得游戏的胜利。"
+    positive = 1
+    newer = 4
+    @classmethod
+    async def use(cls, user: User) -> None:
+        user.buf.send(f"恭喜{user.char}，今天{user.char}赢了！")
+        await user.add_daily_status('W')
 
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):
@@ -4622,7 +4622,7 @@ class assembling(_equipment):
     @classmethod
     async def AfterCardDraw(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
         old = cls.get_card_limit(user.data.extra.assembling, count)
-        user.data.extra.assembling += (s := sum(c.id for c in cards))
+        user.data.extra.assembling += (s := sum(max(c.id, 0) for c in cards))
         new = cls.get_card_limit(user.data.extra.assembling, count)
         user.log << f"增加了{s}的组装量，现有{user.data.extra.assembling}。"
         if new > old:
