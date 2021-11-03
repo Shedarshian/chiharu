@@ -472,6 +472,10 @@ class DynamicExtraData:
 
 class UserData:
     event_listener_init: defaultdict[int, TEventList] = defaultdict(lambda: defaultdict(CounterOnly))
+    @classmethod
+    def register_checker(cls, checker: IEventListener, count: int=1):
+        for key, (priority, el) in checker.register().items():
+            cls.event_listener_init[key][priority][el] += count
     def __init__(self, qq: int):
         self._qq = qq
         self.node: TUserData = dict(find_or_new(qq))
@@ -3335,8 +3339,7 @@ class panjue_checker(IEventListener):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.panjuecheck, cls)}
-for key, (priority, el) in panjue_checker.register().items():
-    UserData.event_listener_init[key][priority][el] += 1
+UserData.register_checker(panjue_checker)
 
 class dihuopenfa(_card):
     name = "地火喷发"
@@ -4140,8 +4143,7 @@ class belt_checker(IEventListener):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.AfterCardDiscard: (Priority.AfterCardDiscard.belt, cls)}
-for key, (priority, el) in belt_checker.register().items():
-    UserData.event_listener_init[key][priority][el] += 1
+UserData.register_checker(belt_checker)
 class inv_belt_s(_statusnull):
     id = '4'
     des = "反转·传送带：当你丢弃第一张手牌时，把它丢给随机一名玩家。"
@@ -4232,7 +4234,7 @@ class beacon(_card):
         module_print_aux[q] += 1
         if module_print_aux[q] >= len(global_state['module'][q]):
             module_print_aux[q] = 0
-        return "\t" + cls.extra_info[m['id']] + f"剩余：{m['remain'] // (10 if m['id'] == 2 else 1)}。"
+        return "\t" + cls.extra_info[m['id']] + f"剩余：{m['remain'] // (10 if m['id'] == 1 else 1)}{'次' if m['id'] == 1 else '击毙'}。"
     @classmethod
     def full_description(cls, qq: int):
         return super().full_description(qq) + "\n" + cls.module_des(qq)
@@ -4303,8 +4305,8 @@ class beacon_checker(IEventListener):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if status is iceshroom_s:
-            c = count
-            for i in range(count):
+            c = count2
+            for i in range(count2):
                 qqstrs = [q for q, l in global_state['module'] if any(c['id'] == 1 and c['remain'] == 10 for c in l)]
                 if len(qqstrs) == 0:
                     return
@@ -4317,9 +4319,9 @@ class beacon_checker(IEventListener):
                     user.buf.send(f"玩家{q}的插件——速度抵消了寒冰菇的效果！")
                     config.logger.dragon << f"玩家{q}的插件——速度抵消了寒冰菇的效果。"
                 # u = User(int(q), user.buf)
-                for c in global_state['module'][q]:
-                    if c['id'] == 1 and c['remain'] == 10:
-                        c['remain'] = 0
+                for d in global_state['module'][q]:
+                    if d['id'] == 1 and d['remain'] == 10:
+                        d['remain'] = 0
                         break
                 c -= 1
             save_global_state()
@@ -4328,8 +4330,7 @@ class beacon_checker(IEventListener):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnStatusAdd: (Priority.OnStatusAdd.beacon, cls)}
-for key, (priority, el) in beacon_checker.register().items():
-    UserData.event_listener_init[key][priority][el] += 1
+UserData.register_checker(beacon_checker)
 class beacon0(_statusdaily):
     id = '7'
     des = "插件——产率：获得击毙时，有15%的几率使其翻倍。"
@@ -4391,7 +4392,7 @@ class lab(_card):
             q = str(user.qq)
             l = global_state["module"][q]
             u = Userme(user)
-            user.send_log("的装备中有组装机，" + user.char + "增加了全局状态：", end='')
+            user.send_log("的装备中有插件分享塔，" + user.char + "增加了全局状态：", end='')
             config.logger.dragon << ",".join(m['id'] for m in l)
             for m in l:
                 c = str(m["id"] + 7)
@@ -4423,9 +4424,13 @@ class stack_inserter(_card):
             await user.remove_cards([card])
             user.send_char(f"获得了{card.id // 5}击毙！")
             await user.add_jibi(card.id // 5)
-            if user.data.check_equipment(3):
+            if count := user.data.check_equipment(3):
+                old = assembling.get_card_limit(user.data.extra.assembling, count)
                 user.data.extra.assembling += card.id
+                new = assembling.get_card_limit(user.data.extra.assembling, count)
                 user.log << f"增加了{card.id}的组装量，现有{user.data.extra.assembling}。"
+                if new > old:
+                    user.send_char(f"的组装机{count}型为你增加了{new - old}的手牌上限！")
 
 class nuclear_bomb(_card):
     id = -131073
