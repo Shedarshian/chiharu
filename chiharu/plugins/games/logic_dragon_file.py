@@ -579,10 +579,19 @@ class UserData:
         config.userdata.execute("update dragon_data set today_keyword_jibi=? where qq=?", (value, self.qq))
         self.node['today_keyword_jibi'] = value
     @property
+    def card_limit_from_assembling(self):
+        c = self.check_equipment(3)
+        if c == 0:
+            return 0
+        return assembling.get_card_limit(self.extra.assembling, c)
+    @property
     def card_limit(self):
+        return self.card_limit_raw + self.card_limit_from_assembling
+    @property
+    def card_limit_raw(self):
         return self.node['card_limit']
-    @card_limit.setter
-    def card_limit(self, value):
+    @card_limit_raw.setter
+    def card_limit_raw(self, value):
         config.userdata.execute("update dragon_data set card_limit=? where qq=?", (value, self.qq))
         self.node['card_limit'] = value
     @property
@@ -1031,11 +1040,11 @@ class User:
         self.data.hand_card.extend(target_hand_cards)
         target.data.hand_card.extend(self_hand_cards)
         self.data.set_cards()
-        target_limit = target.data.card_limit
-        if len(self_hand_cards) > target_limit:
-            self.buf.send(f"该玩家手牌已超出上限{len(self_hand_cards) - target_limit}张！多余的牌已被弃置。")
-            target.log << f"手牌为{cards_to_str(self_hand_cards)}，超出上限{target_limit}，自动弃置。"
-            await target.discard_cards(copy(self_hand_cards[target_limit:]))
+        # target_limit = target.data.card_limit
+        # if len(self_hand_cards) > target_limit:
+        #     self.buf.send(f"该玩家手牌已超出上限{len(self_hand_cards) - target_limit}张！多余的牌已被弃置。")
+        #     target.log << f"手牌为{cards_to_str(self_hand_cards)}，超出上限{target_limit}，自动弃置。"
+        #     await target.discard_cards(copy(self_hand_cards[target_limit:]))
         target.data.set_cards()
         config.logger.dragon << f"【LOG】交换完用户{self.qq}与用户{target.qq}的手牌，当前用户{self.qq}的手牌为{cards_to_str(self.data.hand_card)}。"
         # Event AfterExchange
@@ -2342,8 +2351,8 @@ class baoshidewugong(_card):
     description = "你的手牌上限永久+1。"
     @classmethod
     async def use(cls, user: User):
-        user.data.card_limit += 1
-        config.logger.dragon << f"【LOG】用户{user.qq}增加了手牌上限至{user.data.card_limit}。"
+        user.data.card_limit_raw += 1
+        config.logger.dragon << f"【LOG】用户{user.qq}增加了raw手牌上限至{user.data.card_limit_raw}。"
 
 class zhaocaimao(_card):
     name = "擅长做生意的招财猫"
