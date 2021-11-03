@@ -1552,15 +1552,15 @@ class magician(_card):
     name = "I - 魔术师"
     id = 1
     positive = 1
-    description = "选择一张你的手牌（不可选择暴食的蜈蚣），发动3次该手牌的使用效果，并弃置之。此后一周内不得使用该卡。"
+    description = "选择一张你的手牌（不可选择暴食的蜈蚣与组装机1型），发动3次该手牌的使用效果，并弃置之。此后一周内不得使用该卡。"
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return len(user.data.hand_card) >= (1 if copy else 2)
     @classmethod
     async def use(cls, user: User):
         if await user.choose():
-            l = await user.choose_card("请选择你手牌中的一张牌（不可选择暴食的蜈蚣），输入id号。", 1, 1, can_use=True, extra_args=[
-                validators.ensure_true(lambda l: 56 not in l, message="此牌不可选择！")])
+            l = await user.choose_card("请选择你手牌中的一张牌（不可选择暴食的蜈蚣与组装机1型），输入id号。", 1, 1, can_use=True, extra_args=[
+                validators.ensure_true(lambda l: 56 not in l and 200 not in l, message="此牌不可选择！")])
             card = Card(l[0])
             config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
             user.send_char('使用了三次卡牌：\n' + card.full_description(user.qq))
@@ -3169,6 +3169,7 @@ class Aranshefashu(Attack):
     name = "攻击：蚺虵法术"
     async def self_action(self):
         await self.defender.add_status('Y')
+        self.defender.send_char("今天接龙需额外遵循首尾接龙规则！")
 class ranshefashu_s(_statusnull):
     id = 'Y'
     des = "蚺虵法术：你当日每次接龙需额外遵循首尾接龙规则。"
@@ -4072,11 +4073,14 @@ class SBritian(ListStatus):
         if len(self.list) == 0:
             return self.des
         return f"{self.des}\n\t包含：{'，'.join(('“魔力 - ' + Card(i).name[Card(i).name.index(' - ') + 3:] + '”') for i in self.list)}。"
+    @property
+    def brief_des(self) -> str:
+        return f"统治不列颠\n\t包含：{','.join(str(c) for c in self.list)}。"
     def check(self) -> bool:
         return True
     @classmethod
     async def BeforeCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[Optional[Awaitable]]:
-        if card.id <= 21:
+        if card.id <= 21 and card.id >= 0:
             for c in count:
                 if card.id not in c.list:
                     async def f():
@@ -4196,8 +4200,9 @@ class STrain(_status):
         self.if_def = if_def in ('True', True)
     def __repr__(self) -> str:
         return self.construct_repr(self.qq, self.if_def)
+    @classmethod
     @property
-    def brief_des(self) -> str:
+    def brief_des(cls) -> str:
         return "火车"
     def __str__(self) -> str:
         return self.des + ('\n\t存在火车跳板。' if self.if_def else '')
@@ -4242,6 +4247,7 @@ class beacon(_card):
     name = "插件分享塔"
     id = 203
     positive = 1
+    newer = 4
     description = "使用将丢弃这张卡。持有时，每天随机获得产率、速度、节能三个增益之一。"
     extra_info = {0: "插件——产率：获得击毙时，有15%的几率使其翻倍。", 1: "插件——速度：当有人发动寒冰菇时，该发动无效；如果发动的人是你，你被击毙30分钟。", 2: "插件——节能：消费击毙时，消费的击毙变为九折。"}
     des_need_init = True
