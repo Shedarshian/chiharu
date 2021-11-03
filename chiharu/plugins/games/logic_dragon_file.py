@@ -4331,7 +4331,7 @@ class beacon_checker(IEventListener):
         if status is iceshroom_s:
             c = count2
             for i in range(count2):
-                qqstrs = [q for q, l in global_state['module'] if any(c['id'] == 1 and c['remain'] == 10 for c in l)]
+                qqstrs = [q for q, l in global_state['module'].items() if any(c['id'] == 1 and c['remain'] == 10 for c in l)]
                 if len(qqstrs) == 0:
                     return
                 if str(user.qq) in qqstrs:
