@@ -4064,6 +4064,9 @@ class SBritian(ListStatus):
         if len(self.list) == 0:
             return self.des
         return f"{self.des}\n\t包含：{'，'.join(('“魔力 - ' + Card(i).name[Card(i).name.index(' - ') + 3:] + '”') for i in self.list)}。"
+    @property
+    def brief_des(self) -> str:
+        return f"统治不列颠\n\t包含：{','.join(str(c) for c in self.list)}。"
     def check(self) -> bool:
         return True
     @classmethod
@@ -4188,8 +4191,9 @@ class STrain(_status):
         self.if_def = if_def in ('True', True)
     def __repr__(self) -> str:
         return self.construct_repr(self.qq, self.if_def)
+    @classmethod
     @property
-    def brief_des(self) -> str:
+    def brief_des(cls) -> str:
         return "火车"
     def __str__(self) -> str:
         return self.des + ('\n\t存在火车跳板。' if self.if_def else '')
