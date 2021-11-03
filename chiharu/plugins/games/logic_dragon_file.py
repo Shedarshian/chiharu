@@ -1107,7 +1107,7 @@ class User:
     async def choose_card(self, attempt: str, min: int, max: int, can_use=False, extra_args=()) -> List[int]:
         config.logger.dragon << f"【LOG】询问用户{self.qq}选择牌。"
         if can_use:
-            extra_args = (ensure_true_lambda(lambda l: Card(l[0]).can_use(self), message_lambda=lambda l: Card(l[0]).failure_message),) + extra_args
+            extra_args = (ensure_true_lambda(lambda l: Card(l[0]).can_use(self, True), message_lambda=lambda l: Card(l[0]).failure_message),) + extra_args
         return await self.buf.aget(prompt=attempt + "\n" + "\n".join(c.full_description(self.qq) for c in self.data.hand_card),
                     arg_filters=[
                             extractors.extract_text,
@@ -1447,7 +1447,7 @@ class _card(IEventListener, metaclass=card_meta):
     async def on_give(cls, user: User, target: User) -> None:
         pass
     @classmethod
-    def can_use(cls, user: User) -> bool:
+    def can_use(cls, user: User, copy: bool) -> bool:
         return True
     @classmethod
     def brief_description(cls, qq):
@@ -1486,7 +1486,7 @@ class jiandiezhixing(_card):
     async def on_discard(cls, user: User):
         await user.death()
     @classmethod
-    def can_use(cls, user: User) -> bool:
+    def can_use(cls, user: User, copy: bool) -> bool:
         return False
 
 class vampire(_card):
@@ -1541,12 +1541,13 @@ class magician(_card):
     positive = 1
     description = "选择一张你的手牌（不可选择暴食的蜈蚣），发动3次该手牌的使用效果，并弃置之。此后一周内不得使用该卡。"
     @classmethod
-    def can_use(cls, user: User) -> bool:
-        return len(user.data.hand_card) >= 1
+    def can_use(cls, user: User, copy: bool) -> bool:
+        return len(user.data.hand_card) >= (1 if copy else 2)
     @classmethod
     async def use(cls, user: User):
         if await user.choose():
-            l = await user.choose_card("请选择你手牌中的一张牌（不可选择暴食的蜈蚣），输入id号。", 1, 1, can_use=True, extra_args=(validators.ensure_true(lambda l: 56 not in l, message="此牌不可选择！"),))
+            l = await user.choose_card("请选择你手牌中的一张牌（不可选择暴食的蜈蚣），输入id号。", 1, 1, can_use=True, extra_args=[
+                validators.ensure_true(lambda l: 56 not in l, message="此牌不可选择！")])
             card = Card(l[0])
             config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
             user.send_char('使用了三次卡牌：\n' + card.full_description(user.qq))
@@ -1740,7 +1741,7 @@ class strength(_card):
     description = "加倍你身上所有的非持有性状态，消耗2^n-1击毙，n为状态个数。击毙不足则无法使用。"
     failure_message = "你的击毙不足！"
     @classmethod
-    def can_use(cls, user: User) -> bool:
+    def can_use(cls, user: User, copy: bool) -> bool:
         if len(user.check_limited_status('W', lambda o: 8 not in o.list)) > 0:
             return True
         l = len(user.data.status) + len(user.data.daily_status)
@@ -2196,6 +2197,9 @@ class baiban(_card):
     id = 44
     positive = 1
     description = "选择你手牌中的一张牌，执行其使用效果。"
+    @classmethod
+    def can_use(cls, user: User, copy: bool) -> bool:
+        return len(user.data.hand_card) >= (1 if copy else 2)
     @classmethod
     async def use(cls, user: User):
         if await user.choose():
@@ -3010,8 +3014,8 @@ class jujifashu(_card):
     description = "将两张手牌的id相加变为新的手牌。若这两牌id之和不是已有卡牌的id，则变为【邪恶的间谍行动～执行】。"
     failure_message = "你的手牌不足，无法使用！"
     @classmethod
-    def can_use(cls, user: User) -> bool:
-        return len(user.data.hand_card) >= 3
+    def can_use(cls, user: User, copy: bool) -> bool:
+        return len(user.data.hand_card) >= (2 if copy else 3)
     @classmethod
     async def use(cls, user: User) -> None:
         if await user.choose():
@@ -3037,8 +3041,8 @@ class liebianfashu(_card):
     description = "将一张手牌变为两张随机牌，这两张牌的id之和为之前的卡牌的id。若不存在这样的组合，则变为两张【邪恶的间谍行动～执行】。"
     failure_message = "你的手牌不足，无法使用！"
     @classmethod
-    def can_use(cls, user: User) -> bool:
-        return len(user.data.hand_card) >= 2
+    def can_use(cls, user: User, copy: bool) -> bool:
+        return len(user.data.hand_card) >= (1 if copy else 2)
     @classmethod
     async def use(cls, user: User) -> None:
         if await user.choose():
@@ -3698,7 +3702,7 @@ class twinsunflower(_card):
     positive = 1
     failure_message = "你场地上没有“向日葵”！"
     @classmethod
-    def can_use(cls, user: User) -> bool:
+    def can_use(cls, user: User, copy: bool) -> bool:
         return user.check_status('(') > 0
     @classmethod
     async def use(cls, user: User) -> None:
@@ -4040,7 +4044,7 @@ class excalibur(_card):
     description = "只可在胜利时使用。统治不列颠。"
     newer = 1
     @classmethod
-    def can_use(cls, user: User) -> bool:
+    def can_use(cls, user: User, copy: bool) -> bool:
         return user.check_daily_status('W') > 0
     @classmethod
     async def use(cls, user: User) -> None:
@@ -4406,6 +4410,9 @@ class stack_inserter(_card):
     name = "集装机械臂"
     positive = 1
     description = "选择一张卡牌，将其销毁，并获得等同于卡牌编号/5的击毙。如果你有组装机，使其获得等同于卡牌编号的组装量。"
+    @classmethod
+    def can_use(cls, user: User, copy: bool) -> bool:
+        return len(user.data.hand_card) >= (1 if copy else 2)
     @classmethod
     async def use(cls, user: User) -> None:
         if await user.choose():
