@@ -3168,10 +3168,10 @@ class ranshefashu(_card):
 class Aranshefashu(Attack):
     name = "攻击：蚺虵法术"
     async def self_action(self):
-        await self.defender.add_status('Y')
+        await self.defender.add_daily_status('X')
         self.defender.send_char("今天接龙需额外遵循首尾接龙规则！")
 class ranshefashu_s(_statusdaily):
-    id = 'Y'
+    id = 'R'
     des = "蚺虵法术：你当日每次接龙需额外遵循首尾接龙规则。"
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
@@ -4046,7 +4046,7 @@ for c in ('AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'cd', '34'
     revert_status_map[c[0]] = c[1]
     revert_status_map[c[1]] = c[0]
 revert_daily_status_map: Dict[str, str] = {}
-for c in ('YZ', 'Bt', 'Ii', 'Mm', 'op', '@#', 'WX'):
+for c in ('RZ', 'Bt', 'Ii', 'Mm', 'op', '@#', 'WX'):
     revert_daily_status_map[c[0]] = c[1]
     revert_daily_status_map[c[1]] = c[0]
 
