@@ -3170,7 +3170,7 @@ class Aranshefashu(Attack):
     async def self_action(self):
         await self.defender.add_status('Y')
         self.defender.send_char("今天接龙需额外遵循首尾接龙规则！")
-class ranshefashu_s(_statusnull):
+class ranshefashu_s(_statusdaily):
     id = 'Y'
     des = "蚺虵法术：你当日每次接龙需额外遵循首尾接龙规则。"
     @classmethod
@@ -3181,8 +3181,8 @@ class ranshefashu_s(_statusnull):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.ranshefashu, cls)}
-class inv_ranshefashu_s(_statusnull):
-    id = 'X'
+class inv_ranshefashu_s(_statusdaily):
+    id = 'Z'
     des = "反转·蚺虵法术：你当日每次接龙需额外遵循尾首接龙规则。"
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
@@ -4042,11 +4042,11 @@ class upsidedown(_card):
         #         continue
         # me.save_status_time()
 revert_status_map: Dict[str, str] = {}
-for c in ('XY', 'AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'cd', '34'):
+for c in ('AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'cd', '34'):
     revert_status_map[c[0]] = c[1]
     revert_status_map[c[1]] = c[0]
 revert_daily_status_map: Dict[str, str] = {}
-for c in ('Bt', 'Ii', 'Mm', 'op', '@#', 'WX'):
+for c in ('YZ', 'Bt', 'Ii', 'Mm', 'op', '@#', 'WX'):
     revert_daily_status_map[c[0]] = c[1]
     revert_daily_status_map[c[1]] = c[0]
 
