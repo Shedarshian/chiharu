@@ -4646,14 +4646,14 @@ class assembling(_equipment):
     name = "组装机"
     @classmethod
     def description(cls, count: TCount) -> str:
-        d = {0: 200, 1: 150, 2: 100}[count]
+        d = {1: 200, 2: 150, 3: 100}[count]
         return f"当你抽卡时，组装机获得等同于卡牌编号的组装量（不小于0）。你每有2^n*{d}组装量，手牌上限+1，其中n为已经生产过的手牌上限个数。"
     @classmethod
     def full_description(cls, count: TCount, user: User) -> str:
         return f"{cls.id}. {cls.name}{count}型\n\t{cls.description(count)}\n\t当前组装量：{user.data.extra.assembling}"
     @classmethod
     def get_card_limit(cls, data: int, count: TCount) -> int:
-        d = {0: 200, 1: 150, 2: 100}[count]
+        d = {1: 200, 2: 150, 3: 100}[count]
         return int(log(data // d + 1, 2))
     @classmethod
     async def AfterCardDraw(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
