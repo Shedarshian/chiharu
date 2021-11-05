@@ -689,6 +689,8 @@ class User:
         self.qq = qq
         self.data = data or Game.userdata(qq)
         self.buf = buf
+    def __del__(self):
+        self.data.save_status_time()
     @property
     def active(self):
         return self.buf.active == self.qq
@@ -1086,6 +1088,7 @@ class User:
             await self.buf.flush()
         finally:
             self.data.set_cards()
+            self.data.save_status_time()
             save_data()
     async def event_move(self, n):
         self.log << f"走了{n}格。"
