@@ -2927,12 +2927,12 @@ class jiaodai(_card):
             if c.id != 'd' and c.is_debuff and has > 0:
                 has -= 1
                 user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
-                await user.remove_status(c, remove_all=False)
+                await user.remove_status(c.id, remove_all=False)
         for c in map(StatusDaily, user.data.daily_status):
             if c.id != 'd' and c.is_debuff and has > 0:
                 has -= 1
                 user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
-                await user.remove_daily_status(c, remove_all=False)
+                await user.remove_daily_status(c.id, remove_all=False)
         i = 0
         while i < len(user.data.status_time_checked):
             s = user.data.status_time[i]
@@ -3539,8 +3539,7 @@ class vector_s(_statusnull):
         if attack.reboundable:
             await user.remove_status('v', remove_all=False)
             user.send_log("触发了矢量操作的效果，反弹了对方的攻击！")
-            attack.rebound()
-            return True,
+            return attack.rebound(),
         return False,
     @classmethod
     async def OnBombed(cls, count: TCount, user: 'User', word: str) -> Tuple[bool]:
