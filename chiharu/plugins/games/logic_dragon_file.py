@@ -1889,6 +1889,7 @@ class temperance(_card):
         await target.attacked(user, atk)
 class ATemperance(Attack):
     name = "攻击：节制"
+    doublable = False
     async def self_action(self):
         await self.defender.add_daily_status('T')
 class temperance_s(_statusdaily):
@@ -1985,7 +1986,7 @@ class moon_s(_statusnull):
         await Userme(user).remove_status('k', remove_all=False)
         return 0,
     @classmethod
-    async def register(cls) -> dict[int, TEvent]:
+    def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnHiddenKeyword: (Priority.OnHiddenKeyword.moon, cls)}
 class inv_moon_s(_statusnull):
     id = 'o'
@@ -2009,7 +2010,7 @@ class inv_moon_s(_statusnull):
         await Userme(user).remove_status('o', remove_all=False)
         return 0,
     @classmethod
-    async def register(cls) -> dict[int, TEvent]:
+    def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnHiddenKeyword: (Priority.OnHiddenKeyword.inv_moon, cls)}
 
 class sun(_card):
@@ -3171,7 +3172,7 @@ class ranshefashu(_card):
 class Aranshefashu(Attack):
     name = "攻击：蚺虵法术"
     async def self_action(self):
-        await self.defender.add_daily_status('X')
+        await self.defender.add_daily_status('R')
         self.defender.send_char("今天接龙需额外遵循首尾接龙规则！")
 class ranshefashu_s(_statusdaily):
     id = 'R'
