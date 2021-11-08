@@ -15,7 +15,7 @@ from nonebot.command import CommandSession
 from pypinyin import pinyin, Style
 from nonebot.command.argfilter import extractors, validators
 from .. import config
-from .logic_dragon_type import TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, nothing, TQuest, ensure_true_lambda, check_handcard, TModule
+from .logic_dragon_type import NotActive, TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, check_active, nothing, TQuest, ensure_true_lambda, check_handcard, TModule, UnableRequirement, check_if_unable
 
 # TODO change TCount to a real obj, in order to unify 'count' and 'count2' in OnStatusAdd, also _status.on_add
 # TODO 在aget的时候如果发现手牌数不足使用条件则跳出结算
@@ -1058,33 +1058,22 @@ class User:
     async def settlement(self):
         """结算卡牌相关。请不要递归调用此函数。"""
         self.log << "开始结算。"
+        if not self.choose():
+            return
         try:
             yield
             # discard
-            x = len(self.data.hand_card) - self.data.card_limit
+            cards_can_not_choose = (53,)
+            d = len(list(c for c in self.data.hand_card if c in cards_can_not_choose))
+            x = len(self.data.hand_card) - max(d, self.data.card_limit)
             while x > 0:
-                save_data()
-                if not self.active:
-                    self.buf.send(f"该玩家手牌已超出上限{x}张！多余的牌已被弃置。")
-                    self.log << f"手牌为{cards_to_str(self.data.hand_card)}，超出上限{self.data.card_limit}，自动弃置。"
-                    await self.discard_cards(copy(self.data.hand_card[self.data.card_limit:]))
-                else:
-                    ret2 = f"您的手牌已超出上限{x}张！请先选择一些牌弃置（输入id号，使用空格分隔）：\n" + \
-                        "\n".join(c.full_description(self.qq) for c in self.data.hand_card)
-                    self.log << f"手牌超出上限，用户选择弃牌。"
-                    await self.buf.flush()
-                    l = await self.buf.aget(prompt=ret2,
-                        arg_filters=[
-                            extractors.extract_text,
-                            check_handcard(self),
-                            lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
-                            validators.fit_size(x, x, message="请输入正确的张数。"),
-                            validators.ensure_true(lambda l: self.data.check_throw_card(l), message="您选择了错误的卡牌！"),
-                            validators.ensure_true(lambda l: 53 not in l, message="空白卡牌不可因超出手牌上限而被弃置！")
-                        ])
-                    self.buf.send("成功弃置。")
-                    await self.discard_cards([Card(i) for i in l])
-                x = len(self.data.hand_card) - self.data.card_limit
+                self.log << f"手牌超出上限，用户选择弃牌。"
+                async with self.choose_cards(f"您的手牌已超出上限{x}张！请先选择一些牌弃置（输入id号，使用空格分隔）：", 1, x,
+                        cards_can_not_choose) as l:
+                        self.buf.send("成功弃置。")
+                        await self.discard_cards([Card(i) for i in l])
+                d = len(list(c for c in self.data.hand_card if c in cards_can_not_choose))
+                x = len(self.data.hand_card) - max(d, self.data.card_limit)
             await self.buf.flush()
         finally:
             self.data.set_cards()
@@ -1120,19 +1109,54 @@ class User:
             u = User(l['qq'], self.buf)
             u.data.event_stage = current
             t = (current.stage, u.qq)
-    async def choose_card(self, attempt: str, min: int, max: int, can_use=False, extra_args=()) -> List[int]:
+    @asynccontextmanager
+    async def choose_cards(self, attempt: str, min: int, max: int, cards_can_not_choose: Iterable[int]=(),
+        require_can_use: bool=False):
+        """args:
+        attempt: 显示的语句，后换行接手牌的所有卡牌简称。
+        min: 最少选择的卡牌数目。
+        max: 最多选择的卡牌数目。
+        cards_can_not_choose: 不能选择的卡牌id列表。
+        require_can_use: 是否要求卡牌可以使用。"""
         config.logger.dragon << f"【LOG】询问用户{self.qq}选择牌。"
-        if can_use:
-            extra_args = (ensure_true_lambda(lambda l: Card(l[0]).can_use(self, True), message_lambda=lambda l: Card(l[0]).failure_message),) + tuple(extra_args)
-        return await self.buf.aget(prompt=attempt + "\n" + "\n".join(c.full_description(self.qq) for c in self.data.hand_card),
-                    arg_filters=[
-                            extractors.extract_text,
-                            check_handcard(self),
-                            lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
-                            validators.fit_size(min, max, message="请输入正确的张数。"),
-                            validators.ensure_true(lambda l: all(i in _card.card_id_dict and Card(i) in self.data.hand_card for i in l), message="您选择了错误的卡牌！"),
-                            *extra_args
-                        ])
+        cards_can_not_choose_fin = cards_can_not_choose_org = set(cards_can_not_choose)
+        if await self.choose():
+            prompt = attempt + "\n" + "\n".join(c.brief_description(self.qq) for c in self.data.hand_card)
+            ca = lambda l: len(list(c for c in l if c not in cards_can_not_choose_fin)) < min
+            arg_filters = [extractors.extract_text,
+                    check_handcard(self),
+                    lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
+                    check_if_unable(ca),
+                    validators.fit_size(min, max, message="请输入正确的张数。"),
+                    validators.ensure_true(
+                        lambda l: all(i in _card.card_id_dict and Card(i) in self.data.hand_card for i in l),
+                        message="您选择了错误的卡牌！")]
+            if require_can_use:
+                arg_filters.append(ensure_true_lambda(
+                    lambda l: Card(l[0]).can_use(self, True),
+                    message_lambda=lambda l: Card(l[0]).failure_message))
+                cards_can_not_choose_fin = cards_can_not_choose_org | \
+                    set(c.id for c in self.data.hand_card if c.can_use(self, True))
+            if len(cards_can_not_choose_fin) != 0:
+                arg_filters.append(validators.ensure_true(
+                    lambda l: len(set(l) & cards_can_not_choose_fin) == 0,
+                    message="此卡牌不可选择！"))
+            try:
+                if ca(c.id for c in self.data.hand_card):
+                    raise UnableRequirement
+                ret = await self.buf.aget(prompt=prompt, arg_filters=arg_filters)
+                self.log << f"选择了{ret}。"
+                yield ret
+            except UnableRequirement:
+                self.send_log("手牌无法选择，选择进程中止！")
+            except NotActive:
+                pass
+            finally:
+                self.data.set_cards()
+                self.data.save_status_time()
+                save_data()
+        else:
+            yield None
 
 Userme: Callable[[User], User] = lambda user: User(config.selfqq, user.buf)
 
@@ -1501,6 +1525,7 @@ class jiandiezhixing(_card):
     @classmethod
     async def on_discard(cls, user: User):
         await user.death()
+        return await super().on_discard(user)
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return False
@@ -1561,9 +1586,8 @@ class magician(_card):
         return len(user.data.hand_card) >= (1 if copy else 2)
     @classmethod
     async def use(cls, user: User):
-        if await user.choose():
-            l = await user.choose_card("请选择你手牌中的一张牌（不可选择暴食的蜈蚣与组装机1型），输入id号。", 1, 1, can_use=True, extra_args=[
-                validators.ensure_true(lambda l: 56 not in l and 200 not in l, message="此牌不可选择！")])
+        async with user.choose_cards("请选择你手牌中的一张牌（不可选择暴食的蜈蚣与组装机1型），输入id号。", 1, 1,
+                cards_can_not_choose=(56, 200), require_can_use=True) as l, check_active(l):
             card = Card(l[0])
             config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
             user.send_char('使用了三次卡牌：\n' + card.full_description(user.qq))
@@ -2219,8 +2243,8 @@ class baiban(_card):
         return len(user.data.hand_card) >= (1 if copy else 2)
     @classmethod
     async def use(cls, user: User):
-        if await user.choose():
-            l = await user.choose_card("请选择你手牌中的一张牌复制，输入id号。", 1, 1, can_use=True)
+        async with user.choose_cards("请选择你手牌中的一张牌复制，输入id号。", 1, 1,
+            cards_can_not_choose=(44,), require_can_use=True) as l, check_active(l):
             card = Card(l[0])
             config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
             user.send_char('使用了卡牌：\n' + card.full_description(user.qq))
@@ -3035,12 +3059,7 @@ class jujifashu(_card):
         return len(user.data.hand_card) >= (2 if copy else 3)
     @classmethod
     async def use(cls, user: User) -> None:
-        if await user.choose():
-            if len(user.data.hand_card) < 2:
-                user.send_char("的手牌不足，无法使用！")
-                return
-            l = await user.choose_card("请选择你手牌中的两张牌聚集，输入id号。", 2, 2)
-            user.log << f"选择了卡牌{l[0]}与{l[1]}。"
+        async with user.choose_cards("请选择你手牌中的两张牌聚集，输入id号。", 2, 2) as l, check_active(l):
             await user.remove_cards([Card(l[0]), Card(l[1])])
             id_new = l[0] + l[1]
             if id_new not in _card.card_id_dict:
@@ -3062,13 +3081,7 @@ class liebianfashu(_card):
         return len(user.data.hand_card) >= (1 if copy else 2)
     @classmethod
     async def use(cls, user: User) -> None:
-        if await user.choose():
-            if len(user.data.hand_card) < 1:
-                user.send_char("的手牌不足，无法使用！")
-                return
-            config.logger.dragon << f"【LOG】询问用户{user.qq}选择牌执行裂变法术。"
-            l = await user.choose_card("请选择你手牌中的一张牌裂变，输入id号。", 1, 1)
-            user.log << f"选择了卡牌{l[0]}。"
+        async with user.choose_cards("请选择你手牌中的一张牌裂变，输入id号。", 1, 1) as l, check_active(l):
             await user.remove_cards([Card(l[0])])
             l2 = [(id, l[0] - id) for id in _card.card_id_dict if l[0] - id in _card.card_id_dict]
             if len(l2) == 0:
@@ -4445,8 +4458,7 @@ class stack_inserter(_card):
         return len(user.data.hand_card) >= (1 if copy else 2)
     @classmethod
     async def use(cls, user: User) -> None:
-        if await user.choose():
-            l = await user.choose_card("请选择你手中的一张牌销毁，输入id号。", 1, 1)
+        async with user.choose_cards("请选择你手中的一张牌销毁，输入id号。", 1, 1) as l, check_active(l):
             card = Card(l[0])
             config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
             user.send_char('销毁了卡牌：\n' + card.full_description(user.qq))

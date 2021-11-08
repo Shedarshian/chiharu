@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 import functools
 from typing import Callable, TypedDict, List, Dict, TypeVar, Generic, Awaitable, Any
 from dataclasses import dataclass
@@ -227,6 +228,11 @@ class Priority: # 依照每个优先级从前往后find，而不是iterate
         inv_twinsunflower = auto()
 TBoundIntEnum = TypeVar('TBoundIntEnum', bound=IntEnum)
 
+class UnableRequirement(Exception):
+    pass
+class NotActive(Exception):
+    pass
+
 from nonebot.typing import Filter_T
 from nonebot.command.argfilter.validators import _raise_failure
 def ensure_true_lambda(bool_func: Callable[[Any], bool], message_lambda: Callable[[Any], str]) -> Filter_T:
@@ -244,13 +250,29 @@ def ensure_true_lambda(bool_func: Callable[[Any], bool], message_lambda: Callabl
 
 def check_handcard(user):
     def validate(value):
-        if value == "查询手牌":
+        if value in ("查询手牌", "查看手牌"):
             _raise_failure("你的手牌为：\n" + '\n'.join(s.brief_description(user.qq) for s in user.data.hand_card))
+        elif value in ("查询详细手牌", "查看详细手牌"):
+            _raise_failure("你的手牌为：\n" + '\n'.join(s.full_description(user.qq) for s in user.data.hand_card))
         return value
     return validate
 
-def check_can_use(user, can_use_func):
+# def check_can_use(user, can_use_func):
+#     def validate(value):
+#         if not can_use_func(user, value):
+#             pass
+#         return value
+#     return validate
+
+def check_if_unable(unable_func):
     def validate(value):
-        if not can_use_func(user):
-            pass
+        if unable_func(value):
+            raise UnableRequirement
+        return value
     return validate
+
+@asynccontextmanager
+async def check_active(value):
+    if value is None:
+        raise NotActive
+    yield None
