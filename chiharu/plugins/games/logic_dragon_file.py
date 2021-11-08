@@ -689,6 +689,8 @@ class User:
         self.qq = qq
         self.data = data or Game.userdata(qq)
         self.buf = buf
+    def __del__(self):
+        self.data.save_status_time()
     @property
     def active(self):
         return self.buf.active == self.qq
@@ -1086,6 +1088,7 @@ class User:
             await self.buf.flush()
         finally:
             self.data.set_cards()
+            self.data.save_status_time()
             save_data()
     async def event_move(self, n):
         self.log << f"走了{n}格。"
@@ -1120,7 +1123,7 @@ class User:
     async def choose_card(self, attempt: str, min: int, max: int, can_use=False, extra_args=()) -> List[int]:
         config.logger.dragon << f"【LOG】询问用户{self.qq}选择牌。"
         if can_use:
-            extra_args = (ensure_true_lambda(lambda l: Card(l[0]).can_use(self, True), message_lambda=lambda l: Card(l[0]).failure_message),) + extra_args
+            extra_args = (ensure_true_lambda(lambda l: Card(l[0]).can_use(self, True), message_lambda=lambda l: Card(l[0]).failure_message),) + tuple(extra_args)
         return await self.buf.aget(prompt=attempt + "\n" + "\n".join(c.full_description(self.qq) for c in self.data.hand_card),
                     arg_filters=[
                             extractors.extract_text,
@@ -1886,6 +1889,7 @@ class temperance(_card):
         await target.attacked(user, atk)
 class ATemperance(Attack):
     name = "攻击：节制"
+    doublable = False
     async def self_action(self):
         await self.defender.add_daily_status('T')
 class temperance_s(_statusdaily):
@@ -1982,7 +1986,7 @@ class moon_s(_statusnull):
         await Userme(user).remove_status('k', remove_all=False)
         return 0,
     @classmethod
-    async def register(cls) -> dict[int, TEvent]:
+    def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnHiddenKeyword: (Priority.OnHiddenKeyword.moon, cls)}
 class inv_moon_s(_statusnull):
     id = 'o'
@@ -2006,7 +2010,7 @@ class inv_moon_s(_statusnull):
         await Userme(user).remove_status('o', remove_all=False)
         return 0,
     @classmethod
-    async def register(cls) -> dict[int, TEvent]:
+    def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnHiddenKeyword: (Priority.OnHiddenKeyword.inv_moon, cls)}
 
 class sun(_card):
@@ -2924,12 +2928,12 @@ class jiaodai(_card):
             if c.id != 'd' and c.is_debuff and has > 0:
                 has -= 1
                 user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
-                await user.remove_status(c, remove_all=False)
+                await user.remove_status(c.id, remove_all=False)
         for c in map(StatusDaily, user.data.daily_status):
             if c.id != 'd' and c.is_debuff and has > 0:
                 has -= 1
                 user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
-                await user.remove_daily_status(c, remove_all=False)
+                await user.remove_daily_status(c.id, remove_all=False)
         i = 0
         while i < len(user.data.status_time_checked):
             s = user.data.status_time[i]
@@ -3168,10 +3172,10 @@ class ranshefashu(_card):
 class Aranshefashu(Attack):
     name = "攻击：蚺虵法术"
     async def self_action(self):
-        await self.defender.add_status('Y')
+        await self.defender.add_daily_status('R')
         self.defender.send_char("今天接龙需额外遵循首尾接龙规则！")
 class ranshefashu_s(_statusdaily):
-    id = 'Y'
+    id = 'R'
     des = "蚺虵法术：你当日每次接龙需额外遵循首尾接龙规则。"
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
@@ -3538,8 +3542,7 @@ class vector_s(_statusnull):
         if attack.reboundable:
             await user.remove_status('v', remove_all=False)
             user.send_log("触发了矢量操作的效果，反弹了对方的攻击！")
-            attack.rebound()
-            return True,
+            return attack.rebound(),
         return False,
     @classmethod
     async def OnBombed(cls, count: TCount, user: 'User', word: str) -> Tuple[bool]:
@@ -4048,7 +4051,7 @@ for c in ('AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'cd', '34'
     revert_status_map[c[0]] = c[1]
     revert_status_map[c[1]] = c[0]
 revert_daily_status_map: Dict[str, str] = {}
-for c in ('YZ', 'Bt', 'Ii', 'Mm', 'op', '@#', 'WX'):
+for c in ('RZ', 'Bt', 'Ii', 'Mm', 'op', '@#', 'WX'):
     revert_daily_status_map[c[0]] = c[1]
     revert_daily_status_map[c[1]] = c[0]
 
