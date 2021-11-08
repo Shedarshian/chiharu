@@ -382,6 +382,8 @@ async def dragon_construct(buf: SessionBuffer):
     if match:
         qq = buf.ctx['user_id']
         user = User(qq, buf)
+        if len(user.data.hand_card) > user.data.card_limit:
+            buf.finish("你的手牌超出上限，请先使用或弃牌再接龙！")
         async with user.settlement():
             global global_state
             to_exchange = None
@@ -524,6 +526,7 @@ async def dragon_use_card(buf: SessionBuffer):
         buf.finish("请输入存在的卡牌id号或卡牌名。")
     qq = buf.ctx['user_id']
     user = User(qq, buf)
+    # no_discard = len(user.data.hand_card) > user.data.card_limit:
     user.log << f"试图使用手牌{card.name}，当前手牌为{user.data.hand_card}。"
     if card not in user.data.hand_card:
         buf.finish("你还未拥有这张牌！")
@@ -555,6 +558,8 @@ async def dragon_draw(buf: SessionBuffer):
         n = 1
     user = User(qq, buf)
     user.log << f"试图抽卡{n}次。"
+    if len(user.data.hand_card) > user.data.card_limit:
+        buf.finish("你的手牌超出上限，请先使用或弃牌再抽卡！")
     if user.data.draw_time < n:
         user.log << f"的抽卡券只有{user.data.draw_time}张。"
         n = user.data.draw_time
