@@ -1123,7 +1123,7 @@ class User:
     async def choose_card(self, attempt: str, min: int, max: int, can_use=False, extra_args=()) -> List[int]:
         config.logger.dragon << f"【LOG】询问用户{self.qq}选择牌。"
         if can_use:
-            extra_args = (ensure_true_lambda(lambda l: Card(l[0]).can_use(self, True), message_lambda=lambda l: Card(l[0]).failure_message),) + extra_args
+            extra_args = (ensure_true_lambda(lambda l: Card(l[0]).can_use(self, True), message_lambda=lambda l: Card(l[0]).failure_message),) + tuple(extra_args)
         return await self.buf.aget(prompt=attempt + "\n" + "\n".join(c.full_description(self.qq) for c in self.data.hand_card),
                     arg_filters=[
                             extractors.extract_text,
