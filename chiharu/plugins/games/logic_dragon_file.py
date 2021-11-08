@@ -2748,9 +2748,9 @@ class lveduozhebopu(_card):
     @classmethod
     async def OnDragoned(cls, count: TCount, user: User, branch: 'Tree') -> Tuple[()]:
         global global_state
-        last_qq = branch.qq
+        last_qq = branch.parent.qq
         qq = user.qq
-        if branch.id != (0, 0):
+        if branch.parent.id != (0, 0):
             last = User(last_qq, user.buf)
             if last_qq not in global_state['steal'][str(qq)]['user'] and global_state['steal'][str(qq)]['time'] < 10:
                 global_state['steal'][str(qq)]['time'] += 1
@@ -3492,9 +3492,10 @@ class imaginebreaker_s(_statusnull):
     @classmethod
     async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
         async def pierce_f():
-            user.buf.send(f"{user.char}触发了幻想杀手的效果，无视了对方的反制！")
+            user.send_char(f"触发了幻想杀手的效果，无视了对方的反制！")
             user.log << f"{user.char}触发了幻想杀手（攻击）的效果。"
             await user.remove_status('0', remove_all=False)
+            return True
         c.pierce = async_data_saved(pierce_f)
         return False,
     @classmethod
@@ -3502,6 +3503,7 @@ class imaginebreaker_s(_statusnull):
         if await c.pierce():
             c.pierce = nothing
             user.buf.send("但", end='')
+            user.send_log("触发了幻想杀手的效果，防住了对方的攻击！")
             return False,
         user.send_log("触发了幻想杀手的效果，防住了对方的攻击！")
         await user.remove_status('0', remove_all=False)
