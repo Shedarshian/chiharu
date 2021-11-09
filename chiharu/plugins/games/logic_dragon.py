@@ -105,7 +105,7 @@ def get_yesterday_qq():
     s = set()
     with open(config.rel(yesterday), encoding='utf-8') as f:
         for line in f.readlines():
-            if match := re.match(r'(\d+)([a-z])?(?:(\+)?<(-?\d+[a-z]?))?(?:/(\d+)/([^/]*)/([^/]*)/)? (.*)', line.strip("\r\n")):
+            if (match := re.match(r'(\d+)([a-z])?(?:(\+)?<(-?\d+[a-z]?))?(?:/(\d+)/([^/]*)/([^/]*)/)? (.*)', line.strip("\r\n")) and match.group(5)) is not None:
                 s.add(int(match.group(5)))
     return s
 def check_and_add_log_and_contruct_tree(parent: Tree, word: str, qq: int, kwd: str, hdkwd: str, fork: bool):
@@ -495,7 +495,7 @@ async def dragon_construct(buf: SessionBuffer):
                         await user.death()
                 # Event OnDragoned
                 for eln, n in user.IterAllEventList(UserEvt.OnDragoned, Priority.OnDragoned):
-                    await eln.OnDragoned(n, user, tree_node)
+                    await eln.OnDragoned(n, user, tree_node, first10)
                 # if to_exchange is not None:
                 #     buf.send(f"你与[CQ:at,qq={to_exchange.qq}]交换了手牌与击毙！")
                 #     jibi = (user.data.jibi, to_exchange.data.jibi)
