@@ -411,7 +411,7 @@ async def run(self: Command,
         if session.waiting:
             if not session._future.done():
                 session._future.set_result(True)
-                raise _YieldException()
+            raise _YieldException()
         else:
             await self.func(session)
         return True

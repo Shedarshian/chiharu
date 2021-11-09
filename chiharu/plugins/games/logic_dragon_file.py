@@ -1061,7 +1061,7 @@ class User:
     async def settlement(self):
         """结算卡牌相关。请不要递归调用此函数。"""
         self.log << "开始结算。"
-        if not self.choose():
+        if not await self.choose():
             return
         try:
             yield
@@ -1148,16 +1148,17 @@ class User:
                     lambda l: len(set(l) & cards_can_not_choose_fin) == 0,
                     message="此卡牌不可选择！"))
             try:
-                if ca(None):
-                    raise UnableRequirement
-                ret = await self.buf.aget(prompt=prompt, arg_filters=arg_filters)
-                self.log << f"选择了{ret}。"
-                yield ret
-            except UnableRequirement:
-                self.send_log("手牌无法选择，选择进程中止！")
-                yield None
+                try:
+                    if ca(None):
+                        raise UnableRequirement
+                    ret = await self.buf.aget(prompt=prompt, arg_filters=arg_filters)
+                    self.log << f"选择了{ret}。"
+                    yield ret
+                except UnableRequirement:
+                    self.send_log("手牌无法选择，选择进程中止！")
+                    yield None
             except NotActive:
-                yield None
+                pass
             finally:
                 self.data.set_cards()
                 self.data.save_status_time()
