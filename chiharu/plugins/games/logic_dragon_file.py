@@ -1731,7 +1731,7 @@ class hierophant(_card):
     description = "你的下10次接龙中每次额外获得2击毙，但额外要求首尾接龙。"
     status = 'c'
     newer = 3
-class hierophant_s(_statusnull):
+class hierophant_s(NumedStatus):
     id = 'c'
     des = "V - 教皇：你的下10次接龙中每次额外获得2击毙，但额外要求首尾接龙。"
     @classmethod
@@ -1741,26 +1741,29 @@ class hierophant_s(_statusnull):
         return True, 0, ""
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        if first10:
-            user.send_log("收到了教皇奖励你的2击毙！")
-            await user.add_jibi(2)
+        user.send_log("收到了教皇奖励你的2击毙！")
+        await user.add_jibi(2)
+        count[0].num -= 1
+        user.data.save_status_time()
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.hierophant, cls),
             UserEvt.OnDragoned: (Priority.OnDragoned.hierophant, cls)}
-class inv_hierophant_s(_statusnull):
+class inv_hierophant_s(NumedStatus):
     id = 'd'
-    des = "反转 - 教皇：你的下10次接龙中每次损失2击毙，并且额外要求首尾接龙。"
+    des = "反转 - 教皇：你的下10次接龙中每次损失2击毙，并且额外要求尾首接龙。"
     is_debuff = True
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
-        if parent.word != '' and word != '' and parent.word[-1] != word[0]:
+        if parent.word != '' and word != '' and parent.word[0] != word[-1]:
             return False, 0, "教皇说，你需要首尾接龙，接龙失败。"
         return True, 0, ""
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         user.send_log("被教皇扣除了2击毙！")
         await user.add_jibi(-2)
+        count[0].num -= 1
+        user.data.save_status_time()
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.inv_hierophant, cls),

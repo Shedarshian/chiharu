@@ -394,7 +394,7 @@ async def run(self: Command,
                     # noinspection PyProtectedMember
                     session.pause(failure_message,
                                     **session._current_send_kwargs)
-                except Exception as e:
+                except Exception as e: # inject here
                     session._future.set_exception(e)
                     break
 
