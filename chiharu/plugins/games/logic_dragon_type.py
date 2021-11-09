@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 import functools
 from typing import Callable, TypedDict, List, Dict, TypeVar, Generic, Awaitable, Any
 from dataclasses import dataclass
+from nonebot.command import CommandSession
 
 TQuest = TypedDict('TQuest', id=int, remain=int)
 TModule = TypedDict('TModule', id=int, remain=int)
@@ -264,10 +265,10 @@ def check_handcard(user):
 #         return value
 #     return validate
 
-def check_if_unable(unable_func):
+def check_if_unable(unable_func, session: CommandSession):
     def validate(value):
         if unable_func(value):
-            raise UnableRequirement
+            session._future.set_exception(UnableRequirement)
         return value
     return validate
 

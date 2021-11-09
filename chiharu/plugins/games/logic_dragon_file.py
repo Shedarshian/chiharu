@@ -1128,7 +1128,7 @@ class User:
         cards_can_not_choose_fin = cards_can_not_choose_org = set(cards_can_not_choose)
         if await self.choose():
             prompt = attempt + "\n" + "\n".join(c.brief_description(self.qq) for c in self.data.hand_card)
-            ca = lambda l: len(list(c for c in l if c not in cards_can_not_choose_fin)) < min
+            ca = lambda l: len(list(c for c in self.data.hand_card if c.id not in cards_can_not_choose_fin)) < min
             arg_filters = [extractors.extract_text,
                     check_handcard(self),
                     lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
@@ -1148,7 +1148,7 @@ class User:
                     lambda l: len(set(l) & cards_can_not_choose_fin) == 0,
                     message="此卡牌不可选择！"))
             try:
-                if ca(c.id for c in self.data.hand_card):
+                if ca(None):
                     raise UnableRequirement
                 ret = await self.buf.aget(prompt=prompt, arg_filters=arg_filters)
                 self.log << f"选择了{ret}。"
