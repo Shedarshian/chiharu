@@ -2804,7 +2804,7 @@ class AStealJibi(Attack):
         self.count = count
         super().__init__(attacker, defender)
     async def self_action(self):
-        self.attacker.log << f"触发了{self.count}次掠夺者啵噗的效果，偷取了{self.defender.qq}击毙，剩余偷取次数{9 - global_state['steal'][str(self.attacker.qq)]['time']}。"
+        self.attacker.log << f"触发了{self.count}次掠夺者啵噗的效果，偷取了{self.defender.qq}击毙，剩余偷取次数{(9 - global_state['steal'][str(self.attacker.qq)]['time']) if str(self.attacker.qq) in global_state['steal'] else 'null'}。"
         if (p := self.defender.data.jibi) > 0:
             n = self.count * self.multiplier
             self.attacker.send_char(f"从上一名玩家处偷取了{min(n, p)}击毙！")
