@@ -286,11 +286,12 @@ class IEventListener:
         bool: represents whether the hit is dodged."""
         pass
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         """Called when the user complete a dragon.
         
         Arguments:
-        branch: the dragon branch."""
+        branch: the dragon branch.
+        first10: if it is the first 10 dragon each day."""
         pass
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
@@ -1703,7 +1704,7 @@ class SQuest(NumedStatus):
     def double(self):
         return [self.__class__(self.num * 2, self.jibi, self.quest_id)]
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         changed = False
         for q in count:
             id, name, func = mission[q.quest_id]
@@ -1739,9 +1740,10 @@ class hierophant_s(_statusnull):
             return False, 0, "教皇说，你需要首尾接龙，接龙失败。"
         return True, 0, ""
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
-        user.send_log("收到了教皇奖励你的2击毙！")
-        await user.add_jibi(2)
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        if first10:
+            user.send_log("收到了教皇奖励你的2击毙！")
+            await user.add_jibi(2)
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.hierophant, cls),
@@ -1756,7 +1758,7 @@ class inv_hierophant_s(_statusnull):
             return False, 0, "教皇说，你需要首尾接龙，接龙失败。"
         return True, 0, ""
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         user.send_log("被教皇扣除了2击毙！")
         await user.add_jibi(-2)
     @classmethod
@@ -1981,7 +1983,7 @@ class star_s(_statusdaily):
     des = "XVII - 星星：今天的每个词有10%的几率进入奖励词池。"
     is_global = True
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if random.random() > 0.9 ** count:
             from .logic_dragon import add_keyword
             add_keyword(branch.word)
@@ -2411,7 +2413,7 @@ class plus2_s(_statusnull):
     des = "+2：下一个接龙的人摸一张非负面卡和一张非正面卡。"
     is_global = True
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         await Userme(user).remove_status('+')
         user.send_char(f"触发了{count}次+2的效果，摸{count}张非正面牌与{count}张非负面牌！")
         user.log << f"触发了+2的效果。"
@@ -2542,7 +2544,7 @@ class queststone(_card):
         config.logger.dragon << f"【LOG】用户{target.qq}增加了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][t]]}。"
         save_global_state()
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         l = global_state['quest'].get(str(user.qq))
         for m in l:
             if m['remain'] > 0:
@@ -3020,7 +3022,7 @@ class SZPM(_statusnull):
     id = 'Z'
     des = "零点模块：若你当前击毙少于100，则每次接龙为你额外提供1击毙，若你当前击毙多于100，此buff立即消失。"
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if user.data.jibi > 100:
             user.send_char(f"已经不再需要零点模块了！")
             await user.remove_status('Z')
@@ -3236,7 +3238,7 @@ class SBian(NumedStatus):
     def double(self) -> List[T_status]:
         return [self, self.__class__(self.num)]
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         for b in count:
             b -= 1
             if b.num % 3 == 0:
@@ -3255,7 +3257,7 @@ class SCian(NumedStatus):
     def double(self) -> List[T_status]:
         return [self, self.__class__(self.num)]
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         for b in count:
             b -= 1
             if b.num % 3 == 0:
@@ -3288,7 +3290,7 @@ class panjuea_s(_statusnull):
             return max(0, count2 - count),
         return count2,
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         user.log << f"的{count}个判决α激活了。"
         await user.remove_status('A', remove_all=True)
         await user.add_status('a', count=count)
@@ -3335,7 +3337,7 @@ class panjueb_s(_statusnull):
             return max(0, count2 - count),
         return count2,
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         user.log << f"的{count}个判决β激活了。"
         await user.remove_status('B', remove_all=True)
         await user.add_status('b', count=count)
@@ -3361,7 +3363,7 @@ class panjueb_activated_s(_statusnull):
         return {UserEvt.OnStatusAdd: (Priority.OnStatusAdd.panjue_activated, cls)}
 class panjue_checker(IEventListener):
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if (nd := branch.before(5)) and nd.qq != config.selfqq and (u := User(nd.qq, user.buf)) != user:
             if na := u.check_status('a'):
                 await u.remove_status('a')
@@ -3387,7 +3389,7 @@ class dihuopenfa_s(_statusdaily):
     des = "地火喷发：今天所有的接龙词都有10%的几率变成地雷。"
     is_global = True
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if random.random() > 0.9 ** count:
             from .logic_dragon import add_bomb
             add_bomb(branch.word)
@@ -3586,7 +3588,7 @@ class xixueshashou_s(_statusdaily):
     id = 'x'
     des = "吸血杀手：今天你每次接龙时有10%几率获得一张【吸血鬼】。"
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         for i in range(count):
             if random.random() > 0.9:
                 user.buf.send("你获得了一张【吸血鬼】！")
@@ -3852,7 +3854,7 @@ class jack_in_the_box_s(_statusnull):
     des = "玩偶匣：你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。若场上有寒冰菇状态则不会爆炸。"
     is_debuff = True
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if me.check_daily_status('i'):
             return
         if random.random() > 0.95 ** count:
@@ -3948,7 +3950,7 @@ class forkbomb_s(_statusdaily):
     des = "Fork Bomb：今天每个接龙词都有5%几率变成分叉点。"
     is_global = True
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if random.random() > 0.95 ** count:
             user.send_log("触发了Fork Bomb，此词变成了分叉点！")
             branch.fork = True
