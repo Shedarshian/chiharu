@@ -268,7 +268,7 @@ def check_handcard(user):
 def check_if_unable(unable_func, session: CommandSession):
     def validate(value):
         if unable_func(value):
-            session._future.set_exception(UnableRequirement)
+            raise UnableRequirement
         return value
     return validate
 
