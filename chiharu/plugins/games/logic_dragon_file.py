@@ -1132,7 +1132,7 @@ class User:
             arg_filters = [extractors.extract_text,
                     check_handcard(self),
                     lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
-                    check_if_unable(ca),
+                    check_if_unable(ca, self.buf.session),
                     validators.fit_size(min, max, message="请输入正确的张数。"),
                     validators.ensure_true(
                         lambda l: all(i in _card.card_id_dict and Card(i) in self.data.hand_card for i in l),
