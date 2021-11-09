@@ -1729,10 +1729,11 @@ class hierophant(_card):
     id = 5
     positive = 1
     description = "你的下10次接龙中每次额外获得2击毙，但额外要求首尾接龙。"
-    status = 'c'
+    limited_status = 'f'
+    limited_init = (10,)
     newer = 3
 class hierophant_s(NumedStatus):
-    id = 'c'
+    id = 'f'
     des = "V - 教皇：你的下10次接龙中每次额外获得2击毙，但额外要求首尾接龙。"
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
@@ -1750,7 +1751,7 @@ class hierophant_s(NumedStatus):
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.hierophant, cls),
             UserEvt.OnDragoned: (Priority.OnDragoned.hierophant, cls)}
 class inv_hierophant_s(NumedStatus):
-    id = 'd'
+    id = 'e'
     des = "反转 - 教皇：你的下10次接龙中每次损失2击毙，并且额外要求尾首接龙。"
     is_debuff = True
     @classmethod
@@ -4054,9 +4055,12 @@ class upsidedown(_card):
             elif l[i].id == 'k':
                 l[i] = SLe(l[i].list)
                 user.send_log("的反转·乐不思蜀被反转了！")
+            elif l[i].id == 'e':
+                l[i] = inv_hierophant_s(l[i].num)
+                user.send_log("的反转·教皇被反转了！")
             elif l[i].id == 'f':
-                l[i].jibi = -l[i].jibi
-                user.send_log("的聚变堆被反转了！")
+                l[i] = hierophant_s(l[i].num)
+                user.send_log("的教皇被反转了！")
             if l[i].id == 'W':
                 l[i] = SInvBritian(l[i].list)
                 user.send_log("的统治不列颠被反转了！")
