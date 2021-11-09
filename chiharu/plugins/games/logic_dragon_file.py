@@ -941,6 +941,9 @@ class User:
             await self.add_limited_status(SDeath(datetime.now() + timedelta(minutes=minute)))
     async def draw(self, n: int, /, positive=None, cards=None, extra_lambda=None):
         """抽卡。将卡牌放入手牌。"""
+        if self.active and self.buf.session.state.get('exceed_limit'):
+            self.send_log("因手牌超出上限，不可摸牌！")
+            return
         cards = draw_cards(positive, n, extra_lambda=extra_lambda) if cards is None else cards
         self.log << f"抽到的卡牌为{cards_to_str(cards)}。"
         self.send_char('抽到的卡牌是：')
@@ -1062,6 +1065,9 @@ class User:
             return
         try:
             yield
+            if self.active and self.buf.session.state.get('exceed_limit'):
+                self.log << "因手牌超出上限，无需弃牌。"
+                return
             # discard
             cards_can_not_choose = (53,)
             d = len(list(c for c in self.data.hand_card if c in cards_can_not_choose))

@@ -526,7 +526,8 @@ async def dragon_use_card(buf: SessionBuffer):
         buf.finish("请输入存在的卡牌id号或卡牌名。")
     qq = buf.ctx['user_id']
     user = User(qq, buf)
-    # no_discard = len(user.data.hand_card) > user.data.card_limit:
+    if len(user.data.hand_card) > user.data.card_limit:
+        buf.session.state['exceed_limit'] = True
     user.log << f"试图使用手牌{card.name}，当前手牌为{user.data.hand_card}。"
     if card not in user.data.hand_card:
         buf.finish("你还未拥有这张牌！")
@@ -544,6 +545,30 @@ async def dragon_use_card(buf: SessionBuffer):
         await user.use_card(card)
     global_state['last_card_user'] = qq
     save_global_state()
+
+@on_command(('dragon', 'discard'), aliases="弃牌", only_to_me=False, short_des="弃牌，只可在手牌超出上限时使用。", args=("card"), environment=env)
+@config.ErrorHandle(config.logger.dragon)
+@Game.wrapper
+async def dragon_discard(buf: SessionBuffer):
+    """弃牌，只可在手牌超出上限时使用。
+    使用方法为：弃牌 id号（可多个）"""
+    args = buf.current_arg_text.strip()
+    if len(args) == 0:
+        buf.finish("请输入想使用的卡牌！")
+    try:
+        cards = [Card(int(c)) for c in args.split(' ')]
+    except (ValueError, IndexError):
+        buf.finish("请输入存在的卡牌id号或卡牌名。")
+        return
+    qq = buf.ctx['user_id']
+    user = User(qq, buf)
+    if len(user.data.hand_card) <= user.data.card_limit:
+        buf.finish("主动弃牌只可在手牌超出上限时使用！")
+    buf.session.state['exceed_limit'] = True
+    user.log << f"试图弃牌{[c.name for c in cards]}，当前手牌为{user.data.hand_card}。"
+    async with user.settlement():
+        user.send_char("弃掉了手牌：\n" + '\n'.join(c.brief_description(qq) for c in cards))
+        await user.discard_cards(cards)
 
 @on_command(('dragon', 'draw'), short_des="使用抽卡券进行抽卡。", only_to_me=False, args=("num"), environment=env)
 @config.ErrorHandle(config.logger.dragon)
