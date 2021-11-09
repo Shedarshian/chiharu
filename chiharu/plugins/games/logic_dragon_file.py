@@ -1142,7 +1142,7 @@ class User:
                     lambda l: Card(l[0]).can_use(self, True),
                     message_lambda=lambda l: Card(l[0]).failure_message))
                 cards_can_not_choose_fin = cards_can_not_choose_org | \
-                    set(c.id for c in self.data.hand_card if c.can_use(self, True))
+                    set(c.id for c in self.data.hand_card if not c.can_use(self, True))
             if len(cards_can_not_choose_fin) != 0:
                 arg_filters.append(validators.ensure_true(
                     lambda l: len(set(l) & cards_can_not_choose_fin) == 0,
@@ -1155,8 +1155,9 @@ class User:
                 yield ret
             except UnableRequirement:
                 self.send_log("手牌无法选择，选择进程中止！")
+                yield None
             except NotActive:
-                pass
+                yield None
             finally:
                 self.data.set_cards()
                 self.data.save_status_time()
