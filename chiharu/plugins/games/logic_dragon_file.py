@@ -942,7 +942,7 @@ class User:
             await self.add_limited_status(SDeath(datetime.now() + timedelta(minutes=minute)))
     async def draw(self, n: int, /, positive=None, cards=None, extra_lambda=None):
         """抽卡。将卡牌放入手牌。"""
-        if self.active and self.buf.session.state.get('exceed_limit'):
+        if self.active and self.buf.state.get('exceed_limit'):
             self.send_log("因手牌超出上限，不可摸牌！")
             return
         cards = draw_cards(positive, n, extra_lambda=extra_lambda) if cards is None else cards
@@ -1066,7 +1066,7 @@ class User:
             return
         try:
             yield
-            if self.active and self.buf.session.state.get('exceed_limit'):
+            if self.active and self.buf.state.get('exceed_limit'):
                 self.log << "因手牌超出上限，无需弃牌。"
                 return
             # discard
@@ -2686,7 +2686,7 @@ class xingyunhufu(_card):
             return False, "你因幸运护符的效果，不可使用其他手牌！"
         return True, ""
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: User, branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: User, branch: 'Tree', first10: bool) -> Tuple[()]:
         if user.data.today_jibi % 2 == 1:
             user.buf.send(f"你因为幸运护符的效果，额外奖励{count}击毙。")
             await user.add_jibi(count)
@@ -2788,7 +2788,7 @@ class lveduozhebopu(_card):
         await user.discard_cards([cls] * count)
         return time, False
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: User, branch: 'Tree') -> Tuple[()]:
+    async def OnDragoned(cls, count: TCount, user: User, branch: 'Tree', first10: bool) -> Tuple[()]:
         global global_state
         last_qq = branch.parent.qq
         qq = user.qq
@@ -3650,7 +3650,7 @@ newday_check[0] |= set("()[]")
 class wallnut(_card):
     name = "坚果墙"
     id = 131
-    description = "坚果墙：为你吸收死亡时间总计4小时。"
+    description = "为你吸收死亡时间总计4小时。"
     positive = 1
     @classmethod
     async def use(cls, user: User) -> None:
@@ -3691,7 +3691,7 @@ class SAbsorb(NumedStatus):
             m = min(o2.num, time)
             o2 -= m
             time -= m
-            user.send_log(f"的南瓜头为你吸收了{m}分钟的死亡时间！", end='')
+            user.send_log(f"的南瓜头为{user.char}吸收了{m}分钟的死亡时间！", end='')
             if time == 0:
                 user.send_char("没死！")
             else:
@@ -3700,7 +3700,7 @@ class SAbsorb(NumedStatus):
             m = min(o1.num, time)
             o1 -= m
             time -= m
-            user.send_log(f"的坚果墙为你吸收了{m}分钟的死亡时间！", end='')
+            user.send_log(f"的坚果墙为{user.char}吸收了{m}分钟的死亡时间！", end='')
             if time == 0:
                 user.send_char("没死！")
             else:
@@ -3799,7 +3799,7 @@ class inv_twinsunflower_s(_statusnull):
 class pumpkin(_card):
     name = "南瓜头"
     id = 134
-    description = "南瓜头：为你吸收死亡时间总计6小时。可与坚果墙叠加。"
+    description = "为你吸收死亡时间总计6小时。可与坚果墙叠加。"
     positive = 1
     @classmethod
     async def use(cls, user: User) -> None:
@@ -3818,7 +3818,6 @@ class imitator(_card):
     positive = 0
     description = "你下一张抽到的卡会额外再给你一张。"
     status = 'i'
-    status_des = "模仿者：你下一张抽到的卡会额外再给你一张。"
 class imitator_s(_statusnull):
     id = 'i'
     des = "模仿者：你下一张抽到的卡会额外再给你一张。"
@@ -4246,11 +4245,11 @@ class STrain(_status):
     @classmethod
     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
         if jibi >= 5:
-            # 从session里拿有没有结算过火车，保证同一个人的火车在一次结算里只触发一次
-            if not user.buf.session.state.get('train'):
-                user.buf.session.state['train'] = set()
-            c = [tr for tr in count if tr.qq not in user.buf.session.state['train']]
-            user.buf.session.state['train'] |= set([tr.qq for tr in count])
+            # 从buf.state里拿有没有结算过火车，保证同一个人的火车在一次结算里只触发一次
+            if not user.buf.state.get('train'):
+                user.buf.state['train'] = set()
+            c = [tr for tr in count if tr.qq not in user.buf.state['train']]
+            user.buf.state['train'] |= set([tr.qq for tr in count])
             qqs = set(tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests)))
             from .logic_dragon import get_yesterday_qq
             qqs |= get_yesterday_qq()
@@ -4260,8 +4259,9 @@ class STrain(_status):
                 if tr.qq not in qqs:
                     continue
                 # 结算火车
-                user.send_log(f"玩家{tr.qq}乘坐火车便乘了{count}击毙！")
-                await User(tr.qq, user.buf).add_jibi(count)
+                user.buf.send(f"玩家{tr.qq}乘坐火车便乘了1击毙！")
+                config.logger.dragon << f"【LOG】玩家{tr.qq}乘坐火车便乘了1击毙。"
+                await User(tr.qq, user.buf).add_jibi(1)
         return jibi,
     @classmethod
     async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[bool]:

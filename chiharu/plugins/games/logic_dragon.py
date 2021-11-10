@@ -105,7 +105,7 @@ def get_yesterday_qq():
     s = set()
     with open(config.rel(yesterday), encoding='utf-8') as f:
         for line in f.readlines():
-            if (match := re.match(r'(\d+)([a-z])?(?:(\+)?<(-?\d+[a-z]?))?(?:/(\d+)/([^/]*)/([^/]*)/)? (.*)', line.strip("\r\n")) and match.group(5)) is not None:
+            if (match := re.match(r'(\d+)([a-z])?(?:(\+)?<(-?\d+[a-z]?))?(?:/(\d+)/([^/]*)/([^/]*)/)? (.*)', line.strip("\r\n"))) and match.group(5) is not None:
                 s.add(int(match.group(5)))
     return s
 def check_and_add_log_and_contruct_tree(parent: Tree, word: str, qq: int, kwd: str, hdkwd: str, fork: bool):
@@ -312,18 +312,6 @@ async def daily_update(buf: SessionBuffer) -> str:
             # Event OnNewDay
             for eln, n in user.IterAllEventList(UserEvt.OnNewDay, Priority.OnNewDay):
                 await eln.OnNewDay(n, user)
-        # if "'q'" in r['status_time']:
-        #     await User(r['qq'], buf).remove_all_limited_status('q')
-        # if '(' in r['status'] or ')' in r['status']:
-        #     u = User(r['qq'], buf)
-        #     n = u.check_status('(') + 2 * u.check_status(')')
-        #     buf.send(f"玩家{r['qq']}种下的向日葵产出了{n}击毙！")
-        #     await u.add_jibi(n)
-        # if '[' in r['status'] or ']' in r['status']:
-        #     u = User(r['qq'], buf)
-        #     n = u.check_status('[') + 2 * u.check_status(']')
-        #     buf.send(f"玩家{r['qq']}种下的背日葵使其损失了{n}击毙！")
-        #     await u.add_jibi(-n)
     save_data()
     me.reload()
     me._reregister_things()
@@ -361,6 +349,8 @@ async def logical_dragon_else(session: NLPSession):
         await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
     elif text.startswith("使用卡牌") and (len(text) == 4 or text[4] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
+    elif text.startswith("弃牌") and (len(text) == 2 or text[2] == ' '):
+        await call_command(get_bot(), session.ctx, ('dragon', 'discard'), current_arg=text[2:].strip())
     elif text.startswith("抽卡") and (len(text) == 2 or text[2] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'draw'), current_arg=text[2:].strip())
     elif text.startswith("购买") and (len(text) == 2 or text[2] == ' '):
@@ -1053,7 +1043,7 @@ async def dragon_daily():
     graph = Tree.graph()
     # for group in config.group_id_dict['logic_dragon_send']:
     #     await get_bot().send_group_msg(group_id=group, message=[config.cq.text("昨天的接龙图："), config.cq.img(graph)])
-    buf = SessionBuffer(None, group_id=list(config.group_id_dict['logic_dragon_send'])[0])
+    buf = SessionBuffer(DummySessionState(), group_id=list(config.group_id_dict['logic_dragon_send'])[0])
     ret = await daily_update(buf)
     await buf.flush()
     if date.today().isoformat() == "2021-08-01":
