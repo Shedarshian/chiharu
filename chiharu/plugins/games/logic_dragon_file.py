@@ -482,7 +482,7 @@ class UserData:
         self.node: TUserData = dict(find_or_new(qq))
         self.hand_card = [] if self.node['card'] == '' else [Card(int(x)) for x in self.node['card'].split(',')]
         def save(key, value):
-            config.logger.dragon << f"【LOG】用户{qq}保存{key}。"
+            config.logger.dragon << f"【LOG】用户{self.qq}保存{key}，值为{value}。"
             config.userdata.execute(f"update dragon_data set {key}=? where qq=?", (str(value), self.qq))
         self.status_time: List[T_status] = property_list(partial(save, 'status_time'), [])
         self.status_time.data = eval(self.node['status_time'])
