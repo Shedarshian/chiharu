@@ -221,13 +221,14 @@ class _helper:
             logger._l[name] << f"【LOG】用户{qq}" + s
         return _
 class SessionBuffer:
-    __slots__ = ('buffer', 'session', 'active', 'send_end', 'group_id')
+    __slots__ = ('buffer', 'session', 'active', 'send_end', 'group_id', 'state')
     def __init__(self, session: Optional[BaseSession], /, group_id=None):
         self.buffer: str = ''
         self.send_end: str = ''
         self.session: Optional[BaseSession] = session
         self.active: int = -1 if session is None else session.ctx['user_id']
         self.group_id = group_id
+        self.state = {}
     def send(self, s, end='\n'):
         self.buffer += s
         self.buffer += end
