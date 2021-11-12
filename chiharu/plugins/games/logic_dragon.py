@@ -331,6 +331,8 @@ async def logical_dragon_else(session: NLPSession):
     if not await env_private.test(session):
         return
     text = session.msg_text.strip()
+    if text.startswith("【") and text.endswith("】"):
+        text = text[1:-1]
     if text.startswith("查询接龙"):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg=text[4:].strip())
     elif text.startswith("查询查询"):
@@ -368,7 +370,10 @@ async def logical_dragon_else(session: NLPSession):
 @config.ErrorHandle(config.logger.dragon)
 @Game.wrapper
 async def dragon_construct(buf: SessionBuffer):
-    match = message_re.match(buf.current_arg_text)
+    if buf.current_arg_text.startswith("【") and buf.current_arg_text.endswith("】"):
+        match = message_re.match(buf.current_arg_text[1:-1])
+    else:
+        match = message_re.match(buf.current_arg_text)
     if match:
         qq = buf.ctx['user_id']
         user = User(qq, buf)
