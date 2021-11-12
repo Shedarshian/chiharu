@@ -3337,7 +3337,7 @@ class panjuea_activated_s(_statusnull):
     is_debuff = True
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
-        if status == panjueb_s or status == panjueb_activated_s:
+        if status is panjueb_s or status is panjueb_activated_s:
             user.send_char("从五个人前面接来了判决β！")
             for i in range(min(count, count2)):
                 await user.remove_status('a', remove_all=False)
@@ -3384,7 +3384,7 @@ class panjueb_activated_s(_statusnull):
     is_debuff = True
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
-        if status == panjuea_s or status == panjuea_activated_s:
+        if status is panjuea_s or status is panjuea_activated_s:
             user.send_char("从五个人前面接来了判决α！")
             for i in range(min(count, count2)):
                 await user.remove_status('b', remove_all=False)
