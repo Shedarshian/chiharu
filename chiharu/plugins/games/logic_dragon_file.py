@@ -4903,3 +4903,11 @@ class Tree:
         pass
 
 me = UserData(config.selfqq)
+
+class Dragon:
+    def __init__(self, buf: Union[config.SessionBuffer, User]):
+        self.data = Game.userdata(0)
+        if isinstance(buf, User):
+            self.buf = buf.buf
+        else:
+            self.buf = buf
