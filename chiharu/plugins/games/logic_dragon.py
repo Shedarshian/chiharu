@@ -554,6 +554,8 @@ async def dragon_discard(buf: SessionBuffer):
     user = User(qq, buf)
     if len(user.data.hand_card) <= user.data.card_limit:
         buf.finish("主动弃牌只可在手牌超出上限时使用！")
+    if Card(53) in cards:
+        buf.finish("此牌不可弃置！")
     buf.session.state['exceed_limit'] = True
     user.log << f"试图弃牌{[c.name for c in cards]}，当前手牌为{user.data.hand_card}。"
     async with user.settlement():
