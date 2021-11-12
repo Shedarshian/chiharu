@@ -512,7 +512,6 @@ class UserData:
         self._reregister_things()
     def __del__(self):
         config.logger.dragon << f"【LOG】用户{self.qq}UserData被删除。"
-        self.save_status_time()
     def _reregister_things(self):
         self.event_listener: defaultdict[int, TEventList] = deepcopy(self.event_listener_init)
         for c in self.hand_card:
@@ -3398,7 +3397,7 @@ class panjueb_activated_s(_statusnull):
 class panjue_checker(IEventListener):
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        if (nd := branch.before(5)) and nd.qq != config.selfqq and (u := User(nd.qq, user.buf)) != user:
+        if (nd := branch.before(5)) and nd.qq != config.selfqq and nd.qq != 0 and (u := User(nd.qq, user.buf)) != user:
             if na := u.check_status('a'):
                 await u.remove_status('a')
                 user.log << f"从五个人前面接来了{na}个判决α。"
