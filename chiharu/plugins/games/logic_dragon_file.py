@@ -2664,7 +2664,7 @@ class liwujiaohuan(_card):
         qqs = set(tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests)))
         from .logic_dragon import get_yesterday_qq
         qqs |= get_yesterday_qq()
-        l = [User(qq, user.buf) for qq in qqs]
+        l = [User(qq, user.buf) for qq in qqs if qq != 0]
         config.logger.dragon << f"【LOG】这些人的手牌为：{','.join(f'{user.qq}: {cards_to_str(user.data.hand_card)}' for user in l)}。"
         all_users: List[User] = []
         all_cards: List[Tuple[User, TCard]] = []
@@ -2672,7 +2672,7 @@ class liwujiaohuan(_card):
             if len(u.data.hand_card) != 0:
                 atk = ALiwujiaohuan(user, u, all_users)
                 await u.attacked(user, atk)
-        config.logger.dragon << f"【LOG】所有参与交换的人为{all_users}。"
+        config.logger.dragon << f"【LOG】所有参与交换的人为{[c.qq for c in all_users]}。"
         for u in all_users:
             c = random.choice(u.data.hand_card)
             config.logger.dragon << f"【LOG】用户{u.qq}取出了手牌{c.name}。"
@@ -2680,7 +2680,7 @@ class liwujiaohuan(_card):
         random.shuffle(all_cards)
         lose = get = None
         for u, (u2, c) in zip(all_users, all_cards):
-            u.data.hand_card.extend(c)
+            u.data.hand_card.append(c)
             u2.data.hand_card.remove(c)
             await c.on_give(u2, u)
             config.logger.dragon << f"【LOG】{u.qq}从{u2.qq}处收到了{c}。"
@@ -4214,7 +4214,7 @@ class belt_checker(IEventListener):
             u = random.choice(users)
             user.buf.send(f"玩家{u.qq}从传送带上捡起了" + user.char + "掉的卡！")
             await u.draw(0, cards=[card])
-            await u.remove_status('3')
+            await u.remove_status('3', remove_all=False)
             if u.check_status('3') == 0:
                 users.remove(u)
     @classmethod
