@@ -1045,7 +1045,7 @@ async def dragon_daily():
     graph = Tree.graph()
     # for group in config.group_id_dict['logic_dragon_send']:
     #     await get_bot().send_group_msg(group_id=group, message=[config.cq.text("昨天的接龙图："), config.cq.img(graph)])
-    buf = SessionBuffer(DummySessionState(), group_id=list(config.group_id_dict['logic_dragon_send'])[0])
+    buf = SessionBuffer(None, group_id=list(config.group_id_dict['logic_dragon_send'])[0])
     ret = await daily_update(buf)
     await buf.flush()
     if date.today().isoformat() == "2021-08-01":
