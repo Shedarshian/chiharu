@@ -50,7 +50,7 @@ with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         current_event = "mid-autumn"
     del d
 
-from .logic_dragon_file import Equipment, Priority, TCounter, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check, _statusnull, _statusdaily, Status, TModule
+from .logic_dragon_file import Equipment, Priority, TCounter, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check, _statusnull, _statusdaily, Status, TModule, _equipment
 from . import logic_dragon_file
 
 # log
@@ -535,6 +535,39 @@ async def dragon_use_card(buf: SessionBuffer):
         await user.use_card(card)
     global_state['last_card_user'] = qq
     save_global_state()
+
+@on_command(('dragon', 'use_equipment'), aliases="使用装备", short_des="使用装备。", only_to_me=False, args=("eq"), environment=env)
+@config.ErrorHandle(config.logger.dragon)
+@Game.wrapper
+async def dragon_use_equipment(buf: SessionBuffer):
+    """使用装备。
+    使用方法为：使用装备 id号"""
+    args = buf.current_arg_text.strip()
+    if len(args) == 0:
+        buf.finish("请输入想使用的卡牌！")
+    try:
+        eq = Equipment(int(args))
+    except (ValueError, IndexError):
+        eq = more_itertools.only([cls for cls in _equipment.id_dict.values() if cls.name == args])
+    if eq is None:
+        buf.finish("请输入存在的装备id号或装备名。")
+    qq = buf.ctx['user_id']
+    user = User(qq, buf)
+    if len(user.data.hand_card) > user.data.card_limit:
+        buf.finish("你的手牌超出上限，请先使用或弃牌再使用装备！")
+    user.log << f"试图使用装备{eq.name}。"
+    if (count := user.data.check_equipment(eq.id)) == 0:
+        buf.finish("你还未拥有这个装备！")
+    # # Event OnUserUseCard
+    # for el, n in user.IterAllEventList(UserEvt.OnUserUseCard, Priority.OnUserUseCard):
+    #     can_use, msg = await el.OnUserUseCard(n, user, card)
+    #     if not can_use:
+    #         buf.finish(msg)
+    if not eq.can_use(user):
+        user.log << f"无法使用装备{eq.name}。"
+        buf.finish(eq.failure_message)
+    async with user.settlement():
+        await user.use_equipment(eq, count)
 
 @on_command(('dragon', 'discard'), aliases="弃牌", only_to_me=False, short_des="弃牌，只可在手牌超出上限时使用。", args=("card"), environment=env)
 @config.ErrorHandle(config.logger.dragon)
