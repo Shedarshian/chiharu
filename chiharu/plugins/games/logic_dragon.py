@@ -738,7 +738,7 @@ async def dragon_check(buf: SessionBuffer):
         I = me.check_daily_status('I')
         M = user.check_daily_status('M')
         dis = max(2 + i - I - m + M, 1)
-        buf.finish("当前活动词为：\n" + '\n'.join(f"{s.word}，{'⚠️' if qq in s.get_parent_qq_list(dis)else ''}id为{s.id_str}" for s in words))
+        buf.finish("当前活动词" + ('🔄' if me.check_daily_status('o') else '♻️' if me.check_daily_status('p') else '') + "为：\n" + '\n'.join(f"{s.word}，{'⚠️' if qq in s.get_parent_qq_list(dis)else ''}id为{s.id_str}" for s in words))
     elif data in ("资料", "profile"):
         buf.finish(f"你的资料为：\n今日剩余获得击毙次数：{user.data.today_jibi}。\n今日剩余获得关键词击毙：{user.data.today_keyword_jibi}。\n剩余抽卡券：{user.data.draw_time}。\n手牌上限：{user.data.card_limit}。" + (f"\n活动pt：{user.data.event_pt}。\n当前在活动第{user.data.event_stage}。" if current_event == "swim" else ""))
     elif data in ("活动商店", "event_shop"):
@@ -1128,7 +1128,7 @@ async def dragon_check_user_data(buf: SessionBuffer):
     qq = int(buf.current_arg_text)
     data = Game.userdata(qq)
     n = {a: b for a, b in data.node.items() if a not in ("card", "extra_data")}
-    buf.send(f"手牌：{[str(c) for c in data.hand_card]}\nnode：{n}\nextra data：{data.extra}")
+    buf.send(f"手牌：{', '.join(str(c) for c in data.hand_card)}\nnode：{n}\nextra data：{data.extra}")
 
 @on_command(('dragon', 'op'), only_to_me=False, hide=True, permission=permission.SUPERUSER)
 @config.ErrorHandle(config.logger.dragon)
