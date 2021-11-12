@@ -692,7 +692,7 @@ class User:
         self.data = data or Game.userdata(qq)
         self.buf = buf
     def __del__(self):
-        self.data.save_status_time()
+        pass
     @property
     def active(self):
         return self.buf.active == self.qq
@@ -1008,6 +1008,11 @@ class User:
         await self.use_card_effect(card)
         await card.on_remove(self)
         self.log << f"使用完卡牌，当前手牌为{cards_to_str(self.data.hand_card)}。"
+    async def use_equipment(self, eq: TEquipment, count: int):
+        """使用装备。"""
+        self.send_char('使用了装备：\n' + eq.description(count))
+        self.log << f"使用了装备{eq.name}，等级为{eq.count}。"
+        await eq.use(self, count)
     async def remove_cards(self, cards: List[TCard]):
         """将cards里的卡牌移出手牌，不结算弃牌。"""
         self.log << f"烧牌{cards_to_str(cards)}。"
@@ -4592,6 +4597,7 @@ class _equipment(IEventListener, metaclass=equipment_meta):
     id = -127
     name = ''
     des_shop = ''
+    failure_message = ''
     @classmethod
     def description(cls, count: TCount) -> str:
         pass
@@ -4599,7 +4605,7 @@ class _equipment(IEventListener, metaclass=equipment_meta):
     def full_description(cls, count: TCount, user: User) -> str:
         return f"{cls.id}. {count * '☆'}{cls.name}\n\t{cls.description(count)}"
     @classmethod
-    def can_use(cls, user: User) -> bool:
+    def can_use(cls, user: User, count: int) -> bool:
         return True
     @classmethod
     async def use(cls, user: User, count: int):
@@ -4645,6 +4651,10 @@ class tarot(_equipment):
     @classmethod
     def description(cls, count: TCount) -> str:
         return f"每天限一次，可以从{2 * count}张塔罗牌中选择一张发动。"
+    @classmethod
+    def can_use(cls, user: User, count: int) -> bool:
+        return user.data.extra.tarot_time != 0
+    failure_message = "你今日使用次数已完！"
     @classmethod
     async def use(cls, user: User, count: int):
         if await user.choose():
@@ -4892,3 +4902,11 @@ class Tree:
         pass
 
 me = UserData(config.selfqq)
+
+class Dragon:
+    def __init__(self, buf: Union[config.SessionBuffer, User]):
+        self.data = Game.userdata(0)
+        if isinstance(buf, User):
+            self.buf = buf.buf
+        else:
+            self.buf = buf
