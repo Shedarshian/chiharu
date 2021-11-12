@@ -429,11 +429,13 @@ class Wrapper:
     def __lshift__(self, log):
         config.logger.dragon << f"【LOG】用户{self.qq}" + log
 
-extra_data_format = '!BL'
+extra_data_format = '!BLII'
 @dataclass
 class ExtraData:
     tarot_time: int # unsigned char
     assembling: int # unsigned long
+    hp: int         # unsigned int
+    mp: int         # unsigned int
     @classmethod
     def make(cls, data, save):
         return cls(*unpack(extra_data_format, data), lambda self: save(pack(extra_data_format, *self)))
@@ -4902,11 +4904,15 @@ class Tree:
         pass
 
 me = UserData(config.selfqq)
+dragondata = UserData(0)
 
 class Dragon:
     def __init__(self, buf: Union[config.SessionBuffer, User]):
-        self.data = Game.userdata(0)
+        self.data = dragondata
         if isinstance(buf, User):
             self.buf = buf.buf
         else:
             self.buf = buf
+    
+
+dragon: Callable[[User], Dragon] = lambda user: Dragon(user.buf)
