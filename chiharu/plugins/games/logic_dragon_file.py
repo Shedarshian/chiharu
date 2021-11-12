@@ -1487,7 +1487,7 @@ class card_meta(type):
             c = type.__new__(cls, clsname, bases, attrs)
         return c
     def __str__(self):
-        return f"<卡牌: {self.name}, id: {self.id}"
+        return f"<卡牌: {self.name}, id: {self.id}>"
     @property
     # @abstractmethod
     def img(self):
