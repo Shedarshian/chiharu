@@ -3004,7 +3004,7 @@ class jiaodai(_card):
         i = 0
         while i < len(user.data.status_time_checked):
             s = user.data.status_time[i]
-            if s.id != 'd' and s.is_debuff and has > 0:
+            if s.id != 'd' and s is not Swufazhandou and s.is_debuff and has > 0:
                 has -= 1
                 des = s.des
                 user.send_log(f"的{des[:des.index('：')]}被取消了！")
@@ -3018,7 +3018,7 @@ class jiaodai_s(_statusnull):
     des = "布莱恩科技航空专用强化胶带FAL84型：免疫你下次即刻生效的负面状态（不包括死亡）。"
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
-        if status.is_debuff and status.id != 'd':
+        if status.is_debuff and status.id != 'd' and status is not Swufazhandou:
             for i in range(min(count, count2)):
                 await user.remove_status('8', remove_all=False)
             user.send_log("触发了胶带的效果，免除此负面状态！")
@@ -3319,7 +3319,7 @@ class panjuea_s(_statusnull):
             user.send_char("从五个人前面接来了判决β！")
             for i in range(min(count, count2)):
                 await user.remove_status('A', remove_all=False)
-            await user.death()
+            await user.add_limited_status(Swufazhandou(480))
             return max(0, count2 - count),
         return count2,
     @classmethod
@@ -3341,7 +3341,7 @@ class panjuea_activated_s(_statusnull):
             user.send_char("从五个人前面接来了判决β！")
             for i in range(min(count, count2)):
                 await user.remove_status('a', remove_all=False)
-            await user.death()
+            await user.add_limited_status(Swufazhandou(480))
             return max(0, count2 - count),
         return count2,
     @classmethod
@@ -3366,7 +3366,7 @@ class panjueb_s(_statusnull):
             user.send_char("从五个人前面接来了判决α！")
             for i in range(min(count, count2)):
                 user.remove_status('B', remove_all=False)
-            await user.death()
+            await user.add_limited_status(Swufazhandou(480))
             return max(0, count2 - count),
         return count2,
     @classmethod
@@ -3388,7 +3388,7 @@ class panjueb_activated_s(_statusnull):
             user.send_char("从五个人前面接来了判决α！")
             for i in range(min(count, count2)):
                 await user.remove_status('b', remove_all=False)
-            await user.death()
+            await user.add_limited_status(Swufazhandou(480))
             return max(0, count2 - count),
         return count2,
     @classmethod
@@ -3410,6 +3410,17 @@ class panjue_checker(IEventListener):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.panjuecheck, cls)}
 UserData.register_checker(panjue_checker)
+
+class Swufazhandou(TimedStatus):
+    id = 'D'
+    is_debuff = True
+    des = "无法战斗：不可接龙，无法用商店复活。"
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+        return False, 0, '你无法战斗，不能接龙！'
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.wufazhandou, cls)}
 
 class dihuopenfa(_card):
     name = "地火喷发"
@@ -3518,7 +3529,7 @@ class wardenspaean_s(NumedStatus):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         for i in count:
-            if status.is_debuff and status.id == 'd':
+            if status.is_debuff and status.id != 'd' and status is not Swufazhandou:
                 if i.num >= count2:
                     i.num -= count2
                     user.send_log(f"触发了凯歌的效果，免除此负面状态！")
