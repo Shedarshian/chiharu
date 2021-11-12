@@ -1616,7 +1616,8 @@ class SCantUse(TimedStatus):
     @property
     def brief_des(self):
         delta = self.time - datetime.now()
-        return f"疲劳【{Card(self.card_id).name}】\n\t结束时间：{delta.seconds // 60}分钟。"
+        min = delta.seconds // 60
+        return f"疲劳【{Card(self.card_id).name}】\n\t结束时间：{f'{delta.days}日' if delta.days != 0 else ''}{f'{min // 60}时' if min // 60 != 0 else ''}{min % 60}分钟。"
     def __init__(self, s: Union[str, datetime], card_id: int):
         super().__init__(s)
         self.card_id = card_id
@@ -1624,7 +1625,8 @@ class SCantUse(TimedStatus):
         return self.construct_repr(self.time.isoformat(), self.card_id)
     def __str__(self) -> str:
         delta = self.time - datetime.now()
-        return f"{self.des}\n\t结束时间：{delta.seconds // 60}分钟。"
+        min = delta.seconds // 60
+        return f"{self.des}\n\t结束时间：{f'{delta.days}日' if delta.days != 0 else ''}{f'{min // 60}时' if min // 60 != 0 else ''}{min % 60}分钟。"
     def __add__(self, other: timedelta) -> T_status:
         return self.__class__(self.time + other, self.card_id)
     def __sub__(self, other: timedelta) -> T_status:
@@ -2194,6 +2196,7 @@ class tiesuolianhuan_s(_statusnull):
             for q in all_qqs:
                 await (u := User(q, user.buf)).remove_status('l')
                 await u.killed(user, hour=0, minute=time)
+            await user.remove_status('l')
         return time, False
     @classmethod
     def register(cls) -> dict[int, TEvent]:
