@@ -447,6 +447,8 @@ class DynamicExtraData:
     def __post_init__(self):
         self.data = ExtraData(*unpack(extra_data_format, self.data))
         self.save_func = lambda value: self.save_func_old(pack(extra_data_format, *astuple(value)))
+    def __str__(self):
+        return str(self.data)
     @property
     def tarot_time(self):
         return self.data.tarot_time
@@ -460,6 +462,20 @@ class DynamicExtraData:
     @assembling.setter
     def assembling(self, value):
         self.data.assembling = value
+        self.save_func(self.data)
+    @property
+    def hp(self):
+        return self.data.hp
+    @hp.setter
+    def hp(self, value):
+        self.data.hp = value
+        self.save_func(self.data)
+    @property
+    def mp(self):
+        return self.data.mp
+    @mp.setter
+    def mp(self, value):
+        self.data.mp = value
         self.save_func(self.data)
     # def __getattr__(self, name: str):
     #     if name not in ('data', 'save_func', 'save_func_old'):
@@ -1471,6 +1487,8 @@ class card_meta(type):
         else:
             c = type.__new__(cls, clsname, bases, attrs)
         return c
+    def __str__(self):
+        return f"<卡牌: {self.name}, id: {self.id}"
     @property
     # @abstractmethod
     def img(self):

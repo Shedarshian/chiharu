@@ -1121,6 +1121,15 @@ async def dragon_add_extra(session: CommandSession):
         config.userdata.execute(f"update dragon_data set extra_data=? where qq=?", (t['extra_data'] + eval(session.current_arg_text), t['qq']))
     save_data()
 
+@on_command(('dragon', 'check_user'), only_to_me=False, hide=True, permission=permission.SUPERUSER)
+@config.ErrorHandle(config.logger.dragon)
+@Game.wrapper
+async def dragon_check_user_data(buf: SessionBuffer):
+    qq = int(buf.current_arg_text)
+    data = Game.userdata(qq)
+    n = {a: b for a, b in data.node.items() if a not in ("card", "extra_data")}
+    await buf.send(f"手牌：{data.hand_card}\nnode：{n}\nextra data：{data.extra}")
+
 @on_command(('dragon', 'op'), only_to_me=False, hide=True, permission=permission.SUPERUSER)
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_op(session: CommandSession):
