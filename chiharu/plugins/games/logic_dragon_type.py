@@ -162,6 +162,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         inv_sihuihuibizhiyao = auto()
         death = auto()
         absorb = auto()
+        changsheng = auto()
         tiesuolianhuan = auto()
         lveduozhebopu = auto()
         huiye = auto()

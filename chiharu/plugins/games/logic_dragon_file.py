@@ -4111,8 +4111,12 @@ class Sexplore(NumedStatus):
     id = 'M'
     @property
     def des(self):
-        spot = ["都城","各郡","大陆","森林尽头之地","撕身山脉","荒寂而平阔的沙地","薄暮群屿"][self.num-1]
-        return f"探索{spot}：你将会触发一系列随机事件。"
+        i = count[0].num
+        if i in range(1,8)
+            spot = ["都城","各郡","大陆","森林尽头之地","撕身山脉","荒寂而平阔的沙地","薄暮群屿"][self.num-1]
+            return f"探索{spot}：你将会触发一系列随机事件。"
+        elif i == 8:
+            return f"探索薄暮群屿：你将会触发一系列随机事件。\n\t置身格里克堡：直到失去状态“探索薄暮群屿”，抵御所有死亡效果。"
     def __str__(self) -> str:
         return f"{self.des}"
     @classmethod
@@ -4317,7 +4321,7 @@ class Sexplore(NumedStatus):
             if pq != self.qq and pq != 0:
                 User(pq, user.buf).add_status('&')
             else:
-                user.send_log()
+                user.send_log(f"无上一个接龙的玩家！")
         elif i == 1:
             user.send_log(f"置身避雪神庙")
             user.buf.send("神庙可以回避一些袭击。本次接龙不会因为一周内接龙过或是踩雷而被击毙，但也没有接龙成功。")
@@ -4346,6 +4350,133 @@ class Sexplore(NumedStatus):
             count[0].num = 0
             await user.death(120)
             user.data.save_status_time()
+    elif count[0].num == 6:
+        i = int(random.random()*5)
+        if i == 0:
+            user.send_log(f"置身被星辰击碎的神殿")
+            user.buf.send("掉落的陨石反而成了朝拜的对象。在你之后接龙的一个人会额外获得5击毙。")
+            await user.add_status('^')
+        elif i == 1:
+            user.send_log(f"置身拉贡之墓")
+            user.buf.send("曾经不死的长生者的尸体被保存得很好，直到我们到来。击毙上一个接龙的玩家十五分钟。")
+            pq = branch.parent.qq
+            if pq != self.qq and pq != 0:
+                await User(pq, user.buf).death(15)
+            else:
+                user.send_log(f"无上一个接龙的玩家！")
+        elif i == 2:
+            user.send_log(f"置身墨萨拿")
+            user.buf.send("村民们拥有超过自然限度的长寿。获得状态“长生的宴席”。")
+            await user.add_limited_status(Schangsheng(120))
+        elif i == 3:
+            user.send_log(f"置身七蟠寺")
+            user.buf.send("这座寺庙存在于每一重历史之中。你将与今天结束的正面状态延长至明天。")
+            await user.add_daily_status('l')
+        else:
+            user.send_log(f"置身弥阿")
+            user.buf.send("有时是我们寻到死者拥有的知识，有时是死者寻到我们。被击毙180分钟，并失去状态“探索荒寂而平阔的沙地”。")
+            count[0].num = 0
+            await user.death(180)
+            user.data.save_status_time()
+    elif count[0].num == 7:
+        i = int(random.random()*5)
+        if i == 0:
+            user.send_log(f"置身渡鸦屿")
+            user.buf.send("索奎焰特在洞壁上用一百种语言描述他们悲惨的历史。获得一个可以完成10次的新任务，每次可以获得2击毙。")
+            await user.add_limited_status(SQuest(10, 2, n := get_mission()))
+            user.send_char(f"获得了一个任务：{mission[n][1]}")
+        elif i == 1:
+            user.send_log(f"置身格里克堡")
+            user.buf.send("帝国和岛屿没有在任何正史中出现过，但岛上总督的堡垒还在，或许他本人也是。直到失去状态“探索薄暮群屿”，抵御所有死亡效果。")
+            count[0].num = 8
+            user.data.save_status_time()
+        elif i == 2:
+            user.send_log(f"置身克丽斯塔贝号船骸")
+            user.buf.send("一头海兽来向这艘船求爱，但当船不回应这份爱慕时，海兽击碎了它。选择一张手牌弃置，然后抽两张正面卡牌。")
+            async with user.choose_cards("请选择你手牌中的一张牌弃置，输入id号。", 1, 1,) as l, check_active(l):
+                await user.discard_cards(l)
+            await user.draw(2,positive=1)
+        elif i == 3:
+            user.send_log(f"置身深邃之门的圣滕特雷托之僧院")
+            user.buf.send("僧院危悬在崖边，它早该坠入海中了。从以下三个效果中随机触发一个：获得20击毙、抽一张牌或随机弃置一张牌。")
+            j = int(random.random()*3)
+            if j == 0:
+                user.send_log(f"获得了20击毙！")
+                await user.add_jibi(20)
+            elif j == 1:
+                user.send_log(f"抽了一张卡！")
+                await user.draw(1)
+            elif len(copy(user.data.hand_cards)) == 0:
+                user.send_log(f"无手牌可弃！")
+            else:
+                cd = random.choice(copy(user.data.hand_cards))
+                user.send_log(f"丢弃了{cd.name}！")
+                await user.discard_cards(cd)
+        else:
+            user.send_log(f"置身午港")
+            user.buf.send("这座名为“午”的小小岛港是不死者的流放地。被击毙240分钟，并失去状态“探索薄暮群屿”。")
+            count[0].num = 0
+            await user.death(240)
+            user.data.save_status_time()
+    elif count[0].num == 8:
+        i = int(random.random()*5)
+        if i == 0:
+            user.send_log(f"置身渡鸦屿")
+            user.buf.send("索奎焰特在洞壁上用一百种语言描述他们悲惨的历史。获得一个可以完成10次的新任务，每次可以获得2击毙。")
+            await user.add_limited_status(SQuest(10, 2, n := get_mission()))
+            user.send_char(f"获得了一个任务：{mission[n][1]}")
+        elif i == 1:
+            user.send_log(f"置身格里克堡")
+            user.buf.send("帝国和岛屿没有在任何正史中出现过，但岛上总督的堡垒还在，或许他本人也是。直到失去状态“探索薄暮群屿”，抵御所有死亡效果。")
+            user.send_log(f"已经置身于格里克堡了！")
+        elif i == 2:
+            user.send_log(f"置身克丽斯塔贝号船骸")
+            user.buf.send("一头海兽来向这艘船求爱，但当船不回应这份爱慕时，海兽击碎了它。选择一张手牌弃置，然后抽两张正面卡牌。")
+            async with user.choose_cards("请选择你手牌中的一张牌弃置，输入id号。", 1, 1,) as l, check_active(l):
+                await user.discard_cards(l)
+            await user.draw(2,positive=1)
+        elif i == 3:
+            user.send_log(f"置身深邃之门的圣滕特雷托之僧院")
+            user.buf.send("僧院危悬在崖边，它早该坠入海中了。从以下三个效果中随机触发一个：获得20击毙、抽一张牌或随机弃置一张牌。")
+            j = int(random.random()*3)
+            if j == 0:
+                user.send_log(f"获得了20击毙！")
+                await user.add_jibi(20)
+            elif j == 1:
+                user.send_log(f"抽了一张卡！")
+                await user.draw(1)
+            elif len(copy(user.data.hand_cards)) == 0:
+                user.send_log(f"无手牌可弃！")
+            else:
+                cd = random.choice(copy(user.data.hand_cards))
+                user.send_log(f"丢弃了{cd.name}！")
+                await user.discard_cards(cd)
+        else:
+            user.send_log(f"置身午港")
+            user.buf.send("这座名为“午”的小小岛港是不死者的流放地。被击毙240分钟，并失去状态“探索薄暮群屿”。")
+            count[0].num = 0
+            await user.death(240)
+            user.data.save_status_time()
+    else:
+        count[0].num = 0
+        user.data.save_status_time()
+    @classmethod
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+        if count[0].num != 8:
+            return time, False
+        else:
+            if await c.pierce():
+                user.send_log("堡垒的效果被幻想杀手消除了！")
+                count[0].num = 7
+                user.save_status_time()
+            else:
+                user.send_log("触发了堡垒的效果，免除死亡！")
+                return time, True
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.explore, cls),
+            UserEvt.OnDeath: (Priority.OnDeath.explore, cls)}
+
 class Sjiaotu(_statusnull):
     id = 'J'
     des = "置身许伦的圣菲利克斯之会众：被虔诚的教徒们包围，他们追奉启之法则，你下一次接龙需要进行首尾接龙。"
@@ -4429,6 +4560,45 @@ class Slieshouzhixue(_statusnull):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.lieshouzhixue, cls)}
+class Sshendian(_statusnull):
+    id = '^'
+    des = "置身被星辰击碎的神殿：之后接龙的一个人会额外获得5击毙。"
+    is_global = True
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        user.add_jibi(5)
+        user.send_log(f"因星辰击碎的神殿额外获得5击毙！")
+        await user.remove_status('^')
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.shendian, cls)}
+class Schangsheng(NumedStatus):
+    id = ''
+    des = "长生的宴席：可以抵消累计120分钟死亡"
+    def __str__(self) -> str:
+        return f"{self.des}\n\t剩余时间：{self.num}分钟。"
+    def double(self):
+        return [self.__class__(self.num * 2)]
+    @classmethod
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+        for i in count:
+            m = min(i.num, time)
+            i.num -= m
+            time -= m
+            user.send_log(f"的长生的宴席为{user.char}吸收了{m}分钟的死亡时间！", end='')
+            if time == 0:
+                user.send_char("没死！")
+                break
+            else:
+                user.buf.send("")
+        user.data.save_status_time()
+        return time, (time == 0)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDeath: (Priority.OnDeath.changsheng, cls)}
+class Stemple(_statusdaily):
+    id = 'l'
+    des = "置身七蟠寺：今天结束的正面状态延长至明天。"
 
 class steamsummer(_card):
     name = "Steam夏季特卖"
