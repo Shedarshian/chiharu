@@ -287,6 +287,8 @@ async def daily_update(buf: SessionBuffer) -> str:
     for qq in global_state['steal']:
         config.logger.dragon << f"【LOG】更新了用户{qq}的偷状态。"
         global_state['steal'][qq] = {'time': 0, 'user': []}
+    global_state['used_cards'] = []
+    global_state['observatory'] = False
     save_global_state()
     if me.check_daily_status('s'):
         await User(config.selfqq, buf).remove_daily_status('s', remove_all=False)
@@ -294,7 +296,7 @@ async def daily_update(buf: SessionBuffer) -> str:
         for r in config.userdata.execute("select qq, daily_status from dragon_data").fetchall():
             if 'd' in r['daily_status']:
                 await User(r['qq'], buf).remove_daily_status('d')
-    else:
+    else: #当个人daily_status中存在'l'时，仅消除负面daily_status及它自身
         config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=1, spend_shop=0', ('',))
     for r in config.userdata.execute("select qq, status, daily_status, status_time, equipment from dragon_data").fetchall():
         def _(s, st):
@@ -397,6 +399,8 @@ async def dragon_construct(buf: SessionBuffer):
                 await buf.session.send(f"节点已分叉，接龙{word}失败。")
                 return
             dist = 2
+            if not get buf.state('circus')
+                buf.state['circus'] = True
             # Event BeforeDragoned
             for eln, n in user.IterAllEventList(UserEvt.BeforeDragoned, Priority.BeforeDragoned):
                 allowed, dist_mod, msg = await eln.BeforeDragoned(n, user, word, parent)
@@ -538,6 +542,8 @@ async def dragon_use_card(buf: SessionBuffer):
         buf.finish(card.failure_message)
     async with user.settlement():
         await user.use_card(card)
+        if card.id not in global_state['used_cards']:
+            global_state['used_cards'].append(card.id)
     global_state['last_card_user'] = qq
     save_global_state()
 

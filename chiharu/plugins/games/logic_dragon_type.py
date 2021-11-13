@@ -12,6 +12,9 @@ TSteal = TypedDict('TSteal', user=List[int], time=int)
 class TGlobalState(TypedDict):
     last_card_user: int
     exchange_stack: List[int]
+    used_cards: List[int]
+    global_status: List[list]
+    observatory: bool
     # lianhuan: List[int]
     quest: Dict[int, List[TQuest]]
     module: Dict[int, List[TModule]]
@@ -159,10 +162,12 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         inv_sihuihuibizhiyao = auto()
         death = auto()
         absorb = auto()
+        changsheng = auto()
         tiesuolianhuan = auto()
         lveduozhebopu = auto()
         huiye = auto()
         inv_huiye = auto()
+        shangba = auto()
 
     class OnAttack(IntEnum):
         imaginebreaker = auto()         # imagine breaker is suggested to be the first
@@ -225,9 +230,13 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         plus1ma = auto()
         iceshroom = auto()
         hotshroom = auto()
+        lazhuyandong = auto()
+        lieshouzhixue = auto()
         ourostone = auto()              # contains two buffs
         ranshefashu = auto()
         inv_ranshefashu = auto()
+        jiaotu = auto()
+        shequn = auto()
         hierophant = auto()
         inv_hierophant = auto()
 
@@ -261,8 +270,10 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         bianhua = auto()
         inv_bianhua = auto()
         zpm = auto()
+        beizhizhunze = auto()
         plus2 = auto()
         xixuegui = auto()
+        circus = auto()
         panjue = auto()                 # contains both a and b
         panjuecheck = auto()            # contains both a and b
         jack_in_the_box = auto()
