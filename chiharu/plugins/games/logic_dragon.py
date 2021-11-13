@@ -399,7 +399,7 @@ async def dragon_construct(buf: SessionBuffer):
                 await buf.session.send(f"节点已分叉，接龙{word}失败。")
                 return
             dist = 2
-            if not get buf.state('circus')
+            if not buf.state.get('circus'):
                 buf.state['circus'] = True
             # Event BeforeDragoned
             for eln, n in user.IterAllEventList(UserEvt.BeforeDragoned, Priority.BeforeDragoned):
