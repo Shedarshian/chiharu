@@ -3319,7 +3319,7 @@ class panjuea_s(_statusnull):
             user.send_char("从五个人前面接来了判决β！")
             for i in range(min(count, count2)):
                 await user.remove_status('A', remove_all=False)
-            await user.add_limited_status(Swufazhandou(480))
+            await user.add_limited_status(Swufazhandou(240))
             return max(0, count2 - count),
         return count2,
     @classmethod
@@ -3341,7 +3341,7 @@ class panjuea_activated_s(_statusnull):
             user.send_char("从五个人前面接来了判决β！")
             for i in range(min(count, count2)):
                 await user.remove_status('a', remove_all=False)
-            await user.add_limited_status(Swufazhandou(480))
+            await user.add_limited_status(Swufazhandou(240))
             return max(0, count2 - count),
         return count2,
     @classmethod
@@ -3366,7 +3366,7 @@ class panjueb_s(_statusnull):
             user.send_char("从五个人前面接来了判决α！")
             for i in range(min(count, count2)):
                 user.remove_status('B', remove_all=False)
-            await user.add_limited_status(Swufazhandou(480))
+            await user.add_limited_status(Swufazhandou(240))
             return max(0, count2 - count),
         return count2,
     @classmethod
@@ -3388,7 +3388,7 @@ class panjueb_activated_s(_statusnull):
             user.send_char("从五个人前面接来了判决α！")
             for i in range(min(count, count2)):
                 await user.remove_status('b', remove_all=False)
-            await user.add_limited_status(Swufazhandou(480))
+            await user.add_limited_status(Swufazhandou(240))
             return max(0, count2 - count),
         return count2,
     @classmethod
@@ -3421,6 +3421,17 @@ class Swufazhandou(TimedStatus):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.wufazhandou, cls)}
+class Sshuairuo(_statusdaily):
+    id = 'S'
+    is_debuff = True 
+    des = "衰弱：今天你所有的击毙收入减少为75%。"
+    @classmethod
+    async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
+        if jibi > 0:
+            njibi = ceil(0.75*jibi)
+            user.send_log(f"触发了衰弱的效果，获得击毙减少为{njibi}。")
+            return njibi,
+        return jibi,
 
 class dihuopenfa(_card):
     name = "地火喷发"
