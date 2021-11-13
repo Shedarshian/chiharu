@@ -4122,6 +4122,8 @@ class polezombie(_card):
 #             return f"探索薄暮群屿：你将会触发一系列随机事件。\n\t置身格里克堡：直到失去状态“探索薄暮群屿”，抵御所有死亡效果。"
 #     def __str__(self) -> str:
 #         return f"{self.des}"
+#     def double(self):
+#         return self
 #     @classmethod
 #     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
 #         if count[0].num == 1:
@@ -4496,6 +4498,7 @@ class Sjiaotu(_statusnull):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.jiaotu, cls),
             UserEvt.OnDragoned: (Priority.OnDragoned.jiaotu, cls)}
+class Sinvjiaotu(_statusnull)
 class Sshequn(_statusnull):
     id = '|'
     des = "置身格拉德温湖：此处有蛇群把守。下一个接龙的人需要进行首尾接龙。"
@@ -4513,6 +4516,7 @@ class Sshequn(_statusnull):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.shequn, cls),
             UserEvt.OnDragoned: (Priority.OnDragoned.shequn, cls)}
+class Sinvshequn(_statusnull)
 class Sshangba(_statusdaily):
     id = 'S'
     des = "伤疤：今天你每死亡一次便获得2击毙。"
@@ -4528,6 +4532,7 @@ class Sshangba(_statusdaily):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDeath: (Priority.OnDeath.shangba, cls)}
+class Sinvshangba(_statusdaily)
 class Sbeizhizhunze(_statusdaily):
     id = 'C'
     des = "杯之准则：你今天每次接龙额外获得1击毙。"
@@ -4538,9 +4543,10 @@ class Sbeizhizhunze(_statusdaily):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.beizhizhunze, cls)}
+class Sinvbeizhizhunze(_statusdaily)
 class Slazhuyandong(_statusnull):
     id = 'L'
-    des = "置身蜡烛岩洞：下一次接龙只需要相隔一个人。"
+    des = "置身蜡烛岩洞：下一次接龙可以少相隔一个人。"
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
         return True, -1, ""
@@ -4551,6 +4557,7 @@ class Slazhuyandong(_statusnull):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.lazhuyandong, cls),
             UserEvt.OnDragoned: (Priority.OnDragoned.lazhuyandong, cls)}
+class Sinvlazhuyandong(_statusnull)
 class Scircus(_statusnull):
     id = '%'
     des = "置身格吕内瓦尔德的常驻马戏团：下一次接龙不受全局状态的影响。"
@@ -4563,7 +4570,7 @@ class Scircus(_statusnull):
         return {UserEvt.OnDragoned: (Priority.OnDragoned.circus, cls)}
 class Slieshouzhixue(_statusnull):
     id = '&'
-    des = "置身猎手之穴：下一次接龙需要间隔三个人。"
+    des = "置身猎手之穴：下一次接龙需要多间隔一个人。"
     is_debuff = True
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
@@ -4587,6 +4594,7 @@ class Sshendian(_statusnull):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.shendian, cls)}
+class Sinvshendian(_statusnull)
 class Schangsheng(NumedStatus):
     id = 'C'
     des = "长生的宴席：可以抵消累计120分钟死亡。"
@@ -4614,6 +4622,7 @@ class Schangsheng(NumedStatus):
 class Stemple(_statusdaily):
     id = 'l'
     des = "置身七蟠寺：今天结束的非负面状态延长至明天。"
+class Sinvtemple(_statusdaily)
 
 class steamsummer(_card):
     name = "Steam夏季特卖"
