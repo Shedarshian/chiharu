@@ -227,6 +227,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         plus1ma = auto()
         iceshroom = auto()
         hotshroom = auto()
+        lazhuyandong = auto()
         ourostone = auto()              # contains two buffs
         ranshefashu = auto()
         inv_ranshefashu = auto()
@@ -268,6 +269,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         beizhizhunze = auto()
         plus2 = auto()
         xixuegui = auto()
+        circus = auto()
         panjue = auto()                 # contains both a and b
         panjuecheck = auto()            # contains both a and b
         jack_in_the_box = auto()
