@@ -228,6 +228,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         ourostone = auto()              # contains two buffs
         ranshefashu = auto()
         inv_ranshefashu = auto()
+        jiaotu = auto()
         hierophant = auto()
         inv_hierophant = auto()
 
@@ -266,6 +267,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         panjue = auto()                 # contains both a and b
         panjuecheck = auto()            # contains both a and b
         jack_in_the_box = auto()
+        jiaotu = auto()
         star = auto()
         dihuopenfa = auto()
         xixueshashou = auto()
