@@ -3421,7 +3421,7 @@ class Swufazhandou(TimedStatus):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.wufazhandou, cls)}
-class Sshuairuo(_statusdaily):
+class Sshuairuo(TimedStatus):
     id = 'S'
     is_debuff = True 
     des = "衰弱：今天你所有的击毙收入减少为75%。"
@@ -3432,6 +3432,9 @@ class Sshuairuo(_statusdaily):
             user.send_log(f"触发了衰弱的效果，获得击毙减少为{njibi}。")
             return njibi,
         return jibi,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnJibiChange: (Priority.OnJibiChange.shuairuo, cls)}
 
 class dihuopenfa(_card):
     name = "地火喷发"

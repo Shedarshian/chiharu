@@ -203,6 +203,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         beacon = auto()
         beacon0 = auto()
         beacon2 = auto()
+        shuairuo = auto()
         bianyaqi = auto()
         inv_bianyaqi = auto()
         steamsummer = auto()
