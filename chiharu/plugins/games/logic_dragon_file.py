@@ -3004,7 +3004,7 @@ class jiaodai(_card):
         i = 0
         while i < len(user.data.status_time_checked):
             s = user.data.status_time[i]
-            if s.id != 'd' and s is not Swufazhandou and s.is_debuff and has > 0:
+            if s.id != 'd' and not isinstance(s, Swufazhandou) and s.is_debuff and has > 0:
                 has -= 1
                 des = s.des
                 user.send_log(f"的{des[:des.index('：')]}被取消了！")
@@ -3414,7 +3414,7 @@ UserData.register_checker(panjue_checker)
 class Swufazhandou(TimedStatus):
     id = 'D'
     is_debuff = True
-    des = "无法战斗：不可接龙，无法用商店复活。"
+    des = "无法战斗：不可接龙。"
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
         return False, 0, '你无法战斗，不能接龙！'
@@ -3424,7 +3424,7 @@ class Swufazhandou(TimedStatus):
 class Sshuairuo(TimedStatus):
     id = 'S'
     is_debuff = True 
-    des = "衰弱：今天你所有的击毙收入减少为75%。"
+    des = "衰弱：你所有的击毙收入减少为75%。"
     @classmethod
     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
         if jibi > 0:

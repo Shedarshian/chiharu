@@ -864,12 +864,12 @@ async def dragon_buy(buf: SessionBuffer):
         i = 0
         while i < len(user.data.status_time_checked):
             s = user.data.status_time[i]
-            if s is Swufazhandou:
+            if s.id == 'D':
                 user.send_log(f"的无法战斗状态已被解除！")
                 await user.remove_limited_status(s)
             i += 1
         user.save_status_time()
-        await user.add_limited_status(Sshuairuo(240))
+        await user.add_limited_status(Status('S')(240))
     elif id == 16 and me.check_daily_status('O'):
         # (5击毙)抽奖
         # 15%几率掉一张卡
