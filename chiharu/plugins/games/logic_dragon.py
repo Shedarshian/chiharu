@@ -288,6 +288,8 @@ async def daily_update(buf: SessionBuffer) -> str:
         config.logger.dragon << f"【LOG】更新了用户{qq}的偷状态。"
         global_state['steal'][qq] = {'time': 0, 'user': []}
     global_state['used_cards'] = []
+    if len(global_state['global_status']) == 0:
+    global_state['observatory'] = False
     save_global_state()
     if me.check_daily_status('s'):
         await User(config.selfqq, buf).remove_daily_status('s', remove_all=False)

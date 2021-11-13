@@ -4308,6 +4308,44 @@ class Sexplore(NumedStatus):
             count[0].num = 0
             await user.death(90)
             user.data.save_status_time()
+    elif count[0].num == 5:
+        i = int(random.random()*5)
+        if i == 0:
+            user.send_log(f"置身猎手之穴")
+            user.buf.send("在这里必须隐藏自己。上一个人下一次接龙需要间隔三个人。")
+            pq = branch.parent.qq
+            if pq != self.qq and pq != 0:
+                User(pq, user.buf).add_status('&')
+            else:
+                user.send_log()
+        elif i == 1:
+            user.send_log(f"置身避雪神庙")
+            user.buf.send("神庙可以回避一些袭击。本次接龙不会因为一周内接龙过或是踩雷而被击毙，但也没有接龙成功。")
+            node = branch.parent
+            for n in node.childs:
+                n.remove()
+            from .logic_dragon import rewrite_log_file
+            rewrite_log_file()
+            await
+        elif i == 2:
+            user.send_log(f"置身伊克玛维之眼")
+            user.buf.send("这里是观星台，是大地的眼睛。公开揭示今天一个隐藏奖励词，该效果每天只会触发一次。")
+            if not global_state['observatory']
+                from .logic_dragon import hidden_keyword
+                user.buf.send("你揭示的一个隐藏奖励词是：" + random.choice(hidden_keyword))
+                global_state['observatory'] = True
+            else:
+                user.buf.send("今天已经使用过观星台！")
+        elif i == 3:
+            user.send_log(f"置身石狼陵墓")
+            user.buf.send("送葬者不见踪影，而死者被引来此处。本次接龙额外获得10击毙。")
+            await user.add_jibi(10)
+        else:
+            user.send_log(f"置身无影众王的墓群")
+            user.buf.send("众王皆向往不死，而仅有一人实现了愿望，其他人只留下了陪葬品。立刻被击毙120分钟，并失去状态“探索撕身山脉”。")
+            count[0].num = 0
+            await user.death(120)
+            user.data.save_status_time()
 class Sjiaotu(_statusnull):
     id = 'J'
     des = "置身许伦的圣菲利克斯之会众：被虔诚的教徒们包围，他们追奉启之法则，你下一次接龙需要进行首尾接龙。"
@@ -4380,6 +4418,17 @@ class Scircus(_statusnull):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.circus, cls)}
+class Slieshouzhixue(_statusnull):
+    id = '&'
+    des = "置身猎手之穴：下一次接龙需要间隔三个人。"
+    is_debuff = True
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+        user.remove_status('&')
+        return True, 1, ""
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.lieshouzhixue, cls)}
 
 class steamsummer(_card):
     name = "Steam夏季特卖"

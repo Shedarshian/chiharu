@@ -13,6 +13,8 @@ class TGlobalState(TypedDict):
     last_card_user: int
     exchange_stack: List[int]
     used_cards: List[int]
+    global_status: List[list]
+    observatory: bool
     # lianhuan: List[int]
     quest: Dict[int, List[TQuest]]
     module: Dict[int, List[TModule]]
@@ -228,6 +230,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         iceshroom = auto()
         hotshroom = auto()
         lazhuyandong = auto()
+        lieshouzhixue = auto()
         ourostone = auto()              # contains two buffs
         ranshefashu = auto()
         inv_ranshefashu = auto()
