@@ -3973,6 +3973,173 @@ class polezombie(_card):
         else:
             await user.death(c=TCounter(jump=True))
 
+class mishi1(_card):
+    name = "密教残篇"
+    id = 140
+    positive = 1
+    description = "获得正面状态“探索都城”，该系列效果同一玩家同时只能拥有一个。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        M = user.check_limited_status('M')
+        if len(M) > 0:
+            M[0].num = 1
+            user.data.save_status_time()
+            user.send_log(f"取消了之前的探索并开始探索都城！")
+        else:
+            await user.add_limited_status(Sexplore(1))
+            user.send_log(f"开始探索都城！")
+class mishi2(_card):
+    name = "鬼祟的真相"
+    id = 141
+    positive = 1
+    description = "获得正面状态“探索各郡”，该系列效果同一玩家同时只能拥有一个。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        M = user.check_limited_status('M')
+        if len(M) > 0:
+            M[0].num = 2
+            user.data.save_status_time()
+            user.send_log(f"取消了之前的探索并开始探索各郡！")
+        else:
+            await user.add_limited_status(Sexplore(2))
+            user.send_log(f"开始探索各郡！")
+class mishi3(_card):
+    name = "被遗忘的史籍"
+    id = 142
+    positive = 1
+    description = "获得正面状态“探索大陆”，该系列效果同一玩家同时只能拥有一个。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        M = user.check_limited_status('M')
+        if len(M) > 0:
+            M[0].num = 3
+            user.data.save_status_time()
+            user.send_log(f"取消了之前的探索并开始探索大陆！")
+        else:
+            await user.add_limited_status(Sexplore(3))
+            user.send_log(f"开始探索大陆！")
+class mishi4(_card):
+    name = "禁断的史诗"
+    id = 143
+    positive = 1
+    description = "获得正面状态“探索森林尽头之地”，该系列效果同一玩家同时只能拥有一个。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        M = user.check_limited_status('M')
+        if len(M) > 0:
+            M[0].num = 4
+            user.data.save_status_time()
+            user.send_log(f"取消了之前的探索并开始森林尽头之地！")
+        else:
+            await user.add_limited_status(Sexplore(4))
+            user.send_log(f"开始森林尽头之地！")
+class mishi5(_card):
+    name = "悬而未定的模棱两可"
+    id = 144
+    positive = 1
+    description = "获得正面状态“探索撕身山脉”，该系列效果同一玩家同时只能拥有一个。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        M = user.check_limited_status('M')
+        if len(M) > 0:
+            M[0].num = 5
+            user.data.save_status_time()
+            user.send_log(f"取消了之前的探索并开始探索撕身山脉！")
+        else:
+            await user.add_limited_status(Sexplore(5))
+            user.send_log(f"开始探索撕身山脉！")
+class mishi6(_card):
+    name = "浪游旅人的地图"
+    id = 145
+    positive = 1
+    description = "获得正面状态“探索荒寂而平阔的沙地”，该系列效果同一玩家同时只能拥有一个。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        M = user.check_limited_status('M')
+        if len(M) > 0:
+            M[0].num = 6
+            user.data.save_status_time()
+            user.send_log(f"取消了之前的探索并开始探索荒寂而平阔的沙地！")
+        else:
+            await user.add_limited_status(Sexplore(6))
+            user.send_log(f"开始探索荒寂而平阔的沙地！")
+class mishi7(_card):
+    name = "午港奇闻"
+    id = 146
+    positive = 1
+    description = "获得正面状态“探索薄暮群屿”，该系列效果同一玩家同时只能拥有一个。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        M = user.check_limited_status('M')
+        if len(M) > 0:
+            M[0].num = 7
+            user.data.save_status_time()
+            user.send_log(f"取消了之前的探索并开始探索薄暮群屿！")
+        else:
+            await user.add_limited_status(Sexplore(7))
+            user.send_log(f"开始探索薄暮群屿！")
+class Sexplore(NumedStatus):
+    id = 'M'
+    if self.num == 1:
+        des = "探索都城：你将会触发一系列随机事件。"
+        @classmethod
+        async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+            i = int(random.randon()*6)
+            if i == 0:
+                user.send_log(f"置身斯特拉斯科因的寓所")
+                user.buf.send("你发现了一些稀有的收藏。抽取一张广告牌。")
+                await user.draw(0,cards=[Card(94)])
+            elif i == 1:
+                user.send_log(f"置身被遗忘的密特拉寺")
+                user.buf.send("你在此地进行了虔诚（）的祈祷。如果你此次接龙因各种原因被击毙，减少0～10%的死亡时间。")
+                await
+            elif i == 2:
+                user.send_log(f"置身凯特与赫洛有限公司")
+                user.buf.send("你在因不明爆炸而荒废的大厦中可能寻得一些东西，或是失去一些东西。")
+                if random.random() < 0.5:
+                    user.add_jibi(1)
+                else:
+                    user.add_jibi(-1)
+            elif i == 3:
+                user.send_log(f"置身圣亚割尼医院")
+                user.buf.send("医院给了你活力。你在本日获得额外1次接龙获得击毙的机会。")
+                user.data.today_jibi += 1
+            elif i == 4:
+                user.send_log(f"置身许伦的圣菲利克斯之会众")
+                user.buf.send("你被虔诚的教徒们包围了，他们追奉启之法则。你下一次接龙需要进行首尾接龙。")
+                user.add_status(Sjiaotu)
+            else:
+                user.send_log(f"置身荒废的河岸街")
+                user.buf.send("你掉进了河里。被击毙15分钟，并失去状态“探索都城”。")
+                self.num = 0
+                await user.death(15)
+                user.data.save_status_time()
+    elif self.num == 2:
+        des = "探索各郡：你将会触发一系列随机事件。"
+        @classmethod
+        async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+            i = int(random.randon()*6)
+            if i == 0:
+                user.send_log(f"置身格拉德温湖")
+                user.buf.send("")
+
+class Sjiaotu(_statusnull):
+    id = 'J'
+    des = "置身许伦的圣菲利克斯之会众：被虔诚的教徒们包围，他们追奉启之法则，你下一次接龙需要进行首尾接龙。"
+    is_debuff = True
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+        if parent.word != '' and word != '' and parent.word[-1] != word[0]:
+            return False, 0, "虔诚的教徒们说，你需要首尾接龙，接龙失败。"
+        return True, 0, ""
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        user.remove_status('J')
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.jiaotu, cls),
+            UserEvt.OnDragoned: (Priority.OnDragoned.jiaotu, cls)}
+
 class steamsummer(_card):
     name = "Steam夏季特卖"
     id = 151
