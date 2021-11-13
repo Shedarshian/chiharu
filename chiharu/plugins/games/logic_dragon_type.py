@@ -163,6 +163,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         lveduozhebopu = auto()
         huiye = auto()
         inv_huiye = auto()
+        shangba = auto()
 
     class OnAttack(IntEnum):
         imaginebreaker = auto()         # imagine breaker is suggested to be the first
@@ -229,6 +230,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         ranshefashu = auto()
         inv_ranshefashu = auto()
         jiaotu = auto()
+        shequn = auto()
         hierophant = auto()
         inv_hierophant = auto()
 
@@ -267,7 +269,6 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         panjue = auto()                 # contains both a and b
         panjuecheck = auto()            # contains both a and b
         jack_in_the_box = auto()
-        jiaotu = auto()
         star = auto()
         dihuopenfa = auto()
         xixueshashou = auto()

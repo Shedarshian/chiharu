@@ -4107,7 +4107,7 @@ class Sexplore(NumedStatus):
             elif i == 4:
                 user.send_log(f"置身许伦的圣菲利克斯之会众")
                 user.buf.send("你被虔诚的教徒们包围了，他们追奉启之法则。你下一次接龙需要进行首尾接龙。")
-                user.add_status(Sjiaotu)
+                user.add_status('J')
             else:
                 user.send_log(f"置身荒废的河岸街")
                 user.buf.send("你掉进了河里。被击毙15分钟，并失去状态“探索都城”。")
@@ -4121,8 +4121,33 @@ class Sexplore(NumedStatus):
             i = int(random.randon()*6)
             if i == 0:
                 user.send_log(f"置身格拉德温湖")
-                user.buf.send("")
-
+                user.buf.send("此处有蛇群把守。下一个接龙的人需要进行首尾接龙。")
+                await Userme(user).add_status('|')
+            elif i == 1:
+                user.send_log(f"置身洛克伍德沼地")
+                user.buf.send("成真的神明或是在守望此地。如果你此次接龙被击毙，减少25%死亡时间。")
+                await
+            elif i == 2:
+                user.send_log(f"置身克罗基斯山丘")
+                user.buf.send("守望此地之人将充满伤疤。")
+                await user.add_daily_status(Sshangba)
+            elif i == 3:
+                user.send_log(f"置身凯格琳的财宝")
+                user.buf.send("这里曾经是银矿，再下面则是具名者的藏匿。获得5击毙，然后抽取一张负面卡片并立即使用。")
+                user.add_jibi(5)
+                c = draw_card({-1})
+                await user.draw_and_use(c)
+            elif i == 4:
+                user.send_log(f"置身高威尔旅馆")
+                user.buf.send("藏书室非常隐蔽。25%概率抽一张卡。")
+                if random.random() < 0.25:
+                    await user.draw(1)
+            elif i == 5:
+                user.send_log(f"置身凯尔伊苏姆")
+                user.buf.send("你在最后一个房间一念之差被困住了。被击毙30分钟，并失去状态“探索各郡”。")
+                self.num = 0
+                await user.death(30)
+                user.data.save_status_time()
 class Sjiaotu(_statusnull):
     id = 'J'
     des = "置身许伦的圣菲利克斯之会众：被虔诚的教徒们包围，他们追奉启之法则，你下一次接龙需要进行首尾接龙。"
@@ -4131,14 +4156,40 @@ class Sjiaotu(_statusnull):
     async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
         if parent.word != '' and word != '' and parent.word[-1] != word[0]:
             return False, 0, "虔诚的教徒们说，你需要首尾接龙，接龙失败。"
+        user.remove_status('J')
         return True, 0, ""
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        user.remove_status('J')
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.jiaotu, cls)}
+class Sshequn(_statusnull):
+    id = '|'
+    des = "置身格拉德温湖：此处有蛇群把守。下一个接龙的人需要进行首尾接龙。"
+    is_global = True
+    is_debuff = True
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+        if parent.word != '' and word != '' and parent.word[-1] != word[0]:
+            return False, 0, "蛇群阻止了你的非首尾接龙，接龙失败。"
+        user.remove_status('|')
+        return True, 0, ""
     @classmethod
     def register(cls) -> dict[int, TEvent]:
-        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.jiaotu, cls),
-            UserEvt.OnDragoned: (Priority.OnDragoned.jiaotu, cls)}
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.shequn, cls)}
+class Sshangba(_statusdaily):
+    id = 'S'
+    des = "伤疤：本日中你每死亡一次便获得2击毙。"
+    @classmethod
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+        if await c.pierce():
+            user.send_log("的效果被幻想杀手消除了！")
+            await user.remove_status('S')
+        else:
+            user.send_log(f"触发了伤疤！奖励{count}击毙。")
+            await user.add_jibi(count)
+        return time, False
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDeath: (Priority.OnDeath.shangba, cls)}
 
 class steamsummer(_card):
     name = "Steam夏季特卖"
