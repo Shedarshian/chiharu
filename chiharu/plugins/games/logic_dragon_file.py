@@ -4130,7 +4130,7 @@ class Sexplore(NumedStatus):
         elif i == 1:
             user.send_log(f"置身被遗忘的密特拉寺")
             user.buf.send("你在此地进行了虔诚（）的祈祷。如果你此次接龙因各种原因被击毙，减少0～10%的死亡时间。")
-            await
+            await #减少随机0~10%！
         elif i == 2:
             user.send_log(f"置身凯特与赫洛有限公司")
             user.buf.send("你在因不明爆炸而荒废的大厦中可能寻得一些东西，或是失去一些东西。")
@@ -4162,7 +4162,7 @@ class Sexplore(NumedStatus):
         elif i == 1:
             user.send_log(f"置身洛克伍德沼地")
             user.buf.send("成真的神明或是在守望此地。如果你此次接龙被击毙，减少25%死亡时间。")
-            await
+            await #减少25%！
         elif i == 2:
             user.send_log(f"置身克罗基斯山丘")
             user.buf.send("守望此地之人将充满伤疤。")
@@ -4259,7 +4259,7 @@ class Sexplore(NumedStatus):
         elif i == 1:
             user.send_log(f"置身大公的城塞")
             user.buf.send("他平复了许多人的干渴，最终又败给了自己的干渴。若你因本次接龙被击毙，减少50%的死亡时间。")
-            await
+            await #减少50！
         elif i == 2:
             user.send_log(f"置身格吕内瓦尔德的常驻马戏团")
             user.buf.send("马戏团众人在每个地方都贴满了写满图标的纸张，这个地方散发着虚界的气息。你的下一次接龙不受全局状态的影响。")
@@ -4330,7 +4330,7 @@ class Sexplore(NumedStatus):
                 n.remove()
             from .logic_dragon import rewrite_log_file
             rewrite_log_file()
-            await
+            await #减少100%！
         elif i == 2:
             user.send_log(f"置身伊克玛维之眼")
             user.buf.send("这里是观星台，是大地的眼睛。公开揭示今天一个隐藏奖励词，该效果每天只会触发一次。")

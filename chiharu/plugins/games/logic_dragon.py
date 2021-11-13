@@ -296,7 +296,7 @@ async def daily_update(buf: SessionBuffer) -> str:
         for r in config.userdata.execute("select qq, daily_status from dragon_data").fetchall():
             if 'd' in r['daily_status']:
                 await User(r['qq'], buf).remove_daily_status('d')
-    else: #当个人daily_status中存在'l'时，仅消除负面daily_status及它自身
+    else: #TODO：当个人daily_status中存在'l'时，仅消除负面daily_status及它自身
         config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=1, spend_shop=0', ('',))
     for r in config.userdata.execute("select qq, status, daily_status, status_time, equipment from dragon_data").fetchall():
         def _(s, st):
