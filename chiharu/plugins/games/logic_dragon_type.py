@@ -12,6 +12,7 @@ TSteal = TypedDict('TSteal', user=List[int], time=int)
 class TGlobalState(TypedDict):
     last_card_user: int
     exchange_stack: List[int]
+    used_cards: List[int]
     # lianhuan: List[int]
     quest: Dict[int, List[TQuest]]
     module: Dict[int, List[TModule]]

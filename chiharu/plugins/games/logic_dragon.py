@@ -287,6 +287,7 @@ async def daily_update(buf: SessionBuffer) -> str:
     for qq in global_state['steal']:
         config.logger.dragon << f"【LOG】更新了用户{qq}的偷状态。"
         global_state['steal'][qq] = {'time': 0, 'user': []}
+    global_state['used_cards'] = []
     save_global_state()
     if me.check_daily_status('s'):
         await User(config.selfqq, buf).remove_daily_status('s', remove_all=False)
@@ -538,6 +539,8 @@ async def dragon_use_card(buf: SessionBuffer):
         buf.finish(card.failure_message)
     async with user.settlement():
         await user.use_card(card)
+        if card.id not in global_state['used_cards']:
+            global_state['used_cards'].append(card.id)
     global_state['last_card_user'] = qq
     save_global_state()
 

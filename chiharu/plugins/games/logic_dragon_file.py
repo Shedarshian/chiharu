@@ -990,6 +990,9 @@ class User:
         if not card.des_need_init:
             await self.draw_card_effect(card)
         await self.use_card_effect(card)
+        if card.id not in global_state['used_cards']:
+            global_state['used_cards'].append(card.id)
+            save_global_state()
         await card.on_remove(self)
     async def draw_card_effect(self, card: TCard):
         """抽卡时的结算。"""
@@ -4187,7 +4190,12 @@ class Sexplore(NumedStatus):
             elif i == 2:
                 user.send_log(f"置身俄尔托斯树林")
                 user.buf.send("你目睹了群鸦的回忆。触发本日内曾被使用过的一张卡片的效果。")
-                await
+                if len(global_state['used_cards']) == 0:
+                    user.send_log("今日没有使用过卡牌！")
+                else:
+                    c = Card[random.choice(global_state['used_cards'])]
+                    user.send_log(f"遇见的群鸦选择了卡牌{c.name}。")
+                    await user.use_card_effect(c)
             elif i == 3:
                 user.send_log(f"置身范德沙夫收藏馆")
                 user.buf.send("严密把守的储藏室中有不吉利的宝物。获得10击毙，并触发你手牌中一张非正面卡牌的效果。如果你的手中没有非正面卡牌，则将一张“邪恶的间谍行动～执行”置入你的手牌。")
