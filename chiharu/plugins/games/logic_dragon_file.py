@@ -4104,6 +4104,7 @@ class Sexplore(NumedStatus):
                 user.send_log(f"置身圣亚割尼医院")
                 user.buf.send("医院给了你活力。你在本日获得额外1次接龙获得击毙的机会。")
                 user.data.today_jibi += 1
+                config.logger.dragon << f"【LOG】用户{user.qq}增加了接龙击毙上限至{user.data.today_jibi}。"
             elif i == 4:
                 user.send_log(f"置身许伦的圣菲利克斯之会众")
                 user.buf.send("你被虔诚的教徒们包围了，他们追奉启之法则。你下一次接龙需要进行首尾接龙。")
@@ -4130,7 +4131,7 @@ class Sexplore(NumedStatus):
             elif i == 2:
                 user.send_log(f"置身克罗基斯山丘")
                 user.buf.send("守望此地之人将充满伤疤。")
-                await user.add_daily_status(Sshangba)
+                await user.add_daily_status('S')
             elif i == 3:
                 user.send_log(f"置身凯格琳的财宝")
                 user.buf.send("这里曾经是银矿，再下面则是具名者的藏匿。获得5击毙，然后抽取一张负面卡片并立即使用。")
@@ -4142,11 +4143,75 @@ class Sexplore(NumedStatus):
                 user.buf.send("藏书室非常隐蔽。25%概率抽一张卡。")
                 if random.random() < 0.25:
                     await user.draw(1)
-            elif i == 5:
+            else:
                 user.send_log(f"置身凯尔伊苏姆")
                 user.buf.send("你在最后一个房间一念之差被困住了。被击毙30分钟，并失去状态“探索各郡”。")
                 self.num = 0
                 await user.death(30)
+                user.data.save_status_time()
+    elif self.num == 3:
+        des = "探索大陆：你将会触发一系列随机事件。"
+        @classmethod
+        async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+            i = int(random.randon()*6)
+            if i == 0:
+                user.send_log(f"置身拉维林城堡")
+                user.buf.send("住在这里的曾是太阳王的后裔。随机解除你的一个负面效果。")
+                has = 1
+                for c in map(StatusNull, user.data.status):
+                    if c.id != 'd' and c.is_debuff and has > 0:
+                        has -= 1
+                        user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
+                        await user.remove_status(c.id, remove_all=False)
+                for c in map(StatusDaily, user.data.daily_status):
+                    if c.id != 'd' and c.is_debuff and has > 0:
+                        has -= 1
+                        user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
+                        await user.remove_daily_status(c.id, remove_all=False)
+                i = 0
+                while i < len(user.data.status_time_checked):
+                    s = user.data.status_time[i]
+                    if s.id != 'd' and s is not Swufazhandou and s.is_debuff and has > 0:
+                        has -= 1
+                        des = s.des
+                        user.send_log(f"的{des[:des.index('：')]}被取消了！")
+                        await user.remove_limited_status(s)
+                    else:
+                        i += 1
+                user.data.save_status_time()
+            elif i == 1:
+                user.send_log(f"置身费米尔修道院")
+                user.buf.send("僧侣信奉象征欲望的杯之准则。失去5击毙，然后你今天每次接龙额外获得1击毙。")
+                user.add_jibi(-5)
+                await user.add_daily_status('C')
+            elif i == 2:
+                user.send_log(f"置身俄尔托斯树林")
+                user.buf.send("你目睹了群鸦的回忆。触发本日内曾被使用过的一张卡片的效果。")
+                await
+            elif i == 3:
+                user.send_log(f"置身范德沙夫收藏馆")
+                user.buf.send("严密把守的储藏室中有不吉利的宝物。获得10击毙，并触发你手牌中一张非正面卡牌的效果。如果你的手中没有非正面卡牌，则将一张“邪恶的间谍行动～执行”置入你的手牌。")
+                user.add_jibi(10)
+                cs = []
+                for c in user.data.hand_card:
+                    if c.positive != -1:
+                        cs.append(c)
+                if len(cs) == 0:
+                    user.draw(0,cards=[Card(-1)])
+                else:
+                    card = random.choice(cs)
+                    user.send_log(f"触发的宝物选择了卡牌{card.name}。")
+                    await user.use_card_effect(card)
+            elif i == 4:
+                user.send_log(f"置身钥匙猎人的阁楼")
+                user.buf.send("我们听说了一名狩猎空想之钥的古怪猎人所著的一小批古怪书籍。你今天获得额外五次接龙机会。")
+                user.data.today_jibi += 5
+                config.logger.dragon << f"【LOG】用户{user.qq}增加了接龙击毙上限至{user.data.today_jibi}。"
+            else:
+                user.send_log(f"置身一望无际的巨石阵")
+                user.buf.send("当无月之夜来临，当地人会补充残留下的东西。被击毙60分钟，并失去状态“探索大陆”。")
+                self.num = 0
+                await user.death(60)
                 user.data.save_status_time()
 class Sjiaotu(_statusnull):
     id = 'J'
@@ -4190,6 +4255,16 @@ class Sshangba(_statusdaily):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDeath: (Priority.OnDeath.shangba, cls)}
+class Sbeizhizhunze(_statusdaily):
+    id = 'C'
+    des = "杯之准则：你今天每次接龙额外获得1击毙。"
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        user.send_char(f"因为杯之准则额外获得{count}击毙！")
+        await user.add_jibi(count)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.beizhizhunze, cls)}
 
 class steamsummer(_card):
     name = "Steam夏季特卖"
