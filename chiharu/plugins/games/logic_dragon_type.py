@@ -144,6 +144,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         huiye = auto()                  #宝箱：抽卡
         inv_huiye = auto()              #反转宝箱
         shangba = auto()                #伤疤：+2击毙
+        invshangba = auto()
     class OnAttack(IntEnum):
         imaginebreaker = auto()         #幻杀：破防
                                         # imagine breaker is suggested to be the first
@@ -199,13 +200,17 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         iceshroom = auto()              #冰/热菇：全局计算距离
         hotshroom = auto()
         lazhuyandong = auto()           #秘史衍生：计算距离
+        invlazhuyandong = auto()
         lieshouzhixue = auto()
+        invlieshouzhixue = auto()
         ourostone = auto()              #衔尾蛇：首尾
                                         # contains two buffs
         ranshefashu = auto()            #**法术：首尾
         inv_ranshefashu = auto()
         jiaotu = auto()                 #秘史衍生：首尾
+        invjiaotu = auto()
         shequn = auto()
+        invshequn = auto()
         hierophant = auto()             #教皇：首尾
         inv_hierophant = auto()
     class CheckSuguri(IntEnum):
@@ -234,10 +239,11 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         inv_bianhua = auto()            #反转
         zpm = auto()                    #ZPM：新手保护，+1击毙
         shendian = auto()               #秘史衍生：+5击毙
+        invshendian = auto()
         beizhizhunze = auto()           #+2击毙
+        invbeizhizhunze = auto()
         plus2 = auto()                  #+2：抽两张牌
         xixuegui = auto()               #？？？？
-        circus = auto()                 #秘史衍生：被弃
         panjue = auto()                 #判决传播 contains both a and b
         panjuecheck = auto()            #判决重合 contains both a and b
         jack_in_the_box = auto()        #玩偶匣：爆炸判定
@@ -245,10 +251,15 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         dihuopenfa = auto()             #地火：埋雷判定
         xixueshashou = auto()           #吸血杀手：抽卡判定
         forkbomb = auto()               #叉子炸弹：分叉判定
-        lazhuyandong = auto()           #秘史衍生：被弃判定
+        circus = auto()                 #秘史衍生：被弃
+        lazhuyandong = auto()
+        invlazhuyandong = auto()
         lieshouzhixue = auto()
+        invlieshouzhixue = auto()
         shequn = auto()
+        invshequn = auto()
         jiaotu = auto()
+        invjiaotu = auto()
     class OnNewDay(IntEnum):
         tarot = auto()
         quest = auto()
