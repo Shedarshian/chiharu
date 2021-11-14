@@ -769,7 +769,7 @@ class User:
             self.data._register_status(StatusNull(s), count=count)
             await StatusNull(s).on_add(count)
             if StatusNull(s).is_global():
-                global_state['global_status'].append([0,s]*count)
+                global_state['global_status'].append((0,s)*count)
                 save_global_state()
             return True
     async def add_daily_status(self, s: str, count=1):
@@ -784,7 +784,7 @@ class User:
             self.data._register_status(StatusDaily(s), count=count)
             await StatusDaily(s).on_add(count)
             if StatusDaily(s).is_global():
-                global_state['global_status'].append([1,s]*count)
+                global_state['global_status'].append((1,s)*count)
                 save_global_state()
             return True
     async def add_limited_status(self, s: Union[str, T_status], *args, **kwargs):
@@ -804,7 +804,7 @@ class User:
             self.data._register_status_time(ss)
             await ss.on_add([ss])
             if ss.is_global():
-                global_state['global_status'].append([2,repr(ss)])
+                global_state['global_status'].append((2,repr(ss)))
                 save_global_state()
             return True
     async def remove_status(self, s: str, /, remove_all=True):
@@ -826,10 +826,10 @@ class User:
             await StatusNull(s).on_remove(remove_all)
             if StatusNull(s).is_global:
                 if remove_all:
-                    while [0, s] in global_state['global_status']:
-                        global_state['global_status'].remove([0, s])
+                    while (0, s) in global_state['global_status']:
+                        global_state['global_status'].remove((0, s))
                 else:
-                    global_state['global_status'].remove([0, s])
+                    global_state['global_status'].remove((0, s))
                 save_global_state()
             return True
     async def remove_daily_status(self, s: str, /, remove_all=True):
@@ -851,10 +851,10 @@ class User:
             await StatusDaily(s).on_remove(remove_all)
             if StatusDaily(s).is_global:
                 if remove_all:
-                    while [1, s] in global_state['global_status']:
-                        global_state['global_status'].remove([1, s])
+                    while (1, s) in global_state['global_status']:
+                        global_state['global_status'].remove((1, s))
                 else:
-                    global_state['global_status'].remove([1, s])
+                    global_state['global_status'].remove((1, s))
                 save_global_state()
             return True
     async def remove_limited_status(self, s: T_status):
@@ -868,8 +868,8 @@ class User:
             self.log << f"移除了一个限时状态{s}。"
             self.data._deregister_status_time(s, is_all=False)
             await s.on_remove(False)
-            if s.is_global and [2, repr(s)] in global_state['global_status']:
-                global_state['global_status'].remove([2, repr(s)])
+            if s.is_global and (2, repr(s)) in global_state['global_status']:
+                global_state['global_status'].remove((2, repr(s)))
                 save_global_state()
             return True
     async def remove_all_limited_status(self, s: str):
