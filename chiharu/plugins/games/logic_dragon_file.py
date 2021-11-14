@@ -769,7 +769,8 @@ class User:
             self.data._register_status(StatusNull(s), count=count)
             await StatusNull(s).on_add(count)
             if StatusNull(s).is_global():
-                global_state['global_status'].append((0,s)*count)
+                for i in range(0,count)
+                    global_state['global_status'].append((0,s))
                 save_global_state()
             return True
     async def add_daily_status(self, s: str, count=1):
@@ -784,7 +785,8 @@ class User:
             self.data._register_status(StatusDaily(s), count=count)
             await StatusDaily(s).on_add(count)
             if StatusDaily(s).is_global():
-                global_state['global_status'].append((1,s)*count)
+                for i in range(0,count)
+                    global_state['global_status'].append((1,s))
                 save_global_state()
             return True
     async def add_limited_status(self, s: Union[str, T_status], *args, **kwargs):
