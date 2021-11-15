@@ -4117,377 +4117,328 @@ class polezombie(_card):
 #         else:
 #             await user.add_limited_status(Sexplore(7))
 #             user.send_log(f"开始探索薄暮群屿！")
-# class Sexplore(NumedStatus):
-#     id = 'M'
-#     @property
-#     def des(self):
-#         i = count[0].num
-#         if i in range(1,8)
-#             spot = ["都城","各郡","大陆","森林尽头之地","撕身山脉","荒寂而平阔的沙地","薄暮群屿"][self.num-1]
-#             return f"探索{spot}：你将会触发一系列随机事件。"
-#         elif i == 8:
-#             return f"探索薄暮群屿：你将会触发一系列随机事件。\n\t置身格里克堡：直到失去状态“探索薄暮群屿”，抵御所有死亡效果。"
-#     def __str__(self) -> str:
-#         return f"{self.des}"
-#     def double(self):
-#         return self
-#     @classmethod
-#     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-#         if count[0].num == 1:
-#             i = int(random.randon()*6)
-#             if i == 0:
-#                 user.send_log(f"置身斯特拉斯科因的寓所")
-#                 user.buf.send("你发现了一些稀有的收藏。抽取一张广告牌。")
-#                 await user.draw(0,cards=[Card(94)])
-#             elif i == 1:
-#                 user.send_log(f"置身被遗忘的密特拉寺")
-#                 user.buf.send("你在此地进行了虔诚（）的祈祷。如果你此次接龙因各种原因被击毙，减少0～10%的死亡时间。")
-#                 await #减少随机0~10%！
-#             elif i == 2:
-#                 user.send_log(f"置身凯特与赫洛有限公司")
-#                 user.buf.send("你在因不明爆炸而荒废的大厦中可能寻得一些东西，或是失去一些东西。")
-#                 if random.random() < 0.5:
-#                     user.add_jibi(1)
-#                 else:
-#                     user.add_jibi(-1)
-#             elif i == 3:
-#                 user.send_log(f"置身圣亚割尼医院")
-#                 user.buf.send("医院给了你活力。你在本日获得额外1次接龙获得击毙的机会。")
-#                 user.data.today_jibi += 1
-#                 config.logger.dragon << f"【LOG】用户{user.qq}增加了接龙击毙上限至{user.data.today_jibi}。"
-#             elif i == 4:
-#                 user.send_log(f"置身许伦的圣菲利克斯之会众")
-#                 user.buf.send("你被虔诚的教徒们包围了，他们追奉启之法则。你下一次接龙需要进行首尾接龙。")
-#                 user.add_status('J')
-#             else:
-#                 user.send_log(f"置身荒废的河岸街")
-#                 user.buf.send("你掉进了河里。被击毙15分钟，并失去状态“探索都城”。")
-#                 count[0].num = 0
-#                 await user.death(15)
-#                 user.data.save_status_time()
-#         elif count[0].num == 2:
-#             i = int(random.randon()*6)
-#             if i == 0:
-#                 user.send_log(f"置身格拉德温湖")
-#                 user.buf.send("此处有蛇群把守。下一个接龙的人需要进行首尾接龙。")
-#                 await Userme(user).add_status('|')
-#             elif i == 1:
-#                 user.send_log(f"置身洛克伍德沼地")
-#                 user.buf.send("成真的神明或是在守望此地。如果你此次接龙被击毙，减少25%死亡时间。")
-#                 await #减少25%！
-#             elif i == 2:
-#                 user.send_log(f"置身克罗基斯山丘")
-#                 user.buf.send("守望此地之人将充满伤疤。")
-#                 await user.add_daily_status('S')
-#             elif i == 3:
-#                 user.send_log(f"置身凯格琳的财宝")
-#                 user.buf.send("这里曾经是银矿，再下面则是具名者的藏匿。获得5击毙，然后抽取一张负面卡片并立即使用。")
-#                 user.add_jibi(5)
-#                 c = draw_card({-1})
-#                 await user.draw_and_use(c)
-#             elif i == 4:
-#                 user.send_log(f"置身高威尔旅馆")
-#                 user.buf.send("藏书室非常隐蔽。25%概率抽一张卡。")
-#                 if random.random() < 0.25:
-#                     await user.draw(1)
-#             else:
-#                 user.send_log(f"置身凯尔伊苏姆")
-#                 user.buf.send("你在最后一个房间一念之差被困住了。被击毙30分钟，并失去状态“探索各郡”。")
-#                 count[0].num = 0
-#                 await user.death(30)
-#                 user.data.save_status_time()
-#         elif count[0].num == 3:
-#             i = int(random.randon()*6)
-#             if i == 0:
-#                 user.send_log(f"置身拉维林城堡")
-#                 user.buf.send("住在这里的曾是太阳王的后裔。随机解除你的一个负面效果。")
-#                 has = 1
-#                 for c in map(StatusNull, user.data.status):
-#                     if c.id != 'd' and c.is_debuff and has > 0:
-#                         has -= 1
-#                         user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
-#                         await user.remove_status(c.id, remove_all=False)
-#                 for c in map(StatusDaily, user.data.daily_status):
-#                     if c.id != 'd' and c.is_debuff and has > 0:
-#                         has -= 1
-#                         user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
-#                         await user.remove_daily_status(c.id, remove_all=False)
-#                 i = 0
-#                 while i < len(user.data.status_time_checked):
-#                     s = user.data.status_time[i]
-#                     if s.id != 'd' and s is not Swufazhandou and s.is_debuff and has > 0:
-#                         has -= 1
-#                         des = s.des
-#                         user.send_log(f"的{des[:des.index('：')]}被取消了！")
-#                         await user.remove_limited_status(s)
-#                     else:
-#                         i += 1
-#                 user.data.save_status_time()
-#             elif i == 1:
-#                 user.send_log(f"置身费米尔修道院")
-#                 user.buf.send("僧侣信奉象征欲望的杯之准则。失去5击毙，然后你今天每次接龙额外获得1击毙。")
-#                 user.add_jibi(-5)
-#                 await user.add_daily_status('C')
-#             elif i == 2:
-#                 user.send_log(f"置身俄尔托斯树林")
-#                 user.buf.send("你目睹了群鸦的回忆。触发本日内曾被使用过的一张卡片的效果。")
-#                 if len(global_state['used_cards']) == 0:
-#                     user.send_log("今日没有使用过卡牌！")
-#                 else:
-#                     c = Card[random.choice(global_state['used_cards'])]
-#                     user.send_log(f"遇见的群鸦选择了卡牌{c.name}。")
-#                     await user.use_card_effect(c)
-#             elif i == 3:
-#                 user.send_log(f"置身范德沙夫收藏馆")
-#                 user.buf.send("严密把守的储藏室中有不吉利的宝物。获得10击毙，并触发你手牌中一张非正面卡牌的效果。如果你的手中没有非正面卡牌，则将一张“邪恶的间谍行动～执行”置入你的手牌。")
-#                 user.add_jibi(10)
-#                 cs = []
-#                 for c in user.data.hand_card:
-#                     if c.positive != -1:
-#                         cs.append(c)
-#                 if len(cs) == 0:
-#                     user.draw(0,cards=[Card(-1)])
-#                 else:
-#                     card = random.choice(cs)
-#                     user.send_log(f"触发的宝物选择了卡牌{card.name}。")
-#                     await user.use_card_effect(card)
-#             elif i == 4:
-#                 user.send_log(f"置身钥匙猎人的阁楼")
-#                 user.buf.send("我们听说了一名狩猎空想之钥的古怪猎人所著的一小批古怪书籍。你今天获得额外五次接龙机会。")
-#                 user.data.today_jibi += 5
-#                 config.logger.dragon << f"【LOG】用户{user.qq}增加了接龙击毙上限至{user.data.today_jibi}。"
-#             else:
-#                 user.send_log(f"置身一望无际的巨石阵")
-#                 user.buf.send("当无月之夜来临，当地人会补充残留下的东西。被击毙60分钟，并失去状态“探索大陆”。")
-#                 count[0].num = 0
-#                 await user.death(60)
-#                 user.data.save_status_time()
-#         elif count[0].num == 4:
-#             i = int(random.randon()*6)
-#             if i == 0:
-#                 user.send_log(f"置身蜡烛岩洞")
-#                 user.buf.send("岩洞的内部出乎意料地明亮。你下一次接龙只需要相隔一个人。")
-#                 await user.add_status('L')
-#             elif i == 1:
-#                 user.send_log(f"置身大公的城塞")
-#                 user.buf.send("他平复了许多人的干渴，最终又败给了自己的干渴。若你因本次接龙被击毙，减少50%的死亡时间。")
-#                 await #减少50！
-#             elif i == 2:
-#                 user.send_log(f"置身格吕内瓦尔德的常驻马戏团")
-#                 user.buf.send("马戏团众人在每个地方都贴满了写满图标的纸张，这个地方散发着虚界的气息。你的下一次接龙不受全局状态的影响。")
-#                 await user.add_status('%')
-#             elif i == 3:
-#                 user.send_log(f"置身瑞弗克塔楼")
-#                 user.buf.send("你们离去时，残塔消失了。清除上一个添加的全局状态。")
-#                 if len(global_state['global_status']) == 0:
-#                     user.send_log("没有可以清除的全局状态！")
-#                 else:
-#                     ss = global_state['global_status'][-1]
-#                     if ss[0] == 0:
-#                         sdes = StatusNull(ss[1]).des
-#                         sdes = sdes[:sdes.index['：']]
-#                         user.send_log(f"移除了{sdes}。")
-#                         await Userme(user).remove_status(ss[1])
-#                     elif ss[0] == 1:
-#                         sdes = StatusDaily(ss[1]).des
-#                         sdes = sdes[:sdes.index['：']]
-#                         user.send_log(f"移除了{sdes}。")
-#                         await Userme(user).remove_daily_status(ss[1])
-#                     else:
-#                         for gs in Userme(user).check_limited_status():
-#                             if repr(gs) == ss[1]:
-#                                 sdes = gs.des
-#                                 sdes = sdes[:sdes.index['：']]
-#                                 user.send_log(f"移除了{sdes}。")
-#                                 await Userme(user).remove_limited_status(gs)
-#             elif i == 4:
-#                 user.send_log(f"置身库兹涅佐夫的捐赠")
-#                 user.buf.send("库兹涅佐夫公爵将他沾满鲜血的财富的四分之一捐给这座地方大学以建立末世学学部。随机添加一个全局状态。")
-#                 i = random.random()
-#                 if i < 0.5:
-#                     while True:
-#                         s = random.choice(_statusnull.id_dict.keys())
-#                         if StatusNull(s).is_global:
-#                             break
-#                     await user.add_status(s)
-#                     user.send_log(f"添加了全局状态{s.des[:s.des.index('：')]}。")
-#                 else:
-#                     while True:
-#                         s = random.choice(_statusdaily.id_dict.keys())
-#                         if StatusDaily(s).is_global:
-#                             break
-#                     await user.add_daily_status(s)
-#                     user.send_log(f"添加了全局状态{s.des[:s.des.index('：')]}。")
-#             else:
-#                 user.send_log(f"置身狐百合原野")
-#                 user.buf.send("我们将布浸入氨水，蒙在脸上，以抵抗狐百合的香气。即便这样，我们仍然头晕目眩，身体却对各种矛盾的欲望作出回应。被击毙90分钟，并失去状态“探索森林尽头之地”。")
-#                 count[0].num = 0
-#                 await user.death(90)
-#                 user.data.save_status_time()
-#         elif count[0].num == 5:
-#             i = int(random.random()*5)
-#             if i == 0:
-#                 user.send_log(f"置身猎手之穴")
-#                 user.buf.send("在这里必须隐藏自己。上一个人下一次接龙需要间隔三个人。")
-#                 pq = branch.parent.qq
-#                 if pq != self.qq and pq != 0:
-#                     User(pq, user.buf).add_status('&')
-#                 else:
-#                     user.send_log(f"无上一个接龙的玩家！")
-#             elif i == 1:
-#                 user.send_log(f"置身避雪神庙")
-#                 user.buf.send("神庙可以回避一些袭击。本次接龙不会因为一周内接龙过或是踩雷而被击毙，但也没有接龙成功。")
-#                 node = branch.parent
-#                 for n in node.childs:
-#                     n.remove()
-#                 from .logic_dragon import rewrite_log_file
-#                 rewrite_log_file()
-#                 await #减少100%！
-#             elif i == 2:
-#                 user.send_log(f"置身伊克玛维之眼")
-#                 user.buf.send("这里是观星台，是大地的眼睛。公开揭示今天一个隐藏奖励词，该效果每天只会触发一次。")
-#                 if not global_state['observatory']
-#                     from .logic_dragon import hidden_keyword
-#                     user.buf.send("你揭示的一个隐藏奖励词是：" + random.choice(hidden_keyword))
-#                     global_state['observatory'] = True
-#                 else:
-#                     user.buf.send("今天已经使用过观星台！")
-#             elif i == 3:
-#                 user.send_log(f"置身石狼陵墓")
-#                 user.buf.send("送葬者不见踪影，而死者被引来此处。本次接龙额外获得10击毙。")
-#                 await user.add_jibi(10)
-#             else:
-#                 user.send_log(f"置身无影众王的墓群")
-#                 user.buf.send("众王皆向往不死，而仅有一人实现了愿望，其他人只留下了陪葬品。立刻被击毙120分钟，并失去状态“探索撕身山脉”。")
-#                 count[0].num = 0
-#                 await user.death(120)
-#                 user.data.save_status_time()
-#         elif count[0].num == 6:
-#             i = int(random.random()*5)
-#             if i == 0:
-#                 user.send_log(f"置身被星辰击碎的神殿")
-#                 user.buf.send("掉落的陨石反而成了朝拜的对象。在你之后接龙的一个人会额外获得5击毙。")
-#                 await user.add_status('^')
-#             elif i == 1:
-#                 user.send_log(f"置身拉贡之墓")
-#                 user.buf.send("曾经不死的长生者的尸体被保存得很好，直到我们到来。击毙上一个接龙的玩家十五分钟。")
-#                 pq = branch.parent.qq
-#                 if pq != self.qq and pq != 0:
-#                     await User(pq, user.buf).death(15)
-#                 else:
-#                     user.send_log(f"无上一个接龙的玩家！")
-#             elif i == 2:
-#                 user.send_log(f"置身墨萨拿")
-#                 user.buf.send("村民们拥有超过自然限度的长寿。获得状态“长生的宴席”。")
-#                 await user.add_limited_status(Schangsheng(120))
-#             elif i == 3:
-#                 user.send_log(f"置身七蟠寺")
-#                 user.buf.send("这座寺庙存在于每一重历史之中。你将与今天结束的正面状态延长至明天。")
-#                 await user.add_daily_status('l')
-#             else:
-#                 user.send_log(f"置身弥阿")
-#                 user.buf.send("有时是我们寻到死者拥有的知识，有时是死者寻到我们。被击毙180分钟，并失去状态“探索荒寂而平阔的沙地”。")
-#                 count[0].num = 0
-#                 await user.death(180)
-#                 user.data.save_status_time()
-#         elif count[0].num == 7:
-#             i = int(random.random()*5)
-#             if i == 0:
-#                 user.send_log(f"置身渡鸦屿")
-#                 user.buf.send("索奎焰特在洞壁上用一百种语言描述他们悲惨的历史。获得一个可以完成10次的新任务，每次可以获得2击毙。")
-#                 await user.add_limited_status(SQuest(10, 2, n := get_mission()))
-#                 user.send_char(f"获得了一个任务：{mission[n][1]}")
-#             elif i == 1:
-#                 user.send_log(f"置身格里克堡")
-#                 user.buf.send("帝国和岛屿没有在任何正史中出现过，但岛上总督的堡垒还在，或许他本人也是。直到失去状态“探索薄暮群屿”，抵御所有死亡效果。")
-#                 count[0].num = 8
-#                 user.data.save_status_time()
-#             elif i == 2:
-#                 user.send_log(f"置身克丽斯塔贝号船骸")
-#                 user.buf.send("一头海兽来向这艘船求爱，但当船不回应这份爱慕时，海兽击碎了它。选择一张手牌弃置，然后抽两张正面卡牌。")
-#                 async with user.choose_cards("请选择你手牌中的一张牌弃置，输入id号。", 1, 1,) as l, check_active(l):
-#                     await user.discard_cards(l)
-#                 await user.draw(2,positive=1)
-#             elif i == 3:
-#                 user.send_log(f"置身深邃之门的圣滕特雷托之僧院")
-#                 user.buf.send("僧院危悬在崖边，它早该坠入海中了。从以下三个效果中随机触发一个：获得20击毙、抽一张牌或随机弃置一张牌。")
-#                 j = int(random.random()*3)
-#                 if j == 0:
-#                     user.send_log(f"获得了20击毙！")
-#                     await user.add_jibi(20)
-#                 elif j == 1:
-#                     user.send_log(f"抽了一张卡！")
-#                     await user.draw(1)
-#                 elif len(copy(user.data.hand_cards)) == 0:
-#                     user.send_log(f"无手牌可弃！")
-#                 else:
-#                     cd = random.choice(copy(user.data.hand_cards))
-#                     user.send_log(f"丢弃了{cd.name}！")
-#                     await user.discard_cards(cd)
-#             else:
-#                 user.send_log(f"置身午港")
-#                 user.buf.send("这座名为“午”的小小岛港是不死者的流放地。被击毙240分钟，并失去状态“探索薄暮群屿”。")
-#                 count[0].num = 0
-#                 await user.death(240)
-#                 user.data.save_status_time()
-#         elif count[0].num == 8:
-#             i = int(random.random()*5)
-#             if i == 0:
-#                 user.send_log(f"置身渡鸦屿")
-#                 user.buf.send("索奎焰特在洞壁上用一百种语言描述他们悲惨的历史。获得一个可以完成10次的新任务，每次可以获得2击毙。")
-#                 await user.add_limited_status(SQuest(10, 2, n := get_mission()))
-#                 user.send_char(f"获得了一个任务：{mission[n][1]}")
-#             elif i == 1:
-#                 user.send_log(f"置身格里克堡")
-#                 user.buf.send("帝国和岛屿没有在任何正史中出现过，但岛上总督的堡垒还在，或许他本人也是。直到失去状态“探索薄暮群屿”，抵御所有死亡效果。")
-#                 user.send_log(f"已经置身于格里克堡了！")
-#             elif i == 2:
-#                 user.send_log(f"置身克丽斯塔贝号船骸")
-#                 user.buf.send("一头海兽来向这艘船求爱，但当船不回应这份爱慕时，海兽击碎了它。选择一张手牌弃置，然后抽两张正面卡牌。")
-#                 async with user.choose_cards("请选择你手牌中的一张牌弃置，输入id号。", 1, 1,) as l, check_active(l):
-#                     await user.discard_cards(l)
-#                 await user.draw(2,positive=1)
-#             elif i == 3:
-#                 user.send_log(f"置身深邃之门的圣滕特雷托之僧院")
-#                 user.buf.send("僧院危悬在崖边，它早该坠入海中了。从以下三个效果中随机触发一个：获得20击毙、抽一张牌或随机弃置一张牌。")
-#                 j = int(random.random()*3)
-#                 if j == 0:
-#                     user.send_log(f"获得了20击毙！")
-#                     await user.add_jibi(20)
-#                 elif j == 1:
-#                     user.send_log(f"抽了一张卡！")
-#                     await user.draw(1)
-#                 elif len(copy(user.data.hand_cards)) == 0:
-#                     user.send_log(f"无手牌可弃！")
-#                 else:
-#                     cd = random.choice(copy(user.data.hand_cards))
-#                     user.send_log(f"丢弃了{cd.name}！")
-#                     await user.discard_cards(cd)
-#             else:
-#                 user.send_log(f"置身午港")
-#                 user.buf.send("这座名为“午”的小小岛港是不死者的流放地。被击毙240分钟，并失去状态“探索薄暮群屿”。")
-#                 count[0].num = 0
-#                 await user.death(240)
-#                 user.data.save_status_time()
-#         else:
-#             count[0].num = 0
-#             user.data.save_status_time()
-#     @classmethod
-#     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
-#         if count[0].num != 8:
-#             return time, False
-#         else:
-#             if await c.pierce():
-#                 user.send_log("堡垒的效果被幻想杀手消除了！")
-#                 count[0].num = 7
-#                 user.save_status_time()
-#             else:
-#                 user.send_log("触发了堡垒的效果，免除死亡！")
-#                 return time, True
-#     @classmethod
-#     def register(cls) -> dict[int, TEvent]:
-#         return {UserEvt.OnDragoned: (Priority.OnDragoned.explore, cls),
-#             UserEvt.OnDeath: (Priority.OnDeath.explore, cls)}
+class Sexplore(NumedStatus):
+    id = 'M'
+    @property
+    def des(self):
+        i = self.num
+        if i in range(1, 8):
+            spot = ["都城", "各郡", "大陆", "森林尽头之地", "撕身山脉", "荒寂而平阔的沙地", "薄暮群屿"][self.num - 1]
+            return f"探索{spot}：你将会触发一系列随机事件。"
+        elif i == 8:
+            return f"探索薄暮群屿：你将会触发一系列随机事件。\n\t置身格里克堡：直到失去状态“探索薄暮群屿”，抵御所有死亡效果。"
+    def __str__(self) -> str:
+        return f"{self.des}"
+    def double(self):
+        return self
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        if count[0].num == 1:
+            i = random.randint(0, 5)
+            if i == 0:
+                user.send_log("置身斯特拉斯科因的寓所：")
+                user.buf.send("发现了一些稀有的收藏。抽取一张广告牌。")
+                await user.draw(0,cards=[Card(94)])
+            elif i == 1:
+                user.send_log("置身被遗忘的密特拉寺：")
+                user.buf.send("你在此地进行了虔诚（）的祈祷。如果你此次接龙因各种原因被击毙，减少0～10%的死亡时间。")
+                #await TODO 减少随机0~10%！
+            elif i == 2:
+                user.send_log("置身凯特与赫洛有限公司：")
+                user.buf.send("你在因不明爆炸而荒废的大厦中可能寻得一些东西，或是失去一些东西。")
+                if random.random() < 0.5:
+                    user.send_char("获得了1击毙！")
+                    await user.add_jibi(1)
+                else:
+                    user.send_char("损失了1击毙！")
+                    await user.add_jibi(-1)
+            elif i == 3:
+                user.send_log("置身圣亚割尼医院：")
+                user.buf.send("医院给了你活力。你在本日获得额外1次接龙获得击毙的机会。")
+                user.data.today_jibi += 1
+                config.logger.dragon << f"【LOG】用户{user.qq}增加了接龙击毙上限至{user.data.today_jibi}。"
+            elif i == 4:
+                user.send_log("置身许伦的圣菲利克斯之会众：")
+                user.buf.send("你被虔诚的教徒们包围了，他们追奉启之法则。你下一次接龙需要进行首尾接龙。")
+                await user.add_status('J')
+            else:
+                user.send_log("置身荒废的河岸街：")
+                user.buf.send("你掉进了河里。被击毙15分钟，并失去状态“探索都城”。")
+                count[0].num = 0
+                await user.death(15)
+                user.data.save_status_time()
+        elif count[0].num == 2:
+            i = random.randint(0, 5)
+            if i == 0:
+                user.send_log("置身格拉德温湖：")
+                user.buf.send("此处有蛇群把守。下一个接龙的人需要进行首尾接龙。")
+                await Userme(user).add_status('|')
+            elif i == 1:
+                user.send_log("置身洛克伍德沼地")
+                user.buf.send("成真的神明或是在守望此地。如果你此次接龙被击毙，减少25%死亡时间。")
+                # await TODO 减少25%！
+            elif i == 2:
+                user.send_log("置身克罗基斯山丘：")
+                user.buf.send("守望此地之人将充满伤疤。今天你每死亡一次便获得2击毙。")
+                await user.add_daily_status('S')
+            elif i == 3:
+                user.send_log("置身凯格琳的财宝：")
+                user.buf.send("这里曾经是银矿，再下面则是具名者的藏匿。获得5击毙，然后抽取一张负面卡片并立即使用。")
+                user.add_jibi(5)
+                c = draw_card({-1})
+                await user.draw_and_use(c)
+            elif i == 4:
+                user.send_log("置身高威尔旅馆：")
+                user.buf.send("藏书室非常隐蔽。25%概率抽一张卡。")
+                if random.random() < 0.25:
+                    await user.draw(1)
+            else:
+                user.send_log("置身凯尔伊苏姆：")
+                user.buf.send("你在最后一个房间一念之差被困住了。被击毙30分钟，并失去状态“探索各郡”。")
+                count[0].num = 0
+                await user.death(30)
+                user.data.save_status_time()
+        elif count[0].num == 3:
+            i = random.randint(0, 5)
+            if i == 0:
+                user.send_log("置身拉维林城堡：")
+                user.buf.send("住在这里的曾是太阳王的后裔。随机解除你的一个负面效果。")
+                l = [s for s in itertools.chain(map(StatusNull, user.data.status), map(StatusDaily, user.data.daily_status), user.data.status_time_checked) if s.is_debuff]
+                if len(l) == 0:
+                    user.send_log("没有负面状态！")
+                c = random.choice(l)
+                if isinstance(c, _statusnull):
+                    user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
+                    await user.remove_status(c.id, remove_all=False)
+                elif isinstance(c, _statusdaily):
+                    user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
+                    await user.remove_daily_status(c.id, remove_all=False)
+                elif isinstance(c, _status):
+                    des = c.des
+                    user.send_log(f"的{des[:des.index('：')]}被取消了！")
+                    await user.remove_limited_status(c)
+                    user.data.save_status_time()
+            elif i == 1:
+                user.send_log("置身费米尔修道院：")
+                user.buf.send("僧侣信奉象征欲望的杯之准则。失去5击毙，然后你今天每次接龙额外获得1击毙。")
+                user.add_jibi(-5)
+                await user.add_daily_status('C')
+            elif i == 2:
+                user.send_log("置身俄尔托斯树林：")
+                user.buf.send("你目睹了群鸦的回忆。触发本日内曾被使用过的一张卡片的效果。")
+                if len(global_state['used_cards']) == 0:
+                    user.send_log("今日没有使用过卡牌！")
+                else:
+                    c = Card(random.choice(global_state['used_cards']))
+                    user.send_log(f"遇见的群鸦选择了卡牌{c.name}。")
+                    await user.use_card_effect(c)
+            elif i == 3:
+                user.send_log("置身范德沙夫收藏馆：")
+                user.buf.send("严密把守的储藏室中有不吉利的宝物。获得10击毙，并触发你手牌中一张非正面卡牌的效果。如果你的手中没有非正面卡牌，则将一张“邪恶的间谍行动～执行”置入你的手牌。")
+                user.add_jibi(10)
+                cs = [c for c in user.data.hand_card if c.positive != 1]
+                if len(cs) == 0:
+                    user.draw(0, cards=[Card(-1)])
+                else:
+                    card = random.choice(cs)
+                    user.send_log(f"触发的宝物选择了卡牌{card.name}。")
+                    await user.use_card_effect(card)
+            elif i == 4:
+                user.send_log("置身钥匙猎人的阁楼：")
+                user.buf.send("我们听说了一名狩猎空想之钥的古怪猎人所著的一小批古怪书籍。你今天获得额外五次接龙机会。")
+                user.data.today_jibi += 5
+                config.logger.dragon << f"【LOG】用户{user.qq}增加了接龙击毙上限至{user.data.today_jibi}。"
+            else:
+                user.send_log("置身一望无际的巨石阵：")
+                user.buf.send("当无月之夜来临，当地人会补充残留下的东西。被击毙60分钟，并失去状态“探索大陆”。")
+                count[0].num = 0
+                await user.death(60)
+                user.data.save_status_time()
+        elif count[0].num == 4:
+            i = random.randint(0, 5)
+            if i == 0:
+                user.send_log("置身蜡烛岩洞：")
+                user.buf.send("岩洞的内部出乎意料地明亮。你下一次接龙只需要相隔一个人。")
+                await user.add_status('L')
+            elif i == 1:
+                user.send_log("置身大公的城塞：")
+                user.buf.send("他平复了许多人的干渴，最终又败给了自己的干渴。若你因本次接龙被击毙，减少50%的死亡时间。")
+                #await  TODO 减少50！
+            elif i == 2:
+                user.send_log("置身格吕内瓦尔德的常驻马戏团：")
+                user.buf.send("马戏团众人在每个地方都贴满了写满图标的纸张，这个地方散发着虚界的气息。你的下一次接龙不受全局状态的影响。")
+                await user.add_status('%')
+            elif i == 3:
+                user.send_log("置身瑞弗克塔楼：")
+                user.buf.send("你们离去时，残塔消失了。清除上一个添加的全局状态。")
+                if len(global_state['global_status']) == 0:
+                    user.send_log("没有可以清除的全局状态！")
+                else:
+                    ss = global_state['global_status'][-1]
+                    if ss[0] == 0 and me.check_status(ss[1]):
+                        sdes = StatusNull(ss[1]).des
+                        user.send_log(f"移除了{sdes[:sdes.index['：']]}。")
+                        await Userme(user).remove_status(ss[1])
+                    elif ss[0] == 1 and me.check_daily_status(ss[1]):
+                        sdes = StatusDaily(ss[1]).des
+                        user.send_log(f"移除了{sdes[:sdes.index['：']]}。")
+                        await Userme(user).remove_daily_status(ss[1])
+                    elif ss[0] == 2 and (gl := 
+                            Userme(user).check_limited_status((sl := eval(ss[2]).id), lambda c: repr(c) == ss[2])):
+                        sdes = gl[0].des
+                        user.send_log(f"移除了{sdes[:sdes.index['：']]}。")
+                        await Userme(user).remove_limited_status(gl[0])
+                    else:
+                        user.send_log("上一个添加的全局状态已被清除！")
+            elif i == 4:
+                user.send_log("置身库兹涅佐夫的捐赠：")
+                user.buf.send("库兹涅佐夫公爵将他沾满鲜血的财富的四分之一捐给这座地方大学以建立末世学学部。随机添加一个全局状态。")
+                i = random.random()
+                if i < 0.5:
+                    while True:
+                        s = random.choice(_statusnull.id_dict.keys())
+                        if StatusNull(s).is_global:
+                            break
+                    await user.add_status(s)
+                    user.send_log(f"添加了全局状态{s.des[:s.des.index('：')]}。")
+                else:
+                    while True:
+                        s = random.choice(_statusdaily.id_dict.keys())
+                        if StatusDaily(s).is_global:
+                            break
+                    await user.add_daily_status(s)
+                    user.send_log(f"添加了全局状态{s.des[:s.des.index('：')]}。")
+            else:
+                user.send_log("置身狐百合原野：")
+                user.buf.send("我们将布浸入氨水，蒙在脸上，以抵抗狐百合的香气。即便这样，我们仍然头晕目眩，身体却对各种矛盾的欲望作出回应。被击毙90分钟，并失去状态“探索森林尽头之地”。")
+                count[0].num = 0
+                await user.death(90)
+                user.data.save_status_time()
+        elif count[0].num == 5:
+            i = random.randint(0, 4)
+            if i == 0:
+                user.send_log("置身猎手之穴：")
+                user.buf.send("在这里必须隐藏自己。上一个人下一次接龙需要间隔三个人。")
+                pq = branch.parent.qq
+                if pq != config.selfqq and pq != 0:
+                    User(pq, user.buf).add_status('&')
+                else:
+                    user.send_log("无上一个接龙的玩家！")
+            elif i == 1:
+                user.send_log("置身避雪神庙：")
+                user.buf.send("神庙可以回避一些袭击。本次接龙不会因为一周内接龙过或是踩雷而被击毙，但也没有接龙成功。")
+                if (node := branch.parent) is not None:
+                    node.childs.remove(branch)
+                branch.remove()
+                from .logic_dragon import rewrite_log_file
+                rewrite_log_file()
+                #await TODO 减少100%！
+            elif i == 2:
+                user.send_log("置身伊克玛维之眼：")
+                user.buf.send("这里是观星台，是大地的眼睛。公开揭示今天一个隐藏奖励词，该效果每天只会触发一次。")
+                if not global_state['observatory']:
+                    from .logic_dragon import hidden_keyword
+                    user.buf.send("你揭示的一个隐藏奖励词是：" + random.choice(hidden_keyword))
+                    global_state['observatory'] = True
+                else:
+                    user.buf.send("今天已经触发过观星台！")
+            elif i == 3:
+                user.send_log("置身石狼陵墓：")
+                user.buf.send("送葬者不见踪影，而死者被引来此处。本次接龙额外获得10击毙。")
+                await user.add_jibi(10)
+            else:
+                user.send_log("置身无影众王的墓群：")
+                user.buf.send("众王皆向往不死，而仅有一人实现了愿望，其他人只留下了陪葬品。立刻被击毙120分钟，并失去状态“探索撕身山脉”。")
+                count[0].num = 0
+                await user.death(120)
+                user.data.save_status_time()
+        elif count[0].num == 6:
+            i = random.randint(0, 4)
+            if i == 0:
+                user.send_log("置身被星辰击碎的神殿：")
+                user.buf.send("掉落的陨石反而成了朝拜的对象。在你之后接龙的一个人会额外获得5击毙。")
+                await user.add_status('^')
+            elif i == 1:
+                user.send_log("置身拉贡之墓：")
+                user.buf.send("曾经不死的长生者的尸体被保存得很好，直到我们到来。击毙上一个接龙的玩家十五分钟。")
+                pq = branch.parent.qq
+                if pq != config.selfqq and pq != 0:
+                    await User(pq, user.buf).death(15)
+                else:
+                    user.send_log("无上一个接龙的玩家！")
+            elif i == 2:
+                user.send_log("置身墨萨拿：")
+                user.buf.send("村民们拥有超过自然限度的长寿。获得状态“长生的宴席”。")
+                await user.add_limited_status(Schangsheng(120))
+            elif i == 3:
+                user.send_log("置身七蟠寺：")
+                user.buf.send("这座寺庙存在于每一重历史之中。你将于今天结束的正面状态延长至明天。")
+                await user.add_daily_status('l')
+            else:
+                user.send_log("置身弥阿：")
+                user.buf.send("有时是我们寻到死者拥有的知识，有时是死者寻到我们。被击毙180分钟，并失去状态“探索荒寂而平阔的沙地”。")
+                count[0].num = 0
+                await user.death(180)
+                user.data.save_status_time()
+        elif count[0].num == 7 or count[0].num == 8:
+            i = random.randint(0, 4)
+            if i == 0:
+                user.send_log("置身渡鸦屿：")
+                user.buf.send("索奎焰特在洞壁上用一百种语言描述他们悲惨的历史。获得一个可以完成10次的新任务，每次可以获得2击毙。")
+                await user.add_limited_status(SQuest(10, 2, n := get_mission()))
+                user.send_char(f"获得了一个任务：{mission[n][1]}")
+            elif i == 1:
+                user.send_log("置身格里克堡：")
+                user.buf.send("帝国和岛屿没有在任何正史中出现过，但岛上总督的堡垒还在，或许他本人也是。直到失去状态“探索薄暮群屿”，抵御所有死亡效果。")
+                count[0].num = 8
+                user.data.save_status_time()
+            elif i == 2:
+                user.send_log("置身克丽斯塔贝号船骸：")
+                user.buf.send("一头海兽来向这艘船求爱，但当船不回应这份爱慕时，海兽击碎了它。选择一张手牌弃置，然后抽两张正面卡牌。")
+                async with user.choose_cards("请选择你手牌中的一张牌弃置，输入id号。", 1, 1) as l, check_active(l):
+                    await user.discard_cards([Card(l[0])])
+                await user.draw(2, positive=1)
+            elif i == 3:
+                user.send_log("置身深邃之门的圣滕特雷托之僧院：")
+                user.buf.send("僧院危悬在崖边，它早该坠入海中了。从以下三个效果中随机触发一个：获得20击毙、抽一张牌或随机弃置一张牌。")
+                j = random.randint(0, 2)
+                if j == 0:
+                    user.send_log("获得了20击毙！")
+                    await user.add_jibi(20)
+                elif j == 1:
+                    user.send_log("抽了一张卡！")
+                    await user.draw(1)
+                elif len(user.data.hand_card) == 0:
+                    user.send_log("无手牌可弃！")
+                else:
+                    cd = random.choice(user.data.hand_card)
+                    user.send_log(f"丢弃了{cd.name}！")
+                    await user.discard_cards([cd])
+            else:
+                user.send_log("置身午港：")
+                user.buf.send("这座名为“午”的小小岛港是不死者的流放地。被击毙240分钟，并失去状态“探索薄暮群屿”。")
+                count[0].num = 0
+                await user.death(240)
+                user.data.save_status_time()
+        else:
+            count[0].num = 0
+            user.data.save_status_time()
+    @classmethod
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+        if count[0].num != 8:
+            return time, False
+        else:
+            if await c.pierce():
+                user.send_log("堡垒的效果被幻想杀手消除了！")
+                count[0].num = 7
+                user.data.save_status_time()
+            else:
+                user.send_log("触发了堡垒的效果，免除死亡！")
+                return time, True
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.explore, cls),
+            UserEvt.OnDeath: (Priority.OnDeath.explore, cls)}
 
 class Sjiaotu(_statusnull):
     id = 'J'
