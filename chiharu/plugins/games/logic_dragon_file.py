@@ -4009,6 +4009,7 @@ class polezombie(_card):
 #     name = "密教残篇"
 #     id = 140
 #     positive = 1
+#     newer = 5
 #     description = "获得正面状态“探索都城”，该系列效果同一玩家同时只能拥有一个。"
 #     @classmethod
 #     async def use(cls, user: User) -> None:
@@ -4024,6 +4025,7 @@ class polezombie(_card):
 #     name = "鬼祟的真相"
 #     id = 141
 #     positive = 1
+#     newer = 5
 #     description = "获得正面状态“探索各郡”，该系列效果同一玩家同时只能拥有一个。"
 #     @classmethod
 #     async def use(cls, user: User) -> None:
@@ -4039,6 +4041,7 @@ class polezombie(_card):
 #     name = "被遗忘的史籍"
 #     id = 142
 #     positive = 1
+#     newer = 5
 #     description = "获得正面状态“探索大陆”，该系列效果同一玩家同时只能拥有一个。"
 #     @classmethod
 #     async def use(cls, user: User) -> None:
@@ -4054,6 +4057,7 @@ class polezombie(_card):
 #     name = "禁断的史诗"
 #     id = 143
 #     positive = 1
+#     newer = 5
 #     description = "获得正面状态“探索森林尽头之地”，该系列效果同一玩家同时只能拥有一个。"
 #     @classmethod
 #     async def use(cls, user: User) -> None:
@@ -4069,6 +4073,7 @@ class polezombie(_card):
 #     name = "悬而未定的模棱两可"
 #     id = 144
 #     positive = 1
+#     newer = 5
 #     description = "获得正面状态“探索撕身山脉”，该系列效果同一玩家同时只能拥有一个。"
 #     @classmethod
 #     async def use(cls, user: User) -> None:
@@ -4084,6 +4089,7 @@ class polezombie(_card):
 #     name = "浪游旅人的地图"
 #     id = 145
 #     positive = 1
+#     newer = 5
 #     description = "获得正面状态“探索荒寂而平阔的沙地”，该系列效果同一玩家同时只能拥有一个。"
 #     @classmethod
 #     async def use(cls, user: User) -> None:
@@ -4099,6 +4105,7 @@ class polezombie(_card):
 #     name = "午港奇闻"
 #     id = 146
 #     positive = 1
+#     newer = 5
 #     description = "获得正面状态“探索薄暮群屿”，该系列效果同一玩家同时只能拥有一个。"
 #     @classmethod
 #     async def use(cls, user: User) -> None:
@@ -4582,7 +4589,7 @@ class Sshendian(_statusnull):
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         await user.add_jibi(5 * count)
-        user.send_log(f"因星辰击碎的神殿额外获得5击毙！")
+        user.send_log(f"因星辰击碎的神殿额外获得{5 * count}击毙！")
         await user.remove_status('^')
     @classmethod
     def register(cls) -> dict[int, TEvent]:
