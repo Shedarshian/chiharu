@@ -131,38 +131,41 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
     class AfterExchange(IntEnum):
         pass
     class OnDeath(IntEnum):
-        invincible = auto()
-        miansi = auto()
-        sihuihuibizhiyao = auto()
-        hongsezhihuan = auto()
-        inv_sihuihuibizhiyao = auto()
-        death = auto()
-        absorb = auto()
-        changsheng = auto()
-        tiesuolianhuan = auto()
-        lveduozhebopu = auto()
-        huiye = auto()
-        inv_huiye = auto()
-        shangba = auto()
+        invincible = auto()             #吸血鬼：免疫死亡
+        miansi = auto()                 #倒吊人：免疫一次死亡
+        sihuihuibizhiyao = auto()       #死秽：消耗击毙免疫一次死亡
+        hongsezhihuan = auto()          #虹环：一半免疫一次死亡
+        inv_sihuihuibizhiyao = auto()   #反转死秽
+        death = auto()                  #成功击杀，计算时间
+        absorb = auto()                 #吸收死亡时间
+        changsheng = auto()             #吸收死亡时间MkII
+        tiesuolianhuan = auto()         #铁索连环：一起下地狱
+        lveduozhebopu = auto()          #掠夺者：被弃
+        huiye = auto()                  #宝箱：抽卡
+        inv_huiye = auto()              #反转宝箱
+        shangba = auto()                #伤疤：+2击毙
+        invshangba = auto()
     class OnAttack(IntEnum):
-        imaginebreaker = auto()         # imagine breaker is suggested to be the first
-        vector = auto()
+        imaginebreaker = auto()         #幻杀：破防
+                                        # imagine breaker is suggested to be the first
+        vector = auto()                 #矢量：双倍
     class OnAttacked(IntEnum):
-        McGuffium239 = auto()
-        imaginebreaker = auto()
-        vector = auto()                 # vector is suggested to be the last
+        McGuffium239 = auto()           #麦高芬：免疫礼物交换
+        imaginebreaker = auto()         #矢量：反转
+        vector = auto()                 #幻杀：无效
+                                        # vector is suggested to be the last
     class OnDodged(IntEnum):
         pass
     class OnStatusAdd(IntEnum):
-        jiaodai = auto()
-        inv_jiaodai = auto()
-        paean = auto()
-        sunflower = auto()
+        jiaodai = auto()                #胶带：免除负面状态
+        inv_jiaodai = auto()            #反转胶带
+        paean = auto()                  #光阴神：3*胶带
+        sunflower = auto()              #向日葵：检测是否密植
         twinsunflower = auto()
         panjue = auto()                 # contains both a and b
         panjue_activated = auto()       # contains both a and b
-        beacon = auto()
-        beacon1 = auto()
+        beacon = auto()                 #速度插件：检测寒冰菇
+        beacon1 = auto()                #全局速度插件
     class OnStatusRemove(IntEnum):
         train = auto()
     class CheckJibiSpend(IntEnum):
@@ -170,40 +173,45 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         steamsummer = auto()
         beijingcard = auto()
     class OnJibiChange(IntEnum):
-        gaojie = auto()
-        inv_gaojie = auto()
-        bikini = auto()
-        schoolsui = auto()
-        beacon = auto()
-        beacon0 = auto()
-        beacon2 = auto()
-        shuairuo = auto()
-        bianyaqi = auto()
-        inv_bianyaqi = auto()
-        steamsummer = auto()
-        beijingcard = auto()
-        shenmouyuanlv = auto()
-        train = auto()
+        gaojie = auto()                 #告解：每获得击毙+1击毙
+        inv_gaojie = auto()             #反转告解
+        bikini = auto()                 #比基尼：有几率翻倍
+        schoolsui = auto()              #死库水：有几率免单
+        beacon = auto()                 #个人插件-产能：有几率加获得，有上限-节能：有几率降支出，有上限
+        beacon0 = auto()                #分享塔全局插件-产能
+        beacon2 = auto()                #分享塔全局插件-节能
+        shuairuo = auto()               #衰弱：获得击毙降为75%
+        bianyaqi = auto()               #变压器：加倍击毙变动
+        inv_bianyaqi = auto()           #反转变压器
+        steamsummer = auto()            #Steam夏季促销：减半购买支出
+        beijingcard = auto()            #一卡通：根据消费总量打折
+        shenmouyuanlv = auto()          #绿帽：击毙减半则免单
+        train = auto()                  #火车：便乘
     class CheckEventptSpend(IntEnum):
         pass
     class OnEventptChange(IntEnum):
         pass
     class BeforeDragoned(IntEnum):
-        death = auto()
-        wufazhandou = auto()
-        shengbing = auto()
-        minus1ma = auto()
+        death = auto()                  #死人不能接龙
+        wufazhandou = auto()            #死人不能接龙
+        shengbing = auto()              #病人也不能接龙
+        minus1ma = auto()               #±1马：计算距离
         plus1ma = auto()
-        iceshroom = auto()
+        iceshroom = auto()              #冰/热菇：全局计算距离
         hotshroom = auto()
-        lazhuyandong = auto()
+        lazhuyandong = auto()           #秘史衍生：计算距离
+        invlazhuyandong = auto()
         lieshouzhixue = auto()
-        ourostone = auto()              # contains two buffs
-        ranshefashu = auto()
+        invlieshouzhixue = auto()
+        ourostone = auto()              #衔尾蛇：首尾
+                                        # contains two buffs
+        ranshefashu = auto()            #**法术：首尾
         inv_ranshefashu = auto()
-        jiaotu = auto()
+        jiaotu = auto()                 #秘史衍生：首尾
+        invjiaotu = auto()
         shequn = auto()
-        hierophant = auto()
+        invshequn = auto()
+        hierophant = auto()             #教皇：首尾
         inv_hierophant = auto()
     class CheckSuguri(IntEnum):
         jisuzhuangzhi = auto()
@@ -221,31 +229,37 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         hermit = auto()
         vector = auto()
     class OnDragoned(IntEnum):
-        queststone = auto()
+        queststone = auto()             #任务：完成+3击毙
         quest = auto()
-        xingyunhufu = auto()
-        hierophant = auto()
-        inv_hierophant = auto()
-        lveduozhebopu = auto()
-        bianhua = auto()
-        inv_bianhua = auto()
-        zpm = auto()
-        shendian = auto()
-        beizhizhunze = auto()
-        plus2 = auto()
-        xixuegui = auto()
-        circus = auto()
-        panjue = auto()                 # contains both a and b
-        panjuecheck = auto()            # contains both a and b
-        jack_in_the_box = auto()
-        star = auto()
-        dihuopenfa = auto()
-        xixueshashou = auto()
-        forkbomb = auto()
+        xingyunhufu = auto()            #幸运护符：+0.5击毙
+        hierophant = auto()             #教皇：+2击毙
+        inv_hierophant = auto()         #反转教皇
+        lveduozhebopu = auto()          #掠夺者：偷窃判定
+        bianhua = auto()                #彼岸花：-1/3击毙
+        inv_bianhua = auto()            #反转
+        zpm = auto()                    #ZPM：新手保护，+1击毙
+        shendian = auto()               #秘史衍生：+5击毙
+        invshendian = auto()
+        beizhizhunze = auto()           #+2击毙
+        invbeizhizhunze = auto()
+        plus2 = auto()                  #+2：抽两张牌
+        xixuegui = auto()               #？？？？
+        panjue = auto()                 #判决传播 contains both a and b
+        panjuecheck = auto()            #判决重合 contains both a and b
+        jack_in_the_box = auto()        #玩偶匣：爆炸判定
+        star = auto()                   #星星：奖励词判定
+        dihuopenfa = auto()             #地火：埋雷判定
+        xixueshashou = auto()           #吸血杀手：抽卡判定
+        forkbomb = auto()               #叉子炸弹：分叉判定
+        circus = auto()                 #秘史衍生：被弃
         lazhuyandong = auto()
+        invlazhuyandong = auto()
         lieshouzhixue = auto()
+        invlieshouzhixue = auto()
         shequn = auto()
+        invshequn = auto()
         jiaotu = auto()
+        invjiaotu = auto()
     class OnNewDay(IntEnum):
         tarot = auto()
         quest = auto()

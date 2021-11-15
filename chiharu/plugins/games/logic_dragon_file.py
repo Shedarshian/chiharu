@@ -769,7 +769,8 @@ class User:
             self.data._register_status(StatusNull(s), count=count)
             await StatusNull(s).on_add(count)
             if StatusNull(s).is_global():
-                global_state['global_status'].append([0,s]*count)
+                for i in range(0,count)
+                    global_state['global_status'].append((0,s))
                 save_global_state()
             return True
     async def add_daily_status(self, s: str, count=1):
@@ -784,7 +785,8 @@ class User:
             self.data._register_status(StatusDaily(s), count=count)
             await StatusDaily(s).on_add(count)
             if StatusDaily(s).is_global():
-                global_state['global_status'].append([1,s]*count)
+                for i in range(0,count)
+                    global_state['global_status'].append((1,s))
                 save_global_state()
             return True
     async def add_limited_status(self, s: Union[str, T_status], *args, **kwargs):
@@ -804,7 +806,7 @@ class User:
             self.data._register_status_time(ss)
             await ss.on_add([ss])
             if ss.is_global():
-                global_state['global_status'].append([2,repr(ss)])
+                global_state['global_status'].append((2,repr(ss)))
                 save_global_state()
             return True
     async def remove_status(self, s: str, /, remove_all=True):
@@ -826,10 +828,10 @@ class User:
             await StatusNull(s).on_remove(remove_all)
             if StatusNull(s).is_global:
                 if remove_all:
-                    while [0, s] in global_state['global_status']:
-                        global_state['global_status'].remove([0, s])
+                    while (0, s) in global_state['global_status']:
+                        global_state['global_status'].remove((0, s))
                 else:
-                    global_state['global_status'].remove([0, s])
+                    global_state['global_status'].remove((0, s))
                 save_global_state()
             return True
     async def remove_daily_status(self, s: str, /, remove_all=True):
@@ -851,10 +853,10 @@ class User:
             await StatusDaily(s).on_remove(remove_all)
             if StatusDaily(s).is_global:
                 if remove_all:
-                    while [1, s] in global_state['global_status']:
-                        global_state['global_status'].remove([1, s])
+                    while (1, s) in global_state['global_status']:
+                        global_state['global_status'].remove((1, s))
                 else:
-                    global_state['global_status'].remove([1, s])
+                    global_state['global_status'].remove((1, s))
                 save_global_state()
             return True
     async def remove_limited_status(self, s: T_status):
@@ -868,8 +870,8 @@ class User:
             self.log << f"移除了一个限时状态{s}。"
             self.data._deregister_status_time(s, is_all=False)
             await s.on_remove(False)
-            if s.is_global and [2, repr(s)] in global_state['global_status']:
-                global_state['global_status'].remove([2, repr(s)])
+            if s.is_global and (2, repr(s)) in global_state['global_status']:
+                global_state['global_status'].remove((2, repr(s)))
                 save_global_state()
             return True
     async def remove_all_limited_status(self, s: str):
@@ -4129,6 +4131,8 @@ class polezombie(_card):
 #             return f"探索薄暮群屿：你将会触发一系列随机事件。\n\t置身格里克堡：直到失去状态“探索薄暮群屿”，抵御所有死亡效果。"
 #     def __str__(self) -> str:
 #         return f"{self.des}"
+#     def double(self):
+#         return self
 #     @classmethod
 #     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
 #         if count[0].num == 1:
@@ -4503,6 +4507,22 @@ class Sjiaotu(_statusnull):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.jiaotu, cls),
             UserEvt.OnDragoned: (Priority.OnDragoned.jiaotu, cls)}
+class Sinvjiaotu(_statusnull):
+    id = 'K'
+    des = "反转-置身许伦的圣菲利克斯之会众：被虔诚的教徒们包围，他们追奉启之法则，你下一次接龙需要进行尾首接龙。"
+    is_debuff = True
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+        if parent.word != '' and word != '' and parent.word[0] != word[-1]:
+            return False, 0, "虔诚的教徒们说，你需要尾首接龙，接龙失败。"
+        return True, 0, ""
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        await user.remove_status('K', remove_all=False)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.invjiaotu, cls),
+            UserEvt.OnDragoned: (Priority.OnDragoned.invjiaotu, cls)}
 class Sshequn(_statusnull):
     id = '|'
     des = "置身格拉德温湖：此处有蛇群把守。下一个接龙的人需要进行首尾接龙。"
@@ -4520,13 +4540,30 @@ class Sshequn(_statusnull):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.shequn, cls),
             UserEvt.OnDragoned: (Priority.OnDragoned.shequn, cls)}
+class Sinvshequn(_statusnull):
+    id = '/'
+    des = "反转-置身格拉德温湖：此处有蛇群把守。下一个接龙的人需要进行尾首接龙。"
+    is_global = True
+    is_debuff = True
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+        if parent.word != '' and word != '' and parent.word[0] != word[-1]:
+            return False, 0, "蛇群阻止了你的非尾首接龙，接龙失败。"
+        return True, 0, ""
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        await user.remove_status('/', remove_all=False)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.invshequn, cls),
+            UserEvt.OnDragoned: (Priority.OnDragoned.invshequn, cls)}
 class Sshangba(_statusdaily):
     id = 'S'
     des = "伤疤：今天你每死亡一次便获得2击毙。"
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         if await c.pierce():
-            user.send_log("的效果被幻想杀手消除了！")
+            user.send_log("伤疤的效果被幻想杀手消除了！")
             await user.remove_status('S')
         else:
             user.send_log(f"触发了伤疤！奖励{2 * count}击毙。")
@@ -4535,6 +4572,22 @@ class Sshangba(_statusdaily):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDeath: (Priority.OnDeath.shangba, cls)}
+class Sinvshangba(_statusdaily):
+    id = 'P'
+    des = "反转-伤疤：今天你每死亡一次便失去2击毙。"
+    is_debuff = True
+    @classmethod
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+        if await c.pierce():
+            user.send_log("反转-伤疤的效果被幻想杀手消除了！")
+            await user.remove_status('P')
+        else:
+            user.send_log(f"触发了反转-伤疤！失去{2 * count}击毙。")
+            await user.add_jibi(-2 * count)
+        return time, False
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDeath: (Priority.OnDeath.invshangba, cls)}
 class Sbeizhizhunze(_statusdaily):
     id = 'C'
     des = "杯之准则：你今天每次接龙额外获得1击毙。"
@@ -4545,9 +4598,20 @@ class Sbeizhizhunze(_statusdaily):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.beizhizhunze, cls)}
+class Sinvbeizhizhunze(_statusdaily):
+    id = 'E'
+    des = "反转-杯之准则：你今天每次接龙额外失去1击毙。"
+    is_debuff = True
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        user.send_char(f"因为反转-杯之准则额外失去{count}击毙！")
+        await user.add_jibi(-1*count)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.invbeizhizhunze, cls)}
 class Slazhuyandong(_statusnull):
     id = 'L'
-    des = "置身蜡烛岩洞：下一次接龙只需要相隔一个人。"
+    des = "置身蜡烛岩洞：下一次接龙可以少间隔一个人。"
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
         return True, -1, ""
@@ -4558,6 +4622,19 @@ class Slazhuyandong(_statusnull):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.lazhuyandong, cls),
             UserEvt.OnDragoned: (Priority.OnDragoned.lazhuyandong, cls)}
+class Sinvlazhuyandong(_statusnull):
+    id = 'I'
+    des = "反转-置身蜡烛岩洞：下一次接龙需要多间隔一个人。"
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+        return True, 1, ""
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        await user.remove_status('I', remove_all=False)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.invlazhuyandong, cls),
+            UserEvt.OnDragoned: (Priority.OnDragoned.invlazhuyandong, cls)}
 class Scircus(_statusnull):
     id = '%'
     des = "置身格吕内瓦尔德的常驻马戏团：下一次接龙不受全局状态的影响。"
@@ -4570,7 +4647,7 @@ class Scircus(_statusnull):
         return {UserEvt.OnDragoned: (Priority.OnDragoned.circus, cls)}
 class Slieshouzhixue(_statusnull):
     id = '&'
-    des = "置身猎手之穴：下一次接龙需要间隔三个人。"
+    des = "置身猎手之穴：下一次接龙需要多间隔一个人。"
     is_debuff = True
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
@@ -4582,6 +4659,19 @@ class Slieshouzhixue(_statusnull):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.lieshouzhixue, cls),
             UserEvt.OnDragoned: (Priority.OnDragoned.lieshouzhixue, cls)}
+class Sinvlieshou(_statusnull):
+    id = '*'
+    des = "反转-置身猎手之穴：下一次接龙可以少间隔一个人。"
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+        return True, -1, ""
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        await user.remove_status('*', remove_all=False)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.invlieshouzhixue, cls),
+            UserEvt.OnDragoned: (Priority.OnDragoned.invlieshouzhixue, cls)}
 class Sshendian(_statusnull):
     id = '^'
     des = "置身被星辰击碎的神殿：之后接龙的一个人会额外获得5击毙。"
@@ -4594,6 +4684,19 @@ class Sshendian(_statusnull):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.shendian, cls)}
+class Sinvshendian(_statusnull):
+    id = '$'
+    des = "反转-置身被星辰击碎的神殿：之后接龙的一个人会额外失去5击毙。"
+    is_debuff = True
+    is_global = True
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        await user.add_jibi(-5 * count)
+        user.send_log(f"因反转-置身被星辰击碎的神殿额外失去{5*count}击毙！")
+        await user.remove_status('$')
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.invshendian, cls)}
 class Schangsheng(NumedStatus):
     id = 'C'
     des = "长生的宴席：可以抵消累计120分钟死亡。"
@@ -4621,6 +4724,9 @@ class Schangsheng(NumedStatus):
 class Stemple(_statusdaily):
     id = 'l'
     des = "置身七蟠寺：今天结束的非负面状态延长至明天。"
+class Sinvtemple(_statusdaily):
+    id = 'k'
+    des = "反转-置身七蟠寺：今天结束的负面状态延长至明天。"
 
 class steamsummer(_card):
     name = "Steam夏季特卖"
@@ -4779,11 +4885,11 @@ class upsidedown(_card):
         #         continue
         # me.save_status_time()
 revert_status_map: Dict[str, str] = {}
-for c in ('AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'cd', '34'):
+for c in ('AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'cd', '34', 'JK', '|/', 'LI', '&*', '^$'):
     revert_status_map[c[0]] = c[1]
     revert_status_map[c[1]] = c[0]
 revert_daily_status_map: Dict[str, str] = {}
-for c in ('RZ', 'Bt', 'Ii', 'Mm', 'op', '@#', 'WX'):
+for c in ('RZ', 'Bt', 'Ii', 'Mm', 'op', '@#', 'WX', 'SP', 'CE', 'lk'):
     revert_daily_status_map[c[0]] = c[1]
     revert_daily_status_map[c[1]] = c[0]
 
