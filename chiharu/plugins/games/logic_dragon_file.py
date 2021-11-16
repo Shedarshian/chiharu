@@ -512,6 +512,8 @@ class UserData:
         self._reregister_things()
     def __del__(self):
         config.logger.dragon << f"【LOG】用户{self.qq}UserData被删除。"
+        # self.save_status_time()
+        # self.set_cards()
     def _reregister_things(self):
         self.event_listener: defaultdict[int, TEventList] = deepcopy(self.event_listener_init)
         for c in self.hand_card:
@@ -2720,6 +2722,8 @@ class liwujiaohuan(_card):
                 get = c
             elif u2 == user:
                 lose = c
+        for u in all_users:
+            u.data.set_cards()
         if lose is None and get is None:
             user.buf.send("你交换了大家的手牌！")
         else:

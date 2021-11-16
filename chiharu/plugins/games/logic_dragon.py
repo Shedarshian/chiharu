@@ -1146,7 +1146,7 @@ async def dragon_add_extra(session: CommandSession):
 async def dragon_check_user_data(buf: SessionBuffer):
     qq = int(buf.current_arg_text)
     data = Game.userdata(qq)
-    n = {a: b for a, b in data.node.items() if a not in ("card", "extra_data")}
+    n = {a: b for a, b in data.node.items() if a not in ("extra_data",)}
     buf.send(f"手牌：{', '.join(str(c) for c in data.hand_card)}\nnode：{n}\nextra data：{data.extra}")
 
 @on_command(('dragon', 'op'), only_to_me=False, hide=True, permission=permission.SUPERUSER)
