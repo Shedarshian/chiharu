@@ -18,6 +18,7 @@ class TGlobalState(TypedDict):
     quest: Dict[int, List[TQuest]]
     module: Dict[int, List[TModule]]
     steal: Dict[int, TSteal]
+    dragon_head: Dict[int, Dict[int, Any]]
     event_route: List[int]
 
 class TUserData(TypedDict):
@@ -298,6 +299,9 @@ def check_handcard(user):
             _raise_failure("你的手牌为：\n" + '\n'.join(s.brief_description(user.qq) for s in user.data.hand_card))
         elif value in ("查询详细手牌", "查看详细手牌"):
             _raise_failure("你的手牌为：\n" + '\n'.join(s.full_description(user.qq) for s in user.data.hand_card))
+        elif value in ("查询装备", "查看装备"):
+            from .logic_dragon_file import Equipment
+            _raise_failure("你的装备为：\n" + '\n'.join(Equipment(id).full_description(num, user) for id, num in user.data.equipment.items()))
         return value
     return validate
 

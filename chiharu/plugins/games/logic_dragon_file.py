@@ -737,6 +737,16 @@ class UserData:
             global_state['steal'][q] = {'time': 0, 'user': []}
             save_global_state()
         return global_state['steal'][q]
+    @steal.setter
+    def steal(self, value):
+        global_state['steal'][str(self.qq)] = value
+    @property
+    def dragon_head(self):
+        q = str(self.qq)
+        if q not in global_state['dragon_head']:
+            global_state['dragon_head'][q] = {}
+            save_global_state()
+        return global_state['dragon_head'][q]
     def set_cards(self):
         config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(c.id) for c in self.hand_card), self.qq))
         config.logger.dragon << f"【LOG】设置用户{self.qq}手牌为{cards_to_str(self.hand_card)}。"
@@ -1112,6 +1122,7 @@ class User:
         self.remove_card(card)
         await self.use_card_effect(card)
         await card.on_remove(self)
+        self.data.set_cards()
         self.log << f"使用完卡牌，当前手牌为{cards_to_str(self.data.hand_card)}。"
     async def use_equipment(self, eq: TEquipment, count: int):
         """使用装备。"""
@@ -5496,7 +5507,7 @@ class assembling(_equipment):
         return f"当你抽卡时，组装机获得等同于卡牌编号的组装量（不小于0）。你每有2^n*{d}组装量，手牌上限+1，其中n为已经生产过的手牌上限个数。"
     @classmethod
     def full_description(cls, count: TCount, user: User) -> str:
-        return f"{cls.id}. {cls.name}{count}型\n\t{cls.description(count)}\n\t当前组装量：{user.data.extra.assembling}"
+        return f"{cls.id}. {cls.name}{count}型\n\t{cls.description(count)}\n\t当前组装量：{user.data.extra.assembling}，已获得手牌上限{user.data.card_limit_from_assembling}"
     @classmethod
     def get_card_limit(cls, data: int, count: TCount) -> int:
         d = {1: 200, 2: 150, 3: 100}[count]
@@ -5520,6 +5531,66 @@ class dragon_head(_equipment):
     def description(cls, count: TCount) -> str:
         d = {1: 1, 2: 1, 3: 2}[count]
         return f"可以保存{d}张卡。保存的卡独立于手牌之外（不受礼物交换/空白卡牌影响），不能直接使用。"
+    @classmethod
+    def full_description(cls, count: TCount, user: User) -> str:
+        return super().full_description(count, user) + f"\n\t当前保存卡牌：{'，'.join(f'{Card(c).id}.{Card(c).name}' for c in user.data.dragon_head)}。"
+    @classmethod
+    async def use(cls, user: User, count: int):
+        if await user.choose():
+            from nonebot.command.argfilter.validators import _raise_failure
+            def validate(value: str):
+                try:
+                    if value.startswith("返回"):
+                        return -1
+                    elif value.startswith("放入"):
+                        id = int(value[2:])
+                        if id not in _card.card_id_dict or Card(id) not in user.data.hand_card:
+                            _raise_failure("此卡不在你的手牌中，请重新选择！")
+                        return (0, id)
+                    elif value.startswith("取出"):
+                        id = int(value[2:])
+                        if id not in user.data.dragon_head:
+                            _raise_failure("此卡不在龙首内，请重新选择！")
+                        return (1, id)
+                except ValueError:
+                    _raise_failure("请输入正确的卡牌id号。")
+            c: Tuple[int, TCard] = await user.buf.aget(prompt="请选择放入或取出手牌。输入“放入 xx”将卡牌放入龙首，“取出 xx”将卡牌从龙首中取出，“返回”退出（仍可查询当前手牌或装备）。\n",
+                arg_filters=[
+                        extractors.extract_text,
+                        check_handcard(user),
+                        validate,
+                        validators.ensure_true(lambda v: v is not None, "输入“放入 xx”将卡牌放入龙首，“取出 xx”将卡牌从龙首中取出，“返回”退出（仍可查询当前手牌或装备）。")
+                    ])
+            if c == -1:
+                return
+            elif c[0] == 0:
+                if len(user.data.dragon_head) >= 2:
+                    user.send_char("龙首已满，无法放入！")
+                    return
+                if c[1] == queststone.id:
+                    user.data.dragon_head[c[1]] = user.data.quest_c
+                elif c[1] == beacon.id:
+                    user.data.dragon_head[c[1]] = user.data.module_c
+                elif c[1] == lveduozhebopu.id:
+                    user.data.dragon_head[c[1]] = user.data.steal
+                else:
+                    user.data.dragon_head[c[1]] = None
+                user.send_log(f"将卡牌{Card(c[1]).name}放入了龙首！")
+                await user.remove_cards([Card(c[1])])
+            elif c[0] == 1:
+                data = user.data.dragon_head.pop(c[1])
+                if c[1] == queststone.id:
+                    user.data.quests.append(data)
+                elif c[1] == beacon.id:
+                    user.data.modules.append(data)
+                elif c[1] == lveduozhebopu.id:
+                    if user.data.steal['time'] == 0:
+                        user.data.steal = data
+                user.send_log(f"从龙首中取出了卡牌{Card(c[1]).name}！")
+                await user.add_card(Card(c[1]))
+                user.data.set_cards()
+            save_global_state()
+            user.data.save_equipment()
 
 # 爬塔格子
 class Grid:
