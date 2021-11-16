@@ -287,6 +287,8 @@ async def daily_update(buf: SessionBuffer) -> str:
     for qq in global_state['steal']:
         config.logger.dragon << f"【LOG】更新了用户{qq}的偷状态。"
         global_state['steal'][qq] = {'time': 0, 'user': []}
+    global_state['used_cards'] = []
+    global_state['observatory'] = False
     save_global_state()
     if me.check_daily_status('s'):
         await User(config.selfqq, buf).remove_daily_status('s', remove_all=False)
@@ -294,7 +296,7 @@ async def daily_update(buf: SessionBuffer) -> str:
         for r in config.userdata.execute("select qq, daily_status from dragon_data").fetchall():
             if 'd' in r['daily_status']:
                 await User(r['qq'], buf).remove_daily_status('d')
-    else:
+    else: #TODO：当个人daily_status中存在'l'时，仅消除负面daily_status及它自身
         config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=1, spend_shop=0', ('',))
     for r in config.userdata.execute("select qq, status, daily_status, status_time, equipment from dragon_data").fetchall():
         def _(s, st):
@@ -397,6 +399,8 @@ async def dragon_construct(buf: SessionBuffer):
                 await buf.session.send(f"节点已分叉，接龙{word}失败。")
                 return
             dist = 2
+            if not buf.state.get('circus'):
+                buf.state['circus'] = True
             # Event BeforeDragoned
             for eln, n in user.IterAllEventList(UserEvt.BeforeDragoned, Priority.BeforeDragoned):
                 allowed, dist_mod, msg = await eln.BeforeDragoned(n, user, word, parent)
@@ -538,6 +542,8 @@ async def dragon_use_card(buf: SessionBuffer):
         buf.finish(card.failure_message)
     async with user.settlement():
         await user.use_card(card)
+        if card.id not in global_state['used_cards']:
+            global_state['used_cards'].append(card.id)
     global_state['last_card_user'] = qq
     save_global_state()
 
@@ -674,6 +680,8 @@ async def dragon_check(buf: SessionBuffer):
         for s in d.status_time_checked:
             yield 1, s.brief_des
     data = buf.current_arg_text
+    qq = buf.ctx['user_id']
+    user = User(qq, buf)
     if data in ("奖励词", "keyword"):
         buf.finish("当前奖励词为：" + keyword)
     elif data in ("奖励池", "keyword_pool"):
@@ -685,7 +693,7 @@ async def dragon_check(buf: SessionBuffer):
     elif data in ("卡池", "card_pool"):
         buf.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
     elif data in ("商店", "shop"):
-        buf.finish(f"1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. ({10 if me.check_daily_status('o') or me.check_daily_status('p') else 35}击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。\n8. (5击毙)抽一张卡，每日限一次。" + ("\n16. (5击毙)🎰🎲💰选我抽奖！💰🎲🎰" if me.check_daily_status('O') else ''))
+        buf.finish(f"1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. ({10 if me.check_daily_status('o') or me.check_daily_status('p') else 35}击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。\n8. (5击毙)抽一张卡，每日限一次。" + ("\n9. (24击毙)解除无法战斗状态并以衰弱状态复生" if user.check_limited_status('D') else '') + ("\n16. (5击毙)🎰🎲💰选我抽奖！💰🎲🎰" if me.check_daily_status('O') else ''))
     elif data in ("全局状态", "global_status"):
         l = list(_(me))
         if n := len(global_state["exchange_stack"]):
@@ -695,8 +703,6 @@ async def dragon_check(buf: SessionBuffer):
             buf.finish("目前没有全局状态！")
         else:
             buf.finish("全局状态为：\n" + ret)
-    qq = buf.ctx['user_id']
-    user = User(qq, buf)
     if data in ("详细手牌", "full_hand_cards"):
         cards = user.data.hand_card
         if len(cards) == 0:
@@ -857,6 +863,19 @@ async def dragon_buy(buf: SessionBuffer):
             user.data.shop_drawn_card -= 1
             async with user.settlement():
                 await user.draw(1)
+    elif id == 9 and user.check_limited_status('D'):
+        #（24击毙）解除无法战斗状态并以衰弱状态复生
+        if not await user.add_jibi(-24,is_buy=True):
+            buf.finish("您的击毙不足！")
+        i = 0
+        while i < len(user.data.status_time_checked):
+            s = user.data.status_time[i]
+            if s.id == 'D':
+                user.send_log(f"的无法战斗状态已被解除！")
+                await user.remove_limited_status(s)
+            i += 1
+        user.save_status_time()
+        await user.add_limited_status(Status('S')(240))
     elif id == 16 and me.check_daily_status('O'):
         # (5击毙)抽奖
         # 15%几率掉一张卡
