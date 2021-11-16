@@ -684,6 +684,59 @@ class UserData:
             else:
                 i += 1
         return self.status_time
+    @property
+    def quests(self):
+        q = str(self.qq)
+        if q not in global_state['quest']:
+            global_state['quest'][q] = []
+            quest_print_aux[q] = 0
+            save_global_state()
+        return global_state['quest'][q]
+    @property
+    def quest_c(self):
+        q = str(self.qq)
+        r = self.quests[quest_print_aux[q]]
+        quest_print_aux[q] += 1
+        if quest_print_aux[q] >= len(self.quests):
+            quest_print_aux[q] = 0
+        return r
+    def pop_quest(self):
+        q = str(self.qq)
+        r = self.quest_c
+        del self.quests[quest_print_aux[q]]
+        if quest_print_aux[q] >= len(self.quests):
+            quest_print_aux[q] = 0
+        return r
+    @property
+    def modules(self):
+        q = str(self.qq)
+        if q not in global_state['module']:
+            global_state['module'][q] = []
+            module_print_aux[q] = 0
+            save_global_state()
+        return global_state['module'][q]
+    @property
+    def module_c(self):
+        q = str(self.qq)
+        r = self.modules[module_print_aux[q]]
+        module_print_aux[q] += 1
+        if module_print_aux[q] >= len(self.modules):
+            module_print_aux[q] = 0
+        return r
+    def pop_module(self):
+        q = str(self.qq)
+        r = self.module_c
+        del self.modules[module_print_aux[q]]
+        if module_print_aux[q] >= len(self.modules):
+            module_print_aux[q] = 0
+        return r
+    @property
+    def steal(self):
+        q = str(self.qq)
+        if q not in global_state['steal']:
+            global_state['steal'][q] = {'time': 0, 'user': []}
+            save_global_state()
+        return global_state['steal'][q]
     def set_cards(self):
         config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(c.id) for c in self.hand_card), self.qq))
         config.logger.dragon << f"【LOG】设置用户{self.qq}手牌为{cards_to_str(self.hand_card)}。"
@@ -2566,54 +2619,33 @@ class queststone(_card):
     des_need_init = True
     @classmethod
     def quest_des(cls, qq: int):
-        q = str(qq)
-        m = mission[global_state['quest'][q][quest_print_aux[q]]['id']][1]
-        remain = global_state['quest'][q][quest_print_aux[q]]['remain']
-        quest_print_aux[q] += 1
-        if quest_print_aux[q] >= len(global_state['quest'][q]):
-            quest_print_aux[q] = 0
+        r = Game.userdata(qq).quest_c
+        m = mission[r['id']][1]
+        remain = r['remain']
         return "\t当前任务：" + m + f"剩余{remain}次。"
     @classmethod
     def full_description(cls, qq: int):
         return super().full_description(qq) + "\n" + cls.quest_des(qq)
     @classmethod
     async def on_draw(cls, user: User):
-        q = str(user.qq)
-        if q not in global_state['quest']:
-            global_state['quest'][q] = []
-            quest_print_aux[q] = 0
-        global_state['quest'][q].append({'id': (i := get_mission()), 'remain': 3})
-        config.logger.dragon << f"【LOG】用户{user.qq}刷新了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][q]]}。"
+        user.data.quests.append({'id': (i := get_mission()), 'remain': 3})
+        config.logger.dragon << f"【LOG】用户{user.qq}刷新了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in user.data.quests]}。"
         save_global_state()
     @classmethod
     async def on_remove(cls, user: User):
-        q = str(user.qq)
-        i = global_state['quest'][q][quest_print_aux[q]]['id']
-        del global_state['quest'][q][quest_print_aux[q]]
-        if quest_print_aux[q] >= len(mission):
-            quest_print_aux[q] = 0
-        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][q]]}。"
+        r = user.data.pop_quest()
+        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个任务{mission[r['id']][1]}，现有任务：{[mission[c['id']][1] for c in user.data.quests]}。"
         save_global_state()
     @classmethod
     async def on_give(cls, user: User, target: User):
-        q = str(user.qq)
-        m = global_state['quest'][q][quest_print_aux[q]]
-        i = m['id']
-        del global_state['quest'][q][quest_print_aux[q]]
-        if quest_print_aux[q] >= len(mission):
-            quest_print_aux[q] = 0
-        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][q]]}。"
-        t = str(target.qq)
-        if t not in global_state['quest']:
-            global_state['quest'][t] = []
-            quest_print_aux[t] = 0
-        global_state['quest'][t].append(m)
-        config.logger.dragon << f"【LOG】用户{target.qq}增加了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][t]]}。"
+        r = user.data.pop_quest()
+        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个任务{mission[r['id']][1]}，现有任务：{[mission[c['id']][1] for c in user.data.quests]}。"
+        target.data.quests.append(r)
+        config.logger.dragon << f"【LOG】用户{target.qq}增加了一个任务{mission[r['id']][1]}，现有任务：{[mission[c['id']][1] for c in target.data.quests]}。"
         save_global_state()
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        l = global_state['quest'].get(str(user.qq))
-        for m in l:
+        for m in user.data.modules:
             if m['remain'] > 0:
                 id, name, func = mission[m['id']]
                 if func(branch.word):
@@ -2833,8 +2865,7 @@ class lveduozhebopu(_card):
     description = "持有此卡时，你每天你可从你所接龙的人处偷取1击毙，每人限一次，最多10击毙，若目标没有击毙则不可偷取。使用或死亡时将丢弃这张卡。"
     @classmethod
     async def on_draw(cls, user: User):
-        if str(user.qq) not in global_state['steal']:
-            global_state['steal'][str(user.qq)] = {'time': 0, 'user': []}
+        user.data.steal
         save_global_state()
     @classmethod
     async def on_remove(cls, user: User):
@@ -2843,7 +2874,7 @@ class lveduozhebopu(_card):
         save_global_state()
     @classmethod
     async def on_give(cls, user: User, target: User):
-        global_state['steal'][str(target.qq)] = global_state['steal'][str(user.qq)]
+        target.data.steal = user.data.steal
         if Card(77) not in user.data.hand_card and str(user.qq) in global_state['steal']:
             del global_state['steal'][str(user.qq)]
         save_global_state()
@@ -2856,12 +2887,12 @@ class lveduozhebopu(_card):
     async def OnDragoned(cls, count: TCount, user: User, branch: 'Tree', first10: bool) -> Tuple[()]:
         global global_state
         last_qq = branch.parent.qq
-        qq = user.qq
         if branch.parent.id != (0, 0):
             last = User(last_qq, user.buf)
-            if last_qq not in global_state['steal'][str(qq)]['user'] and global_state['steal'][str(qq)]['time'] < 10:
-                global_state['steal'][str(qq)]['time'] += 1
-                global_state['steal'][str(qq)]['user'].append(last_qq)
+            s = user.steal
+            if last_qq not in s['user'] and s['time'] < 10:
+                s['time'] += 1
+                s['user'].append(last_qq)
                 save_global_state()
                 atk = AStealJibi(user, last, count)
                 await last.attacked(user, atk)
@@ -5085,54 +5116,33 @@ class beacon(_card):
     des_need_init = True
     @classmethod
     def module_des(cls, qq: int):
-        q = str(qq)
-        m = global_state['module'][q][module_print_aux[q]]
-        module_print_aux[q] += 1
-        if module_print_aux[q] >= len(global_state['module'][q]):
-            module_print_aux[q] = 0
+        m = Game.userdata(qq).module_c
         return "\t" + cls.extra_info[m['id']] + f"剩余：{m['remain'] // (10 if m['id'] == 1 else 1)}{'次' if m['id'] == 1 else '击毙'}。"
     @classmethod
     def full_description(cls, qq: int):
         return super().full_description(qq) + "\n" + cls.module_des(qq)
     @classmethod
     async def on_draw(cls, user: User):
-        q = str(user.qq)
-        if q not in global_state['module']:
-            global_state['module'][q] = []
-            module_print_aux[q] = 0
-        global_state['module'][q].append({'id': (r := random.randint(0, 2)), 'remain': 10})
+        user.data.modules.append({'id': (r := random.randint(0, 2)), 'remain': 10}))
         config.logger.dragon << f"【LOG】用户{user.qq}刷新了一个插件{r}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
         save_global_state()
     @classmethod
     async def on_remove(cls, user: User):
-        q = str(user.qq)
-        r = global_state['module'][q][module_print_aux[q]]['id']
-        del global_state['module'][q][module_print_aux[q]]
-        if module_print_aux[q] >= len(mission):
-            module_print_aux[q] = 0
-        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{r}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
+        r = user.data.pop_module()
+        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{r['id']}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
         save_global_state()
     @classmethod
     async def on_give(cls, user: User, target: User):
-        q = str(user.qq)
-        m = global_state['module'][q][module_print_aux[q]]
-        del global_state['module'][q][module_print_aux[q]]
-        if module_print_aux[q] >= len(mission):
-            module_print_aux[q] = 0
+        m = user.data.pop_module()
         config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{m['id']}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
-        t = str(target.qq)
-        if t not in global_state['module']:
-            global_state['module'][t] = []
-            module_print_aux[t] = 0
-        global_state['module'][t].append(m)
+        target.data.modules.append(m)
         config.logger.dragon << f"【LOG】用户{target.qq}增加了一个插件{m['id']}，现有插件：{[c['id'] for c in global_state['module'][t]]}。"
         save_global_state()
     @classmethod
     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
         q = str(user.qq)
-        l = global_state['module'][q]
         if jibi > 0:
-            for c in l:
+            for c in user.data.modules:
                 if c['id'] == 0 and c['remain'] > 0 and random.random() < 0.15:
                     if c['remain'] >= jibi:
                         c['remain'] -= jibi
@@ -5142,7 +5152,7 @@ class beacon(_card):
                         c['remain'] = 0
                     user.send_log(f"触发了插件——产率的效果，获得击毙加倍为{jibi}！")
         elif jibi < 0:
-            for c in l:
+            for c in user.data.modules:
                 if jibi != 0 and c['id'] == 2 and c['remain'] > 0:
                     d = ceil(-jibi / 10)
                     if c['remain'] >= d:
