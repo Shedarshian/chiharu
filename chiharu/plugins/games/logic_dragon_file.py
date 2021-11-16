@@ -4150,6 +4150,7 @@ class Sexplore(NumedStatus):
         elif count[0].num == 5 and i == 1:
             user.send_log("置身避雪神庙：")
             user.buf.send("神庙可以回避一些袭击。本次接龙不会因为一周内接龙过或是踩雷而被击毙，但也没有接龙成功。")
+        return True, 0, ""
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if (i := user.buf.state.get('mishi_id')) is None:
