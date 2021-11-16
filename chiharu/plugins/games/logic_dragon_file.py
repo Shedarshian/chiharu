@@ -3101,7 +3101,7 @@ class jiaodai_s(_statusnull):
     des = "布莱恩科技航空专用强化胶带FAL84型：免疫你下次即刻生效的负面状态（不包括死亡）。"
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
-        if status.is_debuff and status.id != 'd' and status is not Swufazhandou:
+        if status.is_debuff and status.id != 'd' and not isinstance(status, Swufazhandou):
             for i in range(min(count, count2)):
                 await user.remove_status('8', remove_all=False)
             user.send_log("触发了胶带的效果，免除此负面状态！")
@@ -3626,7 +3626,7 @@ class wardenspaean_s(NumedStatus):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         for i in count:
-            if status.is_debuff and status.id != 'd' and status is not Swufazhandou:
+            if status.is_debuff and status.id != 'd' and not isinstance(status, Swufazhandou):
                 if i.num >= count2:
                     i.num -= count2
                     user.send_log(f"触发了凯歌的效果，免除此负面状态！")
