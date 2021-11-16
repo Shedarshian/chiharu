@@ -3012,12 +3012,17 @@ class guanggaopai(_card):
     def description(self):
         return random.choice([
             "广告位永久招租，联系邮箱：shedarshian@gmail.com",
-            "我给你找了个厂，虹龙洞里挖龙珠的，两班倒，20多金点包酸素勾玉，一天活很多，也不会很闲，明天你就去上班吧，不想看到你整天在群里接龙，无所事事了，是谁我就不在群里指出来了，等下你没面子。\n\t先填个表https://store.steampowered.com/app/1566410",
+            # "我给你找了个厂，虹龙洞里挖龙珠的，两班倒，20多金点包酸素勾玉，一天活很多，也不会很闲，明天你就去上班吧，不想看到你整天在群里接龙，无所事事了，是谁我就不在群里指出来了，等下你没面子。\n\t先填个表https://store.steampowered.com/app/1566410",
             "MUASTG，车万原作游戏前沿逆向研究，主要研究弹幕判定、射击火力、ZUN引擎弹幕设计等，曾发表车万顶刊华胥三绝，有意者加群796991184",
             "你想明白生命的意义吗？你想真正……的活着吗？\n\t☑下载战斗天邪鬼：https://pan.baidu.com/s/1FIAxhHIaggld3yRAyFr9FA",
-            "肥料掺了金坷垃，一袋能顶两袋撒！肥料掺了金坷垃，不流失，不浪费，不蒸发，能吸收两米下的氮磷钾！",
-            "下蛋公鸡，公鸡中的战斗鸡，哦也",
-            "欢迎关注甜品站弹幕研究协会，国内一流的东方STG学术交流平台，从避弹，打分到neta，可以学到各种高端姿势：https://www.isndes.com/ms?m=2"
+            # "肥料掺了金坷垃，一袋能顶两袋撒！肥料掺了金坷垃，不流失，不浪费，不蒸发，能吸收两米下的氮磷钾！",
+            # "下蛋公鸡，公鸡中的战斗鸡，哦也",
+            "欢迎关注甜品站弹幕研究协会，国内一流的东方STG学术交流平台，从避弹，打分到neta，可以学到各种高端姿势：https://www.isndes.com/ms?m=2",
+            "[CQ:at,qq=1469335215]哈斯塔快去画逻辑接龙卡图",
+            "《世界計畫 繽紛舞台！ feat. 初音未來》正式開啓公測！欢迎下载：www.tw-pjsekai.com",
+            # "PLACEHOLDER",
+            # "PLACEHOLDER",
+            # "PLACEHOLDER",
         ])
 
 class jiaodai(_card):
@@ -5496,6 +5501,14 @@ class assembling(_equipment):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.AfterCardDraw: (Priority.AfterCardDraw.assembling, cls)}
+
+class dragon_head(_equipment):
+    id = 4
+    name = "龙首"
+    @classmethod
+    def description(cls, count: TCount) -> str:
+        d = {1: 1, 2: 1, 3: 2}[count]
+        return f"可以保存{d}张卡。保存的卡独立于手牌之外（不受礼物交换/空白卡牌影响），不能直接使用。"
 
 # 爬塔格子
 class Grid:
