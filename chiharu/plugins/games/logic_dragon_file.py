@@ -3387,14 +3387,14 @@ class SCian(NumedStatus):
 class panjuea(_card):
     name = "判决α"
     id = 111
-    description = "抽到时附加buff：判决α。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。"
+    description = "抽到时附加buff：判决α。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决β同时存在时立刻陷入无法战斗状态。"
     positive = -1
     on_draw_status = 'A'
     is_debuff = True
     consumed_on_draw = True
 class panjuea_s(_statusnull):
     id = 'A'
-    des = "判决α：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。"
+    des = "判决α：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决β同时存在时立刻陷入无法战斗状态。"
     is_debuff = True
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
@@ -3416,7 +3416,7 @@ class panjuea_s(_statusnull):
             UserEvt.OnDragoned: (Priority.OnDragoned.panjue, cls)}
 class panjuea_activated_s(_statusnull):
     id = 'a'
-    des = "判决α：将此buff传递给你上次接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。"
+    des = "判决α：将此buff传递给你上次接龙后第五次接龙的玩家。与判决β同时存在时立刻陷入无法战斗状态。"
     is_debuff = True
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
@@ -3434,14 +3434,14 @@ class panjuea_activated_s(_statusnull):
 class panjueb(_card):
     name = "判决β"
     id = 112
-    description = "抽到时附加buff：判决β。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。"
+    description = "抽到时附加buff：判决β。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻陷入无法战斗状态。"
     positive = -1
     on_draw_status = 'B'
     is_debuff = True
     consumed_on_draw = True
 class panjueb_s(_statusnull):
     id = 'B'
-    des = "判决β：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。"
+    des = "判决β：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻陷入无法战斗状态。"
     is_debuff = True
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
@@ -3463,7 +3463,7 @@ class panjueb_s(_statusnull):
             UserEvt.OnDragoned: (Priority.OnDragoned.panjue, cls)}
 class panjueb_activated_s(_statusnull):
     id = 'b'
-    des = "判决β：将此buff传递给你上次接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。"
+    des = "判决β：将此buff传递给你上次接龙后第五次接龙的玩家。与判决α同时存在时立刻陷入无法战斗状态。"
     is_debuff = True
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
