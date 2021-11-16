@@ -4005,118 +4005,118 @@ class polezombie(_card):
         else:
             await user.death(c=TCounter(jump=True))
 
-# class mishi1(_card):
-#     name = "密教残篇"
-#     id = 140
-#     positive = 1
-#     newer = 5
-#     description = "获得正面状态“探索都城”，该系列效果同一玩家同时只能拥有一个。"
-#     @classmethod
-#     async def use(cls, user: User) -> None:
-#         M = user.check_limited_status('M')
-#         if len(M) > 0:
-#             M[0].num = 1
-#             user.data.save_status_time()
-#             user.send_log("取消了之前的探索并开始探索都城！")
-#         else:
-#             await user.add_limited_status(Sexplore(1))
-#             user.send_log("开始探索都城！")
-# class mishi2(_card):
-#     name = "鬼祟的真相"
-#     id = 141
-#     positive = 1
-#     newer = 5
-#     description = "获得正面状态“探索各郡”，该系列效果同一玩家同时只能拥有一个。"
-#     @classmethod
-#     async def use(cls, user: User) -> None:
-#         M = user.check_limited_status('M')
-#         if len(M) > 0:
-#             M[0].num = 2
-#             user.data.save_status_time()
-#             user.send_log("取消了之前的探索并开始探索各郡！")
-#         else:
-#             await user.add_limited_status(Sexplore(2))
-#             user.send_log("开始探索各郡！")
-# class mishi3(_card):
-#     name = "被遗忘的史籍"
-#     id = 142
-#     positive = 1
-#     newer = 5
-#     description = "获得正面状态“探索大陆”，该系列效果同一玩家同时只能拥有一个。"
-#     @classmethod
-#     async def use(cls, user: User) -> None:
-#         M = user.check_limited_status('M')
-#         if len(M) > 0:
-#             M[0].num = 3
-#             user.data.save_status_time()
-#             user.send_log("取消了之前的探索并开始探索大陆！")
-#         else:
-#             await user.add_limited_status(Sexplore(3))
-#             user.send_log("开始探索大陆！")
-# class mishi4(_card):
-#     name = "禁断的史诗"
-#     id = 143
-#     positive = 1
-#     newer = 5
-#     description = "获得正面状态“探索森林尽头之地”，该系列效果同一玩家同时只能拥有一个。"
-#     @classmethod
-#     async def use(cls, user: User) -> None:
-#         M = user.check_limited_status('M')
-#         if len(M) > 0:
-#             M[0].num = 4
-#             user.data.save_status_time()
-#             user.send_log("取消了之前的探索并开始森林尽头之地！")
-#         else:
-#             await user.add_limited_status(Sexplore(4))
-#             user.send_log("开始森林尽头之地！")
-# class mishi5(_card):
-#     name = "悬而未定的模棱两可"
-#     id = 144
-#     positive = 1
-#     newer = 5
-#     description = "获得正面状态“探索撕身山脉”，该系列效果同一玩家同时只能拥有一个。"
-#     @classmethod
-#     async def use(cls, user: User) -> None:
-#         M = user.check_limited_status('M')
-#         if len(M) > 0:
-#             M[0].num = 5
-#             user.data.save_status_time()
-#             user.send_log("取消了之前的探索并开始探索撕身山脉！")
-#         else:
-#             await user.add_limited_status(Sexplore(5))
-#             user.send_log("开始探索撕身山脉！")
-# class mishi6(_card):
-#     name = "浪游旅人的地图"
-#     id = 145
-#     positive = 1
-#     newer = 5
-#     description = "获得正面状态“探索荒寂而平阔的沙地”，该系列效果同一玩家同时只能拥有一个。"
-#     @classmethod
-#     async def use(cls, user: User) -> None:
-#         M = user.check_limited_status('M')
-#         if len(M) > 0:
-#             M[0].num = 6
-#             user.data.save_status_time()
-#             user.send_log("取消了之前的探索并开始探索荒寂而平阔的沙地！")
-#         else:
-#             await user.add_limited_status(Sexplore(6))
-#             user.send_log("开始探索荒寂而平阔的沙地！")
-# class mishi7(_card):
-#     name = "午港奇闻"
-#     id = 146
-#     positive = 1
-#     newer = 5
-#     description = "获得正面状态“探索薄暮群屿”，该系列效果同一玩家同时只能拥有一个。"
-#     @classmethod
-#     async def use(cls, user: User) -> None:
-#         M = user.check_limited_status('M')
-#         if len(M) > 0:
-#             M[0].num = 7
-#             user.data.save_status_time()
-#             user.send_log("取消了之前的探索并开始探索薄暮群屿！")
-#         else:
-#             await user.add_limited_status(Sexplore(7))
-#             user.send_log("开始探索薄暮群屿！")
+class mishi1(_card):
+    name = "密教残篇"
+    id = 140
+    positive = 1
+    newer = 5
+    description = "获得正面状态“探索都城”，该系列效果同一玩家同时只能拥有一个。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        M = user.check_limited_status('M')
+        if len(M) > 0:
+            M[0].num = 1
+            user.data.save_status_time()
+            user.send_log("取消了之前的探索并开始探索都城！")
+        else:
+            await user.add_limited_status(Sexplore(1))
+            user.send_log("开始探索都城！")
+class mishi2(_card):
+    name = "鬼祟的真相"
+    id = 141
+    positive = 1
+    newer = 5
+    description = "获得正面状态“探索各郡”，该系列效果同一玩家同时只能拥有一个。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        M = user.check_limited_status('M')
+        if len(M) > 0:
+            M[0].num = 2
+            user.data.save_status_time()
+            user.send_log("取消了之前的探索并开始探索各郡！")
+        else:
+            await user.add_limited_status(Sexplore(2))
+            user.send_log("开始探索各郡！")
+class mishi3(_card):
+    name = "被遗忘的史籍"
+    id = 142
+    positive = 1
+    newer = 5
+    description = "获得正面状态“探索大陆”，该系列效果同一玩家同时只能拥有一个。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        M = user.check_limited_status('M')
+        if len(M) > 0:
+            M[0].num = 3
+            user.data.save_status_time()
+            user.send_log("取消了之前的探索并开始探索大陆！")
+        else:
+            await user.add_limited_status(Sexplore(3))
+            user.send_log("开始探索大陆！")
+class mishi4(_card):
+    name = "禁断的史诗"
+    id = 143
+    positive = 1
+    newer = 5
+    description = "获得正面状态“探索森林尽头之地”，该系列效果同一玩家同时只能拥有一个。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        M = user.check_limited_status('M')
+        if len(M) > 0:
+            M[0].num = 4
+            user.data.save_status_time()
+            user.send_log("取消了之前的探索并开始森林尽头之地！")
+        else:
+            await user.add_limited_status(Sexplore(4))
+            user.send_log("开始森林尽头之地！")
+class mishi5(_card):
+    name = "悬而未定的模棱两可"
+    id = 144
+    positive = 1
+    newer = 5
+    description = "获得正面状态“探索撕身山脉”，该系列效果同一玩家同时只能拥有一个。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        M = user.check_limited_status('M')
+        if len(M) > 0:
+            M[0].num = 5
+            user.data.save_status_time()
+            user.send_log("取消了之前的探索并开始探索撕身山脉！")
+        else:
+            await user.add_limited_status(Sexplore(5))
+            user.send_log("开始探索撕身山脉！")
+class mishi6(_card):
+    name = "浪游旅人的地图"
+    id = 145
+    positive = 1
+    newer = 5
+    description = "获得正面状态“探索荒寂而平阔的沙地”，该系列效果同一玩家同时只能拥有一个。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        M = user.check_limited_status('M')
+        if len(M) > 0:
+            M[0].num = 6
+            user.data.save_status_time()
+            user.send_log("取消了之前的探索并开始探索荒寂而平阔的沙地！")
+        else:
+            await user.add_limited_status(Sexplore(6))
+            user.send_log("开始探索荒寂而平阔的沙地！")
+class mishi7(_card):
+    name = "午港奇闻"
+    id = 146
+    positive = 1
+    newer = 5
+    description = "获得正面状态“探索薄暮群屿”，该系列效果同一玩家同时只能拥有一个。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        M = user.check_limited_status('M')
+        if len(M) > 0:
+            M[0].num = 7
+            user.data.save_status_time()
+            user.send_log("取消了之前的探索并开始探索薄暮群屿！")
+        else:
+            await user.add_limited_status(Sexplore(7))
+            user.send_log("开始探索薄暮群屿！")
 class Sexplore(NumedStatus):
     id = 'M'
     @property
