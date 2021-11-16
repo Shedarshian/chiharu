@@ -4017,10 +4017,10 @@ class polezombie(_card):
 #         if len(M) > 0:
 #             M[0].num = 1
 #             user.data.save_status_time()
-#             user.send_log(f"取消了之前的探索并开始探索都城！")
+#             user.send_log("取消了之前的探索并开始探索都城！")
 #         else:
 #             await user.add_limited_status(Sexplore(1))
-#             user.send_log(f"开始探索都城！")
+#             user.send_log("开始探索都城！")
 # class mishi2(_card):
 #     name = "鬼祟的真相"
 #     id = 141
@@ -4033,10 +4033,10 @@ class polezombie(_card):
 #         if len(M) > 0:
 #             M[0].num = 2
 #             user.data.save_status_time()
-#             user.send_log(f"取消了之前的探索并开始探索各郡！")
+#             user.send_log("取消了之前的探索并开始探索各郡！")
 #         else:
 #             await user.add_limited_status(Sexplore(2))
-#             user.send_log(f"开始探索各郡！")
+#             user.send_log("开始探索各郡！")
 # class mishi3(_card):
 #     name = "被遗忘的史籍"
 #     id = 142
@@ -4049,10 +4049,10 @@ class polezombie(_card):
 #         if len(M) > 0:
 #             M[0].num = 3
 #             user.data.save_status_time()
-#             user.send_log(f"取消了之前的探索并开始探索大陆！")
+#             user.send_log("取消了之前的探索并开始探索大陆！")
 #         else:
 #             await user.add_limited_status(Sexplore(3))
-#             user.send_log(f"开始探索大陆！")
+#             user.send_log("开始探索大陆！")
 # class mishi4(_card):
 #     name = "禁断的史诗"
 #     id = 143
@@ -4065,10 +4065,10 @@ class polezombie(_card):
 #         if len(M) > 0:
 #             M[0].num = 4
 #             user.data.save_status_time()
-#             user.send_log(f"取消了之前的探索并开始森林尽头之地！")
+#             user.send_log("取消了之前的探索并开始森林尽头之地！")
 #         else:
 #             await user.add_limited_status(Sexplore(4))
-#             user.send_log(f"开始森林尽头之地！")
+#             user.send_log("开始森林尽头之地！")
 # class mishi5(_card):
 #     name = "悬而未定的模棱两可"
 #     id = 144
@@ -4081,10 +4081,10 @@ class polezombie(_card):
 #         if len(M) > 0:
 #             M[0].num = 5
 #             user.data.save_status_time()
-#             user.send_log(f"取消了之前的探索并开始探索撕身山脉！")
+#             user.send_log("取消了之前的探索并开始探索撕身山脉！")
 #         else:
 #             await user.add_limited_status(Sexplore(5))
-#             user.send_log(f"开始探索撕身山脉！")
+#             user.send_log("开始探索撕身山脉！")
 # class mishi6(_card):
 #     name = "浪游旅人的地图"
 #     id = 145
@@ -4097,10 +4097,10 @@ class polezombie(_card):
 #         if len(M) > 0:
 #             M[0].num = 6
 #             user.data.save_status_time()
-#             user.send_log(f"取消了之前的探索并开始探索荒寂而平阔的沙地！")
+#             user.send_log("取消了之前的探索并开始探索荒寂而平阔的沙地！")
 #         else:
 #             await user.add_limited_status(Sexplore(6))
-#             user.send_log(f"开始探索荒寂而平阔的沙地！")
+#             user.send_log("开始探索荒寂而平阔的沙地！")
 # class mishi7(_card):
 #     name = "午港奇闻"
 #     id = 146
@@ -4113,10 +4113,10 @@ class polezombie(_card):
 #         if len(M) > 0:
 #             M[0].num = 7
 #             user.data.save_status_time()
-#             user.send_log(f"取消了之前的探索并开始探索薄暮群屿！")
+#             user.send_log("取消了之前的探索并开始探索薄暮群屿！")
 #         else:
 #             await user.add_limited_status(Sexplore(7))
-#             user.send_log(f"开始探索薄暮群屿！")
+#             user.send_log("开始探索薄暮群屿！")
 class Sexplore(NumedStatus):
     id = 'M'
     @property
@@ -4126,23 +4126,37 @@ class Sexplore(NumedStatus):
             spot = ["都城", "各郡", "大陆", "森林尽头之地", "撕身山脉", "荒寂而平阔的沙地", "薄暮群屿"][self.num - 1]
             return f"探索{spot}：你将会触发一系列随机事件。"
         elif i == 8:
-            return f"探索薄暮群屿：你将会触发一系列随机事件。\n\t置身格里克堡：直到失去状态“探索薄暮群屿”，抵御所有死亡效果。"
+            return "探索薄暮群屿：你将会触发一系列随机事件。\n\t置身格里克堡：直到失去状态“探索薄暮群屿”，抵御所有死亡效果。"
     def __str__(self) -> str:
         return f"{self.des}"
     def double(self):
-        return self
+        return [self]
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+        user.buf.state['mishi_id'] = random.randint(0, 5 if count[0].num <= 4 else 4)
+        if count[0].num == 1 and i == 1:
+            user.send_log("置身被遗忘的密特拉寺：")
+            user.buf.send("你在此地进行了虔诚（）的祈祷。如果你此次接龙因各种原因被击毙，减少0～10%的死亡时间。")
+        elif count[0].num == 2 and i == 1:
+            user.send_log("置身洛克伍德沼地")
+            user.buf.send("成真的神明或是在守望此地。如果你此次接龙被击毙，减少25%死亡时间。")
+        elif count[0].num == 4 and i == 1:
+            user.send_log("置身大公的城塞：")
+            user.buf.send("他平复了许多人的干渴，最终又败给了自己的干渴。若你因本次接龙被击毙，减少50%的死亡时间。")
+        elif count[0].num == 5 and i == 1:
+            user.send_log("置身避雪神庙：")
+            user.buf.send("神庙可以回避一些袭击。本次接龙不会因为一周内接龙过或是踩雷而被击毙，但也没有接龙成功。")
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        if (i := user.buf.state.get('mishi_id')) is None:
+            i = random.randint(0, 5 if count[0].num <= 4 else 4)
         if count[0].num == 1:
-            i = random.randint(0, 5)
             if i == 0:
                 user.send_log("置身斯特拉斯科因的寓所：")
                 user.buf.send("发现了一些稀有的收藏。抽取一张广告牌。")
-                await user.draw(0,cards=[Card(94)])
+                await user.draw(0, cards=[Card(94)])
             elif i == 1:
-                user.send_log("置身被遗忘的密特拉寺：")
-                user.buf.send("你在此地进行了虔诚（）的祈祷。如果你此次接龙因各种原因被击毙，减少0～10%的死亡时间。")
-                #await TODO 减少随机0~10%！
+                pass
             elif i == 2:
                 user.send_log("置身凯特与赫洛有限公司：")
                 user.buf.send("你在因不明爆炸而荒废的大厦中可能寻得一些东西，或是失去一些东西。")
@@ -4168,15 +4182,12 @@ class Sexplore(NumedStatus):
                 await user.death(15)
                 user.data.save_status_time()
         elif count[0].num == 2:
-            i = random.randint(0, 5)
             if i == 0:
                 user.send_log("置身格拉德温湖：")
                 user.buf.send("此处有蛇群把守。下一个接龙的人需要进行首尾接龙。")
                 await Userme(user).add_status('|')
             elif i == 1:
-                user.send_log("置身洛克伍德沼地")
-                user.buf.send("成真的神明或是在守望此地。如果你此次接龙被击毙，减少25%死亡时间。")
-                # await TODO 减少25%！
+                pass
             elif i == 2:
                 user.send_log("置身克罗基斯山丘：")
                 user.buf.send("守望此地之人将充满伤疤。今天你每死亡一次便获得2击毙。")
@@ -4199,7 +4210,6 @@ class Sexplore(NumedStatus):
                 await user.death(30)
                 user.data.save_status_time()
         elif count[0].num == 3:
-            i = random.randint(0, 5)
             if i == 0:
                 user.send_log("置身拉维林城堡：")
                 user.buf.send("住在这里的曾是太阳王的后裔。随机解除你的一个负面效果。")
@@ -4255,15 +4265,12 @@ class Sexplore(NumedStatus):
                 await user.death(60)
                 user.data.save_status_time()
         elif count[0].num == 4:
-            i = random.randint(0, 5)
             if i == 0:
                 user.send_log("置身蜡烛岩洞：")
                 user.buf.send("岩洞的内部出乎意料地明亮。你下一次接龙只需要相隔一个人。")
                 await user.add_status('L')
             elif i == 1:
-                user.send_log("置身大公的城塞：")
-                user.buf.send("他平复了许多人的干渴，最终又败给了自己的干渴。若你因本次接龙被击毙，减少50%的死亡时间。")
-                #await  TODO 减少50！
+                pass
             elif i == 2:
                 user.send_log("置身格吕内瓦尔德的常驻马戏团：")
                 user.buf.send("马戏团众人在每个地方都贴满了写满图标的纸张，这个地方散发着虚界的气息。你的下一次接龙不受全局状态的影响。")
@@ -4315,7 +4322,6 @@ class Sexplore(NumedStatus):
                 await user.death(90)
                 user.data.save_status_time()
         elif count[0].num == 5:
-            i = random.randint(0, 4)
             if i == 0:
                 user.send_log("置身猎手之穴：")
                 user.buf.send("在这里必须隐藏自己。上一个人下一次接龙需要间隔三个人。")
@@ -4325,14 +4331,12 @@ class Sexplore(NumedStatus):
                 else:
                     user.send_log("无上一个接龙的玩家！")
             elif i == 1:
-                user.send_log("置身避雪神庙：")
-                user.buf.send("神庙可以回避一些袭击。本次接龙不会因为一周内接龙过或是踩雷而被击毙，但也没有接龙成功。")
                 if (node := branch.parent) is not None:
                     node.childs.remove(branch)
                 branch.remove()
                 from .logic_dragon import rewrite_log_file
                 rewrite_log_file()
-                #await TODO 减少100%！
+                user.buf.send("不，你的接龙失败了。")
             elif i == 2:
                 user.send_log("置身伊克玛维之眼：")
                 user.buf.send("这里是观星台，是大地的眼睛。公开揭示今天一个隐藏奖励词，该效果每天只会触发一次。")
@@ -4353,7 +4357,6 @@ class Sexplore(NumedStatus):
                 await user.death(120)
                 user.data.save_status_time()
         elif count[0].num == 6:
-            i = random.randint(0, 4)
             if i == 0:
                 user.send_log("置身被星辰击碎的神殿：")
                 user.buf.send("掉落的陨石反而成了朝拜的对象。在你之后接龙的一个人会额外获得5击毙。")
@@ -4381,7 +4384,6 @@ class Sexplore(NumedStatus):
                 await user.death(180)
                 user.data.save_status_time()
         elif count[0].num == 7 or count[0].num == 8:
-            i = random.randint(0, 4)
             if i == 0:
                 user.send_log("置身渡鸦屿：")
                 user.buf.send("索奎焰特在洞壁上用一百种语言描述他们悲惨的历史。获得一个可以完成10次的新任务，每次可以获得2击毙。")
@@ -4425,9 +4427,16 @@ class Sexplore(NumedStatus):
             user.data.save_status_time()
     @classmethod
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
-        if count[0].num != 8:
-            return time, False
-        else:
+        i = user.buf.state.get('mishi_id') # maybe None
+        if count[0].num == 1 and i == 1:
+            return (1 - random.random() * 0.1) * time, False
+        elif count[0].num == 2 and i == 1:
+            return 0.75 * time, False
+        elif count[0].num == 4 and i == 1:
+            return 0.5 * time, False
+        elif count[0].num == 5 and i == 1:
+            return 0, True
+        elif count[0].num == 8:
             if await c.pierce():
                 user.send_log("堡垒的效果被幻想杀手消除了！")
                 count[0].num = 7
@@ -4435,9 +4444,11 @@ class Sexplore(NumedStatus):
             else:
                 user.send_log("触发了堡垒的效果，免除死亡！")
                 return time, True
+        return time, False
     @classmethod
     def register(cls) -> dict[int, TEvent]:
-        return {UserEvt.OnDragoned: (Priority.OnDragoned.explore, cls),
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.explore, cls),
+            UserEvt.OnDragoned: (Priority.OnDragoned.explore, cls),
             UserEvt.OnDeath: (Priority.OnDeath.explore, cls)}
 
 class Sjiaotu(_statusnull):

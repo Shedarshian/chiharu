@@ -132,7 +132,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         pass
     class OnDeath(IntEnum):
         invincible = auto()             # 吸血鬼：免疫死亡
-        explore = auto()                # 秘史衍生：免疫死亡
+        explore = auto()                # 秘史衍生：免疫死亡，以及死亡时间减少
         miansi = auto()                 # 倒吊人：免疫一次死亡
         sihuihuibizhiyao = auto()       # 死秽：消耗击毙免疫一次死亡
         hongsezhihuan = auto()          # 虹环：一半免疫一次死亡
@@ -193,6 +193,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
     class OnEventptChange(IntEnum):
         pass
     class BeforeDragoned(IntEnum):
+        explore = auto()                # 秘史：减少此次接龙的死亡时间
         death = auto()                  # 死人不能接龙
         wufazhandou = auto()            # 死人不能接龙
         shengbing = auto()              # 病人也不能接龙
