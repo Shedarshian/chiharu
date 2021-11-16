@@ -10,7 +10,7 @@ TSteal = TypedDict('TSteal', user=List[int], time=int)
 
 class TGlobalState(TypedDict):
     last_card_user: int
-    exchange_stack: List[int]
+    # exchange_stack: List[int]
     used_cards: List[int]
     global_status: List[Tuple[int, str]]
     observatory: bool
