@@ -5791,3 +5791,51 @@ class Dragon:
     
 
 dragon: Callable[[User], Dragon] = lambda user: Dragon(user.buf)
+
+bingo_id = [(0, 8), (5, 0), (1, 0), (3, 0), (4, 0), (0, 19), (0, 1), (2, 40), (1, 110)]
+# 0: 接龙任务，1: 使用一张i~i+39的卡（包含摸取特效），2: 摸一张i~i+79的卡，3：有人死亡，4：花费或扣除击毙，5：添加一个非死亡状态
+
+class bingo_checker(IEventListener):
+    @classmethod
+    async def check_complete(cls, user):
+        pass
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        for id, (i, j) in enumerate(bingo_id):
+            if i == 0:
+                _, name, func = mission[j]
+                if func(branch.word):
+                    user.buf.send(f"Bingo！{user.char}完成了接龙任务：{name[:-1]}！")
+                    user.log << f"完成了一次bingo任务{name}。"
+    @classmethod
+    async def AfterCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[()]:
+        for id, (i, j) in enumerate(bingo_id):
+            if i == 1 and j <= card.id < j + 40:
+                user.buf.send(f"Bingo！{user.char}完成了任务！")
+                user.log << f"完成了一次bingo任务。"
+    @classmethod
+    async def AfterCardDraw(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
+        for id, (i, j) in enumerate(bingo_id):
+            if i == 2 and any(j <= c.id < j + 80 for c in cards):
+                user.buf.send(f"Bingo！{user.char}完成了任务！")
+                user.log << f"完成了一次bingo任务。"
+    @classmethod
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+        for id, (i, j) in enumerate(bingo_id):
+            if i == 3:
+                user.buf.send(f"Bingo！{user.char}完成了任务！")
+                user.log << f"完成了一次bingo任务。"
+    @classmethod
+    async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
+        if jibi < 0:
+            for id, (i, j) in enumerate(bingo_id):
+                if i == 4:
+                    user.buf.send(f"Bingo！{user.char}完成了任务！")
+                    user.log << f"完成了一次bingo任务。"
+    @classmethod
+    async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
+        if not isinstance(status, SDeath):
+            for id, (i, j) in enumerate(bingo_id):
+                if i == 5:
+                    user.buf.send(f"Bingo！{user.char}完成了任务！")
+                    user.log << f"完成了一次bingo任务。"
