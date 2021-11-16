@@ -4142,7 +4142,7 @@ class Sexplore(NumedStatus):
             user.send_log("置身被遗忘的密特拉寺：")
             user.buf.send("你在此地进行了虔诚（）的祈祷。如果你此次接龙因各种原因被击毙，减少0～10%的死亡时间。")
         elif count[0].num == 2 and i == 1:
-            user.send_log("置身洛克伍德沼地")
+            user.send_log("置身洛克伍德沼地：")
             user.buf.send("成真的神明或是在守望此地。如果你此次接龙被击毙，减少25%死亡时间。")
         elif count[0].num == 4 and i == 1:
             user.send_log("置身大公的城塞：")
@@ -4433,18 +4433,36 @@ class Sexplore(NumedStatus):
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
         i = user.buf.state.get('mishi_id') # maybe None
         if count[0].num == 1 and i == 1:
-            return (1 - random.random() * 0.1) * time, False
+            if await c.pierce():
+                user.send_log("被遗忘的密特拉寺的效果被幻想杀手消除了！")
+                return time, False
+            s = random.random() * 0.1
+            user.send_log(f"触发了被遗忘的密特拉寺的效果，死亡时间减少了{s * 100:.2f}%！")
+            return (1 - s) * time, False
         elif count[0].num == 2 and i == 1:
+            if await c.pierce():
+                user.send_log("洛克伍德沼地的效果被幻想杀手消除了！")
+                return time, False
+            user.send_log("触发了洛克伍德沼地的效果，死亡时间减少了25%！")
             return 0.75 * time, False
         elif count[0].num == 4 and i == 1:
+            if await c.pierce():
+                user.send_log("大公的城塞的效果被幻想杀手消除了！")
+                return time, False
+            user.send_log("触发了大公的城塞的效果，死亡时间减少了50%！")
             return 0.5 * time, False
         elif count[0].num == 5 and i == 1:
+            if await c.pierce():
+                user.send_log("避雪神庙的效果被幻想杀手消除了！")
+                return time, False
+            user.send_log("触发了避雪神庙的效果，回避了死亡！")
             return 0, True
         elif count[0].num == 8:
             if await c.pierce():
                 user.send_log("堡垒的效果被幻想杀手消除了！")
                 count[0].num = 7
                 user.data.save_status_time()
+                return time, False
             else:
                 user.send_log("触发了堡垒的效果，免除死亡！")
                 return time, True
