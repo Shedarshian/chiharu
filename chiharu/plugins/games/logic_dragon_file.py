@@ -4211,7 +4211,7 @@ class Sexplore(NumedStatus):
         return [self]
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
-        user.buf.state['mishi_id'] = random.randint(0, 5 if count[0].num <= 4 else 4)
+        user.buf.state['mishi_id'] = i = random.randint(0, 5 if count[0].num <= 4 else 4)
         if count[0].num == 1 and i == 1:
             user.send_log("置身被遗忘的密特拉寺：")
             user.buf.send("你在此地进行了虔诚（）的祈祷。如果你此次接龙因各种原因被击毙，减少0～10%的死亡时间。")
