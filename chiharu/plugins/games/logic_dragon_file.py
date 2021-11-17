@@ -1931,6 +1931,8 @@ class chariot(_card):
                     if len(temp) != 0:
                         to_kill |= set(n.qq for n in temp)
                     temp = [node]
+                elif len(temp) != 0:
+                    temp.append(node)
                 node = node.parent
         if user.qq in to_kill:
             to_kill.remove(user.qq)
@@ -2925,7 +2927,7 @@ class lveduozhebopu(_card):
         last_qq = branch.parent.qq
         if branch.parent.id != (0, 0):
             last = User(last_qq, user.buf)
-            s = user.steal
+            s = user.data.steal
             if last_qq not in s['user'] and s['time'] < 10:
                 s['time'] += 1
                 s['user'].append(last_qq)
