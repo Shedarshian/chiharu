@@ -684,6 +684,69 @@ class UserData:
             else:
                 i += 1
         return self.status_time
+    @property
+    def quests(self):
+        q = str(self.qq)
+        if q not in global_state['quest']:
+            global_state['quest'][q] = []
+            quest_print_aux[q] = 0
+            save_global_state()
+        return global_state['quest'][q]
+    @property
+    def quest_c(self):
+        q = str(self.qq)
+        r = self.quests[quest_print_aux[q]]
+        quest_print_aux[q] += 1
+        if quest_print_aux[q] >= len(self.quests):
+            quest_print_aux[q] = 0
+        return r
+    def pop_quest(self):
+        q = str(self.qq)
+        r = self.quest_c
+        del self.quests[quest_print_aux[q]]
+        if quest_print_aux[q] >= len(self.quests):
+            quest_print_aux[q] = 0
+        return r
+    @property
+    def modules(self):
+        q = str(self.qq)
+        if q not in global_state['module']:
+            global_state['module'][q] = []
+            module_print_aux[q] = 0
+            save_global_state()
+        return global_state['module'][q]
+    @property
+    def module_c(self):
+        q = str(self.qq)
+        r = self.modules[module_print_aux[q]]
+        module_print_aux[q] += 1
+        if module_print_aux[q] >= len(self.modules):
+            module_print_aux[q] = 0
+        return r
+    def pop_module(self):
+        q = str(self.qq)
+        r = self.module_c
+        del self.modules[module_print_aux[q]]
+        if module_print_aux[q] >= len(self.modules):
+            module_print_aux[q] = 0
+        return r
+    @property
+    def steal(self):
+        q = str(self.qq)
+        if q not in global_state['steal']:
+            global_state['steal'][q] = {'time': 0, 'user': []}
+            save_global_state()
+        return global_state['steal'][q]
+    @steal.setter
+    def steal(self, value):
+        global_state['steal'][str(self.qq)] = value
+    @property
+    def dragon_head(self):
+        q = str(self.qq)
+        if q not in global_state['dragon_head']:
+            global_state['dragon_head'][q] = {}
+            save_global_state()
+        return global_state['dragon_head'][q]
     def set_cards(self):
         config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(c.id) for c in self.hand_card), self.qq))
         config.logger.dragon << f"【LOG】设置用户{self.qq}手牌为{cards_to_str(self.hand_card)}。"
@@ -1059,6 +1122,7 @@ class User:
         self.remove_card(card)
         await self.use_card_effect(card)
         await card.on_remove(self)
+        self.data.set_cards()
         self.log << f"使用完卡牌，当前手牌为{cards_to_str(self.data.hand_card)}。"
     async def use_equipment(self, eq: TEquipment, count: int):
         """使用装备。"""
@@ -1850,6 +1914,31 @@ class lovers(_card):
             await u.remove_all_limited_status('d')
             user.buf.send("已复活！" + ("（虽然目标并没有死亡）" if n else ''))
 
+class chariot(_card):
+    id = 7
+    name = "VII - 战车"
+    positive = 1
+    newer = 5
+    description = "对你今天第一次和最后一次接龙中间接龙的人（除了你自己）每人做一次10%致死的击毙判定。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        to_kill = set()
+        for l in Tree._objs:
+            node = l[-1]
+            temp: List[Tree] = []
+            while node.id[0] != 0:
+                if node.qq == user.qq:
+                    if len(temp) != 0:
+                        to_kill |= set(n.qq for n in temp)
+                    temp = [node]
+                node = node.parent
+        if user.qq in to_kill:
+            to_kill.remove(user.qq)
+        to_kill = set(qq for qq in to_kill if random.random() < 0.1)
+        user.send_char(f"{'，'.join(f'[CQ:at,qq={qq}]' for qq in to_kill)}被你击杀了！")
+        for qq in to_kill:
+            await User(qq, user.buf).killed(user)
+
 class strength(_card):
     name = "VIII - 力量"
     id = 8
@@ -2566,54 +2655,33 @@ class queststone(_card):
     des_need_init = True
     @classmethod
     def quest_des(cls, qq: int):
-        q = str(qq)
-        m = mission[global_state['quest'][q][quest_print_aux[q]]['id']][1]
-        remain = global_state['quest'][q][quest_print_aux[q]]['remain']
-        quest_print_aux[q] += 1
-        if quest_print_aux[q] >= len(global_state['quest'][q]):
-            quest_print_aux[q] = 0
+        r = Game.userdata(qq).quest_c
+        m = mission[r['id']][1]
+        remain = r['remain']
         return "\t当前任务：" + m + f"剩余{remain}次。"
     @classmethod
     def full_description(cls, qq: int):
         return super().full_description(qq) + "\n" + cls.quest_des(qq)
     @classmethod
     async def on_draw(cls, user: User):
-        q = str(user.qq)
-        if q not in global_state['quest']:
-            global_state['quest'][q] = []
-            quest_print_aux[q] = 0
-        global_state['quest'][q].append({'id': (i := get_mission()), 'remain': 3})
-        config.logger.dragon << f"【LOG】用户{user.qq}刷新了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][q]]}。"
+        user.data.quests.append({'id': (i := get_mission()), 'remain': 3})
+        config.logger.dragon << f"【LOG】用户{user.qq}刷新了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in user.data.quests]}。"
         save_global_state()
     @classmethod
     async def on_remove(cls, user: User):
-        q = str(user.qq)
-        i = global_state['quest'][q][quest_print_aux[q]]['id']
-        del global_state['quest'][q][quest_print_aux[q]]
-        if quest_print_aux[q] >= len(mission):
-            quest_print_aux[q] = 0
-        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][q]]}。"
+        r = user.data.pop_quest()
+        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个任务{mission[r['id']][1]}，现有任务：{[mission[c['id']][1] for c in user.data.quests]}。"
         save_global_state()
     @classmethod
     async def on_give(cls, user: User, target: User):
-        q = str(user.qq)
-        m = global_state['quest'][q][quest_print_aux[q]]
-        i = m['id']
-        del global_state['quest'][q][quest_print_aux[q]]
-        if quest_print_aux[q] >= len(mission):
-            quest_print_aux[q] = 0
-        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][q]]}。"
-        t = str(target.qq)
-        if t not in global_state['quest']:
-            global_state['quest'][t] = []
-            quest_print_aux[t] = 0
-        global_state['quest'][t].append(m)
-        config.logger.dragon << f"【LOG】用户{target.qq}增加了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in global_state['quest'][t]]}。"
+        r = user.data.pop_quest()
+        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个任务{mission[r['id']][1]}，现有任务：{[mission[c['id']][1] for c in user.data.quests]}。"
+        target.data.quests.append(r)
+        config.logger.dragon << f"【LOG】用户{target.qq}增加了一个任务{mission[r['id']][1]}，现有任务：{[mission[c['id']][1] for c in target.data.quests]}。"
         save_global_state()
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        l = global_state['quest'].get(str(user.qq))
-        for m in l:
+        for m in user.data.modules:
             if m['remain'] > 0:
                 id, name, func = mission[m['id']]
                 if func(branch.word):
@@ -2833,8 +2901,7 @@ class lveduozhebopu(_card):
     description = "持有此卡时，你每天你可从你所接龙的人处偷取1击毙，每人限一次，最多10击毙，若目标没有击毙则不可偷取。使用或死亡时将丢弃这张卡。"
     @classmethod
     async def on_draw(cls, user: User):
-        if str(user.qq) not in global_state['steal']:
-            global_state['steal'][str(user.qq)] = {'time': 0, 'user': []}
+        user.data.steal
         save_global_state()
     @classmethod
     async def on_remove(cls, user: User):
@@ -2843,7 +2910,7 @@ class lveduozhebopu(_card):
         save_global_state()
     @classmethod
     async def on_give(cls, user: User, target: User):
-        global_state['steal'][str(target.qq)] = global_state['steal'][str(user.qq)]
+        target.data.steal = user.data.steal
         if Card(77) not in user.data.hand_card and str(user.qq) in global_state['steal']:
             del global_state['steal'][str(user.qq)]
         save_global_state()
@@ -2856,12 +2923,12 @@ class lveduozhebopu(_card):
     async def OnDragoned(cls, count: TCount, user: User, branch: 'Tree', first10: bool) -> Tuple[()]:
         global global_state
         last_qq = branch.parent.qq
-        qq = user.qq
         if branch.parent.id != (0, 0):
             last = User(last_qq, user.buf)
-            if last_qq not in global_state['steal'][str(qq)]['user'] and global_state['steal'][str(qq)]['time'] < 10:
-                global_state['steal'][str(qq)]['time'] += 1
-                global_state['steal'][str(qq)]['user'].append(last_qq)
+            s = user.steal
+            if last_qq not in s['user'] and s['time'] < 10:
+                s['time'] += 1
+                s['user'].append(last_qq)
                 save_global_state()
                 atk = AStealJibi(user, last, count)
                 await last.attacked(user, atk)
@@ -3012,12 +3079,17 @@ class guanggaopai(_card):
     def description(self):
         return random.choice([
             "广告位永久招租，联系邮箱：shedarshian@gmail.com",
-            "我给你找了个厂，虹龙洞里挖龙珠的，两班倒，20多金点包酸素勾玉，一天活很多，也不会很闲，明天你就去上班吧，不想看到你整天在群里接龙，无所事事了，是谁我就不在群里指出来了，等下你没面子。\n\t先填个表https://store.steampowered.com/app/1566410",
+            # "我给你找了个厂，虹龙洞里挖龙珠的，两班倒，20多金点包酸素勾玉，一天活很多，也不会很闲，明天你就去上班吧，不想看到你整天在群里接龙，无所事事了，是谁我就不在群里指出来了，等下你没面子。\n\t先填个表https://store.steampowered.com/app/1566410",
             "MUASTG，车万原作游戏前沿逆向研究，主要研究弹幕判定、射击火力、ZUN引擎弹幕设计等，曾发表车万顶刊华胥三绝，有意者加群796991184",
             "你想明白生命的意义吗？你想真正……的活着吗？\n\t☑下载战斗天邪鬼：https://pan.baidu.com/s/1FIAxhHIaggld3yRAyFr9FA",
-            "肥料掺了金坷垃，一袋能顶两袋撒！肥料掺了金坷垃，不流失，不浪费，不蒸发，能吸收两米下的氮磷钾！",
-            "下蛋公鸡，公鸡中的战斗鸡，哦也",
-            "欢迎关注甜品站弹幕研究协会，国内一流的东方STG学术交流平台，从避弹，打分到neta，可以学到各种高端姿势：https://www.isndes.com/ms?m=2"
+            # "肥料掺了金坷垃，一袋能顶两袋撒！肥料掺了金坷垃，不流失，不浪费，不蒸发，能吸收两米下的氮磷钾！",
+            # "下蛋公鸡，公鸡中的战斗鸡，哦也",
+            "欢迎关注甜品站弹幕研究协会，国内一流的东方STG学术交流平台，从避弹，打分到neta，可以学到各种高端姿势：https://www.isndes.com/ms?m=2",
+            "[CQ:at,qq=1469335215]哈斯塔快去画逻辑接龙卡图",
+            "《世界計畫 繽紛舞台！ feat. 初音未來》正式開啓公測！欢迎下载：www.tw-pjsekai.com",
+            # "PLACEHOLDER",
+            # "PLACEHOLDER",
+            # "PLACEHOLDER",
         ])
 
 class jiaodai(_card):
@@ -3054,7 +3126,7 @@ class jiaodai_s(_statusnull):
     des = "布莱恩科技航空专用强化胶带FAL84型：免疫你下次即刻生效的负面状态（不包括死亡）。"
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
-        if status.is_debuff and status.id != 'd' and status is not Swufazhandou:
+        if status.is_debuff and status.id != 'd' and not isinstance(status, Swufazhandou):
             for i in range(min(count, count2)):
                 await user.remove_status('8', remove_all=False)
             user.send_log("触发了胶带的效果，免除此负面状态！")
@@ -3340,14 +3412,14 @@ class SCian(NumedStatus):
 class panjuea(_card):
     name = "判决α"
     id = 111
-    description = "抽到时附加buff：判决α。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。"
+    description = "抽到时附加buff：判决α。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决β同时存在时立刻陷入无法战斗状态。"
     positive = -1
     on_draw_status = 'A'
     is_debuff = True
     consumed_on_draw = True
 class panjuea_s(_statusnull):
     id = 'A'
-    des = "判决α：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。"
+    des = "判决α：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决β同时存在时立刻陷入无法战斗状态。"
     is_debuff = True
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
@@ -3369,7 +3441,7 @@ class panjuea_s(_statusnull):
             UserEvt.OnDragoned: (Priority.OnDragoned.panjue, cls)}
 class panjuea_activated_s(_statusnull):
     id = 'a'
-    des = "判决α：将此buff传递给你上次接龙后第五次接龙的玩家。与判决β同时存在时立刻死亡。"
+    des = "判决α：将此buff传递给你上次接龙后第五次接龙的玩家。与判决β同时存在时立刻陷入无法战斗状态。"
     is_debuff = True
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
@@ -3387,14 +3459,14 @@ class panjuea_activated_s(_statusnull):
 class panjueb(_card):
     name = "判决β"
     id = 112
-    description = "抽到时附加buff：判决β。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。"
+    description = "抽到时附加buff：判决β。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻陷入无法战斗状态。"
     positive = -1
     on_draw_status = 'B'
     is_debuff = True
     consumed_on_draw = True
 class panjueb_s(_statusnull):
     id = 'B'
-    des = "判决β：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。"
+    des = "判决β：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻陷入无法战斗状态。"
     is_debuff = True
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
@@ -3416,7 +3488,7 @@ class panjueb_s(_statusnull):
             UserEvt.OnDragoned: (Priority.OnDragoned.panjue, cls)}
 class panjueb_activated_s(_statusnull):
     id = 'b'
-    des = "判决β：将此buff传递给你上次接龙后第五次接龙的玩家。与判决α同时存在时立刻死亡。"
+    des = "判决β：将此buff传递给你上次接龙后第五次接龙的玩家。与判决α同时存在时立刻陷入无法战斗状态。"
     is_debuff = True
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
@@ -3579,7 +3651,7 @@ class wardenspaean_s(NumedStatus):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         for i in count:
-            if status.is_debuff and status.id != 'd' and status is not Swufazhandou:
+            if status.is_debuff and status.id != 'd' and not isinstance(status, Swufazhandou):
                 if i.num >= count2:
                     i.num -= count2
                     user.send_log(f"触发了凯歌的效果，免除此负面状态！")
@@ -5080,54 +5152,33 @@ class beacon(_card):
     des_need_init = True
     @classmethod
     def module_des(cls, qq: int):
-        q = str(qq)
-        m = global_state['module'][q][module_print_aux[q]]
-        module_print_aux[q] += 1
-        if module_print_aux[q] >= len(global_state['module'][q]):
-            module_print_aux[q] = 0
+        m = Game.userdata(qq).module_c
         return "\t" + cls.extra_info[m['id']] + f"剩余：{m['remain'] // (10 if m['id'] == 1 else 1)}{'次' if m['id'] == 1 else '击毙'}。"
     @classmethod
     def full_description(cls, qq: int):
         return super().full_description(qq) + "\n" + cls.module_des(qq)
     @classmethod
     async def on_draw(cls, user: User):
-        q = str(user.qq)
-        if q not in global_state['module']:
-            global_state['module'][q] = []
-            module_print_aux[q] = 0
-        global_state['module'][q].append({'id': (r := random.randint(0, 2)), 'remain': 10})
-        config.logger.dragon << f"【LOG】用户{user.qq}刷新了一个插件{r}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
+        user.data.modules.append({'id': (r := random.randint(0, 2)), 'remain': 10})
+        config.logger.dragon << f"【LOG】用户{user.qq}刷新了一个插件{r}，现有插件：{[c['id'] for c in user.data.modules]}。"
         save_global_state()
     @classmethod
     async def on_remove(cls, user: User):
-        q = str(user.qq)
-        r = global_state['module'][q][module_print_aux[q]]['id']
-        del global_state['module'][q][module_print_aux[q]]
-        if module_print_aux[q] >= len(mission):
-            module_print_aux[q] = 0
-        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{r}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
+        r = user.data.pop_module()
+        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{r['id']}，现有插件：{[c['id'] for c in user.data.modules]}。"
         save_global_state()
     @classmethod
     async def on_give(cls, user: User, target: User):
-        q = str(user.qq)
-        m = global_state['module'][q][module_print_aux[q]]
-        del global_state['module'][q][module_print_aux[q]]
-        if module_print_aux[q] >= len(mission):
-            module_print_aux[q] = 0
-        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{m['id']}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
-        t = str(target.qq)
-        if t not in global_state['module']:
-            global_state['module'][t] = []
-            module_print_aux[t] = 0
-        global_state['module'][t].append(m)
-        config.logger.dragon << f"【LOG】用户{target.qq}增加了一个插件{m['id']}，现有插件：{[c['id'] for c in global_state['module'][t]]}。"
+        m = user.data.pop_module()
+        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{m['id']}，现有插件：{[c['id'] for c in user.data.modules]}。"
+        target.data.modules.append(m)
+        config.logger.dragon << f"【LOG】用户{target.qq}增加了一个插件{m['id']}，现有插件：{[c['id'] for c in target.data.modules]}。"
         save_global_state()
     @classmethod
     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
         q = str(user.qq)
-        l = global_state['module'][q]
         if jibi > 0:
-            for c in l:
+            for c in user.data.modules:
                 if c['id'] == 0 and c['remain'] > 0 and random.random() < 0.15:
                     if c['remain'] >= jibi:
                         c['remain'] -= jibi
@@ -5137,7 +5188,7 @@ class beacon(_card):
                         c['remain'] = 0
                     user.send_log(f"触发了插件——产率的效果，获得击毙加倍为{jibi}！")
         elif jibi < 0:
-            for c in l:
+            for c in user.data.modules:
                 if jibi != 0 and c['id'] == 2 and c['remain'] > 0:
                     d = ceil(-jibi / 10)
                     if c['remain'] >= d:
@@ -5481,7 +5532,7 @@ class assembling(_equipment):
         return f"当你抽卡时，组装机获得等同于卡牌编号的组装量（不小于0）。你每有2^n*{d}组装量，手牌上限+1，其中n为已经生产过的手牌上限个数。"
     @classmethod
     def full_description(cls, count: TCount, user: User) -> str:
-        return f"{cls.id}. {cls.name}{count}型\n\t{cls.description(count)}\n\t当前组装量：{user.data.extra.assembling}"
+        return f"{cls.id}. {cls.name}{count}型\n\t{cls.description(count)}\n\t当前组装量：{user.data.extra.assembling}，已获得手牌上限{user.data.card_limit_from_assembling}"
     @classmethod
     def get_card_limit(cls, data: int, count: TCount) -> int:
         d = {1: 200, 2: 150, 3: 100}[count]
@@ -5497,6 +5548,74 @@ class assembling(_equipment):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.AfterCardDraw: (Priority.AfterCardDraw.assembling, cls)}
+
+class dragon_head(_equipment):
+    id = 4
+    name = "龙首"
+    @classmethod
+    def description(cls, count: TCount) -> str:
+        d = {1: 1, 2: 1, 3: 2}[count]
+        return f"可以保存{d}张卡。保存的卡独立于手牌之外（不受礼物交换/空白卡牌影响），不能直接使用。"
+    @classmethod
+    def full_description(cls, count: TCount, user: User) -> str:
+        return super().full_description(count, user) + f"\n\t当前保存卡牌：{'，'.join(f'{Card(c).id}.{Card(c).name}' for c in user.data.dragon_head)}。"
+    @classmethod
+    async def use(cls, user: User, count: int):
+        if await user.choose():
+            from nonebot.command.argfilter.validators import _raise_failure
+            def validate(value: str):
+                try:
+                    if value.startswith("返回"):
+                        return -1
+                    elif value.startswith("放入"):
+                        id = int(value[2:])
+                        if id not in _card.card_id_dict or Card(id) not in user.data.hand_card:
+                            _raise_failure("此卡不在你的手牌中，请重新选择！")
+                        return (0, id)
+                    elif value.startswith("取出"):
+                        id = int(value[2:])
+                        if id not in user.data.dragon_head:
+                            _raise_failure("此卡不在龙首内，请重新选择！")
+                        return (1, id)
+                except ValueError:
+                    _raise_failure("请输入正确的卡牌id号。")
+            c: Tuple[int, TCard] = await user.buf.aget(prompt="请选择放入或取出手牌。输入“放入 xx”将卡牌放入龙首，“取出 xx”将卡牌从龙首中取出，“返回”退出（仍可查询当前手牌或装备）。\n",
+                arg_filters=[
+                        extractors.extract_text,
+                        check_handcard(user),
+                        validate,
+                        validators.ensure_true(lambda v: v is not None, "输入“放入 xx”将卡牌放入龙首，“取出 xx”将卡牌从龙首中取出，“返回”退出（仍可查询当前手牌或装备）。")
+                    ])
+            if c == -1:
+                return
+            elif c[0] == 0:
+                if len(user.data.dragon_head) >= 2:
+                    user.send_char("龙首已满，无法放入！")
+                    return
+                if c[1] == queststone.id:
+                    user.data.dragon_head[c[1]] = user.data.quest_c
+                elif c[1] == beacon.id:
+                    user.data.dragon_head[c[1]] = user.data.module_c
+                elif c[1] == lveduozhebopu.id:
+                    user.data.dragon_head[c[1]] = user.data.steal
+                else:
+                    user.data.dragon_head[c[1]] = None
+                user.send_log(f"将卡牌{Card(c[1]).name}放入了龙首！")
+                await user.remove_cards([Card(c[1])])
+            elif c[0] == 1:
+                data = user.data.dragon_head.pop(c[1])
+                if c[1] == queststone.id:
+                    user.data.quests.append(data)
+                elif c[1] == beacon.id:
+                    user.data.modules.append(data)
+                elif c[1] == lveduozhebopu.id:
+                    if user.data.steal['time'] == 0:
+                        user.data.steal = data
+                user.send_log(f"从龙首中取出了卡牌{Card(c[1]).name}！")
+                await user.add_card(Card(c[1]))
+                user.data.set_cards()
+            save_global_state()
+            user.data.save_equipment()
 
 # 爬塔格子
 class Grid:
@@ -5697,3 +5816,51 @@ class Dragon:
     
 
 dragon: Callable[[User], Dragon] = lambda user: Dragon(user.buf)
+
+bingo_id = [(0, 8), (5, 0), (1, 0), (3, 0), (4, 0), (0, 19), (0, 1), (2, 40), (1, 110)]
+# 0: 接龙任务，1: 使用一张i~i+39的卡（包含摸取特效），2: 摸一张i~i+79的卡，3：有人死亡，4：花费或扣除击毙，5：添加一个非死亡状态
+
+class bingo_checker(IEventListener):
+    @classmethod
+    async def check_complete(cls, user):
+        pass
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        for id, (i, j) in enumerate(bingo_id):
+            if i == 0:
+                _, name, func = mission[j]
+                if func(branch.word):
+                    user.buf.send(f"Bingo！{user.char}完成了接龙任务：{name[:-1]}！")
+                    user.log << f"完成了一次bingo任务{name}。"
+    @classmethod
+    async def AfterCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[()]:
+        for id, (i, j) in enumerate(bingo_id):
+            if i == 1 and j <= card.id < j + 40:
+                user.buf.send(f"Bingo！{user.char}完成了任务！")
+                user.log << f"完成了一次bingo任务。"
+    @classmethod
+    async def AfterCardDraw(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
+        for id, (i, j) in enumerate(bingo_id):
+            if i == 2 and any(j <= c.id < j + 80 for c in cards):
+                user.buf.send(f"Bingo！{user.char}完成了任务！")
+                user.log << f"完成了一次bingo任务。"
+    @classmethod
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+        for id, (i, j) in enumerate(bingo_id):
+            if i == 3:
+                user.buf.send(f"Bingo！{user.char}完成了任务！")
+                user.log << f"完成了一次bingo任务。"
+    @classmethod
+    async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
+        if jibi < 0:
+            for id, (i, j) in enumerate(bingo_id):
+                if i == 4:
+                    user.buf.send(f"Bingo！{user.char}完成了任务！")
+                    user.log << f"完成了一次bingo任务。"
+    @classmethod
+    async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
+        if not isinstance(status, SDeath):
+            for id, (i, j) in enumerate(bingo_id):
+                if i == 5:
+                    user.buf.send(f"Bingo！{user.char}完成了任务！")
+                    user.log << f"完成了一次bingo任务。"
