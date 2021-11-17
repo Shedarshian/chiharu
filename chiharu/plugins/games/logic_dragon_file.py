@@ -1914,23 +1914,30 @@ class lovers(_card):
             await u.remove_all_limited_status('d')
             user.buf.send("已复活！" + ("（虽然目标并没有死亡）" if n else ''))
 
-# class chariot(_card):
-#     id = 7
-#     name = "VII - 战车"
-#     positive = 1
-#     description = "对你今天第一次和最后一次接龙中间接龙的人（除了你自己）每人做一次10%致死的击毙判定。"
-#     @classmethod
-#     async def use(cls, user: User) -> None:
-#         nodes = [(False, Tree.find((0, 0)))]
-#         childs: List[Tuple[bool, Tree]] = []
-#         highlighted: List[Tree] = []
-#         to_kill: List[Tree] = []
-#         while 1:
-#             for h, node in nodes:
-#                 for c in node.childs:
-#                     if c.qq == user.qq:
-#                         childs.append((True, c))
-#             break
+class chariot(_card):
+    id = 7
+    name = "VII - 战车"
+    positive = 1
+    newer = 5
+    description = "对你今天第一次和最后一次接龙中间接龙的人（除了你自己）每人做一次10%致死的击毙判定。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        to_kill = set()
+        for l in Tree._objs:
+            node = l[-1]
+            temp: List[Tree] = []
+            while node.id[0] != 0:
+                if node.qq == user.qq:
+                    if len(temp) != 0:
+                        to_kill |= set(n.qq for n in temp)
+                    temp = [node]
+                node = node.parent
+        if user.qq in to_kill:
+            to_kill.remove(user.qq)
+        to_kill = set(qq for qq in to_kill if random.random() < 0.1)
+        user.send_char(f"{'，'.join(f'[CQ:at,qq={qq}]' for qq in to_kill)}被你击杀了！")
+        for qq in to_kill:
+            await User(qq, user.buf).killed(user)
 
 class strength(_card):
     name = "VIII - 力量"
