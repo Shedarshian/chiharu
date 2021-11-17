@@ -5152,20 +5152,20 @@ class beacon(_card):
         return super().full_description(qq) + "\n" + cls.module_des(qq)
     @classmethod
     async def on_draw(cls, user: User):
-        user.data.modules.append({'id': (r := random.randint(0, 2)), 'remain': 10}))
-        config.logger.dragon << f"【LOG】用户{user.qq}刷新了一个插件{r}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
+        user.data.modules.append({'id': (r := random.randint(0, 2)), 'remain': 10})
+        config.logger.dragon << f"【LOG】用户{user.qq}刷新了一个插件{r}，现有插件：{[c['id'] for c in user.data.modules]}。"
         save_global_state()
     @classmethod
     async def on_remove(cls, user: User):
         r = user.data.pop_module()
-        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{r['id']}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
+        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{r['id']}，现有插件：{[c['id'] for c in user.data.modules]}。"
         save_global_state()
     @classmethod
     async def on_give(cls, user: User, target: User):
         m = user.data.pop_module()
-        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{m['id']}，现有插件：{[c['id'] for c in global_state['module'][q]]}。"
+        config.logger.dragon << f"【LOG】用户{user.qq}删除了一个插件{m['id']}，现有插件：{[c['id'] for c in user.data.modules]}。"
         target.data.modules.append(m)
-        config.logger.dragon << f"【LOG】用户{target.qq}增加了一个插件{m['id']}，现有插件：{[c['id'] for c in global_state['module'][t]]}。"
+        config.logger.dragon << f"【LOG】用户{target.qq}增加了一个插件{m['id']}，现有插件：{[c['id'] for c in target.data.modules]}。"
         save_global_state()
     @classmethod
     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
