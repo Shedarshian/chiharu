@@ -1199,8 +1199,8 @@ class User:
                 self.log << f"手牌超出上限，用户选择弃牌。"
                 async with self.choose_cards(f"您的手牌已超出上限{x}张！请先选择一些牌弃置（输入id号，使用空格分隔）：", 1, x,
                         cards_can_not_choose) as l:
-                        self.buf.send("成功弃置。")
-                        await self.discard_cards([Card(i) for i in l])
+                    self.buf.send("成功弃置。")
+                    await self.discard_cards([Card(i) for i in l])
                 d = len(list(c for c in self.data.hand_card if c in cards_can_not_choose))
                 x = len(self.data.hand_card) - max(d, self.data.card_limit)
             await self.buf.flush()
@@ -4949,6 +4949,28 @@ revert_daily_status_map: Dict[str, str] = {}
 for c in ('RZ', 'Bt', 'Ii', 'Mm', 'op', '@#', 'WX', 'SP', 'CE', 'lk'):
     revert_daily_status_map[c[0]] = c[1]
     revert_daily_status_map[c[1]] = c[0]
+
+class bloom(_card):
+    id = 157
+    name = "绽放"
+    positive = 1
+    description = "摸13张牌，然后弃牌至3张。（特别的，可以弃置空白卡牌）"
+    newer = 5
+    @classmethod
+    async def use(cls, user: User) -> None:
+        await user.draw(13)
+        if len(user.data.hand_card) > 3:
+            x = len(user.data.hand_card) - 3
+            if not await user.choose():
+                random.shuffle(user.data.hand_card)
+                user.data.set_cards()
+                user.send_char(f"随机弃置了{x}张牌！")
+                user.log << f"预计手牌为{[c.name for c in user.data.hand_card[:3]]}"
+                await user.discard_cards(user.data.hand_card[3:])
+            else:
+                async with user.choose_cards(f"请选择{len(user.data.hand_card) - 3}牌弃置（输入id号，使用空格分隔）：", x, x) as l:
+                    user.buf.send("成功弃置。")
+                    await user.discard_cards([Card(i) for i in l])
 
 class excalibur(_card):
     id = 158
