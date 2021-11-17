@@ -243,8 +243,9 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         zpm = auto()                    # ZPM：新手保护，+1击毙
         shendian = auto()               # 秘史衍生：+5击毙
         invshendian = auto()
-        beizhizhunze = auto()           # +2击毙
+        beizhizhunze = auto()           # +1击毙
         invbeizhizhunze = auto()
+        cashprinter = auto()            # 给前面的人+1击毙
         plus2 = auto()                  # +2：抽两张牌
         xixuegui = auto()               # ？？？？
         panjue = auto()                 # 判决传播 contains both a and b
@@ -254,6 +255,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         dihuopenfa = auto()             # 地火：埋雷判定
         xixueshashou = auto()           # 吸血杀手：抽卡判定
         forkbomb = auto()               # 叉子炸弹：分叉判定
+        timebomb = auto()               # 定时炸弹：计次
         circus = auto()                 # 秘史衍生：被弃
         lazhuyandong = auto()
         invlazhuyandong = auto()
@@ -271,6 +273,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         twinsunflower = auto()
         inv_sunflower = auto()
         inv_twinsunflower = auto()
+        timebomb = auto()
 
 TBoundIntEnum = TypeVar('TBoundIntEnum', bound=IntEnum)
 

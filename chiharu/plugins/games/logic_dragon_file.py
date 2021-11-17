@@ -4858,6 +4858,60 @@ class beijingcard(_card):
         return {UserEvt.OnJibiChange: (Priority.OnJibiChange.beijingcard, cls),
             UserEvt.CheckJibiSpend: (Priority.CheckJibiSpend.beijingcard, cls)}
 
+class timebomb(_card):
+    name = "定时炸弹"
+    id = 154
+    positive = -1
+    description = "抽到时附加buff：需要此后在今日内完成10次接龙，否则在跨日时扣除2*剩余次数的击毙。"
+    newer = 5
+    consumed_on_draw = True
+    on_draw_limited_status = 'B'
+    limited_init = (10,)
+class Stimebomb(NumedStatus):
+    id = 'B'
+    des = "定时炸弹：需要此后在今日内完成10次接龙，否则在跨日时扣除2*剩余次数的击毙。"
+    is_debuff = True
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        count[0].num -= 1
+        user.data.save_status_time()
+    @classmethod
+    async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
+        b = 2*count[0].num
+        user.send_log("因为定时炸弹失去了{b}击毙！")
+        user.add_jibi(-b)
+        count[0].num = 0
+        user.data.save_status_time()
+    @classmethod
+    def register(cls):
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.timebomb, cls),
+            UserEvt.OnNewDay: (Priority.OnNewDay.timebomb, cls)}
+
+class cashprinter(_card):
+    name = "印钞机"
+    id = 155
+    positive = 1
+    description = "使用后，你接下来10次接龙时会奖励接了上一个词的人1击毙。如果上一个词是起始词则不消耗生效次数。"
+    newer = 5
+    limited_status = 'p'
+    limited_init = (10,)
+class Scashprinter(NumedStatus):
+    id = 'p'
+    des = "印钞机：你接下来接龙时会奖励接了上一个词的人1击毙。如果上一个词是起始词则不消耗生效次数。"
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        pq = branch.parent.qq
+            if pq != config.selfqq and pq != 0:
+                user.send_log("奖励了[CQ:at,qq={}]{}击毙！".format(pq,count))
+                User(pq, user.buf).add_jibi(1)
+                count[0].num -= 1
+                user.data.save_status_time()
+            else:
+                user.send_log("无上一个接龙的玩家！")
+    @classmethod
+    def register(cls):
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.cashprinter, cls)}
+
 class upsidedown(_card):
     name = "天下翻覆"
     id = 156
