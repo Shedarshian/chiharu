@@ -2683,7 +2683,7 @@ class queststone(_card):
         save_global_state()
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        for m in user.data.modules:
+        for m in user.data.quests:
             if m['remain'] > 0:
                 id, name, func = mission[m['id']]
                 if func(branch.word):
