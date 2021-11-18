@@ -4877,9 +4877,9 @@ class Stimebomb(NumedStatus):
         user.data.save_status_time()
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
-        b = 2*count[0].num
-        user.send_log("因为定时炸弹失去了{b}击毙！")
-        user.add_jibi(-b)
+        b = 2 * count[0].num
+        user.send_log(f"因为定时炸弹失去了{b}击毙！")
+        await user.add_jibi(-b)
         count[0].num = 0
         user.data.save_status_time()
     @classmethod
@@ -4901,13 +4901,13 @@ class Scashprinter(NumedStatus):
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         pq = branch.parent.qq
-            if pq != config.selfqq and pq != 0:
-                user.send_log("奖励了[CQ:at,qq={}]{}击毙！".format(pq,count))
-                User(pq, user.buf).add_jibi(1)
-                count[0].num -= 1
-                user.data.save_status_time()
-            else:
-                user.send_log("无上一个接龙的玩家！")
+        if pq != config.selfqq and pq != 0:
+            user.send_log(f"奖励了[CQ:at,qq={pq}]{count}击毙！")
+            await User(pq, user.buf).add_jibi(1)
+            count[0].num -= 1
+            user.data.save_status_time()
+        else:
+            user.send_log("无上一个接龙的玩家！")
     @classmethod
     def register(cls):
         return {UserEvt.OnDragoned: (Priority.OnDragoned.cashprinter, cls)}
