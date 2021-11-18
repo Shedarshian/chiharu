@@ -4410,8 +4410,6 @@ class Sexplore(NumedStatus):
                 else:
                     user.send_log("无上一个接龙的玩家！")
             elif i == 1:
-                if (node := branch.parent) is not None:
-                    node.childs.remove(branch)
                 branch.remove()
                 from .logic_dragon import rewrite_log_file
                 rewrite_log_file()
