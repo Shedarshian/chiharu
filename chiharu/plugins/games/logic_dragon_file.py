@@ -4476,7 +4476,7 @@ class Sexplore(NumedStatus):
                 user.buf.send("一头海兽来向这艘船求爱，但当船不回应这份爱慕时，海兽击碎了它。选择一张手牌弃置，然后抽两张正面卡牌。")
                 async with user.choose_cards("请选择你手牌中的一张牌弃置，输入id号。", 1, 1) as l, check_active(l):
                     await user.discard_cards([Card(l[0])])
-                await user.draw(2, positive=1)
+                await user.draw(2, positive={1})
             elif i == 3:
                 user.send_log("置身深邃之门的圣滕特雷托之僧院：")
                 user.buf.send("僧院危悬在崖边，它早该坠入海中了。从以下三个效果中随机触发一个：获得20击毙、抽一张牌或随机弃置一张牌。")
