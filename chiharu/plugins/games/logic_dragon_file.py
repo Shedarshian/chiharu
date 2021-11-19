@@ -549,7 +549,7 @@ class UserData:
                 if is_all:
                     self.event_listener[key].pop(priority)
                 else:
-                    self.event_listener[key][priority][el].remove(el)
+                    self.event_listener[key][priority][el].remove(eln)
                     if len(self.event_listener[key][priority][el]) == 0:
                         self.event_listener[key].pop(priority)
     def _deregister(self, eln: 'IEventListener', /, is_all=False):
