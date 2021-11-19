@@ -3170,8 +3170,8 @@ class SZPM(_statusnull):
             user.send_char(f"已经不再需要零点模块了！")
             await user.remove_status('Z')
         else:
-            user.send_char(f"因为零点模块额外获得{count}击毙！")
-            await user.add_jibi(count)
+            user.send_char("因为零点模块额外获得1击毙！")
+            await user.add_jibi(1)
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.zpm, cls)}
@@ -4900,9 +4900,10 @@ class Scashprinter(NumedStatus):
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         pq = branch.parent.qq
         if pq != config.selfqq and pq != 0:
-            user.send_log(f"奖励了[CQ:at,qq={pq}]{count}击毙！")
-            await User(pq, user.buf).add_jibi(1)
-            count[0].num -= 1
+            user.send_log(f"奖励了[CQ:at,qq={pq}]{len(count)}击毙！")
+            await User(pq, user.buf).add_jibi(len(count))
+            for c in count:
+                c.num -= 1
             user.data.save_status_time()
         else:
             user.send_log("无上一个接龙的玩家！")
