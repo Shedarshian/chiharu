@@ -4900,7 +4900,7 @@ class Scashprinter(NumedStatus):
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         pq = branch.parent.qq
         if pq != config.selfqq and pq != 0:
-            user.send_log(f"奖励了[CQ:at,qq={pq}]{count}击毙！")
+            user.send_log(f"奖励了[CQ:at,qq={pq}]1击毙！")
             await User(pq, user.buf).add_jibi(1)
             count[0].num -= 1
             user.data.save_status_time()
