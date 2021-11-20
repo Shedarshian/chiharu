@@ -1937,7 +1937,7 @@ class chariot(_card):
         if user.qq in to_kill:
             to_kill.remove(user.qq)
         to_kill = set(qq for qq in to_kill if random.random() < 0.1)
-        user.send_char(f"{'，'.join(f'[CQ:at,qq={qq}]' for qq in to_kill)}被你击杀了！")
+        user.buf.send(f"{'，'.join(f'[CQ:at,qq={qq}]' for qq in to_kill)}被你击杀了！")
         for qq in to_kill:
             await User(qq, user.buf).killed(user)
 
@@ -3089,7 +3089,7 @@ class guanggaopai(_card):
             "欢迎关注甜品站弹幕研究协会，国内一流的东方STG学术交流平台，从避弹，打分到neta，可以学到各种高端姿势：https://www.isndes.com/ms?m=2",
             "[CQ:at,qq=1469335215]哈斯塔快去画逻辑接龙卡图",
             "《世界計畫 繽紛舞台！ feat. 初音未來》正式開啓公測！欢迎下载：www.tw-pjsekai.com",
-            # "PLACEHOLDER",
+            "嘉然…嘿嘿🤤…小嘉然…嘿嘿🤤然然带我走吧…🤤",
             # "PLACEHOLDER",
             # "PLACEHOLDER",
         ])
