@@ -3108,7 +3108,7 @@ class guanggaopai(_card):
             "[CQ:at,qq=1469335215]哈斯塔快去画逻辑接龙卡图",
             "《世界計畫 繽紛舞台！ feat. 初音未來》正式開啓公測！欢迎下载：www.tw-pjsekai.com",
             "嘉然…嘿嘿🤤…小嘉然…嘿嘿🤤然然带我走吧…🤤",
-            # "PLACEHOLDER",
+            "这是一个历经多年开发并且仍在更新的，包罗万象、应有尽有的MC整合包；这是一个让各个模组互相联动融为一体，向独立游戏看齐的MC整合包。加入GTNH，一起跨越科技的巅峰！www.gtnewhorizons.com",
             # "PLACEHOLDER",
         ])
 
