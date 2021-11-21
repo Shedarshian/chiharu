@@ -1152,15 +1152,28 @@ class User:
         for el, n in self.IterAllEventList(UserEvt.AfterCardDiscard, Priority.AfterCardDiscard):
             await el.AfterCardDiscard(n, self, cards)
         self.log << f"弃完卡牌，当前手牌为{cards_to_str(self.data.hand_card)}。"
-    async def exchange(self, target: 'User'):
+    async def exchange(self, target: 'User', max_sub=65536):
         """交换两人手牌。"""
         if self == target:
             return
-        target_hand_cards = copy(target.data.hand_card)
-        self_hand_cards = copy(self.data.hand_card)
-        config.logger.dragon << f"【LOG】交换用户{self.qq}与用户{target.qq}的手牌。{self.qq}手牌为{cards_to_str(self_hand_cards)}，{target.qq}手牌为{cards_to_str(target_hand_cards)}。"
-        self.data.hand_card.clear()
-        target.data.hand_card.clear()
+        config.logger.dragon << f"【LOG】交换用户{self.qq}与用户{target.qq}的手牌。{self.qq}手牌为{cards_to_str(self.data.hand_card)}，{target.qq}手牌为{cards_to_str(target.data.hand_card)}。"
+        if len(target.data.hand_card) - len(self.data.hand_card) > max_sub:
+            random.shuffle(target.data.hand_card)
+            target_hand_cards = target.data.hand_card[:len(self.data.hand_card) + max_sub]
+            target.data.hand_card = target.data.hand_card[len(self.data.hand_card) + max_sub:]
+            self_hand_cards = self.data.hand_card
+            self.data.hand_card = []
+        elif len(self.data.hand_card) - len(target.data.hand_card) > max_sub:
+            random.shuffle(self.data.hand_card)
+            self_hand_cards = self.data.hand_card[:len(target.data.hand_card) + max_sub]
+            self.data.hand_card = self.data.hand_card[len(target.data.hand_card) + max_sub:]
+            target_hand_cards = target.data.hand_card
+            target.data.hand_card = []
+        else:
+            target_hand_cards = target.data.hand_card
+            target.data.hand_card = []
+            self_hand_cards = self.data.hand_card
+            self.data.hand_card = []
         for card in self_hand_cards:
             await card.on_give(self, target)
         for card in target_hand_cards:
@@ -1168,11 +1181,6 @@ class User:
         self.data.hand_card.extend(target_hand_cards)
         target.data.hand_card.extend(self_hand_cards)
         self.data.set_cards()
-        # target_limit = target.data.card_limit
-        # if len(self_hand_cards) > target_limit:
-        #     self.buf.send(f"该玩家手牌已超出上限{len(self_hand_cards) - target_limit}张！多余的牌已被弃置。")
-        #     target.log << f"手牌为{cards_to_str(self_hand_cards)}，超出上限{target_limit}，自动弃置。"
-        #     await target.discard_cards(copy(self_hand_cards[target_limit:]))
         target.data.set_cards()
         config.logger.dragon << f"【LOG】交换完用户{self.qq}与用户{target.qq}的手牌，当前用户{self.qq}的手牌为{cards_to_str(self.data.hand_card)}。"
         # Event AfterExchange
@@ -2852,7 +2860,7 @@ class huxiangjiaohuan(_card):
     name = '互相交换'
     id = 75
     positive = 0
-    description = "下一个接中隐藏奖励词的玩家手牌与你互换。"
+    description = "下一个接中隐藏奖励词的玩家手牌与你互换，手牌量变化最多为2。"
     @classmethod
     async def use(cls, user: User):
         l = me.check_limited_status('x')
@@ -2883,7 +2891,7 @@ class AHuxiangjiaohuan(Attack):
         self.defender.send_char(f"与[CQ:at,qq={self.attacker.qq}]交换了手牌！")
         jibi = (self.defender.data.jibi, self.attacker.data.jibi)
         self.defender.log << f"与{self.attacker.qq}交换了手牌。"
-        await self.defender.exchange(self.attacker)
+        await self.defender.exchange(self.attacker, max_sub=2)
 
 class zhongshendexixi(_card):
     name = "众神的嬉戏"
