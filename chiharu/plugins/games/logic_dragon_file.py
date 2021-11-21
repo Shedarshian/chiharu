@@ -496,6 +496,7 @@ class UserData:
         for key, (priority, el) in checker.register().items():
             cls.event_listener_init[key][priority][el] += count
     def __init__(self, qq: int):
+        config.logger.dragon << f"【DEBUG】用户{qq}UserData被创建。"
         self._qq = qq
         self.node: TUserData = dict(find_or_new(qq))
         self.hand_card = [] if self.node['card'] == '' else [Card(int(x)) for x in self.node['card'].split(',')]
@@ -511,7 +512,7 @@ class UserData:
         self.extra = DynamicExtraData(self.node['extra_data'], save2)
         self._reregister_things()
     def __del__(self):
-        config.logger.dragon << f"【LOG】用户{self.qq}UserData被删除。"
+        config.logger.dragon << f"【DEBUG】用户{self.qq}UserData被删除。"
         # self.save_status_time()
         # self.set_cards()
     def _reregister_things(self):
