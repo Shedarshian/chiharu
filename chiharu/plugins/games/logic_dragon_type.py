@@ -20,6 +20,7 @@ class TGlobalState(TypedDict):
     steal: Dict[int, TSteal]
     dragon_head: Dict[int, Dict[int, Any]]
     event_route: List[int]
+    bingo_state: List[int]
 
 class TUserData(TypedDict):
     qq: int

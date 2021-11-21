@@ -5899,45 +5899,61 @@ bingo_id = [(0, 8), (5, 0), (1, 0), (3, 0), (4, 0), (0, 19), (0, 1), (2, 40), (1
 
 class bingo_checker(IEventListener):
     @classmethod
-    async def check_complete(cls, user):
-        pass
+    def check_complete_line(cls):
+        return len([1 for b in ((0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)) if all(i in global_state["bingo_state"] for i in b)])
+    @classmethod
+    async def complete(cls, id, user: User):
+        n1 = cls.check_complete_line()
+        global_state["bingo_state"].append(id)
+        n2 = cls.check_complete_line()
+        if (n1, n2) in ((0, 1), (7, 8)):
+            active_user = user if user.buf.active == -1 else User(user.buf.active, user.buf)
+            active_user.send_char(f"完成了{n2}行bingo，奖励{active_user.char}一张超新星！")
+            await active_user.draw(0, cards=[Card(-65537)])
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         for id, (i, j) in enumerate(bingo_id):
-            if i == 0:
+            if id not in global_state["bingo_state"] and i == 0:
                 _, name, func = mission[j]
                 if func(branch.word):
                     user.buf.send(f"Bingo！{user.char}完成了接龙任务：{name[:-1]}！")
                     user.log << f"完成了一次bingo任务{name}。"
+                    await cls.complete(id, user)
     @classmethod
     async def AfterCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[()]:
         for id, (i, j) in enumerate(bingo_id):
-            if i == 1 and j <= card.id < j + 40:
-                user.buf.send(f"Bingo！{user.char}完成了任务！")
-                user.log << f"完成了一次bingo任务。"
+            if id not in global_state["bingo_state"] and i == 1 and j <= card.id < j + 40:
+                user.buf.send(f"Bingo！{user.char}完成了任务：使用一张{j}~{j}+39的卡！")
+                user.log << f"完成了一次bingo任务：使用一张{j}~{j}+39的卡。"
+                await cls.complete(id, user)
     @classmethod
     async def AfterCardDraw(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
         for id, (i, j) in enumerate(bingo_id):
-            if i == 2 and any(j <= c.id < j + 80 for c in cards):
-                user.buf.send(f"Bingo！{user.char}完成了任务！")
-                user.log << f"完成了一次bingo任务。"
+            if id not in global_state["bingo_state"] and i == 2 and any(j <= c.id < j + 80 for c in cards):
+                user.buf.send(f"Bingo！{user.char}完成了任务：摸一张{j}~{j}+79的卡！")
+                user.log << f"完成了一次bingo任务：摸一张{j}~{j}+79的卡。"
+                await cls.complete(id, user)
     @classmethod
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
         for id, (i, j) in enumerate(bingo_id):
-            if i == 3:
-                user.buf.send(f"Bingo！{user.char}完成了任务！")
-                user.log << f"完成了一次bingo任务。"
+            if id not in global_state["bingo_state"] and i == 3:
+                user.buf.send(f"Bingo！{user.char}完成了任务：有人死亡！")
+                user.log << f"完成了一次bingo任务：有人死亡。"
+                await cls.complete(id, user)
     @classmethod
     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
         if jibi < 0:
             for id, (i, j) in enumerate(bingo_id):
-                if i == 4:
-                    user.buf.send(f"Bingo！{user.char}完成了任务！")
-                    user.log << f"完成了一次bingo任务。"
+                if id not in global_state["bingo_state"] and i == 4:
+                    user.buf.send(f"Bingo！{user.char}完成了任务：花费或扣除击毙！")
+                    user.log << f"完成了一次bingo任务：花费或扣除击毙。"
+                    await cls.complete(id, user)
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if not isinstance(status, SDeath):
             for id, (i, j) in enumerate(bingo_id):
-                if i == 5:
-                    user.buf.send(f"Bingo！{user.char}完成了任务！")
-                    user.log << f"完成了一次bingo任务。"
+                if id not in global_state["bingo_state"] and i == 5:
+                    user.buf.send(f"Bingo！{user.char}完成了任务：添加一个非死亡状态！")
+                    user.log << f"完成了一次bingo任务：添加一个非死亡状态。"
+                    await cls.complete(id, user)
+# UserData.register_checker(bingo_checker)
