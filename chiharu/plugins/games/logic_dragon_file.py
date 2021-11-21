@@ -1153,15 +1153,28 @@ class User:
         for el, n in self.IterAllEventList(UserEvt.AfterCardDiscard, Priority.AfterCardDiscard):
             await el.AfterCardDiscard(n, self, cards)
         self.log << f"弃完卡牌，当前手牌为{cards_to_str(self.data.hand_card)}。"
-    async def exchange(self, target: 'User'):
+    async def exchange(self, target: 'User', max_sub=65536):
         """交换两人手牌。"""
         if self == target:
             return
-        target_hand_cards = copy(target.data.hand_card)
-        self_hand_cards = copy(self.data.hand_card)
-        config.logger.dragon << f"【LOG】交换用户{self.qq}与用户{target.qq}的手牌。{self.qq}手牌为{cards_to_str(self_hand_cards)}，{target.qq}手牌为{cards_to_str(target_hand_cards)}。"
-        self.data.hand_card.clear()
-        target.data.hand_card.clear()
+        config.logger.dragon << f"【LOG】交换用户{self.qq}与用户{target.qq}的手牌。{self.qq}手牌为{cards_to_str(self.data.hand_card)}，{target.qq}手牌为{cards_to_str(target.data.hand_card)}。"
+        if len(target.data.hand_card) - len(self.data.hand_card) > max_sub:
+            random.shuffle(target.data.hand_card)
+            target_hand_cards = target.data.hand_card[:len(self.data.hand_card) + max_sub]
+            target.data.hand_card = target.data.hand_card[len(self.data.hand_card) + max_sub:]
+            self_hand_cards = self.data.hand_card
+            self.data.hand_card = []
+        elif len(self.data.hand_card) - len(target.data.hand_card) > max_sub:
+            random.shuffle(self.data.hand_card)
+            self_hand_cards = self.data.hand_card[:len(target.data.hand_card) + max_sub]
+            self.data.hand_card = self.data.hand_card[len(target.data.hand_card) + max_sub:]
+            target_hand_cards = target.data.hand_card
+            target.data.hand_card = []
+        else:
+            target_hand_cards = target.data.hand_card
+            target.data.hand_card = []
+            self_hand_cards = self.data.hand_card
+            self.data.hand_card = []
         for card in self_hand_cards:
             await card.on_give(self, target)
         for card in target_hand_cards:
@@ -1169,11 +1182,6 @@ class User:
         self.data.hand_card.extend(target_hand_cards)
         target.data.hand_card.extend(self_hand_cards)
         self.data.set_cards()
-        # target_limit = target.data.card_limit
-        # if len(self_hand_cards) > target_limit:
-        #     self.buf.send(f"该玩家手牌已超出上限{len(self_hand_cards) - target_limit}张！多余的牌已被弃置。")
-        #     target.log << f"手牌为{cards_to_str(self_hand_cards)}，超出上限{target_limit}，自动弃置。"
-        #     await target.discard_cards(copy(self_hand_cards[target_limit:]))
         target.data.set_cards()
         config.logger.dragon << f"【LOG】交换完用户{self.qq}与用户{target.qq}的手牌，当前用户{self.qq}的手牌为{cards_to_str(self.data.hand_card)}。"
         # Event AfterExchange
@@ -1333,6 +1341,7 @@ class _statusall(IEventListener, metaclass=status_meta):
     des = ""
     is_debuff = False
     is_global = False
+    is_Metalic = False
     @classmethod
     @property
     def brief_des(cls):
@@ -1605,6 +1614,7 @@ class _card(IEventListener, metaclass=card_meta):
     consumed_on_draw = False
     failure_message = ""
     des_need_init = False
+    is_Metalic = False
     @classmethod
     async def use(cls, user: User) -> None:
         pass
@@ -2302,6 +2312,7 @@ class tiesuolianhuan(_card):
     id = 38
     positive = 1
     description = "指定至多两名玩家进入或解除其连环状态。任何处于连环状态的玩家被击毙时所有连环状态的玩家也被击毙并失去此效果。"
+    is_Metalic = True
     @classmethod
     async def use(cls, user: User):
         if await user.choose():
@@ -2331,6 +2342,7 @@ class tiesuolianhuan_s(_statusnull):
     id = 'l'
     des = "铁索连环：任何处于连环状态的玩家被击毙时所有连环状态的玩家也被击毙并失去此效果。"
     is_debuff = True
+    is_Metalic = True
     @classmethod
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
         if await c.pierce():
@@ -2471,9 +2483,11 @@ class huiye(_card):
     positive = 1
     status = 'x'
     description = "你下一次死亡的时候奖励你抽一张卡。"
+    is_Metalic = True
 class huiye_s(_statusnull):
     id = 'x'
     des = '辉夜姬的秘密宝箱：下一次死亡的时候奖励抽一张卡。'
+    is_Metalic = True
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         await user.remove_status('x')
@@ -2490,6 +2504,7 @@ class inv_huiye_s(_statusnull):
     id = 'y'
     des = '反转·辉夜姬的秘密宝箱：你下一次死亡的时候随机弃一张牌。'
     is_debuff = True
+    is_Metalic = True
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         await user.remove_status('y')
@@ -2835,7 +2850,6 @@ class jisuzhuangzhi(_card):
     name = "极速装置"
     id = 74
     status = 'z'
-    status_des = '极速装置：你下次可以连续接龙两次。'
     positive = 1
     description = '你下次你可以连续接龙两次。'
 class jisuzhuangzhi_s(_statusnull):
@@ -2853,7 +2867,7 @@ class huxiangjiaohuan(_card):
     name = '互相交换'
     id = 75
     positive = 0
-    description = "下一个接中隐藏奖励词的玩家手牌与你互换。"
+    description = "下一个接中隐藏奖励词的玩家手牌与你互换，手牌量变化最多为2。"
     @classmethod
     async def use(cls, user: User):
         l = me.check_limited_status('x')
@@ -2884,7 +2898,7 @@ class AHuxiangjiaohuan(Attack):
         self.defender.send_char(f"与[CQ:at,qq={self.attacker.qq}]交换了手牌！")
         jibi = (self.defender.data.jibi, self.attacker.data.jibi)
         self.defender.log << f"与{self.attacker.qq}交换了手牌。"
-        await self.defender.exchange(self.attacker)
+        await self.defender.exchange(self.attacker, max_sub=2)
 
 class zhongshendexixi(_card):
     name = "众神的嬉戏"
@@ -3042,9 +3056,11 @@ class bianyaqi(_card):
     status = '2'
     positive = 0
     description = "下一次你的击毙变动变动值加倍。"
+    is_Metalic = True
 class bianyaqi_s(_statusnull):
     id = '2'
     des = "变压器（♣10）：下一次击毙变动变动值加倍。"
+    is_Metalic = True
     @classmethod
     async def CheckJibiSpend(cls, count: TCount, user: 'User', jibi: int) -> Tuple[int]:
         return jibi * 2 ** count,
@@ -3060,6 +3076,7 @@ class bianyaqi_s(_statusnull):
 class inv_bianyaqi_s(_statusnull):
     id = '1'
     des = "反转·变压器（♣10）：下一次你的击毙变动变动值减半。"
+    is_Metalic = True
     @classmethod
     async def CheckJibiSpend(cls, count: TCount, user: 'User', jibi: int) -> Tuple[int]:
         return ceil(jibi / 2 ** count),
@@ -3162,9 +3179,11 @@ class ZPM(_card):
     on_draw_status = 'Z'
     newer = 3
     consumed_on_draw = True
+    is_Metalic = True
 class SZPM(_statusnull):
     id = 'Z'
     des = "零点模块：若你当前击毙少于100，则每次接龙为你额外提供1击毙，若你当前击毙多于100，此buff立即消失。"
+    is_Metalic = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if user.data.jibi > 100:
@@ -4017,10 +4036,12 @@ class jack_in_the_box(_card):
     on_draw_status = 'j'
     on_draw_send_char = "获得了玩偶匣！"
     consumed_on_draw = True
+    is_Metalic = True
 class jack_in_the_box_s(_statusnull):
     id = 'j'
     des = "玩偶匣：你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。若场上有寒冰菇状态则不会爆炸。"
     is_debuff = True
+    is_Metalic = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if me.check_daily_status('i'):
@@ -4813,10 +4834,12 @@ class forkbomb(_card):
     positive = 0
     global_daily_status = 'b'
     description = "今天每个接龙词都有5%几率变成分叉点。"
+    is_Metalic = True
 class forkbomb_s(_statusdaily):
     id = 'b'
     des = "Fork Bomb：今天每个接龙词都有5%几率变成分叉点。"
     is_global = True
+    is_Metalic = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if random.random() > 0.95 ** count:
@@ -4864,12 +4887,14 @@ class timebomb(_card):
     description = "抽到时附加buff：需要此后在今日内完成10次接龙，否则在跨日时扣除2*剩余次数的击毙。"
     newer = 5
     consumed_on_draw = True
+    is_Metalic = True
     on_draw_limited_status = 'B'
     limited_init = (10,)
 class Stimebomb(NumedStatus):
     id = 'B'
     des = "定时炸弹：需要此后在今日内完成10次接龙，否则在跨日时扣除2*剩余次数的击毙。"
     is_debuff = True
+    is_Metalic = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         count[0].num -= 1
@@ -4892,11 +4917,13 @@ class cashprinter(_card):
     positive = 1
     description = "使用后，你接下来10次接龙时会奖励接了上一个词的人1击毙。如果上一个词是起始词则不消耗生效次数。"
     newer = 5
+    is_Metalic = True
     limited_status = 'p'
     limited_init = (10,)
 class Scashprinter(NumedStatus):
     id = 'p'
     des = "印钞机：你接下来接龙时会奖励接了上一个词的人1击毙。如果上一个词是起始词则不消耗生效次数。"
+    is_Metalic = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         pq = branch.parent.qq
@@ -4980,12 +5007,6 @@ class upsidedown(_card):
             elif l[i].id == 'f':
                 l[i] = hierophant_s(l[i].num)
                 user.send_log("的教皇被反转了！")
-            if l[i].id == 'W':
-                l[i] = SInvBritian(l[i].list)
-                user.send_log("的统治不列颠被反转了！")
-            if l[i].id == 'X':
-                l[i] = SBritian(l[i].list)
-                user.send_log("的被不列颠统治被反转了！")
         user.data.save_status_time()
         # 全局状态
         await _s(Userme(user))
@@ -5000,7 +5021,7 @@ for c in ('AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'cd', '34'
     revert_status_map[c[0]] = c[1]
     revert_status_map[c[1]] = c[0]
 revert_daily_status_map: Dict[str, str] = {}
-for c in ('RZ', 'Bt', 'Ii', 'Mm', 'op', '@#', 'WX', 'SP', 'CE', 'lk'):
+for c in ('RZ', 'Bt', 'Ii', 'Mm', 'op', '@#', 'SP', 'CE', 'lk'):
     revert_daily_status_map[c[0]] = c[1]
     revert_daily_status_map[c[1]] = c[0]
 
@@ -5032,6 +5053,7 @@ class excalibur(_card):
     positive = 1
     description = "只可在胜利时使用。统治不列颠。"
     newer = 1
+    is_Metalic = True
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return user.check_daily_status('W') > 0
@@ -5078,11 +5100,6 @@ class SBritian(ListStatus):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeCardUse: (Priority.BeforeCardUse.britian, cls)}
-class SInvBritian(ListStatus):
-    id = 'X'
-    des = "被不列颠统治：若本效果包含“魔力 - {某塔罗牌名}”，你可取消本效果中的“魔力 - {该塔罗牌名}”，并凭空使用一张该塔罗牌。"
-    def check(self) -> bool:
-        return True
 
 class assembling_machine(_card):
     id = 200
@@ -5090,6 +5107,7 @@ class assembling_machine(_card):
     description = "如果你没有组装机，你获得装备：组装机1型。如果你已有组装机1型，将其升级为组装机2型。如果你已有组装机2型，将其升级为组装机3型。如果你已有组装机3型，你获得200组装量。"
     newer = 4
     positive = 1
+    is_Metalic = True
     @classmethod
     async def use(cls, user: User) -> None:
         c = user.data.check_equipment(3)
@@ -5111,9 +5129,11 @@ class belt(_card):
     positive = 1
     newer = 4
     status = '3'
+    is_Metalic = True
 class belt_s(_statusnull):
     id = '3'
     des = "传送带：当其它玩家丢弃第一张手牌时，你获得之。"
+    is_Metalic = True
 class belt_checker(IEventListener):
     @classmethod
     async def AfterCardDiscard(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
@@ -5137,6 +5157,7 @@ UserData.register_checker(belt_checker)
 class inv_belt_s(_statusnull):
     id = '4'
     des = "反转·传送带：当你丢弃第一张手牌时，把它丢给随机一名玩家。"
+    is_Metalic = True
     @classmethod
     async def AfterCardDiscard(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
         qqs = [t['qq'] for t in config.userdata.execute("select qq from dragon_data where dead=false").fetchall()]
@@ -5158,6 +5179,7 @@ class train(_card):
     description = "附加全局状态：若你最近接过龙，其它玩家一次获得5以上击毙时，你便乘1击毙。若场上已经有火车，发动新的火车有1/4的几率与已有的每一辆火车发生碰撞，碰撞时两个火车都会消失。"
     positive = 1
     newer = 4
+    is_Metalic = True
     @classmethod
     async def use(cls, user: User) -> None:
         l = me.check_limited_status('t')
@@ -5171,6 +5193,7 @@ class STrain(_status):
     id = 't'
     des = "火车：其它玩家一次获得5以上击毙时，某玩家便乘1击毙。"
     is_global = True
+    is_Metalic = True
     def __init__(self, s: Union[str, int], if_def: Union[str, bool]):
         self.qq = int(s)
         self.if_def = if_def in ('True', True)
@@ -5228,6 +5251,7 @@ class beacon(_card):
     description = "使用将丢弃这张卡。持有时，每天随机获得产率、速度、节能三个增益之一。"
     extra_info = {0: "插件——产率：获得击毙时，有15%的几率使其翻倍。", 1: "插件——速度：当有人发动寒冰菇时，该发动无效；如果发动的人是你，你被击毙30分钟。", 2: "插件——节能：消费击毙时，消费的击毙变为九折。"}
     des_need_init = True
+    is_Metalic = True
     @classmethod
     def module_des(cls, qq: int):
         m = Game.userdata(qq).module_c
@@ -5358,6 +5382,7 @@ class lab(_card):
     description = "如果全局状态中存在你的火车，你的所有火车获得火车跳板；如果你的装备中有组装机，你获得一张集装机械臂；如果你的手牌中有插件分享塔，今日你的插件效果会变为全局状态；如果三者都有，你获得一张核弹；如果三者都没有，你抽一张factorio系列的牌。"
     positive = 1
     newer = 4
+    is_Metalic = True
     @classmethod
     async def use(cls, user: User) -> None:
         if t1 := me.check_limited_status('t', lambda c: c.qq == user.qq):
@@ -5391,6 +5416,7 @@ class stack_inserter(_card):
     name = "集装机械臂"
     positive = 1
     description = "选择一张卡牌，将其销毁，并获得等同于卡牌编号/5的击毙。如果你有组装机，使其获得等同于卡牌编号的组装量。"
+    is_Metalic = True
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return len(user.data.hand_card) >= (1 if copy else 2)
@@ -5416,6 +5442,7 @@ class nuclear_bomb(_card):
     name = "核弹"
     description = "杀死所有人120分钟。"
     positive = 0
+    is_Metalic = True
     @classmethod
     async def use(cls, user: User) -> None:
         user.send_char("杀死了所有人！")
@@ -5430,6 +5457,7 @@ class flamethrower(_card):
     positive = 0
     newer = 4
     consumed_on_draw = True
+    is_Metalic = True
     @classmethod
     async def on_draw(cls, user: User) -> None:
         if me.check_daily_status('i'):
@@ -5446,6 +5474,7 @@ class rocket(_card):
     description = "发射一枚火箭，获得游戏的胜利。"
     positive = 1
     newer = 4
+    is_Metalic = True
     @classmethod
     async def use(cls, user: User) -> None:
         user.buf.send(f"恭喜{user.char}，今天{user.char}赢了！")
@@ -5900,45 +5929,61 @@ bingo_id = [(0, 8), (5, 0), (1, 0), (3, 0), (4, 0), (0, 19), (0, 1), (2, 40), (1
 
 class bingo_checker(IEventListener):
     @classmethod
-    async def check_complete(cls, user):
-        pass
+    def check_complete_line(cls):
+        return len([1 for b in ((0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)) if all(i in global_state["bingo_state"] for i in b)])
+    @classmethod
+    async def complete(cls, id, user: User):
+        n1 = cls.check_complete_line()
+        global_state["bingo_state"].append(id)
+        n2 = cls.check_complete_line()
+        if (n1, n2) in ((0, 1), (7, 8)):
+            active_user = user if user.buf.active == -1 else User(user.buf.active, user.buf)
+            active_user.send_char(f"完成了{n2}行bingo，奖励{active_user.char}一张超新星！")
+            await active_user.draw(0, cards=[Card(-65537)])
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         for id, (i, j) in enumerate(bingo_id):
-            if i == 0:
+            if id not in global_state["bingo_state"] and i == 0:
                 _, name, func = mission[j]
                 if func(branch.word):
                     user.buf.send(f"Bingo！{user.char}完成了接龙任务：{name[:-1]}！")
                     user.log << f"完成了一次bingo任务{name}。"
+                    await cls.complete(id, user)
     @classmethod
     async def AfterCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[()]:
         for id, (i, j) in enumerate(bingo_id):
-            if i == 1 and j <= card.id < j + 40:
-                user.buf.send(f"Bingo！{user.char}完成了任务！")
-                user.log << f"完成了一次bingo任务。"
+            if id not in global_state["bingo_state"] and i == 1 and j <= card.id < j + 40:
+                user.buf.send(f"Bingo！{user.char}完成了任务：使用一张{j}~{j}+39的卡！")
+                user.log << f"完成了一次bingo任务：使用一张{j}~{j}+39的卡。"
+                await cls.complete(id, user)
     @classmethod
     async def AfterCardDraw(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
         for id, (i, j) in enumerate(bingo_id):
-            if i == 2 and any(j <= c.id < j + 80 for c in cards):
-                user.buf.send(f"Bingo！{user.char}完成了任务！")
-                user.log << f"完成了一次bingo任务。"
+            if id not in global_state["bingo_state"] and i == 2 and any(j <= c.id < j + 80 for c in cards):
+                user.buf.send(f"Bingo！{user.char}完成了任务：摸一张{j}~{j}+79的卡！")
+                user.log << f"完成了一次bingo任务：摸一张{j}~{j}+79的卡。"
+                await cls.complete(id, user)
     @classmethod
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
         for id, (i, j) in enumerate(bingo_id):
-            if i == 3:
-                user.buf.send(f"Bingo！{user.char}完成了任务！")
-                user.log << f"完成了一次bingo任务。"
+            if id not in global_state["bingo_state"] and i == 3:
+                user.buf.send(f"Bingo！{user.char}完成了任务：有人死亡！")
+                user.log << f"完成了一次bingo任务：有人死亡。"
+                await cls.complete(id, user)
     @classmethod
     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
         if jibi < 0:
             for id, (i, j) in enumerate(bingo_id):
-                if i == 4:
-                    user.buf.send(f"Bingo！{user.char}完成了任务！")
-                    user.log << f"完成了一次bingo任务。"
+                if id not in global_state["bingo_state"] and i == 4:
+                    user.buf.send(f"Bingo！{user.char}完成了任务：花费或扣除击毙！")
+                    user.log << f"完成了一次bingo任务：花费或扣除击毙。"
+                    await cls.complete(id, user)
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if not isinstance(status, SDeath):
             for id, (i, j) in enumerate(bingo_id):
-                if i == 5:
-                    user.buf.send(f"Bingo！{user.char}完成了任务！")
-                    user.log << f"完成了一次bingo任务。"
+                if id not in global_state["bingo_state"] and i == 5:
+                    user.buf.send(f"Bingo！{user.char}完成了任务：添加一个非死亡状态！")
+                    user.log << f"完成了一次bingo任务：添加一个非死亡状态。"
+                    await cls.complete(id, user)
+# UserData.register_checker(bingo_checker)
