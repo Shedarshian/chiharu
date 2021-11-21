@@ -5006,12 +5006,6 @@ class upsidedown(_card):
             elif l[i].id == 'f':
                 l[i] = hierophant_s(l[i].num)
                 user.send_log("的教皇被反转了！")
-            if l[i].id == 'W':
-                l[i] = SInvBritian(l[i].list)
-                user.send_log("的统治不列颠被反转了！")
-            if l[i].id == 'X':
-                l[i] = SBritian(l[i].list)
-                user.send_log("的被不列颠统治被反转了！")
         user.data.save_status_time()
         # 全局状态
         await _s(Userme(user))
