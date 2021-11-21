@@ -1615,6 +1615,7 @@ class _card(IEventListener, metaclass=card_meta):
     failure_message = ""
     des_need_init = False
     is_Metalic = False
+    mass = 0.1
     @classmethod
     async def use(cls, user: User) -> None:
         pass
@@ -1646,6 +1647,7 @@ class supernova(_card):
     positive = 1
     weight = 0
     description = "获得一张炙手可热的新卡。"
+    mass = 10000
     @classmethod
     async def use(cls, user: User) -> None:
         max = 0
@@ -1680,6 +1682,7 @@ class vampire(_card):
     positive = 1
     weight = 0
     description = "此牌通常情况下无法被抽到。2小时内免疫死亡。"
+    mass = 0.5
     @classmethod
     async def use(cls, user: User) -> None:
         await user.add_limited_status(SInvincible(datetime.now() + timedelta(hours=2)))
@@ -2370,6 +2373,7 @@ class minus1ma(_card):
     daily_status = 'm'
     positive = 1
     description = "今天你可以少隔一个接龙，但最少隔一个。"
+    mass = 0.75
 class minus1ma_s(_statusdaily):
     id = 'm'
     des = "-1马：今天你可以少隔一个接龙，但最少隔一个。"
@@ -2395,30 +2399,35 @@ class dongfeng(_card):
     id = 40
     positive = 0
     description = "可邀请持有南风、西风、北风的群友各一位进行一局麻将对战，根据结算顺位获得奖励（一位20击毙，二位10击毙，三位5击毙，四位被击毙），对局结束后此牌被消耗。"
+    mass = 0.2
 
 class nanfeng(_card):
     name = "南风（🀁）"
     id = 41
     positive = 0
     description = "可邀请持有东风、西风、北风的群友各一位进行一局麻将对战，根据结算顺位获得奖励（一位20击毙，二位10击毙，三位5击毙，四位被击毙），对局结束后此牌被消耗。"
+    mass = 0.2
 
 class xifeng(_card):
     name = "西风（🀂）"
     id = 42
     positive = 0
     description = "可邀请持有东风、南风、北风的群友各一位进行一局麻将对战，根据结算顺位获得奖励（一位20击毙，二位10击毙，三位5击毙，四位被击毙），对局结束后此牌被消耗。"
+    mass = 0.2
 
 class beifeng(_card):
     name = "北风（🀃）"
     id = 43
     positive = 0
     description = "可邀请持有东风、南风、西风的群友各一位进行一局麻将对战，根据结算顺位获得奖励（一位20击毙，二位10击毙，三位5击毙，四位被击毙），对局结束后此牌被消耗。"
+    mass = 0.2
 
 class baiban(_card):
     name = "白板（🀆）"
     id = 44
     positive = 1
     description = "选择你手牌中的一张牌，执行其使用效果。"
+    mass = 0.2
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return len(user.data.hand_card) >= (1 if copy else 2)
@@ -2436,6 +2445,7 @@ class hongzhong(_card):
     id = 46
     positive = 1
     description = "在同时有人驳回和同意时，可以使用此卡强制通过。"
+    mass = 0.2
 
 class sihuihuibizhiyao(_card):
     name = "死秽回避之药"
@@ -2483,6 +2493,7 @@ class huiye(_card):
     positive = 1
     status = 'x'
     description = "你下一次死亡的时候奖励你抽一张卡。"
+    mass = 0.2
     is_Metalic = True
 class huiye_s(_statusnull):
     id = 'x'
@@ -2540,6 +2551,7 @@ class dragontube(_card):
     id = 54
     positive = 1
     description = "你今天通过普通接龙获得的击毙上限增加10。"
+    mass = 0.2
     @classmethod
     async def use(cls, user: User):
         user.data.today_jibi += 10
@@ -2603,6 +2615,7 @@ class dream(_card):
     newer = 3
     positive = 0
     description = "50%概率回溯到随机一个节点，50%概率随机一个节点立即分叉。"
+    mass = 0
     @classmethod
     async def use(cls, user: User) -> None:
         node = random.choice(list(itertools.chain(*Tree._objs)))
@@ -2632,6 +2645,7 @@ class ourostone(_card):
     id = 66
     positive = 0
     description = "修改当前规则至首尾接龙直至跨日。"
+    mass = 0.2
     @classmethod
     async def use(cls, user: User) -> None:
         u = Userme(user)
@@ -2671,6 +2685,7 @@ class queststone(_card):
     positive = 1
     description = "持有此石时，你每天会刷新一个接龙任务。每次完成接龙任务可以获得3击毙，每天最多3次。使用将丢弃此石。"
     des_need_init = True
+    mass = 0.2
     @classmethod
     def quest_des(cls, qq: int):
         r = Game.userdata(qq).quest_c
@@ -2718,6 +2733,7 @@ class cunqianguan(_card):
     global_status = 'm'
     positive = 1
     description = "下次触发隐藏词的奖励+10击毙。"
+    mass = 0.25
 class cunqianguan_s(_statusnull):
     id = 'm'
     des = "存钱罐：下次触发隐藏词的奖励+10击毙。"
@@ -3057,6 +3073,7 @@ class bianyaqi(_card):
     positive = 0
     description = "下一次你的击毙变动变动值加倍。"
     is_Metalic = True
+    mass = 0.2
 class bianyaqi_s(_statusnull):
     id = '2'
     des = "变压器（♣10）：下一次击毙变动变动值加倍。"
@@ -3099,11 +3116,8 @@ class guanggaopai(_card):
     def description(self):
         return random.choice([
             "广告位永久招租，联系邮箱：shedarshian@gmail.com",
-            # "我给你找了个厂，虹龙洞里挖龙珠的，两班倒，20多金点包酸素勾玉，一天活很多，也不会很闲，明天你就去上班吧，不想看到你整天在群里接龙，无所事事了，是谁我就不在群里指出来了，等下你没面子。\n\t先填个表https://store.steampowered.com/app/1566410",
             "MUASTG，车万原作游戏前沿逆向研究，主要研究弹幕判定、射击火力、ZUN引擎弹幕设计等，曾发表车万顶刊华胥三绝，有意者加群796991184",
             "你想明白生命的意义吗？你想真正……的活着吗？\n\t☑下载战斗天邪鬼：https://pan.baidu.com/s/1FIAxhHIaggld3yRAyFr9FA",
-            # "肥料掺了金坷垃，一袋能顶两袋撒！肥料掺了金坷垃，不流失，不浪费，不蒸发，能吸收两米下的氮磷钾！",
-            # "下蛋公鸡，公鸡中的战斗鸡，哦也",
             "欢迎关注甜品站弹幕研究协会，国内一流的东方STG学术交流平台，从避弹，打分到neta，可以学到各种高端姿势：https://www.isndes.com/ms?m=2",
             "[CQ:at,qq=1469335215]哈斯塔快去画逻辑接龙卡图",
             "《世界計畫 繽紛舞台！ feat. 初音未來》正式開啓公測！欢迎下载：www.tw-pjsekai.com",
@@ -3836,6 +3850,7 @@ class wallnut(_card):
     id = 131
     description = "为你吸收死亡时间总计4小时。"
     positive = 1
+    mass = 0.2
     @classmethod
     async def use(cls, user: User) -> None:
         o = user.check_limited_status('o', lambda x: not x.is_pumpkin)
@@ -3985,6 +4000,7 @@ class pumpkin(_card):
     id = 134
     description = "为你吸收死亡时间总计6小时。可与坚果墙叠加。"
     positive = 1
+    mass = 0.2
     @classmethod
     async def use(cls, user: User) -> None:
         o = user.check_limited_status('o', lambda x: x.is_pumpkin)
@@ -4835,6 +4851,7 @@ class forkbomb(_card):
     global_daily_status = 'b'
     description = "今天每个接龙词都有5%几率变成分叉点。"
     is_Metalic = True
+    mass = 0.2
 class forkbomb_s(_statusdaily):
     id = 'b'
     des = "Fork Bomb：今天每个接龙词都有5%几率变成分叉点。"
@@ -4920,6 +4937,7 @@ class cashprinter(_card):
     is_Metalic = True
     limited_status = 'p'
     limited_init = (10,)
+    mass = 0.25
 class Scashprinter(NumedStatus):
     id = 'p'
     des = "印钞机：你接下来接龙时会奖励接了上一个词的人1击毙。如果上一个词是起始词则不消耗生效次数。"
@@ -5054,6 +5072,7 @@ class excalibur(_card):
     description = "只可在胜利时使用。统治不列颠。"
     newer = 1
     is_Metalic = True
+    mass = 1
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return user.check_daily_status('W') > 0
@@ -5108,6 +5127,7 @@ class assembling_machine(_card):
     newer = 4
     positive = 1
     is_Metalic = True
+    mass = 0.2
     @classmethod
     async def use(cls, user: User) -> None:
         c = user.data.check_equipment(3)
@@ -5180,6 +5200,7 @@ class train(_card):
     positive = 1
     newer = 4
     is_Metalic = True
+    mass = 5
     @classmethod
     async def use(cls, user: User) -> None:
         l = me.check_limited_status('t')
@@ -5252,6 +5273,7 @@ class beacon(_card):
     extra_info = {0: "插件——产率：获得击毙时，有15%的几率使其翻倍。", 1: "插件——速度：当有人发动寒冰菇时，该发动无效；如果发动的人是你，你被击毙30分钟。", 2: "插件——节能：消费击毙时，消费的击毙变为九折。"}
     des_need_init = True
     is_Metalic = True
+    mass = 0.75
     @classmethod
     def module_des(cls, qq: int):
         m = Game.userdata(qq).module_c
@@ -5383,6 +5405,7 @@ class lab(_card):
     positive = 1
     newer = 4
     is_Metalic = True
+    mass = 0.75
     @classmethod
     async def use(cls, user: User) -> None:
         if t1 := me.check_limited_status('t', lambda c: c.qq == user.qq):
@@ -5443,6 +5466,7 @@ class nuclear_bomb(_card):
     description = "杀死所有人120分钟。"
     positive = 0
     is_Metalic = True
+    mass = 0.5
     @classmethod
     async def use(cls, user: User) -> None:
         user.send_char("杀死了所有人！")
@@ -5458,6 +5482,7 @@ class flamethrower(_card):
     newer = 4
     consumed_on_draw = True
     is_Metalic = True
+    mass = 0.25
     @classmethod
     async def on_draw(cls, user: User) -> None:
         if me.check_daily_status('i'):
@@ -5475,6 +5500,7 @@ class rocket(_card):
     positive = 1
     newer = 4
     is_Metalic = True
+    mass = 5
     @classmethod
     async def use(cls, user: User) -> None:
         user.buf.send(f"恭喜{user.char}，今天{user.char}赢了！")
