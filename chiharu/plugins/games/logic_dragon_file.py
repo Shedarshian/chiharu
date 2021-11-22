@@ -3673,10 +3673,10 @@ class wardenspaean(_card):
     async def use(cls, user: User) -> None:
         for c in map(StatusDaily, user.data.daily_status):
             if c is shengbing:
-                user.send_char(f"的大病一场被取消了！")
-                user.remove_daily_status('d')
-            else:
-                await user.add_limited_status('w',3)
+                user.send_char("的大病一场被取消了！")
+                await user.remove_daily_status('d')
+                return
+        await user.add_limited_status('w',3)
 class wardenspaean_s(NumedStatus):
     id = 'w'
     des = "光阴神的礼赞凯歌：免疫三次负面状态或消耗全部次数免疫大病一场。"
