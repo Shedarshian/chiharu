@@ -1341,7 +1341,7 @@ class _statusall(IEventListener, metaclass=status_meta):
     des = ""
     is_debuff = False
     is_global = False
-    is_Metalic = False
+    is_metallic = False
     @classmethod
     @property
     def brief_des(cls):
@@ -1614,7 +1614,7 @@ class _card(IEventListener, metaclass=card_meta):
     consumed_on_draw = False
     failure_message = ""
     des_need_init = False
-    is_Metalic = False
+    is_metallic = False
     mass = 0.1
     @classmethod
     async def use(cls, user: User) -> None:
@@ -2315,7 +2315,7 @@ class tiesuolianhuan(_card):
     id = 38
     positive = 1
     description = "指定至多两名玩家进入或解除其连环状态。任何处于连环状态的玩家被击毙时所有连环状态的玩家也被击毙并失去此效果。"
-    is_Metalic = True
+    is_metallic = True
     @classmethod
     async def use(cls, user: User):
         if await user.choose():
@@ -2345,7 +2345,7 @@ class tiesuolianhuan_s(_statusnull):
     id = 'l'
     des = "铁索连环：任何处于连环状态的玩家被击毙时所有连环状态的玩家也被击毙并失去此效果。"
     is_debuff = True
-    is_Metalic = True
+    is_metallic = True
     @classmethod
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
         if await c.pierce():
@@ -2494,11 +2494,11 @@ class huiye(_card):
     status = 'x'
     description = "你下一次死亡的时候奖励你抽一张卡。"
     mass = 0.2
-    is_Metalic = True
+    is_metallic = True
 class huiye_s(_statusnull):
     id = 'x'
     des = '辉夜姬的秘密宝箱：下一次死亡的时候奖励抽一张卡。'
-    is_Metalic = True
+    is_metallic = True
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         await user.remove_status('x')
@@ -2515,7 +2515,7 @@ class inv_huiye_s(_statusnull):
     id = 'y'
     des = '反转·辉夜姬的秘密宝箱：你下一次死亡的时候随机弃一张牌。'
     is_debuff = True
-    is_Metalic = True
+    is_metallic = True
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         await user.remove_status('y')
@@ -3072,12 +3072,12 @@ class bianyaqi(_card):
     status = '2'
     positive = 0
     description = "下一次你的击毙变动变动值加倍。"
-    is_Metalic = True
+    is_metallic = True
     mass = 0.2
 class bianyaqi_s(_statusnull):
     id = '2'
     des = "变压器（♣10）：下一次击毙变动变动值加倍。"
-    is_Metalic = True
+    is_metallic = True
     @classmethod
     async def CheckJibiSpend(cls, count: TCount, user: 'User', jibi: int) -> Tuple[int]:
         return jibi * 2 ** count,
@@ -3093,7 +3093,7 @@ class bianyaqi_s(_statusnull):
 class inv_bianyaqi_s(_statusnull):
     id = '1'
     des = "反转·变压器（♣10）：下一次你的击毙变动变动值减半。"
-    is_Metalic = True
+    is_metallic = True
     @classmethod
     async def CheckJibiSpend(cls, count: TCount, user: 'User', jibi: int) -> Tuple[int]:
         return ceil(jibi / 2 ** count),
@@ -3193,11 +3193,11 @@ class ZPM(_card):
     on_draw_status = 'Z'
     newer = 3
     consumed_on_draw = True
-    is_Metalic = True
+    is_metallic = True
 class SZPM(_statusnull):
     id = 'Z'
     des = "零点模块：若你当前击毙少于100，则每次接龙为你额外提供1击毙，若你当前击毙多于100，此buff立即消失。"
-    is_Metalic = True
+    is_metallic = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if user.data.jibi > 100:
@@ -4052,12 +4052,12 @@ class jack_in_the_box(_card):
     on_draw_status = 'j'
     on_draw_send_char = "获得了玩偶匣！"
     consumed_on_draw = True
-    is_Metalic = True
+    is_metallic = True
 class jack_in_the_box_s(_statusnull):
     id = 'j'
     des = "玩偶匣：你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。若场上有寒冰菇状态则不会爆炸。"
     is_debuff = True
-    is_Metalic = True
+    is_metallic = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if me.check_daily_status('i'):
@@ -4850,13 +4850,13 @@ class forkbomb(_card):
     positive = 0
     global_daily_status = 'b'
     description = "今天每个接龙词都有5%几率变成分叉点。"
-    is_Metalic = True
+    is_metallic = True
     mass = 0.2
 class forkbomb_s(_statusdaily):
     id = 'b'
     des = "Fork Bomb：今天每个接龙词都有5%几率变成分叉点。"
     is_global = True
-    is_Metalic = True
+    is_metallic = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if random.random() > 0.95 ** count:
@@ -4904,14 +4904,14 @@ class timebomb(_card):
     description = "抽到时附加buff：需要此后在今日内完成10次接龙，否则在跨日时扣除2*剩余次数的击毙。"
     newer = 5
     consumed_on_draw = True
-    is_Metalic = True
+    is_metallic = True
     on_draw_limited_status = 'B'
     limited_init = (10,)
 class Stimebomb(NumedStatus):
     id = 'B'
     des = "定时炸弹：需要此后在今日内完成10次接龙，否则在跨日时扣除2*剩余次数的击毙。"
     is_debuff = True
-    is_Metalic = True
+    is_metallic = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         count[0].num -= 1
@@ -4934,14 +4934,14 @@ class cashprinter(_card):
     positive = 1
     description = "使用后，你接下来10次接龙时会奖励接了上一个词的人1击毙。如果上一个词是起始词则不消耗生效次数。"
     newer = 5
-    is_Metalic = True
+    is_metallic = True
     limited_status = 'p'
     limited_init = (10,)
     mass = 0.25
 class Scashprinter(NumedStatus):
     id = 'p'
     des = "印钞机：你接下来接龙时会奖励接了上一个词的人1击毙。如果上一个词是起始词则不消耗生效次数。"
-    is_Metalic = True
+    is_metallic = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         pq = branch.parent.qq
@@ -5071,7 +5071,7 @@ class excalibur(_card):
     positive = 1
     description = "只可在胜利时使用。统治不列颠。"
     newer = 1
-    is_Metalic = True
+    is_metallic = True
     mass = 1
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
@@ -5126,7 +5126,7 @@ class assembling_machine(_card):
     description = "如果你没有组装机，你获得装备：组装机1型。如果你已有组装机1型，将其升级为组装机2型。如果你已有组装机2型，将其升级为组装机3型。如果你已有组装机3型，你获得200组装量。"
     newer = 4
     positive = 1
-    is_Metalic = True
+    is_metallic = True
     mass = 0.2
     @classmethod
     async def use(cls, user: User) -> None:
@@ -5149,11 +5149,11 @@ class belt(_card):
     positive = 1
     newer = 4
     status = '3'
-    is_Metalic = True
+    is_metallic = True
 class belt_s(_statusnull):
     id = '3'
     des = "传送带：当其它玩家丢弃第一张手牌时，你获得之。"
-    is_Metalic = True
+    is_metallic = True
 class belt_checker(IEventListener):
     @classmethod
     async def AfterCardDiscard(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
@@ -5177,7 +5177,7 @@ UserData.register_checker(belt_checker)
 class inv_belt_s(_statusnull):
     id = '4'
     des = "反转·传送带：当你丢弃第一张手牌时，把它丢给随机一名玩家。"
-    is_Metalic = True
+    is_metallic = True
     @classmethod
     async def AfterCardDiscard(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
         qqs = [t['qq'] for t in config.userdata.execute("select qq from dragon_data where dead=false").fetchall()]
@@ -5199,7 +5199,7 @@ class train(_card):
     description = "附加全局状态：若你最近接过龙，其它玩家一次获得5以上击毙时，你便乘1击毙。若场上已经有火车，发动新的火车有1/4的几率与已有的每一辆火车发生碰撞，碰撞时两个火车都会消失。"
     positive = 1
     newer = 4
-    is_Metalic = True
+    is_metallic = True
     mass = 5
     @classmethod
     async def use(cls, user: User) -> None:
@@ -5214,7 +5214,7 @@ class STrain(_status):
     id = 't'
     des = "火车：其它玩家一次获得5以上击毙时，某玩家便乘1击毙。"
     is_global = True
-    is_Metalic = True
+    is_metallic = True
     def __init__(self, s: Union[str, int], if_def: Union[str, bool]):
         self.qq = int(s)
         self.if_def = if_def in ('True', True)
@@ -5272,7 +5272,7 @@ class beacon(_card):
     description = "使用将丢弃这张卡。持有时，每天随机获得产率、速度、节能三个增益之一。"
     extra_info = {0: "插件——产率：获得击毙时，有15%的几率使其翻倍。", 1: "插件——速度：当有人发动寒冰菇时，该发动无效；如果发动的人是你，你被击毙30分钟。", 2: "插件——节能：消费击毙时，消费的击毙变为九折。"}
     des_need_init = True
-    is_Metalic = True
+    is_metallic = True
     mass = 0.75
     @classmethod
     def module_des(cls, qq: int):
@@ -5404,7 +5404,7 @@ class lab(_card):
     description = "如果全局状态中存在你的火车，你的所有火车获得火车跳板；如果你的装备中有组装机，你获得一张集装机械臂；如果你的手牌中有插件分享塔，今日你的插件效果会变为全局状态；如果三者都有，你获得一张核弹；如果三者都没有，你抽一张factorio系列的牌。"
     positive = 1
     newer = 4
-    is_Metalic = True
+    is_metallic = True
     mass = 0.75
     @classmethod
     async def use(cls, user: User) -> None:
@@ -5439,7 +5439,7 @@ class stack_inserter(_card):
     name = "集装机械臂"
     positive = 1
     description = "选择一张卡牌，将其销毁，并获得等同于卡牌编号/5的击毙。如果你有组装机，使其获得等同于卡牌编号的组装量。"
-    is_Metalic = True
+    is_metallic = True
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return len(user.data.hand_card) >= (1 if copy else 2)
@@ -5465,7 +5465,7 @@ class nuclear_bomb(_card):
     name = "核弹"
     description = "杀死所有人120分钟。"
     positive = 0
-    is_Metalic = True
+    is_metallic = True
     mass = 0.5
     @classmethod
     async def use(cls, user: User) -> None:
@@ -5481,7 +5481,7 @@ class flamethrower(_card):
     positive = 0
     newer = 4
     consumed_on_draw = True
-    is_Metalic = True
+    is_metallic = True
     mass = 0.25
     @classmethod
     async def on_draw(cls, user: User) -> None:
@@ -5499,7 +5499,7 @@ class rocket(_card):
     description = "发射一枚火箭，获得游戏的胜利。"
     positive = 1
     newer = 4
-    is_Metalic = True
+    is_metallic = True
     mass = 5
     @classmethod
     async def use(cls, user: User) -> None:
