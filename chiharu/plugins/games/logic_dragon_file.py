@@ -4184,7 +4184,7 @@ class mishi4(_card):
             user.send_log("取消了之前的探索并开始森林尽头之地！")
         else:
             await user.add_limited_status(Sexplore(4))
-            user.send_log("开始森林尽头之地！")
+            user.send_log("开始探索森林尽头之地！")
 class mishi5(_card):
     name = "悬而未定的模棱两可"
     id = 144
