@@ -4413,7 +4413,8 @@ class Sexplore(NumedStatus):
                         user.send_log(f"移除了{sdes[:sdes.index['：']]}。")
                         await Userme(user).remove_limited_status(gl[0])
                     else:
-                        user.send_log("上一个添加的全局状态已被清除！")
+                        user.buf.send("上一个添加的全局状态早就被清除了！")
+                        user.log << "上一个添加的全局状态早就被清除了。"
             elif i == 4:
                 user.send_log("置身库兹涅佐夫的捐赠：")
                 user.buf.send("库兹涅佐夫公爵将他沾满鲜血的财富的四分之一捐给这座地方大学以建立末世学学部。随机添加一个全局状态。")
