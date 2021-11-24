@@ -358,7 +358,17 @@ class Damage(Attack):
             self.defender.send_log("闪避了此次伤害！")
         else:
             self.defender.send_log(f"受到了{self.damage * self.multiplier}点伤害！")
-            self.defender.data.extra.hp -= self.damage * self.multiplier
+            if self.defender.data.extra.hp < self.damage * self.multiplier:
+                self.defender.data.extra.hp = self.defender.data.hp_max
+                self.defender.data.extra.mp = self.defender.data.mp_max
+                if self.defender.qq == 1:
+                    self.defender.send_log("死了一条命！")
+                    # TODO level up once
+                else:
+                    self.defender.send_log("死了！")
+                    await self.defender.death(60)
+            else:
+                self.defender.data.extra.hp -= self.damage * self.multiplier
 
 class Game:
     session_list: List[CommandSession] = []
