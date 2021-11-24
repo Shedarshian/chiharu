@@ -5969,8 +5969,8 @@ class bingo_checker(IEventListener):
         if i == 0:
             _, name, func = mission[j]
             return f"接龙任务：{name}"
-        elif i == 1: return f"使用一张{j}~{j}+39的卡。"
-        elif i == 2: return f"摸一张{j}~{j}+79的卡。"
+        elif i == 1: return f"使用一张{j}~{j+39}的卡。"
+        elif i == 2: return f"摸一张{j}~{j+79}的卡。"
         elif i == 3: return "有人死亡。"
         elif i == 4: return "花费或扣除击毙。"
         elif i == 5: return "添加一个非死亡状态。"
@@ -5997,15 +5997,15 @@ class bingo_checker(IEventListener):
     async def AfterCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[()]:
         for id, (i, j) in enumerate(bingo_id):
             if id not in global_state["bingo_state"] and i == 1 and j <= card.id < j + 40:
-                user.buf.send(f"Bingo！{user.char}完成了任务：使用一张{j}~{j}+39的卡！")
-                user.log << f"完成了一次bingo任务：使用一张{j}~{j}+39的卡。"
+                user.buf.send(f"Bingo！{user.char}完成了任务：使用一张{j}~{j+39}的卡！")
+                user.log << f"完成了一次bingo任务：使用一张{j}~{j+39}的卡。"
                 await cls.complete(id, user)
     @classmethod
     async def AfterCardDraw(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
         for id, (i, j) in enumerate(bingo_id):
             if id not in global_state["bingo_state"] and i == 2 and any(j <= c.id < j + 80 for c in cards):
-                user.buf.send(f"Bingo！{user.char}完成了任务：摸一张{j}~{j}+79的卡！")
-                user.log << f"完成了一次bingo任务：摸一张{j}~{j}+79的卡。"
+                user.buf.send(f"Bingo！{user.char}完成了任务：摸一张{j}~{j+79}的卡！")
+                user.log << f"完成了一次bingo任务：摸一张{j}~{j+79}的卡。"
                 await cls.complete(id, user)
     @classmethod
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
@@ -6030,4 +6030,4 @@ class bingo_checker(IEventListener):
                     user.buf.send(f"Bingo！{user.char}完成了任务：添加一个非死亡状态！")
                     user.log << f"完成了一次bingo任务：添加一个非死亡状态。"
                     await cls.complete(id, user)
-# UserData.register_checker(bingo_checker)
+UserData.register_checker(bingo_checker)
