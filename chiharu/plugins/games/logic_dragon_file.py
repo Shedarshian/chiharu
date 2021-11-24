@@ -3325,6 +3325,7 @@ class xiaohunfashu(_card):
                 await u.attacked(user, atk)
 class AXiaohunfashu(Attack):
     name = "攻击：销魂法术"
+    doublable = False
     async def self_action(self):
         # 永久状态
         for c in self.defender.data.status:
@@ -3372,6 +3373,7 @@ class ranshefashu(_card):
             await u.attacked(user, atk)
 class Aranshefashu(Attack):
     name = "攻击：蚺虵法术"
+    doublable = False
     async def self_action(self):
         await self.defender.add_daily_status('R')
         self.defender.send_char("今天接龙需额外遵循首尾接龙规则！")
@@ -5948,7 +5950,7 @@ class Dragon:
             self.buf = buf.buf
         else:
             self.buf = buf
-    
+
 
 dragon: Callable[[User], Dragon] = lambda user: Dragon(user.buf)
 
