@@ -703,7 +703,7 @@ async def dragon_check(buf: SessionBuffer):
             buf.finish("全局状态为：\n" + ret)
     elif data in ("bingo",):
         from .logic_dragon_file import bingo_checker
-        buf.finish(bingo_checker.print())
+        buf.finish("第一个完成一行或一列或一个对角线的玩家，以及第一个全部完成的玩家，将会获得一张超新星作为奖励，总共2张。\n" + bingo_checker.print())
     user = User(qq, buf)
     if data in ("详细手牌", "full_hand_cards"):
         cards = user.data.hand_card
