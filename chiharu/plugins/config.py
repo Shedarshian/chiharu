@@ -253,6 +253,8 @@ class SessionBuffer:
             return '你'
         elif qq == selfqq:
             return '全局'
+        elif qq == 1:
+            return '龙'
         else:
             return '该玩家'
 

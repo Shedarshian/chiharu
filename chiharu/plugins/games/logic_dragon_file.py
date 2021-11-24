@@ -49,6 +49,8 @@ TDStatus = Type[T_statusdaily]
 TStatusAll = Union[T_status, TNStatus, TDStatus]
 T_equipment = TypeVar('T_equipment', bound='_equipment')
 TEquipment = Type[T_equipment]
+T_skill = TypeVar('T_skill', bound='DragonSkill')
+TSkill = Type[T_skill]
 TIEventListener = TypeVar('TIEventListener', bound='IEventListener')
 TEventListener = Type[TIEventListener]
 TCount = Union[int, list[T_status]]
@@ -343,6 +345,20 @@ class Kill(Attack):
         super().__init__(attacker, defender)
     async def self_action(self):
         await self.defender.death(self.minute * self.multiplier, self.attacker, self.counter)
+
+# 屠龙活动里的伤害
+class Damage(Attack):
+    name = "造成伤害"
+    def __init__(self, attacker: 'User', defender: 'User', damage: int, must_hit: bool):
+        self.damage = damage
+        self.must_hit = must_hit
+        super().__init__(attacker, defender)
+    async def self_action(self):
+        if not self.must_hit and random.random() < 0.1:
+            self.defender.send_log("闪避了此次伤害！")
+        else:
+            self.defender.send_log(f"受到了{self.damage * self.multiplier}点伤害！")
+            self.defender.data.extra.hp -= self.damage * self.multiplier
 
 class Game:
     session_list: List[CommandSession] = []
@@ -1297,6 +1313,11 @@ class User:
                 save_data()
         else:
             yield None
+    async def damaged(self, damage: int, attacker=None, must_hit=False):
+        if attacker is None:
+            attacker = dragon(self)
+        atk = Damage(attacker, self, damage, must_hit=must_hit)
+        await self.attacked(attacker, atk)
 
 Userme: Callable[[User], User] = lambda user: User(config.selfqq, user.buf)
 
@@ -5943,16 +5964,59 @@ class Tree:
 me = UserData(config.selfqq)
 dragondata = UserData(0)
 
-class Dragon:
-    def __init__(self, buf: Union[config.SessionBuffer, User]):
-        self.data = dragondata
-        if isinstance(buf, User):
-            self.buf = buf.buf
-        else:
-            self.buf = buf
+dragon: Callable[[User], User] = lambda user: User(1, user.buf)
 
+class DragonSkill(metaclass=status_meta):
+    id = -1
+    name = ""
+    des = ""
+    id_dict: Dict[int, TSkill] = {}
+    @classmethod
+    async def use(cls, user: User):
+        pass
 
-dragon: Callable[[User], Dragon] = lambda user: Dragon(user.buf)
+class dadun(DragonSkill):
+    id = 0
+    name = "打盹"
+    des = "没有效果。"
+class penhuo(DragonSkill):
+    id = 1
+    name = "喷火"
+    des = "对玩家造成100点伤害。"
+    @classmethod
+    async def use(cls, user: User):
+        user.damaged(100)
+        if me.check_daily_status('i'):
+            user.buf.send("火焰解除了寒冰菇的效果！")
+            await Userme(me).remove_daily_status('i', remove_all=True)
+class yaoren(DragonSkill):
+    id = 2
+    name = "咬人"
+    des = "对玩家造成150点伤害。"
+    @classmethod
+    async def use(cls, user: User):
+        await user.damaged(150)
+class touxi(DragonSkill):
+    id = 3
+    name = "偷袭"
+    des = "对玩家造成100点必中伤害。"
+    @classmethod
+    async def use(cls, user: User):
+        await user.damaged(100, must_hit=True)
+class enhui(DragonSkill):
+    id = 4
+    name = "恩惠"
+    des = "玩家随机获得一张正面卡牌。"
+    @classmethod
+    async def use(cls, user: User):
+        await user.draw(1, positive={1})
+class tukoushui(DragonSkill):
+    id = 5
+    name = "吐口水"
+    des = "玩家随机获得一张非正面卡牌。"
+    @classmethod
+    async def use(cls, user: User):
+        await user.draw(1, positive={0, -1})
 
 bingo_id = [(0, 8), (5, 0), (1, 0), (3, 0), (4, 0), (0, 19), (0, 1), (2, 40), (1, 110)]
 # 0: 接龙任务，1: 使用一张i~i+39的卡，2: 摸一张i~i+79的卡，3：有人死亡，4：花费或扣除击毙，5：添加一个非死亡状态
