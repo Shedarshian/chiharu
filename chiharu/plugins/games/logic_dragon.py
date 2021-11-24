@@ -655,7 +655,8 @@ async def dragon_check(buf: SessionBuffer):
     装备/equipments：查询自己当前装备。
     任务/quest：查询自己手牌中的任务之石的任务。
     击毙/jibi：查询自己的击毙数。
-    商店/shop：查询可购买项目。"""
+    商店/shop：查询可购买项目。
+    bingo：查询bingo活动进度。"""
     with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         d = json.load(f)
     def _(d: UserData, qq=None):
@@ -681,7 +682,6 @@ async def dragon_check(buf: SessionBuffer):
             yield 1, s.brief_des
     data = buf.current_arg_text
     qq = buf.ctx['user_id']
-    user = User(qq, buf)
     if data in ("奖励词", "keyword"):
         buf.finish("当前奖励词为：" + keyword)
     elif data in ("奖励池", "keyword_pool"):
@@ -701,6 +701,10 @@ async def dragon_check(buf: SessionBuffer):
             buf.finish("目前没有全局状态！")
         else:
             buf.finish("全局状态为：\n" + ret)
+    elif data in ("bingo",):
+        from .logic_dragon_file import bingo_checker
+        buf.finish(bingo_checker.print())
+    user = User(qq, buf)
     if data in ("详细手牌", "full_hand_cards"):
         cards = user.data.hand_card
         if len(cards) == 0:
