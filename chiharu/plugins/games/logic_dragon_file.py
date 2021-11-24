@@ -5978,6 +5978,7 @@ class bingo_checker(IEventListener):
     async def complete(cls, id, user: User):
         n1 = cls.check_complete_line()
         global_state["bingo_state"].append(id)
+        save_global_state()
         n2 = cls.check_complete_line()
         if (n1, n2) in ((0, 1), (7, 8)):
             active_user = user if user.buf.active == -1 else User(user.buf.active, user.buf)
