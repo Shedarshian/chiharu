@@ -6030,4 +6030,12 @@ class bingo_checker(IEventListener):
                     user.buf.send(f"Bingo！{user.char}完成了任务：添加一个非死亡状态！")
                     user.log << f"完成了一次bingo任务：添加一个非死亡状态。"
                     await cls.complete(id, user)
+    @classmethod
+    async def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.bingo, cls),
+            UserEvt.AfterCardUse: (Priority.AfterCardUse.bingo, cls),
+            UserEvt.AfterCardDraw: (Priority.AfterCardDraw.bingo, cls),
+            UserEvt.OnDeath: (Priority.OnDeath.bingo, cls),
+            UserEvt.OnJibiChange: (Priority.OnJibiChange.bingo, cls),
+            UserEvt.OnStatusAdd: (Priority.OnStatusAdd.bingo, cls)}
 # UserData.register_checker(bingo_checker)
