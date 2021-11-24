@@ -4185,7 +4185,7 @@ class mishi4(_card):
             user.send_log("取消了之前的探索并开始森林尽头之地！")
         else:
             await user.add_limited_status(Sexplore(4))
-            user.send_log("开始森林尽头之地！")
+            user.send_log("开始探索森林尽头之地！")
 class mishi5(_card):
     name = "悬而未定的模棱两可"
     id = 144
@@ -4414,7 +4414,8 @@ class Sexplore(NumedStatus):
                         user.send_log(f"移除了{sdes[:sdes.index['：']]}。")
                         await Userme(user).remove_limited_status(gl[0])
                     else:
-                        user.send_log("上一个添加的全局状态已被清除！")
+                        user.buf.send("上一个添加的全局状态早就被清除了！")
+                        user.log << "上一个添加的全局状态早就被清除了。"
             elif i == 4:
                 user.send_log("置身库兹涅佐夫的捐赠：")
                 user.buf.send("库兹涅佐夫公爵将他沾满鲜血的财富的四分之一捐给这座地方大学以建立末世学学部。随机添加一个全局状态。")
@@ -5952,12 +5953,27 @@ class Dragon:
 dragon: Callable[[User], Dragon] = lambda user: Dragon(user.buf)
 
 bingo_id = [(0, 8), (5, 0), (1, 0), (3, 0), (4, 0), (0, 19), (0, 1), (2, 40), (1, 110)]
-# 0: 接龙任务，1: 使用一张i~i+39的卡（包含摸取特效），2: 摸一张i~i+79的卡，3：有人死亡，4：花费或扣除击毙，5：添加一个非死亡状态
+# 0: 接龙任务，1: 使用一张i~i+39的卡，2: 摸一张i~i+79的卡，3：有人死亡，4：花费或扣除击毙，5：添加一个非死亡状态
 
 class bingo_checker(IEventListener):
     @classmethod
     def check_complete_line(cls):
         return len([1 for b in ((0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)) if all(i in global_state["bingo_state"] for i in b)])
+    @classmethod
+    def print(cls):
+        box = "┌──┬──┬──┐\n│{}│{}│{}│\n├──┼──┼──┤\n│{}│{}│{}│\n├──┼──┼──┤\n│{}│{}│{}│\n└──┴──┴──┘\n".format(*[('ABC'[i // 3] + str(i % 3) if i not in global_state["bingo_state"] else '▓▓') for i in range(9)])
+        des = '\n'.join('ABC'[i // 3] + str(i % 3) + "：" + cls.get_des(*bingo_id[i]) for i in range(9) if i not in global_state["bingo_state"])
+        return box + des
+    @classmethod
+    def get_des(cls, i, j):
+        if i == 0:
+            _, name, func = mission[j]
+            return f"接龙任务：{name}"
+        elif i == 1: return f"使用一张{j}~{j}+39的卡。"
+        elif i == 2: return f"摸一张{j}~{j}+79的卡。"
+        elif i == 3: return "有人死亡。"
+        elif i == 4: return "花费或扣除击毙。"
+        elif i == 5: return "添加一个非死亡状态。"
     @classmethod
     async def complete(cls, id, user: User):
         n1 = cls.check_complete_line()
@@ -5967,6 +5983,7 @@ class bingo_checker(IEventListener):
             active_user = user if user.buf.active == -1 else User(user.buf.active, user.buf)
             active_user.send_char(f"完成了{n2}行bingo，奖励{active_user.char}一张超新星！")
             await active_user.draw(0, cards=[Card(-65537)])
+        user.buf.end(cls.print())
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         for id, (i, j) in enumerate(bingo_id):
@@ -5974,7 +5991,7 @@ class bingo_checker(IEventListener):
                 _, name, func = mission[j]
                 if func(branch.word):
                     user.buf.send(f"Bingo！{user.char}完成了接龙任务：{name[:-1]}！")
-                    user.log << f"完成了一次bingo任务{name}。"
+                    user.log << f"完成了一次bingo任务{name}"
                     await cls.complete(id, user)
     @classmethod
     async def AfterCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[()]:
