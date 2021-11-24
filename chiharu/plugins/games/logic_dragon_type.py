@@ -121,10 +121,11 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         fool = auto()
         britian = auto()
     class AfterCardUse(IntEnum):
-        pass
+        bingo = auto()
     class AfterCardDraw(IntEnum):
         imitator = auto()
         assembling = auto()
+        bingo = auto()
     class AfterCardDiscard(IntEnum):
         inv_belt = auto()
         belt = auto()
@@ -148,6 +149,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         inv_huiye = auto()              # 反转宝箱
         shangba = auto()                # 伤疤：+2击毙
         invshangba = auto()
+        bingo = auto()                  # bingo任务
     class OnAttack(IntEnum):
         imaginebreaker = auto()         # 幻杀：破防
                                         # imagine breaker is suggested to be the first
@@ -169,6 +171,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         panjue_activated = auto()       # contains both a and b
         beacon = auto()                 # 速度插件：检测寒冰菇
         beacon1 = auto()                # 全局速度插件
+        bingo = auto()
     class OnStatusRemove(IntEnum):
         train = auto()
     class CheckJibiSpend(IntEnum):
@@ -190,6 +193,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         beijingcard = auto()            # 一卡通：根据消费总量打折
         shenmouyuanlv = auto()          # 绿帽：击毙减半则免单
         train = auto()                  # 火车：便乘
+        bingo = auto()
     class CheckEventptSpend(IntEnum):
         pass
     class OnEventptChange(IntEnum):
@@ -235,6 +239,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
     class OnDragoned(IntEnum):
         queststone = auto()             # 任务：完成+3击毙
         quest = auto()
+        bingo = auto()                  # bingo：接龙任务
         xingyunhufu = auto()            # 幸运护符：+0.5击毙
         hierophant = auto()             # 教皇：+2击毙
         inv_hierophant = auto()         # 反转教皇

@@ -892,7 +892,7 @@ class User:
             await StatusNull(s).on_remove(remove_all)
             if StatusNull(s).is_global:
                 if remove_all:
-                    while (0, s) in global_state['global_status']:
+                    while [0, s] in global_state['global_status']:
                         global_state['global_status'].remove([0, s])
                 else:
                     global_state['global_status'].remove([0, s])
@@ -917,7 +917,7 @@ class User:
             await StatusDaily(s).on_remove(remove_all)
             if StatusDaily(s).is_global:
                 if remove_all:
-                    while (1, s) in global_state['global_status']:
+                    while [1, s] in global_state['global_status']:
                         global_state['global_status'].remove([1, s])
                 else:
                     global_state['global_status'].remove([1, s])
@@ -934,7 +934,7 @@ class User:
             self.log << f"移除了一个限时状态{s}。"
             self.data._deregister_status_time(s, is_all=False)
             await s.on_remove(False)
-            if s.is_global and (2, repr(s)) in global_state['global_status']:
+            if s.is_global and [2, repr(s)] in global_state['global_status']:
                 global_state['global_status'].remove([2, repr(s)])
                 save_global_state()
             return True
@@ -6031,4 +6031,12 @@ class bingo_checker(IEventListener):
                     user.buf.send(f"Bingo！{user.char}完成了任务：添加一个非死亡状态！")
                     user.log << f"完成了一次bingo任务：添加一个非死亡状态。"
                     await cls.complete(id, user)
+    @classmethod
+    async def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.bingo, cls),
+            UserEvt.AfterCardUse: (Priority.AfterCardUse.bingo, cls),
+            UserEvt.AfterCardDraw: (Priority.AfterCardDraw.bingo, cls),
+            UserEvt.OnDeath: (Priority.OnDeath.bingo, cls),
+            UserEvt.OnJibiChange: (Priority.OnJibiChange.bingo, cls),
+            UserEvt.OnStatusAdd: (Priority.OnStatusAdd.bingo, cls)}
 UserData.register_checker(bingo_checker)
