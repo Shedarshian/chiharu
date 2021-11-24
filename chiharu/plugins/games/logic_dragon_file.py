@@ -2900,6 +2900,7 @@ class SHuxiangjiaohuan(ListStatus):
     @classmethod
     async def OnHiddenKeyword(cls, count: TCount, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
         to_exchange = count[0].list.pop()
+        me.save_status_time()
         u = User(to_exchange, user.buf)
         atk = AHuxiangjiaohuan(u, user)
         await user.attacked(u, atk)
