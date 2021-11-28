@@ -4106,7 +4106,7 @@ class bungeezombie(_card):
             await user.remove_limited_status(p)
         else:
             user.send_log("没有植物，蹦极僵尸放下了一只僵尸！")
-            await user.death(hour=1)
+            await user.death(minute=60)
 
 class polezombie(_card):
     name = "撑杆跳僵尸"
@@ -6015,6 +6015,7 @@ class bingo_checker(IEventListener):
                 user.buf.send(f"Bingo！{user.char}完成了任务：有人死亡！")
                 user.log << f"完成了一次bingo任务：有人死亡。"
                 await cls.complete(id, user)
+        return time, False
     @classmethod
     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
         if jibi < 0:
@@ -6023,6 +6024,7 @@ class bingo_checker(IEventListener):
                     user.buf.send(f"Bingo！{user.char}完成了任务：花费或扣除击毙！")
                     user.log << f"完成了一次bingo任务：花费或扣除击毙。"
                     await cls.complete(id, user)
+        return jibi,
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if not isinstance(status, SDeath):
@@ -6031,6 +6033,7 @@ class bingo_checker(IEventListener):
                     user.buf.send(f"Bingo！{user.char}完成了任务：添加一个非死亡状态！")
                     user.log << f"完成了一次bingo任务：添加一个非死亡状态。"
                     await cls.complete(id, user)
+        return count,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.bingo, cls),
