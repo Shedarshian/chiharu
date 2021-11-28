@@ -4510,7 +4510,7 @@ class Sexplore(NumedStatus):
             if i == 0:
                 user.send_log("置身被星辰击碎的神殿：")
                 user.buf.send("掉落的陨石反而成了朝拜的对象。在你之后接龙的一个人会额外获得5击毙。")
-                await user.add_status('^')
+                await Userme(user).add_status('^')
             elif i == 1:
                 user.send_log("置身拉贡之墓：")
                 user.buf.send("曾经不死的长生者的尸体被保存得很好，直到我们到来。击毙上一个接龙的玩家十五分钟。")
