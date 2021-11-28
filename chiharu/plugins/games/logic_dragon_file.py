@@ -49,6 +49,8 @@ TDStatus = Type[T_statusdaily]
 TStatusAll = Union[T_status, TNStatus, TDStatus]
 T_equipment = TypeVar('T_equipment', bound='_equipment')
 TEquipment = Type[T_equipment]
+T_skill = TypeVar('T_skill', bound='DragonSkill')
+TSkill = Type[T_skill]
 TIEventListener = TypeVar('TIEventListener', bound='IEventListener')
 TEventListener = Type[TIEventListener]
 TCount = Union[int, list[T_status]]
@@ -343,6 +345,30 @@ class Kill(Attack):
         super().__init__(attacker, defender)
     async def self_action(self):
         await self.defender.death(self.minute * self.multiplier, self.attacker, self.counter)
+
+# 屠龙活动里的伤害
+class Damage(Attack):
+    name = "造成伤害"
+    def __init__(self, attacker: 'User', defender: 'User', damage: int, must_hit: bool):
+        self.damage = damage
+        self.must_hit = must_hit
+        super().__init__(attacker, defender)
+    async def self_action(self):
+        if not self.must_hit and random.random() < 0.1:
+            self.defender.send_log("闪避了此次伤害！")
+        else:
+            self.defender.send_log(f"受到了{self.damage * self.multiplier}点伤害！")
+            if self.defender.data.extra.hp < self.damage * self.multiplier:
+                self.defender.data.extra.hp = self.defender.data.hp_max
+                self.defender.data.extra.mp = self.defender.data.mp_max
+                if self.defender.qq == 1:
+                    self.defender.send_log("死了一条命！")
+                    # TODO level up once
+                else:
+                    self.defender.send_log("死了！")
+                    await self.defender.death(60)
+            else:
+                self.defender.data.extra.hp -= self.damage * self.multiplier
 
 class Game:
     session_list: List[CommandSession] = []
@@ -1297,6 +1323,11 @@ class User:
                 save_data()
         else:
             yield None
+    async def damaged(self, damage: int, attacker=None, must_hit=False):
+        if attacker is None:
+            attacker = dragon(self)
+        atk = Damage(attacker, self, damage, must_hit=must_hit)
+        await self.attacked(attacker, atk)
 
 Userme: Callable[[User], User] = lambda user: User(config.selfqq, user.buf)
 
@@ -3325,6 +3356,7 @@ class xiaohunfashu(_card):
                 await u.attacked(user, atk)
 class AXiaohunfashu(Attack):
     name = "攻击：销魂法术"
+    doublable = False
     async def self_action(self):
         # 永久状态
         for c in self.defender.data.status:
@@ -3372,6 +3404,7 @@ class ranshefashu(_card):
             await u.attacked(user, atk)
 class Aranshefashu(Attack):
     name = "攻击：蚺虵法术"
+    doublable = False
     async def self_action(self):
         await self.defender.add_daily_status('R')
         self.defender.send_char("今天接龙需额外遵循首尾接龙规则！")
@@ -4477,7 +4510,7 @@ class Sexplore(NumedStatus):
             if i == 0:
                 user.send_log("置身被星辰击碎的神殿：")
                 user.buf.send("掉落的陨石反而成了朝拜的对象。在你之后接龙的一个人会额外获得5击毙。")
-                await user.add_status('^')
+                await Userme(user).add_status('^')
             elif i == 1:
                 user.send_log("置身拉贡之墓：")
                 user.buf.send("曾经不死的长生者的尸体被保存得很好，直到我们到来。击毙上一个接龙的玩家十五分钟。")
@@ -5941,16 +5974,59 @@ class Tree:
 me = UserData(config.selfqq)
 dragondata = UserData(0)
 
-class Dragon:
-    def __init__(self, buf: Union[config.SessionBuffer, User]):
-        self.data = dragondata
-        if isinstance(buf, User):
-            self.buf = buf.buf
-        else:
-            self.buf = buf
-    
+dragon: Callable[[User], User] = lambda user: User(1, user.buf)
 
-dragon: Callable[[User], Dragon] = lambda user: Dragon(user.buf)
+class DragonSkill(metaclass=status_meta):
+    id = -1
+    name = ""
+    des = ""
+    id_dict: Dict[int, TSkill] = {}
+    @classmethod
+    async def use(cls, user: User):
+        pass
+
+class dadun(DragonSkill):
+    id = 0
+    name = "打盹"
+    des = "没有效果。"
+class penhuo(DragonSkill):
+    id = 1
+    name = "喷火"
+    des = "对玩家造成100点伤害。"
+    @classmethod
+    async def use(cls, user: User):
+        user.damaged(100)
+        if me.check_daily_status('i'):
+            user.buf.send("火焰解除了寒冰菇的效果！")
+            await Userme(me).remove_daily_status('i', remove_all=True)
+class yaoren(DragonSkill):
+    id = 2
+    name = "咬人"
+    des = "对玩家造成150点伤害。"
+    @classmethod
+    async def use(cls, user: User):
+        await user.damaged(150)
+class touxi(DragonSkill):
+    id = 3
+    name = "偷袭"
+    des = "对玩家造成100点必中伤害。"
+    @classmethod
+    async def use(cls, user: User):
+        await user.damaged(100, must_hit=True)
+class enhui(DragonSkill):
+    id = 4
+    name = "恩惠"
+    des = "玩家随机获得一张正面卡牌。"
+    @classmethod
+    async def use(cls, user: User):
+        await user.draw(1, positive={1})
+class tukoushui(DragonSkill):
+    id = 5
+    name = "吐口水"
+    des = "玩家随机获得一张非正面卡牌。"
+    @classmethod
+    async def use(cls, user: User):
+        await user.draw(1, positive={0, -1})
 
 bingo_id = [(0, 8), (5, 0), (1, 0), (3, 0), (4, 0), (0, 19), (0, 1), (2, 40), (1, 110)]
 # 0: 接龙任务，1: 使用一张i~i+39的卡，2: 摸一张i~i+79的卡，3：有人死亡，4：花费或扣除击毙，5：添加一个非死亡状态
