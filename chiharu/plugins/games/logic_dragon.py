@@ -724,7 +724,7 @@ async def dragon_check(buf: SessionBuffer):
     elif data in ("装备", "equipments"):
         equipments = user.data.equipment
         if len(equipments) == 0:
-            buf.finish("你没有手牌！")
+            buf.finish("你没有装备！")
         buf.finish("你的装备为：\n" + '\n'.join(Equipment(id).full_description(num, user) for id, num in equipments.items()))
     elif data in ("击毙", "jibi"):
         buf.finish("你的击毙数为：" + str(user.data.jibi))
