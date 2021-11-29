@@ -861,10 +861,10 @@ async def dragon_buy(buf: SessionBuffer):
         if user.data.shop_drawn_card <= 0:
             buf.send("您今日已在商店购买过抽卡！")
         else:
-            if not await user.add_jibi(-5, is_buy=True):
-                buf.finish("您的击毙不足！")
-            user.data.shop_drawn_card -= 1
             async with user.settlement():
+                if not await user.add_jibi(-5, is_buy=True):
+                    buf.finish("您的击毙不足！")
+                user.data.shop_drawn_card -= 1
                 await user.draw(1)
     elif id == 9 and user.check_limited_status('D'):
         #（24击毙）解除无法战斗状态并以衰弱状态复生
