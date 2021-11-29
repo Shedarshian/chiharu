@@ -154,10 +154,14 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         imaginebreaker = auto()         # 幻杀：破防
                                         # imagine breaker is suggested to be the first
         vector = auto()                 # 矢量：双倍
+        youlong = auto()                # 幼龙：造成伤害*1.5
+        konghe = auto()                 # 恐吓：造成伤害减半
     class OnAttacked(IntEnum):
         McGuffium239 = auto()           # 麦高芬：免疫礼物交换
-        imaginebreaker = auto()         # 矢量：反转
-        vector = auto()                 # 幻杀：无效
+        imaginebreaker = auto()         # 幻杀：无效
+        hudun = auto()                  # 护盾：对龙造成伤害的闪避率+20%
+        youlong = auto()                # 幼龙：承担受到伤害的50%
+        vector = auto()                 # 矢量：反弹
                                         # vector is suggested to be the last
     class OnDodged(IntEnum):
         pass

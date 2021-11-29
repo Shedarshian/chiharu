@@ -350,9 +350,13 @@ class Damage(Attack):
     def __init__(self, attacker: 'User', defender: 'User', damage: int, must_hit: bool):
         self.damage = damage
         self.must_hit = must_hit
+        self.dodge_rate = 0.1
+        self.dodge_pt = random.random()
         super().__init__(attacker, defender)
+    def dodge(self):
+        return not self.must_hit and self.dodge_pt < self.dodge_rate
     async def self_action(self):
-        if not self.must_hit and random.random() < 0.1:
+        if self.dodge():
             self.defender.send_log("闪避了此次伤害！")
         else:
             self.defender.send_log(f"受到了{self.damage * self.multiplier}点伤害！")
@@ -5922,6 +5926,100 @@ class tukoushui(DragonSkill):
     @classmethod
     async def use(cls, user: User):
         await user.draw(1, positive={0, -1})
+class konghe(DragonSkill):
+    id = 6
+    name = "恐吓"
+    des = "给玩家附加害怕debuff：下次造成伤害减半。"
+    @classmethod
+    async def use(cls, user: User):
+        await user.add_status('H')
+class konghe_s(_statusnull):
+    id = 'H'
+    des = "恐吓：下次造成伤害减半。"
+    @classmethod
+    async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
+        if isinstance(attack, Damage):
+            user.send_char("因被恐吓，造成伤害减半！")
+            await user.remove_status('H', remove_all=True)
+            attack.damage //= 2 ** count
+        return False,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnAttack: (Priority.OnAttack.konghe, cls)}
+class hudun(DragonSkill):
+    id = 7
+    name = "护盾"
+    des = "下次受到伤害时闪避率+20%。"
+    @classmethod
+    async def use(cls, user: User):
+        await dragon(user).add_status('d')
+class hudun_s(_statusnull):
+    id = 'd'
+    des = "护盾：受到伤害时闪避率+20%。"
+    @classmethod
+    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
+        if isinstance(attack, Damage):
+            if await c.pierce():
+                user.buf.send("护盾的效果被幻想杀手消除了！")
+                await user.remove_status('d', remove_all=True)
+            else:
+                user.send_char("的闪避率增加了20%！")
+                await user.remove_status('d', remove_all=False)
+                attack.dodge_rate += 0.2
+        return False,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnAttacked: (Priority.OnAttacked.hudun, cls)}
+class shihun(DragonSkill):
+    id = 8
+    name = "噬魂"
+    des = "玩家失去100点MP。"
+    @classmethod
+    async def use(cls, user: User):
+        atk = AShihun(dr := dragon(user), user, 100)
+        await user.attacked(dr, atk)
+class AShihun(Attack):
+    name = "攻击：噬魂"
+    def __init__(self, attacker: 'User', defender: 'User', amount: int):
+        self.amount = amount
+        super().__init__(attacker, defender)
+    async def self_action(self):
+        self.defender.send_char(f"失去了{self.amount * self.multiplier}MP！")
+        self.defender.data.extra.mp -= self.amount * self.multiplier
+class longwo(DragonSkill):
+    id = 9
+    name = "龙窝"
+    des = "召唤一个幼龙（以buff的形式附在boss身上），幼龙血量1000，承担boss受到伤害的50%，并使boss的攻击增加50%。"
+class SLongwo(NumedStatus):
+    id = 'L'
+    @classmethod
+    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
+        if isinstance(attack, Damage) and not attack.dodge(): # 不能被幻杀消除？？
+            to_def = attack.damage // 2
+            attack.damage -= to_def
+            for i in count:
+                if i.num <= to_def:
+                    user.buf.send(f"幼龙承担了{i.num}的伤害！")
+                    to_def -= i.num
+                    i.num = 0
+                else:
+                    user.buf.send(f"幼龙承担了{attack.damage}的伤害！")
+                    i.num -= to_def
+                    to_def = 0
+                    break
+            attack.damage += to_def
+        return False,
+    @classmethod
+    async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
+        if isinstance(attack, Damage):
+            user.buf.send("幼龙为龙增加了50%的攻击！")
+            attack.damage = attack.damage * 3 // 2
+        return False,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnAttack: (Priority.OnAttack.youlong, cls),
+            UserEvt.OnAttacked: (Priority.OnAttacked.youlong, cls)}
+        
 
 bingo_id = [(0, 8), (5, 0), (1, 0), (3, 0), (4, 0), (0, 19), (0, 1), (2, 40), (1, 110)]
 # 0: 接龙任务，1: 使用一张i~i+39的卡，2: 摸一张i~i+79的卡，3：有人死亡，4：花费或扣除击毙，5：添加一个非死亡状态
