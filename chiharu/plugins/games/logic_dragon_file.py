@@ -1906,7 +1906,7 @@ class hierophant_s(NumedStatus):
     des = "V - 教皇：你的下10次接龙中每次额外获得2击毙，但额外要求首尾接龙。"
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
-        if not state.require_shouwei():
+        if not await state.require_shouwei(user):
             return False, 0, "教皇说，你需要首尾接龙，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -1925,7 +1925,7 @@ class inv_hierophant_s(NumedStatus):
     is_debuff = True
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
-        if not state.require_weishou():
+        if not await state.require_weishou(user):
             return False, 0, "教皇说，你需要首尾接龙，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -2689,7 +2689,7 @@ class ourostone_s(_statusdaily):
     is_global = True
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
-        if not state.require_shouwei():
+        if not await state.require_shouwei(user):
             return False, 0, "当前规则为首尾接龙，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -2701,7 +2701,7 @@ class inv_ourostone_s(_statusdaily):
     is_global = True
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
-        if not state.require_weishou():
+        if not await state.require_weishou(user):
             return False, 0, "当前规则为尾首接龙，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -3411,7 +3411,7 @@ class ranshefashu_s(_statusdaily):
     des = "蚺虵法术：你当日每次接龙需额外遵循首尾接龙规则。"
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
-        if not state.require_shouwei():
+        if not await state.require_shouwei(user):
             return False, 0, "你需额外遵循首尾接龙规则，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -3422,7 +3422,7 @@ class inv_ranshefashu_s(_statusdaily):
     des = "反转·蚺虵法术：你当日每次接龙需额外遵循尾首接龙规则。"
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
-        if not state.require_weishou():
+        if not await state.require_weishou(user):
             return False, 0, "你需额外遵循尾首接龙规则，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -4623,7 +4623,7 @@ class Sjiaotu(_statusnull):
     is_debuff = True
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
-        if not state.require_shouwei():
+        if not await state.require_shouwei(user):
             return False, 0, "虔诚的教徒们说，你需要首尾接龙，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -4639,7 +4639,7 @@ class Sinvjiaotu(_statusnull):
     is_debuff = True
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
-        if not state.require_weishou():
+        if not await state.require_weishou(user):
             return False, 0, "虔诚的教徒们说，你需要尾首接龙，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -4656,7 +4656,7 @@ class Sshequn(_statusnull):
     is_debuff = True
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
-        if not state.require_shouwei():
+        if not await state.require_shouwei(user):
             return False, 0, "蛇群阻止了你的非首尾接龙，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -4673,7 +4673,7 @@ class Sinvshequn(_statusnull):
     is_debuff = True
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
-        if not state.require_weishou():
+        if not await state.require_weishou(user):
             return False, 0, "蛇群阻止了你的非尾首接龙，接龙失败。"
         return True, 0, ""
     @classmethod
