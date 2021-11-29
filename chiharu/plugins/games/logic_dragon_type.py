@@ -294,6 +294,13 @@ class DragonState:
         self.parent = parent
         self.shouwei = parent.word == '' or word == '' or parent.word[-1] == word[0]
         self.weishou = parent.word == '' or word == '' or parent.word[0] == word[-1]
+        self.required_shouwei = self.required_weishou = False
+    def require_shouwei(self):
+        self.required_shouwei = True
+        return self.shouwei
+    def require_weishou(self):
+        self.required_weishou = True
+        return self.weishou
 
 from nonebot.typing import Filter_T
 from nonebot.command.argfilter.validators import _raise_failure
