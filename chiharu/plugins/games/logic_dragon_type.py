@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
-import functools
-from typing import Callable, TypedDict, List, Dict, TypeVar, Generic, Awaitable, Any, Tuple
+import functools, re
+from typing import Callable, TypedDict, List, Dict, TypeVar, Generic, Awaitable, Any, Tuple, Optional
 from dataclasses import dataclass
 from nonebot.command import CommandSession
 
@@ -288,6 +288,13 @@ class UnableRequirement(Exception):
 class NotActive(Exception):
     pass
 
+class DragonState:
+    def __init__(self, word: str, parent: 'Tree'):
+        self.word = word
+        self.parent = parent
+        self.shouwei = parent.word == '' or word == '' or parent.word[-1] == word[0]
+        self.weishou = parent.word == '' or word == '' or parent.word[0] == word[-1]
+
 from nonebot.typing import Filter_T
 from nonebot.command.argfilter.validators import _raise_failure
 
@@ -333,3 +340,106 @@ async def check_active(value):
     if value is None:
         raise NotActive
     yield None
+
+class Tree:
+    __slots__ = ('id', 'parent', 'childs', 'word', 'fork', 'kwd', 'hdkwd', 'qq')
+    forests: List[List[List['Tree']]] = []
+    _objs: List[List['Tree']] = [] # [[wd0, wd1, wd2], [wd2a], [wd2b]]
+    max_branches = 0
+    def __init__(self, parent: 'Tree', word: str, qq: int, kwd: str, hdkwd: str, *, id: Optional[Tuple[int, int]]=None, fork: bool=False):
+        self.parent = parent
+        if parent:
+            parent.childs.append(self)
+            id = id or (parent.id[0] + 1, parent.id[1])
+        else:
+            id = id or (0, 0)
+        if not self.find(id):
+            self.id: Tuple[int, int] = id
+            if Tree.max_branches <= id[1]:
+                for i in range(id[1] + 1 - Tree.max_branches):
+                    self._objs.append([])
+                Tree.max_branches = id[1] + 1
+        else:
+            self.id = (id[0], Tree.max_branches)
+            Tree.max_branches += 1
+            self._objs.append([])
+        self._objs[self.id[1]].append(self)
+        self.childs: List['Tree'] = []
+        self.word = word
+        self.fork = fork
+        self.qq = qq
+        self.kwd = kwd
+        self.hdkwd = hdkwd
+    @classmethod
+    def find(cls, id: Tuple[int, int]):
+        try:
+            if len(cls._objs[id[1]]) == 0:
+                return None
+            return cls._objs[id[1]][id[0] - cls._objs[id[1]][0].id[0]]
+        except IndexError:
+            return None
+    @property
+    def id_str(self):
+        return str(self.id[0]) + ('' if self.id[1] == 0 else chr(96 + self.id[1]))
+    @staticmethod
+    def str_to_id(str):
+        match = re.match(r'(\d+)([a-z])?', str)
+        return int(match.group(1)), (0 if match.group(2) is None else ord(match.group(2)) - 96)
+    @staticmethod
+    def match_to_id(match):
+        return int(match.group(1)), (0 if match.group(2) is None else ord(match.group(2)) - 96)
+    @classmethod
+    def init(cls, is_daily: bool):
+        cls._objs = []
+        cls.max_branches = 0
+        if is_daily:
+            cls.forests = []
+    def __repr__(self):
+        return f"<id: {self.id}, parent_id: {'None' if self.parent is None else self.parent.id}, word: \"{self.word}\">"
+    def __str__(self):
+        return f"{self.id_str}{'+' if self.fork else ''}<{'-1' if self.parent is None else self.parent.id_str}/{self.qq}/{self.kwd}/{self.hdkwd}/ {self.word}"
+    def remove(self):
+        id = self.id
+        begin = id[0] - Tree._objs[id[1]][0].id[0]
+        to_remove = set(Tree._objs[id[1]][begin:])
+        Tree._objs[id[1]] = Tree._objs[id[1]][:begin]
+        while True:
+            count = 0
+            for s in Tree._objs:
+                if len(s) == 0 or (parent := s[0].parent) is None:
+                    continue
+                if parent in to_remove:
+                    to_remove.update(Tree._objs[s[0].id[1]])
+                    Tree._objs[s[0].id[1]] = []
+                    count += 1
+            # TODO 额外判断有多个parents的节点
+            if count == 0:
+                break
+        if self.parent is not None:
+            self.parent.childs.remove(self)
+    def before(self, n):
+        node = self
+        for i in range(n):
+            node = node and node.parent
+        return node
+    def get_parent_qq_list(self, n: int):
+        parent_qqs: List[int] = []
+        begin = self
+        for j in range(n):
+            parent_qqs.append(begin.qq)
+            begin = begin.parent
+            if begin is None:
+                break
+        return parent_qqs
+    @classmethod
+    def get_active(cls, have_fork=True):
+        words = [s[-1] for s in cls._objs if len(s) != 0 and len(s[-1].childs) == 0]
+        if have_fork:
+            for s in cls._objs:
+                for word in s:
+                    if word.fork and len(word.childs) == 1:
+                        words.append(word)
+        return words
+    @classmethod
+    def graph(self):
+        pass

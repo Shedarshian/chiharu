@@ -15,7 +15,7 @@ from nonebot.command import CommandSession
 from pypinyin import pinyin, Style
 from nonebot.command.argfilter import extractors, validators
 from .. import config
-from .logic_dragon_type import NotActive, TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, check_active, nothing, TQuest, ensure_true_lambda, check_handcard, TModule, UnableRequirement, check_if_unable
+from .logic_dragon_type import NotActive, TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, check_active, nothing, TQuest, ensure_true_lambda, check_handcard, TModule, UnableRequirement, check_if_unable, Tree, DragonState
 
 # TODO change TCount to a real obj, in order to unify 'count' and 'count2' in OnStatusAdd, also _status.on_add
 # TODO 在aget的时候如果发现手牌数不足使用条件则跳出结算
@@ -220,12 +220,11 @@ class IEventListener:
         int: the modified amount of event_pt to add."""
         pass
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
         """Called before a user dragoning.
 
         Arguments:
-        word: the dragon word.
-        parent: the parent tree node.
+        state: contains the dragon word, the parent tree node, and extra info.
 
         Returns:
         bool: represents whether the user can dragon;
@@ -233,12 +232,11 @@ class IEventListener:
         str: failure message."""
         pass
     @classmethod
-    async def CheckSuguri(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool]:
+    async def CheckSuguri(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool]:
         """Called when Suguri's Accelerator is checked to be used.
 
         Arguments:
-        word: the dragon word.
-        parent: the parent tree node.
+        state: contains the dragon word, the parent tree node, and extra info.
         
         Returns:
         bool: represents if accelerated."""
@@ -1443,7 +1441,7 @@ class SDeath(TimedStatus):
     is_debuff = True
     des = "死亡：不可接龙。"
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
         return False, 0, '你已死，不能接龙！'
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -1907,8 +1905,8 @@ class hierophant_s(NumedStatus):
     id = 'f'
     des = "V - 教皇：你的下10次接龙中每次额外获得2击毙，但额外要求首尾接龙。"
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
-        if parent.word != '' and word != '' and parent.word[-1] != word[0]:
+    async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
+        if not state.shouwei:
             return False, 0, "教皇说，你需要首尾接龙，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -1926,8 +1924,8 @@ class inv_hierophant_s(NumedStatus):
     des = "反转 - 教皇：你的下10次接龙中每次损失2击毙，并且额外要求尾首接龙。"
     is_debuff = True
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
-        if parent.word != '' and word != '' and parent.word[0] != word[-1]:
+    async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
+        if not state.weishou:
             return False, 0, "教皇说，你需要首尾接龙，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -2302,7 +2300,7 @@ class shengbing(_statusdaily):
     des = "生病：直到跨日前不可接龙。"
     is_debuff = True
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
         return False, 0, "你病了，不能接龙！"
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -2409,7 +2407,7 @@ class minus1ma_s(_statusdaily):
     id = 'm'
     des = "-1马：今天你可以少隔一个接龙，但最少隔一个。"
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
         return True, -1, ""
     @classmethod
     def register(cls):
@@ -2419,7 +2417,7 @@ class plus1ma_s(_statusdaily):
     des = "+1马：今天你必须额外隔一个才能接龙。"
     is_debuff = True
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
         return True, 1, ""
     @classmethod
     def register(cls):
@@ -2690,8 +2688,8 @@ class ourostone_s(_statusdaily):
     des = "衔尾蛇之石：规则为首尾接龙直至跨日。"
     is_global = True
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
-        if parent.word != '' and word != '' and parent.word[-1] != word[0]:
+    async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
+        if not state.shouwei:
             return False, 0, "当前规则为首尾接龙，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -2702,8 +2700,8 @@ class inv_ourostone_s(_statusdaily):
     des = "石之蛇尾衔：规则为尾首接龙直至跨日。"
     is_global = True
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
-        if parent.word != '' and word != '' and parent.word[0] != word[-1]:
+    async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
+        if not state.weishou:
             return False, 0, "当前规则为尾首接龙，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -2903,7 +2901,7 @@ class jisuzhuangzhi_s(_statusnull):
     id = 'z'
     des = "极速装置：你下次可以连续接龙两次。"
     @classmethod
-    async def CheckSuguri(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool]:
+    async def CheckSuguri(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool]:
         await user.remove_status('z', remove_all=False)
         return True,
     @classmethod
@@ -3412,8 +3410,8 @@ class ranshefashu_s(_statusdaily):
     id = 'R'
     des = "蚺虵法术：你当日每次接龙需额外遵循首尾接龙规则。"
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
-        if parent.word != '' and word != '' and parent.word[-1] != word[0]:
+    async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
+        if not state.shouwei:
             return False, 0, "你需额外遵循首尾接龙规则，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -3423,8 +3421,8 @@ class inv_ranshefashu_s(_statusdaily):
     id = 'Z'
     des = "反转·蚺虵法术：你当日每次接龙需额外遵循尾首接龙规则。"
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
-        if parent.word != '' and word != '' and parent.word[0] != word[-1]:
+    async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
+        if not state.weishou:
             return False, 0, "你需额外遵循尾首接龙规则，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -3594,7 +3592,7 @@ class Swufazhandou(TimedStatus):
     is_debuff = True
     des = "无法战斗：不可接龙。"
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
         return False, 0, '你无法战斗，不能接龙！'
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -3957,7 +3955,7 @@ class iceshroom_s(_statusdaily):
     is_debuff = True
     is_global = True
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
         return True, 1, ""
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -3967,7 +3965,7 @@ class hotshroom_s(_statusdaily):
     des = "炎热菇：今天每个人都可以少隔一个接龙。"
     is_global = True
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
         return True, -1, ""
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -4282,7 +4280,7 @@ class Sexplore(NumedStatus):
     def double(self):
         return [self]
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: 'User', word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
         user.buf.state['mishi_id'] = i = random.randint(0, 5 if count[0].num <= 4 else 4)
         if count[0].num == 1 and i == 1:
             user.send_log("置身被遗忘的密特拉寺：")
@@ -4624,8 +4622,8 @@ class Sjiaotu(_statusnull):
     des = "置身许伦的圣菲利克斯之会众：被虔诚的教徒们包围，他们追奉启之法则，你下一次接龙需要进行首尾接龙。"
     is_debuff = True
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
-        if parent.word != '' and word != '' and parent.word[-1] != word[0]:
+    async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
+        if not state.shouwei:
             return False, 0, "虔诚的教徒们说，你需要首尾接龙，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -4640,8 +4638,8 @@ class Sinvjiaotu(_statusnull):
     des = "反转-置身许伦的圣菲利克斯之会众：被虔诚的教徒们包围，他们追奉启之法则，你下一次接龙需要进行尾首接龙。"
     is_debuff = True
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
-        if parent.word != '' and word != '' and parent.word[0] != word[-1]:
+    async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
+        if not state.weishou:
             return False, 0, "虔诚的教徒们说，你需要尾首接龙，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -4657,8 +4655,8 @@ class Sshequn(_statusnull):
     is_global = True
     is_debuff = True
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
-        if parent.word != '' and word != '' and parent.word[-1] != word[0]:
+    async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
+        if not state.shouwei:
             return False, 0, "蛇群阻止了你的非首尾接龙，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -4674,8 +4672,8 @@ class Sinvshequn(_statusnull):
     is_global = True
     is_debuff = True
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
-        if parent.word != '' and word != '' and parent.word[0] != word[-1]:
+    async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
+        if not state.weishou:
             return False, 0, "蛇群阻止了你的非尾首接龙，接龙失败。"
         return True, 0, ""
     @classmethod
@@ -4741,7 +4739,7 @@ class Slazhuyandong(_statusnull):
     id = 'L'
     des = "置身蜡烛岩洞：下一次接龙可以少间隔一个人。"
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
         return True, -1, ""
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
@@ -4754,7 +4752,7 @@ class Sinvlazhuyandong(_statusnull):
     id = 'I'
     des = "反转-置身蜡烛岩洞：下一次接龙需要多间隔一个人。"
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
         return True, 1, ""
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
@@ -4778,7 +4776,7 @@ class Slieshouzhixue(_statusnull):
     des = "置身猎手之穴：下一次接龙需要多间隔一个人。"
     is_debuff = True
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
         return True, 1, ""
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
@@ -4791,7 +4789,7 @@ class Sinvlieshou(_statusnull):
     id = '*'
     des = "反转-置身猎手之穴：下一次接龙可以少间隔一个人。"
     @classmethod
-    async def BeforeDragoned(cls, count: TCount, user: User, word: str, parent: 'Tree') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
         return True, -1, ""
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
@@ -5867,109 +5865,6 @@ class Grid:
 class kuaizou_s(_statusnull):
     id = 'D'
     des = "快走：在活动中，你下次行走距离加倍。"
-
-class Tree:
-    __slots__ = ('id', 'parent', 'childs', 'word', 'fork', 'kwd', 'hdkwd', 'qq')
-    forests: List[List[List['Tree']]] = []
-    _objs: List[List['Tree']] = [] # [[wd0, wd1, wd2], [wd2a], [wd2b]]
-    max_branches = 0
-    def __init__(self, parent: 'Tree', word: str, qq: int, kwd: str, hdkwd: str, *, id: Optional[Tuple[int, int]]=None, fork: bool=False):
-        self.parent = parent
-        if parent:
-            parent.childs.append(self)
-            id = id or (parent.id[0] + 1, parent.id[1])
-        else:
-            id = id or (0, 0)
-        if not self.find(id):
-            self.id: Tuple[int, int] = id
-            if Tree.max_branches <= id[1]:
-                for i in range(id[1] + 1 - Tree.max_branches):
-                    self._objs.append([])
-                Tree.max_branches = id[1] + 1
-        else:
-            self.id = (id[0], Tree.max_branches)
-            Tree.max_branches += 1
-            self._objs.append([])
-        self._objs[self.id[1]].append(self)
-        self.childs: List['Tree'] = []
-        self.word = word
-        self.fork = fork
-        self.qq = qq
-        self.kwd = kwd
-        self.hdkwd = hdkwd
-    @classmethod
-    def find(cls, id: Tuple[int, int]):
-        try:
-            if len(cls._objs[id[1]]) == 0:
-                return None
-            return cls._objs[id[1]][id[0] - cls._objs[id[1]][0].id[0]]
-        except IndexError:
-            return None
-    @property
-    def id_str(self):
-        return str(self.id[0]) + ('' if self.id[1] == 0 else chr(96 + self.id[1]))
-    @staticmethod
-    def str_to_id(str):
-        match = re.match(r'(\d+)([a-z])?', str)
-        return int(match.group(1)), (0 if match.group(2) is None else ord(match.group(2)) - 96)
-    @staticmethod
-    def match_to_id(match):
-        return int(match.group(1)), (0 if match.group(2) is None else ord(match.group(2)) - 96)
-    @classmethod
-    def init(cls, is_daily: bool):
-        cls._objs = []
-        cls.max_branches = 0
-        if is_daily:
-            cls.forests = []
-    def __repr__(self):
-        return f"<id: {self.id}, parent_id: {'None' if self.parent is None else self.parent.id}, word: \"{self.word}\">"
-    def __str__(self):
-        return f"{self.id_str}{'+' if self.fork else ''}<{'-1' if self.parent is None else self.parent.id_str}/{self.qq}/{self.kwd}/{self.hdkwd}/ {self.word}"
-    def remove(self):
-        id = self.id
-        begin = id[0] - Tree._objs[id[1]][0].id[0]
-        to_remove = set(Tree._objs[id[1]][begin:])
-        Tree._objs[id[1]] = Tree._objs[id[1]][:begin]
-        while True:
-            count = 0
-            for s in Tree._objs:
-                if len(s) == 0 or (parent := s[0].parent) is None:
-                    continue
-                if parent in to_remove:
-                    to_remove.update(Tree._objs[s[0].id[1]])
-                    Tree._objs[s[0].id[1]] = []
-                    count += 1
-            # TODO 额外判断有多个parents的节点
-            if count == 0:
-                break
-        if self.parent is not None:
-            self.parent.childs.remove(self)
-    def before(self, n):
-        node = self
-        for i in range(n):
-            node = node and node.parent
-        return node
-    def get_parent_qq_list(self, n: int):
-        parent_qqs: List[int] = []
-        begin = self
-        for j in range(n):
-            parent_qqs.append(begin.qq)
-            begin = begin.parent
-            if begin is None:
-                break
-        return parent_qqs
-    @classmethod
-    def get_active(cls, have_fork=True):
-        words = [s[-1] for s in cls._objs if len(s) != 0 and len(s[-1].childs) == 0]
-        if have_fork:
-            for s in cls._objs:
-                for word in s:
-                    if word.fork and len(word.childs) == 1:
-                        words.append(word)
-        return words
-    @classmethod
-    def graph(self):
-        pass
 
 me = UserData(config.selfqq)
 dragondata = UserData(0)

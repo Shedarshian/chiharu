@@ -50,7 +50,7 @@ with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         current_event = "mid-autumn"
     del d
 
-from .logic_dragon_file import Equipment, Priority, TCounter, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check, _statusnull, _statusdaily, Status, TModule, _equipment
+from .logic_dragon_file import Equipment, Priority, TCounter, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check, _statusnull, _statusdaily, Status, TModule, _equipment, DragonState
 from . import logic_dragon_file
 
 # log
@@ -402,8 +402,9 @@ async def dragon_construct(buf: SessionBuffer):
             if not buf.state.get('circus'):
                 buf.state['circus'] = True
             # Event BeforeDragoned
+            dragon_state = DragonState(word, parent)
             for eln, n in user.IterAllEventList(UserEvt.BeforeDragoned, Priority.BeforeDragoned):
-                allowed, dist_mod, msg = await eln.BeforeDragoned(n, user, word, parent)
+                allowed, dist_mod, msg = await eln.BeforeDragoned(n, user, dragon_state)
                 if not allowed:
                     buf.send(msg)
                     await buf.flush()
@@ -413,7 +414,7 @@ async def dragon_construct(buf: SessionBuffer):
             if qq in parent.get_parent_qq_list(dist):
                 # Event CheckSuguri
                 for eln, n in user.IterAllEventList(UserEvt.CheckSuguri, Priority.CheckSuguri):
-                    allowed, = await eln.CheckSuguri(n, user, word, parent)
+                    allowed, = await eln.CheckSuguri(n, user, dragon_state)
                     if allowed:
                         break
                 else:
