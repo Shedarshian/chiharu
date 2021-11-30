@@ -347,7 +347,7 @@ class Kill(Attack):
 # 屠龙活动里的伤害
 class Damage(Attack):
     name = "造成伤害"
-    def __init__(self, attacker: 'User', defender: 'User', damage: int, must_hit: bool):
+    def __init__(self, attacker: 'User', defender: 'User', damage: int, must_hit: bool=False):
         self.damage = damage
         self.must_hit = must_hit
         self.dodge_rate = 0.1
@@ -5875,11 +5875,21 @@ dragondata = UserData(0)
 
 dragon: Callable[[User], User] = lambda user: User(1, user.buf)
 
+def draw_skill(dr: User):
+    return GetSkill(random.randint(0, len(DragonSkill.id_dict)))
+def GetSkill(id: int):
+    return DragonSkill.id_dict[id]
 class DragonSkill(metaclass=status_meta):
     id = -1
     name = ""
     des = ""
     id_dict: Dict[int, TSkill] = {}
+    @classmethod
+    def brief_description(cls):
+        return f"{cls.id}. {cls.name}"
+    @classmethod
+    def full_description(cls):
+        return f"{cls.id}. {cls.name}\n\t{cls.des}"
     @classmethod
     async def use(cls, user: User):
         pass
@@ -5989,9 +5999,12 @@ class AShihun(Attack):
 class longwo(DragonSkill):
     id = 9
     name = "龙窝"
-    des = "召唤一个幼龙（以buff的形式附在boss身上），幼龙血量1000，承担boss受到伤害的50%，并使boss的攻击增加50%。"
+    des = "召唤一个幼龙，血量1000，承担龙受到伤害的50%，并使龙的攻击增加50%（不可叠加）。"
 class SLongwo(NumedStatus):
     id = 'L'
+    des = '幼龙：承担龙受到伤害的50%，并使龙的攻击增加50%。'
+    def __str__(self) -> str:
+        return f"{self.des}\n\t剩余血量：{self.num}。"
     @classmethod
     async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
         if isinstance(attack, Damage) and not attack.dodge(): # 不能被幻杀消除？？
@@ -6019,7 +6032,38 @@ class SLongwo(NumedStatus):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnAttack: (Priority.OnAttack.youlong, cls),
             UserEvt.OnAttacked: (Priority.OnAttacked.youlong, cls)}
-        
+class qunlongwushou(DragonSkill):
+    id = 10
+    name = "群龙无首"
+    des = "若boss有幼龙，则对玩家造成300点伤害，否则造成50点伤害。"
+    @classmethod
+    async def use(cls, user: User):
+        dr = dragon(user)
+        if len(dr.check_limited_status('L')) != 0:
+            atk = Damage(dr, user, 300)
+        else:
+            atk = Damage(dr, user, 50)
+        await user.attacked(dr, atk)
+class longhukaying(DragonSkill):
+    id = 11
+    name = "龙呼卡应"
+    des = "随机抽两个技能，并使用其中编号大的一个技能使用。"
+    @classmethod
+    async def use(cls, user: User):
+        dr = dragon(user)
+        sk1, sk2 = draw_skill(dr), draw_skill(dr)
+        dr.send_log(f"抽到了技能{sk1.brief_description()}与{sk2.brief_description()}！")
+        sk = GetSkill(max(sk1.id, sk2.id))
+        dr.send_log(f"使用了技能{sk.full_description()}！")
+        await sk.use(user)
+class canbaolizhua(DragonSkill):
+    id = 12
+    name = "残暴利爪"
+    des = "对玩家造成玩家血量的伤害。"
+    @classmethod
+    async def use(cls, user: User):
+        atk = Damage(dr := dragon(user), user, user.data.extra.hp)
+        await user.attacked(dr, atk)
 
 bingo_id = [(0, 8), (5, 0), (1, 0), (3, 0), (4, 0), (0, 19), (0, 1), (2, 40), (1, 110)]
 # 0: 接龙任务，1: 使用一张i~i+39的卡，2: 摸一张i~i+79的卡，3：有人死亡，4：花费或扣除击毙，5：添加一个非死亡状态
