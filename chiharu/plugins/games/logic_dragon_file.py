@@ -1375,6 +1375,7 @@ class _statusall(IEventListener, metaclass=status_meta):
     is_debuff = False
     is_global = False
     is_metallic = False
+    removeable = True
     @classmethod
     @property
     def brief_des(cls):
@@ -3362,14 +3363,14 @@ class AXiaohunfashu(Attack):
     async def self_action(self):
         # 永久状态
         for c in self.defender.data.status:
-            if random.random() > 0.5 ** self.multiplier or c == 'W':
+            if random.random() > 0.5 ** self.multiplier or not StatusNull(c).removeable:
                 continue
             await self.defender.remove_status(c, remove_all=False)
             des = StatusNull(c).des
             self.defender.send_log(f"的{des[:des.index('：')]}被消除了！")
         # 每日状态
         for c in self.defender.data.daily_status:
-            if random.random() > 0.5 ** self.multiplier:
+            if random.random() > 0.5 ** self.multiplier or not StatusDaily(c).removeable:
                 continue
             await self.defender.remove_daily_status(c, remove_all=False)
             des = StatusDaily(c).des
@@ -3378,7 +3379,7 @@ class AXiaohunfashu(Attack):
         l = self.defender.data.status_time_checked
         i = 0
         while i < len(l):
-            if random.random() > 0.5 ** self.multiplier:
+            if random.random() > 0.5 ** self.multiplier or not l[i].removeable:
                 i += 1
             else:
                 des = l[i].des
@@ -5123,6 +5124,7 @@ class excalibur(_card):
 class SBritian(ListStatus):
     id = 'W'
     des = "统治不列颠：使用塔罗牌系列牌时，若本效果不包含“魔力 - {该塔罗牌名}”，不发动该牌的原本使用效果，并为本效果增加“魔力 - {该塔罗牌名}”。当拥有所有22种“魔力 - {塔罗牌名}”时，获得装备“塔罗原典”。"
+    removeable = False
     def __str__(self) -> str:
         if len(self.list) == 0:
             return self.des
