@@ -237,9 +237,11 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         inv_moon = auto()
     class OnDuplicatedWord(IntEnum):
         hermit = auto()
+        kongzhongcanting = auto()       # 空中餐厅「逻辑」：随机复活
     class OnBombed(IntEnum):
         hermit = auto()
         vector = auto()
+        kongzhongcanting = auto()       # 空中餐厅「逻辑」：随机复活
     class OnDragoned(IntEnum):
         queststone = auto()             # 任务：完成+3击毙
         quest = auto()
@@ -276,6 +278,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         jiaotu = auto()
         invjiaotu = auto()
         explore = auto()                # 秘史
+        kongzhongcanting = auto()       # 空中餐厅「逻辑」：随机回满血/复活
     class OnNewDay(IntEnum):
         tarot = auto()
         quest = auto()
