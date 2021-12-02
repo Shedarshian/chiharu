@@ -1222,6 +1222,7 @@ class User:
         """结算卡牌相关。请不要递归调用此函数。"""
         self.log << "开始结算。"
         if not await self.choose():
+            yield
             return
         try:
             yield
@@ -6066,6 +6067,50 @@ class canbaolizhua(DragonSkill):
     async def use(cls, user: User):
         atk = Damage(dr := dragon(user), user, user.data.extra.hp)
         await user.attacked(dr, atk)
+class kongzhongcanting(DragonSkill):
+    id = 13
+    name = "空中餐厅「逻辑」"
+    des = "附加全局效果：每次接龙的时候有10%的概率触发。若玩家未死则回复所有血量并失去回复血量除以20的击毙，若玩家当前已死则失去25击毙复活。触发后效果消失。"
+    @classmethod
+    async def use(cls, user: User):
+        await Userme(user).add_status('"')
+class kongzhongcanting_s(_statusnull):
+    id = '"'
+    des = "空中餐厅「逻辑」：每次接龙的时候有10%的概率触发。若玩家未死则回复所有血量并失去回复血量除以20的击毙，若玩家当前已死则失去25击毙复活。触发后效果消失。"
+    is_global = True
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        if random.random() < 0.1:
+            if len(user.check_limited_status('d')) != 0:
+                user.send_log("你被“空中餐厅「逻辑」”复活了，失去了25击毙！")
+                await user.remove_all_limited_status('d')
+                await user.add_jibi(-25)
+                await Userme(user).remove_status('"', remove_all=False)
+            elif user.data.extra.hp != user.data.extra.hp_max:
+                lose = ceil(user.data.extra.hp_max - user.data.extra.hp / 20)
+                user.send_log(f"你被“空中餐厅「逻辑」”回满了血量，失去了{lose}击毙！")
+                user.data.extra.hp = user.data.extra.hp_max
+                await user.add_jibi(-lose)
+                await Userme(user).remove_status('"', remove_all=False)
+    @classmethod
+    async def OnDuplicatedWord(cls, count: TCount, user: 'User', word: str) -> Tuple[bool]:
+        if random.random() < 0.1 and len(user.check_limited_status('d')) != 0:
+            user.send_log("你被“空中餐厅「逻辑」”复活了，失去了25击毙！")
+            await user.remove_all_limited_status('d')
+            await user.add_jibi(-25)
+            await Userme(user).remove_status('"', remove_all=False)
+    @classmethod
+    async def OnBombed(cls, count: TCount, user: 'User', word: str) -> Tuple[bool]:
+        if random.random() < 0.1 and len(user.check_limited_status('d')) != 0:
+            user.send_log("你被“空中餐厅「逻辑」”复活了，失去了25击毙！")
+            await user.remove_all_limited_status('d')
+            await user.add_jibi(-25)
+            await Userme(user).remove_status('"', remove_all=False)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.kongzhongcanting, cls),
+            UserEvt.OnDuplicatedWord: (Priority.OnDuplicatedWord.kongzhongcanting, cls),
+            UserEvt.OnBombed: (Priority.OnBombed.kongzhongcanting, cls)}
 
 bingo_id = [(0, 8), (5, 0), (1, 0), (3, 0), (4, 0), (0, 19), (0, 1), (2, 40), (1, 110)]
 # 0: 接龙任务，1: 使用一张i~i+39的卡，2: 摸一张i~i+79的卡，3：有人死亡，4：花费或扣除击毙，5：添加一个非死亡状态
