@@ -3057,7 +3057,6 @@ class PC(_card):
     @classmethod
     async def use(cls, user: User):
         user.buf.send("今天接龙的所有人都赢了！恭喜你们！")
-        from .logic_dragon import Tree
         qqs = [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))]
         for qq in set(qqs):
             await User(qq, user.buf).add_daily_status('W')
@@ -5894,7 +5893,7 @@ class DragonSkill(metaclass=status_meta):
     def full_description(cls):
         return f"{cls.id}. {cls.name}\n\t{cls.des}"
     @classmethod
-    async def use(cls, user: User):
+    async def use(cls, user: User, branch: Tree):
         pass
 
 class dadun(DragonSkill):
@@ -5906,8 +5905,8 @@ class penhuo(DragonSkill):
     name = "喷火"
     des = "对玩家造成100点伤害。"
     @classmethod
-    async def use(cls, user: User):
-        user.damaged(100)
+    async def use(cls, user: User, branch: Tree):
+        await user.damaged(100)
         if me.check_daily_status('i'):
             user.buf.send("火焰解除了寒冰菇的效果！")
             await Userme(me).remove_daily_status('i', remove_all=True)
@@ -5916,35 +5915,35 @@ class yaoren(DragonSkill):
     name = "咬人"
     des = "对玩家造成150点伤害。"
     @classmethod
-    async def use(cls, user: User):
+    async def use(cls, user: User, branch: Tree):
         await user.damaged(150)
 class touxi(DragonSkill):
     id = 3
     name = "偷袭"
     des = "对玩家造成100点必中伤害。"
     @classmethod
-    async def use(cls, user: User):
+    async def use(cls, user: User, branch: Tree):
         await user.damaged(100, must_hit=True)
 class enhui(DragonSkill):
     id = 4
     name = "恩惠"
     des = "玩家随机获得一张正面卡牌。"
     @classmethod
-    async def use(cls, user: User):
+    async def use(cls, user: User, branch: Tree):
         await user.draw(1, positive={1})
 class tukoushui(DragonSkill):
     id = 5
     name = "吐口水"
     des = "玩家随机获得一张非正面卡牌。"
     @classmethod
-    async def use(cls, user: User):
+    async def use(cls, user: User, branch: Tree):
         await user.draw(1, positive={0, -1})
 class konghe(DragonSkill):
     id = 6
     name = "恐吓"
     des = "给玩家附加害怕debuff：下次造成伤害减半。"
     @classmethod
-    async def use(cls, user: User):
+    async def use(cls, user: User, branch: Tree):
         await user.add_status('H')
 class konghe_s(_statusnull):
     id = 'H'
@@ -5964,7 +5963,7 @@ class hudun(DragonSkill):
     name = "护盾"
     des = "下次受到伤害时闪避率+20%。"
     @classmethod
-    async def use(cls, user: User):
+    async def use(cls, user: User, branch: Tree):
         await dragon(user).add_status('d')
 class hudun_s(_statusnull):
     id = 'd'
@@ -5988,7 +5987,7 @@ class shihun(DragonSkill):
     name = "噬魂"
     des = "玩家失去100点MP。"
     @classmethod
-    async def use(cls, user: User):
+    async def use(cls, user: User, branch: Tree):
         atk = AShihun(dr := dragon(user), user, 100)
         await user.attacked(dr, atk)
 class AShihun(Attack):
@@ -6003,6 +6002,10 @@ class longwo(DragonSkill):
     id = 9
     name = "龙窝"
     des = "召唤一个幼龙，血量1000，承担龙受到伤害的50%，并使龙的攻击增加50%（不可叠加）。"
+    @classmethod
+    async def use(cls, user: User, branch: Tree):
+        dr = dragon(user)
+        await dr.add_limited_status(SLongwo(1000))
 class SLongwo(NumedStatus):
     id = 'L'
     des = '幼龙：承担龙受到伤害的50%，并使龙的攻击增加50%。'
@@ -6040,19 +6043,18 @@ class qunlongwushou(DragonSkill):
     name = "群龙无首"
     des = "若boss有幼龙，则对玩家造成300点伤害，否则造成50点伤害。"
     @classmethod
-    async def use(cls, user: User):
+    async def use(cls, user: User, branch: Tree):
         dr = dragon(user)
         if len(dr.check_limited_status('L')) != 0:
-            atk = Damage(dr, user, 300)
+            await user.damaged(300)
         else:
-            atk = Damage(dr, user, 50)
-        await user.attacked(dr, atk)
+            await user.damaged(50)
 class longhukaying(DragonSkill):
     id = 11
     name = "龙呼卡应"
     des = "随机抽两个技能，并使用其中编号大的一个技能使用。"
     @classmethod
-    async def use(cls, user: User):
+    async def use(cls, user: User, branch: Tree):
         dr = dragon(user)
         sk1, sk2 = draw_skill(dr), draw_skill(dr)
         dr.send_log(f"抽到了技能{sk1.brief_description()}与{sk2.brief_description()}！")
@@ -6064,7 +6066,7 @@ class canbaolizhua(DragonSkill):
     name = "残暴利爪"
     des = "对玩家造成玩家血量的伤害。"
     @classmethod
-    async def use(cls, user: User):
+    async def use(cls, user: User, branch: Tree):
         atk = Damage(dr := dragon(user), user, user.data.extra.hp)
         await user.attacked(dr, atk)
 class kongzhongcanting(DragonSkill):
@@ -6072,7 +6074,7 @@ class kongzhongcanting(DragonSkill):
     name = "空中餐厅「逻辑」"
     des = "附加全局效果：每次接龙的时候有10%的概率触发。若玩家未死则回复所有血量并失去回复血量除以20的击毙，若玩家当前已死则失去25击毙复活。触发后效果消失。"
     @classmethod
-    async def use(cls, user: User):
+    async def use(cls, user: User, branch: Tree):
         await Userme(user).add_status('"')
 class kongzhongcanting_s(_statusnull):
     id = '"'
@@ -6111,6 +6113,75 @@ class kongzhongcanting_s(_statusnull):
         return {UserEvt.OnDragoned: (Priority.OnDragoned.kongzhongcanting, cls),
             UserEvt.OnDuplicatedWord: (Priority.OnDuplicatedWord.kongzhongcanting, cls),
             UserEvt.OnBombed: (Priority.OnBombed.kongzhongcanting, cls)}
+class huoyanxuanwo(DragonSkill):
+    id = 14
+    name = "火焰漩涡"
+    des = "对今天所有接龙过的玩家造成100点伤害。"
+    @classmethod
+    async def use(cls, user: User, branch: Tree):
+        qqs = [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))]
+        for qq in set(qqs):
+            await User(qq, user.buf).damaged(100)
+        if me.check_daily_status('i'):
+            user.buf.send("火焰解除了寒冰菇的效果！")
+            await Userme(me).remove_daily_status('i', remove_all=True)
+class xujiadexiwang(DragonSkill):
+    id = 15
+    name = "虚假的希望"
+    des = "回复玩家的所有血量，并对范围7x7的其他玩家造成同等数量的伤害。"
+    @classmethod
+    async def use(cls, user: User, branch: Tree):
+        dmg = user.data.extra.hp_max - user.data.extra.hp
+        user.send_log(f"回复了{dmg}的血量！")
+        qqs = {user.qq}
+        id = branch.id
+        for i, j in itertools.product(range(-3, 4), range(-3, 4)):
+            ret = Tree.find((id[0] + i, id[1] + j))
+            if ret is not None:
+                qqs.add(ret.qq)
+        qqs -= {config.selfqq, user.qq}
+        for qq in qqs:
+            await User(qq, user.buf).damaged(dmg)
+class qiangduo(DragonSkill):
+    id = 16
+    name = "抢夺"
+    des = "玩家随机失去一张手牌，若此牌为正面牌，则对玩家造成200点伤害。"
+    @classmethod
+    async def use(cls, user: User, branch: Tree):
+        if len(user.data.hand_card) == 0:
+            user.send_log("没有手牌！")
+            return
+        card = random.choice(user.data.hand_card)
+        user.send_log(f"失去了卡牌：{card.brief_description(user.qq)}！")
+        await user.remove_cards([card])
+        if card.positive == 1:
+            await user.damaged(200)
+class qumo(DragonSkill):
+    id = 17
+    name = "祛魔"
+    des = "玩家随机失去一条状态，若状态为非负面状态，则对玩家造成100点伤害。"
+    @classmethod
+    async def use(cls, user: User, branch: Tree):
+        if (l := len(user.data.status) + len(user.data.daily_status) + len(user.data.status_time_checked)) == 0:
+            user.send_log("没有状态！")
+            return
+        i = random.randint(0, l - 1)
+        if i <= len(user.data.status):
+            st = StatusNull(user.data.status[i])
+            user.send_log(f"失去了状态：{st.brief_des}！")
+            await user.remove_status(user.data.status[i])
+        elif i <= len(user.data.daily_status):
+            i -= len(user.data.status)
+            st = StatusDaily(user.data.daily_status[i])
+            user.send_log(f"失去了状态：{st.brief_des}！")
+            await user.remove_daily_status(user.data.daily_status[i])
+        else:
+            i -= len(user.data.status) + len(user.data.daily_status)
+            st = user.data.status_time[i]
+            user.send_log(f"失去了状态：{st.brief_des}！")
+            await user.remove_limited_status(st)
+        if not st.is_debuff:
+            await user.damaged(100)
 
 bingo_id = [(0, 8), (5, 0), (1, 0), (3, 0), (4, 0), (0, 19), (0, 1), (2, 40), (1, 110)]
 # 0: 接龙任务，1: 使用一张i~i+39的卡，2: 摸一张i~i+79的卡，3：有人死亡，4：花费或扣除击毙，5：添加一个非死亡状态
