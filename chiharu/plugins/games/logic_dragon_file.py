@@ -4438,16 +4438,16 @@ class Sexplore(NumedStatus):
                     ss = global_state['global_status'][-1]
                     if ss[0] == 0 and me.check_status(ss[1]):
                         sdes = StatusNull(ss[1]).des
-                        user.send_log(f"移除了{sdes[:sdes.index['：']]}。")
+                        user.send_log(f"移除了{sdes[:sdes.index('：')]}。")
                         await Userme(user).remove_status(ss[1])
                     elif ss[0] == 1 and me.check_daily_status(ss[1]):
                         sdes = StatusDaily(ss[1]).des
-                        user.send_log(f"移除了{sdes[:sdes.index['：']]}。")
+                        user.send_log(f"移除了{sdes[:sdes.index('：')]}。")
                         await Userme(user).remove_daily_status(ss[1])
                     elif ss[0] == 2 and (gl := 
                             Userme(user).check_limited_status((sl := eval(ss[2]).id), lambda c: repr(c) == ss[2])):
                         sdes = gl[0].des
-                        user.send_log(f"移除了{sdes[:sdes.index['：']]}。")
+                        user.send_log(f"移除了{sdes[:sdes.index('：')]}。")
                         await Userme(user).remove_limited_status(gl[0])
                     else:
                         user.buf.send("上一个添加的全局状态早就被清除了！")
