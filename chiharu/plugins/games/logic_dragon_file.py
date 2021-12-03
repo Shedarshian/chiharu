@@ -5274,6 +5274,7 @@ class STrain(_status):
             if not user.buf.state.get('train'):
                 user.buf.state['train'] = set()
             c = [tr for tr in count if tr.qq not in user.buf.state['train']]
+            config.logger.dragon << f"【DEBUG】count: {count}, c: {c}"
             user.buf.state['train'] |= set([tr.qq for tr in count])
             qqs = set(tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests)))
             from .logic_dragon import get_yesterday_qq
