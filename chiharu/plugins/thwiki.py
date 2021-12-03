@@ -1607,6 +1607,22 @@ async def thwiki_shutdown(session: CommandSession):
         config.logger.thwiki << f'【LOG】管理者{qq}关闭直播间'
         await session.send('已关闭直播间')
 
+# Handler for command '-thwiki.open'
+@on_command(('thwiki', 'open'), only_to_me=False, short_des="强制开启直播间。", environment=env_supervise)
+@config.ErrorHandle(config.logger.thwiki)
+async def thwiki_open(session: CommandSession):
+    """强制开启直播间。直播群管理可用。"""
+    qq = session.ctx['user_id']
+    node = find_or_new(qq=qq)
+    if node['supervisor']:
+        ret = await th_open()
+        d = json.loads(search_ret(ret))
+        config.logger.thwiki << f'【LOG】管理者{qq}开启直播间，ret为{d}'
+        if d['code'] != 0:
+            await session.send('开启直播失败：' + d['msg'])
+        else:
+            await session.send('成功开启直播')
+
 @on_command(('thwiki', 'deduct'), only_to_me=False, short_des="扣除直播时间。", args=("time", "qq", "[\\n desc]"), environment=env_supervise_only)
 @config.ErrorHandle(config.logger.thwiki)
 async def thwiki_deduct(session: CommandSession):
