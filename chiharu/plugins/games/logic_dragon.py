@@ -363,9 +363,9 @@ async def logical_dragon_else(session: NLPSession):
         await call_command(get_bot(), session.ctx, ('dragon', 'buy_event'), current_arg=text[4:].strip())
     elif text.startswith("分叉") and (len(text) == 2 or text[2] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'fork'), current_arg=text[2:].strip())
-    elif text.startswith("驳回分叉"):
+    elif text.startswith("驳回分叉") and (len(text) == 4 or text[4] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'delete'), current_arg="-f " + text[4:].strip())
-    elif text.startswith("驳回"):
+    elif text.startswith("驳回") and (len(text) == 2 or text[2] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'delete'), current_arg=text[2:].strip())
 
 @on_command(('dragon', 'construct'), hide=True, environment=env)
@@ -1026,8 +1026,7 @@ async def dragon_delete(buf: SessionBuffer):
     buf.send("已成功驳回。")
     if not f:
         n = User(node.qq, buf)
-        async with n.settlement():
-            await n.death()
+        await n.death()
     else:
         await buf.flush()
 
