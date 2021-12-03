@@ -1502,17 +1502,6 @@ async def thwiki_leaderboard(session: CommandSession):
             config.userdata.execute('select qq, id, time, card, alias from thwiki_user order by time desc, id').fetchall()
         ))])))
 
-# Handler for command '-thwiki.open'
-@on_command(('thwiki', 'open'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
-@config.ErrorHandle(config.logger.thwiki)
-async def thwiki_open(session: CommandSession):
-    ret = await th_open()
-    d = json.loads(search_ret(ret))
-    if d['code'] != 0:
-        await session.send('开启直播失败：' + d['msg'])
-    else:
-        await session.send('成功开启直播')
-
 # Handler for command '-thwiki.change'
 @on_command(('thwiki', 'change'), only_to_me=False, short_des='修改直播间标题。', args=("title",), environment=env)
 @config.maintain('thwiki')
