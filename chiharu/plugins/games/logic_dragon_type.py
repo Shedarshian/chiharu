@@ -460,3 +460,18 @@ class Tree:
     @classmethod
     def graph(self):
         pass
+
+from .maj import MajHai
+
+class MajOneHai(MajHai):
+    @staticmethod
+    def ten(tehai: 'List[MajOneHai]') -> Dict[int, List[Dict[int, Tuple[Tuple[int,...],...]]]]:
+        ten = MajHai.ten(tehai)
+        for d in (MajHai.qitui(tehai).items(), MajHai.kokushimusou(tehai).items()):
+            for key, val in d:
+                if key in ten:
+                    ten[key].extend(val)
+                else:
+                    ten[key] = val
+        return ten
+    pass
