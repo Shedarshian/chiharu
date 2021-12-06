@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 import functools, re
 from typing import Callable, TypedDict, List, Dict, TypeVar, Generic, Awaitable, Any, Tuple, Optional
+from enum import IntEnum, IntFlag, auto
 from dataclasses import dataclass
 from nonebot.command import CommandSession
 
@@ -41,6 +42,7 @@ class TUserData(TypedDict):
     event_stage: int
     event_shop: int
     last_dragon_time: str
+    flags: int
 
 async def nothing(): return False
 
@@ -81,9 +83,7 @@ class CounterOnly(Generic[T, TCount]):
         self.count = val
     @property
     def data_pair(self):
-        return self.data, self.count\
-
-from enum import IntEnum, auto
+        return self.data, self.count
 
 class UserEvt(IntEnum):
     OnUserUseCard = auto()
@@ -464,6 +464,7 @@ class Tree:
 from .maj import MajHai
 
 class MajOneHai(MajHai):
+    SAME = 1
     @staticmethod
     def ten(tehai: 'List[MajOneHai]') -> Dict[int, List[Dict[int, Tuple[Tuple[int,...],...]]]]:
         ten = MajHai.ten(tehai)
@@ -474,4 +475,3 @@ class MajOneHai(MajHai):
                 else:
                     ten[key] = val
         return ten
-    pass

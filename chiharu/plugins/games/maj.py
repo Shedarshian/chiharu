@@ -140,6 +140,9 @@ class MajHai:
             if not (self.hai < 136):
                 raise MajIdError(id)
             self.id = -1
+    @classmethod
+    def get_random(cls):
+        return random.randint(0, cls.MAX * cls.COLOR + cls.ZI_MAX)
     @property
     def color_c(self):
         return MajHai.color_dict[self.color]
