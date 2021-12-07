@@ -4565,14 +4565,14 @@ class Sexplore(NumedStatus):
                 i = random.random()
                 if i < 0.5:
                     while True:
-                        s = random.choice(_statusnull.id_dict.keys())
+                        s = random.choice(list(_statusnull.id_dict.keys()))
                         if StatusNull(s).is_global:
                             break
                     await user.add_status(s)
                     user.send_log(f"添加了全局状态{s.des[:s.des.index('：')]}。")
                 else:
                     while True:
-                        s = random.choice(_statusdaily.id_dict.keys())
+                        s = random.choice(list(_statusdaily.id_dict.keys()))
                         if StatusDaily(s).is_global:
                             break
                     await user.add_daily_status(s)
