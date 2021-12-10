@@ -25,6 +25,7 @@ def rec(rel_path):
     return path.join(PATH_REC, rel_path)
 
 selfqq = 2711644761
+is_chinatsu = True
 group_id_dict = {}
 tiemu_basic = {}
 headers = {}
@@ -240,10 +241,13 @@ class SessionBuffer:
         self.send_end += end
     async def flush(self):
         if self.buffer or self.send_end:
+            msg = (self.buffer + self.send_end).strip()
+            if is_chinatsu:
+                msg = msg.replace('！', '。')
             if self.session is None:
-                await get_bot().send_group_msg(group_id=self.group_id, message=(self.buffer + self.send_end).strip())
+                await get_bot().send_group_msg(group_id=self.group_id, message=msg)
             else:
-                await self.session.send((self.buffer + self.send_end).strip())
+                await self.session.send(msg)
             self.buffer = ''
             self.send_end = ''
     def __getattr__(self, name: str):
