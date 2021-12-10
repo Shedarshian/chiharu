@@ -744,11 +744,13 @@ async def shuru(session: CommandSession):
     """面基算钱小助手。\n\n每个行为一条指令。指令：\nclear: 清除所有数据。\nadd [人名]: 增加一个人。\nbill [人名] [金额] [可选：需付费的人名列表]: 增加一个需付费账单，人名列表为空则默认【包括自己的】所有人。\noutput [策略] [参数]: 输出金额交换。策略目前有：\n\toneman [参数：人名]: 所有金额交换全部支付给此人/由此人支付。"""
     await session.send("结果为：" + MoneyComputer().processLines(session.current_arg_text.split('\n')))
 
-@on_command(('misc', 'omikuji'), only_to_me=False, short_des="千春酱御神签~")
+@on_command(('misc', 'omikuji'), only_to_me=False, short_des="妹妹的御神签。")
 @config.ErrorHandle
 async def omikuji(session: CommandSession):
-    """千春酱御神签~
-    每周只能抽一次哦~"""
+    """妹妹的御神签。
+    每周只能抽一次。"""
+    # """千春酱御神签~
+    # 每周只能抽一次哦~"""
     version = "チハルちゃんおみくじ ver0.0.1"
     qq = session.ctx['user_id']
     today = date.today()
