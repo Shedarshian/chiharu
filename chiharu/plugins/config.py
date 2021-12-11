@@ -210,6 +210,7 @@ userdata_db = sqlite3.connect(rel('users.db'))
 userdata_db.row_factory = sqlite3.Row
 userdata = userdata_db.cursor()
 
+句尾 = '。' if is_chinatsu else '！'
 class _helper:
     __slots__ = ("session",)
     def __init__(self, session: 'SessionBuffer'):
@@ -242,8 +243,6 @@ class SessionBuffer:
     async def flush(self):
         if self.buffer or self.send_end:
             msg = (self.buffer + self.send_end).strip()
-            if is_chinatsu:
-                msg = msg.replace('！', '。')
             if self.session is None:
                 await get_bot().send_group_msg(group_id=self.group_id, message=msg)
             else:

@@ -15,6 +15,7 @@ from nonebot.command import CommandSession
 from pypinyin import pinyin, Style
 from nonebot.command.argfilter import extractors, validators
 from .. import config
+from ..config import 句尾
 from .logic_dragon_type import NotActive, TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, check_active, nothing, TQuest, ensure_true_lambda, check_handcard, TModule, UnableRequirement, check_if_unable, Tree, DragonState, MajOneHai
 from .maj import MajIdError
 
@@ -358,17 +359,17 @@ class Damage(Attack):
         return not self.must_hit and self.dodge_pt < self.dodge_rate
     async def self_action(self):
         if self.dodge():
-            self.defender.send_log("闪避了此次伤害！")
+            self.defender.send_log(f"闪避了此次伤害{句尾}")
         else:
-            self.defender.send_log(f"受到了{self.damage * self.multiplier}点伤害！")
+            self.defender.send_log(f"受到了{self.damage * self.multiplier}点伤害{句尾}")
             if self.defender.data.extra.hp < self.damage * self.multiplier:
                 self.defender.data.extra.hp = self.defender.data.hp_max
                 self.defender.data.extra.mp = self.defender.data.mp_max
                 if self.defender.qq == 1:
-                    self.defender.send_log("死了一条命！")
+                    self.defender.send_log(f"死了一条命{句尾}")
                     # TODO level up once
                 else:
-                    self.defender.send_log("死了！")
+                    self.defender.send_log(f"死了{句尾}")
                     await self.defender.death(60)
             else:
                 self.defender.data.extra.hp -= self.damage * self.multiplier
@@ -849,7 +850,7 @@ class User:
     async def choose(self):
         if not self.active:
             config.logger.dragon << f"【LOG】用户{self.qq}非活跃，无法选择。"
-            self.send_char("非活跃，无法选择卡牌！")
+            self.send_char(f"非活跃，无法选择卡牌{句尾}")
             return False
         else:
             await self.buf.flush()
@@ -1038,7 +1039,7 @@ class User:
                 break
         self.data.event_pt = max(self.data.event_pt + pt, 0)
         if not is_buy:
-            self.send_char(f"收到了{pt}活动pt！")
+            self.send_char(f"收到了{pt}活动pt{句尾}")
         self.log << f"增加了{pt}活动pt。现有{self.data.event_pt}活动pt。"
         return True
     async def add_jibi(self, jibi: int, /, is_buy: bool=False) -> bool:
@@ -1098,12 +1099,12 @@ class User:
             if dodge:
                 break
         else:
-            self.send_char(f"死了！{minute}分钟不得接龙。")
+            self.send_char(f"死了{句尾}{minute}分钟不得接龙。")
             await self.add_limited_status(SDeath(datetime.now() + timedelta(minutes=minute)))
     async def draw(self, n: int, /, positive=None, cards=None, extra_lambda=None):
         """抽卡。将卡牌放入手牌。"""
         if self.active and self.buf.state.get('exceed_limit'):
-            self.send_log("因手牌超出上限，不可摸牌！")
+            self.send_log("因手牌超出上限，不可摸牌{句尾}")
             return
         cards = draw_cards(positive, n, extra_lambda=extra_lambda) if cards is None else cards
         self.log << f"抽到的卡牌为{cards_to_str(cards)}。"
@@ -1142,7 +1143,7 @@ class User:
             for el, n in self.IterAllEventList(UserEvt.BeforeCardUse, Priority.BeforeCardUse):
                 block, = await el.BeforeCardUse(n, self, card)
                 if block is not None:
-                    self.log << f"卡牌使用被阻挡！"
+                    self.log << f"卡牌使用被阻挡{句尾}"
                     await block
                     return
         await card.on_draw(self)
@@ -1155,7 +1156,7 @@ class User:
             for el, n in self.IterAllEventList(UserEvt.BeforeCardUse, Priority.BeforeCardUse):
                 block, = await el.BeforeCardUse(n, self, card)
                 if block is not None:
-                    self.log << f"卡牌使用被阻挡！"
+                    self.log << f"卡牌使用被阻挡{句尾}"
                     await block
                     return
             await card.use(self)
@@ -1253,7 +1254,7 @@ class User:
             x = len(self.data.hand_card) - max(d, self.data.card_limit)
             while x > 0:
                 self.log << f"手牌超出上限，用户选择弃牌。"
-                async with self.choose_cards(f"您的手牌已超出上限{x}张！请先选择一些牌弃置（输入id号，使用空格分隔）：", 1, x,
+                async with self.choose_cards(f"您的手牌已超出上限{x}张{句尾}请先选择一些牌弃置（输入id号，使用空格分隔）：", 1, x,
                         cards_can_not_choose) as l:
                     self.buf.send("成功弃置。")
                     await self.discard_cards([Card(i) for i in l])
@@ -1279,7 +1280,7 @@ class User:
         end = current.stage
         if begin // 50 < (e := end // 50) and e <= 8:
             pt = (10, 20, 10, 50, 10, 20, 10, 50)[e - 1]
-            self.send_log(f"经过了{e * 50}层，获得了{pt}pt！")
+            self.send_log(f"经过了{e * 50}层，获得了{pt}pt{句尾}")
             await self.add_event_pt(pt)
         t = (current.stage, self.qq)
         u = self
@@ -1287,7 +1288,7 @@ class User:
             l = config.userdata.execute("select qq from dragon_data where event_stage=? and qq<>?", t).fetchone()
             if l is None:
                 break
-            u.send_log(f"将玩家{l['qq']}踢回了一格！")
+            u.send_log(f"将玩家{l['qq']}踢回了一格{句尾}")
             current = current.parent
             if current is None:
                 break
@@ -1315,7 +1316,7 @@ class User:
                     validators.fit_size(min, max, message="请输入正确的张数。"),
                     validators.ensure_true(
                         lambda l: all(i in _card.card_id_dict and Card(i) in self.data.hand_card for i in l),
-                        message="您选择了错误的卡牌！")]
+                        message=f"您选择了错误的卡牌{句尾}")]
             if require_can_use:
                 arg_filters.append(ensure_true_lambda(
                     lambda l: Card(l[0]).can_use(self, True),
@@ -1325,7 +1326,7 @@ class User:
             if len(cards_can_not_choose_fin) != 0:
                 arg_filters.append(validators.ensure_true(
                     lambda l: len(set(l) & cards_can_not_choose_fin) == 0,
-                    message="此卡牌不可选择！"))
+                    message=f"此卡牌不可选择{句尾}"))
             try:
                 try:
                     if ca(None):
@@ -1334,7 +1335,7 @@ class User:
                     self.log << f"选择了{ret}。"
                     yield ret
                 except UnableRequirement:
-                    self.send_log("手牌无法选择，选择进程中止！")
+                    self.send_log(f"手牌无法选择，选择进程中止{句尾}")
                     yield None
             except NotActive:
                 pass
@@ -1419,7 +1420,7 @@ class User:
             ])
         # do things
         if choose == 3:
-            self.send_log(f"和了！") # TODO
+            self.send_log(f"和了{句尾}") # TODO
             pass
         hand_maj.append(to_draw)
         hand_maj.remove(to_choose)
@@ -1435,7 +1436,7 @@ class User:
             hand_maj.remove(to_choose)
             hand_maj.remove(to_choose)
             hand_maj.remove(to_choose)
-            self.send_log(f"暗杠了{str(to_choose)}！") # TODO
+            self.send_log(f"暗杠了{str(to_choose)}{句尾}") # TODO
             self.data.maj = ([s.hai for s in hand_maj],) + self.data.maj[1:] + (to_choose.hai,)
             await self.draw_maj()
 
@@ -1555,7 +1556,7 @@ class SDeath(TimedStatus):
     des = "死亡：不可接龙。"
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
-        return False, 0, '你已死，不能接龙！'
+        return False, 0, f'你已死，不能接龙{句尾}'
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.death, cls)}
@@ -1809,7 +1810,7 @@ class jiandiezhixing(_card):
     positive = -1
     weight = 0
     description = "此牌不可被使用，通常情况下无法被抽到。当你弃置此牌时立即死亡。"
-    failure_message = "此牌不可被使用！"
+    failure_message = "此牌不可被使用" + 句尾
     @classmethod
     async def on_discard(cls, user: User):
         await user.death()
@@ -1834,10 +1835,10 @@ class SInvincible(TimedStatus):
     @classmethod
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
         if await c.pierce():
-            user.send_log("无敌的效果被幻想杀手消除了！")
+            user.send_log(f"无敌的效果被幻想杀手消除了{句尾}")
             await user.remove_all_limited_status('v')
         else:
-            user.send_log("触发了无敌的效果，免除死亡！")
+            user.send_log(f"触发了无敌的效果，免除死亡{句尾}")
             return time, True
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -1858,7 +1859,7 @@ class fool_s(_statusnull):
     @classmethod
     async def BeforeCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[Optional[Awaitable]]:
         async def f():
-            user.send_log("你太笨了！这张卡的使用无效！")
+            user.send_log(f"你太笨了{句尾}这张卡的使用无效{句尾}")
             await user.remove_status('O', remove_all=False)
         return f(),
     @classmethod
@@ -1915,7 +1916,7 @@ class SCantUse(TimedStatus):
     async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str]:
         for s in count:
             if s.card_id == card.id:
-                return False, f"你太疲劳了，不能使用{card.name}！"
+                return False, f"你太疲劳了，不能使用{card.name}{句尾}"
         return True, ""
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -1933,9 +1934,9 @@ class high_priestess(_card):
         l = counter.most_common()
         ql = [qq for qq, time in l if time == l[0][1]]
         if len(ql) == 1:
-            user.buf.send(f"当前周期内接龙次数最多的玩家是[CQ:at,qq={ql[0]}]！")
+            user.buf.send(f"当前周期内接龙次数最多的玩家是[CQ:at,qq={ql[0]}]{句尾}")
         else:
-            user.buf.send(f"当前周期内接龙次数最多的玩家有{''.join(f'[CQ:at,qq={q}]' for q in ql)}！")
+            user.buf.send(f"当前周期内接龙次数最多的玩家有{''.join(f'[CQ:at,qq={q}]' for q in ql)}{句尾}")
         for q in ql:
             await User(q, user.buf).killed(user)
 
@@ -1949,7 +1950,7 @@ class empress(_card):
         if Card(67) in user.data.hand_card:
             for q in global_state['quest'][str(user.qq)]:
                 q["remain"] += 3
-            user.send_char("的任务剩余次数增加了3！")
+            user.send_char(f"的任务剩余次数增加了3{句尾}")
         else:
             await user.add_limited_status(SQuest(3, 3, n := get_mission()))
             user.send_char(f"获得了一个任务：{mission[n][1]}")
@@ -1991,7 +1992,7 @@ class SQuest(NumedStatus):
         for q in count:
             id, name, func = mission[q.quest_id]
             if func(branch.word):
-                user.send_char(f"完成了每日任务：{name[:-1]}！奖励{q.jibi}击毙。此任务还可完成{q.num - 1}次。")
+                user.send_char(f"完成了每日任务：{name[:-1]}{句尾}奖励{q.jibi}击毙。此任务还可完成{q.num - 1}次。")
                 user.log << f"完成了一次任务{name}，剩余{q.num - 1}次。"
                 q.num -= 1
                 await user.add_jibi(q.jibi)
@@ -2024,7 +2025,7 @@ class hierophant_s(NumedStatus):
         return True, 0, ""
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        user.send_log("收到了教皇奖励你的2击毙！")
+        user.send_log(f"收到了教皇奖励你的2击毙{句尾}")
         await user.add_jibi(2)
         count[0].num -= 1
         user.data.save_status_time()
@@ -2043,7 +2044,7 @@ class inv_hierophant_s(NumedStatus):
         return True, 0, ""
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        user.send_log("被教皇扣除了2击毙！")
+        user.send_log(f"被教皇扣除了2击毙{句尾}")
         await user.add_jibi(-2)
         count[0].num -= 1
         user.data.save_status_time()
@@ -2068,7 +2069,7 @@ class lovers(_card):
             u = User(l[0], user.buf)
             n = len(u.check_limited_status('d')) == 0
             await u.remove_all_limited_status('d')
-            user.buf.send("已复活！" + ("（虽然目标并没有死亡）" if n else ''))
+            user.buf.send(f"已复活{句尾}" + ("（虽然目标并没有死亡）" if n else ''))
 
 class chariot(_card):
     id = 7
@@ -2093,7 +2094,7 @@ class chariot(_card):
         if user.qq in to_kill:
             to_kill.remove(user.qq)
         to_kill = set(qq for qq in to_kill if random.random() < 0.1)
-        user.buf.send(f"{'，'.join(f'[CQ:at,qq={qq}]' for qq in to_kill)}被你击杀了！")
+        user.buf.send(f"{'，'.join(f'[CQ:at,qq={qq}]' for qq in to_kill)}被你击杀了{句尾}")
         for qq in to_kill:
             await User(qq, user.buf).killed(user)
 
@@ -2102,7 +2103,7 @@ class strength(_card):
     id = 8
     positive = 0
     description = "加倍你身上所有的非持有性状态，消耗2^n-1击毙，n为状态个数。击毙不足则无法使用。"
-    failure_message = "你的击毙不足！"
+    failure_message = "你的击毙不足" + 句尾
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         if len(user.check_limited_status('W', lambda o: 8 not in o.list)) > 0:
@@ -2114,10 +2115,10 @@ class strength(_card):
     async def use(cls, user: User):
         l = len(user.data.status) + len(user.data.daily_status) + len(user.data.status_time_checked)
         if user.data.jibi < 2 ** l - 1:
-            user.send_char("太弱小了，没有力量！")
+            user.send_char(f"太弱小了，没有力量{句尾}")
             return
         else:
-            user.send_char(f"花费了{2 ** l - 1}击毙！")
+            user.send_char(f"花费了{2 ** l - 1}击毙{句尾}")
         await user.add_jibi(-2 ** l + 1)
         for c in user.data.status:
             await user.add_status(c)
@@ -2192,11 +2193,11 @@ class miansi(_statusnull):
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         if await c.pierce():
-            user.send_log("免死的效果被幻想杀手消除了！")
+            user.send_log(f"免死的效果被幻想杀手消除了{句尾}")
             await user.remove_status('r', remove_all=True)
             return time, False
         else:
-            user.send_log("触发了免死的效果，免除死亡！")
+            user.send_log(f"触发了免死的效果，免除死亡{句尾}")
             await user.remove_status('r', remove_all=False)
             return 0, True
     @classmethod
@@ -2230,7 +2231,7 @@ class temperance(_card):
     async def use(cls, user: User) -> None:
         l = config.userdata.execute("select qq from dragon_data where dead=false").fetchall()
         q: int = random.choice(l)["qq"]
-        user.send_char(f"抽到了[CQ:at,qq={q}]！")
+        user.send_char(f"抽到了[CQ:at,qq={q}]{句尾}")
         target = User(q, user.buf)
         atk = ATemperance(user, target)
         await target.attacked(user, atk)
@@ -2245,7 +2246,7 @@ class temperance_s(_statusdaily):
     is_debuff = True
     @classmethod
     async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str]:
-        return False, "你因XIV - 节制的效果，不能使用卡牌！"
+        return False, f"你因XIV - 节制的效果，不能使用卡牌{句尾}"
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnUserUseCard: (Priority.OnUserUseCard.temperance, cls)}
@@ -2259,7 +2260,7 @@ class devil(_card):
     async def use(cls, user: User):
         q = global_state['last_card_user']
         u = User(q, user.buf)
-        user.buf.send(f'[CQ:at,qq={q}]被你击毙了！')
+        user.buf.send(f'[CQ:at,qq={q}]被你击毙了{句尾}')
         await u.killed(user)
 
 class tower(_card):
@@ -2281,7 +2282,7 @@ class tower(_card):
         for i in range(3):
             p.append(random.choice(l))
             l.remove(p[-1])
-        user.send_char(f"抽到了{'，'.join(f'[CQ:at,qq={q}]' for q in p)}！")
+        user.send_char(f"抽到了{'，'.join(f'[CQ:at,qq={q}]' for q in p)}{句尾}")
         for q in p:
             await User(q, user.buf).killed(user)
 
@@ -2381,10 +2382,10 @@ class judgement(_card):
         n = [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))].count(user.qq)
         user.send_log(f"今天的接龙次数是{n}次，", end='')
         if n < 5:
-            user.buf.send("扣除" + user.char + "20击毙！")
+            user.buf.send("扣除" + user.char + f"20击毙{句尾}")
             await user.add_jibi(-20)
         elif n > 20:
-            user.send_char("获得20击毙！")
+            user.send_char(f"获得20击毙{句尾}")
             await user.add_jibi(20)
         else:
             user.buf.send('')
@@ -2405,7 +2406,7 @@ class dabingyichang(_card):
     positive = -1
     description = "抽到时，直到跨日前不得接龙。"
     on_draw_daily_status = 'd'
-    on_draw_send_char = "病了！直到跨日前不得接龙。"
+    on_draw_send_char = "病了" + 句尾 + "直到跨日前不得接龙。"
     is_debuff = True
     consumed_on_draw = True
 class shengbing(_statusdaily):
@@ -2414,7 +2415,7 @@ class shengbing(_statusdaily):
     is_debuff = True
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
-        return False, 0, "你病了，不能接龙！"
+        return False, 0, f"你病了，不能接龙{句尾}"
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.shengbing, cls)}
@@ -2427,7 +2428,7 @@ class caipiaozhongjiang(_card):
     consumed_on_draw = True
     @classmethod
     async def on_draw(cls, user: User):
-        user.send_char("中奖了！获得20击毙与两张牌。")
+        user.send_char(f"中奖了{句尾}获得20击毙与两张牌。")
         await user.add_jibi(20)
         await user.draw(2)
 
@@ -2465,7 +2466,7 @@ class tiesuolianhuan(_card):
             l: List[int] = await user.buf.aget(prompt="请at群内至多两名玩家进行铁索连环。\n",
                 arg_filters=[
                         lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
-                        validators.ensure_true(lambda s: config.selfqq not in s, message="不能选我！"),
+                        validators.ensure_true(lambda s: config.selfqq not in s, message=f"不能选我{句尾}"),
                         validators.fit_size(1, 2, message="请at正确的人数。")
                     ])
             config.logger.dragon << f"【LOG】用户{user.qq}铁索连环选择{l}。"
@@ -2473,7 +2474,7 @@ class tiesuolianhuan(_card):
                 u = User(target, user.buf)
                 atk = ATiesuolianhuan(user, u)
                 await u.attacked(user, atk)
-            user.buf.send("成功切换连环状态！")
+            user.buf.send(f"成功切换连环状态{句尾}")
             save_global_state()
 class ATiesuolianhuan(Attack):
     name = "铁索连环"
@@ -2492,13 +2493,13 @@ class tiesuolianhuan_s(_statusnull):
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
         if await c.pierce():
             await user.remove_status('l', remove_all=True)
-            user.send_log("铁索连环的效果被幻想杀手消除了！")
+            user.send_log(f"铁索连环的效果被幻想杀手消除了{句尾}")
         else:
             all_qqs: List[int] = []
             for r in config.userdata.execute("select qq from dragon_data where status like '%l%'").fetchall():
                 if r['qq'] == user.qq: continue
                 all_qqs.append(r['qq'])
-            user.buf.send(f"由于铁索连环的效果，{' '.join(f'[CQ:at,qq={target}]' for target in all_qqs)}也一起死了！")
+            user.buf.send(f"由于铁索连环的效果，{' '.join(f'[CQ:at,qq={target}]' for target in all_qqs)}也一起死了{句尾}")
             user.log << f"触发了铁索连环的效果至{all_qqs}。"
             for q in all_qqs:
                 await (u := User(q, user.buf)).remove_status('l')
@@ -2601,11 +2602,11 @@ class sihuihuibizhiyao_s(_statusnull):
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         if await c.pierce():
-            user.send_log("死秽回避之药的效果被幻想杀手消除了！")
+            user.send_log(f"死秽回避之药的效果被幻想杀手消除了{句尾}")
             await user.remove_status('s', remove_all=True)
             return time, False
         elif await user.add_jibi(-5, is_buy=True):
-            user.send_log("触发了死秽回避之药的效果，免除死亡！")
+            user.send_log(f"触发了死秽回避之药的效果，免除死亡{句尾}")
             await user.remove_status('s', remove_all=False)
             return time, True
         return time, False
@@ -2618,10 +2619,10 @@ class inv_sihuihuibizhiyao_s(_statusnull):
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         if await c.pierce():
-            user.send_log("反转·死秽回避之药的效果被幻想杀手消除了！")
+            user.send_log(f"反转·死秽回避之药的效果被幻想杀手消除了{句尾}")
             await user.remove_status('t')
             return time, False
-        user.send_log(f"触发了{count}次反转·死秽回避之药的效果，增加{5 * count}击毙，死亡时间增加{2 * count}小时！")
+        user.send_log(f"触发了{count}次反转·死秽回避之药的效果，增加{5 * count}击毙，死亡时间增加{2 * count}小时{句尾}")
         await user.add_jibi(5 * count)
         await user.remove_status('t')
         return time + 120 * count, False
@@ -2645,9 +2646,9 @@ class huiye_s(_statusnull):
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         await user.remove_status('x')
         if await c.pierce():
-            user.send_log("辉夜姬的秘密宝箱的效果被幻想杀手消除了！")
+            user.send_log(f"辉夜姬的秘密宝箱的效果被幻想杀手消除了{句尾}")
         else:
-            user.send_log(f"触发了辉夜姬的秘密宝箱！奖励抽卡{count}张。")
+            user.send_log(f"触发了辉夜姬的秘密宝箱{句尾}奖励抽卡{count}张。")
             await user.draw(count)
         return time, False
     @classmethod
@@ -2662,9 +2663,9 @@ class inv_huiye_s(_statusnull):
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         await user.remove_status('y')
         if await c.pierce():
-            user.send_log("反转·辉夜姬的秘密宝箱的效果被幻想杀手消除了！")
+            user.send_log(f"反转·辉夜姬的秘密宝箱的效果被幻想杀手消除了{句尾}")
         else:
-            user.send_log(f"触发了反转·辉夜姬的秘密宝箱！随机弃{count}张卡。")
+            user.send_log(f"触发了反转·辉夜姬的秘密宝箱{句尾}随机弃{count}张卡。")
             x = min(len(user.data.hand_card), count)
             l = copy(user.data.hand_card)
             l2: List[TCard] = []
@@ -2743,7 +2744,7 @@ class plus2_s(_statusnull):
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         await Userme(user).remove_status('+')
-        user.send_char(f"触发了{count}次+2的效果，摸{count}张非正面牌与{count}张非负面牌！")
+        user.send_char(f"触发了{count}次+2的效果，摸{count}张非正面牌与{count}张非负面牌{句尾}")
         user.log << f"触发了+2的效果。"
         cards = list(itertools.chain(*[[draw_card({-1, 0}), draw_card({0, 1})] for i in range(count)]))
         await user.draw(0, cards=cards)
@@ -2762,13 +2763,13 @@ class dream(_card):
     async def use(cls, user: User) -> None:
         node = random.choice(list(itertools.chain(*Tree._objs)))
         if random.random() < 0.5:
-            user.buf.send(f"回溯到了节点{node.id_str}！")
+            user.buf.send(f"回溯到了节点{node.id_str}{句尾}")
             for n in node.childs:
                 n.remove()
             from .logic_dragon import rewrite_log_file
             rewrite_log_file()
         else:
-            user.buf.send(f"节点{node.id_str}被分叉了！")
+            user.buf.send(f"节点{node.id_str}被分叉了{句尾}")
             config.logger.dragon << f"【LOG】节点{node.id_str}被分叉了。"
             node.fork = True
 
@@ -2860,7 +2861,7 @@ class queststone(_card):
             if m['remain'] > 0:
                 id, name, func = mission[m['id']]
                 if func(branch.word):
-                    user.send_char(f"完成了任务：{name[:-1]}！奖励3击毙。此任务还可完成{m['remain'] - 1}次。")
+                    user.send_char(f"完成了任务：{name[:-1]}{句尾}奖励3击毙。此任务还可完成{m['remain'] - 1}次。")
                     user.log << f"完成了一次任务{name}，剩余{m['remain'] - 1}次。"
                     m['remain'] -= 1
                     await user.add_jibi(3)
@@ -2882,7 +2883,7 @@ class cunqianguan_s(_statusnull):
     is_global = True
     @classmethod
     async def OnHiddenKeyword(cls, count: TCount, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
-        user.send_log(f"触发了存钱罐，奖励+{count * 10}击毙！")
+        user.send_log(f"触发了存钱罐，奖励+{count * 10}击毙{句尾}")
         await Userme(user).remove_status('m')
         return count * 10,
     @classmethod
@@ -2895,7 +2896,7 @@ class inv_cunqianguan_s(_statusnull):
     is_debuff = True
     @classmethod
     async def OnHiddenKeyword(cls, count: TCount, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
-        user.send_log(f"触发了反转·存钱罐，奖励-{count * 10}击毙！")
+        user.send_log(f"触发了反转·存钱罐，奖励-{count * 10}击毙{句尾}")
         await Userme(user).remove_status('M')
         return -count * 10,
     @classmethod
@@ -2914,17 +2915,17 @@ class hongsezhihuan_s(_statusnull):
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         if await c.pierce():
-            user.send_log("虹色之环的效果被幻想杀手消除了！")
+            user.send_log(f"虹色之环的效果被幻想杀手消除了{句尾}")
             await user.remove_status('h', remove_all=True)
             return time, False
         for a in range(count):
             await user.remove_status('h', remove_all=False)
             if random.randint(0, 1) == 0:
-                user.send_log("触发了虹色之环，闪避了死亡！")
+                user.send_log(f"触发了虹色之环，闪避了死亡{句尾}")
                 return time, True
             else:
                 time += 60
-                user.send_log("触发虹色之环闪避失败，死亡时间+1h！")
+                user.send_log(f"触发虹色之环闪避失败，死亡时间+1h{句尾}")
         return time, False
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -2969,7 +2970,7 @@ class liwujiaohuan(_card):
         for u in all_users:
             u.data.set_cards()
         if lose is None and get is None:
-            user.buf.send("你交换了大家的手牌！")
+            user.buf.send(f"你交换了大家的手牌{句尾}")
         else:
             user.buf.send(f"你用一张：\n{lose}\n换到了一张：\n{get}")
 class ALiwujiaohuan(Attack):
@@ -2992,7 +2993,7 @@ class xingyunhufu(_card):
     @classmethod
     async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str]:
         if card.id != 73:
-            return False, "你因幸运护符的效果，不可使用其他手牌！"
+            return False, f"你因幸运护符的效果，不可使用其他手牌{句尾}"
         return True, ""
     @classmethod
     async def OnDragoned(cls, count: TCount, user: User, branch: 'Tree', first10: bool) -> Tuple[()]:
@@ -3054,7 +3055,7 @@ class AHuxiangjiaohuan(Attack):
     name = "攻击：互相交换"
     doublable = False
     async def self_action(self):
-        self.defender.send_char(f"与[CQ:at,qq={self.attacker.qq}]交换了手牌！")
+        self.defender.send_char(f"与[CQ:at,qq={self.attacker.qq}]交换了手牌{句尾}")
         jibi = (self.defender.data.jibi, self.attacker.data.jibi)
         self.defender.log << f"与{self.attacker.qq}交换了手牌。"
         await self.defender.exchange(self.attacker, max_sub=2)
@@ -3092,7 +3093,7 @@ class lveduozhebopu(_card):
         save_global_state()
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
-        user.send_log(f"的{f'{count}张' if count > 1 else ''}掠夺者啵噗被弃了！")
+        user.send_log(f"的{f'{count}张' if count > 1 else ''}掠夺者啵噗被弃了{句尾}")
         await user.discard_cards([cls] * count)
         return time, False
     @classmethod
@@ -3121,7 +3122,7 @@ class AStealJibi(Attack):
         self.attacker.log << f"触发了{self.count}次掠夺者啵噗的效果，偷取了{self.defender.qq}击毙，剩余偷取次数{(9 - global_state['steal'][str(self.attacker.qq)]['time']) if str(self.attacker.qq) in global_state['steal'] else 'null'}。"
         if (p := self.defender.data.jibi) > 0:
             n = self.count * self.multiplier
-            self.attacker.send_char(f"从上一名玩家处偷取了{min(n, p)}击毙！")
+            self.attacker.send_char(f"从上一名玩家处偷取了{min(n, p)}击毙{句尾}")
             await self.defender.add_jibi(-n)
             await self.attacker.add_jibi(min(n, p))
 
@@ -3163,16 +3164,16 @@ class PC(_card):
     description = '今天接过龙的所有人立刻获得胜利。'
     @classmethod
     async def use(cls, user: User):
-        user.buf.send("今天接龙的所有人都赢了！恭喜你们！")
+        user.buf.send(f"今天接龙的所有人都赢了{句尾}恭喜你们{句尾}")
         qqs = [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))]
         for qq in set(qqs):
             await User(qq, user.buf).add_daily_status('W')
 class win(_statusdaily):
     id = 'W'
-    des = "胜利：恭喜，今天你赢了！"
+    des = "胜利：恭喜，今天你赢了" + 句尾
 class defeat(_statusdaily):
     id = 'X'
-    des = "失败：对不起，今天你输了！"
+    des = "失败：对不起，今天你输了" + 句尾
     is_debuff = True
 
 class suicideking(_card):
@@ -3183,7 +3184,7 @@ class suicideking(_card):
     consumed_on_draw = True
     @classmethod
     async def on_draw(cls, user: User):
-        user.send_char("抽到了自杀之王，" + user.char + "死了！")
+        user.send_char("抽到了自杀之王，" + user.char + f"死了{句尾}")
         await user.death()
 
 class zhu(_card):
@@ -3195,7 +3196,7 @@ class zhu(_card):
     @classmethod
     async def on_draw(cls, user: User):
         await user.add_jibi(-20)
-        user.send_char("抽到了猪，损失了20击毙！")
+        user.send_char(f"抽到了猪，损失了20击毙{句尾}")
 
 class yang(_card):
     name = "羊（♦J）"
@@ -3206,7 +3207,7 @@ class yang(_card):
     @classmethod
     async def on_draw(cls, user: User):
         await user.add_jibi(20)
-        user.send_char("抽到了羊，获得了20击毙！")
+        user.send_char(f"抽到了羊，获得了20击毙{句尾}")
 
 class bianyaqi(_card):
     name = "变压器（♣10）"
@@ -3226,7 +3227,7 @@ class bianyaqi_s(_statusnull):
     @classmethod
     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
         await user.remove_status('2')
-        user.send_log(f'触发了{f"{count}次" if count != 1 else ""}变压器的效果，获得击毙变为{jibi * 2 ** count}！')
+        user.send_log(f'触发了{f"{count}次" if count != 1 else ""}变压器的效果，获得击毙变为{jibi * 2 ** count}{句尾}')
         return jibi * 2 ** count,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -3278,12 +3279,12 @@ class jiaodai(_card):
         for c in map(StatusNull, user.data.status):
             if c.id != 'd' and c.is_debuff and has > 0:
                 has -= 1
-                user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
+                user.send_char(f"的{c.des[:c.des.index('：')]}被取消了{句尾}")
                 await user.remove_status(c.id, remove_all=False)
         for c in map(StatusDaily, user.data.daily_status):
             if c.id != 'd' and c.is_debuff and has > 0:
                 has -= 1
-                user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
+                user.send_char(f"的{c.des[:c.des.index('：')]}被取消了{句尾}")
                 await user.remove_daily_status(c.id, remove_all=False)
         i = 0
         while i < len(user.data.status_time_checked):
@@ -3291,7 +3292,7 @@ class jiaodai(_card):
             if s.id != 'd' and not isinstance(s, Swufazhandou) and s.is_debuff and has > 0:
                 has -= 1
                 des = s.des
-                user.send_log(f"的{des[:des.index('：')]}被取消了！")
+                user.send_log(f"的{des[:des.index('：')]}被取消了{句尾}")
                 await user.remove_limited_status(s)
             else:
                 i += 1
@@ -3305,7 +3306,7 @@ class jiaodai_s(_statusnull):
         if status.is_debuff and status.id != 'd' and not isinstance(status, Swufazhandou):
             for i in range(min(count, count2)):
                 await user.remove_status('8', remove_all=False)
-            user.send_log("触发了胶带的效果，免除此负面状态！")
+            user.send_log(f"触发了胶带的效果，免除此负面状态{句尾}")
             return max(0, count2 - count),
         return count2,
     @classmethod
@@ -3320,7 +3321,7 @@ class inv_jiaodai_s(_statusnull):
         if not status.is_debuff:
             for i in range(min(count, count2)):
                 await user.remove_status('9', remove_all=False)
-            user.send_log("触发了反转·胶带的效果，免除此非负面状态！")
+            user.send_log(f"触发了反转·胶带的效果，免除此非负面状态{句尾}")
             return max(0, count2 - count),
         return count2,
     @classmethod
@@ -3343,10 +3344,10 @@ class SZPM(_statusnull):
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if user.data.jibi > 100:
-            user.send_char(f"已经不再需要零点模块了！")
+            user.send_char(f"已经不再需要零点模块了{句尾}")
             await user.remove_status('Z')
         else:
-            user.send_char("因为零点模块额外获得1击毙！")
+            user.send_char(f"因为零点模块额外获得1击毙{句尾}")
             await user.add_jibi(1)
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -3365,10 +3366,10 @@ class McGuffium239_s(_statusnull):
     async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
         if isinstance(attack, ALiwujiaohuan):
             if await c.pierce():
-                user.send_log("Mc Guffium 239的效果被幻想杀手消除了！")
+                user.send_log(f"Mc Guffium 239的效果被幻想杀手消除了{句尾}")
                 await user.remove_status('G', remove_all=True)
             else:
-                user.buf.send(f"玩家{user.qq}触发了Mc Guffium 239，礼物交换对{user.char}无效！")
+                user.buf.send(f"玩家{user.qq}触发了Mc Guffium 239，礼物交换对{user.char}无效{句尾}")
                 user.log << f"触发了Mc Guffium 239。"
                 await user.remove_status('G', remove_all=False)
                 return True,
@@ -3382,7 +3383,7 @@ class jujifashu(_card):
     id = 105
     positive = 1
     description = "将两张手牌的id相加变为新的手牌。若这两牌id之和不是已有卡牌的id，则变为【邪恶的间谍行动～执行】。"
-    failure_message = "你的手牌不足，无法使用！"
+    failure_message = "你的手牌不足，无法使用" + 句尾
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return len(user.data.hand_card) >= (2 if copy else 3)
@@ -3392,10 +3393,10 @@ class jujifashu(_card):
             await user.remove_cards([Card(l[0]), Card(l[1])])
             id_new = l[0] + l[1]
             if id_new not in _card.card_id_dict:
-                user.buf.send(f"不存在id为{id_new}的牌！")
+                user.buf.send(f"不存在id为{id_new}的牌{句尾}")
                 id_new = -1
             else:
-                user.send_char(f"将这两张牌合成为了id为{id_new}的牌！")
+                user.send_char(f"将这两张牌合成为了id为{id_new}的牌{句尾}")
             c = Card(id_new)
             await user.draw(0, cards=[c])
 
@@ -3404,7 +3405,7 @@ class liebianfashu(_card):
     id = 106
     positive = 1
     description = "将一张手牌变为两张随机牌，这两张牌的id之和为之前的卡牌的id。若不存在这样的组合，则变为两张【邪恶的间谍行动～执行】。"
-    failure_message = "你的手牌不足，无法使用！"
+    failure_message = "你的手牌不足，无法使用" + 句尾
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return len(user.data.hand_card) >= (1 if copy else 2)
@@ -3414,11 +3415,11 @@ class liebianfashu(_card):
             await user.remove_cards([Card(l[0])])
             l2 = [(id, l[0] - id) for id in _card.card_id_dict if l[0] - id in _card.card_id_dict]
             if len(l2) == 0:
-                user.buf.send(f"不存在两张和为{l[0]}的牌！")
+                user.buf.send(f"不存在两张和为{l[0]}的牌{句尾}")
                 id_new = (-1, -1)
             else:
                 id_new = random.choice(l2)
-                user.send_char(f"将这张牌分解为了id为{id_new[0]}与{id_new[1]}的牌！")
+                user.send_char(f"将这张牌分解为了id为{id_new[0]}与{id_new[1]}的牌{句尾}")
             await user.draw(0, cards=[Card(id_new[0]), Card(id_new[1])])
 
 class jingxingfashu(_card):
@@ -3453,14 +3454,14 @@ class xiaohunfashu(_card):
                         validators.fit_size(1, 1, message="请at正确的人数。")
                     ]))[0]
             if qq == config.selfqq:
-                user.send_log("选择了千春！消除了【XXI-世界】外的所有全局状态！")
+                user.send_log(f"选择了千春{句尾}消除了【XXI-世界】外的所有全局状态{句尾}")
                 me.status = ""
                 s = me.check_daily_status('s')
                 me.daily_status = s * 's'
                 me.status_time.clear()
                 me._reregister_things()
             else:
-                user.send_log(f"选择了玩家{qq}！")
+                user.send_log(f"选择了玩家{qq}{句尾}")
                 u = User(qq, user.buf)
                 atk = AXiaohunfashu(user, u)
                 await u.attacked(user, atk)
@@ -3474,14 +3475,14 @@ class AXiaohunfashu(Attack):
                 continue
             await self.defender.remove_status(c, remove_all=False)
             des = StatusNull(c).des
-            self.defender.send_log(f"的{des[:des.index('：')]}被消除了！")
+            self.defender.send_log(f"的{des[:des.index('：')]}被消除了{句尾}")
         # 每日状态
         for c in self.defender.data.daily_status:
             if random.random() > 0.5 ** self.multiplier or not StatusDaily(c).removeable:
                 continue
             await self.defender.remove_daily_status(c, remove_all=False)
             des = StatusDaily(c).des
-            self.defender.send_log(f"的{des[:des.index('：')]}被消除了！")
+            self.defender.send_log(f"的{des[:des.index('：')]}被消除了{句尾}")
         # 带附加值的状态
         l = self.defender.data.status_time_checked
         i = 0
@@ -3490,7 +3491,7 @@ class AXiaohunfashu(Attack):
                 i += 1
             else:
                 des = l[i].des
-                self.defender.send_log(f"的{des[:des.index('：')]}被消除了！")
+                self.defender.send_log(f"的{des[:des.index('：')]}被消除了{句尾}")
                 l.pop(i)
         self.defender.data.save_status_time()
 
@@ -3517,7 +3518,7 @@ class Aranshefashu(Attack):
     doublable = False
     async def self_action(self):
         await self.defender.add_daily_status('R')
-        self.defender.send_char("今天接龙需额外遵循首尾接龙规则！")
+        self.defender.send_char(f"今天接龙需额外遵循首尾接龙规则{句尾}")
 class ranshefashu_s(_statusdaily):
     id = 'R'
     des = "蚺虵法术：你当日每次接龙需额外遵循首尾接龙规则。"
@@ -3563,7 +3564,7 @@ class SBian(NumedStatus):
         for b in count:
             b -= 1
             if b.num % 3 == 0:
-                user.send_char("触发了月下彼岸花的效果，损失1击毙！")
+                user.send_char(f"触发了月下彼岸花的效果，损失1击毙{句尾}")
                 await user.add_jibi(-1)
             user.data.save_status_time()
     @classmethod
@@ -3582,7 +3583,7 @@ class SCian(NumedStatus):
         for b in count:
             b -= 1
             if b.num % 3 == 0:
-                user.send_char("触发了反转·月下彼岸花的效果，获得1击毙！")
+                user.send_char(f"触发了反转·月下彼岸花的效果，获得1击毙{句尾}")
                 await user.add_jibi(1)
             user.data.save_status_time()
     @classmethod
@@ -3604,7 +3605,7 @@ class panjuea_s(_statusnull):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if status is panjueb_s or status is panjueb_activated_s:
-            user.send_char("从五个人前面接来了判决β！")
+            user.send_char(f"从五个人前面接来了判决β{句尾}")
             for i in range(min(count, count2)):
                 await user.remove_status('A', remove_all=False)
             await user.add_limited_status(Swufazhandou(240))
@@ -3626,7 +3627,7 @@ class panjuea_activated_s(_statusnull):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if status is panjueb_s or status is panjueb_activated_s:
-            user.send_char("从五个人前面接来了判决β！")
+            user.send_char(f"从五个人前面接来了判决β{句尾}")
             for i in range(min(count, count2)):
                 await user.remove_status('a', remove_all=False)
             await user.add_limited_status(Swufazhandou(240))
@@ -3651,7 +3652,7 @@ class panjueb_s(_statusnull):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if status is panjuea_s or status is panjuea_activated_s:
-            user.send_char("从五个人前面接来了判决α！")
+            user.send_char(f"从五个人前面接来了判决α{句尾}")
             for i in range(min(count, count2)):
                 user.remove_status('B', remove_all=False)
             await user.add_limited_status(Swufazhandou(240))
@@ -3673,7 +3674,7 @@ class panjueb_activated_s(_statusnull):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if status is panjuea_s or status is panjuea_activated_s:
-            user.send_char("从五个人前面接来了判决α！")
+            user.send_char(f"从五个人前面接来了判决α{句尾}")
             for i in range(min(count, count2)):
                 await user.remove_status('b', remove_all=False)
             await user.add_limited_status(Swufazhandou(240))
@@ -3705,7 +3706,7 @@ class Swufazhandou(TimedStatus):
     des = "无法战斗：不可接龙。"
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
-        return False, 0, '你无法战斗，不能接龙！'
+        return False, 0, f'你无法战斗，不能接龙{句尾}'
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.wufazhandou, cls)}
@@ -3787,7 +3788,7 @@ class shenmouyuanlv_s(_statusnull):
     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
         if jibi < 0 and -jibi > user.data.jibi / 2:
             await user.remove_status('n', remove_all=False)
-            user.send_char(f"触发了深谋远虑之策的效果，此次免单！")
+            user.send_char(f"触发了深谋远虑之策的效果，此次免单{句尾}")
             return 0,
         return jibi,
     @classmethod
@@ -3817,7 +3818,7 @@ class wardenspaean(_card):
     async def use(cls, user: User) -> None:
         for c in map(StatusDaily, user.data.daily_status):
             if c is shengbing:
-                user.send_char("的大病一场被取消了！")
+                user.send_char(f"的大病一场被取消了{句尾}")
                 await user.remove_daily_status('d')
                 return
         await user.add_limited_status('w',3)
@@ -3834,17 +3835,17 @@ class wardenspaean_s(NumedStatus):
             if status.is_debuff and status.id != 'd' and not isinstance(status, Swufazhandou):
                 if i.num >= count2:
                     i.num -= count2
-                    user.send_log(f"触发了凯歌的效果，免除此负面状态！")
+                    user.send_log(f"触发了凯歌的效果，免除此负面状态{句尾}")
                     user.data.save_status_time()
                     return 0,
                 else:
                     count2 -= i.num
                     i.num = 0
-                    user.send_log(f"触发了凯歌的效果，免除此负面状态！")
+                    user.send_log(f"触发了凯歌的效果，免除此负面状态{句尾}")
                     continue
             elif status is shengbing and i.num == 3:
                 i.num -= 3
-                user.send_log(f"触发了凯歌的效果，免除大病一场！")
+                user.send_log(f"触发了凯歌的效果，免除大病一场{句尾}")
                 user.data.save_status_time()
                 return 0,
         user.data.save_status_time()
@@ -3865,7 +3866,7 @@ class imaginebreaker_s(_statusnull):
     @classmethod
     async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
         async def pierce_f():
-            user.send_char(f"触发了幻想杀手的效果，无视了对方的反制！")
+            user.send_char(f"触发了幻想杀手的效果，无视了对方的反制{句尾}")
             user.log << f"{user.char}触发了幻想杀手（攻击）的效果。"
             await user.remove_status('0', remove_all=False)
             return True
@@ -3876,9 +3877,9 @@ class imaginebreaker_s(_statusnull):
         if await c.pierce():
             c.pierce = nothing
             user.buf.send("但", end='')
-            user.send_log("触发了幻想杀手的效果，防住了对方的攻击！")
+            user.send_log(f"触发了幻想杀手的效果，防住了对方的攻击{句尾}")
             return False,
-        user.send_log("触发了幻想杀手的效果，防住了对方的攻击！")
+        user.send_log(f"触发了幻想杀手的效果，防住了对方的攻击{句尾}")
         await user.remove_status('0', remove_all=False)
         return True,
     @classmethod
@@ -3898,7 +3899,7 @@ class vector_s(_statusnull):
     @classmethod
     async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
         if attack.doublable:
-            user.send_log("触发了矢量操作的效果，攻击加倍！")
+            user.send_log(f"触发了矢量操作的效果，攻击加倍{句尾}")
             await user.remove_status('v', remove_all=False)
             return attack.double(),
         return False,
@@ -3906,11 +3907,11 @@ class vector_s(_statusnull):
     async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
         if await c.pierce():
             await user.remove_status('v', remove_all=True)
-            user.send_log("矢量操作的效果被幻想杀手消除了！")
+            user.send_log(f"矢量操作的效果被幻想杀手消除了{句尾}")
             return False,
         if attack.reboundable:
             await user.remove_status('v', remove_all=False)
-            user.send_log("触发了矢量操作的效果，反弹了对方的攻击！")
+            user.send_log(f"触发了矢量操作的效果，反弹了对方的攻击{句尾}")
             return attack.rebound(),
         return False,
     @classmethod
@@ -3937,7 +3938,7 @@ class xixueshashou_s(_statusdaily):
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         for i in range(count):
             if random.random() > 0.9:
-                user.buf.send("你获得了一张【吸血鬼】！")
+                user.buf.send(f"你获得了一张【吸血鬼】{句尾}")
                 await user.draw(0, cards=[Card(-2)])
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -3954,14 +3955,14 @@ class sunflower_s(_statusnull):
     des = "向日葵：跨日结算时你获得1击毙。此buff最多叠加10层。"
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
-        user.buf.send(f"玩家{user.qq}种下的向日葵产出了{count}击毙！")
+        user.buf.send(f"玩家{user.qq}种下的向日葵产出了{count}击毙{句尾}")
         await user.add_jibi(count)
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if status is sunflower_s or status is twinsunflower_s:
             num = count + user.check_status(')')
             if num >= 10:
-                user.send_log("的向日葵已经种满了10株，种植失败！")
+                user.send_log(f"的向日葵已经种满了10株，种植失败{句尾}")
                 return 0,
             return min(count2, 10 - num),
         return count2,
@@ -3974,14 +3975,14 @@ class inv_sunflower_s(_statusnull):
     des = "背日葵：跨日结算时你损失1击毙。"
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
-        user.buf.send(f"玩家{user.qq}种下的背日葵使其损失了{count}击毙！")
+        user.buf.send(f"玩家{user.qq}种下的背日葵使其损失了{count}击毙{句尾}")
         await user.add_jibi(-count)
         n = 0
         for i in range(count):
             if random.random() > 0.5:
                 await user.remove_status('[')
                 n += 1
-        user.buf.send(f"玩家{user.qq}的{n}朵背日葵转了过来！")
+        user.buf.send(f"玩家{user.qq}的{n}朵背日葵转了过来{句尾}")
         for i in range(n):
             await user.add_status('(')
     @classmethod
@@ -4001,10 +4002,10 @@ class wallnut(_card):
         if len(o) > 0:
             o[0].num = 240
             user.data.save_status_time()
-            user.send_log("修补了" + user.char + "的坚果墙！")
+            user.send_log("修补了" + user.char + f"的坚果墙{句尾}")
         else:
             await user.add_limited_status(SAbsorb(240, False))
-            user.send_log("种植了坚果墙！")
+            user.send_log(f"种植了坚果墙{句尾}")
 @final
 class SAbsorb(NumedStatus):
     id = 'o'
@@ -4034,18 +4035,18 @@ class SAbsorb(NumedStatus):
             m = min(o2.num, time)
             o2 -= m
             time -= m
-            user.send_log(f"的南瓜头为{user.char}吸收了{m}分钟的死亡时间！", end='')
+            user.send_log(f"的南瓜头为{user.char}吸收了{m}分钟的死亡时间{句尾}", end='')
             if time == 0:
-                user.send_char("没死！")
+                user.send_char(f"没死{句尾}")
             else:
                 user.buf.send("")
         if o1 is not None and time != 0:
             m = min(o1.num, time)
             o1 -= m
             time -= m
-            user.send_log(f"的坚果墙为{user.char}吸收了{m}分钟的死亡时间！", end='')
+            user.send_log(f"的坚果墙为{user.char}吸收了{m}分钟的死亡时间{句尾}", end='')
             if time == 0:
-                user.send_char("没死！")
+                user.send_char(f"没死{句尾}")
             else:
                 user.buf.send("")
         user.data.save_status_time()
@@ -4088,31 +4089,31 @@ class twinsunflower(_card):
     id = 133
     description = "只能在你有“向日葵”buff时使用。使你的一层“向日葵”buff变成“双子向日葵”buff（跨日结算时你获得2击毙）。此buff与“向日葵”buff加在一起最多叠加10层。"
     positive = 1
-    failure_message = "你场地上没有“向日葵”！"
+    failure_message = "你场地上没有“向日葵”" + 句尾
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return user.check_status('(') > 0
     @classmethod
     async def use(cls, user: User) -> None:
         if user.check_status('(') == 0:
-            user.send_char("场地上没有“向日葵”！")
+            user.send_char(f"场地上没有“向日葵”{句尾}")
             return
         await user.remove_status('(', remove_all=False)
         await user.add_status(')')
-        user.send_char("的一株“向日葵”变成了“双子向日葵”！")
+        user.send_char(f"的一株“向日葵”变成了“双子向日葵”{句尾}")
 class twinsunflower_s(_statusnull):
     id = ')'
     des = "双子向日葵：跨日结算时你获得2击毙。此buff与“向日葵”buff加在一起最多叠加10层。"
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
-        user.buf.send(f"玩家{user.qq}种下的双子向日葵产出了{2 * count}击毙！")
+        user.buf.send(f"玩家{user.qq}种下的双子向日葵产出了{2 * count}击毙{句尾}")
         await user.add_jibi(2 * count)
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if status is sunflower_s or status is twinsunflower_s:
             num = count + user.check_status('(')
             if num >= 10:
-                user.send_log("的向日葵已经种满了10株，种植失败！")
+                user.send_log(f"的向日葵已经种满了10株，种植失败{句尾}")
                 return 0,
             return min(count2, 10 - num),
         return count2,
@@ -4125,14 +4126,14 @@ class inv_twinsunflower_s(_statusnull):
     des = "双子背日葵：跨日结算时你损失2击毙。"
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
-        user.buf.send(f"玩家{user.qq}种下的双子背日葵使其损失了{2 * count}击毙！")
+        user.buf.send(f"玩家{user.qq}种下的双子背日葵使其损失了{2 * count}击毙{句尾}")
         await user.add_jibi(-2 * count)
         n = 0
         for i in range(count):
             if random.random() > 0.5:
                 await user.remove_status(']')
                 n += 1
-        user.buf.send(f"玩家{user.qq}的{n}朵双子背日葵转了过来！")
+        user.buf.send(f"玩家{user.qq}的{n}朵双子背日葵转了过来{句尾}")
         for i in range(n):
             await user.add_status(')')
     @classmethod
@@ -4151,10 +4152,10 @@ class pumpkin(_card):
         if len(o) > 0:
             o[0].num = 360
             user.data.save_status_time()
-            user.send_log("修补了" + user.char + "的南瓜头！")
+            user.send_log("修补了" + user.char + f"的南瓜头{句尾}")
         else:
             await user.add_limited_status(SAbsorb(360, True))
-            user.send_log("种植了南瓜头！")
+            user.send_log(f"种植了南瓜头{句尾}")
 
 class imitator(_card):
     name = "模仿者"
@@ -4174,7 +4175,7 @@ class imitator_s(_statusnull):
         else:
             await user.remove_status('i', remove_all=True)
             to_add = cards[:count]
-        user.send_log("触发了模仿者的效果，额外获得了卡牌！获得的卡牌是：")
+        user.send_log(f"触发了模仿者的效果，额外获得了卡牌{句尾}获得的卡牌是：")
         for c in to_add:
             if c.des_need_init:
                 await c.on_draw(user)
@@ -4194,7 +4195,7 @@ class jack_in_the_box(_card):
     positive = -1
     description = "抽到时附加buff：你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。若场上有寒冰菇状态则不会爆炸。"
     on_draw_status = 'j'
-    on_draw_send_char = "获得了玩偶匣！"
+    on_draw_send_char = "获得了玩偶匣" + 句尾
     consumed_on_draw = True
     is_metallic = True
 class jack_in_the_box_s(_statusnull):
@@ -4207,7 +4208,7 @@ class jack_in_the_box_s(_statusnull):
         if me.check_daily_status('i'):
             return
         if random.random() > 0.95 ** count:
-            user.send_log("的玩偶匣爆炸了！")
+            user.send_log(f"的玩偶匣爆炸了{句尾}")
             await user.remove_status('j', remove_all=False)
             qqs = {user.qq}
             id = branch.id
@@ -4216,7 +4217,7 @@ class jack_in_the_box_s(_statusnull):
                 if ret is not None:
                     qqs.add(ret.qq)
             qqs -= {config.selfqq}
-            user.send_char("炸死了" + "".join(f"[CQ:at,qq={qqq}]" for qqq in qqs) + "！")
+            user.send_char("炸死了" + "".join(f"[CQ:at,qq={qqq}]" for qqq in qqs) + 句尾)
             user.log << "炸死了" + ", ".join(str(qqq) for qqq in qqs) + "。"
             for qqq in qqs:
                 await User(qqq, user.buf).killed(user)
@@ -4233,22 +4234,22 @@ class bungeezombie(_card):
     @classmethod
     async def on_draw(cls, user: User) -> None:
         if me.check_daily_status('i'):
-            user.buf.send("蹦极僵尸被寒冰菇冻住了！")
-            user.log << "蹦极僵尸被寒冰菇冻住了！"
+            user.buf.send(f"蹦极僵尸被寒冰菇冻住了{句尾}")
+            user.log << f"蹦极僵尸被寒冰菇冻住了{句尾}"
         elif o := more_itertools.only(user.check_limited_status('o', lambda x: not x.is_pumpkin)):
-            user.send_log("的坚果墙被偷走了！")
+            user.send_log(f"的坚果墙被偷走了{句尾}")
             await user.remove_limited_status(o)
         elif user.check_status(')'):
-            user.send_log("的双子向日葵被偷走了！")
+            user.send_log(f"的双子向日葵被偷走了{句尾}")
             await user.remove_status(')', remove_all=False)
         elif user.check_status('('):
-            user.send_log("的向日葵被偷走了！")
+            user.send_log(f"的向日葵被偷走了{句尾}")
             await user.remove_status('(', remove_all=False)
         elif p := more_itertools.only(user.check_limited_status('o', lambda x: x.is_pumpkin)):
-            user.send_log("的南瓜头被偷走了！")
+            user.send_log(f"的南瓜头被偷走了{句尾}")
             await user.remove_limited_status(p)
         else:
-            user.send_log("没有植物，蹦极僵尸放下了一只僵尸！")
+            user.send_log(f"没有植物，蹦极僵尸放下了一只僵尸{句尾}")
             await user.death(minute=60)
 
 class polezombie(_card):
@@ -4260,8 +4261,8 @@ class polezombie(_card):
     @classmethod
     async def on_draw(cls, user: User) -> None:
         if me.check_daily_status('i'):
-            user.buf.send("撑杆跳僵尸被寒冰菇冻住了！")
-            user.log << "撑杆跳僵尸被寒冰菇冻住了！"
+            user.buf.send(f"撑杆跳僵尸被寒冰菇冻住了{句尾}")
+            user.log << f"撑杆跳僵尸被寒冰菇冻住了{句尾}"
         else:
             await user.death(c=TCounter(jump=True))
 
@@ -4277,10 +4278,10 @@ class mishi1(_card):
         if len(M) > 0:
             M[0].num = 1
             user.data.save_status_time()
-            user.send_log("取消了之前的探索并开始探索都城！")
+            user.send_log(f"取消了之前的探索并开始探索都城{句尾}")
         else:
             await user.add_limited_status(Sexplore(1))
-            user.send_log("开始探索都城！")
+            user.send_log(f"开始探索都城{句尾}")
 class mishi2(_card):
     name = "鬼祟的真相"
     id = 141
@@ -4293,10 +4294,10 @@ class mishi2(_card):
         if len(M) > 0:
             M[0].num = 2
             user.data.save_status_time()
-            user.send_log("取消了之前的探索并开始探索各郡！")
+            user.send_log(f"取消了之前的探索并开始探索各郡{句尾}")
         else:
             await user.add_limited_status(Sexplore(2))
-            user.send_log("开始探索各郡！")
+            user.send_log(f"开始探索各郡{句尾}")
 class mishi3(_card):
     name = "被遗忘的史籍"
     id = 142
@@ -4309,10 +4310,10 @@ class mishi3(_card):
         if len(M) > 0:
             M[0].num = 3
             user.data.save_status_time()
-            user.send_log("取消了之前的探索并开始探索大陆！")
+            user.send_log(f"取消了之前的探索并开始探索大陆{句尾}")
         else:
             await user.add_limited_status(Sexplore(3))
-            user.send_log("开始探索大陆！")
+            user.send_log(f"开始探索大陆{句尾}")
 class mishi4(_card):
     name = "禁断的史诗"
     id = 143
@@ -4325,10 +4326,10 @@ class mishi4(_card):
         if len(M) > 0:
             M[0].num = 4
             user.data.save_status_time()
-            user.send_log("取消了之前的探索并开始森林尽头之地！")
+            user.send_log(f"取消了之前的探索并开始森林尽头之地{句尾}")
         else:
             await user.add_limited_status(Sexplore(4))
-            user.send_log("开始探索森林尽头之地！")
+            user.send_log(f"开始探索森林尽头之地{句尾}")
 class mishi5(_card):
     name = "悬而未定的模棱两可"
     id = 144
@@ -4341,10 +4342,10 @@ class mishi5(_card):
         if len(M) > 0:
             M[0].num = 5
             user.data.save_status_time()
-            user.send_log("取消了之前的探索并开始探索撕身山脉！")
+            user.send_log(f"取消了之前的探索并开始探索撕身山脉{句尾}")
         else:
             await user.add_limited_status(Sexplore(5))
-            user.send_log("开始探索撕身山脉！")
+            user.send_log(f"开始探索撕身山脉{句尾}")
 class mishi6(_card):
     name = "浪游旅人的地图"
     id = 145
@@ -4357,10 +4358,10 @@ class mishi6(_card):
         if len(M) > 0:
             M[0].num = 6
             user.data.save_status_time()
-            user.send_log("取消了之前的探索并开始探索荒寂而平阔的沙地！")
+            user.send_log(f"取消了之前的探索并开始探索荒寂而平阔的沙地{句尾}")
         else:
             await user.add_limited_status(Sexplore(6))
-            user.send_log("开始探索荒寂而平阔的沙地！")
+            user.send_log(f"开始探索荒寂而平阔的沙地{句尾}")
 class mishi7(_card):
     name = "午港奇闻"
     id = 146
@@ -4373,10 +4374,10 @@ class mishi7(_card):
         if len(M) > 0:
             M[0].num = 7
             user.data.save_status_time()
-            user.send_log("取消了之前的探索并开始探索薄暮群屿！")
+            user.send_log(f"取消了之前的探索并开始探索薄暮群屿{句尾}")
         else:
             await user.add_limited_status(Sexplore(7))
-            user.send_log("开始探索薄暮群屿！")
+            user.send_log(f"开始探索薄暮群屿{句尾}")
 class Sexplore(NumedStatus):
     id = 'M'
     @property
@@ -4422,10 +4423,10 @@ class Sexplore(NumedStatus):
                 user.send_log("置身凯特与赫洛有限公司：")
                 user.buf.send("你在因不明爆炸而荒废的大厦中可能寻得一些东西，或是失去一些东西。")
                 if random.random() < 0.5:
-                    user.send_char("获得了1击毙！")
+                    user.send_char(f"获得了1击毙{句尾}")
                     await user.add_jibi(1)
                 else:
-                    user.send_char("损失了1击毙！")
+                    user.send_char(f"损失了1击毙{句尾}")
                     await user.add_jibi(-1)
             elif i == 3:
                 user.send_log("置身圣亚割尼医院：")
@@ -4476,17 +4477,17 @@ class Sexplore(NumedStatus):
                 user.buf.send("住在这里的曾是太阳王的后裔。随机解除你的一个负面效果。")
                 l = [s for s in itertools.chain(map(StatusNull, user.data.status), map(StatusDaily, user.data.daily_status), user.data.status_time_checked) if s.is_debuff]
                 if len(l) == 0:
-                    user.send_log("没有负面状态！")
+                    user.send_log(f"没有负面状态{句尾}")
                 c = random.choice(l)
                 if isinstance(c, _statusnull):
-                    user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
+                    user.send_char(f"的{c.des[:c.des.index('：')]}被取消了{句尾}")
                     await user.remove_status(c.id, remove_all=False)
                 elif isinstance(c, _statusdaily):
-                    user.send_char(f"的{c.des[:c.des.index('：')]}被取消了！")
+                    user.send_char(f"的{c.des[:c.des.index('：')]}被取消了{句尾}")
                     await user.remove_daily_status(c.id, remove_all=False)
                 elif isinstance(c, _status):
                     des = c.des
-                    user.send_log(f"的{des[:des.index('：')]}被取消了！")
+                    user.send_log(f"的{des[:des.index('：')]}被取消了{句尾}")
                     await user.remove_limited_status(c)
                     user.data.save_status_time()
             elif i == 1:
@@ -4498,7 +4499,7 @@ class Sexplore(NumedStatus):
                 user.send_log("置身俄尔托斯树林：")
                 user.buf.send("你目睹了群鸦的回忆。触发本日内曾被使用过的一张卡片的效果。")
                 if len(global_state['used_cards']) == 0:
-                    user.send_log("今日没有使用过卡牌！")
+                    user.send_log(f"今日没有使用过卡牌{句尾}")
                 else:
                     c = Card(random.choice(global_state['used_cards']))
                     user.send_log(f"遇见的群鸦选择了卡牌{c.name}。")
@@ -4540,7 +4541,7 @@ class Sexplore(NumedStatus):
                 user.send_log("置身瑞弗克塔楼：")
                 user.buf.send("你们离去时，残塔消失了。清除上一个添加的全局状态。")
                 if len(global_state['global_status']) == 0:
-                    user.send_log("没有可以清除的全局状态！")
+                    user.send_log(f"没有可以清除的全局状态{句尾}")
                 else:
                     ss = global_state['global_status'][-1]
                     if ss[0] == 0 and me.check_status(ss[1]):
@@ -4557,7 +4558,7 @@ class Sexplore(NumedStatus):
                         user.send_log(f"移除了{sdes[:sdes.index('：')]}。")
                         await Userme(user).remove_limited_status(gl[0])
                     else:
-                        user.buf.send("上一个添加的全局状态早就被清除了！")
+                        user.buf.send(f"上一个添加的全局状态早就被清除了{句尾}")
                         user.log << "上一个添加的全局状态早就被清除了。"
             elif i == 4:
                 user.send_log("置身库兹涅佐夫的捐赠：")
@@ -4591,7 +4592,7 @@ class Sexplore(NumedStatus):
                 if pq != config.selfqq and pq != 0:
                     User(pq, user.buf).add_status('&')
                 else:
-                    user.send_log("无上一个接龙的玩家！")
+                    user.send_log(f"无上一个接龙的玩家{句尾}")
             elif i == 1:
                 branch.remove()
                 from .logic_dragon import rewrite_log_file
@@ -4605,7 +4606,7 @@ class Sexplore(NumedStatus):
                     user.buf.send("你揭示的一个隐藏奖励词是：" + random.choice(hidden_keyword))
                     global_state['observatory'] = True
                 else:
-                    user.buf.send("今天已经触发过观星台！")
+                    user.buf.send(f"今天已经触发过观星台{句尾}")
             elif i == 3:
                 user.send_log("置身石狼陵墓：")
                 user.buf.send("送葬者不见踪影，而死者被引来此处。本次接龙额外获得10击毙。")
@@ -4628,7 +4629,7 @@ class Sexplore(NumedStatus):
                 if pq != config.selfqq and pq != 0:
                     await User(pq, user.buf).death(15)
                 else:
-                    user.send_log("无上一个接龙的玩家！")
+                    user.send_log(f"无上一个接龙的玩家{句尾}")
             elif i == 2:
                 user.send_log("置身墨萨拿：")
                 user.buf.send("村民们拥有超过自然限度的长寿。获得状态“长生的宴席”。")
@@ -4665,16 +4666,16 @@ class Sexplore(NumedStatus):
                 user.buf.send("僧院危悬在崖边，它早该坠入海中了。从以下三个效果中随机触发一个：获得20击毙、抽一张牌或随机弃置一张牌。")
                 j = random.randint(0, 2)
                 if j == 0:
-                    user.send_log("获得了20击毙！")
+                    user.send_log(f"获得了20击毙{句尾}")
                     await user.add_jibi(20)
                 elif j == 1:
-                    user.send_log("抽了一张卡！")
+                    user.send_log(f"抽了一张卡{句尾}")
                     await user.draw(1)
                 elif len(user.data.hand_card) == 0:
-                    user.send_log("无手牌可弃！")
+                    user.send_log(f"无手牌可弃{句尾}")
                 else:
                     cd = random.choice(user.data.hand_card)
-                    user.send_log(f"丢弃了{cd.name}！")
+                    user.send_log(f"丢弃了{cd.name}{句尾}")
                     await user.discard_cards([cd])
             else:
                 user.send_log("置身午港：")
@@ -4690,37 +4691,37 @@ class Sexplore(NumedStatus):
         i = user.buf.state.get('mishi_id') # maybe None
         if count[0].num == 1 and i == 1:
             if await c.pierce():
-                user.send_log("被遗忘的密特拉寺的效果被幻想杀手消除了！")
+                user.send_log(f"被遗忘的密特拉寺的效果被幻想杀手消除了{句尾}")
                 return time, False
             s = random.random() * 0.1
-            user.send_log(f"触发了被遗忘的密特拉寺的效果，死亡时间减少了{s * 100:.2f}%！")
+            user.send_log(f"触发了被遗忘的密特拉寺的效果，死亡时间减少了{s * 100:.2f}%{句尾}")
             return (1 - s) * time, False
         elif count[0].num == 2 and i == 1:
             if await c.pierce():
-                user.send_log("洛克伍德沼地的效果被幻想杀手消除了！")
+                user.send_log(f"洛克伍德沼地的效果被幻想杀手消除了{句尾}")
                 return time, False
-            user.send_log("触发了洛克伍德沼地的效果，死亡时间减少了25%！")
+            user.send_log(f"触发了洛克伍德沼地的效果，死亡时间减少了25%{句尾}")
             return 0.75 * time, False
         elif count[0].num == 4 and i == 1:
             if await c.pierce():
-                user.send_log("大公的城塞的效果被幻想杀手消除了！")
+                user.send_log(f"大公的城塞的效果被幻想杀手消除了{句尾}")
                 return time, False
-            user.send_log("触发了大公的城塞的效果，死亡时间减少了50%！")
+            user.send_log(f"触发了大公的城塞的效果，死亡时间减少了50%{句尾}")
             return 0.5 * time, False
         elif count[0].num == 5 and i == 1:
             if await c.pierce():
-                user.send_log("避雪神庙的效果被幻想杀手消除了！")
+                user.send_log(f"避雪神庙的效果被幻想杀手消除了{句尾}")
                 return time, False
-            user.send_log("触发了避雪神庙的效果，回避了死亡！")
+            user.send_log(f"触发了避雪神庙的效果，回避了死亡{句尾}")
             return 0, True
         elif count[0].num == 8:
             if await c.pierce():
-                user.send_log("堡垒的效果被幻想杀手消除了！")
+                user.send_log(f"堡垒的效果被幻想杀手消除了{句尾}")
                 count[0].num = 7
                 user.data.save_status_time()
                 return time, False
             else:
-                user.send_log("触发了堡垒的效果，免除死亡！")
+                user.send_log(f"触发了堡垒的效果，免除死亡{句尾}")
                 return time, True
         return time, False
     @classmethod
@@ -4801,10 +4802,10 @@ class Sshangba(_statusdaily):
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         if await c.pierce():
-            user.send_log("伤疤的效果被幻想杀手消除了！")
+            user.send_log(f"伤疤的效果被幻想杀手消除了{句尾}")
             await user.remove_status('S')
         else:
-            user.send_log(f"触发了伤疤！奖励{2 * count}击毙。")
+            user.send_log(f"触发了伤疤{句尾}奖励{2 * count}击毙。")
             await user.add_jibi(2 * count)
         return time, False
     @classmethod
@@ -4817,10 +4818,10 @@ class Sinvshangba(_statusdaily):
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
         if await c.pierce():
-            user.send_log("反转-伤疤的效果被幻想杀手消除了！")
+            user.send_log(f"反转-伤疤的效果被幻想杀手消除了{句尾}")
             await user.remove_status('P')
         else:
-            user.send_log(f"触发了反转-伤疤！失去{2 * count}击毙。")
+            user.send_log(f"触发了反转-伤疤{句尾}失去{2 * count}击毙。")
             await user.add_jibi(-2 * count)
         return time, False
     @classmethod
@@ -4831,7 +4832,7 @@ class Sbeizhizhunze(_statusdaily):
     des = "杯之准则：你今天每次接龙额外获得1击毙。"
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        user.send_char(f"因为杯之准则额外获得{count}击毙！")
+        user.send_char(f"因为杯之准则额外获得{count}击毙{句尾}")
         await user.add_jibi(count)
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -4842,7 +4843,7 @@ class Sinvbeizhizhunze(_statusdaily):
     is_debuff = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        user.send_char(f"因为反转-杯之准则额外失去{count}击毙！")
+        user.send_char(f"因为反转-杯之准则额外失去{count}击毙{句尾}")
         await user.add_jibi(-1*count)
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -4917,7 +4918,7 @@ class Sshendian(_statusnull):
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         await user.add_jibi(5 * count)
-        user.send_log(f"因星辰击碎的神殿额外获得{5 * count}击毙！")
+        user.send_log(f"因星辰击碎的神殿额外获得{5 * count}击毙{句尾}")
         await user.remove_status('^')
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -4930,7 +4931,7 @@ class Sinvshendian(_statusnull):
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         await user.add_jibi(-5 * count)
-        user.send_log(f"因反转-置身被星辰击碎的神殿额外失去{5*count}击毙！")
+        user.send_log(f"因反转-置身被星辰击碎的神殿额外失去{5*count}击毙{句尾}")
         await user.remove_status('$')
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -4948,9 +4949,9 @@ class Schangsheng(NumedStatus):
             m = min(i.num, time)
             i.num -= m
             time -= m
-            user.send_log(f"的长生的宴席为{user.char}吸收了{m}分钟的死亡时间！", end='')
+            user.send_log(f"的长生的宴席为{user.char}吸收了{m}分钟的死亡时间{句尾}", end='')
             if time == 0:
-                user.send_char("没死！")
+                user.send_char(f"没死{句尾}")
                 break
             else:
                 user.buf.send("")
@@ -5005,7 +5006,7 @@ class forkbomb_s(_statusdaily):
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if random.random() > 0.95 ** count:
-            user.send_log("触发了Fork Bomb，此词变成了分叉点！")
+            user.send_log(f"触发了Fork Bomb，此词变成了分叉点{句尾}")
             branch.fork = True
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -5029,12 +5030,12 @@ class beijingcard(_card):
         if jibi < 0 and is_buy:
             if 100 <= user.data.spend_shop < 150:
                 jibi = int(jibi * 0.8 ** count)
-                user.send_char(f"触发了{f'{count}次' if count > 1 else ''}北京市政交通一卡通的效果，花费击毙打了8折变为{jibi}！")
+                user.send_char(f"触发了{f'{count}次' if count > 1 else ''}北京市政交通一卡通的效果，花费击毙打了8折变为{jibi}{句尾}")
             elif 150 <= user.data.spend_shop < 400:
                 jibi = int(jibi * 0.5 ** count)
-                user.send_char(f"触发了{f'{count}次' if count > 1 else ''}北京市政交通一卡通的效果，花费击毙打了5折变为{jibi}！")
+                user.send_char(f"触发了{f'{count}次' if count > 1 else ''}北京市政交通一卡通的效果，花费击毙打了5折变为{jibi}{句尾}")
             elif user.data.spend_shop >= 400:
-                user.send_char("今日已花费400击毙，不再打折！")
+                user.send_char(f"今日已花费400击毙，不再打折{句尾}")
             user.log << f"触发了{count}次北京市政交通一卡通的效果，花费击毙变为{jibi}。"
         return jibi,
     @classmethod
@@ -5064,7 +5065,7 @@ class Stimebomb(NumedStatus):
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
         b = 2 * count[0].num
-        user.send_log(f"因为定时炸弹失去了{b}击毙！")
+        user.send_log(f"因为定时炸弹失去了{b}击毙{句尾}")
         await user.add_jibi(-b)
         count[0].num = 0
         user.data.save_status_time()
@@ -5091,13 +5092,13 @@ class Scashprinter(NumedStatus):
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         pq = branch.parent.qq
         if pq != config.selfqq and pq != 0:
-            user.send_log(f"奖励了[CQ:at,qq={pq}]{len(count)}击毙！")
+            user.send_log(f"奖励了[CQ:at,qq={pq}]{len(count)}击毙{句尾}")
             await User(pq, user.buf).add_jibi(len(count))
             for c in count:
                 c.num -= 1
             user.data.save_status_time()
         else:
-            user.send_log("无上一个接龙的玩家！")
+            user.send_log(f"无上一个接龙的玩家{句尾}")
     @classmethod
     def register(cls):
         return {UserEvt.OnDragoned: (Priority.OnDragoned.cashprinter, cls)}
@@ -5119,7 +5120,7 @@ class upsidedown(_card):
                     continue
                 if c in revert_status_map:
                     des = StatusNull(c).des
-                    u.send_log(f"的{des[:des.index('：')]}被反转了！")
+                    u.send_log(f"的{des[:des.index('：')]}被反转了{句尾}")
                     to_remove += c
                     to_add += revert_status_map[c]
             for c in to_remove:
@@ -5136,7 +5137,7 @@ class upsidedown(_card):
                     continue
                 if c in revert_daily_status_map:
                     des = StatusDaily(c).des
-                    u.send_log(f"的{des[:des.index('：')]}被反转了！")
+                    u.send_log(f"的{des[:des.index('：')]}被反转了{句尾}")
                     to_remove += c
                     to_add += revert_daily_status_map[c]
             for c in to_remove:
@@ -5151,25 +5152,25 @@ class upsidedown(_card):
                 continue
             if l[i].id == 'q':
                 l[i].jibi = -l[i].jibi
-                user.send_log("的每日任务被反转了！")
+                user.send_log(f"的每日任务被反转了{句尾}")
             elif l[i].id == 'b':
                 l[i] = SCian(l[i].num)
-                user.send_log("的月下彼岸花被反转了！")
+                user.send_log(f"的月下彼岸花被反转了{句尾}")
             elif l[i].id == 'c':
                 l[i] = SBian(l[i].num)
-                user.send_log("的反转·月下彼岸花被反转了！")
+                user.send_log(f"的反转·月下彼岸花被反转了{句尾}")
             elif l[i].id == 'l':
                 l[i] = SKe(l[i].list)
-                user.send_log("的乐不思蜀被反转了！")
+                user.send_log(f"的乐不思蜀被反转了{句尾}")
             elif l[i].id == 'k':
                 l[i] = SLe(l[i].list)
-                user.send_log("的反转·乐不思蜀被反转了！")
+                user.send_log(f"的反转·乐不思蜀被反转了{句尾}")
             elif l[i].id == 'e':
                 l[i] = inv_hierophant_s(l[i].num)
-                user.send_log("的反转·教皇被反转了！")
+                user.send_log(f"的反转·教皇被反转了{句尾}")
             elif l[i].id == 'f':
                 l[i] = hierophant_s(l[i].num)
-                user.send_log("的教皇被反转了！")
+                user.send_log(f"的教皇被反转了{句尾}")
         user.data.save_status_time()
         # 全局状态
         await _s(Userme(user))
@@ -5202,7 +5203,7 @@ class bloom(_card):
             if not await user.choose():
                 random.shuffle(user.data.hand_card)
                 user.data.set_cards()
-                user.send_char(f"随机弃置了{x}张牌！")
+                user.send_char(f"随机弃置了{x}张牌{句尾}")
                 user.log << f"预计手牌为{[c.name for c in user.data.hand_card[:3]]}"
                 await user.discard_cards(user.data.hand_card[3:])
             else:
@@ -5224,9 +5225,9 @@ class excalibur(_card):
     @classmethod
     async def use(cls, user: User) -> None:
         if user.check_daily_status('W') == 0:
-            user.send_char("没有胜利，无法使用！")
+            user.send_char(f"没有胜利，无法使用{句尾}")
         else:
-            user.send_log("统治了不列颠！")
+            user.send_log(f"统治了不列颠{句尾}")
             await user.add_limited_status(SBritian([]))
 class SBritian(ListStatus):
     id = 'W'
@@ -5247,7 +5248,7 @@ class SBritian(ListStatus):
             for c in count:
                 if card.id not in c.list:
                     async def f():
-                        user.send_log(f"获得了“魔力 - {card.name[card.name.index(' - ') + 3:]}”！")
+                        user.send_log(f"获得了“魔力 - {card.name[card.name.index(' - ') + 3:]}”{句尾}")
                         c.list.append(card.id)
                         c.list.sort()
                         user.log << f"现有{c.list}。"
@@ -5256,9 +5257,9 @@ class SBritian(ListStatus):
                             b = user.data.check_equipment(2)
                             user.data.equipment[2] = b + 1
                             if b == 0:
-                                user.send_log("获得了装备“塔罗原典”！")
+                                user.send_log(f"获得了装备“塔罗原典”{句尾}")
                             else:
-                                user.send_log(f"将装备“塔罗原典”升星至{b + 1}星！")
+                                user.send_log(f"将装备“塔罗原典”升星至{b + 1}星{句尾}")
                         user.data.save_status_time()
                     return f(),
         return None,
@@ -5278,13 +5279,13 @@ class assembling_machine(_card):
     async def use(cls, user: User) -> None:
         c = user.data.check_equipment(3)
         if c == 3:
-            user.send_log("获得了200组装量！")
+            user.send_log(f"获得了200组装量{句尾}")
             user.data.extra.assembling += 200
         else:
             if c == 0:
-                user.send_log("获得了装备：组装机1型！")
+                user.send_log(f"获得了装备：组装机1型{句尾}")
             else:
-                user.send_log(f"将组装机{c}型升级到了组装机{c + 1}型！")
+                user.send_log(f"将组装机{c}型升级到了组装机{c + 1}型{句尾}")
             user.data.equipment[3] = c + 1
             user.data.save_equipment()
 
@@ -5311,7 +5312,7 @@ class belt_checker(IEventListener):
             if len(users) == 0:
                 return
             u = random.choice(users)
-            user.buf.send(f"玩家{u.qq}从传送带上捡起了" + user.char + "掉的卡！")
+            user.buf.send(f"玩家{u.qq}从传送带上捡起了" + user.char + f"掉的卡{句尾}")
             await u.draw(0, cards=[card])
             await u.remove_status('3', remove_all=False)
             if u.check_status('3') == 0:
@@ -5330,7 +5331,7 @@ class inv_belt_s(_statusnull):
         for card in cards:
             qq = random.choice(qqs)
             u = User(qq, user.buf)
-            user.buf.send(f"玩家{u.qq}从传送带上捡起了" + user.char + "掉的卡！")
+            user.buf.send(f"玩家{u.qq}从传送带上捡起了" + user.char + f"掉的卡{句尾}")
             await u.draw(0, [card])
             await user.remove_status('4', remove_all=False)
             if not user.check_status('4'):
@@ -5352,7 +5353,7 @@ class train(_card):
         l = me.check_limited_status('t')
         for tr in l:
             if random.random() < 0.25:
-                user.send_log(f"的火车和玩家{tr.qq}的火车发生了碰撞！")
+                user.send_log(f"的火车和玩家{tr.qq}的火车发生了碰撞{句尾}")
                 await Userme(user).remove_limited_status(tr)
                 return
         await Userme(user).add_limited_status(STrain(user.qq, False))
@@ -5392,7 +5393,7 @@ class STrain(_status):
                 if tr.qq not in qqs:
                     continue
                 # 结算火车
-                user.buf.send(f"玩家{tr.qq}乘坐火车便乘了1击毙！")
+                user.buf.send(f"玩家{tr.qq}乘坐火车便乘了1击毙{句尾}")
                 config.logger.dragon << f"【LOG】玩家{tr.qq}乘坐火车便乘了1击毙。"
                 await User(tr.qq, user.buf).add_jibi(1)
         return jibi,
@@ -5403,7 +5404,7 @@ class STrain(_status):
             if tr.if_def:
                 tr.if_def = False
                 user.data.save_status_time()
-                user.send_log("你的火车跳板为你的火车防止了碰撞！")
+                user.send_log(f"你的火车跳板为你的火车防止了碰撞{句尾}")
                 return True,
         return False,
     @classmethod
@@ -5457,7 +5458,7 @@ class beacon(_card):
                     else:
                         jibi += c['remain']
                         c['remain'] = 0
-                    user.send_log(f"触发了插件——产率的效果，获得击毙加倍为{jibi}！")
+                    user.send_log(f"触发了插件——产率的效果，获得击毙加倍为{jibi}{句尾}")
         elif jibi < 0:
             for c in user.data.modules:
                 if jibi != 0 and c['id'] == 2 and c['remain'] > 0:
@@ -5468,7 +5469,7 @@ class beacon(_card):
                     else:
                         jibi += c['remain']
                         c['remain'] = 0
-                    user.send_log(f"触发了插件——节能的效果，失去击毙减少为{-jibi}！")
+                    user.send_log(f"触发了插件——节能的效果，失去击毙减少为{-jibi}{句尾}")
         save_global_state()
         return jibi,
     @classmethod
@@ -5485,11 +5486,11 @@ class beacon_checker(IEventListener):
                     return
                 if str(user.qq) in qqstrs:
                     q = str(user.qq)
-                    user.send_log(f"的插件——速度抵消了寒冰菇的效果！但你被击毙了30分钟！")
+                    user.send_log(f"的插件——速度抵消了寒冰菇的效果{句尾}但你被击毙了30分钟{句尾}")
                     await user.death(30)
                 else:
                     q = random.choice(qqstrs)
-                    user.buf.send(f"玩家{q}的插件——速度抵消了寒冰菇的效果！")
+                    user.buf.send(f"玩家{q}的插件——速度抵消了寒冰菇的效果{句尾}")
                     config.logger.dragon << f"玩家{q}的插件——速度抵消了寒冰菇的效果。"
                 # u = User(int(q), user.buf)
                 for d in global_state['module'][q]:
@@ -5512,7 +5513,7 @@ class beacon0(_statusdaily):
     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
         if jibi > 0 and random.random() < 0.15:
             jibi *= 2
-            user.send_log(f"触发了插件——产率的效果，获得击毙加倍为{jibi}！")
+            user.send_log(f"触发了插件——产率的效果，获得击毙加倍为{jibi}{句尾}")
         return jibi,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -5524,7 +5525,7 @@ class beacon1(_statusdaily):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if status is iceshroom_s:
-            user.buf.send(f"插件——速度抵消了寒冰菇的效果！")
+            user.buf.send(f"插件——速度抵消了寒冰菇的效果{句尾}")
             return 0,
         return count,
     @classmethod
@@ -5539,7 +5540,7 @@ class beacon2(_statusdaily):
         if jibi < 0:
             d = ceil(-jibi / 10)
             jibi += d
-            user.send_log(f"触发了插件——节能的效果，失去击毙减少为{-jibi}！")
+            user.send_log(f"触发了插件——节能的效果，失去击毙减少为{-jibi}{句尾}")
         return jibi,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -5556,12 +5557,12 @@ class lab(_card):
     @classmethod
     async def use(cls, user: User) -> None:
         if t1 := me.check_limited_status('t', lambda c: c.qq == user.qq):
-            user.send_log("有火车，" + user.char + "的每辆火车获得了火车跳板！")
+            user.send_log("有火车，" + user.char + f"的每辆火车获得了火车跳板{句尾}")
             for tr in t1:
                 tr.if_def = True
             user.data.save_status_time()
         if (t2 := user.data.check_equipment(3) != 0):
-            user.send_log("的装备中有组装机，" + user.char + "获得了一张集装机械臂！")
+            user.send_log("的装备中有组装机，" + user.char + f"获得了一张集装机械臂{句尾}")
             await user.draw(0, cards=[stack_inserter])
         if (t3 := Card(203) in user.data.hand_card):
             q = str(user.qq)
@@ -5573,12 +5574,12 @@ class lab(_card):
                 c = str(m["id"] + 7)
                 await u.add_daily_status(c)
                 user.buf.send(Status(c).brief_des, end='')
-            user.buf.send('！')
+            user.buf.send(句尾)
         if t1 and t2 and t3:
-            user.send_log("获得了一张核弹！")
+            user.send_log(f"获得了一张核弹{句尾}")
             await user.draw(0, cards=[nuclear_bomb])
         if not (t1 or t2 or t3):
-            user.send_log("抽了一张factorio系列的牌！")
+            user.send_log(f"抽了一张factorio系列的牌{句尾}")
             await user.draw(1, extra_lambda=lambda c: c.id >= 200 and c.id < 210)
 
 class stack_inserter(_card):
@@ -5597,7 +5598,7 @@ class stack_inserter(_card):
             config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
             user.send_char('销毁了卡牌：\n' + card.full_description(user.qq))
             await user.remove_cards([card])
-            user.send_char(f"获得了{card.id // 5}击毙！")
+            user.send_char(f"获得了{card.id // 5}击毙{句尾}")
             await user.add_jibi(card.id // 5)
             if count := user.data.check_equipment(3):
                 old = assembling.get_card_limit(user.data.extra.assembling, count)
@@ -5605,7 +5606,7 @@ class stack_inserter(_card):
                 new = assembling.get_card_limit(user.data.extra.assembling, count)
                 user.log << f"增加了{card.id}的组装量，现有{user.data.extra.assembling}。"
                 if new > old:
-                    user.send_char(f"的组装机{count}型为你增加了{new - old}的手牌上限！")
+                    user.send_char(f"的组装机{count}型为你增加了{new - old}的手牌上限{句尾}")
 
 class nuclear_bomb(_card):
     id = -131073
@@ -5616,7 +5617,7 @@ class nuclear_bomb(_card):
     mass = 0.5
     @classmethod
     async def use(cls, user: User) -> None:
-        user.send_char("杀死了所有人！")
+        user.send_char(f"杀死了所有人{句尾}")
         qqs = [t['qq'] for t in config.userdata.execute("select qq from dragon_data where dead=false").fetchall()]
         for qq in qqs:
             await User(qq, user.buf).killed(user)
@@ -5633,11 +5634,11 @@ class flamethrower(_card):
     @classmethod
     async def on_draw(cls, user: User) -> None:
         if me.check_daily_status('i'):
-            user.send_char("摧毁了一个寒冰菇，获得了50击毙！" + user.char + "就是今天的英雄！")
+            user.send_char(f"摧毁了一个寒冰菇，获得了50击毙{句尾}" + user.char + f"就是今天的英雄{句尾}")
             Userme(user).remove_daily_status('i', remove_all=False)
             await user.add_jibi(50)
         else:
-            user.send_char("今天没有寒冰菇！" + user.char + "被击毙了！")
+            user.send_char(f"今天没有寒冰菇{句尾}" + user.char + f"被击毙了{句尾}")
             await user.death()
 
 class rocket(_card):
@@ -5650,7 +5651,7 @@ class rocket(_card):
     mass = 5
     @classmethod
     async def use(cls, user: User) -> None:
-        user.buf.send(f"恭喜{user.char}，今天{user.char}赢了！")
+        user.buf.send(f"恭喜{user.char}，今天{user.char}赢了{句尾}")
         await user.add_daily_status('W')
 
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
@@ -5736,7 +5737,7 @@ class bikini(_equipment):
     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
         if jibi > 0 and random.random() < 0.02 * count:
             jibi *= 2
-            user.send_log(f"触发了比基尼的效果，获得击毙加倍为{abs(jibi)}！")
+            user.send_log(f"触发了比基尼的效果，获得击毙加倍为{abs(jibi)}{句尾}")
         return jibi,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -5753,7 +5754,7 @@ class schoolsui(_equipment):
     async def OnJibiChange(cls, count: TCount, user: 'User', jibi: int, is_buy: bool) -> Tuple[int]:
         if jibi < 0 and random.random() < count / (20 + count):
             jibi = 0
-            user.send_log("触发了学生泳装的效果，本次免单！")
+            user.send_log(f"触发了学生泳装的效果，本次免单{句尾}")
         return jibi,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -5768,12 +5769,12 @@ class tarot(_equipment):
     @classmethod
     def can_use(cls, user: User, count: int) -> bool:
         return user.data.extra.tarot_time != 0
-    failure_message = "你今日使用次数已完！"
+    failure_message = "你今日使用次数已完" + 句尾
     @classmethod
     async def use(cls, user: User, count: int):
         if await user.choose():
             if user.data.extra.tarot_time == 0:
-                user.send_char("今日使用次数已完！")
+                user.send_char(f"今日使用次数已完{句尾}")
                 return
             h = f"{user.qq} {date.today().isoformat()}"
             state = random.getstate()
@@ -5824,7 +5825,7 @@ class assembling(_equipment):
         new = cls.get_card_limit(user.data.extra.assembling, count)
         user.log << f"增加了{s}的组装量，现有{user.data.extra.assembling}。"
         if new > old:
-            user.send_char(f"的组装机{count}型为你增加了{new - old}的手牌上限！")
+            user.send_char(f"的组装机{count}型为你增加了{new - old}的手牌上限{句尾}")
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.AfterCardDraw: (Priority.AfterCardDraw.assembling, cls)}
@@ -5850,12 +5851,12 @@ class dragon_head(_equipment):
                     elif value.startswith("放入"):
                         id = int(value[2:])
                         if id not in _card.card_id_dict or Card(id) not in user.data.hand_card:
-                            _raise_failure("此卡不在你的手牌中，请重新选择！")
+                            _raise_failure(f"此卡不在你的手牌中，请重新选择{句尾}")
                         return (0, id)
                     elif value.startswith("取出"):
                         id = int(value[2:])
                         if id not in user.data.dragon_head:
-                            _raise_failure("此卡不在龙首内，请重新选择！")
+                            _raise_failure(f"此卡不在龙首内，请重新选择{句尾}")
                         return (1, id)
                 except ValueError:
                     _raise_failure("请输入正确的卡牌id号。")
@@ -5870,7 +5871,7 @@ class dragon_head(_equipment):
                 return
             elif c[0] == 0:
                 if len(user.data.dragon_head) >= 2:
-                    user.send_char("龙首已满，无法放入！")
+                    user.send_char(f"龙首已满，无法放入{句尾}")
                     return
                 if c[1] == queststone.id:
                     user.data.dragon_head[c[1]] = user.data.quest_c
@@ -5880,7 +5881,7 @@ class dragon_head(_equipment):
                     user.data.dragon_head[c[1]] = user.data.steal
                 else:
                     user.data.dragon_head[c[1]] = None
-                user.send_log(f"将卡牌{Card(c[1]).name}放入了龙首！")
+                user.send_log(f"将卡牌{Card(c[1]).name}放入了龙首{句尾}")
                 await user.remove_cards([Card(c[1])])
             elif c[0] == 1:
                 data = user.data.dragon_head.pop(c[1])
@@ -5891,7 +5892,7 @@ class dragon_head(_equipment):
                 elif c[1] == lveduozhebopu.id:
                     if user.data.steal['time'] == 0:
                         user.data.steal = data
-                user.send_log(f"从龙首中取出了卡牌{Card(c[1]).name}！")
+                user.send_log(f"从龙首中取出了卡牌{Card(c[1]).name}{句尾}")
                 await user.add_card(Card(c[1]))
                 user.data.set_cards()
             save_global_state()
@@ -5973,7 +5974,7 @@ class Grid:
         else: # 随机获得10~30活动pt。
             user.send_log("走到了：随机获得10~30活动pt。")
             n = random.randint(10, 30)
-            user.send_log(f"获得了{n}pt！")
+            user.send_log(f"获得了{n}pt{句尾}")
             await user.add_event_pt(n)
         return 0
 class kuaizou_s(_statusnull):
@@ -6016,7 +6017,7 @@ class penhuo(DragonSkill):
     async def use(cls, user: User, branch: Tree):
         await user.damaged(100)
         if me.check_daily_status('i'):
-            user.buf.send("火焰解除了寒冰菇的效果！")
+            user.buf.send(f"火焰解除了寒冰菇的效果{句尾}")
             await Userme(me).remove_daily_status('i', remove_all=True)
 class yaoren(DragonSkill):
     id = 2
@@ -6059,7 +6060,7 @@ class konghe_s(_statusnull):
     @classmethod
     async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
         if isinstance(attack, Damage):
-            user.send_char("因被恐吓，造成伤害减半！")
+            user.send_char(f"因被恐吓，造成伤害减半{句尾}")
             await user.remove_status('H', remove_all=True)
             attack.damage //= 2 ** count
         return False,
@@ -6080,10 +6081,10 @@ class hudun_s(_statusnull):
     async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
         if isinstance(attack, Damage):
             if await c.pierce():
-                user.buf.send("护盾的效果被幻想杀手消除了！")
+                user.buf.send(f"护盾的效果被幻想杀手消除了{句尾}")
                 await user.remove_status('d', remove_all=True)
             else:
-                user.send_char("的闪避率增加了20%！")
+                user.send_char(f"的闪避率增加了20%{句尾}")
                 await user.remove_status('d', remove_all=False)
                 attack.dodge_rate += 0.2
         return False,
@@ -6104,7 +6105,7 @@ class AShihun(Attack):
         self.amount = amount
         super().__init__(attacker, defender)
     async def self_action(self):
-        self.defender.send_char(f"失去了{self.amount * self.multiplier}MP！")
+        self.defender.send_char(f"失去了{self.amount * self.multiplier}MP{句尾}")
         self.defender.data.extra.mp -= self.amount * self.multiplier
 class longwo(DragonSkill):
     id = 9
@@ -6126,11 +6127,11 @@ class SLongwo(NumedStatus):
             attack.damage -= to_def
             for i in count:
                 if i.num <= to_def:
-                    user.buf.send(f"幼龙承担了{i.num}的伤害！")
+                    user.buf.send(f"幼龙承担了{i.num}的伤害{句尾}")
                     to_def -= i.num
                     i.num = 0
                 else:
-                    user.buf.send(f"幼龙承担了{attack.damage}的伤害！")
+                    user.buf.send(f"幼龙承担了{attack.damage}的伤害{句尾}")
                     i.num -= to_def
                     to_def = 0
                     break
@@ -6139,7 +6140,7 @@ class SLongwo(NumedStatus):
     @classmethod
     async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
         if isinstance(attack, Damage):
-            user.buf.send("幼龙为龙增加了50%的攻击！")
+            user.buf.send(f"幼龙为龙增加了50%的攻击{句尾}")
             attack.damage = attack.damage * 3 // 2
         return False,
     @classmethod
@@ -6165,9 +6166,9 @@ class longhukaying(DragonSkill):
     async def use(cls, user: User, branch: Tree):
         dr = dragon(user)
         sk1, sk2 = draw_skill(dr), draw_skill(dr)
-        dr.send_log(f"抽到了技能{sk1.brief_description()}与{sk2.brief_description()}！")
+        dr.send_log(f"抽到了技能{sk1.brief_description()}与{sk2.brief_description()}{句尾}")
         sk = GetSkill(max(sk1.id, sk2.id))
-        dr.send_log(f"使用了技能{sk.full_description()}！")
+        dr.send_log(f"使用了技能{sk.full_description()}{句尾}")
         await sk.use(user)
 class canbaolizhua(DragonSkill):
     id = 12
@@ -6192,27 +6193,27 @@ class kongzhongcanting_s(_statusnull):
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if random.random() < 0.1:
             if len(user.check_limited_status('d')) != 0:
-                user.send_log("你被“空中餐厅「逻辑」”复活了，失去了25击毙！")
+                user.send_log(f"你被“空中餐厅「逻辑」”复活了，失去了25击毙{句尾}")
                 await user.remove_all_limited_status('d')
                 await user.add_jibi(-25)
                 await Userme(user).remove_status('"', remove_all=False)
             elif user.data.extra.hp != user.data.extra.hp_max:
                 lose = ceil(user.data.extra.hp_max - user.data.extra.hp / 20)
-                user.send_log(f"你被“空中餐厅「逻辑」”回满了血量，失去了{lose}击毙！")
+                user.send_log(f"你被“空中餐厅「逻辑」”回满了血量，失去了{lose}击毙{句尾}")
                 user.data.extra.hp = user.data.extra.hp_max
                 await user.add_jibi(-lose)
                 await Userme(user).remove_status('"', remove_all=False)
     @classmethod
     async def OnDuplicatedWord(cls, count: TCount, user: 'User', word: str) -> Tuple[bool]:
         if random.random() < 0.1 and len(user.check_limited_status('d')) != 0:
-            user.send_log("你被“空中餐厅「逻辑」”复活了，失去了25击毙！")
+            user.send_log(f"你被“空中餐厅「逻辑」”复活了，失去了25击毙{句尾}")
             await user.remove_all_limited_status('d')
             await user.add_jibi(-25)
             await Userme(user).remove_status('"', remove_all=False)
     @classmethod
     async def OnBombed(cls, count: TCount, user: 'User', word: str) -> Tuple[bool]:
         if random.random() < 0.1 and len(user.check_limited_status('d')) != 0:
-            user.send_log("你被“空中餐厅「逻辑」”复活了，失去了25击毙！")
+            user.send_log(f"你被“空中餐厅「逻辑」”复活了，失去了25击毙{句尾}")
             await user.remove_all_limited_status('d')
             await user.add_jibi(-25)
             await Userme(user).remove_status('"', remove_all=False)
@@ -6231,7 +6232,7 @@ class huoyanxuanwo(DragonSkill):
         for qq in set(qqs):
             await User(qq, user.buf).damaged(100)
         if me.check_daily_status('i'):
-            user.buf.send("火焰解除了寒冰菇的效果！")
+            user.buf.send(f"火焰解除了寒冰菇的效果{句尾}")
             await Userme(me).remove_daily_status('i', remove_all=True)
 class xujiadexiwang(DragonSkill):
     id = 15
@@ -6240,7 +6241,7 @@ class xujiadexiwang(DragonSkill):
     @classmethod
     async def use(cls, user: User, branch: Tree):
         dmg = user.data.extra.hp_max - user.data.extra.hp
-        user.send_log(f"回复了{dmg}的血量！")
+        user.send_log(f"回复了{dmg}的血量{句尾}")
         qqs = {user.qq}
         id = branch.id
         for i, j in itertools.product(range(-3, 4), range(-3, 4)):
@@ -6257,10 +6258,10 @@ class qiangduo(DragonSkill):
     @classmethod
     async def use(cls, user: User, branch: Tree):
         if len(user.data.hand_card) == 0:
-            user.send_log("没有手牌！")
+            user.send_log(f"没有手牌{句尾}")
             return
         card = random.choice(user.data.hand_card)
-        user.send_log(f"失去了卡牌：{card.brief_description(user.qq)}！")
+        user.send_log(f"失去了卡牌：{card.brief_description(user.qq)}{句尾}")
         await user.remove_cards([card])
         if card.positive == 1:
             await user.damaged(200)
@@ -6271,22 +6272,22 @@ class qumo(DragonSkill):
     @classmethod
     async def use(cls, user: User, branch: Tree):
         if (l := len(user.data.status) + len(user.data.daily_status) + len(user.data.status_time_checked)) == 0:
-            user.send_log("没有状态！")
+            user.send_log(f"没有状态{句尾}")
             return
         i = random.randint(0, l - 1)
         if i <= len(user.data.status):
             st = StatusNull(user.data.status[i])
-            user.send_log(f"失去了状态：{st.brief_des}！")
+            user.send_log(f"失去了状态：{st.brief_des}{句尾}")
             await user.remove_status(user.data.status[i])
         elif i <= len(user.data.daily_status):
             i -= len(user.data.status)
             st = StatusDaily(user.data.daily_status[i])
-            user.send_log(f"失去了状态：{st.brief_des}！")
+            user.send_log(f"失去了状态：{st.brief_des}{句尾}")
             await user.remove_daily_status(user.data.daily_status[i])
         else:
             i -= len(user.data.status) + len(user.data.daily_status)
             st = user.data.status_time[i]
-            user.send_log(f"失去了状态：{st.brief_des}！")
+            user.send_log(f"失去了状态：{st.brief_des}{句尾}")
             await user.remove_limited_status(st)
         if not st.is_debuff:
             await user.damaged(100)
@@ -6321,7 +6322,7 @@ class bingo_checker(IEventListener):
         n2 = cls.check_complete_line()
         if (n1, n2) in ((0, 1), (7, 8)):
             active_user = user if user.buf.active == -1 else User(user.buf.active, user.buf)
-            active_user.send_char(f"完成了{n2}行bingo，奖励{active_user.char}一张超新星！")
+            active_user.send_char(f"完成了{n2}行bingo，奖励{active_user.char}一张超新星{句尾}")
             await active_user.draw(0, cards=[Card(-65537)])
         user.buf.end(cls.print())
     @classmethod
@@ -6330,28 +6331,28 @@ class bingo_checker(IEventListener):
             if id not in global_state["bingo_state"] and i == 0:
                 _, name, func = mission[j]
                 if func(branch.word):
-                    user.buf.send(f"Bingo！{user.char}完成了接龙任务：{name[:-1]}！")
+                    user.buf.send(f"Bingo！{user.char}完成了接龙任务：{name[:-1]}{句尾}")
                     user.log << f"完成了一次bingo任务{name}"
                     await cls.complete(id, user)
     @classmethod
     async def AfterCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[()]:
         for id, (i, j) in enumerate(bingo_id):
             if id not in global_state["bingo_state"] and i == 1 and j <= card.id < j + 40:
-                user.buf.send(f"Bingo！{user.char}完成了任务：使用一张{j}~{j+39}的卡！")
+                user.buf.send(f"Bingo！{user.char}完成了任务：使用一张{j}~{j+39}的卡{句尾}")
                 user.log << f"完成了一次bingo任务：使用一张{j}~{j+39}的卡。"
                 await cls.complete(id, user)
     @classmethod
     async def AfterCardDraw(cls, count: TCount, user: 'User', cards: Iterable[TCard]) -> Tuple[()]:
         for id, (i, j) in enumerate(bingo_id):
             if id not in global_state["bingo_state"] and i == 2 and any(j <= c.id < j + 80 for c in cards):
-                user.buf.send(f"Bingo！{user.char}完成了任务：摸一张{j}~{j+79}的卡！")
+                user.buf.send(f"Bingo！{user.char}完成了任务：摸一张{j}~{j+79}的卡{句尾}")
                 user.log << f"完成了一次bingo任务：摸一张{j}~{j+79}的卡。"
                 await cls.complete(id, user)
     @classmethod
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
         for id, (i, j) in enumerate(bingo_id):
             if id not in global_state["bingo_state"] and i == 3:
-                user.buf.send(f"Bingo！{user.char}完成了任务：有人死亡！")
+                user.buf.send(f"Bingo！{user.char}完成了任务：有人死亡{句尾}")
                 user.log << f"完成了一次bingo任务：有人死亡。"
                 await cls.complete(id, user)
         return time, False
@@ -6360,7 +6361,7 @@ class bingo_checker(IEventListener):
         if jibi < 0:
             for id, (i, j) in enumerate(bingo_id):
                 if id not in global_state["bingo_state"] and i == 4:
-                    user.buf.send(f"Bingo！{user.char}完成了任务：花费或扣除击毙！")
+                    user.buf.send(f"Bingo！{user.char}完成了任务：花费或扣除击毙{句尾}")
                     user.log << f"完成了一次bingo任务：花费或扣除击毙。"
                     await cls.complete(id, user)
         return jibi,
@@ -6369,7 +6370,7 @@ class bingo_checker(IEventListener):
         if not isinstance(status, SDeath):
             for id, (i, j) in enumerate(bingo_id):
                 if id not in global_state["bingo_state"] and i == 5:
-                    user.buf.send(f"Bingo！{user.char}完成了任务：添加一个非死亡状态！")
+                    user.buf.send(f"Bingo！{user.char}完成了任务：添加一个非死亡状态{句尾}")
                     user.log << f"完成了一次bingo任务：添加一个非死亡状态。"
                     await cls.complete(id, user)
         return count,
