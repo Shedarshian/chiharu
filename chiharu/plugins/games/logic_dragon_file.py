@@ -5569,7 +5569,7 @@ class lab(_card):
             l = global_state["module"][q]
             u = Userme(user)
             user.send_log("的装备中有插件分享塔，" + user.char + "增加了全局状态：", end='')
-            config.logger.dragon << ",".join(m['id'] for m in l)
+            config.logger.dragon << ",".join(str(m['id']) for m in l)
             for m in l:
                 c = str(m["id"] + 7)
                 await u.add_daily_status(c)
