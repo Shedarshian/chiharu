@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 import functools, re
+from copy import copy
 from typing import Callable, TypedDict, List, Dict, TypeVar, Generic, Awaitable, Any, Tuple, Optional
 from enum import IntEnum, IntFlag, auto
 from dataclasses import dataclass
@@ -62,7 +63,7 @@ def async_data_saved(f: Callable):
 
 class CountWaiter:
     def __add__(self, var):
-        return var
+        return copy(var)
 
 T = TypeVar('T')
 TCount = TypeVar('TCount')
