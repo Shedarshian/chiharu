@@ -574,7 +574,7 @@ class UserData:
         self._register(s, to_add=count)
     def _register(self, eln: 'IEventListener', to_add=1):
         for key, (priority, el) in eln.register().items():
-            self.event_listener[key][priority][el] += to_add
+            self.event_listener[key][priority][el] += copy(to_add)
     def _deregister_card(self, c: TCard, /, is_all=False):
         self._deregister(c, is_all=is_all)
     def _deregister_status(self, s: Union[T_statusdaily, T_statusnull], /, is_all=False):
