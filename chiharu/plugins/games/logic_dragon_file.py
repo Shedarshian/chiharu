@@ -4553,7 +4553,7 @@ class Sexplore(NumedStatus):
                         user.send_log(f"移除了{sdes[:sdes.index('：')]}。")
                         await Userme(user).remove_daily_status(ss[1])
                     elif ss[0] == 2 and (gl := 
-                            Userme(user).check_limited_status((sl := eval(ss[2]).id), lambda c: repr(c) == ss[2])):
+                            Userme(user).check_limited_status((sl := eval(ss[1]).id), lambda c: repr(c) == ss[1])):
                         sdes = gl[0].des
                         user.send_log(f"移除了{sdes[:sdes.index('：')]}。")
                         await Userme(user).remove_limited_status(gl[0])
