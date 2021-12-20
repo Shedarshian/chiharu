@@ -3955,28 +3955,22 @@ class sunflower_s(_statusnull):
     des = "向日葵：跨日结算时你获得1击毙。此buff最多叠加10层。"
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
-        user.buf.send(f"玩家{user.qq}种下的向日葵产出了{count}击毙{句尾}")
-        await user.add_jibi(count)
-    @classmethod
-    async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
-        if status is sunflower_s or status is twinsunflower_s:
-            num = count + user.check_status(')')
-            if num >= 10:
-                user.send_log(f"的向日葵已经种满了10株，种植失败{句尾}")
-                return 0,
-            return min(count2, 10 - num),
-        return count2,
+        s = user.check_status(')')
+        to_add = max(0, min(count + s, 10) - s)
+        user.buf.send(f"玩家{user.qq}种下的向日葵产出了{to_add}击毙{句尾}")
+        await user.add_jibi(to_add)
     @classmethod
     def register(cls) -> dict[int, TEvent]:
-        return {UserEvt.OnNewDay: (Priority.OnNewDay.sunflower, cls),
-            UserEvt.OnStatusAdd: (Priority.OnStatusAdd.sunflower, cls)}
+        return {UserEvt.OnNewDay: (Priority.OnNewDay.sunflower, cls)}
 class inv_sunflower_s(_statusnull):
     id = '['
     des = "背日葵：跨日结算时你损失1击毙。"
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
-        user.buf.send(f"玩家{user.qq}种下的背日葵使其损失了{count}击毙{句尾}")
-        await user.add_jibi(-count)
+        s = user.check_status(']')
+        to_add = max(0, min(count + s, 10) - s)
+        user.buf.send(f"玩家{user.qq}种下的背日葵使其损失了{to_add}击毙{句尾}")
+        await user.add_jibi(-to_add)
         n = 0
         for i in range(count):
             if random.random() > 0.5:
@@ -4106,28 +4100,18 @@ class twinsunflower_s(_statusnull):
     des = "双子向日葵：跨日结算时你获得2击毙。此buff与“向日葵”buff加在一起最多叠加10层。"
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
-        user.buf.send(f"玩家{user.qq}种下的双子向日葵产出了{2 * count}击毙{句尾}")
-        await user.add_jibi(2 * count)
-    @classmethod
-    async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
-        if status is sunflower_s or status is twinsunflower_s:
-            num = count + user.check_status('(')
-            if num >= 10:
-                user.send_log(f"的向日葵已经种满了10株，种植失败{句尾}")
-                return 0,
-            return min(count2, 10 - num),
-        return count2,
+        user.buf.send(f"玩家{user.qq}种下的双子向日葵产出了{2 * min(count, 10)}击毙{句尾}")
+        await user.add_jibi(2 * min(count, 10))
     @classmethod
     def register(cls) -> dict[int, TEvent]:
-        return {UserEvt.OnNewDay: (Priority.OnNewDay.twinsunflower, cls),
-            UserEvt.OnStatusAdd: (Priority.OnStatusAdd.twinsunflower, cls)}
+        return {UserEvt.OnNewDay: (Priority.OnNewDay.twinsunflower, cls)}
 class inv_twinsunflower_s(_statusnull):
     id = ']'
     des = "双子背日葵：跨日结算时你损失2击毙。"
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
-        user.buf.send(f"玩家{user.qq}种下的双子背日葵使其损失了{2 * count}击毙{句尾}")
-        await user.add_jibi(-2 * count)
+        user.buf.send(f"玩家{user.qq}种下的双子背日葵使其损失了{2 * min(count, 10)}击毙{句尾}")
+        await user.add_jibi(-2 * min(count, 10))
         n = 0
         for i in range(count):
             if random.random() > 0.5:
