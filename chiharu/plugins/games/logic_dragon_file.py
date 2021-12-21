@@ -5177,21 +5177,21 @@ class bloom(_card):
     id = 157
     name = "绽放"
     positive = 1
-    description = "摸13张牌，然后弃牌至3张。（特别的，可以弃置空白卡牌）"
+    description = "摸13张牌，然后弃牌至max(4,手牌上限-6)张。（特别的，可以弃置空白卡牌）"
     newer = 5
     @classmethod
     async def use(cls, user: User) -> None:
         await user.draw(13)
-        if len(user.data.hand_card) > 3:
-            x = len(user.data.hand_card) - 3
+        if len(user.data.hand_card) > max(4, user.data.card_limit - 6):
+            x = len(user.data.hand_card) - max(4, user.data.card_limit - 6)
             if not await user.choose():
                 random.shuffle(user.data.hand_card)
                 user.data.set_cards()
                 user.send_char(f"随机弃置了{x}张牌{句尾}")
-                user.log << f"预计手牌为{[c.name for c in user.data.hand_card[:3]]}"
-                await user.discard_cards(user.data.hand_card[3:])
+                user.log << f"预计手牌为{[c.name for c in user.data.hand_card[:max(4, user.data.card_limit - 6)]]}"
+                await user.discard_cards(user.data.hand_card[max(4, user.data.card_limit - 6):])
             else:
-                async with user.choose_cards(f"请选择{len(user.data.hand_card) - 3}牌弃置（输入id号，使用空格分隔）：", x, x) as l:
+                async with user.choose_cards(f"请选择{x}牌弃置（输入id号，使用空格分隔）：", x, x) as l:
                     user.buf.send("成功弃置。")
                     await user.discard_cards([Card(i) for i in l])
 
