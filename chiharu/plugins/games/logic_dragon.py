@@ -50,7 +50,7 @@ with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         current_event = "mid-autumn"
     del d
 
-from .logic_dragon_file import Equipment, Priority, TCounter, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check, _statusnull, _statusdaily, Status, TModule, _equipment, DragonState
+from .logic_dragon_file import Equipment, Priority, TCounter, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check, _statusnull, _statusdaily, Status, TModule, _equipment, DragonState, MajOneHai
 from . import logic_dragon_file
 
 # log
@@ -655,6 +655,7 @@ async def dragon_check(buf: SessionBuffer):
     详细手牌/full_hand_cards：查询自己当前详细手牌。
     装备/equipments：查询自己当前装备。
     任务/quest：查询自己手牌中的任务之石的任务。
+    麻将/maj：查询自己的麻将。
     击毙/jibi：查询自己的击毙数。
     商店/shop：查询可购买项目。
     bingo：查询bingo活动进度。"""
@@ -740,6 +741,9 @@ async def dragon_check(buf: SessionBuffer):
             buf.finish(f"你目前没有状态{句尾}")
         else:
             buf.finish("你的状态为：\n" + ret)
+    elif data in ("麻将", 'maj'):
+        ret = MajOneHai.draw_maj(user.data.maj[0], user.data.maj[1])
+        buf.finish("你手中的麻将为：\n" + ret)
     elif data in ("活动词", "active"):
         words = Tree.get_active()
         m = user.check_daily_status('m')
