@@ -1160,16 +1160,10 @@ async def dragon_op(session: CommandSession):
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_test(session: CommandSession):
     buf = SessionBuffer(session)
-    for r in [1569603950, 1469335215, 1440962524, 3068954061, 1198645569]:
-        u = User(r, buf)
-        await u.remove_all_limited_status('W')
-        if r == 1440962524:
-            await u.add_limited_status(Status('W')([]))
-            await u.add_limited_status(Status('W')([]))
-        await u.add_limited_status(Status('W')([]))
-        u.data.save_status_time()
-    for r in [1569603950]:
-        u = User(r, buf)
-        await u.add_limited_status(Status('X')([]))
-        u.data.save_status_time()
+    for t in config.userdata.execute("select qq from dragon_data where card like '%40%' or card like '%41%' or card like '%42%' or card like '%43%' or card like '%44%'").fetchall():
+        u = User(t['qq'], buf)
+        while Card(44) in u.data.hand_card:
+            u.data.hand_card.remove(Card(44))
+            u.data.hand_card.append(Card(29))
+        u.data.hand_card = list(s for s in u.data.hand_card if s.id < 40 or s.id > 43)
     save_data()

@@ -538,10 +538,10 @@ class UserData:
         self.status_time: List[T_status] = property_list(partial(save, 'status_time'), [])
         self.status_time.data = eval(self.node['status_time'])
         if self.node['maj'] is None:
-            self.maj: Tuple[List[int], Tuple[int]] = ([MajOneHai.get_random() for i in range(13)],)
+            self.maj: Tuple[List[int], List[int]] = (sorted(MajOneHai.get_random() for i in range(13)), [])
             self.save_maj()
         else:
-            self.maj: Tuple[List[int], Tuple[int]] = eval(self.node['maj']) # ([1, 2, 3], (4,))
+            self.maj: Tuple[List[int], List[int]] = eval(self.node['maj']) # ([1, 2, 3], [4])
         self.equipment: Dict[int, int] = property_dict(partial(save, 'equipment'), {})
         self.equipment.data = eval(self.node['equipment'])
         def save2(value):
@@ -1354,11 +1354,26 @@ class User:
         if not await self.choose():
             return
         to_draw = MajOneHai(MajOneHai.get_random())
-        # TODO 获取能否立直/能否暗杠/能否和出
-        hand_maj = [MajOneHai(s) for s in self.data.maj[0]]
+        hand_maj = [MajOneHai(s) for s in self.data.maj[0]] # assume sorted
+        t = MajOneHai.ten(hand_maj)
+        huchu = to_draw.id in t
         richi = []
-        ankan = []
-        huchu = False
+        if not self.data.if_richi:
+            for i in range(len(hand_maj)):
+                if huchu or len(MajOneHai.ten(hand_maj[:i] + hand_maj[i+1:] + [to_draw])) != 0:
+                    if richi[-1] != hand_maj[i]:
+                        richi.append(hand_maj[i])
+        c = Counter(h.id for h in hand_maj + [to_draw])
+        ankan = [MajOneHai(i) for i, d in c.items() if d >= 4]
+        if self.data.if_richi:
+            if to_draw not in ankan:
+                ankan = []
+            else:
+                m = copy(hand_maj)
+                for i in range(3):
+                    m.remove(to_draw)
+                if MajOneHai.ten(m).keys() == t.keys():
+                    ankan = [to_draw]
         choose = -1 # 0: 切牌 1: 立直 2: 暗杠 3: 和出
         names = ["切牌", "立直", "暗杠", "和出"]
         if self.data.if_richi:
@@ -1374,9 +1389,9 @@ class User:
             to_choose = to_draw
         else:
             if self.data.if_richi:
-                prompt = "你现在的牌是：\n\n请选择切摸到的牌，或是：" # TODO
+                prompt = f"你现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n请选择切摸到的牌，或是："
             else:
-                prompt = "你现在的牌是：\n\n请选择一张牌切牌，或是：" # TODO
+                prompt = f"你现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n请选择一张牌切牌，或是："
             for i in range(1, 3):
                 if len(can_choose[i]) != 0:
                     prompt += f"\n{names[i]}：" + ' '.join(str(s) for s in can_choose[i])
@@ -1426,18 +1441,21 @@ class User:
         hand_maj.remove(to_choose)
         hand_maj.sort()
         if choose == 0:
-            self.send_log(f"切出了{str(to_choose)}，手中麻将为：") # TODO
-            self.data.maj = ([s.hai for s in hand_maj],) + self.data.maj[1:]
+            self.send_log(f"切出了{str(to_choose)}，手中麻将为：")
         elif choose == 1:
-            self.send_log(f"切出了{str(to_choose)}立直，手中麻将为：") # TODO
+            self.send_log(f"切出了{str(to_choose)}立直，手中麻将为：")
             self.data.if_richi = True
-            self.data.maj = ([s.hai for s in hand_maj],) + self.data.maj[1:]
         elif choose == 2:
             hand_maj.remove(to_choose)
             hand_maj.remove(to_choose)
             hand_maj.remove(to_choose)
-            self.send_log(f"暗杠了{str(to_choose)}{句尾}") # TODO
-            self.data.maj = ([s.hai for s in hand_maj],) + self.data.maj[1:] + (to_choose.hai,)
+            self.data.maj[1].append(to_choose.hai)
+            self.send_log(f"暗杠了{str(to_choose)}{句尾}，手中麻将为：")
+        self.buf.send(MajOneHai.draw_maj(hand_maj, self.data.maj[1]))
+        self.log << ''.join(str(h) for h in hand_maj) << ' ' << ''.join(str(h) for h in self.data.maj[1])
+        self.data.maj = ([s.hai for s in hand_maj], self.data.maj[1])
+        self.data.save_maj()
+        if choose == 2:
             await self.draw_maj()
 
 Userme: Callable[[User], User] = lambda user: User(config.selfqq, user.buf)
@@ -2399,6 +2417,17 @@ class world(_card):
 class world_s(_statusdaily):
     id = 's'
     des = "XXI - 世界：除大病一场外，所有“直到跨日为止”的效果延长至明天。"
+
+class randommaj(_card):
+    id = 29
+    name = "扣置的麻将"
+    positive = 0
+    mass = 0.25
+    description = "摸一张随机麻将牌，选择切牌/立直/暗杠/和出，然后抽一张卡。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        await user.draw_maj()
+        await user.draw(1)
 
 class dabingyichang(_card):
     name = "大病一场"

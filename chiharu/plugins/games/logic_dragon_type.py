@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 import functools, re
 from copy import copy
-from typing import Callable, TypedDict, List, Dict, TypeVar, Generic, Awaitable, Any, Tuple, Optional
+from typing import Callable, Iterable, TypedDict, List, Dict, TypeVar, Generic, Awaitable, Any, Tuple, Optional
 from enum import IntEnum, IntFlag, auto
 from dataclasses import dataclass
 from nonebot.command import CommandSession
@@ -476,3 +476,8 @@ class MajOneHai(MajHai):
                 else:
                     ten[key] = val
         return ten
+    @staticmethod
+    def draw_maj(tehai: 'List[MajOneHai]',
+            ankan: Optional[Iterable['MajOneHai']] = (),
+            to_draw: Optional['MajOneHai'] = None) -> str:
+        return ('' if len(ankan) == 0 else ' '.join(str(h) * 4 for h in ankan)) + ''.join(str(h) for h in tehai) + ('' if to_draw is None else ' ' + str(to_draw))

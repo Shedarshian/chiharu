@@ -122,7 +122,7 @@ class MajHai:
     ZI_MAX = 7
     COLOR = 3
     def __init__(self, id: Union[int, str]):
-        if type(id) == int:
+        if isinstance(id, int):
             if not (id >= 0 and id < self.SAME * (self.MAX * self.COLOR + self.ZI_MAX)):
                 raise MajIdError(id)
             self.id = id
@@ -130,7 +130,7 @@ class MajHai:
             self.num = self.hai % self.MAX
             self.color = self.hai // self.MAX # 0: m, 1: p, 2: s, 3: z
             self.barrel = self.color if self.color != self.COLOR else self.num + self.color
-        elif type(id) == str:
+        elif isinstance(id, str):
             if not (len(id) == 2 and id[0] in '0123456789' and id[1] in 'mpsz'):
                 raise MajIdError(id)
             self.num = int(id[0]) - 1
