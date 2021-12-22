@@ -1389,9 +1389,9 @@ class User:
             to_choose = to_draw
         else:
             if self.data.if_richi:
-                prompt = f"你现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n请选择切摸到的牌，或是："
+                prompt = f"你摸到了{str(to_draw)}！你现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n请选择切摸到的牌，或是："
             else:
-                prompt = f"你现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n请选择一张牌切牌，或是："
+                prompt = f"你摸到了{str(to_draw)}！你现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n请选择一张牌切牌，或是："
             for i in range(1, 3):
                 if len(can_choose[i]) != 0:
                     prompt += f"\n{names[i]}：" + ' '.join(str(s) for s in can_choose[i])
@@ -1412,13 +1412,18 @@ class User:
                     _raise_failure("请选择一个可执行的操作。")
                 except MajIdError:
                     _raise_failure("请输入正确的麻将牌。")
+            await self.buf.flush()
             choose, to_choose = await self.buf.aget(prompt=prompt, arg_filters=[
                 extractors.extract_text,
                 check_handcard(self),
                 check
             ])
         if to_choose is None:
-            prompt = f"你现在的牌是：\n\n请选择一张牌{names[choose]}：" + ' '.join(str(s) for s in can_choose[choose]) # TODO
+            prompt = f"你现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n"
+            if choose == 0:
+                prompt += "请选择一张牌切牌。"
+            else:
+                prompt += f"请选择一张牌{names[choose]}：" + ' '.join(str(s) for s in can_choose[choose])
             def check2(value: str):
                 try:
                     i = choose
