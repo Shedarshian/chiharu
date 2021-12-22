@@ -720,7 +720,7 @@ class UserData:
         return bool(self.node['flags'] & 1)
     @if_richi.setter
     def if_richi(self, value):
-        self.node['flags'] = self.node['flags'] & ~1 + int(bool(value)) * 1
+        self.node['flags'] = (self.node['flags'] & ~1) + int(bool(value)) * 1
         config.userdata.execute("update dragon_data set flags=? where qq=?", (self.node['flags'], self.qq))
     @property
     def status_time_checked(self):
@@ -1350,20 +1350,22 @@ class User:
             attacker = dragon(self)
         atk = Damage(attacker, self, damage, must_hit=must_hit)
         await self.attacked(attacker, atk)
-    async def draw_maj(self):
+    async def draw_maj(self, to_draw=None):
         if not await self.choose():
             return
-        to_draw = MajOneHai(MajOneHai.get_random())
+        if to_draw is None:
+            to_draw = MajOneHai(MajOneHai.get_random())
+        self.log << f"摸到了{str(to_draw)}"
         hand_maj = [MajOneHai(s) for s in self.data.maj[0]] # assume sorted
         t = MajOneHai.ten(hand_maj)
-        huchu = to_draw.id in t
+        huchu = to_draw.hai in t
         richi = []
         if not self.data.if_richi:
             for i in range(len(hand_maj)):
                 if huchu or len(MajOneHai.ten(hand_maj[:i] + hand_maj[i+1:] + [to_draw])) != 0:
-                    if richi[-1] != hand_maj[i]:
+                    if len(richi) == 0 or richi[-1] != hand_maj[i]:
                         richi.append(hand_maj[i])
-        c = Counter(h.id for h in hand_maj + [to_draw])
+        c = Counter(h.hai for h in hand_maj + [to_draw])
         ankan = [MajOneHai(i) for i, d in c.items() if d >= 4]
         if self.data.if_richi:
             if to_draw not in ankan:
@@ -1382,6 +1384,7 @@ class User:
             can_choose = [hand_maj + [to_draw], richi, ankan, huchu]
         to_choose = None
         from nonebot.command.argfilter.validators import _raise_failure
+        self.send_char(f"摸到了{str(to_draw)}{句尾}{self.char}现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}")
         if len(richi) == 0 and len(ankan) == 0 and not huchu:
             choose = 0
         elif self.data.if_richi and not huchu:
@@ -1389,9 +1392,9 @@ class User:
             to_choose = to_draw
         else:
             if self.data.if_richi:
-                prompt = f"你摸到了{str(to_draw)}！你现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n请选择切摸到的牌，或是："
+                prompt = f"请选择切摸到的牌，或是："
             else:
-                prompt = f"你摸到了{str(to_draw)}！你现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n请选择一张牌切牌，或是："
+                prompt = f"请选择一张牌切牌，或是："
             for i in range(1, 3):
                 if len(can_choose[i]) != 0:
                     prompt += f"\n{names[i]}：" + ' '.join(str(s) for s in can_choose[i])
@@ -1419,49 +1422,55 @@ class User:
                 check
             ])
         if to_choose is None:
-            prompt = f"你现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n"
-            if choose == 0:
-                prompt += "请选择一张牌切牌。"
+            if len(can_choose[choose]) == 1:
+                self.buf.send("你摸切了这张牌。")
+                to_choose = to_draw
             else:
-                prompt += f"请选择一张牌{names[choose]}：" + ' '.join(str(s) for s in can_choose[choose])
-            def check2(value: str):
-                try:
-                    i = choose
-                    maj = MajOneHai(value.strip())
-                    if maj not in can_choose[i]:
-                        _raise_failure(["请选择手牌中的一张牌切出。", "请选择可立直的牌。", "请选择可暗杠的牌。"][i])
-                    return maj
-                except MajIdError:
-                    _raise_failure("请输入正确的麻将牌。")
-            to_choose = await self.buf.aget(prompt=prompt, arg_filters=[
-                extractors.extract_text,
-                check_handcard(self),
-                check2
-            ])
+                if choose == 0:
+                    prompt += "请选择一张牌切牌。"
+                else:
+                    prompt += f"请选择一张牌{names[choose]}：" + ' '.join(str(s) for s in can_choose[choose])
+                def check2(value: str):
+                    try:
+                        i = choose
+                        maj = MajOneHai(value.strip())
+                        if maj not in can_choose[i]:
+                            _raise_failure(["请选择手牌中的一张牌切出。", "请选择可立直的牌。", "请选择可暗杠的牌。"][i])
+                        return maj
+                    except MajIdError:
+                        _raise_failure("请输入正确的麻将牌。")
+                await self.buf.flush()
+                to_choose = await self.buf.aget(prompt=prompt, arg_filters=[
+                    extractors.extract_text,
+                    check_handcard(self),
+                    check2
+                ])
         # do things
         if choose == 3:
             self.send_log(f"和了{句尾}") # TODO
             pass
-        hand_maj.append(to_draw)
-        hand_maj.remove(to_choose)
-        hand_maj.sort()
-        if choose == 0:
-            self.send_log(f"切出了{str(to_choose)}，手中麻将为：")
-        elif choose == 1:
-            self.send_log(f"切出了{str(to_choose)}立直，手中麻将为：")
-            self.data.if_richi = True
-        elif choose == 2:
+            self.data.maj = (sorted(MajOneHai.get_random() for i in range(13)), [])
+        else:
+            hand_maj.append(to_draw)
             hand_maj.remove(to_choose)
-            hand_maj.remove(to_choose)
-            hand_maj.remove(to_choose)
-            self.data.maj[1].append(to_choose.hai)
-            self.send_log(f"暗杠了{str(to_choose)}{句尾}，手中麻将为：")
-        self.buf.send(MajOneHai.draw_maj(hand_maj, self.data.maj[1]))
-        self.log << ''.join(str(h) for h in hand_maj) + ' ' + ''.join(str(h) for h in self.data.maj[1])
-        self.data.maj = ([s.hai for s in hand_maj], self.data.maj[1])
-        self.data.save_maj()
-        if choose == 2:
-            await self.draw_maj()
+            hand_maj.sort()
+            if choose == 0:
+                self.send_log(f"切出了{str(to_choose)}，手中麻将为：")
+            elif choose == 1:
+                self.send_log(f"切出了{str(to_choose)}立直，手中麻将为：")
+                self.data.if_richi = True
+            elif choose == 2:
+                hand_maj.remove(to_choose)
+                hand_maj.remove(to_choose)
+                hand_maj.remove(to_choose)
+                self.data.maj[1].append(to_choose.hai)
+                self.send_log(f"暗杠了{str(to_choose)}{句尾}，手中麻将为：")
+            self.buf.send(MajOneHai.draw_maj(hand_maj, self.data.maj[1]))
+            self.log << ''.join(str(h) for h in hand_maj) + ' ' + ''.join(str(h) for h in self.data.maj[1])
+            self.data.maj = ([s.hai for s in hand_maj], self.data.maj[1])
+            self.data.save_maj()
+            if choose == 2:
+                await self.draw_maj()
 
 Userme: Callable[[User], User] = lambda user: User(config.selfqq, user.buf)
 

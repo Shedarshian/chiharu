@@ -1170,4 +1170,5 @@ async def dragon_test(session: CommandSession):
             u.data.hand_card.remove(Card(44))
             u.data.hand_card.append(Card(95))
         u.data.hand_card = list(s for s in u.data.hand_card if s.id < 40 or s.id > 46)
+        u.data.set_cards()
     save_data()

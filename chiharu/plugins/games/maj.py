@@ -271,7 +271,7 @@ class MajHai:
                 result = tuple(_(val)) + ((val[0], val[0]),)
                 results[val[0] + 27] = [r + [(key, result)] for r in result_nonten]
         else:
-            key1, val1, key2, val2 = itertools.chain(mod2_barrel)
+            key1, val1, key2, val2 = itertools.chain(*mod2_barrel)
             for k1, t1, k2, t2 in ((key1, val1, key2, val2), (key2, val2, key1, val1)):
                 result1 = MajHai._ting(t1) # type: List[Set[Tuple[Tuple[int,...],...]]]
                 result2 = MajHai._chai(t2) # type: Set[Tuple[Tuple[int,...],...]]
