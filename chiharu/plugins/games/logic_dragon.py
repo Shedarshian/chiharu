@@ -1185,7 +1185,7 @@ async def dragon_maj_test(session: CommandSession):
     l = session.current_arg_text.split(" ")
     tehai = [MajOneHai(i + j) for i, j in more_itertools.chunked(l[-2], 2)]
     to_draw = MajOneHai(l[-1])
-    ankan = [MajOneHai(s) for s in l[:-1]]
+    ankan = [MajOneHai(s) for s in l[:-2]]
     if len(tehai) != 13:
         session.finish("不是13张！")
     t = MajOneHai.ten(tehai)
