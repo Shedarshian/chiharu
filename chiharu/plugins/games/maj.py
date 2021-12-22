@@ -142,7 +142,7 @@ class MajHai:
             self.id = -1
     @classmethod
     def get_random(cls):
-        return random.randint(0, cls.MAX * cls.COLOR + cls.ZI_MAX)
+        return random.randint(0, cls.MAX * cls.COLOR + cls.ZI_MAX - 1)
     @property
     def color_c(self):
         return MajHai.color_dict[self.color]
