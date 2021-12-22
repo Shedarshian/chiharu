@@ -36,7 +36,7 @@ def find_or_new(qq: int):
     t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     if t is None:
         extra_data_init = me.extra.data.pack()
-        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop, equipment, event_stage, event_shop, extra_data, dead) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 1, 0, 0, ?, 0, 0, ?, false)', (qq, '', '', '', '', '[]', '{}', extra_data_init))
+        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop, equipment, event_stage, event_shop, extra_data, dead, flags) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 1, 0, 0, ?, 0, 0, ?, false, 0)', (qq, '', '', '', '', '[]', '{}', extra_data_init))
         t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     return t
 
@@ -1389,9 +1389,9 @@ class User:
             to_choose = to_draw
         else:
             if self.data.if_richi:
-                prompt = f"你现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n请选择切摸到的牌，或是："
+                prompt = f"你摸到了{str(to_draw)}！你现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n请选择切摸到的牌，或是："
             else:
-                prompt = f"你现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n请选择一张牌切牌，或是："
+                prompt = f"你摸到了{str(to_draw)}！你现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n请选择一张牌切牌，或是："
             for i in range(1, 3):
                 if len(can_choose[i]) != 0:
                     prompt += f"\n{names[i]}：" + ' '.join(str(s) for s in can_choose[i])
@@ -1412,13 +1412,18 @@ class User:
                     _raise_failure("请选择一个可执行的操作。")
                 except MajIdError:
                     _raise_failure("请输入正确的麻将牌。")
+            await self.buf.flush()
             choose, to_choose = await self.buf.aget(prompt=prompt, arg_filters=[
                 extractors.extract_text,
                 check_handcard(self),
                 check
             ])
         if to_choose is None:
-            prompt = f"你现在的牌是：\n\n请选择一张牌{names[choose]}：" + ' '.join(str(s) for s in can_choose[choose]) # TODO
+            prompt = f"你现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n"
+            if choose == 0:
+                prompt += "请选择一张牌切牌。"
+            else:
+                prompt += f"请选择一张牌{names[choose]}：" + ' '.join(str(s) for s in can_choose[choose])
             def check2(value: str):
                 try:
                     i = choose
@@ -1452,7 +1457,7 @@ class User:
             self.data.maj[1].append(to_choose.hai)
             self.send_log(f"暗杠了{str(to_choose)}{句尾}，手中麻将为：")
         self.buf.send(MajOneHai.draw_maj(hand_maj, self.data.maj[1]))
-        self.log << ''.join(str(h) for h in hand_maj) << ' ' << ''.join(str(h) for h in self.data.maj[1])
+        self.log << ''.join(str(h) for h in hand_maj) + ' ' + ''.join(str(h) for h in self.data.maj[1])
         self.data.maj = ([s.hai for s in hand_maj], self.data.maj[1])
         self.data.save_maj()
         if choose == 2:

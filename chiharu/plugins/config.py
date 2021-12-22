@@ -87,6 +87,7 @@ class _logger:
         self.file.write(str(a))
         self.file.write('\n')
         self.file.flush()
+        return self
 
 class _logger_meta(type):
     def __getattr__(cls, attr):
