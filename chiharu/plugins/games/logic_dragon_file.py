@@ -1523,24 +1523,14 @@ class User:
             hand_maj.remove(to_choose)
             hand_maj.remove(to_choose)
             hand_maj.remove(to_choose)
-            hand_maj.sort()
-            if choose == 0:
-                self.send_log(f"切出了{str(to_choose)}，手中麻将为：")
-            elif choose == 1:
-                self.send_log(f"切出了{str(to_choose)}立直，手中麻将为：")
-                self.data.if_richi = True
-            elif choose == 2:
-                hand_maj.remove(to_choose)
-                hand_maj.remove(to_choose)
-                hand_maj.remove(to_choose)
-                self.data.maj[1].append(to_choose.hai)
-                self.send_log(f"暗杠了{str(to_choose)}{句尾}，手中麻将为：")
-            self.buf.send(MajOneHai.draw_maj(hand_maj, self.data.maj[1]))
-            self.log << ''.join(str(h) for h in hand_maj) + ' ' + ''.join(str(h) for h in self.data.maj[1])
-            self.data.maj = ([s.hai for s in hand_maj], self.data.maj[1])
-            self.data.save_maj()
-            if choose == 2:
-                await self.draw_maj()
+            self.data.maj[1].append(to_choose.hai)
+            self.send_log(f"暗杠了{str(to_choose)}{句尾}，手中麻将为：")
+        self.buf.send(MajOneHai.draw_maj(hand_maj, self.data.maj[1]))
+        self.log << ''.join(str(h) for h in hand_maj) + ' ' + ''.join(str(h) for h in self.data.maj[1])
+        self.data.maj = ([s.hai for s in hand_maj], self.data.maj[1])
+        self.data.save_maj()
+        if choose == 2:
+            await self.draw_maj()
 
 Userme: Callable[[User], User] = lambda user: User(config.selfqq, user.buf)
 
