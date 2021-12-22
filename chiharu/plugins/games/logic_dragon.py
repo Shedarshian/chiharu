@@ -753,7 +753,12 @@ async def dragon_check(buf: SessionBuffer):
         dis = max(2 + i - I - m + M, 1)
         buf.finish("当前活动词" + ('🔄' if me.check_daily_status('o') else '♻️' if me.check_daily_status('p') else '') + "为：\n" + '\n'.join(f"{s.word}，{'⚠️' if qq in s.get_parent_qq_list(dis)else ''}id为{s.id_str}" for s in words))
     elif data in ("资料", "profile"):
-        buf.finish(f"你的资料为：\n今日剩余获得击毙次数：{user.data.today_jibi}。\n今日剩余获得关键词击毙：{user.data.today_keyword_jibi}。\n剩余抽卡券：{user.data.draw_time}。\n手牌上限：{user.data.card_limit}。" + (f"\n活动pt：{user.data.event_pt}。\n当前在活动第{user.data.event_stage}。" if current_event == "swim" else ""))
+        ret = f"你的资料为：\n今日剩余获得击毙次数：{user.data.today_jibi}。\n今日剩余获得关键词击毙：{user.data.today_keyword_jibi}。\n剩余抽卡券：{user.data.draw_time}。\n手牌上限：{user.data.card_limit}。" + (f"\n活动pt：{user.data.event_pt}。\n当前在活动第{user.data.event_stage}。" if current_event == "swim" else "")
+        if user.data.extra.mangan != 0:
+            ret += f"\n满贯抽奖券：{user.data.extra.mangan / 2}张。"
+        if user.data.extra.yakuman != 0:
+            ret += f"\n役满抽奖券：{user.data.extra.yakuman}张。"
+        buf.finish(ret)
     elif data in ("活动商店", "event_shop"):
         if current_shop == "swim":
             b = user.data.check_equipment(0)

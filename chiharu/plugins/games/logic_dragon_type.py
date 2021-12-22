@@ -485,7 +485,7 @@ class MajOneHai(MajHai):
         return ('' if len(ankan) == 0 else ' '.join(str(h) * 4 for h in ankan)) + ''.join(str(h) for h in tehai) + ('' if to_draw is None else ' ' + str(to_draw))
     @functools.total_ordering
     class HeZhong:
-        data: Dict[Tuple[int, int, int], Tuple[str, int]] = {(0, 0, 0): ("立直", 1),
+        data: Dict[Tuple[int, int, int], Tuple[str, int]] = {(0, 0, 0): ("立直", 1), (0, 1, 0): ("门前清自摸和", 1),
         (1, 0, 0): ("断幺九", 1), (1, 1, 0): ("平和", 1),
         (2, 0, 0): ("混一色", 3), (2, 0, 1): ("清一色", 6), (2, 1, 0): ("九莲宝灯", 13), (2, 1, 1): ("纯正九莲宝灯", 13),
             (2, 2, 0): ("绿一色", 13), (2, 3, 0): ("黑一色", 13),
@@ -538,10 +538,10 @@ class MajOneHai(MajHai):
         def __eq__(self, other):
             return self.tuple == other.tuple
     @staticmethod
-    def tensu(hai: int, results: List[Dict[int, Tuple[Tuple[int,...],...]]], ankan: List[int], final_hai: int, if_richi: bool) -> 'Tuple[List[MajOneHai.HeZhong], MajOneHai.HeZhong.Status, int]':
+    def tensu(results: List[Dict[int, Tuple[Tuple[int,...],...]]], ankan: List[int], final_hai: int, if_richi: bool) -> 'Tuple[List[MajOneHai.HeZhong], MajOneHai.HeZhong.Status, int]':
         def _f(result: Dict[int, Tuple[Tuple[int,...],...]], ankan: List[int], final_hai: int, if_richi: bool) -> 'List[MajOneHai.HeZhong]':
             HeZhong = MajOneHai.HeZhong
-            l = []
+            l = [HeZhong((0, 1, 0))]            # 门前清自摸和
             if if_richi:
                 l.append(HeZhong((0, 0, 0)))    # 立直
             #特殊类
