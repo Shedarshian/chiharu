@@ -1457,7 +1457,7 @@ class User:
             self.data.maj[1].append(to_choose.hai)
             self.send_log(f"暗杠了{str(to_choose)}{句尾}，手中麻将为：")
         self.buf.send(MajOneHai.draw_maj(hand_maj, self.data.maj[1]))
-        self.log << ''.join(str(h) for h in hand_maj) << ' ' << ''.join(str(h) for h in self.data.maj[1])
+        self.log << ''.join(str(h) for h in hand_maj) + ' ' + ''.join(str(h) for h in self.data.maj[1])
         self.data.maj = ([s.hai for s in hand_maj], self.data.maj[1])
         self.data.save_maj()
         if choose == 2:
