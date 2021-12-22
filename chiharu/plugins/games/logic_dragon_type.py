@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
 import functools, re
+import itertools
+import operator
 from copy import copy
-from typing import Callable, Iterable, TypedDict, List, Dict, TypeVar, Generic, Awaitable, Any, Tuple, Optional
-from enum import IntEnum, IntFlag, auto
+from typing import Callable, Counter, Iterable, TypedDict, List, Dict, TypeVar, Generic, Awaitable, Any, Tuple, Optional
+from enum import IntEnum, IntFlag, auto, Enum
 from dataclasses import dataclass
 from nonebot.command import CommandSession
 
@@ -481,3 +483,219 @@ class MajOneHai(MajHai):
             ankan: Optional[Iterable['MajOneHai']] = (),
             to_draw: Optional['MajOneHai'] = None) -> str:
         return ('' if len(ankan) == 0 else ' '.join(str(h) * 4 for h in ankan)) + ''.join(str(h) for h in tehai) + ('' if to_draw is None else ' ' + str(to_draw))
+    @functools.total_ordering
+    class HeZhong:
+        data: Dict[Tuple[int, int, int], Tuple[str, int]] = {(0, 0, 0): ("立直", 1), (0, 1, 0): ("门前清自摸和", 1),
+        (1, 0, 0): ("断幺九", 1), (1, 1, 0): ("平和", 1),
+        (2, 0, 0): ("混一色", 3), (2, 0, 1): ("清一色", 6), (2, 1, 0): ("九莲宝灯", 13), (2, 1, 1): ("纯正九莲宝灯", 13),
+            (2, 2, 0): ("绿一色", 13), (2, 3, 0): ("黑一色", 13),
+        (3, 0, 0): ("三元牌：白", 1), (3, 1, 0): ("三元牌：发", 1), (3, 2, 0): ("三元牌：中", 1),
+            (3, 3, 0): ("小三元", 2), (3, 3, 1): ("大三元", 13),
+            (3, 4, 0): ("小三风", 1), (3, 4, 1): ("大三风", 2), (3, 4, 2): ("小四喜", 13), (3, 4, 3): ("大四喜", 26),
+            (3, 5, 0): ("字一色", 13),
+        (4, 0, 0): ("三暗刻", 2), (4, 0, 1): ("四暗刻", 13), (4, 0, 2): ("四暗刻单骑", 26),
+            (4, 1, 0): ("一杠子", 1), (4, 1, 1): ("二杠子", 2), (4, 1, 2): ("三杠子", 3), (4, 1, 3): ("四杠子", 13),
+        (5, 0, 0): ("一杯口", 1), (5, 0, 1): ("两杯口", 3), (5, 0, 2): ("一色三同顺", 3), (5, 0, 3): ("一色四同顺", 13),
+            (5, 1, 0): ("双同刻", 2), (5, 1, 1): ("一色三同刻", 4), (5, 1, 2): ("一色四同刻", 13),
+        (6, 0, 0): ("三色同顺", 2), (6, 1, 0): ("三色小同刻", 1), (6, 1, 1): ("三色同刻", 2),
+        (7, 0, 0): ("一气通贯", 2),
+        (8, 0, 0): ("混全带幺九", 2), (8, 0, 1): ("纯全带幺九", 3), (8, 0, 2): ("混老头", 2), (8, 0, 3): ("清老头", 13),
+        (9, 0, 0): ("五门齐", 2),
+        (10, 0, 0): ("国士无双", 13), (10, 0, 1): ("国士无双十三面听", 26),
+            (10, 1, 0): ("七对子", 2), (10, 1, 1): ("大数邻", 13), (10, 1, 2): ("大车轮", 13), (10, 1, 3): ("大竹林", 13),
+            (10, 1, 4): ("大七星", 26)}
+        class Status(IntEnum):
+            no = 0
+            kazoe = 1
+            yakuman = 2
+            def __str__(self):
+                return {0: "", 1: "累计役满", 2: "役满"}[self.value]
+        @staticmethod
+        def ten(l: 'List[MajOneHai.HeZhong]') -> 'Tuple[MajOneHai.HeZhong.Status, int]':
+            l.sort()
+            ten = 0
+            yakuman = 0
+            for h in l:
+                t = h.int()
+                if t >= 13:
+                    yakuman += t
+                else:
+                    ten += t
+            if yakuman != 0:
+                return (MajOneHai.HeZhong.Status.yakuman, yakuman)
+            elif t >= 13:
+                return (MajOneHai.HeZhong.Status.kazoe, t)
+            else:
+                return (MajOneHai.HeZhong.Status.no, t)
+        def __init__(self, t: Tuple[int, int, int]):
+            self.tuple = t
+        def __str__(self):
+            return self.data[self.tuple][0]
+        def int(self):
+            return self.data[self.tuple][1]
+        def __lt__(self, other):
+            return self.tuple < other.tuple
+        def __eq__(self, other):
+            return self.tuple == other.tuple
+    @staticmethod
+    def tensu(results: List[Dict[int, Tuple[Tuple[int,...],...]]], ankan: List[int], final_hai: int, if_richi: bool) -> 'Tuple[List[MajOneHai.HeZhong], MajOneHai.HeZhong.Status, int]':
+        def _f(result: Dict[int, Tuple[Tuple[int,...],...]], ankan: List[int], final_hai: int, if_richi: bool) -> 'List[MajOneHai.HeZhong]':
+            HeZhong = MajOneHai.HeZhong
+            l = [HeZhong((0, 1, 0))]            # 门前清自摸和
+            if if_richi:
+                l.append(HeZhong((0, 0, 0)))    # 立直
+            #特殊类
+            if 0 in result and len(result[0][0]) >= 13:
+                if result[1][0][0] == final_hai:
+                    l.append(HeZhong((10, 0, 1)))   # 国士无双十三面
+                else:
+                    l.append(HeZhong((10, 0, 0)))   # 国士无双，不加算其他
+                return l
+            shun: List[Tuple[Tuple[int,...], int]] = []
+            ke  : List[Tuple[Tuple[int,...], int]] = []
+            dui : List[Tuple[Tuple[int,...], int]] = []
+            gang: List[Tuple[Tuple[int,...], int]] = [((s, s, s, s), MajOneHai(s).barrel) for s in ankan]
+            for barrel, vals in result.items():
+                for val in vals:
+                    if len(val) == 2:
+                        dui.append((val, barrel))
+                    elif len(val) > 2 and val[0] == val[1]:
+                        ke.append((val, barrel))
+                    else:
+                        shun.append((val, barrel))
+            assert(len(dui) == 7 or len(dui) == 1 and len(shun) + len(ke) + len(gang) == 4)
+            ke += gang
+            al = shun + ke + dui
+            shun.sort()
+            ke.sort()
+            gang.sort()
+            if len(dui) == 7:
+                if all(b == dui[0][1] for i, b in dui) and dui[0][1] <= 2 and set(i[0] for i, b in dui) == set(1, 2, 3, 4, 5, 6, 7):
+                    l.append(HeZhong((10, 1, dui[0][1] + 1))) # 大车轮等
+                elif set(b for i, b in dui) == set(3, 4, 5, 6, 7, 8, 9):
+                    l.append(HeZhong((10, 1, 4)))   # 大七星
+                else:
+                    l.append(HeZhong((10, 1, 0)))   # 七对子
+            if len(shun) == 4:
+                for i, b in shun:
+                    if final_hai == i[0] or final_hai == i[2]:
+                        l.append(HeZhong((1, 1, 0)))    # 平和
+                        break
+            if all(map(lambda x: x[1] <= 2 and all(map(lambda y: y != 0 and y != 8, x[0])), al)):
+                l.append(HeZhong((1, 0, 0)))    #断幺九
+            colors = set(map(lambda x: x[1], al))
+            if len(colors & {0, 1, 2}) == 1:
+                if len(colors) == 1:
+                    l.append(HeZhong((2, 0, 1)))    #清一色
+                    hais = list(functools.reduce(operator.add, result[list(colors)[0]]))
+                    hais.remove(final_hai % 9)
+                    hais.sort()
+                    if tuple(hais) == (0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8):
+                        l.append(HeZhong((2, 1, 1)))    #纯正九莲宝灯
+                    else:
+                        hais.append(final_hai % 9)
+                        if Counter(hais) >= Counter((0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8)):
+                            l.append(HeZhong((2, 1, 0)))    #九莲宝灯
+                else:
+                    l.append(HeZhong((2, 0, 0)))    #混一色
+            elif len(colors & {0, 1, 2}) == 0 and HeZhong((10, 1, 4)) not in l:
+                l.append(HeZhong((3, 5, 0)))   #字一色
+            if colors - {2, 8} == set():
+                hais = set(functools.reduce(operator.add, result[2]))
+                if hais - {2, 3, 4, 6, 8} == set():
+                    l.append(HeZhong((2, 2, 0)))    #绿一色
+            elif colors - {1, 3, 4, 5, 6} == set():
+                hais = set(functools.reduce(operator.add, result[1]))
+                if hais - {2, 4, 8} == set():
+                    l.append(HeZhong((2, 3, 0)))    #黑一色
+            zi = set(filter(lambda x: x >= 3, map(lambda x: x[1], ke)))
+            zi_dui = dui[0][1]
+            for i in (7, 8, 9):
+                if i in zi:
+                    l.append(HeZhong((3, i - 7, 0)))    #番牌：白发中
+            sanyuan = {7, 8, 9}
+            if sanyuan <= zi:
+                l.append(HeZhong((3, 3, 1)))    #大三元
+            elif len(sanyuan - zi) == 1 and zi_dui in sanyuan - zi:
+                l.append(HeZhong((3, 3, 0)))    #小三元
+            sixi = {3, 4, 5, 6}
+            if sixi <= zi:
+                l.append(HeZhong((3, 4, 3)))    #大四喜
+            elif len(sixi - zi) == 1:
+                if zi_dui in sixi - zi:
+                    l.append(HeZhong((3, 4, 2)))    #小四喜
+                else:
+                    l.append(HeZhong((3, 4, 1)))    #大三风
+            elif len(sixi - zi) == 2 and zi_dui in sixi - zi:
+                l.append(HeZhong((3, 4, 0)))    #小三风
+            if len(ke) == 4:
+                if final_hai in dui[0][0]:
+                    l.append(HeZhong((4, 0, 2)))    #四暗刻单骑
+                else:
+                    l.append(HeZhong((4, 0, 1)))    #四暗刻
+            elif len(ke) == 3:
+                l.append(HeZhong((4, 0, 0)))    #三暗刻
+            if len(gang) != 0:
+                l.append(HeZhong((4, 1, len(gang) - 1)))    #x杠子
+            t = []
+            if len(shun) >= 2:
+                for i in range(len(shun) - 1):
+                    if shun[i][0:2] == shun[i + 1][0:2]:
+                        t.append(i)
+            if len(t) == 3:
+                l.append(HeZhong((5, 0, 3)))    #一色四同顺
+            elif len(t) == 2:
+                if t[1] == t[0] + 1:
+                    l.append(HeZhong((5, 0, 2)))    #一色三同顺
+                else:
+                    l.append(HeZhong((5, 0, 1)))    #两般高
+            elif len(t) == 1:
+                l.append(HeZhong((5, 0, 0)))    #一般高
+            t = []
+            if len(ke) >= 2:
+                for i in range(len(ke) - 1):
+                    if ke[i][0] == ke[i + 1][0]:
+                        t.append(i)
+            if len(t) == 3:
+                l.append(HeZhong((5, 1, 2)))    #一色四同刻
+            elif len(t) == 2:
+                if t[1] == t[0] + 1:
+                    l.append(HeZhong((5, 1, 1)))    #一色三同刻
+            elif len(t) == 1:
+                l.append(HeZhong((5, 1, 0)))    #双同刻
+            for i, j, k in itertools.combinations(shun, 3):
+                if i[0] == j[0] == k[0] and (i[1], j[1], k[1]) == (0, 1, 2):
+                    l.append(HeZhong((6, 0, 0)))    #三色同顺
+                    break
+                elif i[1] == j[1] == k[1] and (i[0], j[0], k[0]) == ((0, 1, 2), (3, 4, 5), (6, 7, 8)):
+                    l.append(HeZhong((7, 0, 0)))    #一气通贯
+                    break
+            if len(ke) >= 2:
+                for i, j, k in itertools.combinations(itertools.chain(ke, dui), 3):
+                    if i[0][0] == j[0][0] == k[0][0] and {i[1], j[1], k[1]} == {0, 1, 2}:
+                        if len(k[0]) == 2:
+                            l.append(HeZhong((6, 1, 0)))    #三色小同刻
+                        else:
+                            l.append(HeZhong((6, 1, 1)))    #三色同刻
+                        break
+            if all(map(lambda x: x[1] <= 2 and all(map(lambda y: y == 0 or y == 8, x[0])), al)):
+                l.append(HeZhong((8, 1, 4)))    #清老头
+            elif all(map(lambda x: x[1] >= 3 or x[1] <= 2 and all(map(lambda y: y == 0 or y == 8, x[0])), al)):
+                l.append(HeZhong((8, 1, 3)))    #混老头
+            elif all(map(lambda x: x[1] <= 2 and any(map(lambda y: y == 0 or y == 8, x[0])), al)):
+                l.append(HeZhong((8, 1, 2)))    #纯全带幺九
+            elif all(map(lambda x: x[1] >= 3 or x[1] <= 2 and any(map(lambda y: y == 0 or y == 8, x[0])), al)):
+                l.append(HeZhong((8, 1, 1)))    #混全带幺九
+            s = set(b for i, b in al)
+            if {0, 1, 2} <= s and s & {3, 4, 5, 6} and s & {7, 8, 9}:
+                l.append(HeZhong((9, 0, 0)))    #五门齐
+            return l
+        _max = ([], 0, 0)
+        for result in results:
+            _now = _f(result, ankan, final_hai, if_richi)
+            m, ten = MajOneHai.HeZhong.ten(_now)
+            if m > _max[1] and ten > _max[-1]:
+                _max = (_now, m, ten)
+        if m == MajOneHai.HeZhong.Status.yakuman:
+            _max = ([s for s in _max[0] if s.int() >= 13], _max[1], _max[2])
+        return _max

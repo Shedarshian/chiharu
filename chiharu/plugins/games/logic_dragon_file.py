@@ -459,13 +459,17 @@ class Wrapper:
     def __lshift__(self, log):
         config.logger.dragon << f"【LOG】用户{self.qq}" + log
 
-extra_data_format = '!BLII'
+extra_data_format = '!BLIIIIBB'
 @dataclass
 class ExtraData:
     tarot_time: int # unsigned char
     assembling: int # unsigned long
     hp: int         # unsigned int
     mp: int         # unsigned int
+    hp_max: int     # unsigned int
+    mp_max: int     # unsigned int
+    mangan: int     # unsigned char
+    yakuman: int    # unsigned char
     def pack(self):
         return pack(extra_data_format, *astuple(self))
     @classmethod
@@ -508,6 +512,34 @@ class DynamicExtraData:
     @mp.setter
     def mp(self, value):
         self.data.mp = value
+        self.save_func(self.data)
+    @property
+    def hp_max(self):
+        return self.data.hp_max
+    @hp_max.setter
+    def hp_max(self, value):
+        self.data.hp_max = value
+        self.save_func(self.data)
+    @property
+    def mp_max(self):
+        return self.data.mp_max
+    @mp_max.setter
+    def mp_max(self, value):
+        self.data.mp_max = value
+        self.save_func(self.data)
+    @property
+    def mangan(self):
+        return self.data.mangan
+    @mangan.setter
+    def mangan(self, value):
+        self.data.mangan = value
+        self.save_func(self.data)
+    @property
+    def yakuman(self):
+        return self.data.yakuman
+    @yakuman.setter
+    def yakuman(self, value):
+        self.data.yakuman = value
         self.save_func(self.data)
     # def __getattr__(self, name: str):
     #     if name not in ('data', 'save_func', 'save_func_old'):
@@ -1448,10 +1480,48 @@ class User:
         # do things
         if choose == 3:
             self.send_log(f"和了{句尾}") # TODO
-            pass
+            l, st, ten = MajOneHai.tensu(t[to_draw.hai], self.data.maj[1], to_draw.hai, self.data.if_richi)
+            self.log << f"和种为{l}，种类为{int(st)}，点数为{ten}。"
+            if st != MajOneHai.HeZhong.Status.yakuman:
+                if ten <= 3:    r = "";             jibi = 5;       quan = 0
+                elif ten <= 5:  r = "，满贯";        jibi = 10;     quan = 2
+                elif ten <= 7:  r = "，跳满";        jibi = 15;     quan = 3
+                elif ten <= 10: r = "，倍满";        jibi = 20;     quan = 4
+                elif ten <= 12: r = "，三倍满";      jibi = 30;     quan = 6
+                elif ten <= 25: r = "，累计役满";     jibi = 40
+                else: r = '，' + str(ten // 13) + "倍累计役满"; jibi = 40
+                self.buf.send('\n'.join(f"{str(s)} {s.int()}番" for s in l) + f"\n合计：{ten}番{r}{句尾}")
+            else:
+                if ten == 13: r = "役满"
+                else:  r = str(ten // 13) + "倍役满"
+                jibi = 40
+                self.buf.send('\n'.join(f"{str(s)}" for s in l) + f"\n{r}{句尾}")
+            self.buf.send(f"奖励{self.char}{jibi}击毙", end="")
+            if ten <= 3:
+                self.buf.send(f"以及被击毙{句尾}")
+                await self.add_jibi(jibi)
+                await self.death()
+            elif ten <= 12:
+                self.buf.send(f"以及{quan / 2}张满贯抽奖券{句尾}")
+                await self.add_jibi(jibi)
+                self.data.extra.mangan += quan
+            else:
+                self.buf.send(f"以及{t // 13}张役满抽奖券{句尾}")
+                await self.add_jibi(jibi)
+                self.data.extra.yakuman += t // 13
             self.data.maj = (sorted(MajOneHai.get_random() for i in range(13)), [])
-        else:
-            hand_maj.append(to_draw)
+            return
+        hand_maj.append(to_draw)
+        hand_maj.remove(to_choose)
+        hand_maj.sort()
+        if choose == 0:
+            self.send_log(f"切出了{str(to_choose)}，手中麻将为：")
+        elif choose == 1:
+            self.send_log(f"切出了{str(to_choose)}立直，手中麻将为：")
+            self.data.if_richi = True
+        elif choose == 2:
+            hand_maj.remove(to_choose)
+            hand_maj.remove(to_choose)
             hand_maj.remove(to_choose)
             hand_maj.sort()
             if choose == 0:
