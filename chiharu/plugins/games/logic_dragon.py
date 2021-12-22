@@ -1192,6 +1192,7 @@ async def dragon_maj_test(session: CommandSession):
     if to_draw.hai not in t:
         session.finish("没和！")
     l, st, ten = MajOneHai.tensu(t[to_draw.hai], [s.hai for s in ankan], to_draw.hai, False)
+    ret = ""
     if st != MajOneHai.HeZhong.Status.yakuman:
         if ten <= 3:    r = "";             jibi = 5;       quan = 0
         elif ten <= 5:  r = "，满贯";        jibi = 10;     quan = 2
@@ -1200,17 +1201,17 @@ async def dragon_maj_test(session: CommandSession):
         elif ten <= 12: r = "，三倍满";      jibi = 30;     quan = 6
         elif ten <= 25: r = "，累计役满";     jibi = 40
         else: r = '，' + str(ten // 13) + "倍累计役满"; jibi = 40
-        await session.send('\n'.join(f"{str(s)} {s.int()}番" for s in l) + f"\n合计：{ten}番{r}{句尾}")
+        ret += '\n'.join(f"{str(s)} {s.int()}番" for s in l) + f"\n合计：{ten}番{r}{句尾}"
     else:
         if ten == 13: r = "役满"
         else:  r = str(ten // 13) + "倍役满"
         jibi = 40
-        await session.send('\n'.join(f"{str(s)}" for s in l) + f"\n{r}{句尾}")
-    await session.send(f"奖励{jibi}击毙", end="")
+        ret += '\n'.join(f"{str(s)}" for s in l) + f"\n{r}{句尾}"
+    ret += f"\n奖励{jibi}击毙，"
     if ten <= 3:
-        await session.send(f"以及被击毙{句尾}")
+        ret += f"以及被击毙{句尾}"
     elif ten <= 12:
-        await session.send(f"以及{quan / 2}张满贯抽奖券{句尾}")
+        ret += f"以及{quan / 2}张满贯抽奖券{句尾}"
     else:
-        await session.send(f"以及{t // 13}张役满抽奖券{句尾}")
-    
+        ret += f"以及{ten // 13}张役满抽奖券{句尾}"
+    await session.send(ret)
