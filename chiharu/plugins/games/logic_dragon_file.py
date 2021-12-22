@@ -3298,6 +3298,23 @@ class guanggaopai(_card):
             # "PLACEHOLDER",
         ])
 
+class baiban(_card):
+    name = "白牌"
+    id = 95
+    positive = 1
+    description = "选择你手牌中的一张牌，执行其使用效果。"
+    @classmethod
+    def can_use(cls, user: User, copy: bool) -> bool:
+        return len(user.data.hand_card) >= (1 if copy else 2)
+    @classmethod
+    async def use(cls, user: User):
+        async with user.choose_cards("请选择你手牌中的一张牌复制，输入id号。", 1, 1,
+            cards_can_not_choose=(44,), require_can_use=True) as l, check_active(l):
+            card = Card(l[0])
+            config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
+            user.send_char('使用了卡牌：\n' + card.full_description(user.qq))
+            await user.use_card_effect(card)
+
 class jiaodai(_card):
     name = "布莱恩科技航空专用强化胶带FAL84型"
     id = 100

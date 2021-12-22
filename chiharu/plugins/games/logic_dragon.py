@@ -1164,10 +1164,10 @@ async def dragon_op(session: CommandSession):
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_test(session: CommandSession):
     buf = SessionBuffer(session)
-    for t in config.userdata.execute("select qq from dragon_data where card like '%40%' or card like '%41%' or card like '%42%' or card like '%43%' or card like '%44%'").fetchall():
+    for t in config.userdata.execute("select qq from dragon_data where card like '%40%' or card like '%41%' or card like '%42%' or card like '%43%' or card like '%44%' or card like '%45%' or card like '%46%'").fetchall():
         u = User(t['qq'], buf)
-        while Card(44) in u.data.hand_card:
-            u.data.hand_card.remove(Card(44))
-            u.data.hand_card.append(Card(29))
-        u.data.hand_card = list(s for s in u.data.hand_card if s.id < 40 or s.id > 43)
+        while Card(45) in u.data.hand_card:
+            u.data.hand_card.remove(Card(45))
+            u.data.hand_card.append(Card(95))
+        u.data.hand_card = list(s for s in u.data.hand_card if s.id < 40 or s.id > 46)
     save_data()
