@@ -3298,7 +3298,7 @@ class guanggaopai(_card):
             # "PLACEHOLDER",
         ])
 
-class baiban(_card):
+class baipai(_card):
     name = "白牌"
     id = 95
     positive = 1
