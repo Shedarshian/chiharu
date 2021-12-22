@@ -488,7 +488,7 @@ class MajOneHai(MajHai):
         data: Dict[Tuple[int, int, int], Tuple[str, int]] = {(0, 0, 0): ("立直", 1), (0, 1, 0): ("门前清自摸和", 1),
         (1, 0, 0): ("断幺九", 1), (1, 1, 0): ("平和", 1),
         (2, 0, 0): ("混一色", 3), (2, 0, 1): ("清一色", 6), (2, 1, 0): ("九莲宝灯", 13), (2, 1, 1): ("纯正九莲宝灯", 13),
-            (2, 2, 0): ("绿一色", 13), (2, 3, 0): ("黑一色", 13),
+            (2, 2, 0): ("绿一色", 13), (2, 3, 0): ("黑一色", 13), (2, 4, 0): ("天地创造", 105),
         (3, 0, 0): ("三元牌：白", 1), (3, 1, 0): ("三元牌：发", 1), (3, 2, 0): ("三元牌：中", 1),
             (3, 3, 0): ("小三元", 2), (3, 3, 1): ("大三元", 13),
             (3, 4, 0): ("小三风", 1), (3, 4, 1): ("大三风", 2), (3, 4, 2): ("小四喜", 13), (3, 4, 3): ("大四喜", 26),
@@ -517,7 +517,7 @@ class MajOneHai(MajHai):
             yakuman = 0
             for h in l:
                 t = h.int()
-                if t >= 13:
+                if t >= 13 and t != 105:
                     yakuman += t
                 else:
                     ten += t
@@ -541,6 +541,8 @@ class MajOneHai(MajHai):
     def tensu(results: List[Dict[int, Tuple[Tuple[int,...],...]]], ankan: List[int], final_hai: int, if_richi: bool) -> 'Tuple[List[MajOneHai.HeZhong], MajOneHai.HeZhong.Status, int]':
         def _f(result: Dict[int, Tuple[Tuple[int,...],...]], ankan: List[int], final_hai: int, if_richi: bool) -> 'List[MajOneHai.HeZhong]':
             HeZhong = MajOneHai.HeZhong
+            if set(result.keys()) == {7}:
+                return [HeZhong((2, 4, 0))]     # 天地创造
             l = [HeZhong((0, 1, 0))]            # 门前清自摸和
             if if_richi:
                 l.append(HeZhong((0, 0, 0)))    # 立直
@@ -616,11 +618,12 @@ class MajOneHai(MajHai):
                     hais = set(functools.reduce(operator.add, result[1]))
                     if hais - {2, 4, 8} == set():
                         l.append(HeZhong((2, 3, 0)))    #黑一色
-            zi = set(filter(lambda x: x >= 3, map(lambda x: x[1], ke)))
+            zi = [x[1] for x in ke if x[1] >= 3]
             zi_dui = dui[0][1]
-            for i in (7, 8, 9):
-                if i in zi:
+            for i in zi:
+                if i in (7, 8, 9):
                     l.append(HeZhong((3, i - 7, 0)))    #番牌：白发中
+            zi = set(zi)
             sanyuan = {7, 8, 9}
             if sanyuan <= zi:
                 l.append(HeZhong((3, 3, 1)))    #大三元

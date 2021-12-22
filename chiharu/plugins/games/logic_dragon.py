@@ -1186,7 +1186,7 @@ async def dragon_maj_test(session: CommandSession):
     tehai = [MajOneHai(i + j) for i, j in more_itertools.chunked(l[-2], 2)]
     to_draw = MajOneHai(l[-1])
     ankan = [MajOneHai(s) for s in l[:-2]]
-    if len(tehai) != 13:
+    if len(tehai) + 3 * len(ankan) != 13:
         session.finish("不是13张！")
     t = MajOneHai.ten(tehai)
     if to_draw.hai not in t:
@@ -1214,4 +1214,5 @@ async def dragon_maj_test(session: CommandSession):
         ret += f"以及{quan / 2}张满贯抽奖券{句尾}"
     else:
         ret += f"以及{ten // 13}张役满抽奖券{句尾}"
+    print(ret)
     await session.send(ret)
