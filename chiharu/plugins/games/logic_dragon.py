@@ -512,6 +512,9 @@ async def dragon_construct(buf: SessionBuffer):
                     user.send_log(f"移动了{n}格，", end='')
                     await user.event_move(n)
                     user.send_log(f"现在位于{user.data.event_stage}。")
+                user.data.extra.maj_quan += 1
+                if user.data.extra.maj_quan % 3 == 0:
+                    user.send_log("获得了一张麻将摸牌券！发送“使用 麻将摸牌券”摸牌，然后选择切牌/立直/暗杠/和出。")
 
 @on_command(('dragon', 'use_card'), aliases="使用手牌", short_des="使用手牌。", only_to_me=False, args=("card"), environment=env)
 @config.ErrorHandle(config.logger.dragon)
