@@ -167,6 +167,8 @@ class MajHai:
     def addOneDora(self):
         if self.color == 3:
             if self.num == self.ZI_MAX - 1:
+                return self.__class__(self.color, 4)
+            elif self.num == 3:
                 return self.__class__(self.color, 0)
             return self.__class__(self.color, self.num + 1)
         else:

@@ -556,14 +556,14 @@ class MajOneHai(MajHai):
             if set(result.keys()) == {7}:
                 return [HeZhong((2, 4, 0))]     # 天地创造
             l = [HeZhong((0, 1, 0))]            # 门前清自摸和
-            all_hais: List[int] = functools.reduce(operator.add, [list(functools.reduce(operator.add, val)) for key, val in result.items()])
             if if_richi:
                 l.append(HeZhong((0, 0, 0)))    # 立直
                 for dora in ura:
-                    dora1 = dora.addOneDora().hai
-                    for h in all_hais:
-                        if h == dora1:
-                            l.append(HeZhong((0, 2, 0)))    # 里宝牌
+                    dora1 = dora.addOneDora()
+                    for key, val in result.items():
+                        for h in functools.reduce(operator.add, val):
+                            if key == dora1.barrel and (dora1.barrel >= 3 or h == dora1.num):
+                                l.append(HeZhong((0, 2, 0)))    # 里宝牌
             #特殊类
             if 0 in result and len(result[0][0]) >= 13:
                 if result[1][0][0] == final_hai:
