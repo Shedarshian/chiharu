@@ -5744,7 +5744,7 @@ class lab(_card):
             for m in l:
                 c = str(m["id"] + 7)
                 await u.add_daily_status(c)
-                user.buf.send(Status(c).brief_des, end='')
+                user.buf.send(StatusDaily(c).brief_des, end='')
             user.buf.send(句尾)
         if t1 and t2 and t3:
             user.send_log(f"获得了一张核弹{句尾}")
@@ -5825,7 +5825,7 @@ class rocket(_card):
         user.buf.send(f"恭喜{user.char}，今天{user.char}赢了{句尾}")
         await user.add_daily_status('W')
 
-class randommaj(_card):
+class randommaj2(_card):
     id = 239
     name = "扣置的麻将"
     positive = 0
