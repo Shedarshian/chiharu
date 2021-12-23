@@ -1455,6 +1455,10 @@ class User:
                 if huchu or len(MajOneHai.ten(hand_maj[:i] + hand_maj[i+1:] + [to_draw])) != 0:
                     if len(richi) == 0 or richi[-1] != hand_maj[i]:
                         richi.append(hand_maj[i])
+            if len(t) != 0:
+                richi.append(to_draw)
+            richi.sort()
+            richi = list(more_itertools.unique_justseen(richi), lambda s: s.hai)
         c = Counter(h.hai for h in hand_maj + [to_draw])
         ankan = [MajOneHai(i) for i, d in c.items() if d >= 4]
         if self.data.if_richi:
