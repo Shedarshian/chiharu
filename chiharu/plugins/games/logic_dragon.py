@@ -1236,7 +1236,7 @@ async def dragon_maj_test(session: CommandSession):
         ret += "里宝牌是：" + ''.join(str(c) for c in ura) + "\n"
     else:
         ura = []
-    l, st, ten = MajOneHai.tensu(t[to_draw.hai], [s.hai for s in ankan], to_draw.hai, False, ura)
+    l, st, ten = MajOneHai.tensu(t[to_draw.hai], [s.hai for s in ankan], to_draw.hai, richi, ura)
     if st != MajOneHai.HeZhong.Status.yakuman:
         if ten <= 3:    r = "";             jibi = 5;       quan = 0
         elif ten <= 5:  r = "，满贯";        jibi = 10;     quan = 2
