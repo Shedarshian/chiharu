@@ -1232,8 +1232,8 @@ async def dragon_maj_test(session: CommandSession):
         session.finish("没和！")
     ret = ""
     if richi:
-        ura = [MajOneHai(MajOneHai.get_random()) for i in ankan]
-        ret += "里宝牌是：" + ''.join(str(c) for c in ura)
+        ura = [MajOneHai(MajOneHai.get_random()) for i in range(len(ankan) + 1)]
+        ret += "里宝牌是：" + ''.join(str(c) for c in ura) + "\n"
     else:
         ura = []
     l, st, ten = MajOneHai.tensu(t[to_draw.hai], [s.hai for s in ankan], to_draw.hai, False, ura)
