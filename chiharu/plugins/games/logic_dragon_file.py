@@ -1559,6 +1559,7 @@ class User:
                 await self.add_jibi(jibi)
                 self.data.extra.yakuman += ten // 13
             self.data.maj = (sorted(MajOneHai.get_random() for i in range(13)), [])
+            self.data.save_maj()
             return
         hand_maj.append(to_draw)
         hand_maj.remove(to_choose)
