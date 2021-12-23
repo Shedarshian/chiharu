@@ -1552,9 +1552,9 @@ class User:
                 await self.add_jibi(jibi)
                 self.data.extra.mangan += quan
             else:
-                self.buf.send(f"以及{t // 13}张役满抽奖券{句尾}")
+                self.buf.send(f"以及{ten // 13}张役满抽奖券{句尾}")
                 await self.add_jibi(jibi)
-                self.data.extra.yakuman += t // 13
+                self.data.extra.yakuman += ten // 13
             self.data.maj = (sorted(MajOneHai.get_random() for i in range(13)), [])
             return
         hand_maj.append(to_draw)

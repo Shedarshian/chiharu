@@ -488,7 +488,7 @@ class MajOneHai(MajHai):
         data: Dict[Tuple[int, int, int], Tuple[str, int]] = {(0, 0, 0): ("立直", 1), (0, 1, 0): ("门前清自摸和", 1),
         (1, 0, 0): ("断幺九", 1), (1, 1, 0): ("平和", 1),
         (2, 0, 0): ("混一色", 3), (2, 0, 1): ("清一色", 6), (2, 1, 0): ("九莲宝灯", 13), (2, 1, 1): ("纯正九莲宝灯", 13),
-            (2, 2, 0): ("绿一色", 13), (2, 3, 0): ("黑一色", 13),
+            (2, 2, 0): ("绿一色", 13), (2, 3, 0): ("黑一色", 13), (2, 4, 0): ("天地创造", 105),
         (3, 0, 0): ("三元牌：白", 1), (3, 1, 0): ("三元牌：发", 1), (3, 2, 0): ("三元牌：中", 1),
             (3, 3, 0): ("小三元", 2), (3, 3, 1): ("大三元", 13),
             (3, 4, 0): ("小三风", 1), (3, 4, 1): ("大三风", 2), (3, 4, 2): ("小四喜", 13), (3, 4, 3): ("大四喜", 26),
@@ -517,7 +517,7 @@ class MajOneHai(MajHai):
             yakuman = 0
             for h in l:
                 t = h.int()
-                if t >= 13:
+                if t >= 13 and t != 105:
                     yakuman += t
                 else:
                     ten += t
@@ -541,6 +541,8 @@ class MajOneHai(MajHai):
     def tensu(results: List[Dict[int, Tuple[Tuple[int,...],...]]], ankan: List[int], final_hai: int, if_richi: bool) -> 'Tuple[List[MajOneHai.HeZhong], MajOneHai.HeZhong.Status, int]':
         def _f(result: Dict[int, Tuple[Tuple[int,...],...]], ankan: List[int], final_hai: int, if_richi: bool) -> 'List[MajOneHai.HeZhong]':
             HeZhong = MajOneHai.HeZhong
+            if set(result.keys()) == {7}:
+                return [HeZhong((2, 4, 0))]     # 天地创造
             l = [HeZhong((0, 1, 0))]            # 门前清自摸和
             if if_richi:
                 l.append(HeZhong((0, 0, 0)))    # 立直
@@ -570,9 +572,9 @@ class MajOneHai(MajHai):
             ke.sort()
             gang.sort()
             if len(dui) == 7:
-                if all(b == dui[0][1] for i, b in dui) and dui[0][1] <= 2 and set(i[0] for i, b in dui) == set(1, 2, 3, 4, 5, 6, 7):
+                if all(b == dui[0][1] for i, b in dui) and dui[0][1] <= 2 and set(i[0] for i, b in dui) == {1, 2, 3, 4, 5, 6, 7}:
                     l.append(HeZhong((10, 1, dui[0][1] + 1))) # 大车轮等
-                elif set(b for i, b in dui) == set(3, 4, 5, 6, 7, 8, 9):
+                elif set(b for i, b in dui) == {3, 4, 5, 6, 7, 8, 9}:
                     l.append(HeZhong((10, 1, 4)))   # 大七星
                 else:
                     l.append(HeZhong((10, 1, 0)))   # 七对子
@@ -594,25 +596,34 @@ class MajOneHai(MajHai):
                         l.append(HeZhong((2, 1, 1)))    #纯正九莲宝灯
                     else:
                         hais.append(final_hai % 9)
-                        if Counter(hais) >= Counter((0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8)):
+                        t = Counter(hais)
+                        t.subtract(Counter((0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8)))
+                        if t == +t:
                             l.append(HeZhong((2, 1, 0)))    #九莲宝灯
                 else:
                     l.append(HeZhong((2, 0, 0)))    #混一色
             elif len(colors & {0, 1, 2}) == 0 and HeZhong((10, 1, 4)) not in l:
                 l.append(HeZhong((3, 5, 0)))   #字一色
             if colors - {2, 8} == set():
-                hais = set(functools.reduce(operator.add, result[2]))
-                if hais - {2, 3, 4, 6, 8} == set():
-                    l.append(HeZhong((2, 2, 0)))    #绿一色
+                if 2 not in result:
+                    l.append(HeZhong((2, 2, 0)))
+                else:
+                    hais = set(functools.reduce(operator.add, result[2]))
+                    if hais - {2, 3, 4, 6, 8} == set():
+                        l.append(HeZhong((2, 2, 0)))    #绿一色
             elif colors - {1, 3, 4, 5, 6} == set():
-                hais = set(functools.reduce(operator.add, result[1]))
-                if hais - {2, 4, 8} == set():
-                    l.append(HeZhong((2, 3, 0)))    #黑一色
-            zi = set(filter(lambda x: x >= 3, map(lambda x: x[1], ke)))
+                if 1 not in result:
+                    l.append(HeZhong((2, 3, 0)))
+                else:
+                    hais = set(functools.reduce(operator.add, result[1]))
+                    if hais - {2, 4, 8} == set():
+                        l.append(HeZhong((2, 3, 0)))    #黑一色
+            zi = [x[1] for x in ke if x[1] >= 3]
             zi_dui = dui[0][1]
-            for i in (7, 8, 9):
-                if i in zi:
+            for i in zi:
+                if i in (7, 8, 9):
                     l.append(HeZhong((3, i - 7, 0)))    #番牌：白发中
+            zi = set(zi)
             sanyuan = {7, 8, 9}
             if sanyuan <= zi:
                 l.append(HeZhong((3, 3, 1)))    #大三元
@@ -629,7 +640,7 @@ class MajOneHai(MajHai):
             elif len(sixi - zi) == 2 and zi_dui in sixi - zi:
                 l.append(HeZhong((3, 4, 0)))    #小三风
             if len(ke) == 4:
-                if final_hai in dui[0][0]:
+                if final_hai % 9 in dui[0][0] and MajOneHai(final_hai).barrel == dui[0][1]:
                     l.append(HeZhong((4, 0, 2)))    #四暗刻单骑
                 else:
                     l.append(HeZhong((4, 0, 1)))    #四暗刻
@@ -679,13 +690,13 @@ class MajOneHai(MajHai):
                             l.append(HeZhong((6, 1, 1)))    #三色同刻
                         break
             if all(map(lambda x: x[1] <= 2 and all(map(lambda y: y == 0 or y == 8, x[0])), al)):
-                l.append(HeZhong((8, 1, 4)))    #清老头
+                l.append(HeZhong((8, 0, 3)))    #清老头
             elif all(map(lambda x: x[1] >= 3 or x[1] <= 2 and all(map(lambda y: y == 0 or y == 8, x[0])), al)):
-                l.append(HeZhong((8, 1, 3)))    #混老头
+                l.append(HeZhong((8, 0, 2)))    #混老头
             elif all(map(lambda x: x[1] <= 2 and any(map(lambda y: y == 0 or y == 8, x[0])), al)):
-                l.append(HeZhong((8, 1, 2)))    #纯全带幺九
+                l.append(HeZhong((8, 0, 1)))    #纯全带幺九
             elif all(map(lambda x: x[1] >= 3 or x[1] <= 2 and any(map(lambda y: y == 0 or y == 8, x[0])), al)):
-                l.append(HeZhong((8, 1, 1)))    #混全带幺九
+                l.append(HeZhong((8, 0, 0)))    #混全带幺九
             s = set(b for i, b in al)
             if {0, 1, 2} <= s and s & {3, 4, 5, 6} and s & {7, 8, 9}:
                 l.append(HeZhong((9, 0, 0)))    #五门齐
