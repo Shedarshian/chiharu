@@ -480,10 +480,10 @@ class MajOneHai(MajHai):
         return ten
     @staticmethod
     async def draw_maj(tehai: 'List[MajOneHai]',
-            ankan: Iterable['MajOneHai'] = (),
+            ankan: Iterable[int] = (),
             to_draw: Optional['MajOneHai'] = None) -> str:
         from ..misc import Maj, GetMajImg
-        s = ''.join([str(c) * 3 for c in ankan] + [str(c) for c in tehai])
+        s = ''.join([str(MajOneHai(c)) * 3 for c in ankan] + [str(c) for c in tehai])
         if to_draw is None:
             s += "0p"
         else:
