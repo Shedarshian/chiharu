@@ -1218,6 +1218,10 @@ async def dragon_test(session: CommandSession):
 async def dragon_maj_test(session: CommandSession):
     import more_itertools
     l = session.current_arg_text.split(" ")
+    if l[0] == "立直":
+        richi = True
+        l = l[1:]
+    else: richi = False
     tehai = [MajOneHai(i + j) for i, j in more_itertools.chunked(l[-2], 2)]
     to_draw = MajOneHai(l[-1])
     ankan = [MajOneHai(s) for s in l[:-2]]
@@ -1226,8 +1230,13 @@ async def dragon_maj_test(session: CommandSession):
     t = MajOneHai.ten(tehai)
     if to_draw.hai not in t:
         session.finish("没和！")
-    l, st, ten = MajOneHai.tensu(t[to_draw.hai], [s.hai for s in ankan], to_draw.hai, False)
     ret = ""
+    if richi:
+        ura = [MajOneHai(MajOneHai.get_random()) for i in ankan]
+        ret += "里宝牌是：" + ''.join(str(c) for c in ura)
+    else:
+        ura = []
+    l, st, ten = MajOneHai.tensu(t[to_draw.hai], [s.hai for s in ankan], to_draw.hai, False, ura)
     if st != MajOneHai.HeZhong.Status.yakuman:
         if ten <= 3:    r = "";             jibi = 5;       quan = 0
         elif ten <= 5:  r = "，满贯";        jibi = 10;     quan = 2
@@ -1236,7 +1245,13 @@ async def dragon_maj_test(session: CommandSession):
         elif ten <= 12: r = "，三倍满";      jibi = 30;     quan = 6
         elif ten <= 25: r = "，累计役满";     jibi = 40
         else: r = '，' + str(ten // 13) + "倍累计役满"; jibi = 40
-        ret += '\n'.join(f"{str(s)} {s.int()}番" for s in l) + f"\n合计：{ten}番{r}{句尾}"
+        if richi:
+            fan = [f"{str(s)} {s.int()}番" for s in l if s.tuple < (0, 2, 0)]
+            fan.append(f"{str(MajOneHai.HeZhong((0, 2, 0)))} {l.count(MajOneHai.HeZhong((0, 2, 0)))}番")
+            fan += [f"{str(s)} {s.int()}番" for s in l if s.tuple > (0, 2, 0)]
+        else:
+            fan = [f"{str(s)} {s.int()}番" for s in l]
+        ret += '\n'.join(fan) + f"\n合计：{ten}番{r}{句尾}"
     else:
         if ten == 13: r = "役满"
         else:  r = str(ten // 13) + "倍役满"

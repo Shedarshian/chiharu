@@ -498,7 +498,7 @@ class MajOneHai(MajHai):
     @functools.total_ordering
     class HeZhong:
         data: Dict[Tuple[int, int, int], Tuple[str, int]] = {(0, 0, 0): ("立直", 1), (0, 1, 0): ("门前清自摸和", 1),
-        (1, 0, 0): ("断幺九", 1), (1, 1, 0): ("平和", 1),
+        (0, 2, 0): ("里宝牌", 1), (1, 0, 0): ("断幺九", 1), (1, 1, 0): ("平和", 1),
         (2, 0, 0): ("混一色", 3), (2, 0, 1): ("清一色", 6), (2, 1, 0): ("九莲宝灯", 13), (2, 1, 1): ("纯正九莲宝灯", 13),
             (2, 2, 0): ("绿一色", 13), (2, 3, 0): ("黑一色", 13), (2, 4, 0): ("天地创造", 105),
         (3, 0, 0): ("三元牌：白", 1), (3, 1, 0): ("三元牌：发", 1), (3, 2, 0): ("三元牌：中", 1),
@@ -550,14 +550,20 @@ class MajOneHai(MajHai):
         def __eq__(self, other):
             return self.tuple == other.tuple
     @staticmethod
-    def tensu(results: List[Dict[int, Tuple[Tuple[int,...],...]]], ankan: List[int], final_hai: int, if_richi: bool) -> 'Tuple[List[MajOneHai.HeZhong], MajOneHai.HeZhong.Status, int]':
-        def _f(result: Dict[int, Tuple[Tuple[int,...],...]], ankan: List[int], final_hai: int, if_richi: bool) -> 'List[MajOneHai.HeZhong]':
+    def tensu(results: List[Dict[int, Tuple[Tuple[int,...],...]]], ankan: List[int], final_hai: int, if_richi: bool, ura: List['MajOneHai']) -> 'Tuple[List[MajOneHai.HeZhong], MajOneHai.HeZhong.Status, int]':
+        def _f(result: Dict[int, Tuple[Tuple[int,...],...]], ankan: List[int], final_hai: int, if_richi: bool, ura: List['MajOneHai']) -> 'List[MajOneHai.HeZhong]':
             HeZhong = MajOneHai.HeZhong
             if set(result.keys()) == {7}:
                 return [HeZhong((2, 4, 0))]     # 天地创造
             l = [HeZhong((0, 1, 0))]            # 门前清自摸和
+            all_hais: List[int] = functools.reduce(operator.add, [list(functools.reduce(operator.add, val)) for key, val in result.items()])
             if if_richi:
                 l.append(HeZhong((0, 0, 0)))    # 立直
+                for dora in ura:
+                    dora1 = dora.addOneDora().hai
+                    for h in all_hais:
+                        if h == dora1:
+                            l.append(HeZhong((0, 2, 0)))    # 里宝牌
             #特殊类
             if 0 in result and len(result[0][0]) >= 13:
                 if result[1][0][0] == final_hai:
@@ -712,10 +718,11 @@ class MajOneHai(MajHai):
             s = set(b for i, b in al)
             if {0, 1, 2} <= s and s & {3, 4, 5, 6} and s & {7, 8, 9}:
                 l.append(HeZhong((9, 0, 0)))    #五门齐
+            l.sort()
             return l
         _max = ([], 0, 0)
         for result in results:
-            _now = _f(result, ankan, final_hai, if_richi)
+            _now = _f(result, ankan, final_hai, if_richi, ura)
             m, ten = MajOneHai.HeZhong.ten(_now)
             if (m, ten) > (_max[1], _max[-1]):
                 _max = (_now, m, ten)
