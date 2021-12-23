@@ -8,8 +8,6 @@ from copy import copy
 from enum import Enum, IntFlag, IntEnum, auto
 from typing import Sequence, Union, TypeVar, Generic, Type, Dict, List, Tuple, Set, FrozenSet, Iterable, Union, Generator, Any, Callable
 
-from chiharu.plugins.games.logic_dragon_type import MajOneHai
-
 H = TypeVar('H', bound='MajHai')
 class MajErr(Exception):
     def __init__(self, *args):
