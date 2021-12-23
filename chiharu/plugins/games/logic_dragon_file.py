@@ -1547,7 +1547,7 @@ class User:
             self.send_log(f"和了{句尾}") # TODO
             if self.data.if_richi:
                 ura = [MajOneHai(MajOneHai.get_random()) for i in range(len(self.data.maj[1]) + 1)]
-                self.buf.send("里宝牌是：" + ''.join(str(c) for c in ura))
+                self.buf.send("里宝指示牌是：" + ''.join(str(c) for c in ura))
                 config.logger.dragon << "【LOG】里宝牌是：" + ''.join(str(c) for c in ura)
             else:
                 ura = []
