@@ -922,7 +922,7 @@ async def dragon_buy(buf: SessionBuffer):
                 await user.remove_limited_status(s)
             i += 1
         user.save_status_time()
-        await user.add_limited_status(Status('S')(240))
+        await user.add_limited_status(Status('S')(datetime.now() + timedelta(minutes=240)))
     elif id == 16 and me.check_daily_status('O'):
         # (5击毙)抽奖
         # 15%几率掉一张卡
