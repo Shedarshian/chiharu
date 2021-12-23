@@ -1218,8 +1218,8 @@ async def dragon_test(session: CommandSession):
 async def dragon_maj_test(session: CommandSession):
     import more_itertools
     l = session.current_arg_text.split(" ")
-    if l[0] == "立直":
-        richi = True
+    if l[0].startswith("立直"):
+        richi = l[0]
         l = l[1:]
     else: richi = False
     tehai = [MajOneHai(i + j) for i, j in more_itertools.chunked(l[-2], 2)]
@@ -1232,7 +1232,10 @@ async def dragon_maj_test(session: CommandSession):
         session.finish("没和！")
     ret = ""
     if richi:
-        ura = [MajOneHai(MajOneHai.get_random()) for i in range(len(ankan) + 1)]
+        if len(richi) == 2:
+            ura = [MajOneHai(MajOneHai.get_random()) for i in range(len(ankan) + 1)]
+        else:
+            ura = [MajOneHai(i + j) for i, j in more_itertools.chunked(richi[2:], 2)]
         ret += "里宝指示牌是：" + ''.join(str(c) for c in ura) + "\n"
     else:
         ura = []

@@ -553,8 +553,17 @@ class MajOneHai(MajHai):
     def tensu(results: List[Dict[int, Tuple[Tuple[int,...],...]]], ankan: List[int], final_hai: int, if_richi: bool, ura: List['MajOneHai']) -> 'Tuple[List[MajOneHai.HeZhong], MajOneHai.HeZhong.Status, int]':
         def _f(result: Dict[int, Tuple[Tuple[int,...],...]], ankan: List[int], final_hai: int, if_richi: bool, ura: List['MajOneHai']) -> 'List[MajOneHai.HeZhong]':
             HeZhong = MajOneHai.HeZhong
-            if set(result.keys()) == {7}:
-                return [HeZhong((2, 4, 0))]     # 天地创造
+            if set(result.keys()) == {7} and set(ankan) == {31}:
+                l = [HeZhong((2, 4, 0))]     # 天地创造
+                if if_richi:
+                    l.append(HeZhong((0, 0, 0)))    # 立直
+                    for dora in ura:
+                        dora1 = dora.addOneDora()
+                        if dora1.hai == 31:
+                            for i in range(len(ankan) + 14):
+                                l.append(HeZhong((0, 2, 0)))    # 里宝牌
+                l.sort()
+                return l
             l = [HeZhong((0, 1, 0))]            # 门前清自摸和
             if if_richi:
                 l.append(HeZhong((0, 0, 0)))    # 立直
@@ -564,6 +573,12 @@ class MajOneHai(MajHai):
                         for h in functools.reduce(operator.add, val):
                             if key == dora1.barrel and (dora1.barrel >= 3 or h == dora1.num):
                                 l.append(HeZhong((0, 2, 0)))    # 里宝牌
+                    for hai in ankan:
+                        if hai == dora1.hai:
+                            l.append(HeZhong((0, 2, 0)))
+                            l.append(HeZhong((0, 2, 0)))
+                            l.append(HeZhong((0, 2, 0)))
+                            l.append(HeZhong((0, 2, 0)))
             #特殊类
             if 0 in result and len(result[0][0]) >= 13:
                 if result[1][0][0] == final_hai:
@@ -574,7 +589,7 @@ class MajOneHai(MajHai):
             shun: List[Tuple[Tuple[int,...], int]] = []
             ke  : List[Tuple[Tuple[int,...], int]] = []
             dui : List[Tuple[Tuple[int,...], int]] = []
-            gang: List[Tuple[Tuple[int,...], int]] = [((s, s, s, s), MajOneHai(s).barrel) for s in ankan]
+            gang: List[Tuple[Tuple[int,...], int]] = [(((t := MajOneHai(s)).num, t.num, t.num, t.num), t.barrel) for s in ankan]
             for barrel, vals in result.items():
                 for val in vals:
                     if len(val) == 2:
