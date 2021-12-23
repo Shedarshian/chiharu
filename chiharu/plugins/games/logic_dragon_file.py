@@ -1392,6 +1392,7 @@ class User:
         await self.attacked(attacker, atk)
     async def use_object(self, args: str):
         if args == "满贯抽奖券":
+            self.data.extra.mangan -= 2
             a = random.random()
             if a < 0.005 and self.data.check_equipment(5) == 0:
                 self.send_log(f"获得了赌神魔戒{句尾}")
@@ -1407,6 +1408,7 @@ class User:
                 self.send_log(f"获得了3张卡{句尾}")
                 await self.draw(3)
         elif args == "役满抽奖券":
+            self.data.extra.yakuman -= 1
             a = random.random()
             if a < 0.02 and self.data.check_equipment(5) == 0:
                 self.send_log(f"获得了赌神魔戒{句尾}")
@@ -1425,6 +1427,7 @@ class User:
                 self.send_log(f"获得了5张卡{句尾}")
                 await self.draw(5)
         elif args == "麻将摸牌券":
+            self.data.extra.maj_quan -= 3
             await self.draw_maj()
         else:
             self.buf.send("此物品不可使用。")
