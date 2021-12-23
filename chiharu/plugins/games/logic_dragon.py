@@ -551,7 +551,7 @@ async def dragon_use_card(buf: SessionBuffer):
             global_state['used_cards'].append(card.id)
         user.data.extra.maj_quan += 1
         if user.data.extra.maj_quan % 3 == 0:
-            user.send_log("你获得了一张麻将摸牌券！发送“使用 麻将摸牌券”摸牌，然后选择切牌/立直/暗杠/和出。")
+            user.send_log("获得了一张麻将摸牌券！发送“使用 麻将摸牌券”摸牌，然后选择切牌/立直/暗杠/和出。")
     global_state['last_card_user'] = qq
     save_global_state()
 

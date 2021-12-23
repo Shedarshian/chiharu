@@ -1434,7 +1434,7 @@ class User:
                 await self.draw(5)
         elif args == "麻将摸牌券":
             if self.data.extra.maj_quan < 3:
-                self.buf.send("你麻将摸牌券不足！")
+                self.buf.send("你的麻将摸牌券不足！")
                 return
             self.data.extra.maj_quan -= 3
             await self.draw_maj()
