@@ -1458,7 +1458,7 @@ class User:
             if len(t) != 0:
                 richi.append(to_draw)
             richi.sort()
-            richi = list(more_itertools.unique_justseen(richi), lambda s: s.hai)
+            richi = list(more_itertools.unique_justseen(richi, lambda s: s.hai))
         c = Counter(h.hai for h in hand_maj + [to_draw])
         ankan = [MajOneHai(i) for i, d in c.items() if d >= 4]
         if self.data.if_richi:
