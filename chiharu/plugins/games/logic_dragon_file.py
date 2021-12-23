@@ -3795,7 +3795,7 @@ class panjuea_s(_statusnull):
             user.send_char(f"从五个人前面接来了判决β{句尾}")
             for i in range(min(count, count2)):
                 await user.remove_status('A', remove_all=False)
-            await user.add_limited_status(Swufazhandou(240))
+            await user.add_limited_status(Swufazhandou(datetime.now() + timedelta(minutes=240)))
             return max(0, count2 - count),
         return count2,
     @classmethod
@@ -3817,7 +3817,7 @@ class panjuea_activated_s(_statusnull):
             user.send_char(f"从五个人前面接来了判决β{句尾}")
             for i in range(min(count, count2)):
                 await user.remove_status('a', remove_all=False)
-            await user.add_limited_status(Swufazhandou(240))
+            await user.add_limited_status(Swufazhandou(datetime.now() + timedelta(minutes=240)))
             return max(0, count2 - count),
         return count2,
     @classmethod
@@ -3842,7 +3842,7 @@ class panjueb_s(_statusnull):
             user.send_char(f"从五个人前面接来了判决α{句尾}")
             for i in range(min(count, count2)):
                 user.remove_status('B', remove_all=False)
-            await user.add_limited_status(Swufazhandou(240))
+            await user.add_limited_status(Swufazhandou(datetime.now() + timedelta(minutes=240)))
             return max(0, count2 - count),
         return count2,
     @classmethod
@@ -3864,7 +3864,7 @@ class panjueb_activated_s(_statusnull):
             user.send_char(f"从五个人前面接来了判决α{句尾}")
             for i in range(min(count, count2)):
                 await user.remove_status('b', remove_all=False)
-            await user.add_limited_status(Swufazhandou(240))
+            await user.add_limited_status(Swufazhandou(datetime.now() + timedelta(minutes=240)))
             return max(0, count2 - count),
         return count2,
     @classmethod
