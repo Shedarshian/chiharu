@@ -490,7 +490,10 @@ class MajOneHai(MajHai):
             s += str(to_draw)
         test = Maj.compile(s, True, None, None, None, None)
         name = await GetMajImg(test)
-        return "[CQ:image,file=" + name + ".png]"
+        img = "[CQ:image,file=" + name + ".png]"
+        if len(ankan) != 0:
+            img += f"（左侧有{len(ankan)}个暗杠）"
+        return img
         # return ('' if len(ankan) == 0 else ' '.join(str(h) * 4 for h in ankan)) + ''.join(str(h) for h in tehai) + ('' if to_draw is None else ' ' + str(to_draw))
     @functools.total_ordering
     class HeZhong:
