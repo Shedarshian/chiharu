@@ -349,6 +349,8 @@ async def logical_dragon_else(session: NLPSession):
         await call_command(get_bot(), session.ctx, ('dragon', 'check'), current_arg="活动商店")
     if not await env.test(session):
         return
+    if text.startswith("摸麻将"):
+        await call_command(get_bot(), session.ctx, ('dragon', 'use'), current_arg="麻将摸牌券")
     if text.startswith("使用手牌") and (len(text) == 4 or text[4] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
     elif text.startswith("使用卡牌") and (len(text) == 4 or text[4] == ' '):
@@ -1206,10 +1208,13 @@ async def dragon_test(session: CommandSession):
     buf = SessionBuffer(session)
     for t in config.userdata.execute("select qq from dragon_data where card like '%40%' or card like '%41%' or card like '%42%' or card like '%43%' or card like '%44%' or card like '%45%' or card like '%46%'").fetchall():
         u = User(t['qq'], buf)
-        while Card(44) in u.data.hand_card:
-            u.data.hand_card.remove(Card(44))
-            u.data.hand_card.append(Card(95))
-        u.data.hand_card = list(s for s in u.data.hand_card if s.id < 40 or s.id > 46)
+        i = 0
+        while i < len(u.data.hand_card):
+            if 40 <= u.data.hand_card[i].id <= 46:
+                u.data.hand_card.remove(u.data.hand_card[i])
+                u.data.draw_time += 1
+            else:
+                i += 1
         u.data.set_cards()
     save_data()
 

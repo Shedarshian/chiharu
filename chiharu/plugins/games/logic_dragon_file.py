@@ -2727,6 +2727,7 @@ class dongfeng(_card):
     name = "东风（🀀）"
     id = 40
     positive = 0
+    weight = 0
     description = "可邀请持有南风、西风、北风的群友各一位进行一局麻将对战，根据结算顺位获得奖励（一位20击毙，二位10击毙，三位5击毙，四位被击毙），对局结束后此牌被消耗。"
     mass = 0.2
 
@@ -2734,6 +2735,7 @@ class nanfeng(_card):
     name = "南风（🀁）"
     id = 41
     positive = 0
+    weight = 0
     description = "可邀请持有东风、西风、北风的群友各一位进行一局麻将对战，根据结算顺位获得奖励（一位20击毙，二位10击毙，三位5击毙，四位被击毙），对局结束后此牌被消耗。"
     mass = 0.2
 
@@ -2741,6 +2743,7 @@ class xifeng(_card):
     name = "西风（🀂）"
     id = 42
     positive = 0
+    weight = 0
     description = "可邀请持有东风、南风、北风的群友各一位进行一局麻将对战，根据结算顺位获得奖励（一位20击毙，二位10击毙，三位5击毙，四位被击毙），对局结束后此牌被消耗。"
     mass = 0.2
 
@@ -2748,6 +2751,7 @@ class beifeng(_card):
     name = "北风（🀃）"
     id = 43
     positive = 0
+    weight = 0
     description = "可邀请持有东风、南风、西风的群友各一位进行一局麻将对战，根据结算顺位获得奖励（一位20击毙，二位10击毙，三位5击毙，四位被击毙），对局结束后此牌被消耗。"
     mass = 0.2
 
@@ -2755,6 +2759,7 @@ class baiban(_card):
     name = "白板（🀆）"
     id = 44
     positive = 1
+    weight = 0
     description = "选择你手牌中的一张牌，执行其使用效果。"
     mass = 0.2
     @classmethod
@@ -2773,6 +2778,7 @@ class hongzhong(_card):
     name = "红中（🀄）"
     id = 46
     positive = 1
+    weight = 0
     description = "在同时有人驳回和同意时，可以使用此卡强制通过。"
     mass = 0.2
 
