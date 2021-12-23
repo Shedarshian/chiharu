@@ -1462,7 +1462,7 @@ class User:
             can_choose = [hand_maj + [to_draw], richi, ankan, huchu]
         to_choose = None
         from nonebot.command.argfilter.validators import _raise_failure
-        self.send_char(f"摸到了{str(to_draw)}{句尾}{self.char}现在的牌是：\n{MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}")
+        self.send_char(f"摸到了{str(to_draw)}{句尾}{self.char}现在的牌是：\n{await MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}")
         if len(richi) == 0 and len(ankan) == 0 and not huchu:
             choose = 0
         elif self.data.if_richi and not huchu:
@@ -1574,7 +1574,7 @@ class User:
             hand_maj.remove(to_choose)
             self.data.maj[1].append(to_choose.hai)
             self.send_log(f"暗杠了{str(to_choose)}{句尾}，手中麻将为：")
-        self.buf.send(MajOneHai.draw_maj(hand_maj, self.data.maj[1]))
+        self.buf.send(await MajOneHai.draw_maj(hand_maj, self.data.maj[1]))
         self.log << ''.join(str(h) for h in hand_maj) + ' ' + ''.join(str(h) for h in self.data.maj[1])
         self.data.maj = ([s.hai for s in hand_maj], self.data.maj[1])
         self.data.save_maj()

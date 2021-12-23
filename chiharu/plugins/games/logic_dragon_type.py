@@ -479,10 +479,19 @@ class MajOneHai(MajHai):
                     ten[key] = val
         return ten
     @staticmethod
-    def draw_maj(tehai: 'List[MajOneHai]',
-            ankan: Optional[Iterable['MajOneHai']] = (),
+    async def draw_maj(tehai: 'List[MajOneHai]',
+            ankan: Iterable['MajOneHai'] = (),
             to_draw: Optional['MajOneHai'] = None) -> str:
-        return ('' if len(ankan) == 0 else ' '.join(str(h) * 4 for h in ankan)) + ''.join(str(h) for h in tehai) + ('' if to_draw is None else ' ' + str(to_draw))
+        from ..misc import Maj, GetMajImg
+        s = ''.join([str(c) * 3 for c in ankan] + [str(c) for c in tehai])
+        if to_draw is None:
+            s += "0p"
+        else:
+            s += str(to_draw)
+        test = Maj.compile(s, True, None, None, None, None)
+        name = await GetMajImg(test)
+        return "[CQ:image,file=" + name + ".png]"
+        # return ('' if len(ankan) == 0 else ' '.join(str(h) * 4 for h in ankan)) + ''.join(str(h) for h in tehai) + ('' if to_draw is None else ' ' + str(to_draw))
     @functools.total_ordering
     class HeZhong:
         data: Dict[Tuple[int, int, int], Tuple[str, int]] = {(0, 0, 0): ("立直", 1), (0, 1, 0): ("门前清自摸和", 1),
