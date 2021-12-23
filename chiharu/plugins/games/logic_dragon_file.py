@@ -459,7 +459,7 @@ class Wrapper:
     def __lshift__(self, log):
         config.logger.dragon << f"【LOG】用户{self.qq}" + log
 
-extra_data_format = '!BLIIIIBB'
+extra_data_format = '!BLIIIIBBI'
 @dataclass
 class ExtraData:
     tarot_time: int # unsigned char
@@ -470,6 +470,7 @@ class ExtraData:
     mp_max: int     # unsigned int
     mangan: int     # unsigned char
     yakuman: int    # unsigned char
+    maj_quan: int   # unsigned int
     def pack(self):
         return pack(extra_data_format, *astuple(self))
     @classmethod
@@ -540,6 +541,13 @@ class DynamicExtraData:
     @yakuman.setter
     def yakuman(self, value):
         self.data.yakuman = value
+        self.save_func(self.data)
+    @property
+    def maj_quan(self):
+        return self.data.maj_quan
+    @maj_quan.setter
+    def maj_quan(self, value):
+        self.data.maj_quan = value
         self.save_func(self.data)
     # def __getattr__(self, name: str):
     #     if name not in ('data', 'save_func', 'save_func_old'):
@@ -1382,6 +1390,44 @@ class User:
             attacker = dragon(self)
         atk = Damage(attacker, self, damage, must_hit=must_hit)
         await self.attacked(attacker, atk)
+    async def use_object(self, args: str):
+        if args == "满贯抽奖券":
+            a = random.random()
+            if a < 0.005 and self.data.check_equipment(5) == 0:
+                self.send_log(f"获得了赌神魔戒{句尾}")
+                self.data.equipment[5] = 1
+                self.data.save_equipment()
+            elif a < 0.5:
+                self.send_log(f"获得了1张正面卡{句尾}")
+                await self.draw(1, positive={1})
+            elif a < 0.75:
+                self.send_log(f"获得了2张卡{句尾}")
+                await self.draw(2)
+            else:
+                self.send_log(f"获得了3张卡{句尾}")
+                await self.draw(3)
+        elif args == "役满抽奖券":
+            a = random.random()
+            if a < 0.02 and self.data.check_equipment(5) == 0:
+                self.send_log(f"获得了赌神魔戒{句尾}")
+                self.data.equipment[5] = 1
+                self.data.save_equipment()
+            elif a < 0.4:
+                self.send_log(f"获得了2张正面卡{句尾}")
+                await self.draw(2, positive={1})
+            elif a < 0.6:
+                self.send_log(f"获得了3张卡{句尾}")
+                await self.draw(3)
+            elif a < 0.8:
+                self.send_log(f"获得了4张卡{句尾}")
+                await self.draw(4)
+            else:
+                self.send_log(f"获得了5张卡{句尾}")
+                await self.draw(5)
+        elif args == "麻将摸牌券":
+            await self.draw_maj()
+        else:
+            self.buf.send("此物品不可使用。")
     async def draw_maj(self, to_draw=None):
         if not await self.choose():
             return
@@ -2500,10 +2546,11 @@ class randommaj(_card):
     name = "扣置的麻将"
     positive = 0
     mass = 0.25
-    description = "摸一张随机麻将牌，选择切牌/立直/暗杠/和出，然后抽一张卡。"
+    description = "增加5次麻将摸牌的机会，然后抽一张卡。发送”使用 麻将摸牌券“摸牌，然后选择切牌/立直/暗杠/和出。"
     @classmethod
     async def use(cls, user: User) -> None:
-        await user.draw_maj()
+        user.data.extra.maj_quan += 15
+        user.send_log("增加了5张麻将摸牌券！")
         await user.draw(1)
 
 class dabingyichang(_card):
@@ -5761,6 +5808,18 @@ class rocket(_card):
         user.buf.send(f"恭喜{user.char}，今天{user.char}赢了{句尾}")
         await user.add_daily_status('W')
 
+class randommaj(_card):
+    id = 239
+    name = "扣置的麻将"
+    positive = 0
+    mass = 0.25
+    description = "增加5次麻将摸牌的机会，然后抽一张卡。发送”使用 麻将摸牌券“摸牌，然后选择切牌/立直/暗杠/和出。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        user.data.extra.maj_quan += 15
+        user.send_log("增加了5张麻将摸牌券！")
+        await user.draw(1)
+
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):
     def _(f: Callable[[str], bool]):
@@ -6004,6 +6063,13 @@ class dragon_head(_equipment):
                 user.data.set_cards()
             save_global_state()
             user.data.save_equipment()
+
+class dushen_ring(_equipment):
+    id = 5
+    name = "赌神魔戒"
+    @classmethod
+    def description(cls, count: TCount) -> str:
+        return "你变得更加幸运了。"
 
 # 爬塔格子
 class Grid:

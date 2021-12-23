@@ -353,6 +353,10 @@ async def logical_dragon_else(session: NLPSession):
         await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
     elif text.startswith("使用卡牌") and (len(text) == 4 or text[4] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
+    elif text.startswith("使用装备") and (len(text) == 4 or text[4] == ' '):
+        await call_command(get_bot(), session.ctx, ('dragon', 'use_equipment'), current_arg=text[4:].strip())
+    elif text.startswith("使用"):
+        await call_command(get_bot(), session.ctx, ('dragon', 'use'), current_arg=text[2:].strip())
     elif text.startswith("弃牌") and (len(text) == 2 or text[2] == ' '):
         await call_command(get_bot(), session.ctx, ('dragon', 'discard'), current_arg=text[2:].strip())
     elif text.startswith("抽卡") and (len(text) == 2 or text[2] == ' '):
@@ -545,6 +549,9 @@ async def dragon_use_card(buf: SessionBuffer):
         await user.use_card(card)
         if card.id not in global_state['used_cards']:
             global_state['used_cards'].append(card.id)
+        user.data.extra.maj_quan += 1
+        if user.data.extra.maj_quan // 3 == 0:
+            user.send_log("你获得了一张麻将摸牌券！发送“使用 麻将摸牌券”摸牌，然后选择切牌/立直/暗杠/和出。")
     global_state['last_card_user'] = qq
     save_global_state()
 
@@ -556,7 +563,7 @@ async def dragon_use_equipment(buf: SessionBuffer):
     使用方法为：使用装备 id号"""
     args = buf.current_arg_text.strip()
     if len(args) == 0:
-        buf.finish(f"请输入想使用的卡牌{句尾}")
+        buf.finish(f"请输入想使用的装备{句尾}")
     try:
         eq = Equipment(int(args))
     except (ValueError, IndexError):
@@ -580,6 +587,26 @@ async def dragon_use_equipment(buf: SessionBuffer):
         buf.finish(eq.failure_message)
     async with user.settlement():
         await user.use_equipment(eq, count)
+
+@on_command(('dragon', 'use'), aliases="使用", short_des="使用其他物品。", only_to_me=False, args=("else"), environment=env)
+@config.ErrorHandle(config.logger.dragon)
+@Game.wrapper
+async def dragon_use_else(buf: SessionBuffer):
+    """使用其他物品。
+    目前可用：
+        使用 满贯抽奖券
+        使用 役满抽奖券
+        使用 麻将摸牌券"""
+    args = buf.current_arg_text.strip()
+    if len(args) == 0:
+        buf.finish(f"请输入想使用的物品{句尾}")
+    qq = buf.ctx['user_id']
+    user = User(qq, buf)
+    if len(user.data.hand_card) > user.data.card_limit:
+        buf.finish(f"你的手牌超出上限，请先使用或弃牌再使用物品{句尾}")
+    user.log << f"试图使用物品{args}。"
+    async with user.settlement():
+        await user.use_object(args)
 
 @on_command(('dragon', 'discard'), aliases="弃牌", only_to_me=False, short_des="弃牌，只可在手牌超出上限时使用。", args=("card"), environment=env)
 @config.ErrorHandle(config.logger.dragon)
@@ -754,6 +781,8 @@ async def dragon_check(buf: SessionBuffer):
         buf.finish("当前活动词" + ('🔄' if me.check_daily_status('o') else '♻️' if me.check_daily_status('p') else '') + "为：\n" + '\n'.join(f"{s.word}，{'⚠️' if qq in s.get_parent_qq_list(dis)else ''}id为{s.id_str}" for s in words))
     elif data in ("资料", "profile"):
         ret = f"你的资料为：\n今日剩余获得击毙次数：{user.data.today_jibi}。\n今日剩余获得关键词击毙：{user.data.today_keyword_jibi}。\n剩余抽卡券：{user.data.draw_time}。\n手牌上限：{user.data.card_limit}。" + (f"\n活动pt：{user.data.event_pt}。\n当前在活动第{user.data.event_stage}。" if current_event == "swim" else "")
+        if user.data.extra.maj_quan // 3 != 0:
+            ret += f"\n麻将摸牌券：{user.data.extra.maj_quan // 3}张。"
         if user.data.extra.mangan != 0:
             if user.data.extra.mangan % 2 == 0:
                 ret += f"\n满贯抽奖券：{user.data.extra.mangan // 2}张。"
