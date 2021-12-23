@@ -524,9 +524,9 @@ class MajOneHai(MajHai):
             if yakuman != 0:
                 return (MajOneHai.HeZhong.Status.yakuman, yakuman)
             elif t >= 13:
-                return (MajOneHai.HeZhong.Status.kazoe, t)
+                return (MajOneHai.HeZhong.Status.kazoe, ten)
             else:
-                return (MajOneHai.HeZhong.Status.no, t)
+                return (MajOneHai.HeZhong.Status.no, ten)
         def __init__(self, t: Tuple[int, int, int]):
             self.tuple = t
         def __str__(self):
@@ -705,7 +705,7 @@ class MajOneHai(MajHai):
         for result in results:
             _now = _f(result, ankan, final_hai, if_richi)
             m, ten = MajOneHai.HeZhong.ten(_now)
-            if m > _max[1] and ten > _max[-1]:
+            if (m, ten) > (_max[1], _max[-1]):
                 _max = (_now, m, ten)
         if m == MajOneHai.HeZhong.Status.yakuman:
             _max = ([s for s in _max[0] if s.int() >= 13], _max[1], _max[2])

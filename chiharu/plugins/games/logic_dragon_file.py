@@ -1502,7 +1502,10 @@ class User:
                 await self.add_jibi(jibi)
                 await self.death()
             elif ten <= 12:
-                self.buf.send(f"以及{quan / 2}张满贯抽奖券{句尾}")
+                if quan % 2 == 0:
+                    self.buf.send(f"以及{quan // 2}张满贯抽奖券{句尾}")
+                else:
+                    self.buf.send(f"以及{quan / 2}张满贯抽奖券{句尾}")
                 await self.add_jibi(jibi)
                 self.data.extra.mangan += quan
             else:

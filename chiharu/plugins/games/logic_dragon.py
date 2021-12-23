@@ -755,7 +755,10 @@ async def dragon_check(buf: SessionBuffer):
     elif data in ("资料", "profile"):
         ret = f"你的资料为：\n今日剩余获得击毙次数：{user.data.today_jibi}。\n今日剩余获得关键词击毙：{user.data.today_keyword_jibi}。\n剩余抽卡券：{user.data.draw_time}。\n手牌上限：{user.data.card_limit}。" + (f"\n活动pt：{user.data.event_pt}。\n当前在活动第{user.data.event_stage}。" if current_event == "swim" else "")
         if user.data.extra.mangan != 0:
-            ret += f"\n满贯抽奖券：{user.data.extra.mangan / 2}张。"
+            if user.data.extra.mangan % 2 == 0:
+                ret += f"\n满贯抽奖券：{user.data.extra.mangan // 2}张。"
+            else:
+                ret += f"\n满贯抽奖券：{user.data.extra.mangan / 2}张。"
         if user.data.extra.yakuman != 0:
             ret += f"\n役满抽奖券：{user.data.extra.yakuman}张。"
         buf.finish(ret)
@@ -1211,7 +1214,10 @@ async def dragon_maj_test(session: CommandSession):
     if ten <= 3:
         ret += f"以及被击毙{句尾}"
     elif ten <= 12:
-        ret += f"以及{quan / 2}张满贯抽奖券{句尾}"
+        if quan % 2 == 0:
+            ret += f"以及{quan // 2}张满贯抽奖券{句尾}"
+        else:
+            ret += f"以及{quan / 2}张满贯抽奖券{句尾}"
     else:
         ret += f"以及{ten // 13}张役满抽奖券{句尾}"
     print(ret)
