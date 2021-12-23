@@ -866,6 +866,8 @@ async def dragon_buy(buf: SessionBuffer):
                 ])
         if to_do.id == (0, 0):
             buf.send(f"不可回溯根节点{句尾}")
+        elif to_do not in Tree.get_active(have_fork=False):
+            buf.send(f"只可回溯活动节点{句尾}")
         else:
             cost = -10 if me.check_daily_status('o') or me.check_daily_status('p') else -35
             if not await user.add_jibi(cost, is_buy=True):
