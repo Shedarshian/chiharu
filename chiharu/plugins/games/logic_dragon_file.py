@@ -1475,6 +1475,7 @@ class User:
         to_choose = None
         from nonebot.command.argfilter.validators import _raise_failure
         self.send_char(f"摸到了{str(to_draw)}{句尾}{self.char}现在的牌是：\n{await MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}")
+        prompt = ""
         if len(richi) == 0 and len(ankan) == 0 and not huchu:
             choose = 0
         elif self.data.if_richi and not huchu:
@@ -1505,8 +1506,9 @@ class User:
                     _raise_failure("请选择一个可执行的操作。")
                 except MajIdError:
                     _raise_failure("请输入正确的麻将牌。")
+            self.buf.send(prompt)
             await self.buf.flush()
-            choose, to_choose = await self.buf.aget(prompt=prompt, arg_filters=[
+            choose, to_choose = await self.buf.aget(prompt="", arg_filters=[
                 extractors.extract_text,
                 check_handcard(self),
                 check
@@ -1529,8 +1531,9 @@ class User:
                         return maj
                     except MajIdError:
                         _raise_failure("请输入正确的麻将牌。")
+                self.buf.send(prompt)
                 await self.buf.flush()
-                to_choose = await self.buf.aget(prompt=prompt, arg_filters=[
+                to_choose = await self.buf.aget(prompt="", arg_filters=[
                     extractors.extract_text,
                     check_handcard(self),
                     check2
