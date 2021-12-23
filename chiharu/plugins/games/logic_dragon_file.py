@@ -5805,6 +5805,18 @@ class rocket(_card):
         user.buf.send(f"恭喜{user.char}，今天{user.char}赢了{句尾}")
         await user.add_daily_status('W')
 
+class randommaj(_card):
+    id = 239
+    name = "扣置的麻将"
+    positive = 0
+    mass = 0.25
+    description = "增加5次麻将摸牌的机会，然后抽一张卡。发送”使用 麻将摸牌券“摸牌，然后选择切牌/立直/暗杠/和出。"
+    @classmethod
+    async def use(cls, user: User) -> None:
+        user.data.extra.maj_quan += 15
+        user.send_log("增加了5张麻将摸牌券！")
+        await user.draw(1)
+
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):
     def _(f: Callable[[str], bool]):
