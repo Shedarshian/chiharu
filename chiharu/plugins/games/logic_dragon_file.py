@@ -689,7 +689,7 @@ class UserData:
         return assembling.get_card_limit(self.extra.assembling, c)
     @property
     def card_limit(self):
-        return self.card_limit_raw + self.card_limit_from_assembling
+        return min(20, self.card_limit_raw + self.card_limit_from_assembling)
     @property
     def card_limit_raw(self):
         return self.node['card_limit']
