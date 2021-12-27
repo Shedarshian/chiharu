@@ -4968,7 +4968,7 @@ class Sshequn(_statusnull):
         return True, 0, ""
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        await Userme(me).remove_status('|', remove_all=False)
+        await Userme(user).remove_status('|', remove_all=False)
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.shequn, cls),
@@ -4985,7 +4985,7 @@ class Sinvshequn(_statusnull):
         return True, 0, ""
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        await Userme(me).remove_status('/', remove_all=False)
+        await Userme(user).remove_status('/', remove_all=False)
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.invshequn, cls),

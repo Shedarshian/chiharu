@@ -140,7 +140,7 @@ async def GetMajImg(s):
     loop = asyncio.get_event_loop()
     u = 'http://mjv.jp/2/img/n%s.png' % s
     url2 = await loop.run_in_executor(None, functools.partial(requests.get, u,
-        headers={'Referer': 'http://tenhou.net/2/img/'}))
+        headers={'Referer': 'https://tenhou.net/'}))
     name = str(hash(s))
     with open(config.img(name + '.png'), 'wb') as f:
         f.write(url2.content)
