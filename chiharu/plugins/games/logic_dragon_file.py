@@ -2580,6 +2580,7 @@ class randommaj(_card):
     positive = 0
     mass = 0.25
     description = "增加5次麻将摸牌的机会，然后抽一张卡。发送”使用 麻将摸牌券“摸牌，然后选择切牌/立直/暗杠/和出。"
+    newer = 6
     @classmethod
     async def use(cls, user: User) -> None:
         user.data.extra.maj_quan += 15
@@ -5847,11 +5848,44 @@ class rocket(_card):
         user.buf.send(f"恭喜{user.char}，今天{user.char}赢了{句尾}")
         await user.add_daily_status('W')
 
+class gluon(_card):
+    id = 221
+    name = "胶子"
+    positive = -1
+    description = "抽到时，会随机将你的两张牌粘在一起。使用/弃置/销毁某一张牌时另一张也会被使用/弃置/销毁。"
+    newer = 6
+    weight = 0
+    consumed_on_draw = True
+    @classmethod
+    async def on_draw(cls, user: User) -> None:
+        if len(user.data.hand_card) < 1:
+            user.send_log("的手牌数不足2！")
+        else:
+            c1, c2 = random.choice(list(itertools.combinations(user.data.hand_card, 2)))
+            await user.add_limited_status(SStick(c1.id, c2.id))
+class SStick(_status):
+    id = 's'
+    is_debuff = True
+    def __init__(self, s1: Union[str, int], s2: Union[str, int]):
+        self.card1 = int(s1)
+        self.card2 = int(s2)
+    @property
+    def des(self):
+        return f"胶子：你的手牌【{Card(self.card1).name}】与【{Card(self.card2).name}】粘在一起了。使用其中一张牌时另一张也会被使用。"
+    @property
+    def brief_des(self):
+        return f"胶子：【{Card(self.card1).name}】与【{Card(self.card2).name}】"
+    @classmethod
+    async def AfterCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[()]:
+        for st in count:
+            pass
+
 class randommaj2(_card):
     id = 239
     name = "扣置的麻将"
     positive = 0
     mass = 0.25
+    newer = 6
     description = "增加5次麻将摸牌的机会，然后抽一张卡。发送”使用 麻将摸牌券“摸牌，然后选择切牌/立直/暗杠/和出。"
     @classmethod
     async def use(cls, user: User) -> None:
