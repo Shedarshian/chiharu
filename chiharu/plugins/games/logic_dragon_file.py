@@ -2955,7 +2955,9 @@ class dream(_card):
     @classmethod
     async def use(cls, user: User) -> None:
         node = random.choice(list(itertools.chain(*Tree._objs)))
-        if random.random() < 0.5:
+        c = random.random()
+        config.logger.dragon << f"【DEBUG】c={c}"
+        if c < 0.5:
             user.buf.send(f"回溯到了节点{node.id_str}{句尾}")
             for n in node.childs:
                 n.remove()
@@ -4763,15 +4765,17 @@ class Sexplore(NumedStatus):
                         s = random.choice(list(_statusnull.id_dict.keys()))
                         if StatusNull(s).is_global:
                             break
-                    await user.add_status(s)
-                    user.send_log(f"添加了全局状态{s.des[:s.des.index('：')]}。")
+                    await Userme(user).add_status(s)
+                    t = StatusNull(s)
+                    user.send_log(f"添加了全局状态{t.des[:t.des.index('：')]}。")
                 else:
                     while True:
                         s = random.choice(list(_statusdaily.id_dict.keys()))
                         if StatusDaily(s).is_global:
                             break
-                    await user.add_daily_status(s)
-                    user.send_log(f"添加了全局状态{s.des[:s.des.index('：')]}。")
+                    await Userme(user).add_daily_status(s)
+                    t = StatusDaily(s)
+                    user.send_log(f"添加了全局状态{t.des[:t.des.index('：')]}。")
             else:
                 user.send_log("置身狐百合原野：")
                 user.buf.send("我们将布浸入氨水，蒙在脸上，以抵抗狐百合的香气。即便这样，我们仍然头晕目眩，身体却对各种矛盾的欲望作出回应。被击毙90分钟，并失去状态“探索森林尽头之地”。")
@@ -5113,7 +5117,7 @@ class Sshendian(_statusnull):
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         await user.add_jibi(5 * count)
         user.send_log(f"因星辰击碎的神殿额外获得{5 * count}击毙{句尾}")
-        await user.remove_status('^')
+        await Userme(user).remove_status('^')
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.shendian, cls)}
@@ -5126,7 +5130,7 @@ class Sinvshendian(_statusnull):
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         await user.add_jibi(-5 * count)
         user.send_log(f"因反转-置身被星辰击碎的神殿额外失去{5*count}击毙{句尾}")
-        await user.remove_status('$')
+        await Userme(user).remove_status('$')
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.invshendian, cls)}

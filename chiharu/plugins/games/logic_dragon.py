@@ -1085,7 +1085,9 @@ async def dragon_add_begin(session: CommandSession):
     if len(session.current_arg_images) != 1:
         session.finish(f"请附1张图{句尾}")
     url = session.current_arg_images[0]
-    response = requests.get(url)
+    import asyncio, functools
+    loop = asyncio.get_event_loop()
+    response = await loop.run_in_executor(None, functools.partial(requests.get, url))
     name = hash(url)
     with open(config.img(f"{name}.jpg"), 'wb') as f:
         f.write(response.content)
