@@ -4652,9 +4652,9 @@ class Sexplore(NumedStatus):
                 await user.add_daily_status('S')
             elif i == 3:
                 user.send_log("置身凯格琳的财宝：")
-                user.buf.send("这里曾经是银矿，再下面则是具名者的藏匿。获得5击毙，然后抽取一张负面卡片并立即使用。")
+                user.buf.send("这里曾经是银矿，再下面则是具名者的藏匿。获得5击毙，然后抽取一张非正面卡片并立即使用。")
                 user.add_jibi(5)
-                c = draw_card({-1})
+                c = draw_card({0, -1})
                 await user.draw_and_use(c)
             elif i == 4:
                 user.send_log("置身高威尔旅馆：")

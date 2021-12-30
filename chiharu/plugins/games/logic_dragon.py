@@ -774,7 +774,7 @@ async def dragon_check(buf: SessionBuffer):
         else:
             buf.finish("你的状态为：\n" + ret)
     elif data in ("麻将", 'maj'):
-        ret = await MajOneHai.draw_maj([MajOneHai(s) for s in user.data.maj[0]], [MajOneHai(s) for s in user.data.maj[1]])
+        ret = await MajOneHai.draw_maj([MajOneHai(s) for s in user.data.maj[0]], [MajOneHai(s).hai for s in user.data.maj[1]])
         buf.finish("你手中的麻将为：\n" + ret)
     elif data in ("活动词", "active"):
         words = Tree.get_active()
