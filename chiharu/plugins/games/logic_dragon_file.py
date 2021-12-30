@@ -874,8 +874,8 @@ class User:
         return self.buf.char(self.qq)
     def send_char(self, s: str, /, end='\n'):
         self.buf.send(self.char + s, end=end)
-    def send_log(self, s: str, /, end='\n'):
-        self.buf.send_log.dragon(self.qq, s, end=end)
+    def send_log(self, s: str, /, end='\n', no_char=False):
+        self.buf.send_log.dragon(self.qq, s, end=end, no_char=no_char)
     def decrease_death_time(self, time: timedelta):
         t = self.data.check_limited_status('d')
         if len(t) == 0:
@@ -5848,21 +5848,21 @@ class rocket(_card):
         user.buf.send(f"恭喜{user.char}，今天{user.char}赢了{句尾}")
         await user.add_daily_status('W')
 
-class gluon(_card):
-    id = 221
-    name = "胶子"
-    positive = -1
-    description = "抽到时，会随机将你的两张牌粘在一起。使用/弃置/销毁某一张牌时另一张也会被使用/弃置/销毁。"
-    newer = 6
-    weight = 0
-    consumed_on_draw = True
-    @classmethod
-    async def on_draw(cls, user: User) -> None:
-        if len(user.data.hand_card) < 1:
-            user.send_log("的手牌数不足2！")
-        else:
-            c1, c2 = random.choice(list(itertools.combinations(user.data.hand_card, 2)))
-            await user.add_limited_status(SStick(c1.id, c2.id))
+# class gluon(_card):
+#     id = 221
+#     name = "胶子"
+#     positive = -1
+#     description = "抽到时，会随机将你的两张牌粘在一起。使用/弃置/销毁某一张牌时另一张也会被使用/弃置/销毁。"
+#     newer = 6
+#     weight = 0
+#     consumed_on_draw = True
+#     @classmethod
+#     async def on_draw(cls, user: User) -> None:
+#         if len(user.data.hand_card) < 1:
+#             user.send_log("的手牌数不足2！")
+#         else:
+#             c1, c2 = random.choice(list(itertools.combinations(user.data.hand_card, 2)))
+#             await user.add_limited_status(SStick(c1.id, c2.id))
 class SStick(_status):
     id = 's'
     is_debuff = True
@@ -5879,6 +5879,79 @@ class SStick(_status):
     async def AfterCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[()]:
         for st in count:
             pass
+
+class uncertainty(_card):
+    id = 222
+    name = "不确定性原理"
+    description = "不可使用。持有时，你每次接龙每个字有5%的几率随机变成一周以内接过的字。"
+    mass = 0
+    positive = -1
+    newer = 6
+    failure_message = "此牌不可被使用" + 句尾
+    @classmethod
+    def can_use(cls, user: User, copy: bool) -> bool:
+        return False
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
+        from .logic_dragon import log_set
+        all_str = "".join(log_set)
+        for i in range(len(state.word)):
+            s = random.random()
+            if s > 0.95 ** count:
+                new = random.choice(all_str)
+                user.send_log(f"接龙词里的“{state.word[i]}”由于不确定性原理变成了“{new}”{句尾}")
+                state.word[i] = new
+        return True, 0, ""
+    @classmethod
+    async def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.uncertainty, cls)}
+
+class antimatterdimension(_card):
+    id = 223
+    name = "反物质维度"
+    description = "抽到时，将你的随机一张手牌吸入反物质维度。你下次死亡或本buff消失时，自动使用这张手牌。"
+    newer = 6
+    positive = -1
+    consumed_on_draw = True
+    @classmethod
+    async def on_draw(cls, user: User) -> None:
+        if len(user.data.hand_card) == 0:
+            user.send_log("没有手牌" + 句尾)
+        else:
+            card = random.choice(user.data.hand_card)
+            user.send_log(f"的手牌{card.name}被吸入了反物质维度{句尾}")
+            await user.remove_cards([card]) # TODO 处理胶子，可能同时吸入多张卡
+            await user.add_limited_status(SAntimatterDimension(card.id))
+class SAntimatterDimension(NumedStatus):
+    id = 'a'
+    def check(self) -> bool:
+        return True
+    @property
+    def des(self):
+        return f"反物质维度：你下次死亡或本buff消失时，自动使用卡牌【{Card(self.num).name}】。"
+    def __str__(self):
+        return self.des + f"\n\t{Card(self.num).description}"
+    @property
+    def brief_des(self) -> str:
+        return f"反物质维度：卡牌【{Card(self.num).name}】。"
+    @classmethod
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+        for s in count:
+            cd = Card(s.num)
+            user.send_log(f"卡牌【{cd.name}】从反物质维度中被释放了出来{句尾}", no_char=True)
+            await user.use_card_effect(cd)
+        return time, False
+    @classmethod
+    async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[bool]:
+        for s in count:
+            cd = Card(s.num)
+            user.send_log(f"卡牌【{cd.name}】从反物质维度中被释放了出来{句尾}", no_char=True)
+            await user.use_card_effect(cd)
+        return False
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDeath: (Priority.OnDeath.antimatter, cls),
+            UserEvt.OnStatusRemove: (Priority.OnStatusRemove.antimatter, cls)}
 
 class randommaj2(_card):
     id = 239
