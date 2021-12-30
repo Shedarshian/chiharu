@@ -217,8 +217,9 @@ class _helper:
     def __init__(self, session: 'SessionBuffer'):
         self.session = session
     def __getattr__(self, name):
-        def _(qq, s, /, end='\n'):
-            self.session.buffer += self.session.char(qq)
+        def _(qq, s, /, end='\n', no_char=False):
+            if not no_char:
+                self.session.buffer += self.session.char(qq)
             self.session.buffer += s
             self.session.buffer += end
             logger._l[name] << f"【LOG】用户{qq}" + s

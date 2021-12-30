@@ -152,6 +152,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         inv_huiye = auto()              # 反转宝箱
         shangba = auto()                # 伤疤：+2击毙
         invshangba = auto()
+        antimatter = auto()             # 反物质维度：自动使用卡牌
         bingo = auto()                  # bingo任务
     class OnAttack(IntEnum):
         imaginebreaker = auto()         # 幻杀：破防
@@ -181,6 +182,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         bingo = auto()
     class OnStatusRemove(IntEnum):
         train = auto()
+        antimatter = auto()             # 反物质维度：自动使用卡牌
     class CheckJibiSpend(IntEnum):
         bianyaqi = auto()
         steamsummer = auto()
@@ -228,6 +230,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         invshequn = auto()
         hierophant = auto()             # 教皇：首尾
         inv_hierophant = auto()
+        uncertainty = auto()            # 不确定性原理：修改接龙词
     class CheckSuguri(IntEnum):
         jisuzhuangzhi = auto()
     class OnKeyword(IntEnum):

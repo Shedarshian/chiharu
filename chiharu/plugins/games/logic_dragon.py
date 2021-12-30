@@ -428,6 +428,7 @@ async def dragon_construct(buf: SessionBuffer):
                     user.log << f"接龙过快，失败。"
                     return
             save_global_state()
+            word = dragon_state.word
             kwd = hdkwd = ""
             if word == keyword:
                 user.log << f"接到了奖励词{keyword}。"
