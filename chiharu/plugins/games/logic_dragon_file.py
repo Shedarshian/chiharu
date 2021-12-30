@@ -2876,11 +2876,21 @@ class blank(_card):
     name = "空白卡牌"
     id = 53
     positive = -1
-    description = "使用时弃置所有手牌。此牌不可因手牌超出上限而被弃置。"
+    description = "使用时弃置随机5张手牌。此牌不可因手牌超出上限而被弃置。"
     @classmethod
     async def use(cls, user: User):
-        user.buf.send("你弃光了所有手牌。")
-        await user.discard_cards(copy(user.data.hand_card))
+        if len(user.data.hand_card <= 5):
+            user.send_log("弃光了所有手牌。")
+            await user.discard_cards(copy(user.data.hand_card))
+        else:
+            l = list(range(len(user.data.hand_card)))
+            p: List[TCard] = []
+            for _ in range(5):
+                i = random.choice(l)
+                p.append(Card(user.data.hand_card[i]))
+                l.remove(i)
+            user.send_log(f"弃置了{'，'.join(c.name for c in p)}。")
+            await user.discard_cards(p)
 
 class dragontube(_card):
     name = "龙之烟管"
