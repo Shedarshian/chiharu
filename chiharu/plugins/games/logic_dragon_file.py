@@ -5957,11 +5957,13 @@ class SAntimatterDimension(NumedStatus):
         return time, False
     @classmethod
     async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[bool]:
-        for s in count:
-            cd = Card(s.num)
-            user.send_log(f"卡牌【{cd.name}】从反物质维度中被释放了出来{句尾}", no_char=True)
-            await user.use_card_effect(cd)
-        return False
+        if isinstance(status, SAntimatterDimension):
+            for s in count:
+                cd = Card(s.num)
+                user.send_log(f"卡牌【{cd.name}】从反物质维度中被释放了出来{句尾}", no_char=True)
+                await user.use_card_effect(cd)
+            await user.remove_all_limited_status('a')
+        return False,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDeath: (Priority.OnDeath.antimatter, cls),
