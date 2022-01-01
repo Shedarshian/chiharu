@@ -5445,6 +5445,8 @@ class SBritian(ListStatus):
         if len(self.list) == 0:
             return self.des
         return f"{self.des}\n\t包含：{'，'.join(('“魔力 - ' + Card(i).name[Card(i).name.index(' - ') + 3:] + '”') for i in self.list)}。"
+    def double(self) -> List[T_status]:
+        return [self]
     @property
     def brief_des(self) -> str:
         return f"统治不列颠\n\t包含：{','.join(str(c) for c in self.list)}。"
