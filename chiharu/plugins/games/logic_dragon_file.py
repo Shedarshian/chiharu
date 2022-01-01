@@ -5954,15 +5954,15 @@ class SAntimatterDimension(NumedStatus):
             cd = Card(s.num)
             user.send_log(f"卡牌【{cd.name}】从反物质维度中被释放了出来{句尾}", no_char=True)
             await user.use_card_effect(cd)
+        await user.remove_all_limited_status('a')
         return time, False
     @classmethod
     async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[bool]:
         if isinstance(status, SAntimatterDimension):
-            for s in count:
-                cd = Card(s.num)
-                user.send_log(f"卡牌【{cd.name}】从反物质维度中被释放了出来{句尾}", no_char=True)
-                await user.use_card_effect(cd)
-            await user.remove_all_limited_status('a')
+            cd = Card(status.num)
+            user.send_log(f"卡牌【{cd.name}】从反物质维度中被释放了出来{句尾}", no_char=True)
+            await user.use_card_effect(cd)
+            await user.remove_limited_status(status)
         return False,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
