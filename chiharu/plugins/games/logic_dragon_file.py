@@ -5971,6 +5971,75 @@ class SAntimatterDimension(NumedStatus):
         return {UserEvt.OnDeath: (Priority.OnDeath.antimatter, cls),
             UserEvt.OnStatusRemove: (Priority.OnStatusRemove.antimatter, cls)}
 
+class doublebetadecay(_card):
+    id = 224
+    name = "无中微子双β衰变"
+    description = "抽到时，如果你所有手牌的id+2后均不是合理手牌，则你重新摸一张牌。否则你手牌里随机一张牌id+2，并摸2张【邪恶的间谍行动～执行】。"
+    positive = -1
+    newer = 6
+    consumed_on_draw = True
+    @classmethod
+    async def on_draw(cls, user: User) -> None:
+        l: List[TCard] = []
+        for c in user.data.hand_card:
+            if c.id + 2 in _card.card_id_dict:
+                l.append(c)
+        if len(l) == 0:
+            user.send_log(f"手牌中没有合理的牌{句尾}")
+            await user.draw(1)
+        else:
+            c = random.choice(l)
+            c2 = Card(c.id + 2)
+            user.send_log(f"手牌中的{c.name}衰变成了{c2.name}和两张【邪恶的间谍行动～执行】{句尾}")
+            await user.remove_cards([c])
+            await user.draw(0, cards=[c2, Card(-1), Card(-1)])
+
+class wormhole(_card):
+    id = 226
+    name = "虫洞"
+    description = "将你身上的一个随机负面状态或是负面手牌转移给另一名随机玩家。"
+    positive = 1
+    newer = 6
+    mass = -10
+    @classmethod
+    async def use(cls, user: User) -> None:
+        l: List[Tuple[int, Any]] = []
+        for c in user.data.hand_card:
+            if c.positive == -1:
+                l.append((0, c))
+        for c in user.data.status:
+            if (s := StatusNull(c)).is_debuff and s.removeable:
+                l.append((1, s))
+        for c in user.data.daily_status:
+            if (s := StatusDaily(c)).is_debuff and s.removeable:
+                l.append((2, s))
+        for c in user.data.status_time_checked:
+            if c.is_debuff and c.removeable:
+                l.append((3, c))
+        if len(l) == 0:
+            user.send_log("没有负面状态或是负面手牌" + 句尾)
+        else:
+            i, s = random.choice(l)
+            pl = config.userdata.execute("select qq from dragon_data where dead=false").fetchall()
+            pl: List[int] = [c['qq'] for c in pl if c['qq'] != 0 and c['qq'] != user.qq]
+            u2 = User(random.choice(pl), user.buf)
+            if i == 0:
+                user.send_log(f"的手牌{s.name}转移给了[CQ:at,qq={u2.qq}]{句尾}")
+                await user.remove_cards([s])
+                await u2.draw(0, cards=[s])
+            elif i == 1:
+                user.send_log(f"的状态{s.des[s.des.index['：']]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
+                await user.remove_status(s.id)
+                await u2.add_status(s.id)
+            elif i == 2:
+                user.send_log(f"的状态{s.des[s.des.index['：']]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
+                await user.remove_daily_status(s.id)
+                await u2.add_daily_status(s.id)
+            elif i == 3:
+                user.send_log(f"的状态{s.des[s.des.index['：']]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
+                await user.remove_limited_status(s)
+                await u2.add_limited_status(s)
+
 class randommaj2(_card):
     id = 239
     name = "扣置的麻将"
