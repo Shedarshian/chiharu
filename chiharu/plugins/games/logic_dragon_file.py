@@ -6093,7 +6093,8 @@ class laplace(_card):
         if await user.choose():
             user.buf.send("卡牌已通过私聊发送！")
             user.log << f"查询结果为{[c.brief_description for c in cards]}。"
-            await user.buf.session.send(f"牌堆顶的3张卡为：{'\n'.join(c.full_description for c in cards)}", ensure_private=True)
+            x = '\n'
+            await user.buf.session.send(f"牌堆顶的3张卡为：{x.join(c.full_description for c in cards)}", ensure_private=True)
 class SLaplace(ListStatus):
     id = 'P'
     @property
