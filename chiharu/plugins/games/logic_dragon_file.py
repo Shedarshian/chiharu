@@ -73,8 +73,20 @@ class IEventListener:
         str: failure message."""
         pass
     @classmethod
+    async def BeforeCardDraw(cls, count: TCount, user: 'User', n: int, positive: Optional[set[int]], extra_lambda: Optional[Callable]) -> Tuple[Optional[List[TCard]]]:
+        """Called Before a card is drawn in any cases. Includes cards consumed when drawn.
+
+        Arguments:
+        n: the number to draw.
+        positive: specify 'positive' of the card drawn.
+        extra_lambda: extra constraint of the card drawn.
+        
+        Returns:
+        Optional[List[TCard]]: if not None, replace the card drawn, and halt."""
+        pass
+    @classmethod
     async def BeforeCardUse(cls, count: TCount, user: 'User', card: TCard) -> Tuple[Optional[Awaitable]]:
-        """Called After a card is used in any cases. Includes cards consumed when drawn.
+        """Called Before a card is used in any cases. Includes cards consumed when drawn.
 
         Arguments:
         card: The card used.
@@ -1141,12 +1153,20 @@ class User:
         else:
             self.send_char(f"死了{句尾}{minute}分钟不得接龙。")
             await self.add_limited_status(SDeath(datetime.now() + timedelta(minutes=minute)))
-    async def draw(self, n: int, /, positive=None, cards=None, extra_lambda=None):
+    async def draw(self, n0: int, /, positive=None, cards=None, extra_lambda=None):
         """抽卡。将卡牌放入手牌。"""
         if self.active and self.buf.state.get('exceed_limit'):
-            self.send_log("因手牌超出上限，不可摸牌{句尾}")
+            self.send_log(f"因手牌超出上限，不可摸牌{句尾}")
             return
-        cards = draw_cards(positive, n, extra_lambda=extra_lambda) if cards is None else cards
+        if cards is None:
+            # Event BeforeCardDraw
+            for el, n in self.IterAllEventList(UserEvt.BeforeCardDraw, Priority.BeforeCardDraw):
+                ret, = await el.BeforeCardDraw(n, self, n0, positive, extra_lambda)
+                if ret is not None:
+                    cards = ret
+                    break
+            else:
+                cards = draw_cards(positive, n0, extra_lambda=extra_lambda)
         self.log << f"抽到的卡牌为{cards_to_str(cards)}。"
         self.send_char('抽到的卡牌是：')
         for c in cards:
@@ -1163,19 +1183,32 @@ class User:
             await el.AfterCardDraw(n, self, cards)
         self.data.set_cards()
         self.log << f"抽完卡牌，当前手牌为{cards_to_str(self.data.hand_card)}。"
-    async def draw_and_use(self, card: TCard):
+    async def draw_and_use(self, /, positive=None, card: TCard=None, extra_lambda=None):
         """抽取卡牌，立即使用，并发动卡牌的销毁效果。不经过手牌。"""
-        if card.des_need_init:
-            await self.draw_card_effect(card)
-        self.log << f"抽取并使用了卡牌{card.name}。"
-        self.send_char('抽到并使用了卡牌：\n' + card.full_description(self.qq))
-        if not card.des_need_init:
-            await self.draw_card_effect(card)
-        await self.use_card_effect(card)
-        if card.id not in global_state['used_cards']:
-            global_state['used_cards'].append(card.id)
-            save_global_state()
-        await card.on_remove(self)
+        if card is None:
+            # Event BeforeCardDraw
+            for el, n in self.IterAllEventList(UserEvt.BeforeCardDraw, Priority.BeforeCardDraw):
+                ret, = await el.BeforeCardDraw(n, self, 1, positive, extra_lambda)
+                if ret is not None:
+                    cards = ret
+                    break
+            else:
+                cards = draw_cards(positive, 1, extra_lambda=extra_lambda)
+        else:
+            cards = [card]
+        for c in cards:
+            if c.des_need_init:
+                await self.draw_card_effect(c)
+            self.log << f"抽取并使用了卡牌{c.name}。"
+            self.send_char('抽到并使用了卡牌：\n' + c.full_description(self.qq))
+        for c in cards:
+            if not c.des_need_init:
+                await self.draw_card_effect(c)
+            await self.use_card_effect(c)
+            if c.id not in global_state['used_cards']:
+                global_state['used_cards'].append(card.id)
+                save_global_state()
+            await c.on_remove(self)
     async def draw_card_effect(self, card: TCard):
         """抽卡时的结算。"""
         if card.consumed_on_draw:
@@ -2911,8 +2944,7 @@ class xingyuntujiao(_card):
     description = "抽取一张正面卡并立即发动其使用效果。"
     @classmethod
     async def use(cls, user: User):
-        c = draw_card({1})
-        await user.draw_and_use(c)
+        await user.draw_and_use(positive={1})
 
 class baoshidewugong(_card):
     name = "暴食的蜈蚣"
@@ -3272,8 +3304,7 @@ class zhongshendexixi(_card):
     description = '抽取一张卡并立即发动其使用效果。'
     @classmethod
     async def use(cls, user: User):
-        c = draw_card()
-        await user.draw_and_use(c)
+        await user.draw_and_use()
 
 class lveduozhebopu(_card):
     name = "掠夺者啵噗"
@@ -4664,8 +4695,7 @@ class Sexplore(NumedStatus):
                 user.send_log("置身凯格琳的财宝：")
                 user.buf.send("这里曾经是银矿，再下面则是具名者的藏匿。获得5击毙，然后抽取一张非正面卡片并立即使用。")
                 user.add_jibi(5)
-                c = draw_card({0, -1})
-                await user.draw_and_use(c)
+                await user.draw_and_use(positive={0, -1})
             elif i == 4:
                 user.send_log("置身高威尔旅馆：")
                 user.buf.send("藏书室非常隐蔽。25%概率抽一张卡。")
@@ -6040,6 +6070,21 @@ class wormhole(_card):
                 await user.remove_limited_status(s)
                 await u2.add_limited_status(s)
 
+class laplace(_card):
+    id = 228
+    name = "拉普拉斯魔"
+    description = "私聊告诉你牌堆的下3张牌是什么。"
+    positive = 1
+    newer = 6
+    mass = 0
+    @classmethod
+    async def use(cls, user: User) -> None:
+        return await super().use(user)
+class laplace_s(ListStatus):
+    id = 'P'
+    des = "拉普拉斯魔：牌堆顶的三张牌已经被看了。"
+
+
 class randommaj2(_card):
     id = 239
     name = "扣置的麻将"
@@ -6194,7 +6239,7 @@ class tarot(_equipment):
                     ])[0]
             user.log << f"选择了卡牌{c}。"
             user.data.extra.tarot_time -= 1
-            await user.draw_and_use(Card(c))
+            await user.draw_and_use(card=Card(c))
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
         user.data.extra.tarot_time = 1
@@ -6372,8 +6417,7 @@ class Grid:
             return n if content < 70 else -n
         elif content < 85: # 抽一张卡并立即发动效果
             user.send_log("走到了：抽一张卡并立即发动效果。")
-            c = draw_card()
-            await user.draw_and_use(c)
+            await user.draw_and_use()
         elif content < 95: # 你下次行走距离加倍。
             user.send_log("走到了：你下次行走距离加倍。")
             await user.add_status('D')

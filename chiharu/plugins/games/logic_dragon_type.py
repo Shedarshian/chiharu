@@ -91,6 +91,7 @@ class CounterOnly(Generic[T, TCount]):
 class UserEvt(IntEnum):
     OnUserUseCard = auto()
     BeforeCardUse = auto()
+    BeforeCardDraw = auto()
     AfterCardUse = auto()
     AfterCardDraw = auto()
     AfterCardDiscard = auto()
@@ -120,6 +121,8 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         temperance = auto()
         xingyunhufu = auto()
         cantuse = auto()
+    class BeforeCardDraw(IntEnum):
+        laplace = auto()
     class BeforeCardUse(IntEnum):
         fool = auto()
         britian = auto()
