@@ -1654,7 +1654,7 @@ def save_data():
     me.reload()
 
 def cards_to_str(cards: List[TCard]):
-    return '，'.join(c.name for c in cards)
+    return '，'.join(c.brief_description for c in cards)
 def draw_cards(positive: Optional[Set[int]]=None, k: int=1, extra_lambda=None):
     x = positive is not None and len(positive & {-1, 0, 1}) != 0
     cards = [c for c in _card.card_id_dict.values() if c.id >= 0 and (not x or x and c.positive in positive)]
@@ -6079,11 +6079,45 @@ class laplace(_card):
     mass = 0
     @classmethod
     async def use(cls, user: User) -> None:
-        return await super().use(user)
-class laplace_s(ListStatus):
+        if l := me.check_limited_status('P'):
+            if len(l[0].list) >= 3:
+                cards = [Card(c) for c in l[0].list[:3]]
+            else:
+                to_add = draw_cards(k=3 - len(l[0].list))
+                cards = [Card(c) for c in l[0].list]
+                l[0].list.extend([c.id for c in to_add])
+                cards += to_add
+        else:
+            cards = draw_cards(k=3)
+            await Userme(user).add_limited_status(SLaplace([c.id for c in cards]))
+        if await user.choose():
+            user.buf.send("卡牌已通过私聊发送！")
+            user.log << f"查询结果为{[c.brief_description for c in cards]}。"
+            await user.buf.session.send(f"牌堆顶的3张卡为：{'\n'.join(c.full_description for c in cards)}", ensure_private=True)
+class SLaplace(ListStatus):
     id = 'P'
-    des = "拉普拉斯魔：牌堆顶的三张牌已经被看了。"
-
+    @property
+    def des(self):
+        return f"拉普拉斯魔：牌堆顶的{len(self.list)}张牌已经被看了。"
+    @classmethod
+    async def BeforeCardDraw(cls, count: TCount, user: 'User', n: int, positive: Optional[set[int]], extra_lambda: Optional[Callable]) -> Tuple[Optional[List[TCard]]]:
+        b: List[int] = count[0].list
+        can_draw = [Card(c) for c in b if (positive is None or Card(c).positive in positive)
+                                    and (extra_lambda is None or extra_lambda(Card(c)))]
+        if len(can_draw) == 0:
+            return None,
+        if len(can_draw) >= n:
+            to_remove = can_draw[:n]
+            new = []
+        else:
+            to_remove = can_draw
+            new = draw_cards(positive, n - len(can_draw), extra_lambda)
+        for c in to_remove:
+            count[0].list.remove(c.id)
+        return to_remove + new
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeCardDraw: (Priority.BeforeCardDraw.laplace, cls)}
 
 class randommaj2(_card):
     id = 239
