@@ -351,11 +351,11 @@ async def logical_dragon_else(session: NLPSession):
         return
     if text.startswith("摸麻将"):
         await call_command(get_bot(), session.ctx, ('dragon', 'use'), current_arg="麻将摸牌券")
-    if text.startswith("使用手牌") and (len(text) == 4 or text[4] == ' '):
+    if text.startswith("使用手牌") and (len(text) == 4 or text[4] in ' 0123456789'):
         await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
-    elif text.startswith("使用卡牌") and (len(text) == 4 or text[4] == ' '):
+    elif text.startswith("使用卡牌") and (len(text) == 4 or text[4] in ' 0123456789'):
         await call_command(get_bot(), session.ctx, ('dragon', 'use_card'), current_arg=text[4:].strip())
-    elif text.startswith("使用装备") and (len(text) == 4 or text[4] == ' '):
+    elif text.startswith("使用装备") and (len(text) == 4 or text[4] in ' 0123456789'):
         await call_command(get_bot(), session.ctx, ('dragon', 'use_equipment'), current_arg=text[4:].strip())
     elif text.startswith("使用"):
         await call_command(get_bot(), session.ctx, ('dragon', 'use'), current_arg=text[2:].strip())
