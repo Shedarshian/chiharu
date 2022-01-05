@@ -1206,7 +1206,7 @@ class User:
                 await self.draw_card_effect(c)
             await self.use_card_effect(c)
             if c.id not in global_state['used_cards']:
-                global_state['used_cards'].append(card.id)
+                global_state['used_cards'].append(c.id)
                 save_global_state()
             await c.on_remove(self)
     async def draw_card_effect(self, card: TCard):
@@ -1380,7 +1380,7 @@ class User:
         config.logger.dragon << f"【LOG】询问用户{self.qq}选择牌。"
         cards_can_not_choose_fin = cards_can_not_choose_org = set(cards_can_not_choose)
         if await self.choose():
-            prompt = attempt + "\n" + "\n".join(c.brief_description(self.qq) for c in self.data.hand_card)
+            prompt = attempt + "\n" + "\n".join(c.brief_description() for c in self.data.hand_card)
             ca = lambda l: len(list(c for c in self.data.hand_card if c.id not in cards_can_not_choose_fin)) < min
             arg_filters = [extractors.extract_text,
                     check_handcard(self),
@@ -1654,7 +1654,7 @@ def save_data():
     me.reload()
 
 def cards_to_str(cards: List[TCard]):
-    return '，'.join(c.brief_description for c in cards)
+    return '，'.join(c.brief_description() for c in cards)
 def draw_cards(positive: Optional[Set[int]]=None, k: int=1, extra_lambda=None):
     x = positive is not None and len(positive & {-1, 0, 1}) != 0
     cards = [c for c in _card.card_id_dict.values() if c.id >= 0 and (not x or x and c.positive in positive)]
@@ -1985,7 +1985,7 @@ class _card(IEventListener, metaclass=card_meta):
     def can_use(cls, user: User, copy: bool) -> bool:
         return True
     @classmethod
-    def brief_description(cls, qq):
+    def brief_description(cls):
         return f"{cls.id}. {cls.name}"
     @classmethod
     def full_description(cls, qq):
@@ -6092,9 +6092,9 @@ class laplace(_card):
             await Userme(user).add_limited_status(SLaplace([c.id for c in cards]))
         if await user.choose():
             user.buf.send("卡牌已通过私聊发送！")
-            user.log << f"查询结果为{[c.brief_description for c in cards]}。"
+            user.log << f"查询结果为{[c.brief_description() for c in cards]}。"
             x = '\n'
-            await user.buf.session.send(f"牌堆顶的3张卡为：{x.join(c.full_description for c in cards)}", ensure_private=True)
+            await user.buf.session.send(f"牌堆顶的3张卡为：{x.join(c.full_description(user.qq) for c in cards)}", ensure_private=True)
 class SLaplace(ListStatus):
     id = 'P'
     @property
@@ -6746,7 +6746,7 @@ class qiangduo(DragonSkill):
             user.send_log(f"没有手牌{句尾}")
             return
         card = random.choice(user.data.hand_card)
-        user.send_log(f"失去了卡牌：{card.brief_description(user.qq)}{句尾}")
+        user.send_log(f"失去了卡牌：{card.name}{句尾}")
         await user.remove_cards([card])
         if card.positive == 1:
             await user.damaged(200)

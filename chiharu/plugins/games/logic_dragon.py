@@ -637,7 +637,7 @@ async def dragon_discard(buf: SessionBuffer):
     buf.session.state['exceed_limit'] = True
     user.log << f"试图弃牌{[c.name for c in cards]}，当前手牌为{user.data.hand_card}。"
     async with user.settlement():
-        user.send_char("弃掉了手牌：\n" + '\n'.join(c.brief_description(qq) for c in cards))
+        user.send_char("弃掉了手牌：\n" + '\n'.join(c.brief_description() for c in cards))
         await user.discard_cards(cards)
 
 @on_command(('dragon', 'draw'), short_des="使用抽卡券进行抽卡。", only_to_me=False, args=("num"), environment=env)
@@ -749,7 +749,7 @@ async def dragon_check(buf: SessionBuffer):
         cards = user.data.hand_card
         if len(cards) == 0:
             buf.finish(f"你没有手牌{句尾}")
-        buf.finish("你的手牌为：\n" + '\n'.join(s.brief_description(qq) for s in cards))
+        buf.finish("你的手牌为：\n" + '\n'.join(s.brief_description() for s in cards))
     elif data in ("任务", "quest"):
         n = user.data.hand_card.count(Card(67))
         if n == 0:
