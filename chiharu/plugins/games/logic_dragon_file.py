@@ -3844,21 +3844,21 @@ class SCian(NumedStatus):
         return {UserEvt.OnDragoned: (Priority.OnDragoned.inv_bianhua, cls)}
 
 class panjuea(_card):
-    name = "判决α"
+    name = "最终判决α"
     id = 111
-    description = "抽到时附加buff：判决α。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决β同时存在时立刻陷入无法战斗状态。"
+    description = "抽到时附加buff：最终判决α。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与最终判决β重合时，罪行加重，判处死刑。"
     positive = -1
     on_draw_status = 'A'
     is_debuff = True
     consumed_on_draw = True
 class panjuea_s(_statusnull):
     id = 'A'
-    des = "判决α：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决β同时存在时立刻陷入无法战斗状态。"
+    des = "最终判决α：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与最终判决β重合时，罪行加重，判处死刑。"
     is_debuff = True
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if status is panjueb_s or status is panjueb_activated_s:
-            user.send_char(f"从五个人前面接来了判决β{句尾}")
+            user.send_char(f"从五个人前面接来了最终判决β{句尾}")
             for i in range(min(count, count2)):
                 await user.remove_status('A', remove_all=False)
             await user.add_limited_status(Swufazhandou(datetime.now() + timedelta(minutes=240)))
@@ -3866,7 +3866,7 @@ class panjuea_s(_statusnull):
         return count2,
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        user.log << f"的{count}个判决α激活了。"
+        user.log << f"的{count}个最终判决α激活了。"
         await user.remove_status('A', remove_all=True)
         await user.add_status('a', count=count)
     @classmethod
@@ -3875,12 +3875,12 @@ class panjuea_s(_statusnull):
             UserEvt.OnDragoned: (Priority.OnDragoned.panjue, cls)}
 class panjuea_activated_s(_statusnull):
     id = 'a'
-    des = "判决α：将此buff传递给你上次接龙后第五次接龙的玩家。与判决β同时存在时立刻陷入无法战斗状态。"
+    des = "最终判决α：将此buff传递给你上次接龙后第五次接龙的玩家。与最终判决β重合时，罪行加重，判处死刑。"
     is_debuff = True
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if status is panjueb_s or status is panjueb_activated_s:
-            user.send_char(f"从五个人前面接来了判决β{句尾}")
+            user.send_char(f"从五个人前面接来了最终判决β{句尾}")
             for i in range(min(count, count2)):
                 await user.remove_status('a', remove_all=False)
             await user.add_limited_status(Swufazhandou(datetime.now() + timedelta(minutes=240)))
@@ -3891,21 +3891,21 @@ class panjuea_activated_s(_statusnull):
         return {UserEvt.OnStatusAdd: (Priority.OnStatusAdd.panjue_activated, cls)}
 
 class panjueb(_card):
-    name = "判决β"
+    name = "最终判决β"
     id = 112
-    description = "抽到时附加buff：判决β。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻陷入无法战斗状态。"
+    description = "抽到时附加buff：最终判决β。你接龙后，将此buff传递给你接龙后第五次接龙的玩家。与最终判决α重合时，罪行加重，判处死刑。"
     positive = -1
     on_draw_status = 'B'
     is_debuff = True
     consumed_on_draw = True
 class panjueb_s(_statusnull):
     id = 'B'
-    des = "判决β：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与判决α同时存在时立刻陷入无法战斗状态。"
+    des = "最终判决β：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与最终判决α重合时，罪行加重，判处死刑。"
     is_debuff = True
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if status is panjuea_s or status is panjuea_activated_s:
-            user.send_char(f"从五个人前面接来了判决α{句尾}")
+            user.send_char(f"从五个人前面接来了最终判决α{句尾}")
             for i in range(min(count, count2)):
                 user.remove_status('B', remove_all=False)
             await user.add_limited_status(Swufazhandou(datetime.now() + timedelta(minutes=240)))
@@ -3913,7 +3913,7 @@ class panjueb_s(_statusnull):
         return count2,
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        user.log << f"的{count}个判决β激活了。"
+        user.log << f"的{count}个最终判决β激活了。"
         await user.remove_status('B', remove_all=True)
         await user.add_status('b', count=count)
     @classmethod
@@ -3922,12 +3922,12 @@ class panjueb_s(_statusnull):
             UserEvt.OnDragoned: (Priority.OnDragoned.panjue, cls)}
 class panjueb_activated_s(_statusnull):
     id = 'b'
-    des = "判决β：将此buff传递给你上次接龙后第五次接龙的玩家。与判决α同时存在时立刻陷入无法战斗状态。"
+    des = "最终判决β：将此buff传递给你上次接龙后第五次接龙的玩家。与最终判决α重合时，罪行加重，判处死刑。"
     is_debuff = True
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if status is panjuea_s or status is panjuea_activated_s:
-            user.send_char(f"从五个人前面接来了判决α{句尾}")
+            user.send_char(f"从五个人前面接来了最终判决α{句尾}")
             for i in range(min(count, count2)):
                 await user.remove_status('b', remove_all=False)
             await user.add_limited_status(Swufazhandou(datetime.now() + timedelta(minutes=240)))
@@ -3942,11 +3942,11 @@ class panjue_checker(IEventListener):
         if (nd := branch.before(5)) and nd.qq != config.selfqq and nd.qq != 0 and (u := User(nd.qq, user.buf)) != user:
             if na := u.check_status('a'):
                 await u.remove_status('a')
-                user.log << f"从五个人前面接来了{na}个判决α。"
+                user.log << f"从五个人前面接来了{na}个最终判决α。"
                 await user.add_status('a', count=na)
             if nb := u.check_status('b'):
                 await u.remove_status('b')
-                user.log << f"从五个人前面接来了{nb}个判决β。"
+                user.log << f"从五个人前面接来了{nb}个最终判决β。"
                 await user.add_status('b', count=nb)
     @classmethod
     def register(cls) -> dict[int, TEvent]:
