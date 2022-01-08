@@ -2912,7 +2912,7 @@ class blank(_card):
     description = "使用时弃置随机5张手牌。此牌不可因手牌超出上限而被弃置。"
     @classmethod
     async def use(cls, user: User):
-        if len(user.data.hand_card <= 5):
+        if len(user.data.hand_card) <= 5:
             user.send_log("弃光了所有手牌。")
             await user.discard_cards(copy(user.data.hand_card))
         else:
@@ -2920,7 +2920,7 @@ class blank(_card):
             p: List[TCard] = []
             for _ in range(5):
                 i = random.choice(l)
-                p.append(Card(user.data.hand_card[i]))
+                p.append(user.data.hand_card[i])
                 l.remove(i)
             user.send_log(f"弃置了{'，'.join(c.name for c in p)}。")
             await user.discard_cards(p)
@@ -5946,10 +5946,10 @@ class uncertainty(_card):
             if s > 0.95 ** count:
                 new = random.choice(all_str)
                 user.send_log(f"接龙词里的“{state.word[i]}”由于不确定性原理变成了“{new}”{句尾}")
-                state.word[i] = new
+                state.word = state.word[:i] + new + state.word[i + 1:]
         return True, 0, ""
     @classmethod
-    async def register(cls) -> dict[int, TEvent]:
+    def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.uncertainty, cls)}
 
 class antimatterdimension(_card):
