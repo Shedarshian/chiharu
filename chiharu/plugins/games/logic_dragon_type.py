@@ -522,29 +522,13 @@ class MajOneHai(MajHai):
         (10, 0, 0): ("国士无双", 13), (10, 0, 1): ("国士无双十三面听", 26),
             (10, 1, 0): ("七对子", 2), (10, 1, 1): ("大数邻", 13), (10, 1, 2): ("大车轮", 13), (10, 1, 3): ("大竹林", 13),
             (10, 1, 4): ("大七星", 26)}
-        class Status(IntEnum):
-            no = 0
-            kazoe = 1
-            yakuman = 2
-            def __str__(self):
-                return {0: "", 1: "累计役满", 2: "役满"}[self.value]
         @staticmethod
-        def ten(l: 'List[MajOneHai.HeZhong]') -> 'Tuple[MajOneHai.HeZhong.Status, int]':
+        def ten(l: 'List[MajOneHai.HeZhong]') -> int:
             l.sort()
             ten = 0
-            yakuman = 0
             for h in l:
-                t = h.int()
-                if t >= 13 and t != 105:
-                    yakuman += t
-                else:
-                    ten += t
-            if yakuman != 0:
-                return (MajOneHai.HeZhong.Status.yakuman, yakuman)
-            elif t >= 13:
-                return (MajOneHai.HeZhong.Status.kazoe, ten)
-            else:
-                return (MajOneHai.HeZhong.Status.no, ten)
+                ten += h.int()
+            return ten
         def __init__(self, t: Tuple[int, int, int]):
             self.tuple = t
         def __str__(self):
@@ -741,12 +725,10 @@ class MajOneHai(MajHai):
                 l.append(HeZhong((9, 0, 0)))    #五门齐
             l.sort()
             return l
-        _max = ([], 0, 0)
+        _max = ([], 0)
         for result in results:
             _now = _f(result, ankan, final_hai, if_richi, ura)
-            m, ten = MajOneHai.HeZhong.ten(_now)
-            if (m, ten) > (_max[1], _max[-1]):
-                _max = (_now, m, ten)
-        if m == MajOneHai.HeZhong.Status.yakuman:
-            _max = ([s for s in _max[0] if s.int() >= 13], _max[1], _max[2])
+            ten = MajOneHai.HeZhong.ten(_now)
+            if ten > _max[1]:
+                _max = (_now, ten)
         return _max

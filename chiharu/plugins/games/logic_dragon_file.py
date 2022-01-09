@@ -1584,16 +1584,14 @@ class User:
                 config.logger.dragon << "【LOG】里宝牌是：" + ''.join(str(c) for c in ura)
             else:
                 ura = []
-            l, st, ten = MajOneHai.tensu(t[to_draw.hai], self.data.maj[1], to_draw.hai, self.data.if_richi, ura)
-            self.log << f"和种为{l}，种类为{int(st)}，点数为{ten}。"
-            if st != MajOneHai.HeZhong.Status.yakuman:
+            l, ten = MajOneHai.tensu(t[to_draw.hai], self.data.maj[1], to_draw.hai, self.data.if_richi, ura)
+            self.log << f"和种为{l}，点数为{ten}。"
+            if ten < 13:
                 if ten <= 3:    r = "";             jibi = 5;       quan = 0
                 elif ten <= 5:  r = "，满贯";        jibi = 10;     quan = 2
                 elif ten <= 7:  r = "，跳满";        jibi = 15;     quan = 3
                 elif ten <= 10: r = "，倍满";        jibi = 20;     quan = 4
                 elif ten <= 12: r = "，三倍满";      jibi = 30;     quan = 6
-                elif ten <= 25: r = "，累计役满";     jibi = 40
-                else: r = '，' + str(ten // 13) + "倍累计役满"; jibi = 40
                 if self.data.if_richi:
                     fan = [f"{str(s)} {s.int()}番" for s in l if s.tuple < (0, 2, 0)]
                     fan.append(f"{str(MajOneHai.HeZhong((0, 2, 0)))} {l.count(MajOneHai.HeZhong((0, 2, 0)))}番")
@@ -1602,7 +1600,7 @@ class User:
                     fan = [f"{str(s)} {s.int()}番" for s in l]
                 self.buf.send('\n'.join(fan) + f"\n合计：{ten}番{r}{句尾}")
             else:
-                if ten == 13: r = "役满"
+                if ten // 13 == 1: r = "役满"
                 else:  r = str(ten // 13) + "倍役满"
                 jibi = 40
                 self.buf.send('\n'.join(f"{str(s)}" for s in l) + f"\n{r}{句尾}")
