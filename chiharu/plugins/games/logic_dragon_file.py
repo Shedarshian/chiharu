@@ -4631,6 +4631,7 @@ class Sexplore(NumedStatus):
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
         user.buf.state['mishi_id'] = i = random.randint(0, 5 if count[0].num <= 4 else 4)
+        user.buf.state['dragon_who'] = user.qq
         if count[0].num == 1 and i == 1:
             user.send_log("置身被遗忘的密特拉寺：")
             user.buf.send("你在此地进行了虔诚（）的祈祷。如果你此次接龙因各种原因被击毙，减少0～10%的死亡时间。")
@@ -4927,6 +4928,8 @@ class Sexplore(NumedStatus):
     @classmethod
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
         i = user.buf.state.get('mishi_id') # maybe None
+        if user.buf.state.get('dragon_who') != user.qq:
+            return time, False
         if count[0].num == 1 and i == 1:
             if await c.pierce():
                 user.send_log(f"被遗忘的密特拉寺的效果被幻想杀手消除了{句尾}")
