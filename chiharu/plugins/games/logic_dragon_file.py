@@ -36,7 +36,7 @@ def find_or_new(qq: int):
     t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     if t is None:
         extra_data_init = me.extra.data.pack()
-        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop, equipment, event_stage, event_shop, extra_data, dead, flags) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 1, 0, 0, ?, 0, 0, ?, false, 0)', (qq, '', '', '', '', '[]', '{}', extra_data_init))
+        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop, equipment, event_stage, event_shop, extra_data, dead, flags) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 0, 0, 0, ?, 0, 0, ?, false, 0)', (qq, '', '', '', '', '[]', '{}', extra_data_init))
         t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     return t
 
@@ -1148,6 +1148,7 @@ class User:
         # Event OnDeath
         for eln, n in self.IterAllEventList(UserEvt.OnDeath, Priority.OnDeath):
             minute, dodge = await eln.OnDeath(n, self, killer, minute, c)
+            minute = int(minute)
             if dodge:
                 break
         else:
@@ -4922,6 +4923,7 @@ class Sexplore(NumedStatus):
         else:
             count[0].num = 0
             user.data.save_status_time()
+        user.buf.state.pop('mishi_id')
     @classmethod
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
         i = user.buf.state.get('mishi_id') # maybe None

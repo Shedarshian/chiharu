@@ -500,6 +500,11 @@ async def dragon_construct(buf: SessionBuffer):
                             break
                     else:
                         await user.death()
+                if current_event == "swim" and first10:
+                    n = random.randint(1, 6)
+                    user.send_log(f"移动了{n}格，", end='')
+                    await user.event_move(n)
+                    user.send_log(f"现在位于{user.data.event_stage}。")
                 # Event OnDragoned
                 for eln, n in user.IterAllEventList(UserEvt.OnDragoned, Priority.OnDragoned):
                     await eln.OnDragoned(n, user, tree_node, first10)
@@ -510,11 +515,6 @@ async def dragon_construct(buf: SessionBuffer):
                 #     await user.add_jibi(jibi[1] - jibi[0])
                 #     await to_exchange.add_jibi(jibi[0] - jibi[1])
                 #     await user.exchange(to_exchange)
-                if current_event == "swim" and first10:
-                    n = random.randint(1, 6)
-                    user.send_log(f"移动了{n}格，", end='')
-                    await user.event_move(n)
-                    user.send_log(f"现在位于{user.data.event_stage}。")
                 user.data.extra.maj_quan += 1
                 if user.data.extra.maj_quan % 3 == 0:
                     user.send_log("获得了一张麻将摸牌券！发送“使用 麻将摸牌券”摸牌，然后选择切牌/立直/暗杠/和出。")
