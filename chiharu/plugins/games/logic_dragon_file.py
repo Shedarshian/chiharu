@@ -5985,10 +5985,6 @@ class SAntimatterDimension(NumedStatus):
         return f"反物质维度：卡牌【{Card(self.num).name}】。"
     @classmethod
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
-        for s in count:
-            cd = Card(s.num)
-            user.send_log(f"卡牌【{cd.name}】从反物质维度中被释放了出来{句尾}", no_char=True)
-            await user.use_card_effect(cd)
         await user.remove_all_limited_status('a')
         return time, False
     @classmethod
@@ -5997,7 +5993,6 @@ class SAntimatterDimension(NumedStatus):
             cd = Card(status.num)
             user.send_log(f"卡牌【{cd.name}】从反物质维度中被释放了出来{句尾}", no_char=True)
             await user.use_card_effect(cd)
-            await user.remove_limited_status(status)
         return False,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -6061,15 +6056,15 @@ class wormhole(_card):
                 await user.remove_cards([s])
                 await u2.draw(0, cards=[s])
             elif i == 1:
-                user.send_log(f"的状态{s.des[s.des.index['：']]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
+                user.send_log(f"的状态{s.des[:s.des.index('：')]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
                 await user.remove_status(s.id)
                 await u2.add_status(s.id)
             elif i == 2:
-                user.send_log(f"的状态{s.des[s.des.index['：']]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
+                user.send_log(f"的状态{s.des[:s.des.index('：')]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
                 await user.remove_daily_status(s.id)
                 await u2.add_daily_status(s.id)
             elif i == 3:
-                user.send_log(f"的状态{s.des[s.des.index['：']]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
+                user.send_log(f"的状态{s.des[:s.des.index('：')]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
                 await user.remove_limited_status(s)
                 await u2.add_limited_status(s)
 
