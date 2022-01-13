@@ -971,6 +971,7 @@ class User:
             if ss.is_global:
                 global_state['global_status'].append([2, repr(ss)])
                 save_global_state()
+            self.data.save_status_time()
             return True
     async def remove_status(self, s: str, /, remove_all=True):
         # Event OnStatusRemove
@@ -1036,6 +1037,7 @@ class User:
             if s.is_global and [2, repr(s)] in global_state['global_status']:
                 global_state['global_status'].remove([2, repr(s)])
                 save_global_state()
+            self.data.save_status_time()
             return True
     async def remove_all_limited_status(self, s: str):
         l = [c for c in self.data.status_time if c.id == s]
@@ -1060,6 +1062,7 @@ class User:
             if Status(s).is_global:
                 global_state['global_status'] = [t for t in global_state['global_status'] if t[0] == 2 and t[1].startswith(f"Status('{s}')")]
                 save_global_state()
+            self.data.save_status_time()
             return True
             # return self.data.status_time
     def check_status(self, s: str) -> int:
@@ -5986,6 +5989,7 @@ class SAntimatterDimension(NumedStatus):
     @classmethod
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
         await user.remove_all_limited_status('a')
+        user.data.save_status_time()
         return time, False
     @classmethod
     async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[bool]:
