@@ -1207,20 +1207,16 @@ async def dragon_check_user_data(buf: SessionBuffer):
 async def dragon_op(session: CommandSession):
     pass
 
-@on_command(('dragon', 'test'), only_to_me=False, hide=True, permission=permission.SUPERUSER)
+@on_command(('dragon', 'test'), only_to_me=False, hide=True)
 @config.ErrorHandle(config.logger.dragon)
-async def dragon_test(session: CommandSession):
-    buf = SessionBuffer(session)
-    for t in config.userdata.execute("select qq from dragon_data where card like '%40%' or card like '%41%' or card like '%42%' or card like '%43%' or card like '%44%' or card like '%45%' or card like '%46%'").fetchall():
-        u = User(t['qq'], buf)
-        i = 0
-        while i < len(u.data.hand_card):
-            if 40 <= u.data.hand_card[i].id <= 46:
-                u.data.hand_card.remove(u.data.hand_card[i])
-                u.data.draw_time += 1
-            else:
-                i += 1
-        u.data.set_cards()
+@Game.wrapper
+async def dragon_test(buf: SessionBuffer):
+    qq = buf.ctx['user_id']
+    if qq != 1824789744:
+        return
+    user = User(qq, buf)
+    async with user.settlement():
+        await user.draw_maj(to_draw=MajOneHai('7s'))
     save_data()
 
 @on_command(('dragon', 'maj'), only_to_me=False, hide=True, environment=env_supervise)
