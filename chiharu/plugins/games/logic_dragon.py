@@ -1133,6 +1133,7 @@ async def dragon_kill(buf: SessionBuffer):
     n = User(qq, buf)
     async with n.settlement():
         await n.death()
+    save_data()
 
 @on_command(('dragon', 'version'), only_to_me=False, short_des="查看逻辑接龙版本。", args=("[-c]",))
 @config.ErrorHandle(config.logger.dragon)
