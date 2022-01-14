@@ -610,7 +610,7 @@ class UserData:
             self._register_card(c)
         for s in itertools.chain(map(StatusNull, self.status), map(StatusDaily, self.daily_status)):
             self._register_status(s)
-        for s in self.status_time_checked:
+        for s in self.status_time:
             self._register_status_time(s)
         for id, star in self.equipment.items():
             self._register_equipment(Equipment(id), star)
@@ -780,6 +780,7 @@ class UserData:
         while i < len(self.status_time):
             t = self.status_time[i]
             if not t.check():
+                self._deregister_status_time(t)
                 self.status_time.pop(i)
             else:
                 i += 1
