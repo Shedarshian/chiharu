@@ -5435,13 +5435,13 @@ class bloom(_card):
     id = 157
     name = "绽放"
     positive = 1
-    description = "摸13张牌，然后弃牌至max(4,手牌上限-6)张。（特别的，可以弃置空白卡牌）"
+    description = "摸13张牌，然后弃牌至max(4,手牌上限-6)张（最多为10）。（特别的，可以弃置空白卡牌）"
     newer = 5
     @classmethod
     async def use(cls, user: User) -> None:
         await user.draw(13)
-        if len(user.data.hand_card) > max(4, user.data.card_limit - 6):
-            x = len(user.data.hand_card) - max(4, user.data.card_limit - 6)
+        if len(user.data.hand_card) > min(10, max(4, user.data.card_limit - 6)):
+            x = len(user.data.hand_card) - min(10, max(4, user.data.card_limit - 6))
             if not await user.choose():
                 random.shuffle(user.data.hand_card)
                 user.data.set_cards()
