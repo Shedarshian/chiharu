@@ -5551,7 +5551,7 @@ class belt_checker(IEventListener):
         qqs = [t['qq'] for t in config.userdata.execute("select qq from dragon_data where status like '%3%'").fetchall()]
         if len(qqs) == 0:
             return
-        users = [User(qq, user.buf) for qq in qqs]
+        users = [User(qq, user.buf) for qq in qqs where qq != user.qq]
         for card in cards:
             if len(users) == 0:
                 return
