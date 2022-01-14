@@ -614,6 +614,7 @@ class UserData:
             self._register_status_time(s)
         for id, star in self.equipment.items():
             self._register_equipment(Equipment(id), star)
+        self.status_time_checked
     def _register_card(self, c: TCard, count=1):
         self._register(c, to_add=count)
     def _register_status(self, s: Union[T_statusdaily, T_statusnull], count=1):
@@ -5551,7 +5552,7 @@ class belt_checker(IEventListener):
         qqs = [t['qq'] for t in config.userdata.execute("select qq from dragon_data where status like '%3%'").fetchall()]
         if len(qqs) == 0:
             return
-        users = [User(qq, user.buf) for qq in qqs where qq != user.qq]
+        users = [User(qq, user.buf) for qq in qqs if qq != user.qq]
         for card in cards:
             if len(users) == 0:
                 return
