@@ -6116,7 +6116,8 @@ class SLaplace(ListStatus):
             new = draw_cards(positive, n - len(can_draw), extra_lambda)
         for c in to_remove:
             count[0].list.remove(c.id)
-        return to_remove + new
+        me.save_status_time()
+        return to_remove + new,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeCardDraw: (Priority.BeforeCardDraw.laplace, cls)}
