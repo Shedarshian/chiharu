@@ -1253,7 +1253,7 @@ class User:
     async def use_equipment(self, eq: TEquipment, count: int):
         """使用装备。"""
         self.send_char('使用了装备：\n' + eq.description(count))
-        self.log << f"使用了装备{eq.name}，等级为{eq.count}。"
+        self.log << f"使用了装备{eq.name}，等级为{count}。"
         await eq.use(self, count)
     async def remove_cards(self, cards: List[TCard]):
         """将cards里的卡牌移出手牌，不结算弃牌。"""
