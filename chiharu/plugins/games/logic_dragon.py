@@ -588,7 +588,7 @@ async def dragon_use_equipment(buf: SessionBuffer):
     #     can_use, msg = await el.OnUserUseCard(n, user, card)
     #     if not can_use:
     #         buf.finish(msg)
-    if not eq.can_use(user):
+    if not eq.can_use(user, count):
         user.log << f"无法使用装备{eq.name}。"
         buf.finish(eq.failure_message)
     async with user.settlement():

@@ -1393,7 +1393,8 @@ class User:
                     check_if_unable(ca, self.buf.session),
                     validators.fit_size(min, max, message="请输入正确的张数。"),
                     validators.ensure_true(
-                        lambda l: all(i in _card.card_id_dict and Card(i) in self.data.hand_card for i in l),
+                        lambda l: all(i in _card.card_id_dict for i in l) and
+                        len(list((Counter(l) - Counter([c.id for c in self.data.hand_card])).elements())) == 0,
                         message=f"您选择了错误的卡牌{句尾}")]
             if require_can_use:
                 arg_filters.append(ensure_true_lambda(
