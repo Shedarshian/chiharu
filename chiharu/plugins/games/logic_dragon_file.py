@@ -190,6 +190,14 @@ class IEventListener:
         bool: whether the removement is dodged."""
         pass
     @classmethod
+    async def AfterStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[]:
+        """Called after a status is removed.
+        
+        Arguments:
+        status: a str for statusnull/statusdaily, or a T_status object.
+        remove_all: if remove all this state."""
+        pass
+    @classmethod
     async def CheckJibiSpend(cls, count: TCount, user: 'User', jibi: int) -> Tuple[int]:
         """Called when a user intended to use jibi to buy something.
 
@@ -993,6 +1001,8 @@ class User:
             self.log << f"移除了{'一层' if not remove_all else ''}永久状态{s}，当前状态为{self.data.status}。"
             self.data._deregister(StatusNull(s), is_all=remove_all)
             await StatusNull(s).on_remove(remove_all)
+            for eln, n in self.IterAllEventList(UserEvt.AfterStatusRemove, Priority.AfterStatusRemove):
+                await eln.AfterStatusRemove(n, self, StatusNull(s), remove_all)
             if StatusNull(s).is_global:
                 if remove_all:
                     while [0, s] in global_state['global_status']:
@@ -1018,6 +1028,8 @@ class User:
             self.log << f"移除了{'一层' if not remove_all else ''}每日状态{s}，当前状态为{self.data.daily_status}。"
             self.data._deregister(StatusDaily(s), is_all=remove_all)
             await StatusDaily(s).on_remove(remove_all)
+            for eln, n in self.IterAllEventList(UserEvt.AfterStatusRemove, Priority.AfterStatusRemove):
+                await eln.AfterStatusRemove(n, self, StatusDaily(s), remove_all)
             if StatusDaily(s).is_global:
                 if remove_all:
                     while [1, s] in global_state['global_status']:
@@ -1037,6 +1049,8 @@ class User:
             self.log << f"移除了一个限时状态{s}。"
             self.data._deregister_status_time(s, is_all=False)
             await s.on_remove(False)
+            for eln, n in self.IterAllEventList(UserEvt.AfterStatusRemove, Priority.AfterStatusRemove):
+                await eln.AfterStatusRemove(n, self, s, False)
             if s.is_global and [2, repr(s)] in global_state['global_status']:
                 global_state['global_status'].remove([2, repr(s)])
                 save_global_state()
@@ -1062,6 +1076,9 @@ class User:
             self.log << f"移除了所有限时状态{s}。"
             self.data._deregister_status_time(Status(s), is_all=True)
             await Status(s).on_remove(True)
+            for c in l:
+                for eln, n in self.IterAllEventList(UserEvt.AfterStatusRemove, Priority.AfterStatusRemove):
+                    await eln.AfterStatusRemove(n, self, c, True)
             if Status(s).is_global:
                 global_state['global_status'] = [t for t in global_state['global_status'] if t[0] == 2 and t[1].startswith(f"Status('{s}')")]
                 save_global_state()
@@ -5992,16 +6009,15 @@ class SAntimatterDimension(NumedStatus):
         user.data.save_status_time()
         return time, False
     @classmethod
-    async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[bool]:
+    async def AfterStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[]:
         if isinstance(status, SAntimatterDimension):
             cd = Card(status.num)
             user.send_log(f"卡牌【{cd.name}】从反物质维度中被释放了出来{句尾}", no_char=True)
             await user.use_card_effect(cd)
-        return False,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDeath: (Priority.OnDeath.antimatter, cls),
-            UserEvt.OnStatusRemove: (Priority.OnStatusRemove.antimatter, cls)}
+            UserEvt.AfterStatusRemove: (Priority.AfterStatusRemove.antimatter, cls)}
 
 class doublebetadecay(_card):
     id = 224

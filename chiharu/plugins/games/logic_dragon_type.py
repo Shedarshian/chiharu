@@ -103,6 +103,7 @@ class UserEvt(IntEnum):
     OnDodged = auto()
     OnStatusAdd = auto()
     OnStatusRemove = auto()
+    AfterStatusRemove = auto()
     CheckJibiSpend = auto()
     OnJibiChange = auto()
     CheckEventptSpend = auto()
@@ -185,6 +186,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         bingo = auto()
     class OnStatusRemove(IntEnum):
         train = auto()
+    class AfterStatusRemove(IntEnum):
         antimatter = auto()             # 反物质维度：自动使用卡牌
     class CheckJibiSpend(IntEnum):
         bianyaqi = auto()
