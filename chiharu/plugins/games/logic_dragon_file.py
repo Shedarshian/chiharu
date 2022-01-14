@@ -1455,41 +1455,41 @@ class User:
                 return
             self.data.extra.mangan -= 2
             a = random.random()
-            if a < 0.005 and self.data.check_equipment(5) == 0:
+            if a < 0.02 and self.data.check_equipment(5) == 0:
                 self.send_log(f"获得了赌神魔戒{句尾}")
                 self.data.equipment[5] = 1
                 self.data.save_equipment()
-            elif a < 0.5:
-                self.send_log(f"获得了1张正面卡{句尾}")
-                await self.draw(1, positive={1})
-            elif a < 0.75:
-                self.send_log(f"获得了2张卡{句尾}")
-                await self.draw(2)
-            else:
+            elif a < 0.32:
+                self.send_log(f"获得了4张卡{句尾}")
+                await self.draw(4)
+            elif a < 0.67:
                 self.send_log(f"获得了3张卡{句尾}")
                 await self.draw(3)
+            else:
+                self.send_log(f"获得了2张正面卡{句尾}")
+                await self.draw(2, positive={1})
         elif args == "役满抽奖券":
             if self.data.extra.yakuman < 1:
                 self.buf.send("你的役满抽奖券不足！")
                 return
             self.data.extra.yakuman -= 1
             a = random.random()
-            if a < 0.02 and self.data.check_equipment(5) == 0:
+            if a < 0.05 and self.data.check_equipment(5) == 0:
                 self.send_log(f"获得了赌神魔戒{句尾}")
                 self.data.equipment[5] = 1
                 self.data.save_equipment()
-            elif a < 0.4:
-                self.send_log(f"获得了2张正面卡{句尾}")
-                await self.draw(2, positive={1})
-            elif a < 0.6:
-                self.send_log(f"获得了3张卡{句尾}")
-                await self.draw(3)
-            elif a < 0.8:
+            elif a < 0.2:
+                self.send_log(f"获得了6张卡{句尾}")
+                await self.draw(6)
+            elif a < 0.45:
                 self.send_log(f"获得了4张卡{句尾}")
                 await self.draw(4)
-            else:
+            elif a < 0.65:
                 self.send_log(f"获得了5张卡{句尾}")
                 await self.draw(5)
+            else:
+                self.send_log(f"获得了3张正面卡{句尾}")
+                await self.draw(3, positive={1})
         elif args == "麻将摸牌券":
             if self.data.extra.maj_quan < 3:
                 self.buf.send("你的麻将摸牌券不足！")
