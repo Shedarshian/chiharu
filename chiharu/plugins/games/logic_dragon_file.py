@@ -638,7 +638,8 @@ class UserData:
         if eln.is_global == (self.qq == config.selfqq):
             for key, (priority, el) in eln.register().items():
                 if is_all:
-                    self.event_listener[key].pop(priority)
+                    if priority in self.event_listener[key]:
+                        self.event_listener[key].pop(priority)
                 else:
                     self.event_listener[key][priority][el].remove(eln)
                     if len(self.event_listener[key][priority][el]) == 0:
