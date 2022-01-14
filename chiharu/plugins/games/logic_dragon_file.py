@@ -780,6 +780,7 @@ class UserData:
         while i < len(self.status_time):
             t = self.status_time[i]
             if not t.check():
+                self._deregister_status_time(t)
                 self.status_time.pop(i)
             else:
                 i += 1
