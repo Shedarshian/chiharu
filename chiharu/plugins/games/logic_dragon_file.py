@@ -6096,6 +6096,7 @@ class laplace(_card):
             await user.buf.session.send(f"牌堆顶的3张卡为：{x.join(c.full_description(user.qq) for c in cards)}", ensure_private=True)
 class SLaplace(ListStatus):
     id = 'P'
+    is_global = True
     @property
     def des(self):
         return f"拉普拉斯魔：牌堆顶的{len(self.list)}张牌已经被看了。"
