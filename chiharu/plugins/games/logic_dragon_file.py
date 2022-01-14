@@ -190,7 +190,7 @@ class IEventListener:
         bool: whether the removement is dodged."""
         pass
     @classmethod
-    async def AfterStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[]:
+    async def AfterStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[()]:
         """Called after a status is removed.
         
         Arguments:
@@ -6009,7 +6009,7 @@ class SAntimatterDimension(NumedStatus):
         user.data.save_status_time()
         return time, False
     @classmethod
-    async def AfterStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[]:
+    async def AfterStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[()]:
         if isinstance(status, SAntimatterDimension):
             cd = Card(status.num)
             user.send_log(f"卡牌【{cd.name}】从反物质维度中被释放了出来{句尾}", no_char=True)
