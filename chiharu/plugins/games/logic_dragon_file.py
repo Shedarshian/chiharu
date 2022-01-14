@@ -972,6 +972,7 @@ class User:
             if ss.is_global:
                 global_state['global_status'].append([2, repr(ss)])
                 save_global_state()
+            self.data.save_status_time()
             return True
     async def remove_status(self, s: str, /, remove_all=True):
         # Event OnStatusRemove
@@ -1037,6 +1038,7 @@ class User:
             if s.is_global and [2, repr(s)] in global_state['global_status']:
                 global_state['global_status'].remove([2, repr(s)])
                 save_global_state()
+            self.data.save_status_time()
             return True
     async def remove_all_limited_status(self, s: str):
         l = [c for c in self.data.status_time if c.id == s]
@@ -1061,6 +1063,7 @@ class User:
             if Status(s).is_global:
                 global_state['global_status'] = [t for t in global_state['global_status'] if t[0] == 2 and t[1].startswith(f"Status('{s}')")]
                 save_global_state()
+            self.data.save_status_time()
             return True
             # return self.data.status_time
     def check_status(self, s: str) -> int:
@@ -1517,7 +1520,7 @@ class User:
         prompt = ""
         if len(richi) == 0 and len(ankan) == 0 and not huchu:
             choose = 0
-        elif self.data.if_richi and not huchu and len(ankan) == 0:
+        elif self.data.if_richi and not huchu:
             choose = 0
             to_choose = to_draw
         else:
@@ -1579,7 +1582,7 @@ class User:
                 ])
         # do things
         if choose == 3:
-            self.send_log(f"和了{句尾}") # TODO
+            self.send_log(f"和了{句尾}")
             if self.data.if_richi:
                 ura = [MajOneHai(MajOneHai.get_random()) for i in range(len(self.data.maj[1]) + 1)]
                 self.buf.send("里宝指示牌是：" + ''.join(str(c) for c in ura))
@@ -1588,24 +1591,20 @@ class User:
                 ura = []
             l, ten = MajOneHai.tensu(t[to_draw.hai], self.data.maj[1], to_draw.hai, self.data.if_richi, ura)
             self.log << f"和种为{l}，点数为{ten}。"
-            if ten < 13:
-                if ten <= 3:    r = "";             jibi = 5;       quan = 0
-                elif ten <= 5:  r = "，满贯";        jibi = 10;     quan = 2
-                elif ten <= 7:  r = "，跳满";        jibi = 15;     quan = 3
-                elif ten <= 10: r = "，倍满";        jibi = 20;     quan = 4
-                elif ten <= 12: r = "，三倍满";      jibi = 30;     quan = 6
-                if self.data.if_richi:
-                    fan = [f"{str(s)} {s.int()}番" for s in l if s.tuple < (0, 2, 0)]
-                    fan.append(f"{str(MajOneHai.HeZhong((0, 2, 0)))} {l.count(MajOneHai.HeZhong((0, 2, 0)))}番")
-                    fan += [f"{str(s)} {s.int()}番" for s in l if s.tuple > (0, 2, 0)]
-                else:
-                    fan = [f"{str(s)} {s.int()}番" for s in l]
-                self.buf.send('\n'.join(fan) + f"\n合计：{ten}番{r}{句尾}")
+            if ten <= 3:    r = "";             jibi = 5;       quan = 0
+            elif ten <= 5:  r = "，满贯";        jibi = 10;     quan = 2
+            elif ten <= 7:  r = "，跳满";        jibi = 15;     quan = 3
+            elif ten <= 10: r = "，倍满";        jibi = 20;     quan = 4
+            elif ten <= 12: r = "，三倍满";      jibi = 30;     quan = 6
+            elif ten // 13 == 1: r = "，役满";     jibi = 40
+            else:  r = '，' + str(ten // 13) + "倍役满"; jibi = 40
+            if self.data.if_richi:
+                fan = [f"{str(s)} {s.int()}番" for s in l if s.tuple < (0, 2, 0)]
+                fan.append(f"{str(MajOneHai.HeZhong((0, 2, 0)))} {l.count(MajOneHai.HeZhong((0, 2, 0)))}番")
+                fan += [f"{str(s)} {s.int()}番" for s in l if s.tuple > (0, 2, 0)]
             else:
-                if ten // 13 == 1: r = "役满"
-                else:  r = str(ten // 13) + "倍役满"
-                jibi = 40
-                self.buf.send('\n'.join(f"{str(s)}" for s in l) + f"\n{r}{句尾}")
+                fan = [f"{str(s)} {s.int()}番" for s in l]
+            self.buf.send('\n'.join(fan) + f"\n合计：{ten}番{r}{句尾}")
             self.buf.send(f"奖励{self.char}{jibi}击毙", end="")
             if ten <= 3:
                 self.buf.send(f"以及被击毙{句尾}")
@@ -5986,11 +5985,8 @@ class SAntimatterDimension(NumedStatus):
         return f"反物质维度：卡牌【{Card(self.num).name}】。"
     @classmethod
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
-        for s in count:
-            cd = Card(s.num)
-            user.send_log(f"卡牌【{cd.name}】从反物质维度中被释放了出来{句尾}", no_char=True)
-            await user.use_card_effect(cd)
         await user.remove_all_limited_status('a')
+        user.data.save_status_time()
         return time, False
     @classmethod
     async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[bool]:
@@ -5998,7 +5994,6 @@ class SAntimatterDimension(NumedStatus):
             cd = Card(status.num)
             user.send_log(f"卡牌【{cd.name}】从反物质维度中被释放了出来{句尾}", no_char=True)
             await user.use_card_effect(cd)
-            await user.remove_limited_status(status)
         return False,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -6062,15 +6057,15 @@ class wormhole(_card):
                 await user.remove_cards([s])
                 await u2.draw(0, cards=[s])
             elif i == 1:
-                user.send_log(f"的状态{s.des[s.des.index['：']]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
+                user.send_log(f"的状态{s.des[:s.des.index('：')]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
                 await user.remove_status(s.id)
                 await u2.add_status(s.id)
             elif i == 2:
-                user.send_log(f"的状态{s.des[s.des.index['：']]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
+                user.send_log(f"的状态{s.des[:s.des.index('：')]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
                 await user.remove_daily_status(s.id)
                 await u2.add_daily_status(s.id)
             elif i == 3:
-                user.send_log(f"的状态{s.des[s.des.index['：']]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
+                user.send_log(f"的状态{s.des[:s.des.index('：')]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
                 await user.remove_limited_status(s)
                 await u2.add_limited_status(s)
 
