@@ -289,6 +289,7 @@ async def daily_update(buf: SessionBuffer) -> str:
         global_state['steal'][qq] = {'time': 0, 'user': []}
     global_state['used_cards'] = []
     global_state['observatory'] = False
+    global_state["supernova_user"] = [[], global_state["supernova_user"][0], global_state["supernova_user"][1]]
     save_global_state()
     if me.check_daily_status('s'):
         await User(config.selfqq, buf).remove_daily_status('s', remove_all=False)
