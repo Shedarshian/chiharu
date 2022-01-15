@@ -1566,7 +1566,7 @@ class User:
         prompt = ""
         if len(richi) == 0 and len(ankan) == 0 and not huchu:
             choose = 0
-        elif self.data.if_richi and not huchu:
+        elif self.data.if_richi and not huchu and len(ankan) == 0:
             choose = 0
             to_choose = to_draw
         else:

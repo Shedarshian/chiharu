@@ -1222,11 +1222,12 @@ async def dragon_op(session: CommandSession):
 @Game.wrapper
 async def dragon_test(buf: SessionBuffer):
     qq = buf.ctx['user_id']
-    if qq != 1824789744:
+    if qq != 1143613284:
         return
     user = User(qq, buf)
     async with user.settlement():
-        await user.draw_maj(to_draw=MajOneHai('7s'))
+        await user.draw_maj(to_draw=MajOneHai('6z'))
+        await user.draw_maj(to_draw=MajOneHai('4z'))
     save_data()
 
 @on_command(('dragon', 'maj'), only_to_me=False, hide=True, environment=env_supervise)
