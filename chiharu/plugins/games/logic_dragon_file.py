@@ -6896,7 +6896,7 @@ class bingo_checker(IEventListener):
         global_state["bingo_state"].append(id)
         save_global_state()
         n2 = cls.check_complete_line()
-        if (n1, n2) in ((0, 1), (7, 8)):
+        if n1 == 0 and n2 != 0 or n2 == 8 and n1 != 8:
             active_user = user if user.buf.active == -1 else User(user.buf.active, user.buf)
             active_user.send_char(f"完成了{n2}行bingo，奖励{active_user.char}一张超新星{句尾}")
             await active_user.draw(0, cards=[Card(-65537)])
