@@ -1177,11 +1177,11 @@ class User:
         else:
             self.send_char(f"死了{句尾}{minute}分钟不得接龙。")
             await self.add_limited_status(SDeath(datetime.now() + timedelta(minutes=minute)))
-    async def draw(self, n0: int, /, positive=None, cards=None, extra_lambda=None, replace_prompt=None):
+    async def draw(self, n0: int, /, positive=None, cards: List[TCard]=None, extra_lambda=None, replace_prompt=None):
         """抽卡。将卡牌放入手牌。"""
         if self.active and self.buf.state.get('exceed_limit'):
             self.send_log(f"因手牌超出上限，不可摸牌{句尾}")
-            return
+            return False
         if cards is None:
             # Event BeforeCardDraw
             for el, n in self.IterAllEventList(UserEvt.BeforeCardDraw, Priority.BeforeCardDraw):
@@ -1191,6 +1191,13 @@ class User:
                     break
             else:
                 cards = draw_cards(positive, n0, extra_lambda=extra_lambda)
+        elif Card(-65537) in cards:
+            if self.qq in global_state["supernova_user"][0] + global_state["supernova_user"][1] + global_state["supernova_user"][2]:
+                cards.remove(Card(-65537))
+                if len(cards) == 0:
+                    return False
+            else:
+                global_state["supernova_user"][0].append(self.qq)
         self.log << f"抽到的卡牌为{cards_to_str(cards)}。"
         if replace_prompt is not None:
             self.buf.send(replace_prompt)
@@ -1210,6 +1217,7 @@ class User:
             await el.AfterCardDraw(n, self, cards)
         self.data.set_cards()
         self.log << f"抽完卡牌，当前手牌为{cards_to_str(self.data.hand_card)}。"
+        return True
     async def draw_and_use(self, /, positive=None, card: TCard=None, extra_lambda=None):
         """抽取卡牌，立即使用，并发动卡牌的销毁效果。不经过手牌。"""
         if card is None:
@@ -6899,7 +6907,10 @@ class bingo_checker(IEventListener):
         if n1 == 0 and n2 != 0 or n2 == 8 and n1 != 8:
             active_user = user if user.buf.active == -1 else User(user.buf.active, user.buf)
             active_user.send_char(f"完成了{n2}行bingo，奖励{active_user.char}一张超新星{句尾}")
-            await active_user.draw(0, cards=[Card(-65537)])
+            if not await active_user.draw(0, cards=[Card(-65537)]):
+                active_user.send_log(f"最近已摸过超新星，请把机会留给别人{句尾}")
+                global_state["bingo_state"].remove(id)
+                save_global_state()
         user.buf.end(cls.print())
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
