@@ -1177,7 +1177,7 @@ class User:
         else:
             self.send_char(f"死了{句尾}{minute}分钟不得接龙。")
             await self.add_limited_status(SDeath(datetime.now() + timedelta(minutes=minute)))
-    async def draw(self, n0: int, /, positive=None, cards=None, extra_lambda=None):
+    async def draw(self, n0: int, /, positive=None, cards=None, extra_lambda=None, replace_prompt=None):
         """抽卡。将卡牌放入手牌。"""
         if self.active and self.buf.state.get('exceed_limit'):
             self.send_log(f"因手牌超出上限，不可摸牌{句尾}")
@@ -1192,7 +1192,10 @@ class User:
             else:
                 cards = draw_cards(positive, n0, extra_lambda=extra_lambda)
         self.log << f"抽到的卡牌为{cards_to_str(cards)}。"
-        self.send_char('抽到的卡牌是：')
+        if replace_prompt is not None:
+            self.buf.send(replace_prompt)
+        else:
+            self.send_char('抽到的卡牌是：')
         for c in cards:
             if c.des_need_init:
                 await self.draw_card_effect(c)
@@ -1490,6 +1493,21 @@ class User:
             else:
                 self.send_log(f"获得了3张正面卡{句尾}")
                 await self.draw(3, positive={1})
+            b = random.random()
+            if b < 0.02 and self.data.check_equipment(5) == 0:
+                self.send_log(f"获得了赌神魔戒{句尾}")
+                self.data.equipment[5] = 1
+                self.data.save_equipment()
+            elif b < 0.12:
+                self.send_log(f"获得了1张满贯抽奖券{句尾}")
+                self.data.extra.mangan += 2
+            c = random.random()
+            if c < 0.01 and self.data.check_equipment(5) == 0:
+                self.send_log(f"获得了赌神魔戒{句尾}")
+                self.data.equipment[5] = 1
+                self.data.save_equipment()
+            elif c < 0.21:
+                await self.draw(0, cards=[shengkong], replace_prompt=self.char + "获得了1张卡牌：")
         elif args == "麻将摸牌券":
             if self.data.extra.maj_quan < 3:
                 self.buf.send("你的麻将摸牌券不足！")
@@ -1641,6 +1659,8 @@ class User:
                 self.buf.send(f"以及{ten // 13}张役满抽奖券{句尾}")
                 await self.add_jibi(jibi)
                 self.data.extra.yakuman += ten // 13
+            if 10 < ten <= 12:
+                await self.draw(0, cards=[shengkong], replace_prompt="以及一张卡：")
             self.data.maj = (sorted(MajOneHai.get_random() for i in range(13)), [])
             self.data.if_richi = False
             self.data.save_maj()
@@ -5551,6 +5571,26 @@ class assembling_machine(_card):
                 user.send_log(f"将组装机{c}型升级到了组装机{c + 1}型{句尾}")
             user.data.equipment[3] = c + 1
             user.data.save_equipment()
+
+class shengkong(_card):
+    id = 161
+    name = "声控"
+    description = "摸一张指定的麻将牌，然后50%概率抽一张牌。"
+    positive = 1
+    newer = 6
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if await user.choose():
+            hai = (await user.buf.aget(prompt=f"你的麻将牌是：{await MajOneHai.draw_maj([MajOneHai(s) for s in user.data.maj[0]], [MajOneHai(s).hai for s in user.data.maj[1]])}，请指定任意一张麻将牌摸取：\n",
+                arg_filters=[
+                        lambda s: [r for r in re.findall(r'\d[spmz]', str(s))],
+                        validators.fit_size(1, 1, message="请输入一张牌。")
+                    ]))[0]
+            h = MajOneHai(hai)
+            await user.draw_maj(h)
+        b = random.random()
+        if b < 0.5:
+            await user.draw(1, replace_prompt=user.char + "声控的很大声，一张牌从天花板上掉了下来，竟然是：")
 
 class belt(_card):
     id = 201
