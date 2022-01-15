@@ -3323,6 +3323,11 @@ class huxiangjiaohuan(_card):
 class SHuxiangjiaohuan(ListStatus):
     id = 'x'
     des = "互相交换：下一个接中隐藏奖励词的玩家手牌与某人互换。"
+    def __str__(self):
+        return '\n'.join("互相交换：下一个接中隐藏奖励词的玩家手牌与某人互换。" for i in self.list)
+    @property
+    def brief_des(self):
+        return '\n'.join("互相交换" for i in self.list)
     is_global = True
     @classmethod
     async def OnHiddenKeyword(cls, count: TCount, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
