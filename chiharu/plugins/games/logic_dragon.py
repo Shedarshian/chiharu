@@ -1121,6 +1121,14 @@ async def dragon_compensate(session: CommandSession):
     await buf.flush()
     save_data()
 
+@on_command(('dragon', 'reload_bingo'), only_to_me=False, environment=env_supervise)
+@config.ErrorHandle(config.logger.dragon)
+async def dragon_reload_bingo(session: CommandSession):
+    """重载bingo。"""
+    global_state["bingo_state"] = []
+    save_global_state()
+    await session.send("已重载。")
+
 @on_command(('dragon', 'kill'), only_to_me=False, args=('@s',), environment=env_admin)
 @config.ErrorHandle(config.logger.dragon)
 @Game.wrapper
