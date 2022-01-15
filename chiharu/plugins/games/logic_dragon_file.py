@@ -6837,7 +6837,7 @@ class qumo(DragonSkill):
         if not st.is_debuff:
             await user.damaged(100)
 
-bingo_id = [(0, 8), (5, 0), (1, 0), (3, 0), (4, 0), (0, 19), (0, 1), (2, 40), (1, 110)]
+bingo_id = [(0, 18), (4, 0), (3, 0), (1, 30), (0, 12), (5, 0), (1, 200), (0, 4), (2, 80)]
 # 0: 接龙任务，1: 使用一张i~i+39的卡，2: 摸一张i~i+79的卡，3：有人死亡，4：花费或扣除击毙，5：添加一个非死亡状态
 
 class bingo_checker(IEventListener):
