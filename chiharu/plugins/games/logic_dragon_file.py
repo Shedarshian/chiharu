@@ -1119,7 +1119,7 @@ class User:
         return True
     async def add_jibi(self, jibi: int, /, is_buy: bool=False) -> bool:
         if jibi == 0:
-            return True,
+            return True
         current_jibi = self.data.jibi
         if is_buy and jibi < 0:
             jibi = -jibi
@@ -5571,6 +5571,37 @@ class assembling_machine(_card):
                 user.send_log(f"将组装机{c}型升级到了组装机{c + 1}型{句尾}")
             user.data.equipment[3] = c + 1
             user.data.save_equipment()
+
+class envelop(_card):
+    id = 160
+    name = "信封"
+    description = "花费2击毙，选择一张手牌，将其寄给一名指定的玩家，50%概率使该玩家再获得一张信封。"
+    positive = 1
+    newer = 6
+    failure_message = "你的击毙不足" + 句尾
+    @classmethod
+    def can_use(cls, user: User, copy: bool) -> bool:
+        return user.data.jibi >= 2
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if not await user.add_jibi(-2, is_buy=True):
+            user.send_log("的击毙不足！")
+        if await user.choose():
+            async with user.choose_cards("请选择一张手牌：", 1, 1) as l:
+                qq: int = (await user.buf.aget(prompt="请at群内一名玩家。\n",
+                    arg_filters=[
+                            lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
+                            validators.fit_size(1, 1, message="请at正确的人数。")
+                        ]))[0]
+                u = User(qq, user.buf)
+                c = Card(l[0])
+                user.send_log(f"将手牌{c.name}寄了出去{句尾}")
+                await user.remove_cards([c])
+                a = random.random()
+                if a < 0.5:
+                    await u.draw(0, cards=[c])
+                else:
+                    await u.draw(0, cards=[c, envelop])
 
 class shengkong(_card):
     id = 161
