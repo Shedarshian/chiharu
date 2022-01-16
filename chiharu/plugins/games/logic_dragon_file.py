@@ -6368,17 +6368,20 @@ class tarot(_equipment):
             random.setstate(state)
             config.logger.dragon << f"【LOG】询问用户{user.qq}选择塔罗原典。"
             cards = "\n".join(Card(i).full_description(user.qq) for i in l2)
-            c = (await user.buf.aget(prompt="你今天可以从以下牌中选择一张使用，请输入id号。\n" + cards,
+            c = (await user.buf.aget(prompt="你今天可以从以下牌中选择一张使用，请输入id号，输入取消退出。\n" + cards,
                 arg_filters=[
                         extractors.extract_text,
                         check_handcard(user),
-                        lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
+                        lambda s: list(map(int, re.findall(r'取消|\-?\d+', str(s)))),
                         validators.fit_size(1, 1, message="请输入正确的张数。"),
-                        validators.ensure_true(lambda l: l[0] in l2)
+                        validators.ensure_true(lambda l: l[0] == "取消" or l[0] in l2)
                     ]))[0]
-            user.log << f"选择了卡牌{c}。"
-            user.data.extra.tarot_time -= 1
-            await user.draw_and_use(card=Card(c))
+            if c == "取消":
+                user.log << f"取消。"
+            else:
+                user.log << f"选择了卡牌{c}。"
+                user.data.extra.tarot_time -= 1
+                await user.draw_and_use(card=Card(c))
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
         user.data.extra.tarot_time = 1
