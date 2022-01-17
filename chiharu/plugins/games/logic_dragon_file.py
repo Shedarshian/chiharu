@@ -992,6 +992,7 @@ class User:
             if dodge:
                 return False
         else:
+            await StatusNull(s).on_remove(remove_all)
             if remove_all:
                 self.data.status = ''.join([t for t in self.data.status if t != s])
             else:
@@ -1001,7 +1002,6 @@ class User:
                 self.data.status = ''.join(l)
             self.log << f"移除了{'一层' if not remove_all else ''}永久状态{s}，当前状态为{self.data.status}。"
             self.data._deregister(StatusNull(s), is_all=remove_all)
-            await StatusNull(s).on_remove(remove_all)
             for eln, n in self.IterAllEventList(UserEvt.AfterStatusRemove, Priority.AfterStatusRemove):
                 await eln.AfterStatusRemove(n, self, StatusNull(s), remove_all)
             if StatusNull(s).is_global:
@@ -1019,6 +1019,7 @@ class User:
             if dodge:
                 return False
         else:
+            await StatusDaily(s).on_remove(remove_all)
             if remove_all:
                 self.data.daily_status = ''.join([t for t in self.data.daily_status if t != s])
             else:
@@ -1028,7 +1029,6 @@ class User:
                 self.data.daily_status = ''.join(l)
             self.log << f"移除了{'一层' if not remove_all else ''}每日状态{s}，当前状态为{self.data.daily_status}。"
             self.data._deregister(StatusDaily(s), is_all=remove_all)
-            await StatusDaily(s).on_remove(remove_all)
             for eln, n in self.IterAllEventList(UserEvt.AfterStatusRemove, Priority.AfterStatusRemove):
                 await eln.AfterStatusRemove(n, self, StatusDaily(s), remove_all)
             if StatusDaily(s).is_global:
@@ -1046,10 +1046,10 @@ class User:
             if dodge:
                 return False
         else:
+            await s.on_remove(False)
             self.data.status_time.remove(s)
             self.log << f"移除了一个限时状态{s}。"
             self.data._deregister_status_time(s, is_all=False)
-            await s.on_remove(False)
             for eln, n in self.IterAllEventList(UserEvt.AfterStatusRemove, Priority.AfterStatusRemove):
                 await eln.AfterStatusRemove(n, self, s, False)
             if s.is_global and [2, repr(s)] in global_state['global_status']:
@@ -1067,6 +1067,7 @@ class User:
             if dodge:
                 return False
         else:
+            await Status(s).on_remove(True)
             i = 0
             while i < len(self.data.status_time):
                 t: T_status = self.data.status_time[i]
@@ -1076,7 +1077,6 @@ class User:
                     i += 1
             self.log << f"移除了所有限时状态{s}。"
             self.data._deregister_status_time(Status(s), is_all=True)
-            await Status(s).on_remove(True)
             for c in l:
                 for eln, n in self.IterAllEventList(UserEvt.AfterStatusRemove, Priority.AfterStatusRemove):
                     await eln.AfterStatusRemove(n, self, c, True)
@@ -4837,11 +4837,11 @@ class Sexplore(NumedStatus):
                     if ss[0] == 0 and me.check_status(ss[1]):
                         sdes = StatusNull(ss[1]).des
                         user.send_log(f"移除了{sdes[:sdes.index('：')]}。")
-                        await Userme(user).remove_status(ss[1])
+                        await Userme(user).remove_status(ss[1], remove_all=False)
                     elif ss[0] == 1 and me.check_daily_status(ss[1]):
                         sdes = StatusDaily(ss[1]).des
                         user.send_log(f"移除了{sdes[:sdes.index('：')]}。")
-                        await Userme(user).remove_daily_status(ss[1])
+                        await Userme(user).remove_daily_status(ss[1], remove_all=False)
                     elif ss[0] == 2 and (gl := 
                             Userme(user).check_limited_status((sl := eval(ss[1]).id), lambda c: repr(c) == ss[1])):
                         sdes = gl[0].des
