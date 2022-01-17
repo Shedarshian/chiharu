@@ -941,8 +941,8 @@ async def dragon_buy(buf: SessionBuffer):
         r = random.random()
         user.log << f"抽奖机抽到了{r}。"
         if r < 0.15:
-            buf.send(f"🎴🎴🎴恭喜您抽到了卡牌{句尾}")
             async with user.settlement():
+                buf.send(f"🎴🎴🎴恭喜您抽到了卡牌{句尾}")
                 await user.draw(1)
         elif r < 0.45:
             p = random.randint(1, 10)

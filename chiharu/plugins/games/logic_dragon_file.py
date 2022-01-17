@@ -910,13 +910,14 @@ class User:
                 ret = False
         self.data.save_status_time()
         return ret
-    async def choose(self):
+    async def choose(self, flush=True):
         if not self.active:
             config.logger.dragon << f"【LOG】用户{self.qq}非活跃，无法选择。"
             self.send_char(f"非活跃，无法选择卡牌{句尾}")
             return False
         else:
-            await self.buf.flush()
+            if flush:
+                await self.buf.flush()
             return True
     @property
     def log(self):
@@ -1525,7 +1526,7 @@ class User:
         else:
             self.buf.send("此物品不可使用。")
     async def draw_maj(self, to_draw=None):
-        if not await self.choose():
+        if not await self.choose(flush=False):
             return
         if to_draw is None:
             to_draw = MajOneHai(MajOneHai.get_random())
