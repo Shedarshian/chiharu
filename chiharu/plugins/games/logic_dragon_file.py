@@ -5761,12 +5761,13 @@ class STrain(_status):
     @classmethod
     async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[bool]:
         # TODO structure need change 目前无法处理一部分闪避一部分被消的情况
-        for tr in count:
-            if tr.if_def:
-                tr.if_def = False
-                user.data.save_status_time()
-                user.send_log(f"你的火车跳板为你的火车防止了碰撞{句尾}")
-                return True,
+        if isinstance(status, STrain):
+            for tr in count:
+                if tr.if_def:
+                    tr.if_def = False
+                    user.data.save_status_time()
+                    user.send_log(f"的火车跳板为你的火车防止了碰撞{句尾}")
+                    return True,
         return False,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
