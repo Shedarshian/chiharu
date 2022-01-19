@@ -785,6 +785,13 @@ class UserData:
         self.node['flags'] = (self.node['flags'] & ~1) + int(bool(value)) * 1
         config.userdata.execute("update dragon_data set flags=? where qq=?", (self.node['flags'], self.qq))
     @property
+    def not_first_round(self):
+        return bool(self.node['flags'] & 2)
+    @not_first_round.setter
+    def not_first_round(self, value):
+        self.node['flags'] = (self.node['flags'] & ~2) + int(bool(value)) * 2
+        config.userdata.execute("update dragon_data set flags=? where qq=?", (self.node['flags'], self.qq))
+    @property
     def status_time_checked(self):
         i = 0
         while i < len(self.status_time):
@@ -1636,7 +1643,9 @@ class User:
                 config.logger.dragon << "【LOG】里宝牌是：" + ''.join(str(c) for c in ura)
             else:
                 ura = []
-            l, ten = MajOneHai.tensu(t[to_draw.hai], self.data.maj[1], to_draw.hai, self.data.if_richi, ura)
+            
+            l, ten = MajOneHai.tensu(t[to_draw.hai], self.data.maj[1], to_draw.hai, self.data.if_richi, ura,
+                not self.data.not_first_round, "rinshan" in self.buf.state and self.buf.state["rinshan"])
             self.log << f"和种为{l}，点数为{ten}。"
             if ten <= 3:    r = "";             jibi = 5;       quan = 0
             elif ten <= 5:  r = "，满贯";        jibi = 10;     quan = 2
@@ -1672,6 +1681,7 @@ class User:
                 await self.draw(0, cards=[shengkong], replace_prompt="以及一张卡：")
             self.data.maj = (sorted(MajOneHai.get_random() for i in range(13)), [])
             self.data.if_richi = False
+            self.data.not_first_round = False
             self.data.save_maj()
             return
         hand_maj.append(to_draw)
@@ -1680,18 +1690,21 @@ class User:
         if choose == 0:
             self.send_log(f"切出了{str(to_choose)}，手中麻将为：")
         elif choose == 1:
-            self.send_log(f"切出了{str(to_choose)}立直，手中麻将为：")
+            self.send_log(f"切出了{str(to_choose)}{'' if self.data.not_first_round else '两'}立直，手中麻将为：")
             self.data.if_richi = True
         elif choose == 2:
             hand_maj.remove(to_choose)
             hand_maj.remove(to_choose)
             hand_maj.remove(to_choose)
             self.data.maj[1].append(to_choose.hai)
+            self.buf.state["rinshan"] = True
             self.send_log(f"暗杠了{str(to_choose)}{句尾}，手中麻将为：")
         self.buf.send(await MajOneHai.draw_maj(hand_maj, self.data.maj[1]))
         self.log << ''.join(str(h) for h in hand_maj) + ' ' + ''.join(str(h) for h in self.data.maj[1])
         self.data.maj = ([s.hai for s in hand_maj], self.data.maj[1])
         self.data.save_maj()
+        if not self.data.if_richi:
+            self.data.not_first_round = True
         if choose == 2:
             await self.draw_maj()
 

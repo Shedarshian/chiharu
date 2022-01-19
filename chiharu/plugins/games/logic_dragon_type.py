@@ -506,8 +506,8 @@ class MajOneHai(MajHai):
         # return ('' if len(ankan) == 0 else ' '.join(str(h) * 4 for h in ankan)) + ''.join(str(h) for h in tehai) + ('' if to_draw is None else ' ' + str(to_draw))
     @functools.total_ordering
     class HeZhong:
-        data: Dict[Tuple[int, int, int], Tuple[str, int]] = {(0, 0, 0): ("立直", 1), (0, 1, 0): ("门前清自摸和", 1),
-        (0, 2, 0): ("里宝牌", 1), (1, 0, 0): ("断幺九", 1), (1, 1, 0): ("平和", 1),
+        data: Dict[Tuple[int, int, int], Tuple[str, int]] = {(0, 0, 0): ("立直", 1), (0, 0, 1): ("两立直", 2),
+        (0, 1, 0): ("门前清自摸和", 1), (0, 2, 0): ("里宝牌", 1), (1, 0, 0): ("断幺九", 1), (1, 1, 0): ("平和", 1),
         (2, 0, 0): ("混一色", 3), (2, 0, 1): ("清一色", 6), (2, 1, 0): ("九莲宝灯", 13), (2, 1, 1): ("纯正九莲宝灯", 13),
             (2, 2, 0): ("绿一色", 13), (2, 3, 0): ("黑一色", 13), (2, 4, 0): ("天地创造", 105),
         (3, 0, 0): ("三元牌：白", 1), (3, 1, 0): ("三元牌：发", 1), (3, 2, 0): ("三元牌：中", 1),
@@ -524,7 +524,8 @@ class MajOneHai(MajHai):
         (9, 0, 0): ("五门齐", 2),
         (10, 0, 0): ("国士无双", 13), (10, 0, 1): ("国士无双十三面听", 26),
             (10, 1, 0): ("七对子", 2), (10, 1, 1): ("大数邻", 13), (10, 1, 2): ("大车轮", 13), (10, 1, 3): ("大竹林", 13),
-            (10, 1, 4): ("大七星", 26)}
+            (10, 1, 4): ("大七星", 26),
+        (11, 0, 0): ("岭上开花", 1), (11, 1, 0): ("天和", 13)}
         @staticmethod
         def ten(l: 'List[MajOneHai.HeZhong]') -> int:
             l.sort()
@@ -543,13 +544,22 @@ class MajOneHai(MajHai):
         def __eq__(self, other):
             return self.tuple == other.tuple
     @staticmethod
-    def tensu(results: List[Dict[int, Tuple[Tuple[int,...],...]]], ankan: List[int], final_hai: int, if_richi: bool, ura: List['MajOneHai']) -> 'Tuple[List[MajOneHai.HeZhong], MajOneHai.HeZhong.Status, int]':
-        def _f(result: Dict[int, Tuple[Tuple[int,...],...]], ankan: List[int], final_hai: int, if_richi: bool, ura: List['MajOneHai']) -> 'List[MajOneHai.HeZhong]':
+    def tensu(results: List[Dict[int, Tuple[Tuple[int,...],...]]], ankan: List[int], final_hai: int, if_richi: bool, ura: List['MajOneHai'], is_first: bool, is_rinshan: bool) -> 'Tuple[List[MajOneHai.HeZhong], MajOneHai.HeZhong.Status, int]':
+        def _f(result: Dict[int, Tuple[Tuple[int,...],...]], ankan: List[int], final_hai: int, if_richi: bool, ura: List['MajOneHai'], is_first: bool, is_rinshan: bool) -> 'List[MajOneHai.HeZhong]':
             HeZhong = MajOneHai.HeZhong
+            l = []
+            if if_richi:
+                if is_first:
+                    l.append(HeZhong((0, 0, 1)))   # 两立直
+                else:
+                    l.append(HeZhong((11, 1, 0)))   # 天和
+            else:
+                l.append(HeZhong((0, 0, 0)))    # 立直
+            if is_rinshan:
+                l.append(HeZhong((11, 0, 0)))   # 岭上开花
             if set(result.keys()) == {7} and set(ankan) == {31}:
-                l = [HeZhong((2, 4, 0))]     # 天地创造
+                l.append(HeZhong((2, 4, 0)))     # 天地创造
                 if if_richi:
-                    l.append(HeZhong((0, 0, 0)))    # 立直
                     for dora in ura:
                         dora1 = dora.addOneDora()
                         if dora1.hai == 31:
@@ -557,9 +567,8 @@ class MajOneHai(MajHai):
                                 l.append(HeZhong((0, 2, 0)))    # 里宝牌
                 l.sort()
                 return l
-            l = [HeZhong((0, 1, 0))]            # 门前清自摸和
+            l.append(HeZhong((0, 1, 0)))            # 门前清自摸和
             if if_richi:
-                l.append(HeZhong((0, 0, 0)))    # 立直
                 for dora in ura:
                     dora1 = dora.addOneDora()
                     for key, val in result.items():
@@ -730,7 +739,7 @@ class MajOneHai(MajHai):
             return l
         _max = ([], 0)
         for result in results:
-            _now = _f(result, ankan, final_hai, if_richi, ura)
+            _now = _f(result, ankan, final_hai, if_richi, ura, is_first, is_rinshan)
             ten = MajOneHai.HeZhong.ten(_now)
             if ten > _max[1]:
                 _max = (_now, ten)
