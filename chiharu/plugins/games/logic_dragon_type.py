@@ -341,7 +341,7 @@ def ensure_true_lambda(bool_func: Callable[[Any], bool], message_lambda: Callabl
 def check_handcard(user):
     def validate(value):
         if value in ("查询手牌", "查看手牌"):
-            _raise_failure("你的手牌为：\n" + '\n'.join(s.brief_description(user.qq) for s in user.data.hand_card))
+            _raise_failure("你的手牌为：\n" + '\n'.join(s.brief_description() for s in user.data.hand_card))
         elif value in ("查询详细手牌", "查看详细手牌"):
             _raise_failure("你的手牌为：\n" + '\n'.join(s.full_description(user.qq) for s in user.data.hand_card))
         elif value in ("查询装备", "查看装备"):

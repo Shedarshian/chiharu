@@ -4782,10 +4782,10 @@ class Sexplore(NumedStatus):
                 if len(l) == 0:
                     user.send_log(f"没有负面状态{句尾}")
                 c = random.choice(l)
-                if isinstance(c, _statusnull):
+                if isinstance(c(), _statusnull):
                     user.send_char(f"的{c.des[:c.des.index('：')]}被取消了{句尾}")
                     await user.remove_status(c.id, remove_all=False)
-                elif isinstance(c, _statusdaily):
+                elif isinstance(c(), _statusdaily):
                     user.send_char(f"的{c.des[:c.des.index('：')]}被取消了{句尾}")
                     await user.remove_daily_status(c.id, remove_all=False)
                 elif isinstance(c, _status):

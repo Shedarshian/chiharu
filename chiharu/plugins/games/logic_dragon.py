@@ -927,8 +927,8 @@ async def dragon_buy(buf: SessionBuffer):
                 user.send_log(f"的无法战斗状态已被解除{句尾}")
                 await user.remove_limited_status(s)
             i += 1
-        user.save_status_time()
         await user.add_limited_status(Status('S')(datetime.now() + timedelta(minutes=240)))
+        user.data.save_status_time()
     elif id == 16 and me.check_daily_status('O'):
         # (5击毙)抽奖
         # 15%几率掉一张卡
@@ -1222,13 +1222,12 @@ async def dragon_op(session: CommandSession):
 @Game.wrapper
 async def dragon_test(buf: SessionBuffer):
     qq = buf.ctx['user_id']
-    if qq != 1143613284:
+    if qq != 1569603950:
         return
     user = User(qq, buf)
     async with user.settlement():
-        await user.draw_maj(to_draw=MajOneHai('6z'))
-        await user.draw_maj(to_draw=MajOneHai('4z'))
-    save_data()
+        await user.add_limited_status(Status('S')(datetime.now() + timedelta(minutes=240)))
+        user.data.save_status_time()
 
 @on_command(('dragon', 'maj'), only_to_me=False, hide=True, environment=env_supervise)
 @config.ErrorHandle(config.logger.dragon)
