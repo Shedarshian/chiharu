@@ -3591,6 +3591,7 @@ class baipai(_card):
 class jiaodai(_card):
     name = "布莱恩科技航空专用强化胶带FAL84型"
     id = 100
+    positive = 1
     description = "取消掉你身上的至多6种负面状态（不包括死亡），并免疫下次即刻生效的负面状态（不包括死亡）。"
     @classmethod
     async def use(cls, user: User) -> None:
