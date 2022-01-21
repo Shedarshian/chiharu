@@ -4782,18 +4782,19 @@ class Sexplore(NumedStatus):
                 l = [s for s in itertools.chain(map(StatusNull, user.data.status), map(StatusDaily, user.data.daily_status), user.data.status_time_checked) if s.is_debuff]
                 if len(l) == 0:
                     user.send_log(f"没有负面状态{句尾}")
-                c = random.choice(l)
-                if isinstance(c, type) and isinstance(c(), _statusnull):
-                    user.send_char(f"的{c.des[:c.des.index('：')]}被取消了{句尾}")
-                    await user.remove_status(c.id, remove_all=False)
-                elif isinstance(c, type) and isinstance(c(), _statusdaily):
-                    user.send_char(f"的{c.des[:c.des.index('：')]}被取消了{句尾}")
-                    await user.remove_daily_status(c.id, remove_all=False)
-                elif isinstance(c, _status):
-                    des = c.des
-                    user.send_log(f"的{des[:des.index('：')]}被取消了{句尾}")
-                    await user.remove_limited_status(c)
-                    user.data.save_status_time()
+                else:
+                    c = random.choice(l)
+                    if isinstance(c, type) and isinstance(c(), _statusnull):
+                        user.send_char(f"的{c.des[:c.des.index('：')]}被取消了{句尾}")
+                        await user.remove_status(c.id, remove_all=False)
+                    elif isinstance(c, type) and isinstance(c(), _statusdaily):
+                        user.send_char(f"的{c.des[:c.des.index('：')]}被取消了{句尾}")
+                        await user.remove_daily_status(c.id, remove_all=False)
+                    elif isinstance(c, _status):
+                        des = c.des
+                        user.send_log(f"的{des[:des.index('：')]}被取消了{句尾}")
+                        await user.remove_limited_status(c)
+                        user.data.save_status_time()
             elif i == 1:
                 user.send_log("置身费米尔修道院：")
                 user.buf.send("僧侣信奉象征欲望的杯之准则。失去5击毙，然后你今天每次接龙额外获得1击毙。")
