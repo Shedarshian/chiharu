@@ -5694,7 +5694,7 @@ class inv_belt_s(_statusnull):
             qq = random.choice(qqs)
             u = User(qq, user.buf)
             user.buf.send(f"玩家{u.qq}从传送带上捡起了" + user.char + f"掉的卡{句尾}")
-            await u.draw(0, [card])
+            await u.draw(0, cards=[card])
             await user.remove_status('4', remove_all=False)
             if not user.check_status('4'):
                 break
