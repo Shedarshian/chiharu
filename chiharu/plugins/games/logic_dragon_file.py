@@ -1611,8 +1611,7 @@ class User:
             ])
         if to_choose is None:
             if len(can_choose[choose]) == 1:
-                self.buf.send("你摸切了这张牌。")
-                to_choose = to_draw
+                to_choose = can_choose[choose][0]
             else:
                 if choose == 0:
                     prompt += "请选择一张牌切牌。"
