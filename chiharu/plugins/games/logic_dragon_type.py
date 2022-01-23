@@ -548,13 +548,13 @@ class MajOneHai(MajHai):
         def _f(result: Dict[int, Tuple[Tuple[int,...],...]], ankan: List[int], final_hai: int, if_richi: bool, ura: List['MajOneHai'], is_first: bool, is_rinshan: bool) -> 'List[MajOneHai.HeZhong]':
             HeZhong = MajOneHai.HeZhong
             l = []
-            if if_richi:
-                if is_first:
+            if is_first:
+                if if_richi:
                     l.append(HeZhong((0, 0, 1)))   # 两立直
                 else:
-                    l.append(HeZhong((0, 0, 0)))    # 立直
-            else:
-                l.append(HeZhong((11, 1, 0)))   # 天和
+                    l.append(HeZhong((11, 1, 0)))   # 天和
+            elif if_richi:
+                l.append(HeZhong((0, 0, 0)))    # 立直
             if is_rinshan:
                 l.append(HeZhong((11, 0, 0)))   # 岭上开花
             if set(result.keys()) == {7} and set(ankan) == {31}:
