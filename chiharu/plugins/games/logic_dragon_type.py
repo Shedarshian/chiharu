@@ -552,9 +552,9 @@ class MajOneHai(MajHai):
                 if is_first:
                     l.append(HeZhong((0, 0, 1)))   # 两立直
                 else:
-                    l.append(HeZhong((11, 1, 0)))   # 天和
+                    l.append(HeZhong((0, 0, 0)))    # 立直
             else:
-                l.append(HeZhong((0, 0, 0)))    # 立直
+                l.append(HeZhong((11, 1, 0)))   # 天和
             if is_rinshan:
                 l.append(HeZhong((11, 0, 0)))   # 岭上开花
             if set(result.keys()) == {7} and set(ankan) == {31}:

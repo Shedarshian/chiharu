@@ -1222,12 +1222,9 @@ async def dragon_op(session: CommandSession):
 @Game.wrapper
 async def dragon_test(buf: SessionBuffer):
     qq = buf.ctx['user_id']
-    if qq != 1569603950:
-        return
-    user = User(qq, buf)
+    user = User(1143613284, buf)
     async with user.settlement():
-        await user.add_limited_status(Status('S')(datetime.now() + timedelta(minutes=240)))
-        user.data.save_status_time()
+        user.data.extra.yakuman = 0
 
 @on_command(('dragon', 'maj'), only_to_me=False, hide=True, environment=env_supervise)
 @config.ErrorHandle(config.logger.dragon)
