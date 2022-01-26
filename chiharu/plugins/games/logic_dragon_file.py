@@ -2817,65 +2817,6 @@ class plus1ma_s(_statusdaily):
     def register(cls):
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.plus1ma, cls)}
 
-class dongfeng(_card):
-    name = "东风（🀀）"
-    id = 40
-    positive = 0
-    weight = 0
-    description = "可邀请持有南风、西风、北风的群友各一位进行一局麻将对战，根据结算顺位获得奖励（一位20击毙，二位10击毙，三位5击毙，四位被击毙），对局结束后此牌被消耗。"
-    mass = 0.2
-
-class nanfeng(_card):
-    name = "南风（🀁）"
-    id = 41
-    positive = 0
-    weight = 0
-    description = "可邀请持有东风、西风、北风的群友各一位进行一局麻将对战，根据结算顺位获得奖励（一位20击毙，二位10击毙，三位5击毙，四位被击毙），对局结束后此牌被消耗。"
-    mass = 0.2
-
-class xifeng(_card):
-    name = "西风（🀂）"
-    id = 42
-    positive = 0
-    weight = 0
-    description = "可邀请持有东风、南风、北风的群友各一位进行一局麻将对战，根据结算顺位获得奖励（一位20击毙，二位10击毙，三位5击毙，四位被击毙），对局结束后此牌被消耗。"
-    mass = 0.2
-
-class beifeng(_card):
-    name = "北风（🀃）"
-    id = 43
-    positive = 0
-    weight = 0
-    description = "可邀请持有东风、南风、西风的群友各一位进行一局麻将对战，根据结算顺位获得奖励（一位20击毙，二位10击毙，三位5击毙，四位被击毙），对局结束后此牌被消耗。"
-    mass = 0.2
-
-class baiban(_card):
-    name = "白板（🀆）"
-    id = 44
-    positive = 1
-    weight = 0
-    description = "选择你手牌中的一张牌，执行其使用效果。"
-    mass = 0.2
-    @classmethod
-    def can_use(cls, user: User, copy: bool) -> bool:
-        return len(user.data.hand_card) >= (1 if copy else 2)
-    @classmethod
-    async def use(cls, user: User):
-        async with user.choose_cards("请选择你手牌中的一张牌复制，输入id号。", 1, 1,
-            cards_can_not_choose=(44,), require_can_use=True) as l, check_active(l):
-            card = Card(l[0])
-            config.logger.dragon << f"【LOG】用户{user.qq}选择了卡牌{card.name}。"
-            user.send_char('使用了卡牌：\n' + card.full_description(user.qq))
-            await user.use_card_effect(card)
-
-class hongzhong(_card):
-    name = "红中（🀄）"
-    id = 46
-    positive = 1
-    weight = 0
-    description = "在同时有人驳回和同意时，可以使用此卡强制通过。"
-    mass = 0.2
-
 class sihuihuibizhiyao(_card):
     name = "死秽回避之药"
     id = 50
