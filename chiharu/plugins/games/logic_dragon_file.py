@@ -6329,7 +6329,7 @@ class tarot(_equipment):
                 arg_filters=[
                         extractors.extract_text,
                         check_handcard(user),
-                        lambda s: list(map(int, re.findall(r'取消|\-?\d+', str(s)))),
+                        lambda s: [(int(c) if c != "取消" else c) for c in re.findall(r'取消|\-?\d+', str(s))],
                         validators.fit_size(1, 1, message="请输入正确的张数。"),
                         validators.ensure_true(lambda l: l[0] == "取消" or l[0] in l2)
                     ]))[0]
