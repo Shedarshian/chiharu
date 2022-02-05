@@ -645,14 +645,14 @@ class MajOneHai(MajHai):
                     l.append(HeZhong((2, 2, 0)))
                 else:
                     hais = set(functools.reduce(operator.add, result[2]))
-                    if hais - {2, 3, 4, 6, 8} == set():
+                    if hais - {1, 2, 3, 5, 7} == set():
                         l.append(HeZhong((2, 2, 0)))    #绿一色
             elif colors - {1, 3, 4, 5, 6} == set():
                 if 1 not in result:
                     l.append(HeZhong((2, 3, 0)))
                 else:
                     hais = set(functools.reduce(operator.add, result[1]))
-                    if hais - {2, 4, 8} == set():
+                    if hais - {1, 3, 7} == set():
                         l.append(HeZhong((2, 3, 0)))    #黑一色
             zi = [x[1] for x in ke if x[1] >= 3]
             zi_dui = dui[0][1]
