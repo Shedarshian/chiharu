@@ -518,7 +518,7 @@ async def dragon_construct(buf: SessionBuffer):
                 #     await user.exchange(to_exchange)
                 user.data.extra.maj_quan += 1
                 if user.data.extra.maj_quan % 3 == 0:
-                    user.send_log("获得了一张麻将摸牌券！发送“使用 麻将摸牌券”摸牌，然后选择切牌/立直/暗杠/和出。")
+                    user.send_log(f"获得了一张麻将摸牌券{句尾}发送“使用 麻将摸牌券”摸牌，然后选择切牌/立直/暗杠/和出。")
 
 @on_command(('dragon', 'use_card'), aliases="使用手牌", short_des="使用手牌。", only_to_me=False, args=("card"), environment=env)
 @config.ErrorHandle(config.logger.dragon)
@@ -558,7 +558,7 @@ async def dragon_use_card(buf: SessionBuffer):
             global_state['used_cards'].append(card.id)
         user.data.extra.maj_quan += 1
         if user.data.extra.maj_quan % 3 == 0:
-            user.send_log("获得了一张麻将摸牌券！发送“使用 麻将摸牌券”摸牌，然后选择切牌/立直/暗杠/和出。")
+            user.send_log(f"获得了一张麻将摸牌券{句尾}发送“使用 麻将摸牌券”摸牌，然后选择切牌/立直/暗杠/和出。")
     global_state['last_card_user'] = qq
     save_global_state()
 
@@ -931,30 +931,36 @@ async def dragon_buy(buf: SessionBuffer):
         user.data.save_status_time()
     elif id == 16 and me.check_daily_status('O'):
         # (5击毙)抽奖
-        # 15%几率掉一张卡
-        # 30%几率获得1-10击毙
-        # 15%几率在过去一周内随机标记一个雷
-        # 5%几率抽奖机爆炸击毙抽奖人，抽奖机消失
-        # 35%几率什么都不掉
+        # 15 + 2 LUCK %几率掉一张卡
+        # 15 - LUCK %几率获得1-5击毙
+        # 15 + LUCK %几率获得6-10击毙
+        # 15 + 2.5 LUCK %几率在过去一周内随机标记一个雷
+        # 5 - 0.5 LUCK %几率抽奖机爆炸击毙抽奖人，抽奖机消失
+        # 35 - 4 LUCK %几率什么都不掉
         if not await user.add_jibi(-5, is_buy=True):
             buf.finish(f"您的击毙不足{句尾}")
         r = random.random()
         user.log << f"抽奖机抽到了{r}。"
-        if r < 0.15:
+        luck = 0.01 * user.data.luck
+        if r < 0.15 + 2 * luck:
             async with user.settlement():
                 buf.send(f"🎴🎴🎴恭喜您抽到了卡牌{句尾}")
                 await user.draw(1)
-        elif r < 0.45:
-            p = random.randint(1, 10)
+        elif r < 0.3 + luck:
+            p = random.randint(1, 5)
             buf.send(f"💰💰💰恭喜您抽到了{p}击毙{句尾}")
             await user.add_jibi(p)
-        elif r < 0.6:
+        elif r < 0.45 + 2 * luck:
+            p = random.randint(6, 10)
+            buf.send(f"💰💰💰恭喜您抽到了{p}击毙{句尾}")
+            await user.add_jibi(p)
+        elif r < 0.6 + 4.5 * luck:
             buf.send(f"💣💣💣恭喜你抽到了雷{句尾}")
             buf.send(f"过去一周的一个随机词汇变成了雷{句尾}")
             w = random.choice(list(log_set))
             config.logger.dragon << f"【LOG】{w}被随机标记为雷。"
             add_bomb(w)
-        elif r < 0.65:
+        elif r < 0.65 + 4 * luck:
             buf.send(f"💥💥💥抽奖机爆炸了{句尾}")
             await Userme(user).remove_daily_status('O', remove_all=False)
             await user.death()

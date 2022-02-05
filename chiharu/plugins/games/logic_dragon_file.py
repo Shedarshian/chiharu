@@ -865,6 +865,9 @@ class UserData:
             global_state['dragon_head'][q] = {}
             save_global_state()
         return global_state['dragon_head'][q]
+    @property
+    def luck(self):
+        return 5 * self.check_equipment(5)
     def set_cards(self):
         config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(c.id) for c in self.hand_card), self.qq))
         config.logger.dragon << f"【LOG】设置用户{self.qq}手牌为{cards_to_str(self.hand_card)}。"
@@ -1198,7 +1201,7 @@ class User:
                     cards = ret
                     break
             else:
-                cards = draw_cards(positive, n0, extra_lambda=extra_lambda)
+                cards = draw_cards(self, positive, n0, extra_lambda=extra_lambda)
         elif Card(-65537) in cards:
             if self.qq in global_state["supernova_user"][0] + global_state["supernova_user"][1] + global_state["supernova_user"][2]:
                 cards.remove(Card(-65537))
@@ -1236,7 +1239,7 @@ class User:
                     cards = ret
                     break
             else:
-                cards = draw_cards(positive, 1, extra_lambda=extra_lambda)
+                cards = draw_cards(self, positive, 1, extra_lambda=extra_lambda)
         else:
             cards = [card]
         for c in cards:
@@ -1470,7 +1473,7 @@ class User:
     async def use_object(self, args: str):
         if args == "满贯抽奖券":
             if self.data.extra.mangan < 2:
-                self.buf.send("你的满贯抽奖券不足！")
+                self.buf.send(f"你的满贯抽奖券不足{句尾}")
                 return
             self.data.extra.mangan -= 2
             a = random.random()
@@ -1715,18 +1718,25 @@ def save_data():
 
 def cards_to_str(cards: List[TCard]):
     return '，'.join(c.brief_description() for c in cards)
-def draw_cards(positive: Optional[Set[int]]=None, k: int=1, extra_lambda=None):
+def draw_cards(user: User, positive: Optional[Set[int]]=None, k: int=1, extra_lambda=None):
     x = positive is not None and len(positive & {-1, 0, 1}) != 0
     cards = [c for c in _card.card_id_dict.values() if c.id >= 0 and (not x or x and c.positive in positive)]
     if extra_lambda is not None:
         cards = [c for c in cards if extra_lambda(c)]
-    weight = [c.weight for c in cards]
+    weight = [c.weight(user) if callable(c.weight) else c.weight for c in cards]
     if me.check_daily_status('j') and (not x or x and (-1 in positive)):
         return [(Card(-1) if random.random() < 0.2 else random.choices(cards, weight)[0]) for i in range(k)]
     l = random.choices(cards, weight, k=k)
+    if user.data.luck != 0:
+        for i in range(l):
+            if callable(l[i].weight) and random.random() > 1 / l[i].weight(user):
+                user.send_log("幸运地抽到了" + l[i].name + 句尾)
+            elif l[i] is dabingyichang and random.random() < 0.1 * min(user.data.luck, 5):
+                user.send_log("抽到了大病一场，幸运重抽" + 句尾)
+                l[i] = random.choices(cards, weight, k=1)[0]
     return l
-def draw_card(positive: Optional[Set[int]]=None):
-    return draw_cards(positive, k=1)[0]
+def draw_card(user: User, positive: Optional[Set[int]]=None):
+    return draw_cards(user, positive, k=1)[0]
 def equips_to_str(equips: Dict[int, TEquipment]):
     return '，'.join(f"{count}*{c.name}" for c, count in equips.items())
 
@@ -2360,7 +2370,7 @@ class chariot(_card):
                 node = node.parent
         if user.qq in to_kill:
             to_kill.remove(user.qq)
-        to_kill = set(qq for qq in to_kill if random.random() < 0.1)
+        to_kill = set(qq for qq in to_kill if random.random() < (0.1 + 0.01 * user.data.luck))
         user.buf.send(f"{'，'.join(f'[CQ:at,qq={qq}]' for qq in to_kill)}被你击杀了{句尾}")
         for qq in to_kill:
             await User(qq, user.buf).killed(user)
@@ -2677,7 +2687,7 @@ class randommaj(_card):
     @classmethod
     async def use(cls, user: User) -> None:
         user.data.extra.maj_quan += 15
-        user.send_log("增加了5张麻将摸牌券！")
+        user.send_log("增加了5张麻将摸牌券" + 句尾)
         await user.draw(1)
 
 class dabingyichang(_card):
@@ -2706,6 +2716,9 @@ class caipiaozhongjiang(_card):
     positive = 1
     description = "抽到时，你立即获得20击毙与两张牌。"
     consumed_on_draw = True
+    @classmethod
+    def weight(cls, user: User):
+        return 1 + user.data.luck / 2
     @classmethod
     async def on_draw(cls, user: User):
         user.send_char(f"中奖了{句尾}获得20击毙与两张牌。")
@@ -2953,6 +2966,11 @@ class baoshidewugong(_card):
     positive = 1
     description = "你的手牌上限永久+1。"
     @classmethod
+    def weight(cls, user: User):
+        if user.data.card_limit < 20:
+            return 1 + user.data.luck / 10 * (20 - user.data.card_limit)
+        return 1
+    @classmethod
     async def use(cls, user: User):
         user.data.card_limit_raw += 1
         config.logger.dragon << f"【LOG】用户{user.qq}增加了raw手牌上限至{user.data.card_limit_raw}。"
@@ -3000,7 +3018,9 @@ class dream(_card):
         node = random.choice(list(itertools.chain(*Tree._objs)))
         c = random.random()
         config.logger.dragon << f"【DEBUG】c={c}"
-        if c < 0.5:
+        if c < 0.5 + 0.02 * user.data.luck:
+            if c > 0.5:
+                user.buf.send("幸运地", end='')
             user.buf.send(f"回溯到了节点{node.id_str}{句尾}")
             for n in node.childs:
                 n.remove()
@@ -3158,7 +3178,9 @@ class hongsezhihuan_s(_statusnull):
             return time, False
         for a in range(count):
             await user.remove_status('h', remove_all=False)
-            if random.randint(0, 1) == 0:
+            if (c := random.random()) < 0.5 + 0.02 * user.data.luck:
+                if c > 0.5:
+                    user.buf.send("幸运地", end="")
                 user.send_log(f"触发了虹色之环，闪避了死亡{句尾}")
                 return time, True
             else:
@@ -3533,6 +3555,14 @@ class jiaodai(_card):
     id = 100
     positive = 1
     description = "取消掉你身上的至多6种负面状态（不包括死亡），并免疫下次即刻生效的负面状态（不包括死亡）。"
+    @classmethod
+    def weight(cls, user: User):
+        if user.data.luck == 0:
+            return 1
+        count = sum(1 for c in map(StatusNull, user.data.status) if c.id != 'd' and c.is_debuff) \
+            + sum(1 for c in map(StatusDaily, user.data.daily_status) if c.id != 'd' and c.is_debuff) \
+            + sum(1 for s in user.data.status_time_checked if s.id != 'd' and not isinstance(s, Swufazhandou) and s.is_debuff)
+        return 1 + user.data.luck / 5 * min(count, 6)
     @classmethod
     async def use(cls, user: User) -> None:
         has = 6
@@ -4075,6 +4105,11 @@ class wardenspaean(_card):
     positive = 1
     newer = 2
     @classmethod
+    def weight(cls, user: User):
+        if user.check_daily_status('d'):
+            return 1 + user.data.luck / 2
+        return 1
+    @classmethod
     async def use(cls, user: User) -> None:
         for c in map(StatusDaily, user.data.daily_status):
             if c is shengbing:
@@ -4197,7 +4232,7 @@ class xixueshashou_s(_statusdaily):
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         for i in range(count):
-            if random.random() > 0.9:
+            if random.random() < 0.1 + 0.01 * user.data.luck:
                 user.buf.send(f"你获得了一张【吸血鬼】{句尾}")
                 await user.draw(0, cards=[Card(-2)])
     @classmethod
@@ -4640,6 +4675,10 @@ class Sexplore(NumedStatus):
     async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
         user.buf.state['mishi_id'] = i = random.randint(0, 5 if count[0].num <= 4 else 4)
         user.buf.state['dragon_who'] = user.qq
+        if count[0].num <= 4 and i == 5 or count[0].num > 4 and i == 4:
+            if random.random() < 0.1 * min(user.data.luck, 5):
+                user.send_log("随机到了死亡，重新随机" + 句尾)
+                user.buf.state['mishi_id'] = i = random.randint(0, 5 if count[0].num <= 4 else 4)
         if count[0].num == 1 and i == 1:
             user.send_log("置身被遗忘的密特拉寺：")
             user.buf.send("你在此地进行了虔诚（）的祈祷。如果你此次接龙因各种原因被击毙，减少0～10%的死亡时间。")
@@ -5255,7 +5294,9 @@ class forkbomb_s(_statusdaily):
     is_metallic = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        if random.random() > 0.95 ** count:
+        if (c := random.random()) > (0.95 - 0.05 * user.data.luck) ** count:
+            if c < 0.95 ** count:
+                user.buf.send("幸运地", end='')
             user.send_log(f"触发了Fork Bomb，此词变成了分叉点{句尾}")
             branch.fork = True
     @classmethod
@@ -5366,11 +5407,11 @@ class upsidedown(_card):
             to_remove = ""
             to_add = ""
             for c in u.data.status:
-                if random.random() > 0.5:
+                if (d := random.random()) > 0.5 + (0.02 * user.data.luck if StatusNull(c).is_debuff else 0):
                     continue
                 if c in revert_status_map:
                     des = StatusNull(c).des
-                    u.send_log(f"的{des[:des.index('：')]}被反转了{句尾}")
+                    u.send_log(f"的{des[:des.index('：')]}{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
                     to_remove += c
                     to_add += revert_status_map[c]
             for c in to_remove:
@@ -5383,11 +5424,11 @@ class upsidedown(_card):
             to_remove = ""
             to_add = ""
             for c in u.data.daily_status:
-                if random.random() > 0.5:
+                if (d := random.random()) > 0.5 + (0.02 * user.data.luck if StatusDaily(c).is_debuff else 0):
                     continue
                 if c in revert_daily_status_map:
                     des = StatusDaily(c).des
-                    u.send_log(f"的{des[:des.index('：')]}被反转了{句尾}")
+                    u.send_log(f"的{des[:des.index('：')]}{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
                     to_remove += c
                     to_add += revert_daily_status_map[c]
             for c in to_remove:
@@ -5398,29 +5439,29 @@ class upsidedown(_card):
         # 带附加值的状态
         l = user.data.status_time_checked
         for i in range(len(l)):
-            if random.random() > 0.5:
+            if (d := random.random()) > 0.5 + (0.02 * user.data.luck if l[i].is_debuff else 0):
                 continue
             if l[i].id == 'q':
                 l[i].jibi = -l[i].jibi
-                user.send_log(f"的每日任务被反转了{句尾}")
+                user.send_log(f"的每日任务{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
             elif l[i].id == 'b':
                 l[i] = SCian(l[i].num)
-                user.send_log(f"的月下彼岸花被反转了{句尾}")
+                user.send_log(f"的月下彼岸花{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
             elif l[i].id == 'c':
                 l[i] = SBian(l[i].num)
-                user.send_log(f"的反转·月下彼岸花被反转了{句尾}")
+                user.send_log(f"的反转·月下彼岸花{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
             elif l[i].id == 'l':
                 l[i] = SKe(l[i].list)
-                user.send_log(f"的乐不思蜀被反转了{句尾}")
+                user.send_log(f"的乐不思蜀{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
             elif l[i].id == 'k':
                 l[i] = SLe(l[i].list)
-                user.send_log(f"的反转·乐不思蜀被反转了{句尾}")
+                user.send_log(f"的反转·乐不思蜀{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
             elif l[i].id == 'e':
                 l[i] = inv_hierophant_s(l[i].num)
-                user.send_log(f"的反转·教皇被反转了{句尾}")
+                user.send_log(f"的反转·教皇{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
             elif l[i].id == 'f':
                 l[i] = hierophant_s(l[i].num)
-                user.send_log(f"的教皇被反转了{句尾}")
+                user.send_log(f"的教皇{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
         user.data.save_status_time()
         # 全局状态
         await _s(Userme(user))
@@ -5554,7 +5595,7 @@ class envelop(_card):
     @classmethod
     async def use(cls, user: User) -> None:
         if not await user.add_jibi(-2, is_buy=True):
-            user.send_log("的击毙不足！")
+            user.send_log("的击毙不足" + 句尾)
         if await user.choose():
             async with user.choose_cards("请选择一张手牌：", 1, 1) as l:
                 qq: int = (await user.buf.aget(prompt="请at群内一名玩家。\n",
@@ -5567,9 +5608,11 @@ class envelop(_card):
                 user.send_log(f"将手牌{c.name}寄了出去{句尾}")
                 await user.remove_cards([c])
                 a = random.random()
-                if a < 0.5:
+                if a > 0.5 + 0.02 * min(u.data.luck, 5) + 0.02 * min(user.data.luck, 5):
                     await u.draw(0, cards=[c])
                 else:
+                    if a > 0.5:
+                        u.send_char("幸运地保留了信封" + 句尾)
                     await u.draw(0, cards=[c, envelop])
 
 class shengkong(_card):
@@ -5589,8 +5632,8 @@ class shengkong(_card):
             h = MajOneHai(hai)
             await user.draw_maj(h)
         b = random.random()
-        if b < 0.5:
-            await user.draw(1, replace_prompt=user.char + "声控的很大声，一张牌从天花板上掉了下来，竟然是：")
+        if b < 0.5 + 0.02 * user.data.luck:
+            await user.draw(1, replace_prompt=user.char + f"声控的很大声，一张牌{'幸运地' if b > 0.5 else ''}从天花板上掉了下来，竟然是：")
 
 class belt(_card):
     id = 201
@@ -5705,6 +5748,9 @@ class STrain(_status):
         # TODO structure need change 目前无法处理一部分闪避一部分被消的情况
         if isinstance(status, STrain):
             for tr in count:
+                if user.data.luck != 0 and random.random() < 0.1 * min(user.data.luck, 5):
+                    user.send_log(f"幸运地防止了碰撞{句尾}")
+                    return True,
                 if tr.if_def:
                     tr.if_def = False
                     user.data.save_status_time()
@@ -5858,6 +5904,18 @@ class lab(_card):
     newer = 4
     is_metallic = True
     mass = 0.75
+    @classmethod
+    def weight(cls, user: User):
+        if user.data.luck == 0:
+            return 1
+        count = 0
+        if me.check_limited_status('t', lambda c: c.qq == user.qq):
+            count += 1
+        if user.data.check_equipment(3) != 0:
+            count += 1
+        if Card(203) in user.data.hand_card:
+            count += 1
+        return 1 + user.data.luck / 5 * count
     @classmethod
     async def use(cls, user: User) -> None:
         if t1 := me.check_limited_status('t', lambda c: c.qq == user.qq):
@@ -6138,19 +6196,20 @@ class laplace(_card):
     mass = 0
     @classmethod
     async def use(cls, user: User) -> None:
+        ume = Userme(user)
         if l := me.check_limited_status('P'):
             if len(l[0].list) >= 3:
                 cards = [Card(c) for c in l[0].list[:3]]
             else:
-                to_add = draw_cards(k=3 - len(l[0].list))
+                to_add = draw_cards(ume, k=3 - len(l[0].list))
                 cards = [Card(c) for c in l[0].list]
                 l[0].list.extend([c.id for c in to_add])
                 cards += to_add
         else:
-            cards = draw_cards(k=3)
-            await Userme(user).add_limited_status(SLaplace([c.id for c in cards]))
+            cards = draw_cards(ume, k=3)
+            await ume.add_limited_status(SLaplace([c.id for c in cards]))
         if await user.choose():
-            user.buf.send("卡牌已通过私聊发送！")
+            user.buf.send("卡牌已通过私聊发送" + 句尾)
             user.log << f"查询结果为{[c.brief_description() for c in cards]}。"
             x = '\n'
             await user.buf.session.send(f"牌堆顶的3张卡为：{x.join(c.full_description(user.qq) for c in cards)}", ensure_private=True)
@@ -6172,7 +6231,7 @@ class SLaplace(ListStatus):
             new = []
         else:
             to_remove = can_draw
-            new = draw_cards(positive, n - len(can_draw), extra_lambda)
+            new = draw_cards(user, positive, n - len(can_draw), extra_lambda)
         for c in to_remove:
             count[0].list.remove(c.id)
         me.save_status_time()
@@ -6191,7 +6250,7 @@ class randommaj2(_card):
     @classmethod
     async def use(cls, user: User) -> None:
         user.data.extra.maj_quan += 15
-        user.send_log("增加了5张麻将摸牌券！")
+        user.send_log("增加了5张麻将摸牌券" + 句尾)
         await user.draw(1)
 
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
