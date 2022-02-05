@@ -1648,7 +1648,7 @@ class User:
             
             l, ten = MajOneHai.tensu(t[to_draw.hai], self.data.maj[1], to_draw.hai, self.data.if_richi, ura,
                 not self.data.not_first_round, "rinshan" in self.buf.state and self.buf.state["rinshan"])
-            self.log << f"和种为{l}，点数为{ten}。"
+            self.log << f"和种为{[str(c) for c in l]}，点数为{ten}。"
             if ten <= 3:    r = "";             jibi = 5;       quan = 0
             elif ten <= 5:  r = "，满贯";        jibi = 10;     quan = 2
             elif ten <= 7:  r = "，跳满";        jibi = 15;     quan = 3
