@@ -508,7 +508,7 @@ class MajOneHai(MajHai):
     class HeZhong:
         data: Dict[Tuple[int, int, int], Tuple[str, int]] = {(0, 0, 0): ("立直", 1), (0, 0, 1): ("两立直", 2),
         (0, 1, 0): ("门前清自摸和", 1), (0, 2, 0): ("里宝牌", 1), (1, 0, 0): ("断幺九", 1), (1, 1, 0): ("平和", 1),
-        (2, 0, 0): ("混一色", 3), (2, 0, 1): ("清一色", 6), (2, 1, 0): ("九莲宝灯", 13), (2, 1, 1): ("纯正九莲宝灯", 13),
+        (2, 0, 0): ("混一色", 3), (2, 0, 1): ("清一色", 6), (2, 1, 0): ("九莲宝灯", 13), (2, 1, 1): ("纯正九莲宝灯", 26),
             (2, 2, 0): ("绿一色", 13), (2, 3, 0): ("黑一色", 13), (2, 4, 0): ("天地创造", 105),
         (3, 0, 0): ("三元牌：白", 1), (3, 1, 0): ("三元牌：发", 1), (3, 2, 0): ("三元牌：中", 1),
             (3, 3, 0): ("小三元", 2), (3, 3, 1): ("大三元", 13),
@@ -623,7 +623,6 @@ class MajOneHai(MajHai):
             colors = set(map(lambda x: x[1], al))
             if len(colors & {0, 1, 2}) == 1:
                 if len(colors) == 1:
-                    l.append(HeZhong((2, 0, 1)))    #清一色
                     hais = list(functools.reduce(operator.add, result[list(colors)[0]]))
                     hais.remove(final_hai % 9)
                     hais.sort()
@@ -635,6 +634,8 @@ class MajOneHai(MajHai):
                         t.subtract(Counter((0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8)))
                         if t == +t:
                             l.append(HeZhong((2, 1, 0)))    #九莲宝灯
+                        else:
+                            l.append(HeZhong((2, 0, 1)))    #清一色
                 else:
                     l.append(HeZhong((2, 0, 0)))    #混一色
             elif len(colors & {0, 1, 2}) == 0 and HeZhong((10, 1, 4)) not in l:
