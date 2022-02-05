@@ -518,7 +518,7 @@ class DynamicExtraData:
         return self.data.assembling
     @assembling.setter
     def assembling(self, value):
-        self.data.assembling = value
+        self.data.assembling = max(0, value)
         self.save_func(self.data)
     @property
     def hp(self):
@@ -867,7 +867,7 @@ class UserData:
         return global_state['dragon_head'][q]
     @property
     def luck(self):
-        return 5 * self.check_equipment(5)
+        return 0 # 5 * self.check_equipment(5)
     def set_cards(self):
         config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(c.id) for c in self.hand_card), self.qq))
         config.logger.dragon << f"【LOG】设置用户{self.qq}手牌为{cards_to_str(self.hand_card)}。"
