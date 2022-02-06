@@ -867,7 +867,7 @@ class UserData:
         return global_state['dragon_head'][q]
     @property
     def luck(self):
-        return 0 # 5 * self.check_equipment(5)
+        return 5 * self.check_equipment(5) + self.hand_card.count(xingyunhufu)
     def set_cards(self):
         config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(c.id) for c in self.hand_card), self.qq))
         config.logger.dragon << f"【LOG】设置用户{self.qq}手牌为{cards_to_str(self.hand_card)}。"
@@ -3276,23 +3276,30 @@ class ALiwujiaohuan(Attack):
 class xingyunhufu(_card):
     name = "幸运护符"
     id = 73
-    hold_des = '幸运护符：无法使用其他卡牌。每进行两次接龙额外获得一个击毙（每天上限为5击毙）。'
+    hold_des = '幸运护符：每天只能使用一张其他卡牌。你的幸运值+1。'
     positive = 1
-    description = "持有此卡时，你无法使用其他卡牌。你每进行两次接龙额外获得一个击毙（每天上限为5击毙）。使用将丢弃这张卡。"
+    description = "持有此卡时，每天只能使用一张其他卡牌。你的幸运值+1。使用将丢弃这张卡。"
     @classmethod
     async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str]:
-        if card.id != 73:
-            return False, f"你因幸运护符的效果，不可使用其他手牌{句尾}"
+        if card is not xingyunhufu:
+            user.send_log("今天幸运护符的使用卡牌次数已用完" + 句尾)
+            await user.add_daily_status('T')
         return True, ""
     @classmethod
-    async def OnDragoned(cls, count: TCount, user: User, branch: 'Tree', first10: bool) -> Tuple[()]:
-        if user.data.today_jibi % 2 == 1:
-            user.buf.send(f"你因为幸运护符的效果，额外奖励{count}击毙。")
-            await user.add_jibi(count)
-    @classmethod
     def register(cls):
-        return {UserEvt.OnUserUseCard: (Priority.OnUserUseCard.xingyunhufu, cls),
-            UserEvt.OnDragoned: (Priority.OnDragoned.xingyunhufu, cls)}
+        return {UserEvt.OnUserUseCard: (Priority.OnUserUseCard.xingyunhufu, cls)}
+class xingyunhufu_s(_statusdaily):
+    id = 'U'
+    des = "今天你不能使用除幸运护符以外的卡牌。"
+    is_debuff = True
+    @classmethod
+    async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str]:
+        if card is not xingyunhufu:
+            return False, f"你今天幸运护符的使用卡牌次数已用完，不可使用{句尾}"
+        return True, ""
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnUserUseCard: (Priority.OnUserUseCard.xingyunhufus, cls)}
 
 class jisuzhuangzhi(_card):
     name = "极速装置"

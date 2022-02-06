@@ -121,8 +121,9 @@ class UserEvt(IntEnum):
 class Priority:  # 依照每个优先级从前往后find，而不是iterate
     class OnUserUseCard(IntEnum):
         temperance = auto()
-        xingyunhufu = auto()
         cantuse = auto()
+        xingyunhufus = auto()
+        xingyunhufu = auto()            # 每天一次
     class BeforeCardDraw(IntEnum):
         laplace = auto()
     class BeforeCardUse(IntEnum):
@@ -258,7 +259,6 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         queststone = auto()             # 任务：完成+3击毙
         quest = auto()
         bingo = auto()                  # bingo：接龙任务
-        xingyunhufu = auto()            # 幸运护符：+0.5击毙
         hierophant = auto()             # 教皇：+2击毙
         inv_hierophant = auto()         # 反转教皇
         lveduozhebopu = auto()          # 掠夺者：偷窃判定
