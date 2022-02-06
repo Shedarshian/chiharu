@@ -6541,7 +6541,7 @@ class dushen_ring(_equipment):
     name = "赌神魔戒"
     @classmethod
     def description(cls, count: TCount) -> str:
-        return "你变得更加幸运了。"
+        return "你的幸运值+5。"
     @classmethod
     def full_description(cls, count: TCount, user: User) -> str:
         return f"{cls.id}. {cls.name}\n\t{cls.description(count)}"
