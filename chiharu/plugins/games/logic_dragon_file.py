@@ -1538,10 +1538,27 @@ class User:
     async def draw_maj(self, to_draw=None):
         if not await self.choose(flush=False):
             return
+        hand_maj = [MajOneHai(s) for s in self.data.maj[0]] # assume sorted
         if to_draw is None:
             to_draw = MajOneHai(MajOneHai.get_random())
+            if self.data.check_equipment(5) and random.random < 0.2:
+                to_draw2 = MajOneHai(MajOneHai.get_random())
+                def check2(value: str):
+                    try:
+                        maj = MajOneHai(value.strip())
+                        if maj != to_draw and maj != to_draw2:
+                            _raise_failure("请选择一个可执行的操作。")
+                        return maj
+                    except MajIdError:
+                        _raise_failure("请输入正确的麻将牌。")
+                self.buf.send_char(f"你幸运地摸到了{str(to_draw)}和{str(to_draw2)}，请选择一张：\n{await MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n{await MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw2)}")
+                await self.buf.flush()
+                to_draw = await self.buf.aget(prompt="", arg_filters=[
+                    extractors.extract_text,
+                    check_handcard(self),
+                    check2
+                ])
         self.log << f"摸到了{str(to_draw)}"
-        hand_maj = [MajOneHai(s) for s in self.data.maj[0]] # assume sorted
         t = MajOneHai.ten(hand_maj)
         huchu = to_draw.hai in t
         richi = []
@@ -1620,7 +1637,7 @@ class User:
                     prompt += "请选择一张牌切牌。"
                 else:
                     prompt += f"请选择一张牌{names[choose]}：" + ' '.join(str(s) for s in can_choose[choose])
-                def check2(value: str):
+                def check3(value: str):
                     try:
                         i = choose
                         maj = MajOneHai(value.strip())
@@ -1634,7 +1651,7 @@ class User:
                 to_choose = await self.buf.aget(prompt="", arg_filters=[
                     extractors.extract_text,
                     check_handcard(self),
-                    check2
+                    check3
                 ])
         # do things
         if choose == 3:
@@ -1643,6 +1660,14 @@ class User:
                 ura = [MajOneHai(MajOneHai.get_random()) for i in range(len(self.data.maj[1]) + 1)]
                 self.buf.send("里宝指示牌是：" + ''.join(str(c) for c in ura))
                 config.logger.dragon << "【LOG】里宝牌是：" + ''.join(str(c) for c in ura)
+                if self.data.check_equipment(5):
+                    for i in range(len(ura)):
+                        dora1 = ura[i].addOneDora()
+                        if dora1 not in hand_maj and dora1 != to_draw and random.random() < 0.5:
+                            dora2 = MajOneHai(MajOneHai.get_random())
+                            self.buf.send(f"指示牌{str(ura[i])}没有抽中，重抽出了{str(dora2)}{句尾}")
+                            config.logger.dragon << f"指示牌{str(ura[i])}没有抽中，重抽出了{str(dora2)}{句尾}"
+                            ura[i] = dora2
             else:
                 ura = []
             
@@ -1725,14 +1750,18 @@ def draw_cards(user: User, positive: Optional[Set[int]]=None, k: int=1, extra_la
         cards = [c for c in cards if extra_lambda(c)]
     weight = [c.weight(user) if callable(c.weight) else c.weight for c in cards]
     if me.check_daily_status('j') and (not x or x and (-1 in positive)):
-        return [(Card(-1) if random.random() < 0.2 else random.choices(cards, weight)[0]) for i in range(k)]
-    l = random.choices(cards, weight, k=k)
+        l = [(Card(-1) if random.random() < 0.2 else random.choices(cards, weight)[0]) for i in range(k)]
+    else:
+        l = random.choices(cards, weight, k=k)
     if user.data.luck != 0:
         for i in range(l):
             if callable(l[i].weight) and random.random() > 1 / l[i].weight(user):
                 user.send_log("幸运地抽到了" + l[i].name + 句尾)
             elif l[i] is dabingyichang and random.random() < 0.1 * min(user.data.luck, 5):
                 user.send_log("抽到了大病一场，幸运重抽" + 句尾)
+                l[i] = random.choices(cards, weight, k=1)[0]
+            elif l[i] is jiandiezhixing and random.random() < 0.1 * min(user.data.luck, 5):
+                user.send_log("抽到了间谍执行，幸运重抽" + 句尾)
                 l[i] = random.choices(cards, weight, k=1)[0]
     return l
 def draw_card(user: User, positive: Optional[Set[int]]=None):
