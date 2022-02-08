@@ -1541,7 +1541,7 @@ class User:
         hand_maj = [MajOneHai(s) for s in self.data.maj[0]] # assume sorted
         if to_draw is None:
             to_draw = MajOneHai(MajOneHai.get_random())
-            if self.data.check_equipment(5) and random.random < 0.2:
+            if self.data.check_equipment(5) and random.random() < 0.2:
                 to_draw2 = MajOneHai(MajOneHai.get_random())
                 def check2(value: str):
                     try:
@@ -1551,7 +1551,7 @@ class User:
                         return maj
                     except MajIdError:
                         _raise_failure("请输入正确的麻将牌。")
-                self.buf.send_char(f"你幸运地摸到了{str(to_draw)}和{str(to_draw2)}，请选择一张：\n{await MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n{await MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw2)}")
+                self.buf.send(f"你幸运地摸到了{str(to_draw)}和{str(to_draw2)}，请选择一张：\n{await MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}\n{await MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw2)}")
                 await self.buf.flush()
                 to_draw = await self.buf.aget(prompt="", arg_filters=[
                     extractors.extract_text,
@@ -1754,7 +1754,7 @@ def draw_cards(user: User, positive: Optional[Set[int]]=None, k: int=1, extra_la
     else:
         l = random.choices(cards, weight, k=k)
     if user.data.luck != 0:
-        for i in range(l):
+        for i in range(len(l)):
             if callable(l[i].weight) and random.random() > 1 / l[i].weight(user):
                 user.send_log("幸运地抽到了" + l[i].name + 句尾)
             elif l[i] is dabingyichang and random.random() < 0.1 * min(user.data.luck, 5):
@@ -3029,7 +3029,7 @@ class plus2_s(_statusnull):
         await Userme(user).remove_status('+')
         user.send_char(f"触发了{count}次+2的效果，摸{count}张非正面牌与{count}张非负面牌{句尾}")
         user.log << f"触发了+2的效果。"
-        cards = list(itertools.chain(*[[draw_card({-1, 0}), draw_card({0, 1})] for i in range(count)]))
+        cards = list(itertools.chain(*[[draw_card(user, {-1, 0}), draw_card(user, {0, 1})] for i in range(count)]))
         await user.draw(0, cards=cards)
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -6245,10 +6245,10 @@ class laplace(_card):
             cards = draw_cards(ume, k=3)
             await ume.add_limited_status(SLaplace([c.id for c in cards]))
         if await user.choose():
-            user.buf.send("卡牌已通过私聊发送" + 句尾)
+            #user.buf.send("卡牌已通过私聊发送" + 句尾)
             user.log << f"查询结果为{[c.brief_description() for c in cards]}。"
             x = '\n'
-            await user.buf.session.send(f"牌堆顶的3张卡为：{x.join(c.full_description(user.qq) for c in cards)}", ensure_private=True)
+            user.buf.send(f"牌堆顶的3张卡为：{x.join(c.full_description(user.qq) for c in cards)}")
 class SLaplace(ListStatus):
     id = 'P'
     is_global = True
