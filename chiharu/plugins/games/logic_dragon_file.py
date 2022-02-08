@@ -3276,9 +3276,9 @@ class ALiwujiaohuan(Attack):
 class xingyunhufu(_card):
     name = "幸运护符"
     id = 73
-    hold_des = '幸运护符：每天只能使用一张其他卡牌。你的幸运值+1。'
+    hold_des = '幸运护符：每天只能使用一张其他卡牌，你的幸运值+1。'
     positive = 1
-    description = "持有此卡时，每天只能使用一张其他卡牌。你的幸运值+1。使用将丢弃这张卡。"
+    description = "持有此卡时，每天只能使用一张其他卡牌，你的幸运值+1。使用将丢弃这张卡。"
     @classmethod
     async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str]:
         if card is not xingyunhufu:
