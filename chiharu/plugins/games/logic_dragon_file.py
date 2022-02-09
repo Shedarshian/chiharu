@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 from nonebot.command import CommandSession
 from pypinyin import pinyin, Style
 from nonebot.command.argfilter import extractors, validators
+from nonebot.command.argfilter.validators import _raise_failure
 from .. import config
 from ..config import 句尾
 from .logic_dragon_type import NotActive, TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, check_active, nothing, TQuest, ensure_true_lambda, check_handcard, TModule, UnableRequirement, check_if_unable, Tree, DragonState, MajOneHai
@@ -1589,7 +1590,6 @@ class User:
         else:
             can_choose = [hand_maj + [to_draw], richi, ankan, huchu]
         to_choose = None
-        from nonebot.command.argfilter.validators import _raise_failure
         self.send_char(f"摸到了{str(to_draw)}{句尾}{self.char}现在的牌是：\n{await MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}")
         prompt = ""
         if len(richi) == 0 and len(ankan) == 0 and not huchu:
