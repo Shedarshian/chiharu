@@ -37,7 +37,7 @@ def find_or_new(qq: int):
     t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     if t is None:
         extra_data_init = me.extra.data.pack()
-        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop, equipment, event_stage, event_shop, extra_data, dead, flags) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 0, 0, 0, ?, 0, 0, ?, false, 0)', (qq, '', '', '', '', '[]', '{}', extra_data_init))
+        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop, equipment, event_stage, event_shop, extra_data, dead, flags, hp, mp) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 0, 0, 0, ?, 0, 0, ?, false, 0, 500, 500)', (qq, '', '', '', '', '[]', '{}', extra_data_init))
         t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     return t
 
@@ -383,9 +383,9 @@ class Damage(Attack):
             self.defender.send_log(f"闪避了此次伤害{句尾}")
         else:
             self.defender.send_log(f"受到了{self.damage * self.multiplier}点伤害{句尾}")
-            if self.defender.data.extra.hp < self.damage * self.multiplier:
-                self.defender.data.extra.hp = self.defender.data.hp_max
-                self.defender.data.extra.mp = self.defender.data.mp_max
+            if self.defender.data.hp < self.damage * self.multiplier:
+                self.defender.data.hp = self.defender.data.hp_max
+                self.defender.data.mp = self.defender.data.mp_max
                 if self.defender.qq == 1:
                     self.defender.send_log(f"死了一条命{句尾}")
                     # TODO level up once
@@ -393,7 +393,7 @@ class Damage(Attack):
                     self.defender.send_log(f"死了{句尾}")
                     await self.defender.death(60)
             else:
-                self.defender.data.extra.hp -= self.damage * self.multiplier
+                self.defender.data.hp -= self.damage * self.multiplier
 
 class Game:
     session_list: List[CommandSession] = []
@@ -485,10 +485,10 @@ extra_data_format = '!BLIIIIBBI'
 class ExtraData:
     tarot_time: int # unsigned char
     assembling: int # unsigned long
-    hp: int         # unsigned int
-    mp: int         # unsigned int
-    hp_max: int     # unsigned int
-    mp_max: int     # unsigned int
+    placeholder0: int         # unsigned int
+    placeholder1: int         # unsigned int
+    placeholder2: int     # unsigned int
+    placeholder3: int     # unsigned int
     mangan: int     # unsigned char
     yakuman: int    # unsigned char
     maj_quan: int   # unsigned int
@@ -521,34 +521,34 @@ class DynamicExtraData:
     def assembling(self, value):
         self.data.assembling = max(0, value)
         self.save_func(self.data)
-    @property
-    def hp(self):
-        return self.data.hp
-    @hp.setter
-    def hp(self, value):
-        self.data.hp = value
-        self.save_func(self.data)
-    @property
-    def mp(self):
-        return self.data.mp
-    @mp.setter
-    def mp(self, value):
-        self.data.mp = value
-        self.save_func(self.data)
-    @property
-    def hp_max(self):
-        return self.data.hp_max
-    @hp_max.setter
-    def hp_max(self, value):
-        self.data.hp_max = value
-        self.save_func(self.data)
-    @property
-    def mp_max(self):
-        return self.data.mp_max
-    @mp_max.setter
-    def mp_max(self, value):
-        self.data.mp_max = value
-        self.save_func(self.data)
+    # @property
+    # def hp(self):
+    #     return self.data.hp
+    # @hp.setter
+    # def hp(self, value):
+    #     self.data.hp = value
+    #     self.save_func(self.data)
+    # @property
+    # def mp(self):
+    #     return self.data.mp
+    # @mp.setter
+    # def mp(self, value):
+    #     self.data.mp = value
+    #     self.save_func(self.data)
+    # @property
+    # def hp_max(self):
+    #     return self.data.hp_max
+    # @hp_max.setter
+    # def hp_max(self, value):
+    #     self.data.hp_max = value
+    #     self.save_func(self.data)
+    # @property
+    # def mp_max(self):
+    #     return self.data.mp_max
+    # @mp_max.setter
+    # def mp_max(self, value):
+    #     self.data.mp_max = value
+    #     self.save_func(self.data)
     @property
     def mangan(self):
         return self.data.mangan
@@ -772,6 +772,27 @@ class UserData:
         config.userdata.execute("update dragon_data set event_shop=? where qq=?", (value, self.qq))
         self.node['event_shop'] = value
     @property
+    def dragon_exp(self):
+        return self.node['event_stage']
+    @dragon_exp.setter
+    def dragon_exp(self, value):
+        config.userdata.execute("update dragon_data set event_stage=? where qq=?", (value, self.qq))
+        self.node['event_stage'] = value
+    @property
+    def hp(self):
+        return self.node['hp']
+    @hp.setter
+    def hp(self, value):
+        config.userdata.execute("update dragon_data set hp=? where qq=?", (value, self.qq))
+        self.node['hp'] = value
+    @property
+    def mp(self):
+        return self.node['mp']
+    @mp.setter
+    def mp(self, value):
+        config.userdata.execute("update dragon_data set mp=? where qq=?", (value, self.qq))
+        self.node['mp'] = value
+    @property
     def last_dragon_time(self):
         return self.node['last_dragon_time']
     @last_dragon_time.setter
@@ -869,6 +890,19 @@ class UserData:
     @property
     def luck(self):
         return 5 * self.check_equipment(5) + self.hand_card.count(xingyunhufu)
+    @property
+    def dragon_level(self):
+        """begin from 0."""
+        if self.dragon_exp >= 55:
+            return (self.dragon_exp - 55) // 10 + 10
+        else:
+            return int((self.dragon_exp * 2 + 0.25) ** 0.5 - 0.5)
+    @property
+    def hp_max(self):
+        return 500 + 25 * self.dragon_level
+    @property
+    def mp_max(self):
+        return 500 + 25 * self.dragon_level
     def set_cards(self):
         config.userdata.execute("update dragon_data set card=? where qq=?", (','.join(str(c.id) for c in self.hand_card), self.qq))
         config.logger.dragon << f"【LOG】设置用户{self.qq}手牌为{cards_to_str(self.hand_card)}。"
@@ -1734,6 +1768,14 @@ class User:
             self.data.not_first_round = True
         if choose == 2:
             await self.draw_maj()
+    async def dragon_event(self, slot: int):
+        """slot: 0 for normal, 1~4 for slot A to D."""
+        # 平a/技能内容
+        # 对龙造成伤害
+        # TODO 龙的累计经验，与补刀
+        # TODO 龙的等级
+        # 龙抽卡，行动
+        pass
 
 Userme: Callable[[User], User] = lambda user: User(config.selfqq, user.buf)
 
@@ -6637,7 +6679,6 @@ class kuaizou_s(_statusnull):
     des = "快走：在活动中，你下次行走距离加倍。"
 
 me = UserData(config.selfqq)
-dragondata = UserData(0)
 
 dragon: Callable[[User], User] = lambda user: User(1, user.buf)
 
@@ -6761,7 +6802,7 @@ class AShihun(Attack):
         super().__init__(attacker, defender)
     async def self_action(self):
         self.defender.send_char(f"失去了{self.amount * self.multiplier}MP{句尾}")
-        self.defender.data.extra.mp -= self.amount * self.multiplier
+        self.defender.data.mp -= self.amount * self.multiplier
 class longwo(DragonSkill):
     id = 9
     name = "龙窝"
@@ -6831,7 +6872,7 @@ class canbaolizhua(DragonSkill):
     des = "对玩家造成玩家血量的伤害。"
     @classmethod
     async def use(cls, user: User, branch: Tree):
-        atk = Damage(dr := dragon(user), user, user.data.extra.hp)
+        atk = Damage(dr := dragon(user), user, user.data.hp)
         await user.attacked(dr, atk)
 class kongzhongcanting(DragonSkill):
     id = 13
@@ -6852,10 +6893,10 @@ class kongzhongcanting_s(_statusnull):
                 await user.remove_all_limited_status('d')
                 await user.add_jibi(-25)
                 await Userme(user).remove_status('"', remove_all=False)
-            elif user.data.extra.hp != user.data.extra.hp_max:
-                lose = ceil(user.data.extra.hp_max - user.data.extra.hp / 20)
+            elif user.data.hp != user.data.hp_max:
+                lose = ceil(user.data.hp_max - user.data.hp / 20)
                 user.send_log(f"你被“空中餐厅「逻辑」”回满了血量，失去了{lose}击毙{句尾}")
-                user.data.extra.hp = user.data.extra.hp_max
+                user.data.hp = user.data.hp_max
                 await user.add_jibi(-lose)
                 await Userme(user).remove_status('"', remove_all=False)
     @classmethod
@@ -6895,7 +6936,7 @@ class xujiadexiwang(DragonSkill):
     des = "回复玩家的所有血量，并对范围7x7的其他玩家造成同等数量的伤害。"
     @classmethod
     async def use(cls, user: User, branch: Tree):
-        dmg = user.data.extra.hp_max - user.data.extra.hp
+        dmg = user.data.hp_max - user.data.hp
         user.send_log(f"回复了{dmg}的血量{句尾}")
         qqs = {user.qq}
         id = branch.id
