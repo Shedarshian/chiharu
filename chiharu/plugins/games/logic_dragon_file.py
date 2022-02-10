@@ -2761,9 +2761,17 @@ class wenhuazixin(_card):
     description = "清除所有全局状态。"
     @classmethod
     async def use(cls, user: User) -> None:
-        me.status = ""
-        me.daily_status = ""
-        me.status_time.clear()
+        ume = Userme(user)
+        a = me.status
+        for c in a:
+            await ume.remove_status(c)
+        b = me.daily_status
+        for c in b:
+            await ume.remove_daily_status(c)
+        d = copy(me.status_time_checked)
+        for c in d:
+            await ume.remove_limited_status(c)
+        me.save_status_time()
         me._reregister_things()
 
 class wuzhongshengyou(_card):
