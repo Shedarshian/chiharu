@@ -136,10 +136,25 @@ async def help_f(session: CommandSession):
 @config.ErrorHandle
 async def reload_plugin(session: CommandSession):
     name = 'chiharu.plugins.' + session.current_arg_text
-    if plugin.reload_plugin(name):
-        await session.send('Successfully reloaded ' + session.current_arg_text)
-    else:
-        await session.send('Failed to reload plugin')
+    import logging
+    messages = []
+    logger = logging.getLogger('nonebot')
+    class ListenFilter(logging.Filter):
+        def filter(self, record):
+            messages.append(record.getMessage())
+            return True
+    f = ListenFilter()
+    from contextlib import contextmanager
+    @contextmanager
+    def install_remove_filter(logger_to_filter, filter_to_add_remove):
+        logger_to_filter.addFilter(filter_to_add_remove)
+        yield
+        logger_to_filter.removeFilter(filter_to_add_remove)
+    with install_remove_filter(logger, f):
+        if plugin.reload_plugin(name):
+            await session.send('Successfully reloaded ' + session.current_arg_text)
+        else:
+            await session.send('Failed to reload plugin')
 
 from nonebot.command import Command
 from .config import find_help
