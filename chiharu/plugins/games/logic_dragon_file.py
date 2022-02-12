@@ -3406,7 +3406,7 @@ class xingyunhufu(_card):
         return {UserEvt.OnUserUseCard: (Priority.OnUserUseCard.xingyunhufu, cls)}
 class xingyunhufu_s(_statusdaily):
     id = 'U'
-    des = "今天你不能使用除幸运护符以外的卡牌。"
+    des = "幸运护符次数已用完：今天你不能使用除幸运护符以外的卡牌。"
     is_debuff = True
     @classmethod
     async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str]:
