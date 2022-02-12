@@ -132,7 +132,7 @@ async def help_f(session: CommandSession):
     #     await session.send(strout)
     await session.send(strout)
 
-@on_command('reload', only_to_me=False, permission=permission.SUPERUSER, hide=True)
+@on_command('reload', only_to_me=False, permission=lambda sender: sender.send_by(config.reload_whitelist), hide=True)
 @config.ErrorHandle
 async def reload_plugin(session: CommandSession):
     name = 'chiharu.plugins.' + session.current_arg_text
