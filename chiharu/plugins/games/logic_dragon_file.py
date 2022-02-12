@@ -1360,7 +1360,7 @@ class User:
     async def settlement(self):
         """结算卡牌相关。请不要递归调用此函数。"""
         self.log << "开始结算。"
-        if not await self.choose():
+        if not await self.choose(flush=False):
             yield
             return
         try:
