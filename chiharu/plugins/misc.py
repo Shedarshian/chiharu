@@ -79,7 +79,7 @@ async def PythonAwait(session: CommandSession):
 async def PythonPull(session: CommandSession):
     batcmd = "git pull"
     result = subprocess.check_output(batcmd, shell=True)
-    print(result.decode('utf-8'))
+    await session.send(result.decode('utf-8'))
 
 config.CommandGroup(('misc', 'maj'), short_des='麻将小助手。')
 
