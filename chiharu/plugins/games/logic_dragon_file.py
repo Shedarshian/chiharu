@@ -6158,7 +6158,7 @@ class lab(_card):
             await user.draw(0, cards=[nuclear_bomb])
         if not (t1 or t2 or t3):
             user.send_log(f"抽了一张factorio系列的牌{句尾}")
-            await user.draw(1, extra_lambda=lambda c: c.id >= 200 and c.id < 210)
+            await user.draw(1, extra_lambda=lambda c: c.pack == Pack.factorio)
 
 class stack_inserter(_card):
     id = -4
