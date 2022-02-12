@@ -151,10 +151,11 @@ async def reload_plugin(session: CommandSession):
         yield
         logger_to_filter.removeFilter(filter_to_add_remove)
     with install_remove_filter(logger, f):
-        if plugin.reload_plugin(name):
-            await session.send('Successfully reloaded ' + session.current_arg_text)
-        else:
-            await session.send('Failed to reload plugin')
+        ret = plugin.reload_plugin(name)
+    if ret:
+        await session.send('Successfully reloaded ' + session.current_arg_text + '\n' + '\n'.join(messages))
+    else:
+        await session.send('Failed to reload plugin\n' + '\n'.join(messages))
 
 from nonebot.command import Command
 from .config import find_help
