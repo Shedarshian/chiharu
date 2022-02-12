@@ -3399,7 +3399,7 @@ class xingyunhufu(_card):
     async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str]:
         if card is not xingyunhufu:
             user.send_log("今天幸运护符的使用卡牌次数已用完" + 句尾)
-            await user.add_daily_status('T')
+            await user.add_daily_status('U')
         return True, ""
     @classmethod
     def register(cls):
@@ -3410,7 +3410,7 @@ class xingyunhufu_s(_statusdaily):
     is_debuff = True
     @classmethod
     async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str]:
-        if card is not xingyunhufu:
+        if xingyunhufu in user.data.hand_card and card is not xingyunhufu:
             return False, f"你今天幸运护符的使用卡牌次数已用完，不可使用{句尾}"
         return True, ""
     @classmethod
