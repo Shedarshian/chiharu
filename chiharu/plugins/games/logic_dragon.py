@@ -1228,7 +1228,7 @@ async def dragon_op(session: CommandSession):
 @Game.wrapper
 async def dragon_test(buf: SessionBuffer):
     qq = buf.ctx['user_id']
-    user = User(519357823, buf)
+    user = User(1569603950, buf)
     async with user.settlement():
         user.data.extra.maj_quan += 1
 
