@@ -17,7 +17,7 @@ from nonebot.command.argfilter import extractors, validators
 from nonebot.command.argfilter.validators import _raise_failure
 from .. import config
 from ..config import 句尾
-from .logic_dragon_type import NotActive, TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, check_active, nothing, TQuest, ensure_true_lambda, check_handcard, TModule, UnableRequirement, check_if_unable, Tree, DragonState, MajOneHai
+from .logic_dragon_type import NotActive, TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, check_active, indexer, nothing, TQuest, ensure_true_lambda, check_handcard, TModule, UnableRequirement, check_if_unable, Tree, DragonState, MajOneHai
 from .maj import MajIdError
 
 # TODO change TCount to a real obj, in order to unify 'count' and 'count2' in OnStatusAdd, also _status.on_add
@@ -144,23 +144,21 @@ class IEventListener:
         bool: represents whether the death is dodged."""
         pass
     @classmethod
-    async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
+    async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
         """Called when a user attack other.
 
         Arguments:
         attack: the Attack object.
-        c: The counter object represents the attack result, mutable.
 
         Returns:
         bool: represents whether the attack is dodged."""
         pass
     @classmethod
-    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
+    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
         """Called when a user is attacked.
 
         Arguments:
         attack: the Attack object.
-        c: The counter object represents the attack result, mutable.
 
         Returns:
         bool: represents whether the attack is dodged."""
@@ -391,7 +389,7 @@ class Damage(Attack):
                     # TODO level up once
                 else:
                     self.defender.send_log(f"死了{句尾}")
-                    await self.defender.death(60)
+                    await self.defender.death(60, c=TCounter(hpzero=True))
             else:
                 self.defender.data.hp -= self.damage * self.multiplier
 
@@ -772,12 +770,27 @@ class UserData:
         config.userdata.execute("update dragon_data set event_shop=? where qq=?", (value, self.qq))
         self.node['event_shop'] = value
     @property
-    def dragon_exp(self):
+    def dragon_event_exp(self):
         return self.node['event_stage']
-    @dragon_exp.setter
-    def dragon_exp(self, value):
+    @dragon_event_exp.setter
+    def dragon_event_exp(self, value):
         config.userdata.execute("update dragon_data set event_stage=? where qq=?", (value, self.qq))
         self.node['event_stage'] = value
+    @property
+    def event_skill(self):
+        return self.node['event_skill']
+    @event_skill.setter
+    def event_skill(self, value):
+        config.userdata.execute("update dragon_data set event_skill=? where qq=?", (value, self.qq))
+        self.node['event_skill'] = value
+    @indexer
+    def dragon_event_skill(self, index):
+        return (self.event_skill // 10 ** index) % 10
+    @dragon_event_skill.setter
+    def dragon_event_skill(self, index, item):
+        if not 0 <= item <= 4:
+            raise ValueError
+        self.event_skill += (item - (self.event_skill // 10 ** index) % 10) * 10 ** index
     @property
     def hp(self):
         return self.node['hp']
@@ -893,10 +906,10 @@ class UserData:
     @property
     def dragon_level(self):
         """begin from 0."""
-        if self.dragon_exp >= 55:
-            return (self.dragon_exp - 55) // 10 + 10
+        if self.dragon_event_exp >= 55:
+            return (self.dragon_event_exp - 55) // 10 + 10
         else:
-            return int((self.dragon_exp * 2 + 0.25) ** 0.5 - 0.5)
+            return int((self.dragon_event_exp * 2 + 0.25) ** 0.5 - 0.5)
     @property
     def hp_max(self):
         return 500 + 25 * self.dragon_level
@@ -1190,15 +1203,14 @@ class User:
         """受到攻击。"""
         config.logger.dragon << f"【LOG】玩家受到攻击{attack}。"
         dodge = False
-        c = TCounter()
         # Event OnAttack
         for eln, n in attacker.IterAllEventList(UserEvt.OnAttack, Priority.OnAttack):
-            dodge, = await eln.OnAttack(n, attacker, attack, c)
+            dodge, = await eln.OnAttack(n, attacker, attack)
             if dodge:
                 return
         # Event OnAttacked
         for eln, n in self.IterAllEventList(UserEvt.OnAttacked, Priority.OnAttacked):
-            dodge, = await eln.OnAttacked(n, self, attack, c)
+            dodge, = await eln.OnAttacked(n, self, attack)
             if dodge:
                 return
         await attack.action()
@@ -1770,6 +1782,12 @@ class User:
             await self.draw_maj()
     async def dragon_event(self, slot: int):
         """slot: 0 for normal, 1~4 for slot A to D."""
+        if slot == 0:
+            skill = 0
+        else:
+            skill = self.data.dragon_event_skill[slot - 1]
+            if skill != 0:
+                skill += [0, 4, 0, 8][slot - 1]
         # 平a/技能内容
         # 对龙造成伤害
         # TODO 龙的累计经验，与补刀
@@ -3739,9 +3757,9 @@ class McGuffium239_s(_statusnull):
     id = 'G'
     des = "Mc Guffium 239：下一次礼物交换不对你生效。"
     @classmethod
-    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
+    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
         if isinstance(attack, ALiwujiaohuan):
-            if await c.pierce():
+            if await attack.counter.pierce():
                 user.send_log(f"Mc Guffium 239的效果被幻想杀手消除了{句尾}")
                 await user.remove_status('G', remove_all=True)
             else:
@@ -4245,18 +4263,18 @@ class imaginebreaker_s(_statusnull):
     id = '0'
     des = "幻想杀手：你的下一次攻击无视对方的所有反制效果，下一次目标为你的攻击无效。以上两项只能发动一项。"
     @classmethod
-    async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
+    async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
         async def pierce_f():
             user.send_char(f"触发了幻想杀手的效果，无视了对方的反制{句尾}")
             user.log << f"{user.char}触发了幻想杀手（攻击）的效果。"
             await user.remove_status('0', remove_all=False)
             return True
-        c.pierce = async_data_saved(pierce_f)
+        attack.counter.pierce = async_data_saved(pierce_f)
         return False,
     @classmethod
-    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
-        if await c.pierce():
-            c.pierce = nothing
+    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
+        if await attack.counter.pierce():
+            attack.counter.pierce = nothing
             user.buf.send("但", end='')
             user.send_log(f"触发了幻想杀手的效果，防住了对方的攻击{句尾}")
             return False,
@@ -4278,15 +4296,15 @@ class vector_s(_statusnull):
     id = 'v'
     des = "矢量操作：你的下一次攻击效果加倍，下一次对你的攻击反弹至攻击者，免除你下一次触雷。以上三项只能发动一项。"
     @classmethod
-    async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
+    async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
         if attack.doublable:
             user.send_log(f"触发了矢量操作的效果，攻击加倍{句尾}")
             await user.remove_status('v', remove_all=False)
             return attack.double(),
         return False,
     @classmethod
-    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
-        if await c.pierce():
+    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
+        if await attack.counter.pierce():
             await user.remove_status('v', remove_all=True)
             user.send_log(f"矢量操作的效果被幻想杀手消除了{句尾}")
             return False,
@@ -6754,7 +6772,7 @@ class konghe_s(_statusnull):
     id = 'H'
     des = "恐吓：下次造成伤害减半。"
     @classmethod
-    async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
+    async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
         if isinstance(attack, Damage):
             user.send_char(f"因被恐吓，造成伤害减半{句尾}")
             await user.remove_status('H', remove_all=True)
@@ -6774,9 +6792,9 @@ class hudun_s(_statusnull):
     id = 'd'
     des = "护盾：受到伤害时闪避率+20%。"
     @classmethod
-    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
+    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
         if isinstance(attack, Damage):
-            if await c.pierce():
+            if await attack.counter.pierce():
                 user.buf.send(f"护盾的效果被幻想杀手消除了{句尾}")
                 await user.remove_status('d', remove_all=True)
             else:
@@ -6817,7 +6835,7 @@ class SLongwo(NumedStatus):
     def __str__(self) -> str:
         return f"{self.des}\n\t剩余血量：{self.num}。"
     @classmethod
-    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
+    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
         if isinstance(attack, Damage) and not attack.dodge(): # 不能被幻杀消除？？
             to_def = attack.damage // 2
             attack.damage -= to_def
@@ -6834,7 +6852,7 @@ class SLongwo(NumedStatus):
             attack.damage += to_def
         return False,
     @classmethod
-    async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack', c: TCounter) -> Tuple[bool]:
+    async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
         if isinstance(attack, Damage):
             user.buf.send(f"幼龙为龙增加了50%的攻击{句尾}")
             attack.damage = attack.damage * 3 // 2
