@@ -4455,7 +4455,7 @@ class inv_sunflower_s(_statusnull):
         n = 0
         for i in range(count):
             if random.random() > 0.5:
-                await user.remove_status('[')
+                await user.remove_status('[', remove_all=False)
                 n += 1
         user.buf.send(f"玩家{user.qq}的{n}朵背日葵转了过来{句尾}")
         for i in range(n):
@@ -4599,7 +4599,7 @@ class inv_twinsunflower_s(_statusnull):
         n = 0
         for i in range(count):
             if random.random() > 0.5:
-                await user.remove_status(']')
+                await user.remove_status(']', remove_all=False)
                 n += 1
         user.buf.send(f"玩家{user.qq}的{n}朵双子背日葵转了过来{句尾}")
         for i in range(n):
