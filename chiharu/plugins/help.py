@@ -132,9 +132,11 @@ async def help_f(session: CommandSession):
     #     await session.send(strout)
     await session.send(strout)
 
-@on_command('reload', only_to_me=False, permission=lambda sender: sender.sent_by(config.reload_whitelist), hide=True)
+@on_command('reload', only_to_me=False, hide=True)
 @config.ErrorHandle
 async def reload_plugin(session: CommandSession):
+    if session.ctx['user_id'] not in config.reload_whitelist:
+        return
     name = 'chiharu.plugins.' + session.current_arg_text
     import logging
     messages = []
