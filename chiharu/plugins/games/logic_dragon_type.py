@@ -303,6 +303,32 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
 
 TBoundIntEnum = TypeVar('TBoundIntEnum', bound=IntEnum)
 
+class Pack(Enum):
+    tarot = auto()
+    minecraft = auto()
+    zhu = auto()
+    sanguosha = auto()
+    honglongdong = auto()
+    uno = auto()
+    once_upon_a_time = auto()
+    explodes = auto()
+    stone_story = auto()
+    orange_juice = auto()
+    playtest = auto()
+    poker = auto()
+    gregtech = auto()
+    cultist = auto()
+    ff14 = auto()
+    toaru = auto()
+    pvz = auto()
+    secret_history = auto()
+    misc = auto()
+    factorio = auto()
+    silly = auto()
+    physic = auto()
+    stare = auto()
+    rusty_lake = auto()
+
 class UnableRequirement(Exception):
     pass
 class NotActive(Exception):

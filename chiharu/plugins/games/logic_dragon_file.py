@@ -17,7 +17,7 @@ from nonebot.command.argfilter import extractors, validators
 from nonebot.command.argfilter.validators import _raise_failure
 from .. import config
 from ..config import 句尾
-from .logic_dragon_type import NotActive, TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, check_active, indexer, nothing, TQuest, ensure_true_lambda, check_handcard, TModule, UnableRequirement, check_if_unable, Tree, DragonState, MajOneHai
+from .logic_dragon_type import NotActive, Pack, TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, check_active, indexer, nothing, TQuest, ensure_true_lambda, check_handcard, TModule, UnableRequirement, check_if_unable, Tree, DragonState, MajOneHai
 from .maj import MajIdError
 
 # TODO change TCount to a real obj, in order to unify 'count' and 'count2' in OnStatusAdd, also _status.on_add
@@ -2125,6 +2125,7 @@ class _card(IEventListener, metaclass=card_meta):
     des_need_init = False
     is_metallic = False
     mass = 0.1
+    pack = Pack.misc
     @classmethod
     async def use(cls, user: User) -> None:
         pass
@@ -2177,6 +2178,7 @@ class jiandiezhixing(_card):
     weight = 0
     description = "此牌不可被使用，通常情况下无法被抽到。当你弃置此牌时立即死亡。"
     failure_message = "此牌不可被使用" + 句尾
+    pack = Pack.orange_juice
     @classmethod
     async def on_discard(cls, user: User):
         await user.death()
@@ -2192,6 +2194,7 @@ class vampire(_card):
     weight = 0
     description = "此牌通常情况下无法被抽到。2小时内免疫死亡。"
     mass = 0.5
+    pack = Pack.toaru
     @classmethod
     async def use(cls, user: User) -> None:
         await user.add_limited_status(SInvincible(datetime.now() + timedelta(hours=2)))
@@ -2218,6 +2221,7 @@ class fool(_card):
     description = "抽到时附加效果：你下次使用卡牌无效。"
     consumed_on_draw = True
     on_draw_status = 'O'
+    pack = Pack.tarot
 class fool_s(_statusnull):
     id = 'O'
     des = "0 - 愚者：你下次使用卡牌无效。"
@@ -2237,6 +2241,7 @@ class magician(_card):
     id = 1
     positive = 1
     description = "选择一张你的手牌（不可选择暴食的蜈蚣与组装机1型），发动3次该手牌的使用效果，并弃置之。此后一周内不得使用该卡。"
+    pack = Pack.tarot
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return len(user.data.hand_card) >= (1 if copy else 2)
@@ -2293,6 +2298,7 @@ class high_priestess(_card):
     id = 2
     positive = 0
     description = "击毙当前周期内接龙次数最多的玩家。"
+    pack = Pack.tarot
     @classmethod
     async def use(cls, user: User):
         from .logic_dragon import Tree
@@ -2311,6 +2317,7 @@ class empress(_card):
     id = 3
     description = "你当前手牌中所有任务之石的可完成次数+3。如果当前手牌无任务之石，则为你派发一个可完成3次的任务，每次完成获得3击毙，跨日时消失。"
     positive = 1
+    pack = Pack.tarot
     @classmethod
     async def use(cls, user: User) -> None:
         if Card(67) in user.data.hand_card:
@@ -2326,6 +2333,7 @@ class emperor(_card):
     id = 4
     positive = 1
     description = "为你派发一个随机任务，可完成10次，每次完成获得2击毙，跨日时消失。"
+    pack = Pack.tarot
     @classmethod
     async def use(cls, user: User) -> None:
         await user.add_limited_status(SQuest(10, 2, n := get_mission()))
@@ -2381,6 +2389,7 @@ class hierophant(_card):
     limited_status = 'f'
     limited_init = (10,)
     newer = 3
+    pack = Pack.tarot
 class hierophant_s(NumedStatus):
     id = 'f'
     des = "V - 教皇：你的下10次接龙中每次额外获得2击毙，但额外要求首尾接龙。"
@@ -2424,6 +2433,7 @@ class lovers(_card):
     id = 6
     positive = 1
     description = "复活1名指定玩家。"
+    pack = Pack.tarot
     @classmethod
     async def use(cls, user: User):
         if await user.choose():
@@ -2443,6 +2453,7 @@ class chariot(_card):
     positive = 1
     newer = 5
     description = "对你今天第一次和最后一次接龙中间接龙的人（除了你自己）每人做一次10%致死的击毙判定。"
+    pack = Pack.tarot
     @classmethod
     async def use(cls, user: User) -> None:
         to_kill = set()
@@ -2470,6 +2481,7 @@ class strength(_card):
     positive = 0
     description = "加倍你身上所有的非持有性状态，消耗2^n-1击毙，n为状态个数。击毙不足则无法使用。"
     failure_message = "你的击毙不足" + 句尾
+    pack = Pack.tarot
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         if len(user.check_limited_status('W', lambda o: 8 not in o.list)) > 0:
@@ -2506,6 +2518,7 @@ class hermit(_card):
     positive = 1
     daily_status = 'Y'
     description = "今天你不会因为接到重复词或触雷而死亡。"
+    pack = Pack.tarot
 class hermit_s(_statusdaily):
     id = 'Y'
     des = "IX - 隐者：今天你不会因为接到重复词或触雷而死亡。"
@@ -2528,6 +2541,7 @@ class wheel_of_fortune(_card):
     positive = 0
     global_daily_status = 'O'
     description = "直至下次刷新前，在商店增加抽奖机，可以花费5击毙抽奖。"
+    pack = Pack.tarot
 class wheel_of_fortune_s(_statusdaily):
     id = 'O'
     des = "X - 命运之轮：直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
@@ -2538,6 +2552,7 @@ class justice(_card):
     id = 11
     positive = 1
     description = "现在你身上每有一个状态，奖励你5击毙。"
+    pack = Pack.tarot
     @classmethod
     async def use(cls, user: User):
         n = len(user.data.status) + len(user.data.daily_status) + len(user.data.status_time_checked)
@@ -2549,6 +2564,7 @@ class hanged_man(_card):
     id = 12
     positive = 1
     description = "你立即死亡，然后免疫你下一次死亡。"
+    pack = Pack.tarot
     @classmethod
     async def use(cls, user: User):
         await user.death()
@@ -2576,6 +2592,7 @@ class death(_card):
     positive = 0
     description = "今天的所有死亡时间加倍。"
     global_daily_status = 'D'
+    pack = Pack.tarot
 class death_s(_statusdaily):
     id = 'D'
     des = "XIII - 死神：今天的所有死亡时间加倍。"
@@ -2593,6 +2610,7 @@ class temperance(_card):
     id = 14
     positive = 0
     description = "随机抽取1名玩家，今天该玩家不能使用卡牌。"
+    pack = Pack.tarot
     @classmethod
     async def use(cls, user: User) -> None:
         l = config.userdata.execute("select qq from dragon_data where dead=false").fetchall()
@@ -2622,6 +2640,7 @@ class devil(_card):
     id = 15
     positive = 1
     description = "击毙上一位使用卡牌的人。"
+    pack = Pack.tarot
     @classmethod
     async def use(cls, user: User):
         q = global_state['last_card_user']
@@ -2634,6 +2653,7 @@ class tower(_card):
     id = 16
     positive = 0
     description = "随机解除至多3个雷，随机击毙3个玩家。"
+    pack = Pack.tarot
     @classmethod
     async def use(cls, user: User) -> None:
         from .logic_dragon import bombs, remove_bomb
@@ -2658,6 +2678,7 @@ class star(_card):
     positive = 0
     description = "今天的每个词有10%的几率进入奖励词池。"
     global_daily_status = 't'
+    pack = Pack.tarot
 class star_s(_statusdaily):
     id = 't'
     des = "XVII - 星星：今天的每个词有10%的几率进入奖励词池。"
@@ -2678,6 +2699,7 @@ class moon(_card):
     newer = 3
     description = "下次有人接到隐藏奖励词前，隐藏奖励词数量加1。"
     global_status = 'k'
+    pack = Pack.tarot
 class moon_s(_statusnull):
     id = 'k'
     des = "XVIII - 月亮：下次有人接到隐藏奖励词前，隐藏奖励词数量加1。"
@@ -2732,6 +2754,7 @@ class sun(_card):
     id = 19
     positive = 1
     description = "随机揭示一个隐藏奖励词。"
+    pack = Pack.tarot
     @classmethod
     async def use(cls, user: User):
         from .logic_dragon import hidden_keyword
@@ -2743,6 +2766,7 @@ class judgement(_card):
     positive = 0
     newer = 3
     description = "若你今天接龙次数小于5，则扣除20击毙，若你今天接龙次数大于20，则获得20击毙。"
+    pack = Pack.tarot
     @classmethod
     async def use(cls, user: User):
         n = [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))].count(user.qq)
@@ -2762,6 +2786,7 @@ class world(_card):
     positive = 0
     global_daily_status = 's'
     description = "除大病一场外，所有“直到跨日为止”的效果延长至明天。"
+    pack = Pack.tarot
 class world_s(_statusdaily):
     id = 's'
     des = "XXI - 世界：除大病一场外，所有“直到跨日为止”的效果延长至明天。"
@@ -2773,6 +2798,7 @@ class randommaj(_card):
     mass = 0.25
     description = "增加5次麻将摸牌的机会，然后抽一张卡。发送”使用 麻将摸牌券“摸牌，然后选择切牌/立直/暗杠/和出。"
     newer = 6
+    pack = Pack.misc
     @classmethod
     async def use(cls, user: User) -> None:
         user.data.extra.maj_quan += 15
@@ -2788,6 +2814,7 @@ class dabingyichang(_card):
     on_draw_send_char = "病了" + 句尾 + "直到跨日前不得接龙。"
     is_debuff = True
     consumed_on_draw = True
+    pack = Pack.zhu
 class shengbing(_statusdaily):
     id = 'd'
     des = "生病：直到跨日前不可接龙。"
@@ -2805,6 +2832,7 @@ class caipiaozhongjiang(_card):
     positive = 1
     description = "抽到时，你立即获得20击毙与两张牌。"
     consumed_on_draw = True
+    pack = Pack.zhu
     @classmethod
     def weight(cls, user: User):
         return 1 + user.data.luck / 2
@@ -2819,6 +2847,7 @@ class wenhuazixin(_card):
     id = 32
     positive = 0
     description = "清除所有全局状态。"
+    pack = Pack.zhu
     @classmethod
     async def use(cls, user: User) -> None:
         ume = Userme(user)
@@ -2839,6 +2868,7 @@ class wuzhongshengyou(_card):
     id = 36
     positive = 1
     description = "摸两张牌。"
+    pack = Pack.sanguosha
     @classmethod
     async def use(cls, user: User):
         await user.draw(2)
@@ -2849,6 +2879,7 @@ class tiesuolianhuan(_card):
     positive = 1
     description = "指定至多两名玩家进入或解除其连环状态。任何处于连环状态的玩家被击毙时所有连环状态的玩家也被击毙并失去此效果。"
     is_metallic = True
+    pack = Pack.sanguosha
     @classmethod
     async def use(cls, user: User):
         if await user.choose():
@@ -2907,6 +2938,7 @@ class minus1ma(_card):
     positive = 1
     description = "今天你可以少隔一个接龙，但最少隔一个。"
     mass = 0.75
+    pack = Pack.sanguosha
 class minus1ma_s(_statusdaily):
     id = 'm'
     des = "-1马：今天你可以少隔一个接龙，但最少隔一个。"
@@ -2933,6 +2965,7 @@ class sihuihuibizhiyao(_card):
     positive = 1
     status = 's'
     description = "你下次死亡时自动消耗5击毙免除死亡。若击毙不足则不发动。"
+    pack = Pack.honglongdong
 class sihuihuibizhiyao_s(_statusnull):
     id = 's'
     des = '死秽回避之药：下次死亡时自动消耗5击毙免除死亡。若击毙不足则不发动。'
@@ -2975,6 +3008,7 @@ class huiye(_card):
     description = "你下一次死亡的时候奖励你抽一张卡。"
     mass = 0.2
     is_metallic = True
+    pack = Pack.honglongdong
 class huiye_s(_statusnull):
     id = 'x'
     des = '辉夜姬的秘密宝箱：下一次死亡的时候奖励抽一张卡。'
@@ -3021,6 +3055,7 @@ class blank(_card):
     id = 53
     positive = -1
     description = "使用时弃置随机5张手牌。此牌不可因手牌超出上限而被弃置。"
+    pack = Pack.honglongdong
     @classmethod
     async def use(cls, user: User):
         if len(user.data.hand_card) <= 5:
@@ -3042,6 +3077,7 @@ class dragontube(_card):
     positive = 1
     description = "你今天通过普通接龙获得的击毙上限增加10。"
     mass = 0.2
+    pack = Pack.honglongdong
     @classmethod
     async def use(cls, user: User):
         user.data.today_jibi += 10
@@ -3053,6 +3089,7 @@ class xingyuntujiao(_card):
     id = 55
     positive = 1
     description = "抽取一张正面卡并立即发动其使用效果。"
+    pack = Pack.honglongdong
     @classmethod
     async def use(cls, user: User):
         await user.draw_and_use(positive={1})
@@ -3062,6 +3099,7 @@ class baoshidewugong(_card):
     id = 56
     positive = 1
     description = "你的手牌上限永久+1。"
+    pack = Pack.honglongdong
     @classmethod
     def weight(cls, user: User):
         if user.data.card_limit < 20:
@@ -3077,6 +3115,7 @@ class zhaocaimao(_card):
     id = 57
     positive = 1
     description = "你今天可以额外购买3次商店里的购买卡牌。"
+    pack = Pack.honglongdong
     @classmethod
     async def use(cls, user: User) -> None:
         user.data.shop_drawn_card += 3
@@ -3088,6 +3127,7 @@ class plus2(_card):
     global_status = '+'
     positive = 0
     description = "下一个接龙的人摸一张非负面卡和一张非正面卡。"
+    pack = Pack.uno
 class plus2_s(_statusnull):
     id = '+'
     des = "+2：下一个接龙的人摸一张非负面卡和一张非正面卡。"
@@ -3110,6 +3150,7 @@ class dream(_card):
     positive = 0
     description = "50%概率回溯到随机一个节点，50%概率随机一个节点立即分叉。"
     mass = 0
+    pack = Pack.once_upon_a_time
     @classmethod
     async def use(cls, user: User) -> None:
         node = random.choice(list(itertools.chain(*Tree._objs)))
@@ -3133,6 +3174,7 @@ class hezuowujian(_card):
     id = 63
     positive = 1
     description = "拆除所有雷，每个雷有70%的概率被拆除。"
+    pack = Pack.explodes
     @classmethod
     async def use(cls, user: User):
         from .logic_dragon import remove_all_bomb
@@ -3144,6 +3186,7 @@ class ourostone(_card):
     positive = 0
     description = "修改当前规则至首尾接龙直至跨日。"
     mass = 0.2
+    pack = Pack.stone_story
     @classmethod
     async def use(cls, user: User) -> None:
         u = Userme(user)
@@ -3184,6 +3227,7 @@ class queststone(_card):
     description = "持有此石时，你每天会刷新一个接龙任务。每次完成接龙任务可以获得3击毙，每天最多3次。使用将丢弃此石。"
     des_need_init = True
     mass = 0.2
+    pack = Pack.stone_story
     @classmethod
     def quest_des(cls, qq: int):
         r = Game.userdata(qq).quest_c
@@ -3232,6 +3276,7 @@ class cunqianguan(_card):
     positive = 1
     description = "下次触发隐藏词的奖励+10击毙。"
     mass = 0.25
+    pack = Pack.orange_juice
 class cunqianguan_s(_statusnull):
     id = 'm'
     des = "存钱罐：下次触发隐藏词的奖励+10击毙。"
@@ -3264,6 +3309,7 @@ class hongsezhihuan(_card):
     positive = 0
     status = 'h'
     description = "下次你死亡时，有1/2几率闪避，1/2几率死亡时间+1小时。"
+    pack = Pack.orange_juice
 class hongsezhihuan_s(_statusnull):
     id = 'h'
     des = '虹色之环：下次死亡时，有1/2几率闪避，1/2几率死亡时间+1小时。'
@@ -3293,6 +3339,7 @@ class liwujiaohuan(_card):
     id = 72
     positive = 1
     description = "最近接过龙的玩家每人抽出一张手牌集合在一起随机分配。"
+    pack = Pack.orange_juice
     @classmethod
     async def use(cls, user: User):
         user.data.set_cards()
@@ -3347,6 +3394,7 @@ class xingyunhufu(_card):
     hold_des = '幸运护符：每天只能使用一张其他卡牌，你的幸运值+1。'
     positive = 1
     description = "持有此卡时，每天只能使用一张其他卡牌，你的幸运值+1。使用将丢弃这张卡。"
+    pack = Pack.orange_juice
     @classmethod
     async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str]:
         if card is not xingyunhufu:
@@ -3375,6 +3423,7 @@ class jisuzhuangzhi(_card):
     status = 'z'
     positive = 1
     description = '你下次你可以连续接龙两次。'
+    pack = Pack.orange_juice
 class jisuzhuangzhi_s(_statusnull):
     id = 'z'
     des = "极速装置：你下次可以连续接龙两次。"
@@ -3391,6 +3440,7 @@ class huxiangjiaohuan(_card):
     id = 75
     positive = 0
     description = "下一个接中隐藏奖励词的玩家手牌与你互换，手牌量变化最多为2。"
+    pack = Pack.orange_juice
     @classmethod
     async def use(cls, user: User):
         l = me.check_limited_status('x')
@@ -3434,6 +3484,7 @@ class zhongshendexixi(_card):
     id = 76
     positive = 0
     description = '抽取一张卡并立即发动其使用效果。'
+    pack = Pack.orange_juice
     @classmethod
     async def use(cls, user: User):
         await user.draw_and_use()
@@ -3444,6 +3495,7 @@ class lveduozhebopu(_card):
     positive = 1
     hold_des = '掠夺者啵噗：你每天可从所接龙的人处偷取1击毙，每人限一次，最多10击毙，若目标没有击毙则不可偷取。'
     description = "持有此卡时，你每天你可从你所接龙的人处偷取1击毙，每人限一次，最多10击毙，若目标没有击毙则不可偷取。使用或死亡时将丢弃这张卡。"
+    pack = Pack.orange_juice
     @classmethod
     async def on_draw(cls, user: User):
         user.data.steal
@@ -3500,6 +3552,7 @@ class jiandieyubei(_card):
     positive = 0
     global_daily_status = 'j'
     description = "今日卡池中有一定概率出现【邪恶的间谍行动~执行】。"
+    pack = Pack.orange_juice
 class jiandieyubei_s(_statusdaily):
     id = 'j'
     des = "邪恶的间谍行动～预备：今日卡池中有一定概率出现【邪恶的间谍行动~执行】。"
@@ -3509,6 +3562,7 @@ class qijimanbu(_card):
     id = 79
     positive = 1
     description = "弃置你所有手牌，并摸取等量的非负面牌。"
+    pack = Pack.orange_juice
     @classmethod
     async def use(cls, user: User):
         n = len(user.data.hand_card)
@@ -3521,6 +3575,7 @@ class ComicSans(_card): # TODO
     global_daily_status = 'c'
     positive = 0
     description = "七海千春今天所有生成的图片均使用Comic Sans作为西文字体（中文使用华文彩云）。"
+    pack = Pack.playtest
 class ComicSans_s(_statusdaily):
     id = 'c'
     des = 'Comic Sans：七海千春今天所有生成的图片均使用Comic Sans作为西文字体（中文使用华文彩云）。'
@@ -3530,6 +3585,7 @@ class PC(_card):
     id = 81
     positive = 1
     description = '今天接过龙的所有人立刻获得胜利。'
+    pack = Pack.playtest
     @classmethod
     async def use(cls, user: User):
         user.buf.send(f"今天接龙的所有人都赢了{句尾}恭喜你们{句尾}")
@@ -3550,6 +3606,7 @@ class suicideking(_card):
     positive = -1
     description = "抽到时立即死亡。"
     consumed_on_draw = True
+    pack = Pack.poker
     @classmethod
     async def on_draw(cls, user: User):
         user.send_char("抽到了自杀之王，" + user.char + f"死了{句尾}")
@@ -3561,6 +3618,7 @@ class zhu(_card):
     positive = -1
     description = "抽到时损失20击毙（但不会扣至0以下）。"
     consumed_on_draw = True
+    pack = Pack.poker
     @classmethod
     async def on_draw(cls, user: User):
         await user.add_jibi(-20)
@@ -3572,6 +3630,7 @@ class yang(_card):
     positive = 1
     description = "抽到时获得20击毙。"
     consumed_on_draw = True
+    pack = Pack.poker
     @classmethod
     async def on_draw(cls, user: User):
         await user.add_jibi(20)
@@ -3585,6 +3644,7 @@ class bianyaqi(_card):
     description = "下一次你的击毙变动变动值加倍。"
     is_metallic = True
     mass = 0.2
+    pack = Pack.poker
 class bianyaqi_s(_statusnull):
     id = '2'
     des = "变压器（♣10）：下一次击毙变动变动值加倍。"
@@ -3622,6 +3682,7 @@ class guanggaopai(_card):
     id = 94
     positive = 0
     consumed_on_draw = True
+    pack = Pack.poker
     @classmethod
     @property
     def description(self):
@@ -3642,6 +3703,7 @@ class baipai(_card):
     id = 95
     positive = 1
     description = "选择你手牌中的一张牌，执行其使用效果。"
+    pack = Pack.poker
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return len(user.data.hand_card) >= (1 if copy else 2)
@@ -3659,6 +3721,7 @@ class jiaodai(_card):
     id = 100
     positive = 1
     description = "取消掉你身上的至多6种负面状态（不包括死亡），并免疫下次即刻生效的负面状态（不包括死亡）。"
+    pack = Pack.gregtech
     @classmethod
     def weight(cls, user: User):
         if user.data.luck == 0:
@@ -3731,6 +3794,7 @@ class ZPM(_card):
     newer = 3
     consumed_on_draw = True
     is_metallic = True
+    pack = Pack.gregtech
 class SZPM(_statusnull):
     id = 'Z'
     des = "零点模块：若你当前击毙少于100，则每次接龙为你额外提供1击毙，若你当前击毙多于100，此buff立即消失。"
@@ -3753,6 +3817,7 @@ class McGuffium239(_card):
     positive = 1
     status = 'G'
     description = "下一次礼物交换不对你生效。"
+    pack = Pack.gregtech
 class McGuffium239_s(_statusnull):
     id = 'G'
     des = "Mc Guffium 239：下一次礼物交换不对你生效。"
@@ -3778,6 +3843,7 @@ class jujifashu(_card):
     positive = 1
     description = "将两张手牌的id相加变为新的手牌。若这两牌id之和不是已有卡牌的id，则变为【邪恶的间谍行动～执行】。"
     failure_message = "你的手牌不足，无法使用" + 句尾
+    pack = Pack.cultist
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return len(user.data.hand_card) >= (2 if copy else 3)
@@ -3800,6 +3866,7 @@ class liebianfashu(_card):
     positive = 1
     description = "将一张手牌变为两张随机牌，这两张牌的id之和为之前的卡牌的id。若不存在这样的组合，则变为两张【邪恶的间谍行动～执行】。"
     failure_message = "你的手牌不足，无法使用" + 句尾
+    pack = Pack.cultist
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return len(user.data.hand_card) >= (1 if copy else 2)
@@ -3821,6 +3888,7 @@ class jingxingfashu(_card):
     id = 107
     positive = 1
     description = "揭示至多三个雷。"
+    pack = Pack.cultist
     @classmethod
     async def use(cls, user: User) -> None:
         from .logic_dragon import bombs
@@ -3838,6 +3906,7 @@ class xiaohunfashu(_card):
     id = 108
     positive = 1
     description = "对指定玩家发动，该玩家的每条状态都有1/2的概率被清除（统治不列颠除外）；或是发送qq=2711644761对千春使用，消除【XXI-世界】外的所有全局状态。"
+    pack = Pack.cultist
     @classmethod
     async def use(cls, user: User) -> None:
         if await user.choose():
@@ -3895,6 +3964,7 @@ class ranshefashu(_card):
     positive = 1
     newer = 3
     description = "对指定玩家发动，该玩家当日每次接龙需额外遵循首尾接龙规则。"
+    pack = Pack.cultist
     @classmethod
     async def use(cls, user: User) -> None:
         if await user.choose():
@@ -3944,6 +4014,7 @@ class yuexiabianhua(_card):
     on_draw_limited_status = 'b'
     consumed_on_draw = True
     limited_init = (60,)
+    pack = Pack.ff14
 @final
 class SBian(NumedStatus):
     id = 'b'
@@ -3992,6 +4063,7 @@ class panjuea(_card):
     on_draw_status = 'A'
     is_debuff = True
     consumed_on_draw = True
+    pack = Pack.ff14
 class panjuea_s(_statusnull):
     id = 'A'
     des = "最终判决α：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与最终判决β重合时，罪行加重，判处死刑。"
@@ -4039,6 +4111,7 @@ class panjueb(_card):
     on_draw_status = 'B'
     is_debuff = True
     consumed_on_draw = True
+    pack = Pack.ff14
 class panjueb_s(_statusnull):
     id = 'B'
     des = "最终判决β：你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与最终判决α重合时，罪行加重，判处死刑。"
@@ -4125,6 +4198,7 @@ class dihuopenfa(_card):
     description = "今天所有的接龙词都有10%的几率变成地雷。"
     positive = 0
     global_daily_status = 'B'
+    pack = Pack.ff14
 class dihuopenfa_s(_statusdaily):
     id = 'B'
     des = "地火喷发：今天所有的接龙词都有10%的几率变成地雷。"
@@ -4144,6 +4218,7 @@ class gaojie(_card):
     description = "今天每次你获得击毙时额外获得1击毙。"
     positive = 1
     daily_status = '@'
+    pack = Pack.ff14
 class gaojie_s(_statusdaily):
     id = '@'
     des = "告解：今日每次你获得击毙时额外获得1击毙。"
@@ -4175,6 +4250,7 @@ class shenmouyuanlv(_card):
     description = "当你一次使用/损失了超过你现有击毙一半以上的击毙时，恢复这些击毙。"
     positive = 0
     status = 'n'
+    pack = Pack.ff14
 class shenmouyuanlv_s(_statusnull):
     id = 'n'
     des = "深谋远虑之策：当你一次使用/损失了超过你现有击毙一半以上的击毙时，恢复这些击毙。"
@@ -4195,6 +4271,7 @@ class mixidiyatu(_card):
     description = "你的头上会出现一只可爱的小兔子。"
     positive = 0
     status = 'R'
+    pack = Pack.ff14
 class mixidiyatu_s(_statusnull):
     id = 'R'
     des = "通灵之术-密西迪亚兔：你的头上出现了一只可爱的小兔子。"
@@ -4208,6 +4285,7 @@ class wardenspaean(_card):
     description = "免疫三次负面状态或消耗全部次数免疫大病一场，或主动使用解除大病一场。"
     positive = 1
     newer = 2
+    pack = Pack.ff14
     @classmethod
     def weight(cls, user: User):
         if user.check_daily_status('d'):
@@ -4259,6 +4337,7 @@ class imaginebreaker(_card):
     description = "你的下一次攻击无视对方的所有反制效果，下一次目标为你的攻击无效。以上两项只能发动一项。"
     positive = 1
     status = '0'
+    pack = Pack.toaru
 class imaginebreaker_s(_statusnull):
     id = '0'
     des = "幻想杀手：你的下一次攻击无视对方的所有反制效果，下一次目标为你的攻击无效。以上两项只能发动一项。"
@@ -4292,6 +4371,7 @@ class vector(_card):
     description = "你的下一次攻击效果加倍，下一次对你的攻击反弹至攻击者，免除你下一次触雷。以上三项只能发动一项。"
     positive = 1
     status = 'v'
+    pack = Pack.toaru
 class vector_s(_statusnull):
     id = 'v'
     des = "矢量操作：你的下一次攻击效果加倍，下一次对你的攻击反弹至攻击者，免除你下一次触雷。以上三项只能发动一项。"
@@ -4330,6 +4410,7 @@ class xixueshashou(_card):
     positive = 1
     description = "今天你每次接龙时有10%几率获得一张【吸血鬼】。"
     daily_status = 'x'
+    pack = Pack.toaru
 class xixueshashou_s(_statusdaily):
     id = 'x'
     des = "吸血杀手：今天你每次接龙时有10%几率获得一张【吸血鬼】。"
@@ -4349,6 +4430,7 @@ class sunflower(_card):
     description = "附加buff：跨日结算时你获得1击毙。此buff最多叠加10层。"
     status = '('
     positive = 1
+    pack = Pack.pvz
 class sunflower_s(_statusnull):
     id = '('
     des = "向日葵：跨日结算时你获得1击毙。此buff最多叠加10层。"
@@ -4389,6 +4471,7 @@ class wallnut(_card):
     description = "为你吸收死亡时间总计4小时。"
     positive = 1
     mass = 0.2
+    pack = Pack.pvz
     @classmethod
     async def use(cls, user: User) -> None:
         o = user.check_limited_status('o', lambda x: not x.is_pumpkin)
@@ -4455,6 +4538,7 @@ class iceshroom(_card):
     description = "抽到时附加全局buff：今天每个人都需要额外隔一个才能接龙。"
     consumed_on_draw = True
     on_draw_global_daily_status = 'i'
+    pack = Pack.pvz
 class iceshroom_s(_statusdaily):
     id = 'i'
     des = "寒冰菇：今天每个人都需要额外隔一个才能接龙。"
@@ -4483,6 +4567,7 @@ class twinsunflower(_card):
     description = "只能在你有“向日葵”buff时使用。使你的一层“向日葵”buff变成“双子向日葵”buff（跨日结算时你获得2击毙）。此buff与“向日葵”buff加在一起最多叠加10层。"
     positive = 1
     failure_message = "你场地上没有“向日葵”" + 句尾
+    pack = Pack.pvz
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return user.check_status('(') > 0
@@ -4529,6 +4614,7 @@ class pumpkin(_card):
     description = "为你吸收死亡时间总计6小时。可与坚果墙叠加。"
     positive = 1
     mass = 0.2
+    pack = Pack.pvz
     @classmethod
     async def use(cls, user: User) -> None:
         o = user.check_limited_status('o', lambda x: x.is_pumpkin)
@@ -4546,6 +4632,7 @@ class imitator(_card):
     positive = 0
     description = "你下一张抽到的卡会额外再给你一张。"
     status = 'i'
+    pack = Pack.pvz
 class imitator_s(_statusnull):
     id = 'i'
     des = "模仿者：你下一张抽到的卡会额外再给你一张。"
@@ -4581,6 +4668,7 @@ class jack_in_the_box(_card):
     on_draw_send_char = "获得了玩偶匣" + 句尾
     consumed_on_draw = True
     is_metallic = True
+    pack = Pack.pvz
 class jack_in_the_box_s(_statusnull):
     id = 'j'
     des = "玩偶匣：你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。若场上有寒冰菇状态则不会爆炸。"
@@ -4614,6 +4702,7 @@ class bungeezombie(_card):
     positive = -1
     description = "抽到时依照优先级移除你的一层植物效果。若你没有植物，则放下一只僵尸，你死亡一个小时。若场上有寒冰菇状态则不会生效。"
     consumed_on_draw = True
+    pack = Pack.pvz
     @classmethod
     async def on_draw(cls, user: User) -> None:
         if me.check_daily_status('i'):
@@ -4641,6 +4730,7 @@ class polezombie(_card):
     positive = -1
     description = "抽到时击毙你一次，此击毙不会被坚果墙或南瓜保护套阻挡。若场上有寒冰菇状态则不会生效。"
     consumed_on_draw = True
+    pack = Pack.pvz
     @classmethod
     async def on_draw(cls, user: User) -> None:
         if me.check_daily_status('i'):
@@ -4655,6 +4745,7 @@ class mishi1(_card):
     positive = 1
     newer = 5
     description = "获得正面状态“探索都城”，该系列效果同一玩家同时只能拥有一个。"
+    pack = Pack.secret_history
     @classmethod
     async def use(cls, user: User) -> None:
         M = user.check_limited_status('M')
@@ -4671,6 +4762,7 @@ class mishi2(_card):
     positive = 1
     newer = 5
     description = "获得正面状态“探索各郡”，该系列效果同一玩家同时只能拥有一个。"
+    pack = Pack.secret_history
     @classmethod
     async def use(cls, user: User) -> None:
         M = user.check_limited_status('M')
@@ -4687,6 +4779,7 @@ class mishi3(_card):
     positive = 1
     newer = 5
     description = "获得正面状态“探索大陆”，该系列效果同一玩家同时只能拥有一个。"
+    pack = Pack.secret_history
     @classmethod
     async def use(cls, user: User) -> None:
         M = user.check_limited_status('M')
@@ -4703,6 +4796,7 @@ class mishi4(_card):
     positive = 1
     newer = 5
     description = "获得正面状态“探索森林尽头之地”，该系列效果同一玩家同时只能拥有一个。"
+    pack = Pack.secret_history
     @classmethod
     async def use(cls, user: User) -> None:
         M = user.check_limited_status('M')
@@ -4719,6 +4813,7 @@ class mishi5(_card):
     positive = 1
     newer = 5
     description = "获得正面状态“探索撕身山脉”，该系列效果同一玩家同时只能拥有一个。"
+    pack = Pack.secret_history
     @classmethod
     async def use(cls, user: User) -> None:
         M = user.check_limited_status('M')
@@ -4735,6 +4830,7 @@ class mishi6(_card):
     positive = 1
     newer = 5
     description = "获得正面状态“探索荒寂而平阔的沙地”，该系列效果同一玩家同时只能拥有一个。"
+    pack = Pack.secret_history
     @classmethod
     async def use(cls, user: User) -> None:
         M = user.check_limited_status('M')
@@ -4751,6 +4847,7 @@ class mishi7(_card):
     positive = 1
     newer = 5
     description = "获得正面状态“探索薄暮群屿”，该系列效果同一玩家同时只能拥有一个。"
+    pack = Pack.secret_history
     @classmethod
     async def use(cls, user: User) -> None:
         M = user.check_limited_status('M')
@@ -5366,6 +5463,7 @@ class steamsummer(_card):
     positive = 1
     status = 'S'
     description = "你下一次购物花费减少50%。"
+    pack = Pack.misc
 class steamsummer_s(_statusnull):
     id = 'S'
     des = "Steam夏季特卖：你下一次购物花费减少50%。"
@@ -5391,6 +5489,7 @@ class forkbomb(_card):
     description = "今天每个接龙词都有5%几率变成分叉点。"
     is_metallic = True
     mass = 0.2
+    pack = Pack.misc
 class forkbomb_s(_statusdaily):
     id = 'b'
     des = "Fork Bomb：今天每个接龙词都有5%几率变成分叉点。"
@@ -5413,6 +5512,7 @@ class beijingcard(_card):
     positive = 1
     description = "持有此卡时，你当天在商店总消费达100击毙后商店所有物品变为8折，当天在商店总消费达150击毙后商店所有物品变为5折，当天在商店总消费达400击毙后不再打折。"
     hold_des = "北京市市政交通一卡通：你当天在商店总消费达100击毙后商店所有物品变为8折，当天在商店总消费达150击毙后商店所有物品变为5折，当天在商店总消费达400击毙后不再打折。"
+    pack = Pack.misc
     @classmethod
     async def CheckJibiSpend(cls, count: TCount, user: User, jibi: int) -> Tuple[int]:
         if 100 <= user.data.spend_shop < 150:
@@ -5448,6 +5548,7 @@ class timebomb(_card):
     is_metallic = True
     on_draw_limited_status = 'B'
     limited_init = (10,)
+    pack = Pack.misc
 class Stimebomb(NumedStatus):
     id = 'B'
     des = "定时炸弹：需要此后在今日内完成10次接龙，否则在跨日时扣除2*剩余次数的击毙。"
@@ -5479,6 +5580,7 @@ class cashprinter(_card):
     limited_status = 'p'
     limited_init = (10,)
     mass = 0.25
+    pack = Pack.misc
 class Scashprinter(NumedStatus):
     id = 'p'
     des = "印钞机：你接下来接龙时会奖励接了上一个词的人1击毙。如果上一个词是起始词则不消耗生效次数。"
@@ -5504,6 +5606,7 @@ class upsidedown(_card):
     positive = 0
     description = "每条全局状态和你的状态有50%的概率反转，除了那些不能反转的以外。"
     weight = 5
+    pack = Pack.misc
     @classmethod
     async def use(cls, user: User) -> None:
         # 永久状态
@@ -5590,6 +5693,7 @@ class bloom(_card):
     positive = 1
     description = "摸13张牌，然后弃牌至max(4,手牌上限-6)张（最多为10）。（特别的，可以弃置空白卡牌）"
     newer = 5
+    pack = Pack.misc
     @classmethod
     async def use(cls, user: User) -> None:
         await user.draw(13)
@@ -5614,6 +5718,7 @@ class excalibur(_card):
     newer = 1
     is_metallic = True
     mass = 1
+    pack = Pack.misc
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return user.check_daily_status('W') > 0
@@ -5664,28 +5769,6 @@ class SBritian(ListStatus):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeCardUse: (Priority.BeforeCardUse.britian, cls)}
 
-class assembling_machine(_card):
-    id = 200
-    name = "组装机1型"
-    description = "如果你没有组装机，你获得装备：组装机1型。如果你已有组装机1型，将其升级为组装机2型。如果你已有组装机2型，将其升级为组装机3型。如果你已有组装机3型，你获得200组装量。"
-    newer = 4
-    positive = 1
-    is_metallic = True
-    mass = 0.2
-    @classmethod
-    async def use(cls, user: User) -> None:
-        c = user.data.check_equipment(3)
-        if c == 3:
-            user.send_log(f"获得了200组装量{句尾}")
-            user.data.extra.assembling += 200
-        else:
-            if c == 0:
-                user.send_log(f"获得了装备：组装机1型{句尾}")
-            else:
-                user.send_log(f"将组装机{c}型升级到了组装机{c + 1}型{句尾}")
-            user.data.equipment[3] = c + 1
-            user.data.save_equipment()
-
 class envelop(_card):
     id = 160
     name = "信封"
@@ -5693,6 +5776,7 @@ class envelop(_card):
     positive = 1
     newer = 6
     failure_message = "你的击毙不足" + 句尾
+    pack = Pack.misc
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return user.data.jibi >= 2
@@ -5725,6 +5809,7 @@ class shengkong(_card):
     description = "摸一张指定的麻将牌，然后50%概率抽一张牌。"
     positive = 1
     newer = 6
+    pack = Pack.misc
     @classmethod
     async def use(cls, user: User) -> None:
         if await user.choose():
@@ -5739,6 +5824,29 @@ class shengkong(_card):
         if b < 0.5 + 0.02 * user.data.luck:
             await user.draw(1, replace_prompt=user.char + f"声控的很大声，一张牌{'幸运地' if b > 0.5 else ''}从天花板上掉了下来，竟然是：")
 
+class assembling_machine(_card):
+    id = 200
+    name = "组装机1型"
+    description = "如果你没有组装机，你获得装备：组装机1型。如果你已有组装机1型，将其升级为组装机2型。如果你已有组装机2型，将其升级为组装机3型。如果你已有组装机3型，你获得200组装量。"
+    newer = 4
+    positive = 1
+    is_metallic = True
+    mass = 0.2
+    pack = Pack.factorio
+    @classmethod
+    async def use(cls, user: User) -> None:
+        c = user.data.check_equipment(3)
+        if c == 3:
+            user.send_log(f"获得了200组装量{句尾}")
+            user.data.extra.assembling += 200
+        else:
+            if c == 0:
+                user.send_log(f"获得了装备：组装机1型{句尾}")
+            else:
+                user.send_log(f"将组装机{c}型升级到了组装机{c + 1}型{句尾}")
+            user.data.equipment[3] = c + 1
+            user.data.save_equipment()
+
 class belt(_card):
     id = 201
     name = "传送带"
@@ -5747,6 +5855,7 @@ class belt(_card):
     newer = 4
     status = '3'
     is_metallic = True
+    pack = Pack.factorio
 class belt_s(_statusnull):
     id = '3'
     des = "传送带：当其它玩家丢弃第一张手牌时，你获得之。"
@@ -5798,6 +5907,7 @@ class train(_card):
     newer = 4
     is_metallic = True
     mass = 5
+    pack = Pack.factorio
     @classmethod
     async def use(cls, user: User) -> None:
         l = me.check_limited_status('t')
@@ -5876,6 +5986,7 @@ class beacon(_card):
     des_need_init = True
     is_metallic = True
     mass = 0.75
+    pack = Pack.factorio
     @classmethod
     def module_des(cls, qq: int):
         m = Game.userdata(qq).module_c
@@ -6008,6 +6119,7 @@ class lab(_card):
     newer = 4
     is_metallic = True
     mass = 0.75
+    pack = Pack.factorio
     @classmethod
     def weight(cls, user: User):
         if user.data.luck == 0:
@@ -6054,6 +6166,7 @@ class stack_inserter(_card):
     positive = 1
     description = "选择一张卡牌，将其销毁，并获得等同于卡牌编号/5的击毙。如果你有组装机，使其获得等同于卡牌编号的组装量。"
     is_metallic = True
+    pack = Pack.factorio
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return len(user.data.hand_card) >= (1 if copy else 2)
@@ -6081,6 +6194,7 @@ class nuclear_bomb(_card):
     positive = 0
     is_metallic = True
     mass = 0.5
+    pack = Pack.factorio
     @classmethod
     async def use(cls, user: User) -> None:
         user.send_char(f"杀死了所有人{句尾}")
@@ -6097,6 +6211,7 @@ class flamethrower(_card):
     consumed_on_draw = True
     is_metallic = True
     mass = 0.25
+    pack = Pack.factorio
     @classmethod
     async def on_draw(cls, user: User) -> None:
         if me.check_daily_status('i'):
@@ -6115,6 +6230,7 @@ class rocket(_card):
     newer = 4
     is_metallic = True
     mass = 5
+    pack = Pack.factorio
     @classmethod
     async def use(cls, user: User) -> None:
         user.buf.send(f"恭喜{user.char}，今天{user.char}赢了{句尾}")
@@ -6128,6 +6244,7 @@ class rocket(_card):
 #     newer = 6
 #     weight = 0
 #     consumed_on_draw = True
+#     pack = Pack.physic
 #     @classmethod
 #     async def on_draw(cls, user: User) -> None:
 #         if len(user.data.hand_card) < 1:
@@ -6160,6 +6277,7 @@ class uncertainty(_card):
     positive = -1
     newer = 6
     failure_message = "此牌不可被使用" + 句尾
+    pack = Pack.physic
     @classmethod
     def can_use(cls, user: User, copy: bool) -> bool:
         return False
@@ -6185,6 +6303,7 @@ class antimatterdimension(_card):
     newer = 6
     positive = -1
     consumed_on_draw = True
+    pack = Pack.physic
     @classmethod
     async def on_draw(cls, user: User) -> None:
         if len(user.data.hand_card) == 0:
@@ -6229,6 +6348,7 @@ class doublebetadecay(_card):
     positive = -1
     newer = 6
     consumed_on_draw = True
+    pack = Pack.physic
     @classmethod
     async def on_draw(cls, user: User) -> None:
         l: List[TCard] = []
@@ -6252,6 +6372,7 @@ class wormhole(_card):
     positive = 1
     newer = 6
     mass = -10
+    pack = Pack.physic
     @classmethod
     async def use(cls, user: User) -> None:
         l: List[Tuple[int, Any]] = []
@@ -6298,6 +6419,7 @@ class laplace(_card):
     positive = 1
     newer = 6
     mass = 0
+    pack = Pack.physic
     @classmethod
     async def use(cls, user: User) -> None:
         ume = Userme(user)
@@ -6351,6 +6473,7 @@ class randommaj2(_card):
     mass = 0.25
     newer = 6
     description = "增加5次麻将摸牌的机会，然后抽一张卡。发送”使用 麻将摸牌券“摸牌，然后选择切牌/立直/暗杠/和出。"
+    pack = Pack.misc
     @classmethod
     async def use(cls, user: User) -> None:
         user.data.extra.maj_quan += 15
