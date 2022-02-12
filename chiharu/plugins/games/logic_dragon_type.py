@@ -54,6 +54,7 @@ async def nothing(): return False
 class TCounter:
     pierce: Callable = nothing
     jump: bool = False
+    hpzero: bool = False
 def async_data_saved(f: Callable):
     i = None
     @functools.wraps(f)
@@ -302,6 +303,32 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
 
 TBoundIntEnum = TypeVar('TBoundIntEnum', bound=IntEnum)
 
+class Pack(Enum):
+    tarot = auto()
+    minecraft = auto()
+    zhu = auto()
+    sanguosha = auto()
+    honglongdong = auto()
+    uno = auto()
+    once_upon_a_time = auto()
+    explodes = auto()
+    stone_story = auto()
+    orange_juice = auto()
+    playtest = auto()
+    poker = auto()
+    gregtech = auto()
+    cultist = auto()
+    ff14 = auto()
+    toaru = auto()
+    pvz = auto()
+    secret_history = auto()
+    misc = auto()
+    factorio = auto()
+    silly = auto()
+    physic = auto()
+    stare = auto()
+    rusty_lake = auto()
+
 class UnableRequirement(Exception):
     pass
 class NotActive(Exception):
@@ -369,6 +396,32 @@ async def check_active(value):
     if value is None:
         raise NotActive
     yield None
+
+class indexer:
+    def __init__(self, fget=None, fset=None):
+        self.fget = fget
+        self.fset = fset
+        self._indexer = _indexer(self)
+        self._name = ''
+    def __set_name__(self, owner, name):
+        self._name = name
+    def __get__(self, obj, objtype=None):
+        if obj is None:
+            return self
+        self._indexer.obj = obj
+        return self._indexer
+    def setter(self, fset):
+        prop = type(self)(self.fget, fset)
+        prop._name = self._name
+        return prop
+class _indexer:
+    def __init__(self, parent: indexer):
+        self.parent: indexer = parent
+        self.obj = None
+    def __getitem__(self, index):
+        return self.parent.fget(self.obj, index)
+    def __setitem__(self, index, item):
+        self.parent.fset(self.obj, index, item)
 
 class Tree:
     __slots__ = ('id', 'parent', 'childs', 'word', 'fork', 'kwd', 'hdkwd', 'qq')
