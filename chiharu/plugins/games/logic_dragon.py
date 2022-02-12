@@ -1230,7 +1230,7 @@ async def dragon_test(buf: SessionBuffer):
     qq = buf.ctx['user_id']
     user = User(1569603950, buf)
     async with user.settlement():
-        user.data.extra.maj_quan += 1
+        pass
 
 @on_command(('dragon', 'maj'), only_to_me=False, hide=True, environment=env_supervise)
 @config.ErrorHandle(config.logger.dragon)
