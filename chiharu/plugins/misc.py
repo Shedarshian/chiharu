@@ -1,14 +1,5 @@
-import contextlib
-import sys
-import re
-import os
-import math
-import random
-import functools
-import asyncio
-import requests
-import json
-import getopt
+import contextlib, sys, re, os, math, random
+import functools, asyncio, requests, json, getopt, subprocess
 from datetime import date, timedelta
 import wand.image, wand.color
 from io import StringIO
@@ -82,6 +73,13 @@ async def PythonAwait(session: CommandSession):
         exec('async def main():\n  ' + '\n  '.join(session.current_arg_text.split('\n')), local, local)
         await local['main']()
     await session.send(s.getvalue()[:-1])
+
+@on_command(('python', 'pull'), only_to_me=False, hide=True)
+@config.ErrorHandle
+async def PythonPull(session: CommandSession):
+    batcmd = "git pull"
+    result = subprocess.check_output(batcmd, shell=True)
+    print(result.decode('utf-8'))
 
 config.CommandGroup(('misc', 'maj'), short_des='麻将小助手。')
 
