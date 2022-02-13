@@ -363,7 +363,7 @@ class Sign(IntEnum):
             "密教模拟器及其秘史、植物大战僵尸、Stone Story RPG",
             "Misc",
             "东方虹龙洞卡牌、愚蠢",
-            "凝视、锈湖"]
+            "凝视、锈湖"][self]
     @property
     def description(self):
         return f"{self.name_ch}{句尾}\n\t卡包：{self.contains_ch}的牌掉率提升{句尾}"
