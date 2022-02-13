@@ -123,6 +123,7 @@ class UserEvt(IntEnum):
 
 class Priority:  # 依照每个优先级从前往后find，而不是iterate
     class OnUserUseCard(IntEnum):
+        zhanxingshu = auto()
         temperance = auto()
         cantuse = auto()
         xingyunhufus = auto()
@@ -337,11 +338,11 @@ class Sign(IntEnum):
     momi = 3
     xieshen = 4
     tianxian = 5
-    anything = 6
+    #anything = 6
     @classmethod
     def random(cls):
         import random
-        return cls(random.randint(0, 5))
+        return random.choice(list(cls))
     def pack(self):
         return [{Pack.tarot},
             {Pack.zhu, Pack.sanguosha, Pack.uno, Pack.once_upon_a_time, Pack.playtest, Pack.poker},
@@ -366,6 +367,9 @@ class Sign(IntEnum):
     @property
     def description(self):
         return f"{self.name_ch}{句尾}\n\t卡包：{self.contains_ch}的牌掉率提升{句尾}"
+    @classmethod
+    def description_all(cls):
+        return "\n".join(f"{int(i)}. {i.description}" for i in Sign)
 
 class UnableRequirement(Exception):
     pass

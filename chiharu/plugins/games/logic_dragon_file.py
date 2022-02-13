@@ -5825,6 +5825,44 @@ class shengkong(_card):
         if b < 0.5 + 0.02 * user.data.luck:
             await user.draw(1, replace_prompt=user.char + f"声控的很大声，一张牌{'幸运地' if b > 0.5 else ''}从天花板上掉了下来，竟然是：")
 
+class zhanxingshu(_card):
+    id = 162
+    name = "占星术"
+    description = "一周之内只能使用一次本卡牌。使用后可以自选一个星座，将本周的星座改变。"
+    positive = 1
+    newer = 6
+    pack = Pack.misc
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if await user.choose():
+            user.buf.send("请从以下星座中选择一个：")
+            user.buf.send(Sign.description_all())
+            num = (await user.buf.aget(prompt="", arg_filters=[
+                extractors.extract_text,
+                check_handcard(user),
+                lambda s: [int(c) for c in re.findall(r'\-?\d+', str(s))],
+                validators.fit_size(1, 1, message="请输入正确的数目。"),
+                validators.ensure_true(lambda l: l[0] in list(Sign), message="请输入存在的星座编号。")
+            ]))[0]
+            user.log << f"选择了{num}。"
+            global_state["sign"] = num
+            user.buf.send_log(f"改变了当前星座至{Sign(num).name_ch}{句尾}")
+            save_global_state()
+            await Userme(user).add_status('\\')
+class zhanxingshu_exhaust(_statusnull):
+    id = '\\'
+    des = "星相已尽：本周星座已被改变。"
+    is_debuff = True
+    removeable = False
+    @classmethod
+    async def OnUserUseCard(cls, count: TCount, user: 'User', card: TCard) -> Tuple[bool, str]:
+        if card is zhanxingshu:
+            return False, "本周星座已被改变，无法再次改变。"
+        return True, ""
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnUserUseCard: (Priority.OnUserUseCard.zhanxingshu, cls)}
+
 class assembling_machine(_card):
     id = 200
     name = "组装机1型"
@@ -6618,7 +6656,7 @@ class tarot(_equipment):
                         check_handcard(user),
                         lambda s: [(int(c) if c != "取消" else c) for c in re.findall(r'取消|\-?\d+', str(s))],
                         validators.fit_size(1, 1, message="请输入正确的张数。"),
-                        validators.ensure_true(lambda l: l[0] == "取消" or l[0] in l2)
+                        validators.ensure_true(lambda l: l[0] == "取消" or l[0] in l2, message="请输入在范围内的牌。")
                     ]))[0]
             if c == "取消":
                 user.log << f"取消。"

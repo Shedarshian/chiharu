@@ -292,7 +292,8 @@ async def daily_update(buf: SessionBuffer) -> str:
     global_state['used_cards'] = []
     global_state['observatory'] = False
     global_state["supernova_user"] = [[], global_state["supernova_user"][0], global_state["supernova_user"][1]]
-    if date.today().isoweekday() == 7:
+    today = date.today()
+    if today.isoweekday() == 7:
         global_state["sign"] = Sign.random()
     save_global_state()
     if me.check_daily_status('s'):
@@ -303,6 +304,8 @@ async def daily_update(buf: SessionBuffer) -> str:
                 await User(r['qq'], buf).remove_daily_status('d')
     else: #TODO：当个人daily_status中存在'l'时，仅消除负面daily_status及它自身
         config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=1, spend_shop=0', ('',))
+    if today.isoweekday() == 7 and me.check_status('\\'):
+        await User(config.selfqq, buf).remove_status('\\')
     for r in config.userdata.execute("select qq, status, daily_status, status_time, equipment from dragon_data").fetchall():
         def _(s, st):
             for c in s:
@@ -324,7 +327,7 @@ async def daily_update(buf: SessionBuffer) -> str:
     me._reregister_things()
     word = await update_begin_word(is_daily=True)
     await buf.flush()
-    if date.today().isoweekday() == 7:
+    if today.isoweekday() == 7:
         buf.send("本周星座为" + Sign(global_state["sign"]).description)
         await buf.flush()
     return "今日关键词：" + word + "\nid为【0】。"
