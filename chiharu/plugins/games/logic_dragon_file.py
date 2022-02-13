@@ -17,7 +17,7 @@ from nonebot.command.argfilter import extractors, validators
 from nonebot.command.argfilter.validators import _raise_failure
 from .. import config
 from ..config import 句尾
-from .logic_dragon_type import NotActive, Pack, TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, check_active, indexer, nothing, TQuest, ensure_true_lambda, check_handcard, TModule, UnableRequirement, check_if_unable, Tree, DragonState, MajOneHai
+from .logic_dragon_type import NotActive, Pack, Sign, TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, check_active, indexer, nothing, TQuest, ensure_true_lambda, check_handcard, TModule, UnableRequirement, check_if_unable, Tree, DragonState, MajOneHai
 from .maj import MajIdError
 
 # TODO change TCount to a real obj, in order to unify 'count' and 'count2' in OnStatusAdd, also _status.on_add
@@ -1808,7 +1808,8 @@ def draw_cards(user: User, positive: Optional[Set[int]]=None, k: int=1, extra_la
     cards = [c for c in _card.card_id_dict.values() if c.id >= 0 and (not x or x and c.positive in positive)]
     if extra_lambda is not None:
         cards = [c for c in cards if extra_lambda(c)]
-    weight = [c.weight(user) if callable(c.weight) else c.weight for c in cards]
+    packs = Sign(global_state["sign"]).pack()
+    weight = [(c.weight(user) if callable(c.weight) else c.weight) + (4 if c.pack in packs else 0) for c in cards]
     if me.check_daily_status('j') and (not x or x and (-1 in positive)):
         l = [(Card(-1) if random.random() < 0.2 else random.choices(cards, weight)[0]) for i in range(k)]
     else:

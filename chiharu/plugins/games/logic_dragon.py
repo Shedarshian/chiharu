@@ -11,6 +11,8 @@ import requests
 from nonebot import CommandSession, NLPSession, on_natural_language, get_bot, permission, scheduler
 from nonebot.command import call_command
 from nonebot.command.argfilter import extractors, validators
+
+from chiharu.plugins.games.logic_dragon_type import Sign
 from ..inject import CommandGroup, on_command
 from .. import config
 from ..config import SessionBuffer, 句尾
@@ -290,6 +292,8 @@ async def daily_update(buf: SessionBuffer) -> str:
     global_state['used_cards'] = []
     global_state['observatory'] = False
     global_state["supernova_user"] = [[], global_state["supernova_user"][0], global_state["supernova_user"][1]]
+    if date.today().isoweekday() == 7:
+        global_state["sign"] = Sign.random()
     save_global_state()
     if me.check_daily_status('s'):
         await User(config.selfqq, buf).remove_daily_status('s', remove_all=False)
@@ -319,6 +323,10 @@ async def daily_update(buf: SessionBuffer) -> str:
     me.reload()
     me._reregister_things()
     word = await update_begin_word(is_daily=True)
+    await buf.flush()
+    if date.today().isoweekday() == 7:
+        buf.send("本周星座为" + Sign(global_state["sign"]).description)
+        await buf.flush()
     return "今日关键词：" + word + "\nid为【0】。"
 
 @on_natural_language(keywords="接", only_to_me=False, only_short_message=False)
@@ -787,7 +795,7 @@ async def dragon_check(buf: SessionBuffer):
         dis = max(2 + i - I - m + M, 1)
         buf.finish("当前活动词" + ('🔄' if me.check_daily_status('o') else '♻️' if me.check_daily_status('p') else '') + "为：\n" + '\n'.join(f"{s.word}，{'⚠️' if qq in s.get_parent_qq_list(dis)else ''}id为{s.id_str}" for s in words))
     elif data in ("资料", "profile"):
-        ret = f"你的资料为：\n今日剩余获得击毙次数：{user.data.today_jibi}。\n今日剩余获得关键词击毙：{user.data.today_keyword_jibi}。\n剩余抽卡券：{user.data.draw_time}。\n手牌上限：{user.data.card_limit}。" + (f"\n活动pt：{user.data.event_pt}。\n当前在活动第{user.data.event_stage}。" if current_event == "swim" else "")
+        ret = f"本周星座为：{Sign(global_state['sign']).description}\n你的资料为：\n今日剩余获得击毙次数：{user.data.today_jibi}。\n今日剩余获得关键词击毙：{user.data.today_keyword_jibi}。\n剩余抽卡券：{user.data.draw_time}。\n手牌上限：{user.data.card_limit}。" + (f"\n活动pt：{user.data.event_pt}。\n当前在活动第{user.data.event_stage}。" if current_event == "swim" else "")
         if user.data.extra.maj_quan // 3 != 0:
             ret += f"\n麻将摸牌券：{user.data.extra.maj_quan // 3}张。"
         if user.data.extra.mangan != 0:

@@ -6,6 +6,7 @@ from copy import copy
 from typing import Callable, Counter, Iterable, TypedDict, List, Dict, TypeVar, Generic, Awaitable, Any, Tuple, Optional
 from enum import IntEnum, IntFlag, auto, Enum
 from dataclasses import dataclass
+from ..config import 句尾
 from nonebot.command import CommandSession
 
 TQuest = TypedDict('TQuest', id=int, remain=int)
@@ -26,6 +27,7 @@ class TGlobalState(TypedDict):
     dragon_head: Dict[int, Dict[int, Any]]
     event_route: List[int]
     bingo_state: List[int]
+    sign: int
 
 class TUserData(TypedDict):
     qq: int
@@ -328,6 +330,42 @@ class Pack(Enum):
     physic = auto()
     stare = auto()
     rusty_lake = auto()
+class Sign(IntEnum):
+    shiyuan = 0
+    jiesha = 1
+    tonglin = 2
+    momi = 3
+    xieshen = 4
+    tianxian = 5
+    anything = 6
+    @classmethod
+    def random(cls):
+        import random
+        return cls(random.randint(0, 5))
+    def pack(self):
+        return [{Pack.tarot},
+            {Pack.zhu, Pack.sanguosha, Pack.uno, Pack.once_upon_a_time, Pack.playtest, Pack.poker},
+            {Pack.minecraft, Pack.gregtech, Pack.explodes, Pack.orange_juice, Pack.ff14},
+            {Pack.cultist, Pack.secret_history, Pack.pvz, Pack.stone_story},
+            {Pack.toaru, Pack.factorio, Pack.physic},
+            {Pack.misc},
+            {Pack.honglongdong, Pack.silly},
+            {Pack.stare, Pack.rusty_lake}][self]
+    @property
+    def name_ch(self):
+        return ["始源座", "皆杀座", "通林座", "墨密座", "械神座", "天穹座", "不知道叫啥座"][self]
+    @property
+    def contains_ch(self):
+        return ["塔罗",
+            "逐梦东方圈、三国杀、uno、很久很久以前、试个好游戏、扑克牌",
+            "Minecraft、格雷科技、保持说话不会爆炸、100%鲜橙汁、FF14",
+            "密教模拟器及其秘史、植物大战僵尸、Stone Story RPG",
+            "Misc",
+            "东方虹龙洞卡牌、愚蠢",
+            "凝视、锈湖"]
+    @property
+    def description(self):
+        return f"{self.name_ch}{句尾}\n\t卡包：{self.contains_ch}的牌掉率提升{句尾}"
 
 class UnableRequirement(Exception):
     pass
