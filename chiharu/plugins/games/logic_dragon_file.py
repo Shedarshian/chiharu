@@ -5837,6 +5837,7 @@ class zhanxingshu(_card):
         if await user.choose():
             user.buf.send("请从以下星座中选择一个：")
             user.buf.send(Sign.description_all())
+            await user.buf.flush()
             num = (await user.buf.aget(prompt="", arg_filters=[
                 extractors.extract_text,
                 check_handcard(user),
