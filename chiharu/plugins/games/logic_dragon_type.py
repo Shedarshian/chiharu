@@ -47,8 +47,11 @@ class TUserData(TypedDict):
     equipment: str
     event_stage: int
     event_shop: int
+    event_skill: int
     last_dragon_time: str
     flags: int
+    hp: int
+    mp: int
 
 async def nothing(): return False
 
@@ -153,7 +156,8 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         sihuihuibizhiyao = auto()       # 死秽：消耗击毙免疫一次死亡
         hongsezhihuan = auto()          # 虹环：一半免疫一次死亡
         inv_sihuihuibizhiyao = auto()   # 反转死秽
-        death = auto()                  # 成功击杀，计算时间
+        death = auto()                  # 死神：死亡时间加倍
+        fuhuoguanghuan = auto()         # 因hp归零死亡时间除以12
         absorb = auto()                 # 吸收死亡时间
         changsheng = auto()             # 吸收死亡时间MkII
         tiesuolianhuan = auto()         # 铁索连环：一起下地狱
@@ -169,11 +173,14 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
                                         # imagine breaker is suggested to be the first
         vector = auto()                 # 矢量：双倍
         youlong = auto()                # 幼龙：造成伤害*1.5
+        bizhong = auto()                # 必中：必中并且造成伤害*1.5
         konghe = auto()                 # 恐吓：造成伤害减半
     class OnAttacked(IntEnum):
         McGuffium239 = auto()           # 麦高芬：免疫礼物交换
+        shanbi = auto()                 # 闪避：躲避受伤
         imaginebreaker = auto()         # 幻杀：无效
         hudun = auto()                  # 护盾：对龙造成伤害的闪避率+20%
+        qiangshenjianti = auto()        # 强身健体：受伤减半
         youlong = auto()                # 幼龙：承担受到伤害的50%
         vector = auto()                 # 矢量：反弹
                                         # vector is suggested to be the last
@@ -260,6 +267,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         vector = auto()
         kongzhongcanting = auto()       # 空中餐厅「逻辑」：随机复活
     class OnDragoned(IntEnum):
+        mofajiqu = auto()               # 魔法汲取：回复MP
         queststone = auto()             # 任务：完成+3击毙
         quest = auto()
         bingo = auto()                  # bingo：接龙任务

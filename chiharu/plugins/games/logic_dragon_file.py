@@ -1788,8 +1788,110 @@ class User:
             skill = self.data.dragon_event_skill[slot - 1]
             if skill != 0:
                 skill += [0, 4, 0, 8][slot - 1]
+        mp_usage = [0, 100, 0, 100, 100, 200, 0, 200, 200, 400, 0, 400, 400][skill]
+        all_qq = [c["qq"] for c in config.userdata.execute("select qq from dragon_data where dead=false").fetchall()]
+        if self.data.mp < mp_usage:
+            self.send_log("当前MP不足，无法释放技能" + 句尾)
+            skill = 0
         # 平a/技能内容
-        # 对龙造成伤害
+        dr = dragon(self)
+        if skill == 0:
+            self.send_log("对龙进行了一次普通攻击" + 句尾)
+            await dr.damaged(100 + self.data.dragon_level * 2)
+        elif skill == 1:
+            # 消耗100MP，回复所有玩家250点HP。
+            self.data.mp -= 100
+            self.send_log(f"消耗了100点MP，当前MP为{self.data.mp}{句尾}")
+            self.send_log("回复了所有玩家250点HP" + 句尾)
+            for qq in all_qq:
+                ud = Game.userdata(qq)
+                ud.hp = min(ud.hp + 250, ud.hp_max)
+        elif skill == 2:
+            # 回复所有玩家250点MP。
+            self.send_log("回复了所有玩家250点MP" + 句尾)
+            for qq in all_qq:
+                ud = Game.userdata(qq)
+                ud.mp = min(ud.mp + 250, ud.mp_max)
+        elif skill == 3:
+            # 消耗100MP，为所有人增加持续一次的必中并且攻击增加50%的buff。
+            self.data.mp -= 100
+            self.send_log(f"消耗了100点MP，当前MP为{self.data.mp}{句尾}")
+            self.send_log("为所有人增加了buff必中" + 句尾)
+            for qq in all_qq:
+                await User(qq, self.buf).add_status('c')
+        elif skill == 4:
+            # 消耗100MP，选择一名已死亡的玩家，将其复活，或选择一名未死亡的玩家，将其HP与MP恢复满。
+            if await self.choose(flush=False):
+                config.logger.dragon << f"【LOG】询问用户{self.qq}选择玩家。"
+                qq: int = (await self.buf.aget(prompt="请at群内一名玩家。\n",
+                    arg_filters=[
+                            lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
+                            validators.fit_size(1, 1, message="请at正确的人数。")
+                        ]))[0]
+                u = User(qq, self.buf)
+                if u.check_limited_status('d'):
+                    self.send_log("复活了该玩家" + 句尾)
+                    await u.remove_all_limited_status('d')
+                else:
+                    self.send_log("将该玩家的HP与MP恢复满了" + 句尾)
+                    u.data.hp = u.data.hp_max
+                    u.data.mp = u.data.mp_max
+        elif skill == 5:
+            # 消耗200MP，回复所有玩家500点HP。
+            self.data.mp -= 200
+            self.send_log(f"消耗了200点MP，当前MP为{self.data.mp}{句尾}")
+            self.send_log("回复了所有玩家500点HP" + 句尾)
+            for qq in all_qq:
+                ud = Game.userdata(qq)
+                ud.hp = min(ud.hp + 500, ud.hp_max)
+        elif skill == 6:
+            # 回复所有玩家500点MP。
+            self.send_log("回复了所有玩家500点MP" + 句尾)
+            for qq in all_qq:
+                ud = Game.userdata(qq)
+                ud.mp = min(ud.mp + 500, ud.mp_max)
+        elif skill == 7:
+            # 消耗200MP，为所有人增加持续一次的闪避buff。
+            self.data.mp -= 200
+            self.send_log(f"消耗了200点MP，当前MP为{self.data.mp}{句尾}")
+            self.send_log("为所有人增加了buff闪避" + 句尾)
+            for qq in all_qq:
+                await User(qq, self.buf).add_status('f')
+        elif skill == 8:
+            # 消耗200MP，给龙增加混乱debuff：下次技能选择玩家时随机选择。
+            self.data.mp -= 200
+            self.send_log(f"消耗了200点MP，当前MP为{self.data.mp}{句尾}")
+            self.send_log("为龙增加了debuff混乱" + 句尾)
+            await dr.add_status('X')
+        elif skill == 9:
+            # 消耗400MP，给所有玩家增加buff复活光环：下次因HP归零死亡的复活时间减少至5分钟。
+            self.data.mp -= 400
+            self.send_log(f"消耗了400点MP，当前MP为{self.data.mp}{句尾}")
+            self.send_log("为所有人增加了buff复活光环" + 句尾)
+            for qq in all_qq:
+                await User(qq, self.buf).add_status('u')
+        elif skill == 10:
+            # 给所有玩家增加buff魔法汲取：接下来5次平a每次回复150点MP。
+            self.send_log("为所有人增加了buff魔法汲取" + 句尾)
+            for qq in all_qq:
+                if l := (u := User(qq, self.buf)).check_limited_status('w'):
+                    l[0].num += 5
+                    u.data.save_status_time()
+                else:
+                    await u.add_limited_status(Smofajiqu(5))
+        elif skill == 11:
+            # 消耗400MP，为所有人附加buff强身健体：接下来5次受到伤害减半。
+            self.send_log("为所有人增加了buff强身健体" + 句尾)
+            for qq in all_qq:
+                if l := (u := User(qq, self.buf)).check_limited_status('q'):
+                    l[0].num += 5
+                    u.data.save_status_time()
+                else:
+                    await u.add_limited_status(Sqiangshenjianti(5))
+        elif skill == 12:
+            # 消耗400MP，若龙使用的是9号或以上的技能，则防止此次技能使用，否则对龙造成200点伤害。
+            # TODO
+            pass
         # TODO 龙的累计经验，与补刀
         # TODO 龙的等级
         # 龙抽卡，行动
@@ -6990,8 +7092,7 @@ class longwo(DragonSkill):
     des = "召唤一个幼龙，血量1000，承担龙受到伤害的50%，并使龙的攻击增加50%（不可叠加）。"
     @classmethod
     async def use(cls, user: User, branch: Tree):
-        dr = dragon(user)
-        await dr.add_limited_status(SLongwo(1000))
+        await dragon(user).add_limited_status(SLongwo(1000))
 class SLongwo(NumedStatus):
     id = 'L'
     des = '幼龙：承担龙受到伤害的50%，并使龙的攻击增加50%。'
@@ -7168,6 +7269,74 @@ class qumo(DragonSkill):
             await user.remove_limited_status(st)
         if not st.is_debuff:
             await user.damaged(100)
+
+class bizhong(_statusnull):
+    id = 'c'
+    des = "必中：你的下次攻击必中并且攻击增加50%。"
+    @classmethod
+    async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
+        if isinstance(attack, Damage):
+            user.send_log(f"的此次攻击必中并且攻击增加{50 * count}%{句尾}")
+            attack.must_hit = True
+            attack.damage = int(attack.damage * (1 + 0.5 * count))
+            await user.remove_status('c')
+        return False,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnAttack: (Priority.OnAttack.bizhong, cls)}
+class shanbi(_statusnull):
+    id = 'f'
+    des = '闪避：必定躲避下次受伤。'
+    @classmethod
+    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
+        if isinstance(attack, Damage):
+            user.send_log("触发了闪避的效果，躲避此次受伤。")
+            await user.remove_status('f', remove_all=False)
+            return True,
+        return False,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnAttacked: (Priority.OnAttacked.shanbi, cls)}
+class hunluan(_statusnull):
+    id = 'X'
+    des = "混乱：下次技能选择玩家时随机选择。"
+class fuhuoguanghuan(_statusnull):
+    id = 'u'
+    des = "复活光环：下次因HP归零死亡的复活时间减少至5分钟。"
+    @classmethod
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+        if c.hpzero:
+            time = time // 12
+            user.send_log(f"因复活光环的效果，死亡时间减少至{time}分钟" + 句尾)
+            await user.remove_status('u', remove_all=False)
+        return time, False
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDeath: (Priority.OnDeath.fuhuoguanghuan, cls)}
+class Smofajiqu(NumedStatus):
+    id = 'w'
+    des = "魔法汲取：你接下来的每次接龙为你回复150MP。"
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        user.send_log("的魔法汲取为" + user.char + "回复了150MP" + 句尾)
+        count[0].num -= 1
+        user.data.mp = min(user.data.mp + 150, user.data.mp_max)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.mofajiqu, cls)}
+class Sqiangshenjianti(NumedStatus):
+    id = 'q'
+    des = "强身健体：接下来5次受到伤害减半。"
+    @classmethod
+    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
+        if isinstance(attack, Damage):
+            user.send_log("的身体很强壮" + 句尾 + "伤害减半" + 句尾)
+            count[0].num -= 1
+            attack.damage //= 2
+        return False,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnAttacked: (Priority.OnAttacked.qiangshenjianti, cls)}
 
 bingo_id = [(0, 18), (4, 0), (3, 0), (1, 30), (0, 12), (5, 0), (1, 200), (0, 4), (2, 80)]
 # 0: 接龙任务，1: 使用一张i~i+39的卡，2: 摸一张i~i+79的卡，3：有人死亡，4：花费或扣除击毙，5：添加一个非死亡状态
