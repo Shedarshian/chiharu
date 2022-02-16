@@ -380,18 +380,30 @@ class Damage(Attack):
         if self.dodge():
             self.defender.send_log(f"闪避了此次伤害{句尾}")
         else:
+            beg = self.defender.data.hp // 100
             self.defender.send_log(f"受到了{self.damage * self.multiplier}点伤害{句尾}")
             if self.defender.data.hp < self.damage * self.multiplier:
+                self.defender.data.hp = 0
+            else:
+                self.defender.data.hp -= self.damage * self.multiplier
+            jibi_to_add = beg - self.defender.data.hp // 100
+            if self.attacker.qq != 1:
+                self.attacker.send_log(f"获得了{jibi_to_add}击毙与{jibi_to_add}pt{句尾}")
+                await self.attacker.add_jibi(jibi_to_add)
+                await self.attacker.add_event_pt(jibi_to_add)
+            if self.defender.data.hp == 0:
                 self.defender.data.hp = self.defender.data.hp_max
                 self.defender.data.mp = self.defender.data.mp_max
                 if self.defender.qq == 1:
                     self.defender.send_log(f"死了一条命{句尾}")
-                    # TODO level up once
+                    self.defender.data.dragon_event_exp += 1
+                    if self.attacker.qq != 1:
+                        self.attacker.send_log("获得了10击毙与20pt" + 句尾)
+                        await self.attacker.add_jibi(10)
+                        await self.attacker.add_event_pt(20)
                 else:
                     self.defender.send_log(f"死了{句尾}")
                     await self.defender.death(60, c=TCounter(hpzero=True))
-            else:
-                self.defender.data.hp -= self.damage * self.multiplier
 
 class Game:
     session_list: List[CommandSession] = []
@@ -906,6 +918,8 @@ class UserData:
     @property
     def dragon_level(self):
         """begin from 0."""
+        if self.qq == 1:
+            return self.dragon_event_exp
         if self.dragon_event_exp >= 55:
             return (self.dragon_event_exp - 55) // 10 + 10
         else:
@@ -1780,7 +1794,7 @@ class User:
             self.data.not_first_round = True
         if choose == 2:
             await self.draw_maj()
-    async def dragon_event(self, slot: int):
+    async def dragon_event(self, slot: int, branch: Tree):
         """slot: 0 for normal, 1~4 for slot A to D."""
         if slot == 0:
             skill = 0
@@ -1795,6 +1809,7 @@ class User:
             skill = 0
         # 平a/技能内容
         dr = dragon(self)
+        dragon_skill = draw_skill(dr)
         if skill == 0:
             self.send_log("对龙进行了一次普通攻击" + 句尾)
             await dr.damaged(100 + self.data.dragon_level * 2)
@@ -1881,6 +1896,8 @@ class User:
                     await u.add_limited_status(Smofajiqu(5))
         elif skill == 11:
             # 消耗400MP，为所有人附加buff强身健体：接下来5次受到伤害减半。
+            self.data.mp -= 400
+            self.send_log(f"消耗了400点MP，当前MP为{self.data.mp}{句尾}")
             self.send_log("为所有人增加了buff强身健体" + 句尾)
             for qq in all_qq:
                 if l := (u := User(qq, self.buf)).check_limited_status('q'):
@@ -1890,12 +1907,15 @@ class User:
                     await u.add_limited_status(Sqiangshenjianti(5))
         elif skill == 12:
             # 消耗400MP，若龙使用的是9号或以上的技能，则防止此次技能使用，否则对龙造成200点伤害。
-            # TODO
-            pass
-        # TODO 龙的累计经验，与补刀
-        # TODO 龙的等级
-        # 龙抽卡，行动
-        pass
+            self.data.mp -= 400
+            self.send_log(f"消耗了400点MP，当前MP为{self.data.mp}{句尾}")
+            if dragon_skill.id >= 9:
+                self.send_log("防止了龙的技能使用" + 句尾)
+                dragon_skill = GetSkill(0)
+            else:
+                await dr.damaged(200 + self.data.dragon_level * 4)
+        dr.send_log(f"使用了技能：{dragon_skill.full_description()}")
+        await dragon_skill.use(self, branch)
 
 Userme: Callable[[User], User] = lambda user: User(config.selfqq, user.buf)
 
@@ -6966,7 +6986,7 @@ me = UserData(config.selfqq)
 dragon: Callable[[User], User] = lambda user: User(1, user.buf)
 
 def draw_skill(dr: User):
-    return GetSkill(random.randint(0, len(DragonSkill.id_dict)))
+    return GetSkill(random.randint(0, min(dr.data.dragon_level + 3, len(DragonSkill.id_dict))))
 def GetSkill(id: int):
     return DragonSkill.id_dict[id]
 class DragonSkill(metaclass=status_meta):
@@ -6994,7 +7014,7 @@ class penhuo(DragonSkill):
     des = "对玩家造成100点伤害。"
     @classmethod
     async def use(cls, user: User, branch: Tree):
-        await user.damaged(100)
+        await user.damaged(100 + dragon(user).data.dragon_level * 2)
         if me.check_daily_status('i'):
             user.buf.send(f"火焰解除了寒冰菇的效果{句尾}")
             await Userme(me).remove_daily_status('i', remove_all=True)
@@ -7004,14 +7024,14 @@ class yaoren(DragonSkill):
     des = "对玩家造成150点伤害。"
     @classmethod
     async def use(cls, user: User, branch: Tree):
-        await user.damaged(150)
+        await user.damaged(150 + dragon(user).data.dragon_level * 3)
 class touxi(DragonSkill):
     id = 3
     name = "偷袭"
     des = "对玩家造成100点必中伤害。"
     @classmethod
     async def use(cls, user: User, branch: Tree):
-        await user.damaged(100, must_hit=True)
+        await user.damaged(100 + dragon(user).data.dragon_level * 2, must_hit=True)
 class enhui(DragonSkill):
     id = 4
     name = "恩惠"
@@ -7133,9 +7153,9 @@ class qunlongwushou(DragonSkill):
     async def use(cls, user: User, branch: Tree):
         dr = dragon(user)
         if len(dr.check_limited_status('L')) != 0:
-            await user.damaged(300)
+            await user.damaged(300 + dragon(user).data.dragon_level * 6)
         else:
-            await user.damaged(50)
+            await user.damaged(50 + dragon(user).data.dragon_level)
 class longhukaying(DragonSkill):
     id = 11
     name = "龙呼卡应"
@@ -7208,7 +7228,7 @@ class huoyanxuanwo(DragonSkill):
     async def use(cls, user: User, branch: Tree):
         qqs = [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))]
         for qq in set(qqs):
-            await User(qq, user.buf).damaged(100)
+            await User(qq, user.buf).damaged(100 + dragon(user).data.dragon_level * 2)
         if me.check_daily_status('i'):
             user.buf.send(f"火焰解除了寒冰菇的效果{句尾}")
             await Userme(me).remove_daily_status('i', remove_all=True)
@@ -7242,7 +7262,7 @@ class qiangduo(DragonSkill):
         user.send_log(f"失去了卡牌：{card.name}{句尾}")
         await user.remove_cards([card])
         if card.positive == 1:
-            await user.damaged(200)
+            await user.damaged(200 + dragon(user).data.dragon_level * 4)
 class qumo(DragonSkill):
     id = 17
     name = "祛魔"
@@ -7268,7 +7288,7 @@ class qumo(DragonSkill):
             user.send_log(f"失去了状态：{st.brief_des}{句尾}")
             await user.remove_limited_status(st)
         if not st.is_debuff:
-            await user.damaged(100)
+            await user.damaged(100 + dragon(user).data.dragon_level * 2)
 
 class bizhong(_statusnull):
     id = 'c'
