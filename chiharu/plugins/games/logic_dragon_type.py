@@ -345,8 +345,8 @@ class Sign(IntEnum):
     tonglin = 2
     momi = 3
     xieshen = 4
-    tianxian = 5
-    #anything = 6
+    tianqiong = 5
+    #feixi = 6
     @classmethod
     def random(cls):
         import random
@@ -362,13 +362,14 @@ class Sign(IntEnum):
             {Pack.stare, Pack.rusty_lake}][self]
     @property
     def name_ch(self):
-        return ["始源座", "皆杀座", "通林座", "墨密座", "械神座", "天穹座", "不知道叫啥座"][self]
+        return ["始源座", "皆杀座", "通林座", "墨密座", "械神座", "天穹座", "飞戏座"][self]
     @property
     def contains_ch(self):
         return ["塔罗",
             "逐梦东方圈、三国杀、uno、很久很久以前、试个好游戏、扑克牌",
             "Minecraft、格雷科技、保持说话不会爆炸、100%鲜橙汁、FF14",
             "密教模拟器及其秘史、植物大战僵尸、Stone Story RPG",
+            "魔法禁书目录，factorio，近代物理",
             "Misc",
             "东方虹龙洞卡牌、愚蠢",
             "凝视、锈湖"][self]

@@ -5969,7 +5969,7 @@ class zhanxingshu(_card):
             ]))[0]
             user.log << f"选择了{num}。"
             global_state["sign"] = num
-            user.buf.send_log(f"改变了当前星座至{Sign(num).name_ch}{句尾}")
+            user.send_log(f"改变了当前星座至{Sign(num).name_ch}{句尾}")
             save_global_state()
             await Userme(user).add_status('\\')
 class zhanxingshu_exhaust(_statusnull):
