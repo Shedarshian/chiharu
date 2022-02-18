@@ -7345,7 +7345,7 @@ class Smofajiqu(NumedStatus):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.mofajiqu, cls)}
 class Sqiangshenjianti(NumedStatus):
-    id = 'q'
+    id = 'r'
     des = "强身健体：接下来5次受到伤害减半。"
     @classmethod
     async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
