@@ -346,7 +346,7 @@ class Sign(IntEnum):
     momi = 3
     xieshen = 4
     tianqiong = 5
-    #feixi = 6
+    feixi = 6
     @classmethod
     def random(cls):
         import random
