@@ -7334,7 +7334,7 @@ class fuhuoguanghuan(_statusnull):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDeath: (Priority.OnDeath.fuhuoguanghuan, cls)}
 class Smofajiqu(NumedStatus):
-    id = 'w'
+    id = 'y'
     des = "魔法汲取：你接下来的每次接龙为你回复150MP。"
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
