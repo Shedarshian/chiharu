@@ -2976,13 +2976,16 @@ class wenhuazixin(_card):
         ume = Userme(user)
         a = me.status
         for c in a:
-            await ume.remove_status(c, remove_all=False)
+            if StatusNull(c).removeable:
+                await ume.remove_status(c, remove_all=False)
         b = me.daily_status
         for c in b:
-            await ume.remove_daily_status(c, remove_all=False)
+            if StatusDaily(c).removeable:
+                await ume.remove_daily_status(c, remove_all=False)
         d = copy(me.status_time_checked)
         for c in d:
-            await ume.remove_limited_status(c)
+            if c.removeable:
+                await ume.remove_limited_status(c)
         me.save_status_time()
         me._reregister_things()
 
