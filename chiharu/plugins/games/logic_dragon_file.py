@@ -2917,9 +2917,9 @@ class world_s(_statusdaily):
 class randommaj(_card):
     id = 29
     name = "扣置的麻将"
-    positive = 0
+    positive = 1
     mass = 0.25
-    description = "增加5次麻将摸牌的机会，然后抽一张卡。发送”使用 麻将摸牌券“摸牌，然后选择切牌/立直/暗杠/和出。"
+    description = "增加5次麻将摸牌的机会，然后抽一张卡。发送“摸麻将”摸牌，然后选择切牌/立直/暗杠/和出。"
     newer = 6
     pack = Pack.misc
     @classmethod
@@ -6631,10 +6631,10 @@ class SLaplace(ListStatus):
 class randommaj2(_card):
     id = 239
     name = "扣置的麻将"
-    positive = 0
+    positive = 1
     mass = 0.25
     newer = 6
-    description = "增加5次麻将摸牌的机会，然后抽一张卡。发送”使用 麻将摸牌券“摸牌，然后选择切牌/立直/暗杠/和出。"
+    description = "增加5次麻将摸牌的机会，然后抽一张卡。发送“摸麻将”摸牌，然后选择切牌/立直/暗杠/和出。"
     pack = Pack.misc
     @classmethod
     async def use(cls, user: User) -> None:
