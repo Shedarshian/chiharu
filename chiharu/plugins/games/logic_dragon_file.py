@@ -2976,10 +2976,10 @@ class wenhuazixin(_card):
         ume = Userme(user)
         a = me.status
         for c in a:
-            await ume.remove_status(c)
+            await ume.remove_status(c, remove_all=False)
         b = me.daily_status
         for c in b:
-            await ume.remove_daily_status(c)
+            await ume.remove_daily_status(c, remove_all=False)
         d = copy(me.status_time_checked)
         for c in d:
             await ume.remove_limited_status(c)
