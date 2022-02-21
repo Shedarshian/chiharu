@@ -6001,6 +6001,11 @@ class SBritian(ListStatus):
                             user.data.equipment[2] = b + 1
                             if b == 0:
                                 user.send_log(f"获得了装备“塔罗原典”{句尾}")
+                            elif b == 6:
+                                user.send_log(f"将装备“塔罗原典”升星至{b + 1}星{句尾}")
+                                user.send_log("仍可继续升级，不过8星以上的塔罗原典将不会有任何额外作用。")
+                            elif b >= 7:
+                                user.send_log(f"将装备“塔罗原典”升星至{b + 1}星（虽然没有什么作用）{句尾}")
                             else:
                                 user.send_log(f"将装备“塔罗原典”升星至{b + 1}星{句尾}")
                         user.data.save_status_time()
@@ -6871,7 +6876,7 @@ class tarot(_equipment):
     name = "塔罗原典"
     @classmethod
     def description(cls, count: TCount) -> str:
-        return f"每天限一次，可以从{2 * count}张塔罗牌中选择一张发动。"
+        return f"每天限一次，可以从{2 * min(count, 7)}张塔罗牌中选择一张发动。"
     @classmethod
     def can_use(cls, user: User, count: int) -> bool:
         return user.data.extra.tarot_time != 0
@@ -6887,7 +6892,7 @@ class tarot(_equipment):
             random.seed(h)
             l1 = list(range(22))
             random.shuffle(l1)
-            l2 = sorted(l1[:2 * count])
+            l2 = sorted(l1[:2 * min(count, 7)])
             random.setstate(state)
             config.logger.dragon << f"【LOG】询问用户{user.qq}选择塔罗原典。"
             cards = "\n".join(Card(i).full_description(user.qq) for i in l2)
@@ -6944,8 +6949,7 @@ class dragon_head(_equipment):
     name = "龙首"
     @classmethod
     def description(cls, count: TCount) -> str:
-        d = {1: 1, 2: 1, 3: 2}[count]
-        return f"可以保存{d}张卡。保存的卡独立于手牌之外（不受礼物交换/空白卡牌影响），不能直接使用。"
+        return f"可以保存{count}张卡。保存的卡独立于手牌之外（不受礼物交换/空白卡牌影响），不能直接使用。"
     @classmethod
     def full_description(cls, count: TCount, user: User) -> str:
         return super().full_description(count, user) + f"\n\t当前保存卡牌：{'，'.join(f'{Card(c).id}.{Card(c).name}' for c in user.data.dragon_head)}。"
@@ -6979,7 +6983,7 @@ class dragon_head(_equipment):
             if c == -1:
                 return
             elif c[0] == 0:
-                if len(user.data.dragon_head) >= 2:
+                if len(user.data.dragon_head) >= count:
                     user.send_char(f"龙首已满，无法放入{句尾}")
                     return
                 if c[1] == queststone.id:
