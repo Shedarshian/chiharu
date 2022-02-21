@@ -2088,29 +2088,24 @@ class ListStatus(_status):
         return self
     __isub__ = None
 
-@final
-class SLe(ListStatus):
-    id = 'l'
+class SNoDragon(ListStatus):
+    id = 'n'
+    des = "不可接龙：无法从以下节点接龙。"
     is_debuff = True
-    des = '乐不思蜀：今天每次接龙时，你进行一次判定。有3/4的几率你不得从该节点接龙。'
     def check(self) -> bool:
         return True
     def __str__(self) -> str:
         from .logic_dragon import Tree
         ids = [tree.id_str for tree in Tree.get_active()]
-        return f"{self.des}\n\t你不能从{','.join(c for c in self.list if c in ids)}节点接龙。"
-
-@final
-class SKe(ListStatus):
-    id = 'k'
-    is_debuff = True
-    des = '反转·乐不思蜀：今天每次接龙时，你进行一次判定。有1/4的几率你不得从该节点接龙。'
-    def check(self) -> bool:
-        return True
-    def __str__(self) -> str:
-        from .logic_dragon import Tree
-        ids = [tree.id_str for tree in Tree.get_active()]
-        return f"{self.des}\n\t你不能从{','.join(c for c in self.list if c in ids)}节点接龙。"
+        return f"{self.des}\n\t{','.join(c for c in self.list if c in ids)}"
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
+        if state.parent.id_str in count[0].list:
+            return False, 0, "你不能从此节点接龙" + 句尾
+        return True, 0, ""
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.nodragon, cls)}
 
 class _statusnull(_statusall):
     id_dict: Dict[str, TNStatus] = {}
@@ -2935,7 +2930,6 @@ class dabingyichang(_card):
     description = "抽到时，直到跨日前不得接龙。"
     on_draw_daily_status = 'd'
     on_draw_send_char = "病了" + 句尾 + "直到跨日前不得接龙。"
-    is_debuff = True
     consumed_on_draw = True
     pack = Pack.zhu
 class shengbing(_statusdaily):
@@ -2988,6 +2982,45 @@ class wenhuazixin(_card):
                 await ume.remove_limited_status(c)
         me.save_status_time()
         me._reregister_things()
+
+class lebusishu(_card):
+    id = 35
+    name = "乐不思蜀"
+    positive = -1
+    description = "抽到时为你附加buff：今天每次接龙时，你进行一次判定。有3/4的几率你不得从该节点接龙。"
+    pack = Pack.sanguosha
+    newer = 7
+    consumed_on_draw = True
+    on_draw_daily_status = 'L'
+class SLe(SNoDragon):
+    id = 'L'
+    is_debuff = True
+    des = '乐不思蜀：今天每次接龙时，你进行一次判定。有3/4的几率你不得从该节点接龙。'
+class SKe(SNoDragon):
+    id = 'K'
+    is_debuff = True
+    des = '反转·乐不思蜀：今天每次接龙时，你进行一次判定。有1/4的几率你不得从该节点接龙。'
+class le_checker(IEventListener):
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        checks = [c['qq'] for c in config.userdata.execute("select qq from dragon_data where dead=false and (daily_status like '%K%' or daily_status like '%L%')").fetchall()]
+        for qq in checks:
+            u = User(qq, user.buf)
+            for c in u.check_limited_status('L'):
+                if random.random() > 0.25:
+                    u.log << f"不可从节点{branch.id_str}接龙。"
+                    user.buf.send(f"玩家{qq}判定失败，不可从此节点接龙{句尾}")
+                    c.list.append(branch.id_str)
+            for c in u.check_limited_status('K'):
+                if random.random() > 0.75:
+                    u.log << f"不可从节点{branch.id_str}接龙。"
+                    user.buf.send(f"玩家{qq}判定失败，不可从此节点接龙{句尾}")
+                    c.list.append(branch.id_str)
+            u.data.save_status_time()
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.lecheck, cls)}
+UserData.register_checker(le_checker)
 
 class wuzhongshengyou(_card):
     name = "无中生有"
@@ -5783,12 +5816,6 @@ class upsidedown(_card):
             elif l[i].id == 'c':
                 l[i] = SBian(l[i].num)
                 user.send_log(f"的反转·月下彼岸花{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
-            elif l[i].id == 'l':
-                l[i] = SKe(l[i].list)
-                user.send_log(f"的乐不思蜀{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
-            elif l[i].id == 'k':
-                l[i] = SLe(l[i].list)
-                user.send_log(f"的反转·乐不思蜀{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
             elif l[i].id == 'e':
                 l[i] = inv_hierophant_s(l[i].num)
                 user.send_log(f"的反转·教皇{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
@@ -5809,7 +5836,7 @@ for c in ('AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'cd', '34'
     revert_status_map[c[0]] = c[1]
     revert_status_map[c[1]] = c[0]
 revert_daily_status_map: Dict[str, str] = {}
-for c in ('RZ', 'Bt', 'Ii', 'Mm', 'op', '@#', 'SP', 'CE', 'lk'):
+for c in ('RZ', 'Bt', 'Ii', 'Mm', 'op', '@#', 'SP', 'CE', 'lk', 'KL'):
     revert_daily_status_map[c[0]] = c[1]
     revert_daily_status_map[c[1]] = c[0]
 
@@ -5955,7 +5982,7 @@ class zhanxingshu(_card):
     name = "占星术"
     description = "一周之内只能使用一次本卡牌。使用后可以自选一个星座，将本周的星座改变。"
     positive = 1
-    newer = 6
+    newer = 7
     pack = Pack.misc
     @classmethod
     async def use(cls, user: User) -> None:

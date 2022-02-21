@@ -230,6 +230,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         death = auto()                  # 死人不能接龙
         wufazhandou = auto()            # 死人不能接龙
         shengbing = auto()              # 病人也不能接龙
+        nodragon = auto()               # 被乐了不能接龙
         minus1ma = auto()               # ±1马：计算距离
         plus1ma = auto()
         iceshroom = auto()              # 冰/热菇：全局计算距离
@@ -303,6 +304,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         invjiaotu = auto()
         explore = auto()                # 秘史
         kongzhongcanting = auto()       # 空中餐厅「逻辑」：随机回满血/复活
+        lecheck = auto()                # 乐不思蜀：某其他人不可从此节点接龙
     class OnNewDay(IntEnum):
         tarot = auto()
         quest = auto()
