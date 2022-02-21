@@ -4618,6 +4618,39 @@ class vector_s(_statusnull):
             UserEvt.OnAttacked: (Priority.OnAttacked.vector, cls),
             UserEvt.OnBombed: (Priority.OnBombed.vector, cls)}
 
+class youxianshushi(_card):
+    id = 123
+    name = "优先术式"
+    positive = 0
+    description = "今天所有攻击效果都变为击杀，礼物交换无效。"
+    global_daily_status = 'y'
+    newer = 7
+    pack = Pack.toaru
+class youxianshushi_s(_statusdaily):
+    id = 'y'
+    is_global = True
+    des = "优先术式：今天所有攻击效果都变为击杀，礼物交换无效。"
+    @classmethod
+    async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
+        if await attack.counter.pierce():
+            await Userme(user).remove_daily_status('y', remove_all=True)
+            user.send_log(f"优先术式的效果被幻想杀手消除了{句尾}")
+            return False,
+        elif isinstance(attack, ALiwujiaohuan):
+            if user.buf.state.get("liwujiaohuan_invalid_sent"):
+                user.buf.state["liwujiaohuan_invalid_sent"] = True
+                user.buf.send("由于优先术式，礼物交换无效" + 句尾)
+            return True,
+        elif not isinstance(attack, (Damage, Kill)):
+            user.log << "由于优先术式，攻击变成击杀" + 句尾
+            user.buf.send("由于优先术式，攻击变成击杀" + 句尾)
+            atk_new = Kill(attack.attacker, attack.defender, 120)
+            await attack.defender.attacked(attack.attacker, atk_new)
+            return True,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnAttack: (Priority.OnAttack.youxianshushi, cls)}
+
 class xixueshashou(_card):
     name = "吸血杀手"
     id = 124
