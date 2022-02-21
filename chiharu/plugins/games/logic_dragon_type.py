@@ -231,6 +231,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         wufazhandou = auto()            # 死人不能接龙
         shengbing = auto()              # 病人也不能接龙
         nodragon = auto()               # 被乐了不能接龙
+        juedou = auto()                 # 不能打扰别人的决斗
         minus1ma = auto()               # ±1马：计算距离
         plus1ma = auto()
         iceshroom = auto()              # 冰/热菇：全局计算距离
@@ -269,6 +270,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         kongzhongcanting = auto()       # 空中餐厅「逻辑」：随机复活
     class OnDragoned(IntEnum):
         mofajiqu = auto()               # 魔法汲取：回复MP
+        juedou = auto()                 # 决斗减次数
         queststone = auto()             # 任务：完成+3击毙
         quest = auto()
         bingo = auto()                  # bingo：接龙任务

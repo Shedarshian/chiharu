@@ -3032,6 +3032,61 @@ class wuzhongshengyou(_card):
     async def use(cls, user: User):
         await user.draw(2)
 
+class juedou(_card):
+    id = 37
+    name = "决斗"
+    positive = 0
+    description = "指定一名玩家，下10次接龙为你与祂之间进行（持续1小时后过期）。"
+    newer = 7
+    pack = Pack.sanguosha
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if await user.choose():
+            config.logger.dragon << f"【LOG】询问用户{user.qq}选择玩家。"
+            qq: int = (await user.buf.aget(prompt="请at群内一名玩家。\n",
+                arg_filters=[
+                        lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
+                        validators.fit_size(1, 1, message="请at正确的人数。")
+                    ]))[0]
+            ume = Userme(user)
+            if ume.check_limited_status('j'):
+                await ume.remove_all_limited_status('j')
+            user.buf.send("接下来的10次接龙由你二人进行" + 句尾)
+            await ume.add_limited_status(SJuedou(datetime.now() + timedelta(hours=1), user.qq, qq, 10))
+class SJuedou(TimedStatus):
+    id = 'j'
+    is_global = True
+    @property
+    def des(self):
+        return f"决斗：接下来的接龙由玩家{self.player1}与{self.player2}之间进行。"
+    def __init__(self, s: Union[str, datetime], player1: int, player2: int, count: int):
+        self.player1 = player1
+        self.player2 = player2
+        self.count = count
+        super().__init__(s)
+    def check(self) -> bool:
+        return self.time >= datetime.now() and self.count > 0
+    def __repr__(self) -> str:
+        return self.construct_repr(str(self.time), self.player1, self.player2, self.count)
+    def __str__(self) -> str:
+        delta = self.time - datetime.now()
+        min = delta.seconds // 60
+        return f"{self.des}\n\t剩余{self.count}次，结束时间：{f'{delta.days}日' if delta.days != 0 else ''}{f'{min // 60}时' if min // 60 != 0 else ''}{min % 60}分钟。"
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
+        if user.qq == count[0].player1 or user.qq == count[0].player2:
+            return True, -100, ""
+        else:
+            return False, 0, "不可打扰玩家间的决斗" + 句尾
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        count[0].count -= 1
+        me.save_status_time()
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.juedou, cls),
+            UserEvt.OnDragoned: (Priority.OnDragoned.juedou, cls)}
+
 class tiesuolianhuan(_card):
     name = "铁索连环"
     id = 38
