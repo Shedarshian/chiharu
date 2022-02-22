@@ -2089,19 +2089,35 @@ class ListStatus(_status):
     __isub__ = None
 
 class SNoDragon(ListStatus):
+    """only implemented length 1 and 3."""
     id = 'n'
     des = "不可接龙：无法从以下节点接龙。"
     is_debuff = True
+    def __init__(self, s: Union[str, list], length: int=1):
+        self.length = length
+        super().__init__(s)
+    def __repr__(self) -> str:
+        return self.construct_repr(str(self.list), str(self.length))
     def check(self) -> bool:
         return True
     def __str__(self) -> str:
         from .logic_dragon import Tree
         ids = [tree.id_str for tree in Tree.get_active()]
-        return f"{self.des}\n\t{','.join(c for c in self.list if c in ids)}"
+        if self.length == 1:
+            return f"{self.des}\n\t{','.join(c for c in self.list if c in ids)}"
+        if self.length == 3:
+            this = [Tree.find(Tree.str_to_id(c)) for c in self.list if c in ids]
+            this2 = list(itertools.chain(*[c.childs for c in this]))
+            this3 = list(itertools.chain(*[c.childs for c in this2]))
+            return f"{self.des}\n\t{','.join(c.id_str for c in this + this2 + this3 if c.id_str in ids)}"
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
-        if state.parent.id_str in count[0].list:
-            return False, 0, "你不能从此节点接龙" + 句尾
+        if count[0].length == 1:
+            if state.parent.id_str in count[0].list:
+                return False, 0, "你不能从此节点接龙" + 句尾
+        elif count[0].length == 3:
+            if state.parent.id_str in count[0].list or Tree.before(state.parent, 1).id_str in count[0].list or Tree.before(state.parent, 2).id_str in count[0].list:
+                return False, 0, "你不能从此节点接龙" + 句尾
         return True, 0, ""
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -2992,11 +3008,11 @@ class lebusishu(_card):
     newer = 7
     consumed_on_draw = True
     on_draw_daily_status = 'L'
-class SLe(SNoDragon):
+class SLe(_statusdaily):
     id = 'L'
     is_debuff = True
     des = '乐不思蜀：今天每次接龙时，你进行一次判定。有3/4的几率你不得从该节点接龙。'
-class SKe(SNoDragon):
+class SKe(_statusdaily):
     id = 'K'
     is_debuff = True
     des = '反转·乐不思蜀：今天每次接龙时，你进行一次判定。有1/4的几率你不得从该节点接龙。'
@@ -3006,16 +3022,21 @@ class le_checker(IEventListener):
         checks = [c['qq'] for c in config.userdata.execute("select qq from dragon_data where dead=false and (daily_status like '%K%' or daily_status like '%L%')").fetchall()]
         for qq in checks:
             u = User(qq, user.buf)
-            for c in u.check_limited_status('L'):
-                if random.random() > 0.25:
-                    u.log << f"不可从节点{branch.id_str}接龙。"
-                    user.buf.send(f"玩家{qq}判定失败，不可从此节点接龙{句尾}")
-                    c.list.append(branch.id_str)
-            for c in u.check_limited_status('K'):
-                if random.random() > 0.75:
-                    u.log << f"不可从节点{branch.id_str}接龙。"
-                    user.buf.send(f"玩家{qq}判定失败，不可从此节点接龙{句尾}")
-                    c.list.append(branch.id_str)
+            l = u.check_limited_status('n', lambda s: s.length == 1)
+            if n := u.check_daily_status('L') and random.random() > 0.25 ** n:
+                u.log << f"不可从节点{branch.id_str}接龙。"
+                user.buf.send(f"玩家{qq}判定失败，不可从此节点接龙{句尾}")
+                if len(l) == 0:
+                    await u.add_limited_status(SNoDragon([branch.id_str], 1))
+                else:
+                    l[0].list.append(branch.id_str)
+            if n := u.check_daily_status('K') and random.random() > 0.75 ** n:
+                u.log << f"不可从节点{branch.id_str}接龙。"
+                user.buf.send(f"玩家{qq}判定失败，不可从此节点接龙{句尾}")
+                if len(l) == 0:
+                    await u.add_limited_status(SNoDragon([branch.id_str], 1))
+                else:
+                    l[0].list.append(branch.id_str)
             u.data.save_status_time()
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -5328,9 +5349,11 @@ class Sexplore(NumedStatus):
                 else:
                     user.send_log(f"无上一个接龙的玩家{句尾}")
             elif i == 1:
-                branch.remove()
-                from .logic_dragon import rewrite_log_file
-                rewrite_log_file()
+                if not user.buf.state.get("branch_removed"):
+                    user.buf.state["branch_removed"] = True
+                    branch.remove()
+                    from .logic_dragon import rewrite_log_file
+                    rewrite_log_file()
                 user.buf.send("不，你的接龙失败了。")
             elif i == 2:
                 user.send_log("置身伊克玛维之眼：")
@@ -5703,6 +5726,33 @@ class Stemple(_statusdaily):
 class Sinvtemple(_statusdaily):
     id = 'k'
     des = "反转-置身七蟠寺：今天结束的负面状态延长至明天。"
+
+class mindgap(_card):
+    id = 150
+    name = "小心空隙"
+    description = "今天接龙时有20%几率被神隐，被神隐的词消失，接龙人需再等待两个词才可接龙。"
+    global_daily_status = 'y'
+class mindgap_s(_statusdaily):
+    id = 'y'
+    des = "小心空隙：今天接龙时有20%几率被神隐，被神隐的词消失，接龙人需再等待两个词才可接龙。"
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        if random.random() < 0.2:
+            user.send_log("的接龙词被神隐了，需再等待两个词才可接龙。" + 句尾)
+            l = user.check_limited_status('n', lambda s: s.length == 3)
+            if len(l) == 0:
+                await user.add_limited_status(SNoDragon([branch.parent.id_str], 3))
+            else:
+                l[0].list.append(branch.parent.id_str)
+            user.data.save_status_time()
+            if not user.buf.state.get("branch_removed"):
+                user.buf.state["branch_removed"] = True
+                branch.remove()
+                from .logic_dragon import rewrite_log_file
+                rewrite_log_file()
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.mindgap, cls)}
 
 class steamsummer(_card):
     name = "Steam夏季特卖"

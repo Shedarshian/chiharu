@@ -308,6 +308,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         explore = auto()                # 秘史
         kongzhongcanting = auto()       # 空中餐厅「逻辑」：随机回满血/复活
         lecheck = auto()                # 乐不思蜀：某其他人不可从此节点接龙
+        mindgap = auto()                # 小心空隙：接龙失败，接龙人需再等待2个节点接龙
     class OnNewDay(IntEnum):
         tarot = auto()
         quest = auto()
