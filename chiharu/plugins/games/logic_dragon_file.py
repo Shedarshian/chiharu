@@ -4725,6 +4725,9 @@ class magnet_s(TimedStatus):
                 await attack.attacker.attacked(user, atk)
                 user.data.save_status_time()
                 return False,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnAttacked: (Priority.OnAttacked.magnet, cls)}
 class AMagnet(Attack):
     name = "磁力菇吸走金属制品"
     doublable = False

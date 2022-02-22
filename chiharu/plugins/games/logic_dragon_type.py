@@ -183,6 +183,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         hudun = auto()                  # 护盾：对龙造成伤害的闪避率+20%
         qiangshenjianti = auto()        # 强身健体：受伤减半
         youlong = auto()                # 幼龙：承担受到伤害的50%
+        magnet = auto()                 # 磁力菇：移除攻击者的一件金属制品
         vector = auto()                 # 矢量：反弹
                                         # vector is suggested to be the last
     class OnDodged(IntEnum):
