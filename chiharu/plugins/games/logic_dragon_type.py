@@ -286,6 +286,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         beizhizhunze = auto()           # +1击毙
         invbeizhizhunze = auto()
         cashprinter = auto()            # 给前面的人+1击毙
+        invcashprinter = auto()         # 给前面的人-1击毙
         plus2 = auto()                  # +2：抽两张牌
         xixuegui = auto()               # ？？？？
         panjue = auto()                 # 判决传播 contains both a and b

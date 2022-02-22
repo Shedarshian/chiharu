@@ -3311,6 +3311,7 @@ class dragontube(_card):
     id = 54
     positive = 1
     description = "你今天通过普通接龙获得的击毙上限增加10。"
+    is_metallic = True
     mass = 0.2
     pack = Pack.honglongdong
     @classmethod
@@ -3510,11 +3511,13 @@ class cunqianguan(_card):
     global_status = 'm'
     positive = 1
     description = "下次触发隐藏词的奖励+10击毙。"
+    is_metallic = True
     mass = 0.25
     pack = Pack.orange_juice
 class cunqianguan_s(_statusnull):
     id = 'm'
     des = "存钱罐：下次触发隐藏词的奖励+10击毙。"
+    is_metallic = True
     is_global = True
     @classmethod
     async def OnHiddenKeyword(cls, count: TCount, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
@@ -3527,6 +3530,7 @@ class cunqianguan_s(_statusnull):
 class inv_cunqianguan_s(_statusnull):
     id = 'M'
     des = "反转·存钱罐：下次触发隐藏词的奖励-10击毙。"
+    is_metallic = True
     is_global = True
     is_debuff = True
     @classmethod
@@ -4692,6 +4696,76 @@ class xixueshashou_s(_statusdaily):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.xixueshashou, cls)}
 
+class magnet(_card):
+    id = 129
+    name = "磁力菇"
+    description = "种植植物磁力菇：有人攻击你时，随机移除其身上的一件金属制品，然后24小时不能发动。"
+    positive = 1
+    newer = 7
+    pack = Pack.pvz
+    limited_status = 'G'
+class magnet_s(TimedStatus):
+    id = 'G'
+    des = "磁力菇：有人攻击你时，随机移除其身上的一件金属制品，然后24小时不能发动。"
+    def check(self):
+        return True
+    def __str__(self) -> str:
+        if self.time > datetime.now():
+            delta = self.time - datetime.now()
+            min = delta.seconds // 60
+            return f"{self.des}\n\t充能时间：{f'{delta.days}日' if delta.days != 0 else ''}{f'{min // 60}时' if min // 60 != 0 else ''}{min % 60}分钟。"
+        else:
+            return f"{self.des}\n\t充能完毕。"
+    @classmethod
+    async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
+        for c in count:
+            if c.time <= datetime.now():
+                user.send_log("发动了磁力菇的效果" + 句尾)
+                atk = AMagnet(user, attack.attacker, c)
+                await attack.attacker.attacked(user, atk)
+                user.data.save_status_time()
+                return False,
+class AMagnet(Attack):
+    name = "磁力菇吸走金属制品"
+    doublable = False
+    def __init__(self, attacker: 'User', defender: 'User', c: magnet_s):
+        self.c = c
+        super().__init__(attacker, defender)
+    async def self_action(self):
+        cards = [d for d in self.defender.data.hand_card if d.is_metallic]
+        status_nulles = [s for s in self.defender.data.status if StatusNull(s).is_metallic]
+        status_dailyes = [s for s in self.defender.data.daily_status if StatusDaily(s).is_metallic]
+        statuses = [s for s in self.defender.data.status_time_checked if s.is_metallic]
+        l = len(cards) + len(status_nulles) + len(status_dailyes) + len(statuses)
+        if l == 0:
+            self.defender.send_log("身上没有金属制品" + 句尾)
+        else:
+            i = random.choice(range(l))
+            self.c.time = datetime.now() + timedelta(hours=24)
+            self.attacker.send_char("的磁力菇移除了" + self.defender.char, end="")
+            if i < len(cards):
+                self.attacker.buf.send("的手牌：" + cards[i].name)
+                self.attacker.log << "移除了手牌" + cards[i].brief_description()
+                await self.attacker.discard_cards([cards[i]])
+                return
+            i -= len(cards)
+            if i < len(status_nulles):
+                self.attacker.buf.send("的状态：" + StatusNull(status_nulles[i]).brief_des)
+                self.attacker.log << "移除了永久状态" + status_nulles[i]
+                await self.attacker.remove_status(status_nulles[i])
+                return
+            i -= len(status_nulles)
+            if i < len(status_dailyes):
+                self.attacker.buf.send("的状态：" + StatusDaily(status_dailyes[i]).brief_des)
+                self.attacker.log << "移除了每日状态" + status_dailyes[i]
+                await self.attacker.remove_daily_status(status_dailyes[i])
+                return
+            i -= len(status_dailyes)
+            self.attacker.buf.send("的状态：" + statuses[i].brief_des)
+            self.attacker.log << "移除了状态" + str(statuses[i])
+            await self.attacker.remove_limited_status(status_dailyes[i])
+            return
+
 class sunflower(_card):
     name = "向日葵"
     id = 130
@@ -5732,6 +5806,9 @@ class mindgap(_card):
     name = "小心空隙"
     description = "今天接龙时有20%几率被神隐，被神隐的词消失，接龙人需再等待两个词才可接龙。"
     global_daily_status = 'y'
+    positive = 0
+    newer = 7
+    pack = Pack.misc
 class mindgap_s(_statusdaily):
     id = 'y'
     des = "小心空隙：今天接龙时有20%几率被神隐，被神隐的词消失，接龙人需再等待两个词才可接龙。"
@@ -5896,6 +5973,24 @@ class Scashprinter(NumedStatus):
     @classmethod
     def register(cls):
         return {UserEvt.OnDragoned: (Priority.OnDragoned.cashprinter, cls)}
+class Sinvcashprinter(NumedStatus):
+    id = 'u'
+    des = "反转·印钞机：你接下来接龙时会扣除接了上一个词的人1击毙。如果上一个词是起始词则不消耗生效次数。"
+    is_metallic = True
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        pq = branch.parent.qq
+        if pq != config.selfqq and pq != 0:
+            user.send_log(f"扣除了[CQ:at,qq={pq}]{len(count)}击毙{句尾}")
+            await User(pq, user.buf).add_jibi(-len(count))
+            for c in count:
+                c.num -= 1
+            user.data.save_status_time()
+        else:
+            user.send_log(f"无上一个接龙的玩家{句尾}")
+    @classmethod
+    def register(cls):
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.invcashprinter, cls)}
 
 class upsidedown(_card):
     name = "天下翻覆"
@@ -5960,6 +6055,12 @@ class upsidedown(_card):
             elif l[i].id == 'f':
                 l[i] = hierophant_s(l[i].num)
                 user.send_log(f"的教皇{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
+            elif l[i].id == 'p':
+                l[i] = Sinvcashprinter(l[i].num)
+                user.send_log(f"的印钞机{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
+            elif l[i].id == 'u':
+                l[i] = Scashprinter(l[i].num)
+                user.send_log(f"的反转·印钞机{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
         user.data.save_status_time()
         # 全局状态
         await _s(Userme(user))
