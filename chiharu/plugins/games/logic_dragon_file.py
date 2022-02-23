@@ -2743,7 +2743,7 @@ class temperance(_card):
     name = "XIV - 节制"
     id = 14
     positive = 0
-    description = "随机抽取1名玩家，今天该玩家不能使用卡牌。"
+    description = "随机抽取1名玩家，今天该玩家不能使用除胶带外的卡牌。"
     pack = Pack.tarot
     @classmethod
     async def use(cls, user: User) -> None:
@@ -2760,11 +2760,13 @@ class ATemperance(Attack):
         await self.defender.add_daily_status('T')
 class temperance_s(_statusdaily):
     id = 'T'
-    des = "XIV - 节制：今天你不能使用卡牌。"
+    des = "XIV - 节制：今天你不能使用除胶带外的卡牌。"
     is_debuff = True
     @classmethod
     async def OnUserUseCard(cls, count: TCount, user: User, card: TCard) -> Tuple[bool, str]:
-        return False, f"你因XIV - 节制的效果，不能使用卡牌{句尾}"
+        if card.id != 100:
+            return False, f"你因XIV - 节制的效果，不能使用除胶带外的卡牌{句尾}"
+        return True, ""
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnUserUseCard: (Priority.OnUserUseCard.temperance, cls)}
@@ -3965,27 +3967,27 @@ class jiaodai(_card):
     def weight(cls, user: User):
         if user.data.luck == 0:
             return 1
-        count = sum(1 for c in map(StatusNull, user.data.status) if c.id != 'd' and c.is_debuff) \
-            + sum(1 for c in map(StatusDaily, user.data.daily_status) if c.id != 'd' and c.is_debuff) \
-            + sum(1 for s in user.data.status_time_checked if s.id != 'd' and not isinstance(s, Swufazhandou) and s.is_debuff)
+        count = sum(1 for c in map(StatusNull, user.data.status) if c.id != 'd' and c.is_debuff and c.removeable) \
+            + sum(1 for c in map(StatusDaily, user.data.daily_status) if c.id != 'd' and c.is_debuff and c.removeable) \
+            + sum(1 for s in user.data.status_time_checked if s.id != 'd' and not isinstance(s, Swufazhandou) and s.is_debuff and s.removeable)
         return 1 + user.data.luck / 5 * min(count, 6)
     @classmethod
     async def use(cls, user: User) -> None:
         has = 6
         for c in map(StatusNull, user.data.status):
-            if c.id != 'd' and c.is_debuff and has > 0:
+            if c.id != 'd' and c.is_debuff and c.removeable and has > 0:
                 has -= 1
                 user.send_char(f"的{c.des[:c.des.index('：')]}被取消了{句尾}")
                 await user.remove_status(c.id, remove_all=False)
         for c in map(StatusDaily, user.data.daily_status):
-            if c.id != 'd' and c.is_debuff and has > 0:
+            if c.id != 'd' and c.is_debuff and c.removeable and has > 0:
                 has -= 1
                 user.send_char(f"的{c.des[:c.des.index('：')]}被取消了{句尾}")
                 await user.remove_daily_status(c.id, remove_all=False)
         i = 0
         while i < len(user.data.status_time_checked):
             s = user.data.status_time[i]
-            if s.id != 'd' and not isinstance(s, Swufazhandou) and s.is_debuff and has > 0:
+            if s.id != 'd' and not isinstance(s, Swufazhandou) and s.is_debuff and s.removeable and has > 0:
                 has -= 1
                 des = s.des
                 user.send_log(f"的{des[:des.index('：')]}被取消了{句尾}")
@@ -4548,7 +4550,7 @@ class wardenspaean_s(NumedStatus):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         for i in count:
-            if status.is_debuff and status.id != 'd' and not isinstance(status, Swufazhandou):
+            if status.is_debuff and status.id != 'd' and status.removeable and not isinstance(status, Swufazhandou):
                 if i.num >= count2:
                     i.num -= count2
                     user.send_log(f"触发了凯歌的效果，免除此负面状态{句尾}")
