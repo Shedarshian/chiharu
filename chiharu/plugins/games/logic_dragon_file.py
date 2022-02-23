@@ -6851,6 +6851,58 @@ class wormhole(_card):
                 await user.remove_limited_status(s)
                 await u2.add_limited_status(s)
 
+class photoelectric(_card):
+    id = 227
+    name = "光电效应"
+    description = "抽到时，你身上每有一个金属制品，你摸一个电子。"
+    positive = 1
+    newer = 7
+    pack = Pack.physic
+    comsumed_on_draw = True
+    @classmethod
+    async def on_draw(cls, user: User) -> None:
+        cards = [d for d in user.data.hand_card if d.is_metallic]
+        status_nulles = [s for s in user.data.status if StatusNull(s).is_metallic]
+        status_dailyes = [s for s in user.data.daily_status if StatusDaily(s).is_metallic]
+        statuses = [s for s in user.data.status_time_checked if s.is_metallic]
+        l = len(cards) + len(status_nulles) + len(status_dailyes) + len(statuses)
+        user.send_log(f"身上有{l}个金属制品，奖励{l}张电子{句尾}")
+        await user.draw(0, cards=[electron] * l)
+class electron(_card):
+    id = -6
+    name = "电子"
+    description = "从自己最后的一次接龙之前开始顺序向前，每有一个人身上有金属制品就击毙10分钟（同一个人的击毙时间叠加），直到身上没有金属制品的人为止。"
+    positive = 1
+    newer = 7
+    pack = Pack.physic
+    @classmethod
+    async def use(cls, user: User) -> None:
+        c = Counter()
+        checked = set()
+        for branches in Tree._objs:
+            found = False
+            node = [tr for tr in branches if tr.qq == user.qq][-1].parent
+            while node is not None and node.id_str not in checked:
+                ud = Game.userdata(node.qq)
+                cards = [d for d in ud.hand_card if d.is_metallic]
+                status_nulles = [s for s in ud.status if StatusNull(s).is_metallic]
+                status_dailyes = [s for s in ud.daily_status if StatusDaily(s).is_metallic]
+                statuses = [s for s in ud.status_time_checked if s.is_metallic]
+                l = len(cards) + len(status_nulles) + len(status_dailyes) + len(statuses)
+                if l == 0:
+                    break
+                else:
+                    c[node.qq] += 1
+                    checked.add(node.id_str)
+                node = node.parent
+        if len(c) == 0:
+            user.send_log("没有击毙任何人" + 句尾)
+        else:
+            user.buf.send("\n".join(f"[CQ:at,qq={qq}]被你击毙了{10 * count}分钟。" for qq, count in c.items()))
+            user.log << '，'.join(f"{qq}被击杀了{10 * count}分钟" for qq, count in c.items())
+            for qq, count in c.items():
+                await User(qq, user.buf).killed(user, hour=0, minute=10 * count)
+
 class laplace(_card):
     id = 228
     name = "拉普拉斯魔"
