@@ -1966,6 +1966,7 @@ class status_meta(ABCMeta):
 def Status(id: str):
     return _status.id_dict[id]
 
+name_f = lambda s: s if '：' not in s else s[:s.index('：')]
 brief_f = lambda s: (s if '：' not in s else s[:s.index('：')] + s[s.index('\n\t'):] if '\n\t' in s else s[:s.index('：')])
 class _statusall(IEventListener, metaclass=status_meta):
     id = ""
@@ -4432,6 +4433,34 @@ class Sshuairuo(TimedStatus):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnJibiChange: (Priority.OnJibiChange.shuairuo, cls)}
+
+class dadiyaodong(_card):
+    id = 113
+    name = "大地摇动"
+    description = "抽到时附加全局buff：今天每个分支最后接龙的第2,5,8,11,14个人每人扣除4击毙。"
+    positive = -1
+    newer = 7
+    pack = Pack.ff14
+    consumed_on_draw = True
+    on_draw_global_status = '!'
+class dadiyaodong_s(_statusnull):
+    id = '!'
+    des = "大地摇动：今天每个分支最后接龙的第2,5,8,11,14个人每人扣除4击毙。"
+    is_debuff = True
+    is_global = True
+    @classmethod
+    async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
+        to_send = Counter()
+        for branch in Tree._objs:
+            end = branch[-1]
+            for i in range(1, 15, 3):
+                tr = end.before(i)
+                if tr.id != (0, 0):
+                    to_send[tr.qq] += 1
+        if len(to_send) != 0:
+            for qq, count in to_send.items():
+                user.buf.send(f"玩家{qq}因大地摇动被扣除{4 * count}击毙{句尾}")
+                await User(qq, user.buf).add_jibi(-4 * count)
 
 class dihuopenfa(_card):
     name = "地火喷发"
