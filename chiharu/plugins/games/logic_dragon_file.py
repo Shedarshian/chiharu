@@ -2982,25 +2982,39 @@ class wenhuazixin(_card):
     name = "文化自信"
     id = 32
     positive = 0
-    description = "清除所有全局状态。"
+    description = "清除所有全局状态的75%，最多五个。"
     pack = Pack.zhu
     @classmethod
     async def use(cls, user: User) -> None:
         ume = Userme(user)
-        a = me.status
-        for c in a:
-            if StatusNull(c).removeable:
-                await ume.remove_status(c, remove_all=False)
-        b = me.daily_status
-        for c in b:
-            if StatusDaily(c).removeable:
-                await ume.remove_daily_status(c, remove_all=False)
-        d = copy(me.status_time_checked)
-        for c in d:
-            if c.removeable:
-                await ume.remove_limited_status(c)
+        statuses = [c for c in me.status if StatusNull(c).removeable]
+        daily_statuses = [c for c in me.daily_status if StatusDaily(c).removeable]
+        status_times = [c for c in me.status_time_checked if c.removeable]
+        l = len(statuses) + len(daily_statuses) + len(status_times)
+        if l == 0:
+            return
+        import math
+        num = min(math.ceil(l * 0.75), 5)
+        l2 = list(range(l))
+        l3 = []
+        for i in range(num):
+            j = random.choice(l2)
+            l3.append(j)
+            l2.remove(j)
+        for j in l3:
+            if j < len(statuses):
+                user.send_log("移除了" + name_f(StatusNull(statuses[j]).des))
+                await ume.remove_status(statuses[j])
+                continue
+            j -= len(statuses)
+            if j < len(daily_statuses):
+                user.send_log("移除了" + name_f(StatusDaily(daily_statuses[j]).des))
+                await ume.remove_daily_status(daily_statuses[j])
+                continue
+            j -= len(daily_statuses)
+            user.send_log("移除了" + name_f(status_times[j].des))
+            await ume.remove_limited_status(status_times[j])
         me.save_status_time()
-        me._reregister_things()
 
 class lebusishu(_card):
     id = 35
@@ -4147,7 +4161,7 @@ class xiaohunfashu(_card):
     name = "销魂法术"
     id = 108
     positive = 1
-    description = "对指定玩家发动，该玩家的每条状态都有1/2的概率被清除（统治不列颠除外）；或是发送qq=2711644761对千春使用，消除【XXI-世界】外的所有全局状态。"
+    description = "对指定玩家发动，该玩家的每条状态都有1/2的概率被清除（统治不列颠除外）；或是发送qq=2711644761对千春使用，消除【XXI-世界】外50%的全局状态，最多5个。"
     pack = Pack.cultist
     @classmethod
     async def use(cls, user: User) -> None:
@@ -4159,12 +4173,34 @@ class xiaohunfashu(_card):
                         validators.fit_size(1, 1, message="请at正确的人数。")
                     ]))[0]
             if qq == config.selfqq:
-                user.send_log(f"选择了千春{句尾}消除了【XXI-世界】外的所有全局状态{句尾}")
-                me.status = ""
-                s = me.check_daily_status('s')
-                me.daily_status = s * 's'
-                me.status_time.clear()
-                me._reregister_things()
+                user.send_log(f"选择了千春{句尾}消除了【XXI-世界】外的50%的全局状态{句尾}")
+                ume = Userme(user)
+                statuses = [c for c in me.status if StatusNull(c).removeable]
+                daily_statuses = [c for c in me.daily_status if StatusDaily(c).removeable]
+                status_times = [c for c in me.status_time_checked if c.removeable]
+                l = len(statuses) + len(daily_statuses) + len(status_times)
+                import math
+                num = min(math.ceil(l * 0.5), 5)
+                l2 = list(range(l))
+                l3 = []
+                for i in range(num):
+                    j = random.choice(l2)
+                    l3.append(j)
+                    l2.remove(j)
+                for j in l3:
+                    if j < len(statuses):
+                        user.send_log("移除了" + name_f(StatusNull(statuses[j]).des))
+                        await ume.remove_status(statuses[j])
+                        continue
+                    j -= len(statuses)
+                    if j < len(daily_statuses):
+                        user.send_log("移除了" + name_f(StatusDaily(daily_statuses[j]).des))
+                        await ume.remove_daily_status(daily_statuses[j])
+                        continue
+                    j -= len(daily_statuses)
+                    user.send_log("移除了" + name_f(status_times[j].des))
+                    await ume.remove_limited_status(status_times[j])
+                me.save_status_time()
             else:
                 user.send_log(f"选择了玩家{qq}{句尾}")
                 u = User(qq, user.buf)
