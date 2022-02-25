@@ -430,6 +430,41 @@ def check_handcard(user):
             _raise_failure("你的手牌为：\n" + '\n'.join(s.brief_description() for s in user.data.hand_card))
         elif value in ("查询详细手牌", "查看详细手牌"):
             _raise_failure("你的手牌为：\n" + '\n'.join(s.full_description(user.qq) for s in user.data.hand_card))
+        elif value in ("查询详细状态", "查看详细状态"):
+            def _(d, qq=None):
+                from .logic_dragon_file import StatusNull, StatusDaily
+                for s, k in Counter(d.status).items():
+                    yield k, StatusNull(s).des
+                for s, k in Counter(d.daily_status).items():
+                    yield k, StatusDaily(s).des
+                for s, k in Counter(d.hand_card).items():
+                    if s.hold_des:
+                        yield k, s.hold_des
+                for s in d.status_time_checked:
+                    yield 1, str(s)
+                for s in d.status_time_checked:
+                    yield 1, s.brief_des
+            ret = '\n'.join((s if k == 1 else f'{k}* ' + s) for k, s in _(user.data, user.qq))
+            if ret == '':
+                _raise_failure(f"你目前没有状态{句尾}")
+            else:
+                _raise_failure("你的状态为：\n" + ret)
+        elif value in ("查询状态", "查看状态"):
+            def _brief(d, qq=None):
+                from .logic_dragon_file import StatusNull, StatusDaily
+                from .logic_dragon_file import brief_f
+                for s, k in Counter(d.status).items():
+                    yield k, StatusNull(s).brief_des
+                for s, k in Counter(d.daily_status).items():
+                    yield k, StatusDaily(s).brief_des
+                for s, k in Counter(d.hand_card).items():
+                    if s.hold_des:
+                        yield k, brief_f(s.hold_des)
+            ret = '\n'.join((('' if k == 1 else f'{k}* ') + s) for k, s in _brief(user.data, user.qq))
+            if ret == '':
+                _raise_failure(f"你目前没有状态{句尾}")
+            else:
+                _raise_failure("你的状态为：\n" + ret)
         elif value in ("查询装备", "查看装备"):
             from .logic_dragon_file import Equipment
             _raise_failure("你的装备为：\n" + '\n'.join(Equipment(id).full_description(num, user) for id, num in user.data.equipment.items()))

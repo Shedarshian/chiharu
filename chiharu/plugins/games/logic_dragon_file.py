@@ -4763,6 +4763,126 @@ class xixueshashou_s(_statusdaily):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.xixueshashou, cls)}
 
+class railgun(_card):
+    id = 125
+    name = "超电磁炮"
+    description = "花费1击毙或者手牌中一张金属制的牌或者身上一个金属制的buff，选择一个与你接龙距离3以内（若选择的是金属则为5以内）的人击毙。目标身上的每个金属制buff有1/2的几率被烧掉。"
+    pack = Pack.toaru
+    newer = 7
+    positive = 1
+    failure_message = "使用此卡必须身上有弹药并且今天接过龙" + 句尾
+    @classmethod
+    def can_use(cls, user: User, copy: bool) -> bool:
+        if user.qq not in [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))]:
+            return False
+        if user.data.jibi != 0:
+            return True
+        cards = [d for d in user.data.hand_card if d.is_metallic]
+        status_nulles = [s for s in user.data.status if StatusNull(s).is_metallic]
+        status_dailyes = [s for s in user.data.daily_status if StatusDaily(s).is_metallic]
+        statuses = [s for s in user.data.status_time_checked if s.is_metallic]
+        return len(cards) + len(status_nulles) + len(status_dailyes) + len(statuses) != 0
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if await user.choose(flush=False):
+            if user.qq not in [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))]:
+                user.send_log("今天没有接过龙，附近没有人可以击中" + 句尾)
+                return False
+            cards = [d for d in user.data.hand_card if d.is_metallic]
+            status_nulles = [s for s in user.data.status if StatusNull(s).is_metallic]
+            status_dailyes = [s for s in user.data.daily_status if StatusDaily(s).is_metallic]
+            statuses = [s for s in user.data.status_time_checked if s.is_metallic]
+            l = len(cards) + len(status_nulles) + len(status_dailyes) + len(statuses)
+            to_choose: list[tuple[int, Any]] = []
+            if user.data.jibi != 0:
+                to_choose.append((0, "1击毙", ("击毙", "1击毙")), 0)
+            to_choose.extend([(1, d.brief_description(), (str(d.id),), i) for i, d in enumerate(cards)])
+            to_choose.extend([(2, name_f(d), (name_f(d),), i) for i, d in enumerate(status_nulles)])
+            to_choose.extend([(3, name_f(d), (name_f(d),), i) for i, d in enumerate(status_dailyes)])
+            to_choose.extend([(4, name_f(d), (name_f(d),), i) for i, d in enumerate(statuses)])
+            if len(to_choose) == 0:
+                user.send_log("没有弹药，无法发射" + 句尾)
+                return
+            elif len(to_choose) == 1:
+                user.send_log("只有一个物品可发射，自动使用" + to_choose[0][1] + "作为弹药" + 句尾)
+                num, st, _, count = to_choose[0]
+            else:
+                prompt = "请选择要发射的弹药，手牌请输入id，状态请输入全名，重新查询列表请输入“重新查询”。\n" + "\n".join(s for i, s, t in to_choose)
+                qq: int = (await user.buf.aget(prompt="请at群内一名玩家。\n",
+                    arg_filters=[
+                            lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
+                            validators.fit_size(1, 1, message="请at正确的人数。")
+                        ]))[0]
+                u = User(qq, user.buf)
+                def check(value: str):
+                    if value == "重新查询":
+                        _raise_failure(prompt)
+                    for i, s, t, count in to_choose:
+                        if value in t:
+                            return (i, s, count)
+                    _raise_failure("请选择一个在列表中的物品，重新查询列表请输入“重新查询”。")
+                user.buf.send(prompt)
+                await user.buf.flush()
+                num, st, count = await user.buf.aget(prompt="", arg_filters=[
+                    extractors.extract_text,
+                    check_handcard(user),
+                    check
+                ])
+            distance = 3 if num == 0 else 5
+            allqq = set()
+            for branches in Tree._objs:
+                for node in branches:
+                    if node.qq == user.qq:
+                        for s in range(-distance, distance + 1):
+                            for i in range(-(distance - abs(s)), distance - abs(s) + 1):
+                                ret = Tree.find((node.id[0] + s, node.id[1] + i))
+                                if ret is not None:
+                                    allqq.add(ret.qq)
+            allqq.remove(user.qq)
+            prompt = f"请at群内一名玩家。\n与你距离{distance}以内的玩家有：\n" + "\n".join(str(q) for q in allqq)
+            user.buf.send(prompt)
+            await user.buf.flush()
+            qq: int = (await user.buf.aget(prompt="",
+                arg_filters=[
+                        lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
+                        validators.fit_size(1, 1, message="请at正确的人数。"),
+                        validators.ensure_true(lambda q: q in allqq, message=f"请at与你接龙距离{distance}以内的玩家：\n" + "\n".join(str(q) for q in allqq))
+                    ]))[0]
+            u = User(qq, user.buf)
+            user.send_char("花费了" + s + "。")
+            if i == 0:
+                await user.add_jibi(-1)
+            elif i == 1:
+                await user.remove_cards(cards[count])
+            elif i == 2:
+                await user.remove_status(status_nulles[count])
+            elif i == 3:
+                await user.remove_daily_status(status_dailyes[count])
+            elif i == 4:
+                await user.remove_limited_status(count)
+            atk = ARailgun(user, u)
+            await u.attacked(user, atk)
+class ARailgun(Attack):
+    name = "超电磁炮"
+    async def self_action(self):
+        self.defender.death(120 * self.multiplier)
+        for d in self.defender.data.hand_card:
+            if d.is_metallic and random.random() > 0.5 ** self.multiplier:
+                self.defender.send_log(f"的{d.name}被烧掉了{句尾}")
+                await self.defender.remove_cards([d])
+        for s in self.defender.data.status:
+            if StatusNull(s).is_metallic and random.random() > 0.5 ** self.multiplier:
+                self.defender.send_log(f"的{name_f(StatusNull(s).des)}被烧掉了{句尾}")
+                await self.defender.remove_status(s)
+        for s in self.defender.data.daily_status:
+            if StatusDaily(s).is_metallic and random.random() > 0.5 ** self.multiplier:
+                self.defender.send_log(f"的{name_f(StatusDaily(s).des)}被烧掉了{句尾}")
+                await self.defender.remove_daily_status(s)
+        for s in self.defender.data.status_time_checked:
+            if s.is_metallic and random.random() > 0.5 ** self.multiplier:
+                self.defender.send_log(f"的{name_f(s.des)}被烧掉了{句尾}")
+                await self.defender.remove_limited_status(s)
+
 class magnet(_card):
     id = 129
     name = "磁力菇"
