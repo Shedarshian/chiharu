@@ -5875,12 +5875,12 @@ class mindgap(_card):
     id = 150
     name = "小心空隙"
     description = "今天接龙时有20%几率被神隐，被神隐的词消失，接龙人需再等待两个词才可接龙。"
-    global_daily_status = 'y'
+    global_daily_status = 'z'
     positive = 0
     newer = 7
     pack = Pack.misc
 class mindgap_s(_statusdaily):
-    id = 'y'
+    id = 'z'
     des = "小心空隙：今天接龙时有20%几率被神隐，被神隐的词消失，接龙人需再等待两个词才可接龙。"
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
