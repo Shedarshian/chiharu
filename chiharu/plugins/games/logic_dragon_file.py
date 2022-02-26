@@ -2095,7 +2095,7 @@ class SNoDragon(ListStatus):
     des = "不可接龙：无法从以下节点接龙。"
     is_debuff = True
     def __init__(self, s: Union[str, list], length: int=1):
-        self.length = length
+        self.length = int(length)
         super().__init__(s)
     def __repr__(self) -> str:
         return self.construct_repr(str(self.list), str(self.length))
@@ -2121,8 +2121,13 @@ class SNoDragon(ListStatus):
                 return False, 0, "你不能从此节点接龙" + 句尾
         return True, 0, ""
     @classmethod
+    async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
+        await user.remove_all_limited_status('n')
+    @classmethod
     def register(cls) -> dict[int, TEvent]:
-        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.nodragon, cls)}
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.nodragon, cls),
+            UserEvt.OnNewDay: (Priority.OnNewDay.nodragon, cls)}
+newday_check[2].add('n')
 
 class _statusnull(_statusall):
     id_dict: Dict[str, TNStatus] = {}
@@ -3040,14 +3045,14 @@ class le_checker(IEventListener):
         for qq in checks:
             u = User(qq, user.buf)
             l = u.check_limited_status('n', lambda s: s.length == 1)
-            if n := u.check_daily_status('L') and random.random() > 0.25 ** n:
+            if (n := u.check_daily_status('L')) and random.random() > 0.25 ** n:
                 u.log << f"不可从节点{branch.id_str}接龙。"
                 user.buf.send(f"玩家{qq}判定失败，不可从此节点接龙{句尾}")
                 if len(l) == 0:
                     await u.add_limited_status(SNoDragon([branch.id_str], 1))
                 else:
                     l[0].list.append(branch.id_str)
-            if n := u.check_daily_status('K') and random.random() > 0.75 ** n:
+            if (n := u.check_daily_status('K')) and random.random() > 0.75 ** n:
                 u.log << f"不可从节点{branch.id_str}接龙。"
                 user.buf.send(f"玩家{qq}判定失败，不可从此节点接龙{句尾}")
                 if len(l) == 0:
