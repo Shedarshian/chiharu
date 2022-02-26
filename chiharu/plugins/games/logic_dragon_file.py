@@ -2515,6 +2515,7 @@ class SQuest(NumedStatus):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.quest, cls),
             UserEvt.OnNewDay: (Priority.OnNewDay.quest, cls)}
+newday_check[2].add('q')
 
 class hierophant(_card):
     name = "V - 教皇"
@@ -6133,6 +6134,7 @@ class Stimebomb(NumedStatus):
     def register(cls):
         return {UserEvt.OnDragoned: (Priority.OnDragoned.timebomb, cls),
             UserEvt.OnNewDay: (Priority.OnNewDay.timebomb, cls)}
+newday_check[2].add('B')
 
 class cashprinter(_card):
     name = "印钞机"
