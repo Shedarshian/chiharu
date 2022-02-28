@@ -105,7 +105,7 @@ async def CheckSeiyuu(session: CommandSession):
 @config.ErrorHandle
 async def BirthToday(session: CommandSession):
     """查询今天生日的角色。
-    可用范围：lovelive, imas, bandori, 227
+    可用范围：lovelive, imas, bandori, 227, pjsk
     可用选项：
         -d, --date：指定日期，格式为MMDD。"""
     opts, args = getopt.gnu_getopt(session.args['argv'], 'd:', ['date='])
@@ -159,7 +159,7 @@ async def DailySeiyuu():
 @scheduler.scheduled_job('cron', id="daily_birth", hour='23', minute='01')
 async def DailyBirth():
     bot = get_bot()
-    l = ['imas', 'lovelive', 'bandori', '227']
+    l = ['imas', 'lovelive', 'bandori', '227', 'pjsk']
     dictout = _GetBirth(*l)
     for s in l:
         if len(dictout[s]) != 0:
@@ -263,6 +263,11 @@ def _GetBirth(*args, date=None):
                         '22/7的成员{name}{name@zh/（{name@zh}）}'
                         '{cv/【CV：{cv}{cv@zh/（{cv@zh}）}】}'
                         #.format_map(obj))
+                        , (), obj))
+                elif obj.group == "pjsk":
+                    dict_ret["bandori"].append(f.vformat(
+                        '{band}{band@zh/（{band@zh}）}的{name}{name@zh/（{name@zh}）}'
+                        '【CV：{cv}{cv@zh/（{cv@zh}）}】'
                         , (), obj))
     return dict_ret
 

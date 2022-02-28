@@ -4,8 +4,8 @@ import ply.lex as lex, ply.yacc as yacc
 
 re_x = re.compile(r'^x(\d*)$')
 re_dy = re.compile(r'^(?:(?:D|d)(\d+)|((?:D|d)*))y(\d*)$')
-tokens = ('NUMBER', 'ID', 'EQ', 'NEQ', 'GE', 'LE', 'AND', 'OR', 'DEFINE', 'SUM', 'ARRAYNAME', 'EOF')
-literals = '+-*/^(),<>?:[]{}'
+tokens = ('NUMBER', 'ID', 'EQ', 'NEQ', 'GE', 'LE', 'AND', 'OR', 'DEFINE', 'SUM', 'ARRAYNAME', 'EOF', 'ARROW')
+literals = '+-*/^(),<>?:[]{}$'
 
 array_dict = {}
 
@@ -20,6 +20,7 @@ def ExpressionLexer():
     t_AND = r'&&'
     t_OR = r'\|\|'
     t_DEFINE = r':='
+    t_ARROW = r'=>'
     t_ignore = ' \t'
     def t_NUMBER(t):
         r'\d+(\.\d+)?(e-?\d+)?'
@@ -95,6 +96,7 @@ nums = _nums()
 class ExpressionParser:
     tokens = tokens
     precedence = (
+        ('right', '$'),
         ('left', 'DEFINE'),
         ('right', ':'),
         ('left', 'OR'),
@@ -108,8 +110,8 @@ class ExpressionParser:
     )
     binary_operator = {'+': lambda x, y: x + y, '-': lambda x, y: x - y, '*': lambda x, y: x * y, '/': lambda x, y: x / y, '^': lambda x, y: x ** y, '==': lambda x, y: x == y, '!=': lambda x, y: x != y, '>=': lambda x, y: x >= y, '<=': lambda x, y: x <= y, '>': lambda x, y: x > y, '<': lambda x, y: x < y, '&&': lambda x, y: x and y, '||': lambda x, y: x or y}
     @staticmethod
-    def optimize(f, *args, typ=float):
-        if all([isinstance(x, (float, bool, list)) for x in args]):
+    def optimize(f, *args, typ=float, optimize_check=True):
+        if optimize_check and all([isinstance(x, (float, bool, list)) for x in args]):
             return typ(f(*args))
         else:
             return lambda *a, **ka: f(*[(x if isinstance(x, (float, bool, list)) else x(*a, **ka)) for x in args])
@@ -148,8 +150,11 @@ class ExpressionParser:
         p[0] = ExpressionParser.optimize(lambda x, y, z: (y if x else z), p[1], p[3], p[5], typ=list)
     def p_paren(self, p):
         """expression : '(' expression ')'
+                      | '$' expression
            logic : '(' logic ')'
+                 | '$' logic
            array : '(' array ')'
+                 | '$' array
                  | '{' list '}'"""
         p[0] = p[2]
     def p_id(self, p):
@@ -185,12 +190,14 @@ class ExpressionParser:
         """expression : NUMBER"""
         p[0] = p[1]
     def p_function(self, p):
-        """expression : ID '(' list ')'"""
+        """expression : ID '(' list ')'
+                      | ID '$' list"""
         if p[1] not in functions:
             raise ParserError(p[1] + ' not found')
-        p[0] = ExpressionParser.optimize(functions[p[1]], *p[3], typ=float)
+        p[0] = ExpressionParser.optimize(functions[p[1]], *p[3], typ=float, optimize_check=(p[1] not in {'random', 'gauss'}))
     def p_sum(self, p):
-        """expression : SUM '[' ID ']' seen_sum '(' list ')'"""
+        """expression : SUM '[' ID ']' seen_sum '(' list ')'
+                      | SUM '[' ID ']' seen_sum '$' list"""
         if len(p[7]) != 3:
             raise TypeError('sum takes 3 positional argument but %i is given' % len(p[7]))
         b, e, func = p[7]
@@ -214,7 +221,8 @@ class ExpressionParser:
             p[0] = result
         self.temp_var.remove(p[3])
     def p_sum_array(self, p):
-        """expression : SUM '[' ID ']' seen_sum '(' array ',' expression ')'"""
+        """expression : SUM '[' ID ']' seen_sum '(' array ',' expression ')'
+                      | SUM '[' ID ']' seen_sum '$' array ',' expression"""
         func = p[9]
         c = str(p[3])
         rg = p[7]
@@ -266,6 +274,9 @@ class ExpressionParser:
     def p_array_index(self, p):
         """expression : array '[' expression ']'"""
         p[0] = ExpressionParser.optimize(lambda x, y: x[int(y)], p[1], p[3], typ=float)
+    def p_array_slice(self, p):
+        """array : array '[' expression ':' expression ']'"""
+        p[0] = ExpressionParser.optimize(lambda x, y, z: x[int(y):int(z)], p[1], p[3], p[5], typ=list)
     def p_start_error(self, p):
         """final : array EOF
                  | logic EOF"""

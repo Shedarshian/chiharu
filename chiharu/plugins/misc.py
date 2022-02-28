@@ -1,14 +1,5 @@
-import contextlib
-import sys
-import re
-import os
-import math
-import random
-import functools
-import asyncio
-import requests
-import json
-import getopt
+import contextlib, sys, re, os, math, random
+import functools, asyncio, requests, json, getopt, subprocess
 from datetime import date, timedelta
 import wand.image, wand.color
 from io import StringIO
@@ -83,6 +74,13 @@ async def PythonAwait(session: CommandSession):
         await local['main']()
     await session.send(s.getvalue()[:-1])
 
+@on_command(('python', 'pull'), only_to_me=False, hide=True)
+@config.ErrorHandle
+async def PythonPull(session: CommandSession):
+    batcmd = "git pull"
+    result = subprocess.check_output(batcmd, shell=True)
+    await session.send(result.decode('utf-8'))
+
 config.CommandGroup(('misc', 'maj'), short_des='麻将小助手。')
 
 @on_command(('misc', 'maj', 'ten'), only_to_me=False, short_des="日麻算点器。")
@@ -140,7 +138,7 @@ async def GetMajImg(s):
     loop = asyncio.get_event_loop()
     u = 'http://mjv.jp/2/img/n%s.png' % s
     url2 = await loop.run_in_executor(None, functools.partial(requests.get, u,
-        headers={'Referer': 'http://tenhou.net/2/img/'}))
+        headers={'Referer': 'https://tenhou.net/'}))
     name = str(hash(s))
     with open(config.img(name + '.png'), 'wb') as f:
         f.write(url2.content)
@@ -744,11 +742,13 @@ async def shuru(session: CommandSession):
     """面基算钱小助手。\n\n每个行为一条指令。指令：\nclear: 清除所有数据。\nadd [人名]: 增加一个人。\nbill [人名] [金额] [可选：需付费的人名列表]: 增加一个需付费账单，人名列表为空则默认【包括自己的】所有人。\noutput [策略] [参数]: 输出金额交换。策略目前有：\n\toneman [参数：人名]: 所有金额交换全部支付给此人/由此人支付。"""
     await session.send("结果为：" + MoneyComputer().processLines(session.current_arg_text.split('\n')))
 
-@on_command(('misc', 'omikuji'), only_to_me=False, short_des="千春酱御神签~")
+@on_command(('misc', 'omikuji'), only_to_me=False, short_des="妹妹的御神签。")
 @config.ErrorHandle
 async def omikuji(session: CommandSession):
-    """千春酱御神签~
-    每周只能抽一次哦~"""
+    """妹妹的御神签。
+    每周只能抽一次。"""
+    # """千春酱御神签~
+    # 每周只能抽一次哦~"""
     version = "チハルちゃんおみくじ ver0.0.1"
     qq = session.ctx['user_id']
     today = date.today()

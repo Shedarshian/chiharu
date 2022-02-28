@@ -132,14 +132,32 @@ async def help_f(session: CommandSession):
     #     await session.send(strout)
     await session.send(strout)
 
-@on_command('reload', only_to_me=False, permission=permission.SUPERUSER, hide=True)
+@on_command('reload', only_to_me=False, hide=True)
 @config.ErrorHandle
 async def reload_plugin(session: CommandSession):
+    if session.ctx['user_id'] not in config.reload_whitelist:
+        return
     name = 'chiharu.plugins.' + session.current_arg_text
-    if plugin.reload_plugin(name):
-        await session.send('Successfully reloaded ' + session.current_arg_text)
+    import logging
+    messages = []
+    logger = logging.getLogger('nonebot')
+    class ListenFilter(logging.Filter):
+        def filter(self, record):
+            messages.append(record.getMessage())
+            return True
+    f = ListenFilter()
+    from contextlib import contextmanager
+    @contextmanager
+    def install_remove_filter(logger_to_filter, filter_to_add_remove):
+        logger_to_filter.addFilter(filter_to_add_remove)
+        yield
+        logger_to_filter.removeFilter(filter_to_add_remove)
+    with install_remove_filter(logger, f):
+        ret = plugin.reload_plugin(name)
+    if ret:
+        await session.send('Successfully reloaded ' + session.current_arg_text + '\n' + '\n'.join(messages))
     else:
-        await session.send('Failed to reload plugin')
+        await session.send('Failed to reload plugin\n' + '\n'.join(messages))
 
 from nonebot.command import Command
 from .config import find_help
@@ -158,5 +176,5 @@ async def help_reflection(session: CommandSession):
     else:
         await session.send('未发现指令。')
 
-config.CommandGroup('me', short_des='关于我®', des='こんにちは～七海千春です～\n维护者：小大圣\n献给：yuyu♥\n友情协助：Randolph（snakebird关卡信息），小石\n鸣谢：Python®  c\u0336o\u0336o\u0336l\u0336q\u0336  m\u0336i\u0336r\u0336a\u0336i\u0336 go-cqhttp® cqhttp®  nonebot®  阿里云®\nContact me：shedarshian@gmail.com', display_id=998)
+config.CommandGroup('me', short_des='关于我®', des='乖妹妹最近遇到了些烦心事，回家休息休息，姐姐我来代几天班。\n维护者：爸爸辛苦了。多疼疼妹妹。\n献给：妈妈记得多哄哄妹妹。\n友情协助：Randolph（snakebird关卡信息），小石\n鸣谢：妹妹这些我不懂。和她一样吧。\nContact me：shedarshian@gmail.com' if config.is_chinatsu else 'こんにちは～七海千春です～\n维护者：小大圣\n献给：yuyu♥\n友情协助：Randolph（snakebird关卡信息），小石\n鸣谢：Python®  c\u0336o\u0336o\u0336l\u0336q\u0336  m\u0336i\u0336r\u0336a\u0336i\u0336 go-cqhttp® cqhttp®  nonebot®  阿里云®\nContact me：shedarshian@gmail.com', display_id=998)
 config.CommandGroup((), des="指令：")

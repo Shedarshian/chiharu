@@ -121,8 +121,16 @@ class MajHai:
     SAME = 4
     ZI_MAX = 7
     COLOR = 3
-    def __init__(self, id: Union[int, str]):
-        if type(id) == int:
+    def __init__(self, id: Union[int, str], *args):
+        if len(args) == 1 and isinstance(id, int):
+            self.color = id
+            self.num = args[0]
+            self.hai = self.color * 9 + self.num
+            self.barrel = self.color if self.color != 3 else self.num + self.color
+            if not (self.hai < 136):
+                raise MajIdError((id, args[0]))
+            self.id = -1
+        elif isinstance(id, int):
             if not (id >= 0 and id < self.SAME * (self.MAX * self.COLOR + self.ZI_MAX)):
                 raise MajIdError(id)
             self.id = id
@@ -130,7 +138,7 @@ class MajHai:
             self.num = self.hai % self.MAX
             self.color = self.hai // self.MAX # 0: m, 1: p, 2: s, 3: z
             self.barrel = self.color if self.color != self.COLOR else self.num + self.color
-        elif type(id) == str:
+        elif isinstance(id, str):
             if not (len(id) == 2 and id[0] in '0123456789' and id[1] in 'mpsz'):
                 raise MajIdError(id)
             self.num = int(id[0]) - 1
@@ -140,6 +148,9 @@ class MajHai:
             if not (self.hai < 136):
                 raise MajIdError(id)
             self.id = -1
+    @classmethod
+    def get_random(cls):
+        return random.randint(0, cls.MAX * cls.COLOR + cls.ZI_MAX - 1)
     @property
     def color_c(self):
         return MajHai.color_dict[self.color]
@@ -153,6 +164,17 @@ class MajHai:
         return self.hai == other.hai
     def isaddOne(self, other):
         return self.color == other.color and self.color != 3 and self.num + 1 == other.num
+    def addOneDora(self):
+        if self.color == 3:
+            if self.num == self.ZI_MAX - 1:
+                return self.__class__(self.color, 4)
+            elif self.num == 3:
+                return self.__class__(self.color, 0)
+            return self.__class__(self.color, self.num + 1)
+        else:
+            if self.num == self.MAX - 1:
+                return self.__class__(self.color, 0)
+            return self.__class__(self.color, self.num + 1)
     @property
     def isYaokyuu(self):
         return self.color == 3 or self.num == 0 or self.num == 8
@@ -268,7 +290,7 @@ class MajHai:
                 result = tuple(_(val)) + ((val[0], val[0]),)
                 results[val[0] + 27] = [r + [(key, result)] for r in result_nonten]
         else:
-            key1, val1, key2, val2 = itertools.chain(mod2_barrel)
+            key1, val1, key2, val2 = itertools.chain(*mod2_barrel)
             for k1, t1, k2, t2 in ((key1, val1, key2, val2), (key2, val2, key1, val1)):
                 result1 = MajHai._ting(t1) # type: List[Set[Tuple[Tuple[int,...],...]]]
                 result2 = MajHai._chai(t2) # type: Set[Tuple[Tuple[int,...],...]]

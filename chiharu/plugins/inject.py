@@ -6,7 +6,9 @@ import functools
 from datetime import timedelta
 from more_itertools import only
 from nonebot import permission, get_bot
-from nonebot.command import CommandHandler_T, Command, CommandSession, CommandManager
+from nonebot.command import CommandHandler_T, Command, CommandSession, CommandManager, _YieldException
+from nonebot.command.argfilter import ValidateError
+from nonebot.helpers import render_expression
 from nonebot.typing import CommandName_T, Patterns_T, PermChecker_T
 from nonebot.session import BaseSession
 from nonebot.permission import check_permission
@@ -338,3 +340,80 @@ async def find_help(cmd_name: tuple, session: CommandSession):
                     continue
                 yield (command.display_id, f"-{'.'.join(command.name)}{''.join(' ' + x for x in command.args)}：{command.short_des}")
         return (cmd_tree.des + '\n' + '\n'.join(s2 for id, s2 in sorted([s async for s in _(cmd_tree)], key=lambda x: x[0]))).strip()
+
+async def run(self: Command,
+                session: 'CommandSession',
+                *,
+                check_perm: bool = True,
+                dry: bool = False) -> bool:
+    """
+    Run the command in a given session.
+
+    :param session: CommandSession object
+    :param check_perm: should check permission before running
+    :param dry: just check any prerequisite, without actually running
+    :return: the command is finished (or can be run, given dry == True)
+    """
+    has_perm = await self._check_perm(session) if check_perm else True
+    if self.func and has_perm:
+        if dry:
+            return True
+
+        if session.current_arg_filters is not None and \
+                session.current_key is not None:
+            # argument-level filters are given, use them
+            arg = session.current_arg
+            config = session.bot.config
+            for f in session.current_arg_filters:
+                try:
+                    res = f(arg)
+                    if isinstance(res, Awaitable):
+                        res = await res
+                    arg = res
+                except ValidateError as e:
+                    # validation failed
+                    if config.MAX_VALIDATION_FAILURES > 0:
+                        # should check number of validation failures
+                        session.state['__validation_failure_num'] = \
+                            session.state.get(
+                                '__validation_failure_num', 0) + 1
+
+                        if session.state['__validation_failure_num'] >= \
+                                config.MAX_VALIDATION_FAILURES:
+                            # noinspection PyProtectedMember
+                            session.finish(
+                                render_expression(
+                                    config.
+                                    TOO_MANY_VALIDATION_FAILURES_EXPRESSION
+                                ), **session._current_send_kwargs)
+
+                    failure_message = e.message
+                    if failure_message is None:
+                        failure_message = render_expression(
+                            config.DEFAULT_VALIDATION_FAILURE_EXPRESSION)
+                    # noinspection PyProtectedMember
+                    session.pause(failure_message,
+                                    **session._current_send_kwargs)
+                except Exception as e: # inject here
+                    session._future.set_exception(e)
+                    break
+
+            # passed all filters
+            session.state[session.current_key] = arg
+        else:
+            # fallback to command-level args_parser_func
+            if self.args_parser_func:
+                await self.args_parser_func(session)
+            if session.current_key is not None and \
+                    session.current_key not in session.state:
+                # args_parser_func didn't set state, here we set it
+                session.state[session.current_key] = session.current_arg
+        if session.waiting:
+            if not session._future.done():
+                session._future.set_result(True)
+            raise _YieldException()
+        else:
+            await self.func(session)
+        return True
+    return False
+Command.run = run

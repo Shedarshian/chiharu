@@ -14,7 +14,7 @@ from collections import UserDict
 from .inject import find_help, CommandGroup, Environment, AllGroup, Admin, Constraint, on_command
 
 PATH = "C:\\coolq_data\\"
-PATH_IMG = "C:\\coolq\\image"
+PATH_IMG = "C:\\go\\data\\images"
 PATH_REC = "C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\record"
 
 def rel(rel_path):
@@ -25,6 +25,7 @@ def rec(rel_path):
     return path.join(PATH_REC, rel_path)
 
 selfqq = 2711644761
+is_chinatsu = True
 group_id_dict = {}
 tiemu_basic = {}
 headers = {}
@@ -86,6 +87,7 @@ class _logger:
         self.file.write(str(a))
         self.file.write('\n')
         self.file.flush()
+        return self
 
 class _logger_meta(type):
     def __getattr__(cls, attr):
@@ -209,25 +211,28 @@ userdata_db = sqlite3.connect(rel('users.db'))
 userdata_db.row_factory = sqlite3.Row
 userdata = userdata_db.cursor()
 
+句尾 = '。' if is_chinatsu else '！'
 class _helper:
     __slots__ = ("session",)
     def __init__(self, session: 'SessionBuffer'):
         self.session = session
     def __getattr__(self, name):
-        def _(qq, s, /, end='\n'):
-            self.session.buffer += self.session.char(qq)
+        def _(qq, s, /, end='\n', no_char=False):
+            if not no_char:
+                self.session.buffer += self.session.char(qq)
             self.session.buffer += s
             self.session.buffer += end
             logger._l[name] << f"【LOG】用户{qq}" + s
         return _
 class SessionBuffer:
-    __slots__ = ('buffer', 'session', 'active', 'send_end', 'group_id')
+    __slots__ = ('buffer', 'session', 'active', 'send_end', 'group_id', 'state')
     def __init__(self, session: Optional[BaseSession], /, group_id=None):
         self.buffer: str = ''
         self.send_end: str = ''
         self.session: Optional[BaseSession] = session
         self.active: int = -1 if session is None else session.ctx['user_id']
         self.group_id = group_id
+        self.state = {}
     def send(self, s, end='\n'):
         self.buffer += s
         self.buffer += end
@@ -239,10 +244,11 @@ class SessionBuffer:
         self.send_end += end
     async def flush(self):
         if self.buffer or self.send_end:
+            msg = (self.buffer + self.send_end).strip()
             if self.session is None:
-                await get_bot().send_group_msg(group_id=self.group_id, message=(self.buffer + self.send_end).strip())
+                await get_bot().send_group_msg(group_id=self.group_id, message=msg)
             else:
-                await self.session.send((self.buffer + self.send_end).strip())
+                await self.session.send(msg)
             self.buffer = ''
             self.send_end = ''
     def __getattr__(self, name: str):
@@ -250,6 +256,10 @@ class SessionBuffer:
     def char(self, qq):
         if qq == self.active:
             return '你'
+        elif qq == selfqq:
+            return '全局'
+        elif qq == 1:
+            return '龙'
         else:
             return '该玩家'
 
@@ -261,3 +271,133 @@ def buffer_dec(f):
         finally:
             await buf.flush()
     return _f
+
+from abc import get_cache_token
+from functools import _find_impl, update_wrapper
+def mysingledispatch(func): # basic change: change the behavior of not given args to given None
+    """Single-dispatch generic function decorator.
+
+    Transforms a function into a generic function, which can have different
+    behaviours depending upon the type of its first argument. The decorated
+    function acts as the default implementation, and additional
+    implementations can be registered using the register() attribute of the
+    generic function.
+    """
+    # There are many programs that use functools without singledispatch, so we
+    # trade-off making singledispatch marginally slower for the benefit of
+    # making start-up of such applications slightly faster.
+    import types, weakref
+
+    registry = {}
+    dispatch_cache = weakref.WeakKeyDictionary()
+    cache_token = None
+
+    def dispatch(cls):
+        """generic_func.dispatch(cls) -> <function implementation>
+
+        Runs the dispatch algorithm to return the best available implementation
+        for the given *cls* registered on *generic_func*.
+
+        """
+        nonlocal cache_token
+        if cache_token is not None:
+            current_token = get_cache_token()
+            if cache_token != current_token:
+                dispatch_cache.clear()
+                cache_token = current_token
+        try:
+            impl = dispatch_cache[cls]
+        except KeyError:
+            try:
+                impl = registry[cls]
+            except KeyError:
+                impl = _find_impl(cls, registry)
+            dispatch_cache[cls] = impl
+        return impl
+
+    def register(cls, func=None):
+        """generic_func.register(cls, func) -> func
+
+        Registers a new implementation for the given *cls* on a *generic_func*.
+
+        """
+        nonlocal cache_token
+        if func is None:
+            if isinstance(cls, type):
+                return lambda f: register(cls, f)
+            ann = getattr(cls, '__annotations__', {})
+            if not ann:
+                raise TypeError(
+                    f"Invalid first argument to `register()`: {cls!r}. "
+                    f"Use either `@register(some_class)` or plain `@register` "
+                    f"on an annotated function."
+                )
+            func = cls
+
+            # only import typing if annotation parsing is necessary
+            from typing import get_type_hints
+            argname, cls = next(iter(get_type_hints(func).items()))
+            if not isinstance(cls, type):
+                raise TypeError(
+                    f"Invalid annotation for {argname!r}. "
+                    f"{cls!r} is not a class."
+                )
+        registry[cls] = func
+        if cache_token is None and hasattr(cls, '__abstractmethods__'):
+            cache_token = get_cache_token()
+        dispatch_cache.clear()
+        return func
+
+    def wrapper(*args, **kw):
+        if not args:
+            return dispatch(None.__class__)(*args, **kw)
+
+        return dispatch(args[0].__class__)(*args, **kw)
+
+    funcname = getattr(func, '__name__', 'singledispatch function')
+    registry[object] = func
+    wrapper.register = register
+    wrapper.dispatch = dispatch
+    wrapper.registry = types.MappingProxyType(registry)
+    wrapper._clear_cache = dispatch_cache.clear
+    update_wrapper(wrapper, func)
+    return wrapper
+
+# Descriptor version
+class mysingledispatchmethod:
+    """Single-dispatch generic method descriptor.
+
+    Supports wrapping existing descriptors and handles non-descriptor
+    callables as instance methods.
+    """
+
+    def __init__(self, func):
+        if not callable(func) and not hasattr(func, "__get__"):
+            raise TypeError(f"{func!r} is not callable or a descriptor")
+
+        self.dispatcher = singledispatch(func)
+        self.func = func
+
+    def register(self, cls, method=None):
+        """generic_method.register(cls, func) -> func
+
+        Registers a new implementation for the given *cls* on a *generic_method*.
+        """
+        return self.dispatcher.register(cls, func=method)
+
+    def __get__(self, obj, cls=None):
+        def _method(*args, **kwargs):
+            if not args:
+                method = self.dispatcher.dispatch(args[0].__class__)
+            else:
+                method = self.dispatcher.dispatch(None.__class__)
+            return method.__get__(obj, cls)(*args, **kwargs)
+
+        _method.__isabstractmethod__ = self.__isabstractmethod__
+        _method.register = self.register
+        update_wrapper(_method, self.func)
+        return _method
+
+    @property
+    def __isabstractmethod__(self):
+        return getattr(self.func, '__isabstractmethod__', False)
