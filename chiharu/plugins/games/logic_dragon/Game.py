@@ -5,6 +5,7 @@ from .UserData import UserData
 from .Dragon import Tree
 from .Types import TEvent
 from .Helper import Session
+from .Priority import UserEvt
 from ... import config
 if TYPE_CHECKING:
     from .EventListener import IEventListener
@@ -14,7 +15,7 @@ class Game:
         self.initTree(True)
         self.managerQQ = config.selfqq
         self.me = UserData(self.managerQQ, self)
-        self.eventListenerInit: defaultdict[int, TEvent] = defaultdict(lambda: defaultdict(list))
+        self.eventListenerInit: defaultdict[UserEvt, TEvent] = defaultdict(lambda: defaultdict(list))
         self.userdatas: Dict[int, 'UserData'] = {}
     def initTree(self, is_daily: bool):
         if is_daily:

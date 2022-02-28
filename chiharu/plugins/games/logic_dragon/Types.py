@@ -1,5 +1,6 @@
 from typing import *
 from dataclasses import dataclass
+from enum import Enum
 if TYPE_CHECKING:
     from .EventListener import IEventListener
 

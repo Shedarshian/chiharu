@@ -1,5 +1,8 @@
-from abc import ABC, ABCMeta
+from abc import ABC, ABCMeta, abstractmethod
 from typing import *
+import json
+
+ProtocolData = dict[str, Any]
 
 class BuildIdMeta(ABCMeta):
     def __new__(cls, clsname: str, bases, attrs):
@@ -33,13 +36,27 @@ class Saveable(ABC):
             l.append(cls.idDict[id](els or None))
         return l
     @classmethod
-    def get(cls, id: int):
+    def get(cls: Type[TSaveable], id: int) -> Type[TSaveable]:
         if id in cls.idDict:
             return cls.idDict[id]
         raise ValueError("哈")
 
 class Session(ABC):
-    pass
+    def __init__(self, qq: int) -> None:
+        self.datas: list[ProtocolData] = []
+        self.qq = qq
+    def serialize(self):
+        s = json.dumps(self.datas)
+        self.datas.clear()
+        return s
+    def addData(self, data: ProtocolData):
+        self.datas.append(data)
+    @abstractmethod
+    async def flush(self):
+        pass
+    @abstractmethod
+    async def getResponse(self, request: ProtocolData):
+        pass
 
 class indexer:
     def __init__(self, fget=None, fset=None):

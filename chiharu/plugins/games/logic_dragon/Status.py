@@ -88,10 +88,11 @@ class StatusTimed(Status):
     @__init__.register
     def _(self, data: timedelta):
         self.time = datetime.now() + data
-    
     @property
     def valid(self):
         return self.time >= datetime.now()
+    def packData(self) -> str:
+        return self.time.isoformat()
     def getStr(self):
         delta = self.time - datetime.now()
         min = delta.seconds // 60

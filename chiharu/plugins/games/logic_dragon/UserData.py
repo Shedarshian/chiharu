@@ -10,6 +10,7 @@ from .Card import Card
 from .Status import Status
 from .Equipment import Equipment
 from .EventListener import IEventListener
+from .Priority import UserEvt
 if TYPE_CHECKING:
     from .Game import Game
 log = config.logger.dragon
@@ -41,7 +42,7 @@ class UserData:
         self.handCard = Card.unpackAllData(self.node['card'])
         self.statusesUnchecked = Status.unpackAllData(self.node['status'])
         self.equipments = Equipment.unpackAllData(self.node['equipment'])
-        self.eventListener : defaultdict[int, TEvent] = defaultdict(lambda: defaultdict(list))
+        self.eventListener : defaultdict[UserEvt, TEvent] = defaultdict(lambda: defaultdict(list))
     def AddRef(self):
         self.refCount += 1
     def DecreaseRef(self):
@@ -283,3 +284,22 @@ class UserData:
             else:
                 i += 1
         return self.statusesUnchecked
+    def CheckStatus(self, id: int):
+        return [s for s in self.statuses if s.id == id]
+    def CheckStatusStack(self, id: int):
+        l = self.CheckStatus(id)
+        if len(l) == 0:
+            return 0
+        return l[0].count
+    def CheckEquipment(self, id: int):
+        l = [s for s in self.equipments if s.id == id]
+        if len(l) == 0:
+            return None
+        return l[0]
+
+    def addCard(self, c: Card):
+        self.handCard.append(c)
+        self.register(c)
+    def removeCard(self, c: Card):
+        self.handCard.remove(c)
+        self.deregister(c)
