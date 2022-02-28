@@ -27,7 +27,7 @@ class Saveable(ABC):
         return '/'.join(s.save() for s in l)
     @classmethod
     def unpackAllData(cls, s: str):
-        l = []
+        l: list[cls] = []
         for c in s.split('/'):
             id, els = c.split(':', 2)
             l.append(cls.idDict[id](els or None))
@@ -37,3 +37,32 @@ class Saveable(ABC):
         if id in cls.idDict:
             return cls.idDict[id]
         raise ValueError("哈")
+
+class Session(ABC):
+    pass
+
+class indexer:
+    def __init__(self, fget=None, fset=None):
+        self.fget = fget
+        self.fset = fset
+        self._indexer = _indexer(self)
+        self._name = ''
+    def __set_name__(self, owner, name):
+        self._name = name
+    def __get__(self, obj, objtype=None):
+        if obj is None:
+            return self
+        self._indexer.obj = obj
+        return self._indexer
+    def setter(self, fset):
+        prop = type(self)(self.fget, fset)
+        prop._name = self._name
+        return prop
+class _indexer:
+    def __init__(self, parent: indexer):
+        self.parent: indexer = parent
+        self.obj = None
+    def __getitem__(self, index):
+        return self.parent.fget(self.obj, index)
+    def __setitem__(self, index, item):
+        self.parent.fset(self.obj, index, item)

@@ -265,5 +265,5 @@ class IEventListener:
         """Called when new day begins."""
         pass
     @classmethod
-    def register(cls) -> dict[int, TEvent]:
-        return {}
+    def register(cls) -> Iterable[Tuple[int, int]]:
+        return []
