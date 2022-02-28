@@ -2102,7 +2102,6 @@ class SNoDragon(ListStatus):
     def check(self) -> bool:
         return True
     def __str__(self) -> str:
-        from .logic_dragon import Tree
         ids = [tree.id_str for tree in Tree.get_active()]
         if self.length == 1:
             return f"{self.des}\n\t{','.join(c for c in self.list if c in ids)}"
@@ -2442,7 +2441,6 @@ class high_priestess(_card):
     pack = Pack.tarot
     @classmethod
     async def use(cls, user: User):
-        from .logic_dragon import Tree
         counter = Counter([tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))])
         l = counter.most_common()
         ql = [qq for qq, time in l if time == l[0][1]]
@@ -2521,6 +2519,7 @@ class SQuest(NumedStatus):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.quest, cls),
             UserEvt.OnNewDay: (Priority.OnNewDay.quest, cls)}
+newday_check[2].add('q')
 
 class hierophant(_card):
     name = "V - 教皇"
@@ -6141,6 +6140,7 @@ class Stimebomb(NumedStatus):
     def register(cls):
         return {UserEvt.OnDragoned: (Priority.OnDragoned.timebomb, cls),
             UserEvt.OnNewDay: (Priority.OnNewDay.timebomb, cls)}
+newday_check[2].add('B')
 
 class cashprinter(_card):
     name = "印钞机"

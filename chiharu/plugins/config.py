@@ -271,3 +271,133 @@ def buffer_dec(f):
         finally:
             await buf.flush()
     return _f
+
+from abc import get_cache_token
+from functools import _find_impl, update_wrapper
+def mysingledispatch(func): # basic change: change the behavior of not given args to given None
+    """Single-dispatch generic function decorator.
+
+    Transforms a function into a generic function, which can have different
+    behaviours depending upon the type of its first argument. The decorated
+    function acts as the default implementation, and additional
+    implementations can be registered using the register() attribute of the
+    generic function.
+    """
+    # There are many programs that use functools without singledispatch, so we
+    # trade-off making singledispatch marginally slower for the benefit of
+    # making start-up of such applications slightly faster.
+    import types, weakref
+
+    registry = {}
+    dispatch_cache = weakref.WeakKeyDictionary()
+    cache_token = None
+
+    def dispatch(cls):
+        """generic_func.dispatch(cls) -> <function implementation>
+
+        Runs the dispatch algorithm to return the best available implementation
+        for the given *cls* registered on *generic_func*.
+
+        """
+        nonlocal cache_token
+        if cache_token is not None:
+            current_token = get_cache_token()
+            if cache_token != current_token:
+                dispatch_cache.clear()
+                cache_token = current_token
+        try:
+            impl = dispatch_cache[cls]
+        except KeyError:
+            try:
+                impl = registry[cls]
+            except KeyError:
+                impl = _find_impl(cls, registry)
+            dispatch_cache[cls] = impl
+        return impl
+
+    def register(cls, func=None):
+        """generic_func.register(cls, func) -> func
+
+        Registers a new implementation for the given *cls* on a *generic_func*.
+
+        """
+        nonlocal cache_token
+        if func is None:
+            if isinstance(cls, type):
+                return lambda f: register(cls, f)
+            ann = getattr(cls, '__annotations__', {})
+            if not ann:
+                raise TypeError(
+                    f"Invalid first argument to `register()`: {cls!r}. "
+                    f"Use either `@register(some_class)` or plain `@register` "
+                    f"on an annotated function."
+                )
+            func = cls
+
+            # only import typing if annotation parsing is necessary
+            from typing import get_type_hints
+            argname, cls = next(iter(get_type_hints(func).items()))
+            if not isinstance(cls, type):
+                raise TypeError(
+                    f"Invalid annotation for {argname!r}. "
+                    f"{cls!r} is not a class."
+                )
+        registry[cls] = func
+        if cache_token is None and hasattr(cls, '__abstractmethods__'):
+            cache_token = get_cache_token()
+        dispatch_cache.clear()
+        return func
+
+    def wrapper(*args, **kw):
+        if not args:
+            return dispatch(None.__class__)(*args, **kw)
+
+        return dispatch(args[0].__class__)(*args, **kw)
+
+    funcname = getattr(func, '__name__', 'singledispatch function')
+    registry[object] = func
+    wrapper.register = register
+    wrapper.dispatch = dispatch
+    wrapper.registry = types.MappingProxyType(registry)
+    wrapper._clear_cache = dispatch_cache.clear
+    update_wrapper(wrapper, func)
+    return wrapper
+
+# Descriptor version
+class mysingledispatchmethod:
+    """Single-dispatch generic method descriptor.
+
+    Supports wrapping existing descriptors and handles non-descriptor
+    callables as instance methods.
+    """
+
+    def __init__(self, func):
+        if not callable(func) and not hasattr(func, "__get__"):
+            raise TypeError(f"{func!r} is not callable or a descriptor")
+
+        self.dispatcher = singledispatch(func)
+        self.func = func
+
+    def register(self, cls, method=None):
+        """generic_method.register(cls, func) -> func
+
+        Registers a new implementation for the given *cls* on a *generic_method*.
+        """
+        return self.dispatcher.register(cls, func=method)
+
+    def __get__(self, obj, cls=None):
+        def _method(*args, **kwargs):
+            if not args:
+                method = self.dispatcher.dispatch(args[0].__class__)
+            else:
+                method = self.dispatcher.dispatch(None.__class__)
+            return method.__get__(obj, cls)(*args, **kwargs)
+
+        _method.__isabstractmethod__ = self.__isabstractmethod__
+        _method.register = self.register
+        update_wrapper(_method, self.func)
+        return _method
+
+    @property
+    def __isabstractmethod__(self):
+        return getattr(self.func, '__isabstractmethod__', False)
