@@ -4,7 +4,7 @@ from .Helper import Saveable, BuildIdMeta
 if TYPE_CHECKING:
     from .User import User
 
-class Card(IEventListener, Saveable, metaclass=BuildIdMeta):
+class Card(IEventListener, Saveable):
     name = "NoName"
     description = "NoDes"
     newer = 0
@@ -20,7 +20,7 @@ class Card(IEventListener, Saveable, metaclass=BuildIdMeta):
         return f"{self.id}. {self.name}\n\t{self.description}"
     def __init__(self, data: Optional[str]=None) -> None:
         pass
-    def CanUse(self, user: 'User', copy: bool) -> tuple[bool, str]:
+    def CanUse(self, user: 'User', copy: bool) -> bool:
         return True, ""
     async def Use(self, user: 'User') -> None:
         pass
@@ -34,4 +34,4 @@ class Card(IEventListener, Saveable, metaclass=BuildIdMeta):
         pass
     @classmethod
     def RandomNewCards(cls, user: 'User', num: int=1, requirement: Callable=None) -> List['Card']:
-        pass
+        pass # TODO

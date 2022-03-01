@@ -6,7 +6,7 @@ from ...config import mysingledispatchmethod
 if TYPE_CHECKING:
     from .User import User
 
-class Equipment(IEventListener, Saveable, metaclass=BuildIdMeta):
+class Equipment(IEventListener, Saveable):
     name = "NoName"
     description = ""
     shopDes = "NoDes"
