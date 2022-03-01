@@ -17,7 +17,7 @@ from nonebot.command.argfilter import extractors, validators
 from nonebot.command.argfilter.validators import _raise_failure
 from .. import config
 from ..config import 句尾
-from .logic_dragon_type import NotActive, Pack, Sign, TGlobalState, TUserData, TCounter, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, check_active, indexer, nothing, TQuest, ensure_true_lambda, check_handcard, TModule, UnableRequirement, check_if_unable, Tree, DragonState, MajOneHai
+from .logic_dragon_type import NotActive, Pack, Sign, TGlobalState, TUserData, TAttackType, CounterOnly, UserEvt, Priority, TBoundIntEnum, async_data_saved, check_active, indexer, nothing, TQuest, ensure_true_lambda, check_handcard, TModule, UnableRequirement, check_if_unable, Tree, DragonState, MajOneHai
 from .maj import MajIdError
 
 # TODO change TCount to a real obj, in order to unify 'count' and 'count2' in OnStatusAdd, also _status.on_add
@@ -131,7 +131,7 @@ class IEventListener:
         user2: The user that cards are exchanged."""
         pass
     @classmethod
-    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TAttackType) -> Tuple[int, bool]:
         """Called when a user is dead.
         
         Arguments:
@@ -331,7 +331,7 @@ class Attack(ABC):
         self.defender = defender
         self.rebounded = False
         self.multiplier = 1
-        self.counter = TCounter()
+        self.counter = TAttackType()
     @abstractmethod
     async def self_action(self):
         pass
@@ -353,7 +353,7 @@ class Attack(ABC):
     def rebound(self) -> bool:
         """return True if rebound equals dodge."""
         self.attacker, self.defender = self.defender, self.attacker
-        self.counter = TCounter()
+        self.counter = TAttackType()
         self.rebounded = True
         return False
 
@@ -403,7 +403,7 @@ class Damage(Attack):
                         await self.attacker.add_event_pt(20)
                 else:
                     self.defender.send_log(f"死了{句尾}")
-                    await self.defender.death(60, c=TCounter(hpzero=True))
+                    await self.defender.death(60, c=TAttackType(hpzero=True))
 
 class Game:
     session_list: List[CommandSession] = []
@@ -1234,12 +1234,12 @@ class User:
         time_num = 60 * hour + minute
         attack = Kill(killer, self, time_num)
         await self.attacked(killer, attack)
-    async def death(self, minute: int=120, killer=None, c: TCounter=None):
+    async def death(self, minute: int=120, killer=None, c: TAttackType=None):
         """玩家死亡。"""
         config.logger.dragon << f"【LOG】玩家{self.qq}死亡。"
         dodge = False
         if c is None:
-            c = TCounter()
+            c = TAttackType()
         # Event OnDeath
         for eln, n in self.IterAllEventList(UserEvt.OnDeath, Priority.OnDeath):
             minute, dodge = await eln.OnDeath(n, self, killer, minute, c)
@@ -1339,10 +1339,10 @@ class User:
                     self.log << f"卡牌使用被阻挡{句尾}"
                     await block
                     return
-            await card.use(self)
-            # Event AfterCardUse
-            for el, n in self.IterAllEventList(UserEvt.AfterCardUse, Priority.AfterCardUse):
-                await el.AfterCardUse(n, self, card)
+        await card.use(self)
+        # Event AfterCardUse
+        for el, n in self.IterAllEventList(UserEvt.AfterCardUse, Priority.AfterCardUse):
+            await el.AfterCardUse(n, self, card)
     async def use_card(self, card: TCard):
         """将卡牌移出手牌，使用卡牌然后执行销毁操作。"""
         self.send_char('使用了卡牌：\n' + card.full_description(self.qq))
@@ -2336,7 +2336,7 @@ class SInvincible(TimedStatus):
     id = 'v'
     des = '无敌：免疫死亡。'
     @classmethod
-    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TAttackType) -> Tuple[int, bool]:
         if await c.pierce():
             user.send_log(f"无敌的效果被幻想杀手消除了{句尾}")
             await user.remove_all_limited_status('v')
@@ -2707,7 +2707,7 @@ class miansi(_statusnull):
     id = 'r'
     des = "免死：免疫你下一次死亡。"
     @classmethod
-    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
         if await c.pierce():
             user.send_log(f"免死的效果被幻想杀手消除了{句尾}")
             await user.remove_status('r', remove_all=True)
@@ -2733,7 +2733,7 @@ class death_s(_statusdaily):
     is_debuff = True
     is_global = True
     @classmethod
-    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TAttackType) -> Tuple[int, bool]:
         return time * 2 ** count, False
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -3162,7 +3162,7 @@ class tiesuolianhuan_s(_statusnull):
     is_debuff = True
     is_metallic = True
     @classmethod
-    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TAttackType) -> Tuple[int, bool]:
         if await c.pierce():
             await user.remove_status('l', remove_all=True)
             user.send_log(f"铁索连环的效果被幻想杀手消除了{句尾}")
@@ -3221,7 +3221,7 @@ class sihuihuibizhiyao_s(_statusnull):
     id = 's'
     des = '死秽回避之药：下次死亡时自动消耗5击毙免除死亡。若击毙不足则不发动。'
     @classmethod
-    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
         if await c.pierce():
             user.send_log(f"死秽回避之药的效果被幻想杀手消除了{句尾}")
             await user.remove_status('s', remove_all=True)
@@ -3238,7 +3238,7 @@ class inv_sihuihuibizhiyao_s(_statusnull):
     id = 't'
     des = '反转·死秽回避之药：你下次死亡时获得5击毙，但是死亡时间增加2h。'
     @classmethod
-    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
         if await c.pierce():
             user.send_log(f"反转·死秽回避之药的效果被幻想杀手消除了{句尾}")
             await user.remove_status('t')
@@ -3265,7 +3265,7 @@ class huiye_s(_statusnull):
     des = '辉夜姬的秘密宝箱：下一次死亡的时候奖励抽一张卡。'
     is_metallic = True
     @classmethod
-    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
         await user.remove_status('x')
         if await c.pierce():
             user.send_log(f"辉夜姬的秘密宝箱的效果被幻想杀手消除了{句尾}")
@@ -3282,7 +3282,7 @@ class inv_huiye_s(_statusnull):
     is_debuff = True
     is_metallic = True
     @classmethod
-    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
         await user.remove_status('y')
         if await c.pierce():
             user.send_log(f"反转·辉夜姬的秘密宝箱的效果被幻想杀手消除了{句尾}")
@@ -3569,7 +3569,7 @@ class hongsezhihuan_s(_statusnull):
     id = 'h'
     des = '虹色之环：下次死亡时，有1/2几率闪避，1/2几率死亡时间+1小时。'
     @classmethod
-    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
         if await c.pierce():
             user.send_log(f"虹色之环的效果被幻想杀手消除了{句尾}")
             await user.remove_status('h', remove_all=True)
@@ -3767,7 +3767,7 @@ class lveduozhebopu(_card):
             del global_state['steal'][str(user.qq)]
         save_global_state()
     @classmethod
-    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
         user.send_log(f"的{f'{count}张' if count > 1 else ''}掠夺者啵噗被弃了{句尾}")
         await user.discard_cards([cls] * count)
         return time, False
@@ -5029,7 +5029,7 @@ class SAbsorb(NumedStatus):
     def double(self):
         return [self.__class__(self.num * 2)]
     @classmethod
-    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TAttackType) -> Tuple[int, bool]:
         if c.jump:
             return time, False
         o1 = o2 = None
@@ -5268,7 +5268,7 @@ class polezombie(_card):
             user.buf.send(f"撑杆跳僵尸被寒冰菇冻住了{句尾}")
             user.log << f"撑杆跳僵尸被寒冰菇冻住了{句尾}"
         else:
-            await user.death(c=TCounter(jump=True))
+            await user.death(c=TAttackType(jump=True))
 
 class mishi1(_card):
     name = "密教残篇"
@@ -5708,7 +5708,7 @@ class Sexplore(NumedStatus):
             user.data.save_status_time()
         user.buf.state.pop('mishi_id')
     @classmethod
-    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TAttackType) -> Tuple[int, bool]:
         i = user.buf.state.get('mishi_id') # maybe None
         if user.buf.state.get('dragon_who') != user.qq:
             return time, False
@@ -5823,7 +5823,7 @@ class Sshangba(_statusdaily):
     id = 'S'
     des = "伤疤：今天你每死亡一次便获得2击毙。"
     @classmethod
-    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
         if await c.pierce():
             user.send_log(f"伤疤的效果被幻想杀手消除了{句尾}")
             await user.remove_status('S')
@@ -5839,7 +5839,7 @@ class Sinvshangba(_statusdaily):
     des = "反转-伤疤：今天你每死亡一次便失去2击毙。"
     is_debuff = True
     @classmethod
-    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
         if await c.pierce():
             user.send_log(f"反转-伤疤的效果被幻想杀手消除了{句尾}")
             await user.remove_status('P')
@@ -5967,7 +5967,7 @@ class Schangsheng(NumedStatus):
     def double(self):
         return [self.__class__(self.num * 2)]
     @classmethod
-    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TAttackType) -> Tuple[int, bool]:
         for i in count:
             m = min(i.num, time)
             i.num -= m
@@ -6952,7 +6952,7 @@ class SAntimatterDimension(NumedStatus):
     def brief_des(self) -> str:
         return f"反物质维度：卡牌【{Card(self.num).name}】。"
     @classmethod
-    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TAttackType) -> Tuple[int, bool]:
         await user.remove_all_limited_status('a')
         user.data.save_status_time()
         return time, False
@@ -7839,7 +7839,7 @@ class fuhuoguanghuan(_statusnull):
     id = 'u'
     des = "复活光环：下次因HP归零死亡的复活时间减少至5分钟。"
     @classmethod
-    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TAttackType) -> Tuple[int, bool]:
         if c.hpzero:
             time = time // 12
             user.send_log(f"因复活光环的效果，死亡时间减少至{time}分钟" + 句尾)
@@ -7933,7 +7933,7 @@ class bingo_checker(IEventListener):
                 user.log << f"完成了一次bingo任务：摸一张{j}~{j+79}的卡。"
                 await cls.complete(id, user)
     @classmethod
-    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TAttackType) -> Tuple[int, bool]:
         for id, (i, j) in enumerate(bingo_id):
             if id not in global_state["bingo_state"] and i == 3:
                 user.buf.send(f"Bingo！{user.char}完成了任务：有人死亡{句尾}")

@@ -7,13 +7,6 @@ if TYPE_CHECKING:
 TEventListener = TypeVar('TEventListener', bound='IEventListener')
 TEvent = dict[int, list[TEventListener]]
 
-async def nothing(): return False
-@dataclass
-class TCounter:
-    pierce: Callable = nothing
-    jump: bool = False
-    hpzero: bool = False
-
 class TUserData(TypedDict):
     qq: int
     jibi: int

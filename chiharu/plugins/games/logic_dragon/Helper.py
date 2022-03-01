@@ -17,7 +17,7 @@ class BuildIdMeta(ABCMeta):
 
 TSaveable = TypeVar("TSaveable", bound="Saveable")
 TSaveableType = Type[TSaveable]
-class Saveable(ABC):
+class Saveable(metaclass=BuildIdMeta):
     id = -1
     idDict: dict[int, TSaveableType] = {}
     def save(self):

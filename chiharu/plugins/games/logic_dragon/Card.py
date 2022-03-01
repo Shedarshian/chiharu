@@ -20,15 +20,18 @@ class Card(IEventListener, Saveable, metaclass=BuildIdMeta):
         return f"{self.id}. {self.name}\n\t{self.description}"
     def __init__(self, data: Optional[str]=None) -> None:
         pass
-    def canUse(self, user: 'User', copy: bool) -> tuple[bool, str]:
+    def CanUse(self, user: 'User', copy: bool) -> tuple[bool, str]:
         return True, ""
-    async def use(self, user: 'User') -> None:
+    async def Use(self, user: 'User') -> None:
         pass
-    async def onRemove(self, user: 'User') -> None:
+    async def OnRemove(self, user: 'User') -> None:
         pass
-    async def onDraw(self, user: 'User') -> None:
+    async def OnDraw(self, user: 'User') -> None:
         pass
-    async def onDiscard(self, user: 'User') -> None:
-        await self.onRemove(user)
-    async def onGive(self, user: 'User', other: 'User') -> None:
+    async def OnDiscard(self, user: 'User') -> None:
+        await self.OnRemove(user)
+    async def OnGive(self, user: 'User', other: 'User') -> None:
+        pass
+    @classmethod
+    def RandomNewCards(cls, user: 'User', num: int=1, requirement: Callable=None) -> List['Card']:
         pass
