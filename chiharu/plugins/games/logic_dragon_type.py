@@ -314,6 +314,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
     class OnNewDay(IntEnum):
         tarot = auto()
         quest = auto()
+        nodragon = auto()
         sunflower = auto()
         twinsunflower = auto()
         inv_sunflower = auto()

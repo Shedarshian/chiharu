@@ -2095,7 +2095,7 @@ class SNoDragon(ListStatus):
     des = "不可接龙：无法从以下节点接龙。"
     is_debuff = True
     def __init__(self, s: Union[str, list], length: int=1):
-        self.length = length
+        self.length = int(length)
         super().__init__(s)
     def __repr__(self) -> str:
         return self.construct_repr(str(self.list), str(self.length))
@@ -2112,16 +2112,22 @@ class SNoDragon(ListStatus):
             return f"{self.des}\n\t{','.join(c.id_str for c in this + this2 + this3 if c.id_str in ids)}"
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
-        if count[0].length == 1:
-            if state.parent.id_str in count[0].list:
-                return False, 0, "你不能从此节点接龙" + 句尾
-        elif count[0].length == 3:
-            if state.parent.id_str in count[0].list or Tree.before(state.parent, 1).id_str in count[0].list or Tree.before(state.parent, 2).id_str in count[0].list:
-                return False, 0, "你不能从此节点接龙" + 句尾
+        for c in count:
+            if c.length == 1:
+                if state.parent.id_str in c.list:
+                    return False, 0, "你不能从此节点接龙" + 句尾
+            elif c.length == 3:
+                if state.parent.id_str in c.list or Tree.before(state.parent, 1).id_str in c.list or Tree.before(state.parent, 2).id_str in c.list:
+                    return False, 0, "你不能从此节点接龙" + 句尾
         return True, 0, ""
     @classmethod
+    async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
+        await user.remove_all_limited_status('n')
+    @classmethod
     def register(cls) -> dict[int, TEvent]:
-        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.nodragon, cls)}
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.nodragon, cls),
+            UserEvt.OnNewDay: (Priority.OnNewDay.nodragon, cls)}
+newday_check[2].add('n')
 
 class _statusnull(_statusall):
     id_dict: Dict[str, TNStatus] = {}
@@ -3039,14 +3045,14 @@ class le_checker(IEventListener):
         for qq in checks:
             u = User(qq, user.buf)
             l = u.check_limited_status('n', lambda s: s.length == 1)
-            if n := u.check_daily_status('L') and random.random() > 0.25 ** n:
+            if (n := u.check_daily_status('L')) and random.random() > 0.25 ** n:
                 u.log << f"不可从节点{branch.id_str}接龙。"
                 user.buf.send(f"玩家{qq}判定失败，不可从此节点接龙{句尾}")
                 if len(l) == 0:
                     await u.add_limited_status(SNoDragon([branch.id_str], 1))
                 else:
                     l[0].list.append(branch.id_str)
-            if n := u.check_daily_status('K') and random.random() > 0.75 ** n:
+            if (n := u.check_daily_status('K')) and random.random() > 0.75 ** n:
                 u.log << f"不可从节点{branch.id_str}接龙。"
                 user.buf.send(f"玩家{qq}判定失败，不可从此节点接龙{句尾}")
                 if len(l) == 0:
@@ -4889,7 +4895,9 @@ class magnet(_card):
     positive = 1
     newer = 7
     pack = Pack.pvz
-    limited_status = 'G'
+    @classmethod
+    async def use(self, user: User):
+        await user.add_limited_status(magnet_s(datetime.now()))
 class magnet_s(TimedStatus):
     id = 'G'
     des = "磁力菇：有人攻击你时，随机移除其身上的一件金属制品，然后24小时不能发动。"
