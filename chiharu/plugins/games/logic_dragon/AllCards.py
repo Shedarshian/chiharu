@@ -71,8 +71,8 @@ class CMagician(Card):
         return len(user.data.handCard) >= (1 if copy else 2) # TODO 判断不可选择的卡牌
     async def use(self, user: User):
         l = await user.ChooseHandCards("请选择你手牌中的一张牌（不可选择暴食的蜈蚣与组装机1型），输入id号。", 1, 1,
-                cardsCanNotChoose=[i for i, c in enumerate(user.data.handCard) if c.id in (56, 200)],
-                require_can_use=True)
+                requirement=lambda c: c.id not in (56, 200),
+                requireCanUse=True)
         card = l[0]
         await user.DiscardCards([card])
         await user.UseCardEffect(card)
@@ -111,15 +111,16 @@ class SHierophant(StatusNumed):
             UserEvt.OnDragoned: Priority.OnDragoned.hierophant}
 class SInvHierophant(StatusNumed):
     id = 6
-    description = "反转 - 教皇：你的下10次接龙中每次损失2击毙，并且额外要求尾首接龙。"
-    is_Debuff = True
+    name = "反转 - 教皇"
+    description = "你的下10次接龙中每次损失2击毙，并且额外要求尾首接龙。"
+    isDebuff = True
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         if not await state.RequireWeishou(user):
             #
             return False, 0
         return True, 0
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
-        await user.add_jibi(-2)
+        await user.AddJibi(-2)
         self.num = self.num - 1
         user.data.SaveStatuses()
     def register(self) -> Dict[int, int]:
