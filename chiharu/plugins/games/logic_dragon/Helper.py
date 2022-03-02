@@ -41,7 +41,7 @@ class Saveable(metaclass=BuildIdMeta):
             return cls.idDict[id]
         raise ValueError("哈")
 
-class Session(ABC):
+class Buffer(ABC):
     def __init__(self, qq: int) -> None:
         self.datas: list[ProtocolData] = []
         self.qq = qq
@@ -49,13 +49,23 @@ class Session(ABC):
         s = json.dumps(self.datas)
         self.datas.clear()
         return s
-    def addData(self, data: ProtocolData):
+    def AddData(self, data: ProtocolData):
         self.datas.append(data)
+    dataListener: list[Callable[[list[ProtocolData]], Awaitable[None]]] = []
     @abstractmethod
-    async def flush(self):
+    async def selfFlush(self):
+        """DO NOT CLEAR SELF.DATAS!!!"""
         pass
+    async def Flush(self):
+        await self.selfFlush()
+        for listener in self.dataListener:
+            await listener(self.datas)
+        self.datas.clear()
+    @classmethod
+    def addDataListener(cls, listener: Callable[[list[ProtocolData]], Awaitable[None]]):
+        cls.dataListener.append(listener)
     @abstractmethod
-    async def getResponse(self, request: ProtocolData):
+    async def GetResponse(self, request: ProtocolData) -> ProtocolData:
         pass
 
 class indexer:

@@ -4,7 +4,7 @@ from collections import defaultdict
 import struct
 from ... import config
 from .Types import TUserData, TEvent
-from .Helper import Saveable, indexer
+from .Helper import ProtocolData, Saveable, indexer
 from .Card import Card
 from .Status import Status
 from .Equipment import Equipment
@@ -323,4 +323,6 @@ class UserData:
         config.userdata.execute("update dragon_data2 set equipment=? where qq=?",
             (s := Saveable.packAllData(self.equipments), self.qq))
         self.log.log << f"设置装备为\"{s}\"。"
-        
+    
+    def CheckData(self, request: ProtocolData) -> ProtocolData:
+        pass # TODO

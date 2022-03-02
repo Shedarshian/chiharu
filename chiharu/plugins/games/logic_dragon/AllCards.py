@@ -20,12 +20,12 @@ class SDeath(StatusTimed):
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.death}
 
 class AKill(Attack):
-    id = -1
+    id = 0
     name = "击毙"
     def __init__(self, attacker: 'User', defender: 'User', minute: int):
         self.minute = minute
         super().__init__(attacker, defender)
-    async def self_action(self):
+    async def selfAction(self):
         await self.defender.Death(self.minute * self.multiplier, self.attacker, self.counter)
 
 class CFool(Card):
@@ -51,6 +51,16 @@ class SFool(StatusNullStack):
     def register(cls) -> dict[int, int]:
         return {UserEvt.BeforeCardUse: Priority.BeforeCardUse.fool}
 
+class ADamage(Attack):
+    id = 1
+    name = "伤害"
+    def __init__(self, attacker: 'User', defender: 'User', damage: int, mustHit: bool):
+        self.damage = damage
+        self.mustHit = mustHit
+        super().__init__(attacker, defender)
+    async def selfAction(self):
+        pass # TODO
+
 class CMagician(Card):
     id = 1
     name = "I - 魔术师"
@@ -60,14 +70,15 @@ class CMagician(Card):
     def CanUse(self, user: 'User', copy: bool) -> bool:
         return len(user.data.handCard) >= (1 if copy else 2) # TODO 判断不可选择的卡牌
     async def use(self, user: User):
-        async with user.choose_cards("请选择你手牌中的一张牌（不可选择暴食的蜈蚣与组装机1型），输入id号。", 1, 1,
-                cards_can_not_choose=(56, 200), require_can_use=True) as l: # choose_cards还没做，先抄着
-            card = Card(l[0])
-            await user.DiscardCards([card])
-            await user.UseCardEffect(card)
-            await user.UseCardEffect(card)
-            await user.UseCardEffect(card)
-            await user.AddStatus(SCantUse(timedelta(weeks=1)))
+        l = await user.ChooseHandCards("请选择你手牌中的一张牌（不可选择暴食的蜈蚣与组装机1型），输入id号。", 1, 1,
+                cardsCanNotChoose=[i for i, c in enumerate(user.data.handCard) if c.id in (56, 200)],
+                require_can_use=True)
+        card = l[0]
+        await user.DiscardCards([card])
+        await user.UseCardEffect(card)
+        await user.UseCardEffect(card)
+        await user.UseCardEffect(card)
+        await user.AddStatus(SCantUse(timedelta(weeks=1)))
 class SCantUse(StatusTimed):
     id = 1
     isDebuff = True

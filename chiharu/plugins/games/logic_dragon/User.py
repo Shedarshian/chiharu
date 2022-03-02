@@ -1,8 +1,10 @@
 from functools import singledispatchmethod
 from typing import *
 from datetime import datetime, timedelta
+
+from httpx import request
 from .UserData import UserData
-from .Helper import ProtocolData, Session
+from .Helper import ProtocolData, Buffer
 from .Card import Card
 from .Status import Status
 from .Equipment import Equipment
@@ -14,7 +16,7 @@ if TYPE_CHECKING:
     from .Game import Game
 
 class User:
-    def __init__(self, ud: UserData, buf: Session, game: 'Game') -> None:
+    def __init__(self, ud: UserData, buf: Buffer, game: 'Game') -> None:
         self.qq = ud.qq
         self.data = ud
         self.buf = buf
@@ -30,6 +32,9 @@ class User:
     @property
     def ume(self):
         return User(self.game.me, self.buf, self.game)
+    @property
+    def dragon(self):
+        return self.CreateUser(self.game.dragonQQ)
     @property
     def active(self):
         return self.buf.qq == self.qq
@@ -49,7 +54,7 @@ class User:
                     for eln in ret:
                         yield eln
     def Send(self, data: ProtocolData):
-        self.buf.addData(data)
+        self.buf.AddData(data)
     
     def CheckStatus(self, id: int):
         return self.data.CheckStatus(id)
@@ -58,10 +63,10 @@ class User:
 
     async def choose(self, flush: bool):
         if not self.active:
-            self.Send({"type": "choose_failed"})
+            self.Send({"type": "choose_failed", "reason": "not_active"})
             return False
         elif flush:
-            await self.buf.flush()
+            await self.buf.Flush()
         return True
     async def AddStatus(self, s: Status):
         # Event OnStatusAdd
@@ -274,6 +279,61 @@ class User:
         self.data.SaveCards()
     async def UseEquipment(self, eq: Equipment):
         await eq.use(self)
-    
 
-    
+    async def Damaged(self, damage: int, attacker: 'User'=None, mustHit: bool=False):
+        if attacker is None:
+            attacker = self.dragon
+        from .AllCards import ADamage
+        atk = ADamage(attacker, self, damage, mustHit)
+        await self.Attacked(atk)
+    async def ChooseHandCards(self, min: int, max: int, requirement: Callable[[Card], bool]=None,
+        requireCanUse: bool=False):
+        """选择手牌。args:
+        min: 最少选择的卡牌数目。
+        max: 最多选择的卡牌数目。
+        requirement: 哪些卡牌可以选择。
+        requireCanUse: 是否要求卡牌可以使用。"""
+        if not await self.choose(True):
+            return None
+        def getRequest() -> ProtocolData:
+            cardsCanChoose = [i for i, c in enumerate(self.data.handCard)
+                if requirement(c) and (not requireCanUse or c.CanUse(self, True))]
+            return {"type": "choose", "object": "hand_card", "can_choose": cardsCanChoose,
+                "min": min, "max": max}
+        def checkResponse(response: ProtocolData) -> ProtocolData:
+            if response.get("type") != "choose" or response.get("object") != "hand_card" or not isinstance(response.get("chosen"), list):
+                return {"type": "response_invalid", "error_code": 0}
+            if not min <= len(response.get("chosen")) <= max:
+                return {"type": "response_invalid", "error_code": 100}
+            if not all(isinstance(i, int) and i < len(self.data.handCard) for i in response.get("chosen")):
+                return {"type": "response_invalid", "error_code": 110}
+            return {"type": "succeed"}
+        response = await self.GetResponse(getRequest, checkResponse)
+        chosen: list[int] = response["chosen"]
+        if len(chosen) == 0:
+            self.Send({"type": "choose_failed", "reason": "cant_choose"})
+            return None
+        return [self.data.handCard[i] for i in chosen]
+    async def HandleExceedDiscard(self):
+        if not await self.choose(True):
+            return None
+        if self.state.get('exceed_limit'):
+            return None
+        idCanNotChoose = (53,)
+        requirement = lambda c: c.id not in idCanNotChoose
+        x = len(self.data.handCard) - self.data.cardLimit
+        toDiscard = await self.ChooseHandCards(x, x, requirement)
+        await self.DiscardCards([self.data.handCard[i] for i in toDiscard])
+
+    async def GetResponse(self,
+            getRequest: Callable[[], ProtocolData],
+            checkResponse: Callable[[ProtocolData], ProtocolData]) -> ProtocolData:
+        while 1:
+            request = getRequest()
+            response = await self.buf.GetResponse(request)
+            # 如果response给出的是查询或者不符合要求的数据则继续循环
+            if response.get("type") == "check":
+                pass # TODO
+            ret = checkResponse(response)
+            if ret.get("type") == "succeed":
+                return response

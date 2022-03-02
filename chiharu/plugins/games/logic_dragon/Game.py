@@ -14,6 +14,7 @@ class Game:
     def __init__(self) -> None:
         self.initTree(True)
         self.managerQQ = config.selfqq
+        self.dragonQQ = 1
         self.me = UserData(self.managerQQ, self)
         self.eventListenerInit: defaultdict[UserEvt, TEvent] = defaultdict(lambda: defaultdict(list))
         self.userdatas: Dict[int, 'UserData'] = {}
