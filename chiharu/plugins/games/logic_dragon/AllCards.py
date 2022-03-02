@@ -99,6 +99,7 @@ class SHierophant(StatusNumed):
     description = "你的下10次接龙中每次额外获得2击毙，但额外要求首尾接龙。"
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         if not await state.RequireShouwei(user):
+            #
             return False, 0
         return True, 0
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
@@ -108,3 +109,19 @@ class SHierophant(StatusNumed):
     def register(self) -> Dict[int, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.hierophant,
             UserEvt.OnDragoned: Priority.OnDragoned.hierophant}
+class SInvHierophant(StatusNumed):
+    id = 6
+    description = "反转 - 教皇：你的下10次接龙中每次损失2击毙，并且额外要求尾首接龙。"
+    is_Debuff = True
+    async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        if not await state.RequireWeishou(user):
+            #
+            return False, 0
+        return True, 0
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        await user.add_jibi(-2)
+        self.num = self.num - 1
+        user.data.SaveStatuses()
+    def register(self) -> Dict[int, int]:
+        return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.inv_hierophant,
+            UserEvt.OnDragoned: Priority.OnDragoned.inv_hierophant}
