@@ -23,7 +23,7 @@ class Card(IEventListener, Saveable):
     def __init__(self, data: Optional[str]=None) -> None:
         pass
     def CanUse(self, user: 'User', copy: bool) -> bool:
-        return True, ""
+        return True
     async def Use(self, user: 'User') -> None:
         pass
     async def OnRemove(self, user: 'User') -> None:

@@ -1,15 +1,13 @@
 from typing import *
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from .Helper import BuildIdMeta
+from .Helper import HasId
 if TYPE_CHECKING:
     from .User import User
 
 TAttack = TypeVar("TAttack", bound="Attack")
 TAttackType = Type[TAttack]
-class Attack(metaclass=BuildIdMeta):
-    id = -1
-    idDict: dict[int, TAttackType] = {}
+class Attack(HasId):
     name = "NoName"
     doublable = True
     reboundable = True

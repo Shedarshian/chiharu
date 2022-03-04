@@ -11,8 +11,6 @@ import requests
 from nonebot import CommandSession, NLPSession, on_natural_language, get_bot, permission, scheduler
 from nonebot.command import call_command
 from nonebot.command.argfilter import extractors, validators
-
-from chiharu.plugins.games.logic_dragon_type import Sign
 from ..inject import CommandGroup, on_command
 from .. import config
 from ..config import SessionBuffer, 句尾
@@ -52,7 +50,7 @@ with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         current_event = "mid-autumn"
     del d
 
-from .logic_dragon_file import Equipment, Priority, TAttackType, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check, _statusnull, _statusdaily, Status, TModule, _equipment, DragonState, MajOneHai
+from .logic_dragon_file import Equipment, Priority, TAttackType, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check, _statusnull, _statusdaily, Status, TModule, _equipment, DragonState, MajOneHai, Sign
 from . import logic_dragon_file
 
 # log

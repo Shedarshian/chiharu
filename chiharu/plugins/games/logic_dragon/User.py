@@ -235,7 +235,7 @@ class User:
                     cards = ret
                     break
             else:
-                cards = Card.RandomNewCards(self, num, requirement)
+                cards = self.game.RandomNewCards(self, num, requirement)
         # elif Card(-65537) in cards: TODO
         #     if self.qq in global_state["supernova_user"][0] + global_state["supernova_user"][1] + global_state["supernova_user"][2]:
         #         cards.remove(Card(-65537))

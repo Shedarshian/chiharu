@@ -104,4 +104,3 @@ class Game:
         for c in l:
             l2.append(c())
         return l2
-    

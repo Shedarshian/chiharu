@@ -17,38 +17,40 @@ class BuildIdMeta(ABCMeta):
             c = super().__new__(cls, clsname, bases, attrs)
         return c
 
-TSaveable = TypeVar("TSaveable", bound="Saveable")
-TSaveableType = Type[TSaveable]
-class Saveable(metaclass=BuildIdMeta):
+THasId = TypeVar("THasId", bound="HasId")
+THasIdType = Type[THasId]
+class HasId(metaclass=BuildIdMeta):
     id = -1
     if TYPE_CHECKING:
-        _idDict: dict[int, TSaveableType] = {}
+        _idDict: dict[int, THasIdType] = {}
         @classmethod
         @property
-        def idDict(cls: Type[TSaveable]) -> dict[int, Type[TSaveable]]:
+        def idDict(cls: Type[THasId]) -> dict[int, Type[THasId]]:
             return cls._idDict
     else:
-        idDict: dict[int, TSaveableType] = {}
+        idDict = {}
+    @classmethod
+    def get(cls: Type[THasId], id: int) -> Type[THasId]:
+        if id in cls.idDict: # pylint: disable=unsupported-membership-test
+            return cls.idDict[id] # pylint: disable=unsubscriptable-object
+        raise ValueError("哈")
+
+class Saveable(HasId):
     def save(self):
         return f"{self.id}:{self.packData() or ''}"
     def packData(self) -> str:
         """Implement yourself."""
         return ""
     @classmethod
-    def packAllData(cls, l: Iterable[TSaveable]):
+    def packAllData(cls, l: Iterable['Saveable']):
         return '/'.join(s.save() for s in l)
     @classmethod
-    def unpackAllData(cls: Type[TSaveable], s: str):
+    def unpackAllData(cls, s: str):
         l: list[cls] = []
         for c in s.split('/'):
             id, els = c.split(':', 2)
             l.append(cls.idDict[id](els or None)) # pylint: disable=unsubscriptable-object
         return l
-    @classmethod
-    def get(cls: Type[TSaveable], id: int) -> Type[TSaveable]:
-        if id in cls.idDict: # pylint: disable=unsupported-membership-test
-            return cls.idDict[id] # pylint: disable=unsubscriptable-object
-        raise ValueError("哈")
 
 class Buffer(ABC):
     def __init__(self, qq: int) -> None:
