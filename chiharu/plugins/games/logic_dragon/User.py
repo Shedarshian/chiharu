@@ -1,8 +1,6 @@
 from functools import singledispatchmethod
 from typing import *
 from datetime import datetime, timedelta
-
-from httpx import request
 from .UserData import UserData
 from .Helper import ProtocolData, Buffer
 from .Card import Card

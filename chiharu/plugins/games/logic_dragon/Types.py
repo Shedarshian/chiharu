@@ -24,6 +24,16 @@ class TUserData(TypedDict):
     mp: int
     maj_quan: int
 
+class TGlobalState(TypedDict):
+    last_card_user: int
+    supernova_user: List[List[int]]
+    used_cards: List[int]
+    global_status: List[Tuple[int, str]]
+    observatory: bool
+    event_route: List[int]
+    bingo_state: List[int]
+    sign: int
+
 class Pack(Enum):
     tarot = auto()
     minecraft = auto()
@@ -89,3 +99,4 @@ class Sign(IntEnum):
     @classmethod
     def description_all(cls):
         return "\n".join(f"{int(i)}. {i.description}" for i in Sign)
+    

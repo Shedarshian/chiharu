@@ -33,9 +33,9 @@ class UserData:
         self.qq = qq
         self.game = game
         self.refCount = 1
-        log.debug << f"创建用户{qq}的UserData。"
+        config.logger.dragon.debug << f"创建用户{qq}的UserData。"
         if qq == 0:
-            log.warning << "试图find qq=0的node。"
+            config.logger.dragon.warning << "试图find qq=0的node。"
         t = config.userdata.execute("select * from dragon_data2 where qq=?", (qq,)).fetchone()
         if t is None:
             config.userdata.execute("""insert into dragon_data2

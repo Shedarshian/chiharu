@@ -1,6 +1,7 @@
 from typing import *
 from .EventListener import IEventListener
 from .Helper import Saveable, BuildIdMeta
+from .Types import Pack
 if TYPE_CHECKING:
     from .User import User
 
@@ -9,9 +10,10 @@ class Card(IEventListener, Saveable):
     description = "NoDes"
     newer = 0
     positive = 0
-    weight = 1
+    weight: Union[float, Callable[['User'], float]] = 1
     mass = 0.1
     consumedOnDraw = False
+    pack = Pack.misc
     @property
     def briefDescription(self):
         return f"{self.id}. {self.name}"
@@ -32,6 +34,4 @@ class Card(IEventListener, Saveable):
         await self.OnRemove(user)
     async def OnGive(self, user: 'User', other: 'User') -> None:
         pass
-    @classmethod
-    def RandomNewCards(cls, user: 'User', num: int=1, requirement: Callable=None) -> List['Card']:
-        pass # TODO
+

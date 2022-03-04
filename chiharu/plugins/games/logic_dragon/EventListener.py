@@ -1,5 +1,4 @@
 from typing import *
-from .Types import TCounter, TEvent
 if TYPE_CHECKING:
     from .User import User
     from .Card import Card

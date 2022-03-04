@@ -1,14 +1,15 @@
 from typing import *
 from collections import defaultdict
+import random
 from .User import User
 from .UserData import UserData
 from .Dragon import Tree
-from .Types import TEvent
-from .Helper import Session
+from .Types import TEvent, TGlobalState, Sign
+from .Helper import Buffer
 from .Priority import UserEvt
+from .EventListener import IEventListener
+from .Card import Card
 from ... import config
-if TYPE_CHECKING:
-    from .EventListener import IEventListener
 
 class Game:
     def __init__(self) -> None:
@@ -18,6 +19,7 @@ class Game:
         self.me = UserData(self.managerQQ, self)
         self.eventListenerInit: defaultdict[UserEvt, TEvent] = defaultdict(lambda: defaultdict(list))
         self.userdatas: Dict[int, 'UserData'] = {}
+        self.state: Dict[str, Any] = {} # TODO read
     def initTree(self, is_daily: bool):
         if is_daily:
             self.treeForests: List[List[List['Tree']]] = []
@@ -80,7 +82,7 @@ class Game:
     def RegisterEventCheckerInit(self, checker: 'IEventListener') -> None:
         for key, priority in checker.register():
             self.eventListenerInit[key][priority].append(checker)
-    def CreateUser(self, qq: int, buf: Session):
+    def CreateUser(self, qq: int, buf: Buffer):
         if qq == self.managerQQ:
             return User(self.me, buf, self)
         elif qq in self.userdatas:
@@ -93,3 +95,13 @@ class Game:
         for qq in list(self.userdatas.keys()):
             if not self.userdatas[qq].valid:
                 self.userdatas.pop(qq)
+    def RandomNewCards(self, user: 'User', num: int=1, requirement: Callable[[Type['Card']], bool]=None) -> List['Card']:
+        cards = [c for c in Card.idDict.values() if requirement and requirement(c)]
+        packs = Sign(self.state["sign"]).pack()
+        weights = [(c.weight(user) if callable(c.weight) else c.weight) + (4 if c.pack in packs else 0) for c in cards]
+        l = random.choices(cards, weights, k=num)
+        l2: List[Card] = []
+        for c in l:
+            l2.append(c())
+        return l2
+    
