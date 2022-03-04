@@ -1,10 +1,9 @@
 from abc import ABC, ABCMeta, abstractmethod
 from typing import *
 import json
+from .Types import ProtocolData
 if TYPE_CHECKING:
     from .Card import Card
-
-ProtocolData = dict[str, Any]
 
 class BuildIdMeta(ABCMeta):
     def __new__(cls, clsname: str, bases, attrs):
@@ -55,13 +54,20 @@ class Saveable(HasId):
 class Buffer(ABC):
     def __init__(self, qq: int) -> None:
         self.datas: list[ProtocolData] = []
+        self.dataBuffer: list[ProtocolData] = []
         self.qq = qq
-    def serialize(self):
-        s = json.dumps(self.datas)
-        self.datas.clear()
+    def Serialize(self):
+        s = json.dumps(self.datas + self.dataBuffer)
         return s
+    def ClearBuffer(self):
+        self.datas.extend(self.dataBuffer)
+        self.dataBuffer = []
+    def CollectBuffer(self):
+        ret = self.dataBuffer
+        self.dataBuffer = []
+        return ret
     def AddData(self, data: ProtocolData):
-        self.datas.append(data)
+        self.dataBuffer.append(data)
     dataListener: list[Callable[[list[ProtocolData]], Awaitable[None]]] = []
     @abstractmethod
     async def selfFlush(self):
@@ -70,8 +76,9 @@ class Buffer(ABC):
     async def Flush(self):
         await self.selfFlush()
         for listener in self.dataListener:
-            await listener(self.datas)
+            await listener(self.datas + self.dataBuffer)
         self.datas.clear()
+        self.dataBuffer.clear()
     @classmethod
     def addDataListener(cls, listener: Callable[[list[ProtocolData]], Awaitable[None]]):
         cls.dataListener.append(listener)

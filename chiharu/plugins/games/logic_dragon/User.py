@@ -10,6 +10,7 @@ from .EventListener import IEventListener
 from .Priority import UserEvt, Priority, exchange
 from .Types import TEvent
 from .Attack import Attack, AttackType
+from .Item import Item
 if TYPE_CHECKING:
     from .Game import Game
 
@@ -277,6 +278,12 @@ class User:
         self.data.SaveCards()
     async def UseEquipment(self, eq: Equipment):
         await eq.use(self)
+    async def BuyItem(self, item: Item):
+        response = await item.HandleCost(self)
+        if response.get("type") != "succeed":
+            self.Send(response)
+            return
+        await item.Use(self)
 
     async def Damaged(self, damage: int, attacker: 'User'=None, mustHit: bool=False):
         if attacker is None:

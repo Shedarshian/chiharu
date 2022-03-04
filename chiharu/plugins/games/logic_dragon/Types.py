@@ -4,6 +4,7 @@ from enum import Enum, IntEnum, auto
 if TYPE_CHECKING:
     from .EventListener import IEventListener
 
+ProtocolData = dict[str, Any]
 TEventListener = TypeVar('TEventListener', bound='IEventListener')
 TEvent = dict[int, list[TEventListener]]
 
@@ -33,6 +34,15 @@ class TGlobalState(TypedDict):
     event_route: List[int]
     bingo_state: List[int]
     sign: int
+    current_event: str
+    current_shop: str
+
+class TWords(TypedDict):
+    keyword: Tuple[str, List[str]]
+    hidden: Tuple[List[str], List[str]]
+    begin: List[str]
+    bombs: List[str]
+    last_update_date: str
 
 class Pack(Enum):
     tarot = auto()

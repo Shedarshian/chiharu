@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, date, time
 from math import ceil
 from os import remove
 from collections import Counter
-from typing import Dict, List, Set, Tuple, Type, TypedDict, Union, Optional
+from typing import Dict, List, Set, Tuple, Type, TypedDict, Union, Optional, Callable
 import itertools, more_itertools
 import json, random, re, base64
 from PIL import Image, ImageDraw

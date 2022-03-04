@@ -5,6 +5,7 @@ if TYPE_CHECKING:
     from .Attack import Attack, AttackType
     from .Status import Status
     from .Dragon import Tree, DragonState
+    from .Types import ProtocolData
 
 class IEventListener:
     async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
