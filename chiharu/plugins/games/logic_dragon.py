@@ -1192,6 +1192,13 @@ async def dragon_daily():
     for group in config.group_id_dict['logic_dragon_send']:
         await get_bot().send_group_msg(group_id=group, message=ret)
 
+@scheduler.scheduled_job('cron', id="dragon_hourly", minute='30')
+@config.ErrorHandle(config.logger.dragon)
+async def dragon_hourly():
+    config.logger.dragon << f"【LOG】每小时清除缓存。"
+    if len(Game.session_list) == 0:
+        Game.userdatas.clear()
+
 @on_command(('dragon', 'update'), only_to_me=False, hide=True, permission=permission.SUPERUSER)
 @config.ErrorHandle(config.logger.dragon)
 async def dragon_update(session: CommandSession):

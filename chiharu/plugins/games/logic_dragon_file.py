@@ -416,7 +416,6 @@ class Game:
                 return await f(buf, *args, **kwargs)
             finally:
                 await buf.flush()
-                cls.userdatas.clear()
         return _f
     @classmethod
     def wrapper(cls, f: Awaitable[config.SessionBuffer]):
@@ -433,8 +432,6 @@ class Game:
     @classmethod
     def remove_session(cls, session: CommandSession):
         cls.session_list.remove(session)
-        if len(cls.session_list) == 0:
-            cls.userdatas.clear()
     @classmethod
     def userdata(cls, qq: int):
         if qq == config.selfqq:
