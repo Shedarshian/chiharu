@@ -1,26 +1,23 @@
 from typing import *
-from .Types import TCounter, TEvent
 if TYPE_CHECKING:
     from .User import User
     from .Card import Card
-    from .Attack import Attack
+    from .Attack import Attack, AttackType
     from .Status import Status
     from .Dragon import Tree, DragonState
+    from .Types import ProtocolData
 
 class IEventListener:
-    @classmethod
-    async def OnUserUseCard(cls, user: 'User', card: 'Card') -> Tuple[bool, str]:
+    async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
         """Called before a user intend to use a card.
 
         Arguments:
         card: The card to be used.
 
         Returns:
-        bool: represents whether the card can be used;
-        str: failure message."""
+        bool: represents whether the card can be used."""
         pass
-    @classmethod
-    async def BeforeCardDraw(cls, user: 'User', n: int, positive: Optional[set[int]], extra_lambda: Optional[Callable]) -> Optional[list['Card']]:
+    async def BeforeCardDraw(self, user: 'User', n: int, requirement: Optional[Callable]) -> Optional[list['Card']]:
         """Called Before a card is drawn in any cases. Includes cards consumed when drawn.
 
         Arguments:
@@ -31,8 +28,7 @@ class IEventListener:
         Returns:
         Optional[List[TCard]]: if not None, replace the card drawn, and halt."""
         pass
-    @classmethod
-    async def BeforeCardUse(cls, user: 'User', card: 'Card') -> Optional[Awaitable]:
+    async def BeforeCardUse(self, user: 'User', card: 'Card') -> Optional[Awaitable]:
         """Called Before a card is used in any cases. Includes cards consumed when drawn.
 
         Arguments:
@@ -41,43 +37,37 @@ class IEventListener:
         Returns:
         Optional[Awaitable]: if not None, replace the card use."""
         pass
-    @classmethod
-    async def AfterCardUse(cls, user: 'User', card: 'Card') -> None:
+    async def AfterCardUse(self, user: 'User', card: 'Card') -> None:
         """Called After a card is used in any cases.
 
         Arguments:
         card: The card used."""
         pass
-    @classmethod
-    async def AfterCardDraw(cls, user: 'User', cards: Iterable['Card']) -> None:
+    async def AfterCardDraw(self, user: 'User', cards: Iterable['Card']) -> None:
         """Called after cards are drawn.
 
         Parameters:
         cards: The cards drawn."""
         pass
-    @classmethod
-    async def AfterCardDiscard(cls, user: 'User', cards: Iterable['Card']) -> None:
+    async def AfterCardDiscard(self, user: 'User', cards: Iterable['Card']) -> None:
         """Called after cards are discarded.
 
         Parameters:
         cards: The cards discarded."""
         pass
-    @classmethod
-    async def AfterCardRemove(cls, user: 'User', cards: Iterable['Card']) -> None:
+    async def AfterCardRemove(self, user: 'User', cards: Iterable['Card']) -> None:
         """Called after cards are removed.
 
         Parameters:
         cards: The cards removed."""
         pass
-    @classmethod
-    async def AfterExchange(cls, user: 'User', user2: 'User') -> None:
+    async def AfterExchange(self, user: 'User', user2: 'User') -> None:
         """Called after cards are exchanged.
 
         Parameters:
         user2: The user that cards are exchanged."""
         pass
-    @classmethod
-    async def OnDeath(cls, user: 'User', killer: 'User', time: int, c: TCounter) -> Tuple[int, bool]:
+    async def OnDeath(self, user: 'User', killer: 'User', time: int, c: 'AttackType') -> Tuple[int, bool]:
         """Called when a user is dead.
         
         Arguments:
@@ -89,8 +79,7 @@ class IEventListener:
         int: modified death time;
         bool: represents whether the death is dodged."""
         pass
-    @classmethod
-    async def OnAttack(cls, user: 'User', attack: 'Attack') -> bool:
+    async def OnAttack(self, user: 'User', attack: 'Attack') -> bool:
         """Called when a user attack other.
 
         Arguments:
@@ -99,8 +88,7 @@ class IEventListener:
         Returns:
         bool: represents whether the attack is dodged."""
         pass
-    @classmethod
-    async def OnAttacked(cls, user: 'User', attack: 'Attack') -> bool:
+    async def OnAttacked(self, user: 'User', attack: 'Attack') -> bool:
         """Called when a user is attacked.
 
         Arguments:
@@ -109,11 +97,9 @@ class IEventListener:
         Returns:
         bool: represents whether the attack is dodged."""
         pass
-    @classmethod
-    async def OnDodged(cls, user: 'User') -> None:
+    async def OnDodged(self, user: 'User') -> None:
         pass
-    @classmethod
-    async def OnStatusAdd(cls, user: 'User', status: 'Status') -> bool:
+    async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
         """Called when a status is added.
         
         Arguments:
@@ -123,8 +109,7 @@ class IEventListener:
         Returns:
         bool: True if dodged."""
         pass
-    @classmethod
-    async def OnStatusRemove(cls, user: 'User', status: 'Status') -> bool:
+    async def OnStatusRemove(self, user: 'User', status: 'Status') -> bool:
         """Called when a status is removed.
         
         Arguments:
@@ -133,15 +118,13 @@ class IEventListener:
         Returns:
         bool: whether the removement is dodged."""
         pass
-    @classmethod
-    async def AfterStatusRemove(cls, user: 'User', status: 'Status') -> None:
+    async def AfterStatusRemove(self, user: 'User', status: 'Status') -> None:
         """Called after a status is removed.
         
         Arguments:
         status: a str for statusnull/statusdaily, or a T_status object."""
         pass
-    @classmethod
-    async def CheckJibiSpend(cls, user: 'User', jibi: int) -> int:
+    async def CheckJibiSpend(self, user: 'User', jibi: int) -> int:
         """Called when a user intended to use jibi to buy something.
 
         Arguments:
@@ -150,8 +133,7 @@ class IEventListener:
         Returns:
         int: the modified amount of jibi needed to buy."""
         pass
-    @classmethod
-    async def OnJibiChange(cls, user: 'User', jibi: int, is_buy: bool) -> int:
+    async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
         """Called when a user added some jibi or decreased some jibi.
 
         Arguments:
@@ -162,8 +144,7 @@ class IEventListener:
         Returns:
         int: the modified amount of jibi to add."""
         pass
-    @classmethod
-    async def CheckEventptSpend(cls, user: 'User', event_pt: int) -> int:
+    async def CheckEventptSpend(self, user: 'User', eventPt: int) -> int:
         """Called when a user intended to use event_pt to buy something.
 
         Arguments:
@@ -172,8 +153,7 @@ class IEventListener:
         Returns:
         int: the modified amount of event_pt needed to buy."""
         pass
-    @classmethod
-    async def OnEventptChange(cls, user: 'User', event_pt: int, is_buy: bool) -> int:
+    async def OnEventptChange(self, user: 'User', eventPt: int, isBuy: bool) -> int:
         """Called when a user added some event_pt or decreased some event_pt.
 
         Arguments:
@@ -184,8 +164,7 @@ class IEventListener:
         Returns:
         int: the modified amount of event_pt to add."""
         pass
-    @classmethod
-    async def BeforeDragoned(cls, user: 'User', state: 'DragonState') -> Tuple[bool, int, str]:
+    async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         """Called before a user dragoning.
 
         Arguments:
@@ -193,11 +172,9 @@ class IEventListener:
 
         Returns:
         bool: represents whether the user can dragon;
-        int: offset to modify the dragon distance allowed;
-        str: failure message."""
+        int: offset to modify the dragon distance allowed."""
         pass
-    @classmethod
-    async def CheckSuguri(cls, user: 'User', state: 'DragonState') -> bool:
+    async def CheckSuguri(self, user: 'User', state: 'DragonState') -> bool:
         """Called when Suguri's Accelerator is checked to be used.
 
         Arguments:
@@ -206,8 +183,7 @@ class IEventListener:
         Returns:
         bool: represents if accelerated."""
         pass
-    @classmethod
-    async def OnKeyword(cls, user: 'User', word: str, parent: 'Tree', keyword: str) -> int:
+    async def OnKeyword(self, user: 'User', word: str, parent: 'Tree', keyword: str) -> int:
         """Called when a user hit a keyword.
         
         Arguments:
@@ -218,8 +194,7 @@ class IEventListener:
         Returns:
         int: the amount of jibi to add."""
         pass
-    @classmethod
-    async def OnHiddenKeyword(cls, user: 'User', word: str, parent: 'Tree', keyword: str) -> int:
+    async def OnHiddenKeyword(self, user: 'User', word: str, parent: 'Tree', keyword: str) -> int:
         """Called when a user hit a hidden keyword.
         
         Arguments:
@@ -230,8 +205,7 @@ class IEventListener:
         Returns:
         int: the amount of jibi to add."""
         pass
-    @classmethod
-    async def OnDuplicatedWord(cls, user: 'User', word: str) -> bool:
+    async def OnDuplicatedWord(self, user: 'User', word: str) -> bool:
         """Called when a user dragoned a duplicated word in one week.
         
         Arguments:
@@ -240,8 +214,7 @@ class IEventListener:
         Returns:
         bool: represents whether the hit is dodged."""
         pass
-    @classmethod
-    async def OnBombed(cls, user: 'User', word: str) -> bool:
+    async def OnBombed(self, user: 'User', word: str) -> bool:
         """Called when a user hit a mine.
         
         Arguments:
@@ -250,18 +223,15 @@ class IEventListener:
         Returns:
         bool: represents whether the hit is dodged."""
         pass
-    @classmethod
-    async def OnDragoned(cls, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
         """Called when the user complete a dragon.
         
         Arguments:
         branch: the dragon branch.
         first10: if it is the first 10 dragon each day."""
         pass
-    @classmethod
-    async def OnNewDay(cls, user: 'User') -> None:
+    async def OnNewDay(self, user: 'User') -> None:
         """Called when new day begins."""
         pass
-    @classmethod
-    def register(cls) -> Iterable[Tuple[int, int]]:
-        return []
+    def register(self) -> Dict[int, int]:
+        return {}

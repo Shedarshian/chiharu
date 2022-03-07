@@ -1,8 +1,12 @@
 from abc import ABC, ABCMeta, abstractmethod
+import enum
+import itertools
+from textwrap import fill
 from typing import *
 import json
-
-ProtocolData = dict[str, Any]
+from .Types import ProtocolData
+if TYPE_CHECKING:
+    from .Card import Card
 
 class BuildIdMeta(ABCMeta):
     def __new__(cls, clsname: str, bases, attrs):
@@ -15,47 +19,87 @@ class BuildIdMeta(ABCMeta):
             c = super().__new__(cls, clsname, bases, attrs)
         return c
 
-TSaveable = TypeVar("TSaveable", bound="Saveable")
-TSaveableType = Type[TSaveable]
-class Saveable(ABC):
+THasId = TypeVar("THasId", bound="HasId")
+THasIdType = Type[THasId]
+class HasId(metaclass=BuildIdMeta):
     id = -1
-    idDict: dict[int, TSaveableType] = {}
+    if TYPE_CHECKING:
+        _idDict: dict[int, THasIdType] = {}
+        @classmethod
+        @property
+        def idDict(cls: Type[THasId]) -> dict[int, Type[THasId]]:
+            return cls._idDict
+    else:
+        idDict = {}
+    @classmethod
+    def get(cls: Type[THasId], id: int) -> Type[THasId]:
+        if id in cls.idDict: # pylint: disable=unsupported-membership-test
+            return cls.idDict[id] # pylint: disable=unsubscriptable-object
+        raise ValueError("哈")
+
+TSaveable = TypeVar('TSaveable', bound='Saveable')
+class Saveable(HasId):
+    def __init__(self, *args) -> None:
+        pass
+    dataType: Tuple[Callable[[str], Any],...] = () # list of type of data args, or a lambda which takes a str and return a data
     def save(self):
         return f"{self.id}:{self.packData() or ''}"
+    @classmethod
+    def load(cls: Type[TSaveable], s: str) -> TSaveable:
+        l = cls.unpackData(s)
+        d = cls.dataType
+        return cls(*[d[i](c) if i < len(d) else c for i, c in enumerate(l)])
     def packData(self) -> str:
-        """Implement yourself."""
+        """Need to implement yourself."""
         return ""
     @classmethod
-    def packAllData(cls, l: Iterable[TSaveable]):
+    def unpackData(cls, s: str):
+        return [] if s == "" else s.split(',')
+    @classmethod
+    def packAllData(cls, l: Iterable['Saveable']):
         return '/'.join(s.save() for s in l)
     @classmethod
     def unpackAllData(cls, s: str):
+        """data format: "id:data,data/id:data,data" """
         l: list[cls] = []
         for c in s.split('/'):
             id, els = c.split(':', 2)
-            l.append(cls.idDict[id](els or None))
+            l.append(cls.idDict[id].load(els)) # pylint: disable=unsubscriptable-object
         return l
-    @classmethod
-    def get(cls: Type[TSaveable], id: int) -> Type[TSaveable]:
-        if id in cls.idDict:
-            return cls.idDict[id]
-        raise ValueError("哈")
 
-class Session(ABC):
+class Buffer(ABC):
     def __init__(self, qq: int) -> None:
         self.datas: list[ProtocolData] = []
+        self.dataBuffer: list[ProtocolData] = []
         self.qq = qq
-    def serialize(self):
-        s = json.dumps(self.datas)
-        self.datas.clear()
+    def Serialize(self):
+        s = json.dumps(self.datas + self.dataBuffer)
         return s
-    def addData(self, data: ProtocolData):
-        self.datas.append(data)
+    def ClearBuffer(self):
+        self.datas.extend(self.dataBuffer)
+        self.dataBuffer = []
+    def CollectBuffer(self):
+        ret = self.dataBuffer
+        self.dataBuffer = []
+        return ret
+    def AddData(self, data: ProtocolData):
+        self.dataBuffer.append(data)
+    dataListener: list[Callable[[list[ProtocolData]], Awaitable[None]]] = []
     @abstractmethod
-    async def flush(self):
+    async def selfFlush(self):
+        """DO NOT CLEAR SELF.DATAS!!!"""
         pass
+    async def Flush(self):
+        await self.selfFlush()
+        for listener in self.dataListener:
+            await listener(self.datas + self.dataBuffer)
+        self.datas.clear()
+        self.dataBuffer.clear()
+    @classmethod
+    def addDataListener(cls, listener: Callable[[list[ProtocolData]], Awaitable[None]]):
+        cls.dataListener.append(listener)
     @abstractmethod
-    async def getResponse(self, request: ProtocolData):
+    async def GetResponse(self, request: ProtocolData) -> ProtocolData:
         pass
 
 class indexer:
@@ -83,3 +127,6 @@ class _indexer:
         return self.parent.fget(self.obj, index)
     def __setitem__(self, index, item):
         self.parent.fset(self.obj, index, item)
+
+def positive(s: set[int]) -> Callable[[Type['Card']], bool]:
+        return lambda c: c.id in s

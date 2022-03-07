@@ -3,6 +3,7 @@ import functools
 import json
 import datetime
 import getopt
+from functools import singledispatch
 from os import path
 from typing import Awaitable, Generator, Set, Callable, Tuple, Dict, Union, Optional
 from nonebot import CommandSession, get_bot, permission
@@ -88,6 +89,14 @@ class _logger:
         self.file.write('\n')
         self.file.flush()
         return self
+    def __getattr__(self, s: str):
+        return _logger2(self, s.upper())
+class _logger2:
+    def __init__(self, p, severity) -> None:
+        self.p = p
+        self.severity = severity
+    def __lshift__(self, a):
+        self.p << f"【{self.severity}】{a}"
 
 class _logger_meta(type):
     def __getattr__(cls, attr):

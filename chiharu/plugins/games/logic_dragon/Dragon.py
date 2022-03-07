@@ -2,7 +2,21 @@ from typing import *
 import re
 
 class DragonState:
-    pass
+    def __init__(self, word: str, parent: 'Tree'):
+        self.word = word
+        self.parent = parent
+        self.shouwei = parent.word == '' or word == '' or parent.word[-1] == word[0]
+        self.weishou = parent.word == '' or word == '' or parent.word[0] == word[-1]
+    async def OnShouWei(self, user): # changable in card USB Type-A
+        pass
+    async def OnWeiShou(self, user): # changable in card USB Type-A
+        pass
+    async def RequireShouwei(self, user):
+        await self.OnShouWei(user)
+        return self.shouwei
+    async def RequireWeishou(self, user):
+        await self.OnWeiShou(user)
+        return self.weishou
 
 class Tree:
     __slots__ = ('id', 'parent', 'left', 'right', 'word', 'fork', 'kwd', 'hdkwd', 'qq')

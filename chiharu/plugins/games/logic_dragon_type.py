@@ -56,7 +56,7 @@ class TUserData(TypedDict):
 async def nothing(): return False
 
 @dataclass
-class TCounter:
+class TAttackType:
     pierce: Callable = nothing
     jump: bool = False
     hpzero: bool = False

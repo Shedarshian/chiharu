@@ -1,34 +1,35 @@
 from typing import *
 from .EventListener import IEventListener
 from .Helper import Saveable, BuildIdMeta
+from .Types import Pack
 if TYPE_CHECKING:
     from .User import User
 
-class Card(IEventListener, Saveable, metaclass=BuildIdMeta):
+class Card(IEventListener, Saveable):
     name = "NoName"
     description = "NoDes"
     newer = 0
     positive = 0
-    weight = 1
+    weight: Union[float, Callable[['User'], float]] = 1
     mass = 0.1
     consumedOnDraw = False
+    pack = Pack.misc
     @property
     def briefDescription(self):
         return f"{self.id}. {self.name}"
     @property
     def fullDescription(self):
         return f"{self.id}. {self.name}\n\t{self.description}"
-    def __init__(self, data: Optional[str]=None) -> None:
+    def CanUse(self, user: 'User', copy: bool) -> bool:
+        return True
+    async def Use(self, user: 'User') -> None:
         pass
-    def canUse(self, user: 'User', copy: bool) -> tuple[bool, str]:
-        return True, ""
-    async def use(self, user: 'User') -> None:
+    async def OnRemove(self, user: 'User') -> None:
         pass
-    async def onRemove(self, user: 'User') -> None:
+    async def OnDraw(self, user: 'User') -> None:
         pass
-    async def onDraw(self, user: 'User') -> None:
+    async def OnDiscard(self, user: 'User') -> None:
+        await self.OnRemove(user)
+    async def OnGive(self, user: 'User', other: 'User') -> None:
         pass
-    async def onDiscard(self, user: 'User') -> None:
-        await self.onRemove(user)
-    async def onGive(self, user: 'User', other: 'User') -> None:
-        pass
+

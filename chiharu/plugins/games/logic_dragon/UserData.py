@@ -1,11 +1,10 @@
-from atexit import register
 from copy import copy
 from typing import *
 from collections import defaultdict
 import struct
 from ... import config
 from .Types import TUserData, TEvent
-from .Helper import Saveable, indexer
+from .Helper import ProtocolData, Saveable, indexer
 from .Card import Card
 from .Status import Status
 from .Equipment import Equipment
@@ -18,17 +17,25 @@ log = config.logger.dragon
 class Wrapper:
     def __init__(self, qq):
         self.qq = qq
-    def __lshift__(self, log):
-        log << f"【LOG】用户{self.qq}" + log
+    def __lshift__(self, lg):
+        log << f"用户{self.qq}" + lg
+    def __getattr__(self, s):
+        return Wrapper2(self, s)
+class Wrapper2:
+    def __init__(self, p: Wrapper, severity) -> None:
+        self.p = p
+        self.severity = severity
+    def __lshift__(self, lg):
+        getattr(log, self.severity) << f"用户{self.p.qq}" + lg
 class UserData:
     _fileSize = 1024
     def __init__(self, qq: int, game: 'Game') -> None:
         self.qq = qq
         self.game = game
         self.refCount = 1
-        log << f"【DEBUG】创建用户{qq}的UserData。"
+        config.logger.dragon.debug << f"创建用户{qq}的UserData。"
         if qq == 0:
-            log << "【WARNING】试图find qq=0的node。"
+            config.logger.dragon.warning << "试图find qq=0的node。"
         t = config.userdata.execute("select * from dragon_data2 where qq=?", (qq,)).fetchone()
         if t is None:
             config.userdata.execute("""insert into dragon_data2
@@ -68,9 +75,9 @@ class UserData:
     def readFileByte(self, pos: int, length: int):
         self.saveFile.seek(pos)
         return self.saveFile.read(length)
-    def readFileInt(self, pos: int):
+    def readFileInt(self, pos: int) -> int:
         return struct.unpack('!i', self.readFileByte(pos, 4))[0]
-    def readFileLong(self, pos: int):
+    def readFileLong(self, pos: int) -> int:
         return struct.unpack('!l', self.readFileByte(pos, 8))[0]
     def setFileInt(self, pos: int, value: int):
         self.saveFile.seek(pos)
@@ -259,13 +266,13 @@ class UserData:
         for equipment in self.equipments:
             self.register(equipment)
     def register(self, eln: IEventListener):
-        for key, priority in eln.register():
+        for key, priority in eln.register().items():
             self.eventListener[key][priority].append(eln)
     def registerStatus(self, status: Status):
         if status.isGlobal == (self.qq == self.game.managerQQ):
             self.register(status)
     def deregister(self, eln: IEventListener):
-        for key, priority in eln.register():
+        for key, priority in eln.register().items():
             self.eventListener[key][priority].remove(eln)
             if len(self.eventListener[key][priority]) == 0:
                 self.eventListener[key].pop(priority)
@@ -297,9 +304,25 @@ class UserData:
             return None
         return l[0]
 
-    def addCard(self, c: Card):
+    def AddCard(self, c: Card):
         self.handCard.append(c)
         self.register(c)
-    def removeCard(self, c: Card):
+    def RemoveCard(self, c: Card):
         self.handCard.remove(c)
         self.deregister(c)
+    
+    def SaveCards(self):
+        config.userdata.execute("update dragon_data2 set card=? where qq=?",
+            (s := Saveable.packAllData(self.handCard), self.qq))
+        self.log.log << f"设置手牌为\"{s}\"。"
+    def SaveStatuses(self):
+        config.userdata.execute("update dragon_data2 set status=? where qq=?",
+            (s := Saveable.packAllData(self.statuses), self.qq))
+        self.log.log << f"设置状态为\"{s}\"。"
+    def SaveEquipments(self):
+        config.userdata.execute("update dragon_data2 set equipment=? where qq=?",
+            (s := Saveable.packAllData(self.equipments), self.qq))
+        self.log.log << f"设置装备为\"{s}\"。"
+    
+    def CheckData(self, request: ProtocolData) -> ProtocolData:
+        pass # TODO
