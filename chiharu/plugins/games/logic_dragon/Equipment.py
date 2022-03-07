@@ -16,26 +16,18 @@ class Equipment(IEventListener, Saveable):
     @property
     def fullDescription(self):
         return f"{self.id}. {self.name}\n\t{self.description}"
-    def __init__(self, data: Optional[str]=None) -> None:
-        pass
     def canUse(self, user: 'User') -> tuple[bool, str]:
         return True, ""
     async def use(self, user: 'User') -> None:
         pass
 
 class EquipmentStar(Equipment):
+    dataType = (int,)
+    def __init__(self, data: int):
+        self.count = data
     @property
     def level(self):
         return self.count
     @property
     def fullDescription(self):
         return f"{self.id}. {self.count * '☆'}{self.name}\n\t{self.description}"
-    @mysingledispatchmethod
-    def __init__(self, data: Optional[str] = None) -> None:
-        if data is None:
-            self.count = 1
-        else:
-            self.count = int(data)
-    @__init__.register
-    def _(self, data: int):
-        self.count = data

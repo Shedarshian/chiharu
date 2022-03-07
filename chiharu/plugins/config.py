@@ -3,6 +3,7 @@ import functools
 import json
 import datetime
 import getopt
+from functools import singledispatch
 from os import path
 from typing import Awaitable, Generator, Set, Callable, Tuple, Dict, Union, Optional
 from nonebot import CommandSession, get_bot, permission

@@ -20,8 +20,6 @@ class Card(IEventListener, Saveable):
     @property
     def fullDescription(self):
         return f"{self.id}. {self.name}\n\t{self.description}"
-    def __init__(self, data: Optional[str]=None) -> None:
-        pass
     def CanUse(self, user: 'User', copy: bool) -> bool:
         return True
     async def Use(self, user: 'User') -> None:

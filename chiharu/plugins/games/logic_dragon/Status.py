@@ -1,4 +1,5 @@
 from enum import IntFlag
+from functools import singledispatchmethod
 from typing import *
 from datetime import datetime, timedelta
 from .EventListener import IEventListener
@@ -28,26 +29,18 @@ class Status(IEventListener, Saveable):
     @property
     def fullDescription(self):
         return f"{self.name}：{self.description}"
-    def __init__(self, data: Optional[str]=None) -> None:
-        super().__init__()
     def double(self):
         pass
 
 class StatusAllNumed(Status):
+    dataType = (int,)
+    def __init__(self, data: int=1) -> None:
+        self.num = data
     @property
     def valid(self):
         return self.num > 0
     def packData(self):
         return str(self.num)
-    @mysingledispatchmethod
-    def __init__(self, data: Optional[str]=None) -> None:
-        if data is None:
-            self.num = 1
-        else:
-            self.num = int(data)
-    @__init__.register
-    def _(self, data: int) -> None:
-        self.num = data
     @property
     def briefDescription(self):
         return f"{self.num}* {super().briefDescription}"
@@ -79,11 +72,9 @@ class StatusNumed(StatusAllNumed):
         return f"{Status.fullDescription.fget(self)}\n剩余{self.num}次。"
 
 class StatusTimed(Status):
-    @mysingledispatchmethod
-    def __init__(self, data: Optional[str]=None):
-        self.time = datetime.fromisoformat(data)
-    @__init__.register
-    def _(self, data: datetime):
+    dataType = (datetime.fromisoformat,)
+    @singledispatchmethod
+    def __init__(self, data: datetime):
         self.time = data
     @__init__.register
     def _(self, data: timedelta):

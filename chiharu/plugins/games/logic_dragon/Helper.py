@@ -1,4 +1,7 @@
 from abc import ABC, ABCMeta, abstractmethod
+import enum
+import itertools
+from textwrap import fill
 from typing import *
 import json
 from .Types import ProtocolData
@@ -34,21 +37,34 @@ class HasId(metaclass=BuildIdMeta):
             return cls.idDict[id] # pylint: disable=unsubscriptable-object
         raise ValueError("哈")
 
+TSaveable = TypeVar('TSaveable', bound='Saveable')
 class Saveable(HasId):
+    def __init__(self, *args) -> None:
+        pass
+    dataType: Tuple[Callable[[str], Any],...] = () # list of type of data args, or a lambda which takes a str and return a data
     def save(self):
         return f"{self.id}:{self.packData() or ''}"
+    @classmethod
+    def load(cls: Type[TSaveable], s: str) -> TSaveable:
+        l = cls.unpackData(s)
+        d = cls.dataType
+        return cls(*[d[i](c) if i < len(d) else c for i, c in enumerate(l)])
     def packData(self) -> str:
-        """Implement yourself."""
+        """Need to implement yourself."""
         return ""
+    @classmethod
+    def unpackData(cls, s: str):
+        return [] if s == "" else s.split(',')
     @classmethod
     def packAllData(cls, l: Iterable['Saveable']):
         return '/'.join(s.save() for s in l)
     @classmethod
     def unpackAllData(cls, s: str):
+        """data format: "id:data,data/id:data,data" """
         l: list[cls] = []
         for c in s.split('/'):
             id, els = c.split(':', 2)
-            l.append(cls.idDict[id](els or None)) # pylint: disable=unsubscriptable-object
+            l.append(cls.idDict[id].load(els)) # pylint: disable=unsubscriptable-object
         return l
 
 class Buffer(ABC):

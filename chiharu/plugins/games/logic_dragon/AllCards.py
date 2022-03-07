@@ -1,5 +1,5 @@
 from typing import *
-from datetime import timedelta
+from datetime import timedelta, datetime
 from .Card import Card
 from .User import User
 from .Status import Status, StatusNumed, StatusTimed, StatusNullStack, StatusDailyStack
@@ -7,6 +7,7 @@ from .Attack import Attack, AttackType
 from .Priority import UserEvt, Priority
 from .Types import Pack
 from .Dragon import DragonState, Tree
+from ...config import mysingledispatchmethod
 
 class SDeath(StatusTimed):
     id = -1
@@ -82,7 +83,25 @@ class CMagician(Card):
 class SCantUse(StatusTimed):
     id = 1
     isDebuff = True
-    # 呃 这个构造函数 有点麻烦 再说
+    dataType = (datetime.fromisoformat, int)
+    def __init__(self, data: Union[datetime, timedelta], cardId: int):
+        super().__init__(data)
+        self.cardId = cardId
+    @property
+    def description(self):
+        return f"疲劳：不可使用卡牌【{Card(self.cardId).name}】。"
+    @property
+    def brief_des(self):
+        delta = self.time - datetime.now()
+        min = delta.seconds // 60
+        return f"疲劳【{Card(self.cardId).name}】\n\t结束时间：{self.getStr()}。"
+    async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
+        if self.cardId == card.id:
+            # TODO send
+            return False
+        return True
+    def register(self) -> Dict[int, int]:
+        return {UserEvt.OnUserUseCard: Priority.OnUserUseCard.cantuse}
 
 class CHierophant(Card):
     id = 5
