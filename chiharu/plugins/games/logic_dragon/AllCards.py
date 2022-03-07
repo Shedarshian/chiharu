@@ -87,6 +87,8 @@ class SCantUse(StatusTimed):
     def __init__(self, data: Union[datetime, timedelta], cardId: int):
         super().__init__(data)
         self.cardId = cardId
+    def packData(self) -> str:
+        return super().packData() + "," + str(self.cardId)
     @property
     def description(self):
         return f"疲劳：不可使用卡牌【{Card(self.cardId).name}】。"
