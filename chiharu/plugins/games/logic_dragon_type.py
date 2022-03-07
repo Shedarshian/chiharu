@@ -320,6 +320,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         inv_sunflower = auto()
         inv_twinsunflower = auto()
         timebomb = auto()
+        dadiyaodong = auto()
 
 TBoundIntEnum = TypeVar('TBoundIntEnum', bound=IntEnum)
 

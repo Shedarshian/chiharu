@@ -4499,6 +4499,10 @@ class dadiyaodong_s(_statusnull):
             for qq, count in to_send.items():
                 user.buf.send(f"玩家{qq}因大地摇动被扣除{4 * count}击毙{句尾}")
                 await User(qq, user.buf).add_jibi(-4 * count)
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnNewDay: (Priority.OnNewDay.dadiyaodong, cls)}
+newday_check[0] |= set('!')
 
 class dihuopenfa(_card):
     name = "地火喷发"
@@ -4938,26 +4942,26 @@ class AMagnet(Attack):
             self.c.time = datetime.now() + timedelta(hours=24)
             self.attacker.send_char("的磁力菇移除了" + self.defender.char, end="")
             if i < len(cards):
-                self.attacker.buf.send("的手牌：" + cards[i].name)
-                self.attacker.log << "移除了手牌" + cards[i].brief_description()
-                await self.attacker.discard_cards([cards[i]])
+                self.defender.buf.send("的手牌：" + cards[i].name)
+                self.defender.log << "移除了手牌" + cards[i].brief_description()
+                await self.defender.discard_cards([cards[i]])
                 return
             i -= len(cards)
             if i < len(status_nulles):
-                self.attacker.buf.send("的状态：" + StatusNull(status_nulles[i]).brief_des)
-                self.attacker.log << "移除了永久状态" + status_nulles[i]
-                await self.attacker.remove_status(status_nulles[i])
+                self.defender.buf.send("的状态：" + StatusNull(status_nulles[i]).brief_des)
+                self.defender.log << "移除了永久状态" + status_nulles[i]
+                await self.defender.remove_status(status_nulles[i])
                 return
             i -= len(status_nulles)
             if i < len(status_dailyes):
-                self.attacker.buf.send("的状态：" + StatusDaily(status_dailyes[i]).brief_des)
-                self.attacker.log << "移除了每日状态" + status_dailyes[i]
-                await self.attacker.remove_daily_status(status_dailyes[i])
+                self.defender.buf.send("的状态：" + StatusDaily(status_dailyes[i]).brief_des)
+                self.defender.log << "移除了每日状态" + status_dailyes[i]
+                await self.defender.remove_daily_status(status_dailyes[i])
                 return
             i -= len(status_dailyes)
-            self.attacker.buf.send("的状态：" + statuses[i].brief_des)
-            self.attacker.log << "移除了状态" + str(statuses[i])
-            await self.attacker.remove_limited_status(status_dailyes[i])
+            self.defender.buf.send("的状态：" + statuses[i].brief_des)
+            self.defender.log << "移除了状态" + str(statuses[i])
+            await self.defender.remove_limited_status(status_dailyes[i])
             return
 
 class sunflower(_card):
