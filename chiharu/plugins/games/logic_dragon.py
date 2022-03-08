@@ -1244,24 +1244,9 @@ async def dragon_op(session: CommandSession):
 @Game.wrapper
 async def dragon_test(buf: SessionBuffer):
     qq = buf.ctx['user_id']
-    user = User(519357823, buf)
-    user.data.jibi += 6 * 19 * 4
-    user = User(1143613284, buf)
-    user.data.jibi += 4 * 19 * 4
-    user = User(1741262236, buf)
-    user.data.jibi += 4 * 19 * 4
     user = User(1824789744, buf)
-    user.data.jibi += 3 * 19 * 4
-    user = User(1206861220, buf)
-    user.data.jibi += 3 * 19 * 4
-    user = User(2865493842, buf)
-    user.data.jibi += 2 * 19 * 4
-    user = User(1569603950, buf)
-    user.data.jibi += 1 * 19 * 4
-    user = User(1440962524, buf)
-    user.data.jibi += 1 * 19 * 4
-    user = User(1418263406, buf)
-    user.data.jibi += 1 * 19 * 4
+    async with user.settlement():
+        await user.draw_maj(MajOneHai('6m'))
     save_data()
 
 @on_command(('dragon', 'maj'), only_to_me=False, hide=True, environment=env_supervise)

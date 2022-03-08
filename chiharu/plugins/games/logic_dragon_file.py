@@ -2574,7 +2574,7 @@ class lovers(_card):
         if await user.choose():
             l = await user.buf.aget(prompt="请at一名玩家复活。\n",
                 arg_filters=[
-                        lambda s: re.findall(r'qq=(\d+)', str(s)),
+                        lambda s: [int(q) for q in re.findall(r'qq=(\d+)', str(s))],
                         validators.fit_size(1, 1, message="请at正确的人数。"),
                     ])
             u = User(l[0], user.buf)
@@ -3004,12 +3004,12 @@ class wenhuazixin(_card):
         for j in l3:
             if j < len(statuses):
                 user.send_log("移除了" + name_f(StatusNull(statuses[j]).des))
-                await ume.remove_status(statuses[j])
+                await ume.remove_status(statuses[j], remove_all=False)
                 continue
             j -= len(statuses)
             if j < len(daily_statuses):
                 user.send_log("移除了" + name_f(StatusDaily(daily_statuses[j]).des))
-                await ume.remove_daily_status(daily_statuses[j])
+                await ume.remove_daily_status(daily_statuses[j], remove_all=False)
                 continue
             j -= len(daily_statuses)
             user.send_log("移除了" + name_f(status_times[j].des))
@@ -4919,6 +4919,7 @@ class magnet_s(TimedStatus):
                 await attack.attacker.attacked(user, atk)
                 user.data.save_status_time()
                 return False,
+        return True,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnAttacked: (Priority.OnAttacked.magnet, cls)}
