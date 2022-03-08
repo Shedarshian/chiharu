@@ -32,8 +32,8 @@ class Game:
             self.hiddenKeyword = d["hidden"][0]
             self.bombs = d["bombs"]
             self.lastUpdateDate = d["last_update_date"]
-        self.logSet = {} # TODO read
-    
+        self.logSet: dict[int, set[str]] = {} # TODO read
+
     @contextmanager
     def UpdateDragonWords(self):
         with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
@@ -105,7 +105,6 @@ class Game:
     def AddHidden(self, word: str):
         with self.UpdateDragonWords() as d:
             d['hidden'][1].append(word)
-
 
     def InitTree(self, is_daily: bool):
         if is_daily:
@@ -255,3 +254,5 @@ class Game:
                 ret = self.UpdateHiddenKeyword(i, True)
                 user.Send(ret)
                 break
+        # 检测重复词 TODO
+        self.AddTree(parent, word, user.qq, kwd, hdkwd)
