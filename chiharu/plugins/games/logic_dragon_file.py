@@ -675,8 +675,6 @@ class UserData:
     def save_maj(self):
         config.userdata.execute("update dragon_data set maj=? where qq=?", (str(self.maj), self.qq))
         config.logger.dragon << f"【LOG】设置用户{self.qq}麻将为{str(self.maj)}。"
-    def reload(self) -> None:
-        self.node = dict(find_or_new(self.qq))
     @property
     def qq(self):
         return self._qq
@@ -1204,6 +1202,7 @@ class User:
             jibi, = await eln.OnJibiChange(n, self, jibi, is_buy)
             if jibi == 0:
                 break
+        self.log << f"增加击毙{jibi}，现有击毙{max(self.data.jibi + jibi, 0)}。"
         self.data.jibi = max(self.data.jibi + jibi, 0)
         if is_buy and jibi < 0:
             self.data.spend_shop += abs(jibi)
@@ -1720,7 +1719,7 @@ class User:
                 if self.data.check_equipment(5):
                     for i in range(len(ura)):
                         dora1 = ura[i].addOneDora()
-                        if dora1 not in hand_maj and dora1 != to_draw and random.random() < 0.5:
+                        if dora1 not in hand_maj and dora1.hai not in self.data.maj[1] and dora1 != to_draw and random.random() < 0.5:
                             dora2 = MajOneHai(MajOneHai.get_random())
                             self.buf.send(f"指示牌{str(ura[i])}没有抽中，重抽出了{str(dora2)}{句尾}")
                             config.logger.dragon << f"指示牌{str(ura[i])}没有抽中，重抽出了{str(dora2)}{句尾}"
@@ -1918,7 +1917,6 @@ Userme: Callable[[User], User] = lambda user: User(config.selfqq, user.buf)
 
 def save_data():
     config.userdata_db.commit()
-    me.reload()
 
 def cards_to_str(cards: List[TCard]):
     return '，'.join(c.brief_description() for c in cards)
@@ -4499,6 +4497,7 @@ class dadiyaodong_s(_statusnull):
             for qq, count in to_send.items():
                 user.buf.send(f"玩家{qq}因大地摇动被扣除{4 * count}击毙{句尾}")
                 await User(qq, user.buf).add_jibi(-4 * count)
+        await Userme(user).remove_status('!', remove_all=False)
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnNewDay: (Priority.OnNewDay.dadiyaodong, cls)}
@@ -6069,7 +6068,7 @@ class forkbomb_s(_statusdaily):
     is_metallic = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        if (c := random.random()) > (0.95 - 0.05 * user.data.luck) ** count:
+        if (c := random.random()) > (0.95 - 0.005 * user.data.luck) ** count:
             if c < 0.95 ** count:
                 user.buf.send("幸运地", end='')
             user.send_log(f"触发了Fork Bomb，此词变成了分叉点{句尾}")

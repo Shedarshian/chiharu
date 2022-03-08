@@ -318,10 +318,10 @@ async def daily_update(buf: SessionBuffer) -> str:
         if (newday_check[0] & set(r['status'])) or (newday_check[1] & set(r['daily_status'])) or _(newday_check[2], r['status_time']) or _2(newday_check[3], r['equipment']):
             user = User(r['qq'], buf)
             # Event OnNewDay
-            for eln, n in user.IterAllEventList(UserEvt.OnNewDay, Priority.OnNewDay):
+            for eln, n in user.IterAllEventList(UserEvt.OnNewDay, Priority.OnNewDay, no_global=True):
                 await eln.OnNewDay(n, user)
     save_data()
-    me.reload()
+    Game.userdatas.clear()
     me._reregister_things()
     word = await update_begin_word(is_daily=True)
     await buf.flush()
@@ -1244,9 +1244,25 @@ async def dragon_op(session: CommandSession):
 @Game.wrapper
 async def dragon_test(buf: SessionBuffer):
     qq = buf.ctx['user_id']
+    user = User(519357823, buf)
+    user.data.jibi += 6 * 19 * 4
+    user = User(1143613284, buf)
+    user.data.jibi += 4 * 19 * 4
+    user = User(1741262236, buf)
+    user.data.jibi += 4 * 19 * 4
+    user = User(1824789744, buf)
+    user.data.jibi += 3 * 19 * 4
+    user = User(1206861220, buf)
+    user.data.jibi += 3 * 19 * 4
+    user = User(2865493842, buf)
+    user.data.jibi += 2 * 19 * 4
     user = User(1569603950, buf)
-    async with user.settlement():
-        pass
+    user.data.jibi += 1 * 19 * 4
+    user = User(1440962524, buf)
+    user.data.jibi += 1 * 19 * 4
+    user = User(1418263406, buf)
+    user.data.jibi += 1 * 19 * 4
+    save_data()
 
 @on_command(('dragon', 'maj'), only_to_me=False, hide=True, environment=env_supervise)
 @config.ErrorHandle(config.logger.dragon)
