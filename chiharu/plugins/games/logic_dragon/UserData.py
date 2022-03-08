@@ -40,9 +40,9 @@ class UserData:
         if t is None:
             config.userdata.execute("""insert into dragon_data2
                     (qq, jibi, card, status, equipment, card_limit, event_pt, event_stage, dead,
-                    flags, assembling, hp, mp, maj_quan, event_skill) values
+                    flags, assembling, hp, mp, maj_quan, event_skill, last_dragon_time) values
                     (?, 0, '', '', '', 4, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0)""", (qq,))
+                    0, 0, 0, 0, 0, 0, '')""", (qq,))
             t = config.userdata.execute("select * from dragon_data2 where qq=?", (qq,)).fetchone()
         self.node: TUserData = dict(t)
         self._save_file = None
@@ -148,6 +148,13 @@ class UserData:
     def majQuan(self, value):
         config.userdata.execute("update dragon_data2 set maj_quan=? where qq=?", (value, self.qq))
         self.node['maj_quan'] = value
+    @property
+    def lastDragonTime(self):
+        return self.node['last_dragon_time']
+    @lastDragonTime.setter
+    def lastDragonTime(self, value):
+        config.userdata.execute("update dragon_data2 set last_dragon_time=? where qq=?", (value, self.qq))
+        self.node['last_dragon_time'] = value
 
     @property
     def drawTime(self):
