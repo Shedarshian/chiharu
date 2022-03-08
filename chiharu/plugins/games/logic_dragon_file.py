@@ -7054,7 +7054,7 @@ class photoelectric(_card):
     positive = 1
     newer = 7
     pack = Pack.physic
-    comsumed_on_draw = True
+    consumed_on_draw = True
     @classmethod
     async def on_draw(cls, user: User) -> None:
         cards = [d for d in user.data.hand_card if d.is_metallic]
