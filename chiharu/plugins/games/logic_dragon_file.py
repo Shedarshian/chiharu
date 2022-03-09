@@ -3045,20 +3045,26 @@ class le_checker(IEventListener):
         for qq in checks:
             u = User(qq, user.buf)
             l = u.check_limited_status('n', lambda s: s.length == 1)
-            if (n := u.check_daily_status('L')) and random.random() > 0.25 ** n:
-                u.log << f"不可从节点{branch.id_str}接龙。"
-                user.buf.send(f"玩家{qq}判定失败，不可从此节点接龙{句尾}")
-                if len(l) == 0:
-                    await u.add_limited_status(SNoDragon([branch.id_str], 1))
-                else:
-                    l[0].list.append(branch.id_str)
-            if (n := u.check_daily_status('K')) and random.random() > 0.75 ** n:
-                u.log << f"不可从节点{branch.id_str}接龙。"
-                user.buf.send(f"玩家{qq}判定失败，不可从此节点接龙{句尾}")
-                if len(l) == 0:
-                    await u.add_limited_status(SNoDragon([branch.id_str], 1))
-                else:
-                    l[0].list.append(branch.id_str)
+            if (n := u.check_daily_status('L')):
+                if (r := random.random()) > (0.25 + 0.0375 * u.data.luck) ** n:
+                    u.log << f"不可从节点{branch.id_str}接龙。"
+                    user.buf.send(f"玩家{qq}判定失败，不可从此节点接龙{句尾}")
+                    if len(l) == 0:
+                        await u.add_limited_status(SNoDragon([branch.id_str], 1))
+                    else:
+                        l[0].list.append(branch.id_str)
+                elif r > 0.25 ** n:
+                    user.buf.send(f"玩家{qq}幸运地判定成功了{句尾}")
+            if (n := u.check_daily_status('K')):
+                if (r := random.random()) > (0.75 + 0.0375 * u.data.luck) ** n:
+                    u.log << f"不可从节点{branch.id_str}接龙。"
+                    user.buf.send(f"玩家{qq}判定失败，不可从此节点接龙{句尾}")
+                    if len(l) == 0:
+                        await u.add_limited_status(SNoDragon([branch.id_str], 1))
+                    else:
+                        l[0].list.append(branch.id_str)
+                elif r > 0.75 ** n:
+                    user.buf.send(f"玩家{qq}幸运地判定成功了{句尾}")
             u.data.save_status_time()
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -4877,19 +4883,19 @@ class ARailgun(Attack):
     async def self_action(self):
         self.defender.death(120 * self.multiplier)
         for d in self.defender.data.hand_card:
-            if d.is_metallic and random.random() > 0.5 ** self.multiplier:
+            if d.is_metallic and random.random() > (0.5 - 0.02 * self.attacker.data.luck) ** self.multiplier:
                 self.defender.send_log(f"的{d.name}被烧掉了{句尾}")
                 await self.defender.remove_cards([d])
         for s in self.defender.data.status:
-            if StatusNull(s).is_metallic and random.random() > 0.5 ** self.multiplier:
+            if StatusNull(s).is_metallic and random.random() > (0.5 - 0.02 * self.attacker.data.luck) ** self.multiplier:
                 self.defender.send_log(f"的{name_f(StatusNull(s).des)}被烧掉了{句尾}")
                 await self.defender.remove_status(s)
         for s in self.defender.data.daily_status:
-            if StatusDaily(s).is_metallic and random.random() > 0.5 ** self.multiplier:
+            if StatusDaily(s).is_metallic and random.random() > (0.5 - 0.02 * self.attacker.data.luck) ** self.multiplier:
                 self.defender.send_log(f"的{name_f(StatusDaily(s).des)}被烧掉了{句尾}")
                 await self.defender.remove_daily_status(s)
         for s in self.defender.data.status_time_checked:
-            if s.is_metallic and random.random() > 0.5 ** self.multiplier:
+            if s.is_metallic and random.random() > (0.5 - 0.02 * self.attacker.data.luck) ** self.multiplier:
                 self.defender.send_log(f"的{name_f(s.des)}被烧掉了{句尾}")
                 await self.defender.remove_limited_status(s)
 

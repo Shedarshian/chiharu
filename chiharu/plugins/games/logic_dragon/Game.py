@@ -218,7 +218,7 @@ class Game:
         if user.qq in parent.getParentQQList(dist):
             # Event CheckSuguri
             for eln in user.IterAllEvent(UserEvt.CheckSuguri):
-                allowed, = await eln.CheckSuguri(user, dragonState)
+                allowed = await eln.CheckSuguri(user, dragonState)
                 if allowed:
                     break
             else:
@@ -302,4 +302,7 @@ class Game:
         
         # 增加麻将券
         user.data.majQuan += 1
-        
+        return {"type": "succeed"}
+    async def UserUseCard(self, user: 'User', cardId: int) -> ProtocolData:
+        pass
+
