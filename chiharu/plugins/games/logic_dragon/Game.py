@@ -2,6 +2,7 @@ from typing import *
 from collections import defaultdict
 from contextlib import contextmanager
 import random, json
+from datetime import datetime
 from .User import User
 from .UserData import UserData
 from .Dragon import Tree, DragonState
@@ -32,8 +33,8 @@ class Game:
             self.hiddenKeyword = d["hidden"][0]
             self.bombs = d["bombs"]
             self.lastUpdateDate = d["last_update_date"]
-        self.logSet = {} # TODO read
-    
+        self.logSet: dict[int, set[str]] = {} # TODO read
+
     @contextmanager
     def UpdateDragonWords(self):
         with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
@@ -106,7 +107,6 @@ class Game:
         with self.UpdateDragonWords() as d:
             d['hidden'][1].append(word)
 
-
     def InitTree(self, is_daily: bool):
         if is_daily:
             self.treeForests: List[List[List['Tree']]] = []
@@ -137,6 +137,7 @@ class Game:
             for i in range(id[1] + 1 - self.treeMaxBranches):
                 self.treeObjs.append([])
             self.treeMaxBranches = id[1] + 1
+        return tree
     def RemoveTree(self, tree: Tree):
         id = tree.id
         begin = id[0] - self.treeObjs[id[1]][0].id[0]
@@ -202,7 +203,9 @@ class Game:
             return {"type": "failed", "error_code": 101}
         if parent.left is not None and not parent.fork:
             return {"type": "failed", "error_code": 102}
+
         # TODO 检测接龙词是否包含不合法字符
+
         dist = 2
         # Event BeforeDragoned
         dragonState = DragonState(word, parent)
@@ -222,6 +225,7 @@ class Game:
                 return {"type": "failed", "error_code": 120}
         word = dragonState.word
         kwd = hdkwd = ""
+
         # 检测奖励词
         if word == self.keyword:
             kwd = self.keyword
@@ -239,6 +243,7 @@ class Game:
             await user.AddJibi(jibiToAdd)
             ret = self.UpdateKeyword(if_delete=True)
             user.Send(ret)
+
         # 检测隐藏奖励词
         for i, k in enumerate(self.hiddenKeyword):
             if k in word:
@@ -255,3 +260,46 @@ class Game:
                 ret = self.UpdateHiddenKeyword(i, True)
                 user.Send(ret)
                 break
+        
+        # 检测重复词 TODO
+        if 0:
+            # Event OnDuplicatedWord
+            for eln in user.IterAllEvent(UserEvt.OnDuplicatedWord):
+                dodged = await eln.OnDuplicatedWord(user, word)
+                if dodged:
+                    break
+            else:
+                await user.Death()
+        
+        # 创建节点
+        tree = self.AddTree(parent, word, user.qq, kwd, hdkwd)
+        user.data.lastDragonTime = datetime.now().isoformat()
+        if first10 := user.data.todayJibi > 0:
+            user.data.todayJibi -= 1
+            await user.AddJibi(1)
+            if user.data.todayJibi == 9:
+                user.data.drawTime += 1
+        
+        # 结算炸弹
+        if word in self.bombs:
+            self.RemoveBomb(word)
+            # Event OnBombed
+            for eln in user.IterAllEvent(UserEvt.OnBombed):
+                dodged = await eln.OnBombed(user, word)
+                if dodged:
+                    break
+            else:
+                await user.Death()
+        
+        # 泳装活动
+        if self.state["current_event"] == "swim" and first10:
+            n = random.randint(1, 6)
+            await user.EventMove(n)
+        
+        # Event OnDragoned
+        for eln in user.IterAllEvent(UserEvt.OnDragoned):
+            await eln.OnDragoned(user, tree, first10)
+        
+        # 增加麻将券
+        user.data.majQuan += 1
+        
