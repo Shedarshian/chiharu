@@ -794,7 +794,7 @@ async def dragon_check(buf: SessionBuffer):
         I = me.check_daily_status('I')
         M = user.check_daily_status('M')
         dis = max(2 + i - I - m + M, 1)
-        buf.finish("当前活动词" + ('🔄' if me.check_daily_status('o') else '♻️' if me.check_daily_status('p') else '') + "为：\n" + '\n'.join(f"{s.word}，{'⚠️' if qq in s.get_parent_qq_list(dis)else ''}id为{s.id_str}" for s in words))
+        buf.finish("当前活动词" + ('🔄' if me.check_daily_status('o') else '♻️' if me.check_daily_status('p') else '') + "为：\n" + '\n'.join(f"{s.word}，{'⚠️' if qq in s.get_parent_qq_list(dis) else '❌' if len(l := user.check_limited_status('n')) > 0 and not l[0].check_node(s) else ''}id为{s.id_str}" for s in words))
     elif data in ("资料", "profile"):
         ret = f"本周星座为：{Sign(global_state['sign']).description}\n你的资料为：\n今日剩余获得击毙次数：{user.data.today_jibi}。\n今日剩余获得关键词击毙：{user.data.today_keyword_jibi}。\n剩余抽卡券：{user.data.draw_time}。\n手牌上限：{user.data.card_limit}。" + (f"\n活动pt：{user.data.event_pt}。\n当前在活动第{user.data.event_stage}。" if current_event == "swim" else "")
         if user.data.extra.maj_quan // 3 != 0:

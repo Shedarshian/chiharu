@@ -952,6 +952,7 @@ class User:
         self.qq = qq
         self.data = data or Game.userdata(qq)
         self.buf = buf
+        self.data.status_time_checked
     def __del__(self):
         pass
     @property
@@ -2105,15 +2106,19 @@ class SNoDragon(ListStatus):
             this2 = list(itertools.chain(*[c.childs for c in this]))
             this3 = list(itertools.chain(*[c.childs for c in this2]))
             return f"{self.des}\n\t{','.join(c.id_str for c in this + this2 + this3 if c.id_str in ids)}"
+    def check_node(self, node: 'Tree'):
+        if self.length == 1:
+            if node.id_str in self.list:
+                return False
+        elif self.length == 3:
+            if node.id_str in self.list or Tree.before(node, 1).id_str in self.list or Tree.before(node, 2).id_str in self.list:
+                return False
+        return True
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
         for c in count:
-            if c.length == 1:
-                if state.parent.id_str in c.list:
-                    return False, 0, "你不能从此节点接龙" + 句尾
-            elif c.length == 3:
-                if state.parent.id_str in c.list or Tree.before(state.parent, 1).id_str in c.list or Tree.before(state.parent, 2).id_str in c.list:
-                    return False, 0, "你不能从此节点接龙" + 句尾
+            if not c.check_node(state.parent):
+                return False, 0, "你不能从此节点接龙" + 句尾
         return True, 0, ""
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
