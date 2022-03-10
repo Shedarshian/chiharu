@@ -23,7 +23,7 @@ config.logger.open('dragon')
 CommandGroup('dragon', short_des="逻辑接龙相关。", environment=env|env_supervise)
 
 # TODO 十连保底
-message_re = re.compile(r"\s*(\d+)([a-z])?\s*接[\s，,]*(.*)[\s，,\n]*.*")
+message_re = re.compile(r"\s*(\d+)([a-z])*\s*接[\s，,]*(.*)[\s，,\n]*.*")
 
 # Version information and changelog
 version = "0.3.1"
@@ -66,7 +66,7 @@ def load_log(init):
         d -= timedelta(days=1)
     today = rf'log\dragon_log_{d.isoformat()}.txt'
     def _(s):
-        if match := re.match(r'(\d+[a-z]?(?:\+?<-?\d+[a-z]?)?(?:/\d+/[^/]*/[^/]*/)?) (.*)', s):
+        if match := re.match(r'(\d+[a-z]*(?:\+?<-?\d+[a-z]*)?(?:/\d+/[^/]*/[^/]*/)?) (.*)', s):
             return match.group(2)
         return s
     for i in range(7):
@@ -80,7 +80,7 @@ def load_log(init):
         try:
             with open(config.rel(today), encoding='utf-8') as f:
                 for line in f.readlines():
-                    if match := re.match(r'(\d+)([a-z])?(?:(\+)?<(-?\d+[a-z]?))?(?:/(\d+)/([^/]*)/([^/]*)/)? (.*)', line.strip("\r\n")):
+                    if match := re.match(r'(\d+)([a-z])*(?:(\+)?<(-?\d+[a-z]*))?(?:/(\d+)/([^/]*)/([^/]*)/)? (.*)', line.strip("\r\n")):
                         if match.group(1) == '0' and len(Tree._objs) != 0:
                             Tree.forests.append(Tree._objs)
                             Tree.init(is_daily=False)

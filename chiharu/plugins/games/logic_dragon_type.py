@@ -558,11 +558,23 @@ class Tree:
             return None
     @property
     def id_str(self):
-        return str(self.id[0]) + ('' if self.id[1] == 0 else chr(96 + self.id[1]))
+        s = ""
+        t = self.id[1]
+        while t > 0:
+            if t % 26 == 0:
+                s = 'z' + s
+                t = t // 26 - 1
+            else:
+                s = chr(96 + t % 26) + s
+                t = t // 26
+        return s
     @staticmethod
     def str_to_id(str):
-        match = re.match(r'(\d+)([a-z])?', str)
-        return int(match.group(1)), (0 if match.group(2) is None else ord(match.group(2)) - 96)
+        match = re.match(r'(\d+)([a-z]*)', str)
+        t = 0
+        for c in match.group(2):
+            t = t * 26 + ord(c) - 96
+        return int(match.group(1)), t
     @staticmethod
     def match_to_id(match):
         return int(match.group(1)), (0 if match.group(2) is None else ord(match.group(2)) - 96)

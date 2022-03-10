@@ -192,7 +192,7 @@ class Game:
         for c in l:
             l2.append(c())
         return l2
-    
+
     async def PerformDragon(self, user: 'User', parentId: tuple[int, int], word: str) -> ProtocolData:
         user.log.verbose << f"尝试接龙，父节点{parentId}，接龙词{word}。"
         if len(user.data.handCard) > user.data.cardLimit:
