@@ -105,7 +105,7 @@ def get_yesterday_qq():
     s = set()
     with open(config.rel(yesterday), encoding='utf-8') as f:
         for line in f.readlines():
-            if (match := re.match(r'(\d+)([a-z])?(?:(\+)?<(-?\d+[a-z]?))?(?:/(\d+)/([^/]*)/([^/]*)/)? (.*)', line.strip("\r\n"))) and match.group(5) is not None:
+            if (match := re.match(r'(\d+)([a-z]*)(?:(\+)?<(-?\d+[a-z]*))?(?:/(\d+)/([^/]*)/([^/]*)/)? (.*)', line.strip("\r\n"))) and match.group(5) is not None:
                 s.add(int(match.group(5)))
     return s
 def check_and_add_log_and_contruct_tree(parent: Tree, word: str, qq: int, kwd: str, hdkwd: str, fork: bool):
@@ -870,7 +870,7 @@ async def dragon_buy(buf: SessionBuffer):
                 arg_filters=[
                     extractors.extract_text,
                     cancellation(buf.session),
-                    lambda s: list(re.findall(r'\d+[a-z]?', str(s))),
+                    lambda s: list(re.findall(r'\d+[a-z]*', str(s))),
                     validators.fit_size(1, 1, message="请输入一个节点的id号。"),
                     lambda l: Tree.find(Tree.str_to_id(l[0])),
                     validators.ensure_true(lambda s: s is not None, message="请从活动词中选择一个。")
@@ -1071,7 +1071,7 @@ async def dragon_delete(buf: SessionBuffer):
     可选参数：
         -f：驳回该节点的分叉。
     可使用：驳回 id 或 驳回分叉 id。"""
-    match = re.search(r'(\d+)([a-z])?', buf.current_arg_text)
+    match = re.search(r'(\d+)([a-z]*)', buf.current_arg_text)
     node = Tree.find(Tree.match_to_id(match))
     if not node:
         buf.finish("请输入存在的id号。")
