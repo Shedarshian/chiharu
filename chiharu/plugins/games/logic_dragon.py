@@ -1053,7 +1053,7 @@ async def dragon_buy_event(buf: SessionBuffer):
 async def dragon_fork(session: CommandSession):
     """分叉接龙。
     使用方法：分叉 id号"""
-    match = re.search(r'(\d+)([a-z])?', session.current_arg_text)
+    match = re.search(r'(\d+)([a-z]*)', session.current_arg_text)
     if not match:
         return
     parent = Tree.find(Tree.match_to_id(match))
