@@ -571,13 +571,13 @@ class Tree:
     @staticmethod
     def str_to_id(str):
         match = re.match(r'(\d+)([a-z]*)', str)
+        return Tree.match_to_id(match)
+    @staticmethod
+    def match_to_id(match):
         t = 0
         for c in match.group(2):
             t = t * 26 + ord(c) - 96
         return int(match.group(1)), t
-    @staticmethod
-    def match_to_id(match):
-        return int(match.group(1)), (0 if match.group(2) is None else ord(match.group(2)) - 96)
     @classmethod
     def init(cls, is_daily: bool):
         cls._objs = []
