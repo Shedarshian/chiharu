@@ -567,7 +567,7 @@ class Tree:
             else:
                 s = chr(96 + t % 26) + s
                 t = t // 26
-        return s
+        return str(self.id[0]) + s
     @staticmethod
     def str_to_id(str):
         match = re.match(r'(\d+)([a-z]*)', str)
