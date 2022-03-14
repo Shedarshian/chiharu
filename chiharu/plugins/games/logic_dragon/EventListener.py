@@ -205,11 +205,12 @@ class IEventListener:
         Returns:
         int: the amount of jibi to add."""
         pass
-    async def OnDuplicatedWord(self, user: 'User', word: str) -> bool:
+    async def OnDuplicatedWord(self, user: 'User', word: str, originalQQ: int) -> bool:
         """Called when a user dragoned a duplicated word in one week.
         
         Arguments:
         word: the dragon word.
+        originalQQ: the original user who dragoned this word.
         
         Returns:
         bool: represents whether the hit is dodged."""

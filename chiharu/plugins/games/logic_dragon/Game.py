@@ -1,11 +1,12 @@
+from io import TextIOWrapper
 from typing import *
 from collections import defaultdict
 from contextlib import contextmanager
 import random, json
-from datetime import datetime
+from datetime import date, datetime, time, timedelta
 from .User import User
 from .UserData import UserData
-from .Dragon import Tree, DragonState
+from .Dragon import Tree, DragonState, TreeEncoder
 from .Types import TEvent, TGlobalState, Sign, ProtocolData, TWords
 from .Helper import Buffer
 from .Priority import UserEvt
@@ -20,20 +21,41 @@ Change:
 
 class Game:
     def __init__(self) -> None:
+        self.treeForests: List[List[List['Tree']]] = []
+        self.treeObjs: List[List['Tree']] = []
+        self.treeMaxBranches = 0
         self.InitTree(True)
         self.managerQQ = config.selfqq
         self.dragonQQ = 1
         self.me = UserData(self.managerQQ, self)
         self.eventListenerInit: defaultdict[UserEvt, TEvent] = defaultdict(lambda: defaultdict(list))
         self.userdatas: Dict[int, 'UserData'] = {}
-        self.state: TGlobalState = {} # TODO read
+        with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
+            self.state: TGlobalState = json.load(f)
         with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
             d: TWords = json.load(f)
             self.keyword = d["keyword"][0]
             self.hiddenKeyword = d["hidden"][0]
             self.bombs = d["bombs"]
             self.lastUpdateDate = d["last_update_date"]
-        self.logSet: dict[int, set[str]] = {} # TODO read
+        def _(dt: date):
+            return config.rel(rf'log\dragon_log_{dt.isoformat()}.txt')
+        self.treeFilePath = _
+        self.logSet: dict[str, int] = {}
+        self.logFile: Optional[TextIOWrapper] = None
+        self.LoadLogSet()
+        self.LoadTree()
+        self.logFile = open(self.treeFilePath(self.getToday()), 'a', encoding='utf-8')
+    def __del__(self):
+        if self.logFile is not None:
+            self.logFile.close()
+
+    @classmethod
+    def getToday(cls):
+        dt = date.today()
+        if datetime.now().time() < time(15, 59):
+            dt -= timedelta(days=1)
+        return dt
 
     @contextmanager
     def UpdateDragonWords(self):
@@ -109,26 +131,32 @@ class Game:
 
     def InitTree(self, is_daily: bool):
         if is_daily:
-            self.treeForests: List[List[List['Tree']]] = []
-        self.treeObjs: List[List['Tree']] = [] # [[wd0, wd1, wd2], [wd2a], [wd2b]]
+            self.treeForests = []
+        else:
+            self.treeForests.append(self.treeObjs)
+        self.treeObjs = []
         self.treeMaxBranches = 0
     def FindTree(self, id: Tuple[int, int]):
+        if id is None:
+            return None
         try:
             if len(self.treeObjs[id[1]]) == 0:
                 return None
             return self.treeObjs[id[1]][id[0] - self.treeObjs[id[1]][0].id[0]]
         except IndexError:
             return None
-    def AddTree(self, parent: Optional[Tree], word: str, qq: int, kwd: str, hdkwd: str):
-        if parent:
-            id = (parent.id[0] + 1, parent.id[1])
-        else:
-            id = (0, 0)
-        if self.FindTree(id):
-            id = (id[0], self.treeMaxBranches)
+    def AddTree(self, parent: Optional[Tree], word: str, qq: int, kwd: str, hdkwd: str, fork: bool=False,
+            /, id: tuple[int, int]=None):
+        if id is None:
             if parent:
-                parent.fork = True
-        tree = Tree(parent, word, qq, kwd, hdkwd, id=id)
+                id = (parent.id[0] + 1, parent.id[1])
+            else:
+                id = (0, 0)
+            if self.FindTree(id):
+                id = (id[0], self.treeMaxBranches)
+                if parent:
+                    parent.fork = True
+        tree = Tree(parent, word, qq, kwd, hdkwd, id=id, fork=fork)
         if parent and parent.left is None:
             parent.left = tree
         elif parent and parent.right is None:
@@ -159,6 +187,43 @@ class Game:
             if tree.parent.left is self:
                 tree.parent.left = tree.parent.right
             tree.parent.right = None
+    def LoadLogSet(self):
+        if self.logFile is not None:
+            self.logFile.close()
+            self.logFile = None
+        d = self.getToday()
+        for i in range(7):
+            try:
+                with open(self.treeFilePath(d), encoding='utf-8') as f:
+                    for s in f.readlines():
+                        ret = Tree.load(s.strip())
+                        if ret is None:
+                            continue
+                        elif ret["type"] == "tree":
+                            self.logSet[ret["word"]] = ret["qq"]
+            except FileNotFoundError:
+                pass
+            d -= timedelta(days=1)
+    def LoadTree(self):
+        if self.logFile is not None:
+            self.logFile.close()
+            self.logFile = None
+        try:
+            with open(self.treeFilePath(self.getToday()), encoding='utf-8') as f:
+                for s in f.readlines():
+                    ret = Tree.load(s.strip())
+                    if ret is None:
+                        continue
+                    elif ret["type"] == "fork":
+                        self.FindTree(ret["id"]).fork = ret["fork"]
+                    elif ret["type"] == "delete":
+                        self.RemoveTree(self.FindTree(ret["id"]))
+                    elif ret["type"] == "new":
+                        self.InitTree(False)
+                    elif ret["type"] == "tree":
+                        self.AddTree(self.FindTree(ret["parentId"]), ret["word"], ret["qq"], ret["keyword"], ret["hiddenKeyword"], ret["fork"], id=ret["id"])
+        except FileNotFoundError:
+            pass
     def TreeActiveNodes(self, have_fork=True):
         words = [s[-1] for s in self.treeObjs if len(s) != 0 and s[-1].left is None]
         if have_fork:
@@ -167,6 +232,7 @@ class Game:
                     if word.fork and word.left is not None and word.right is None:
                         words.append(word)
         return words
+
     def RegisterEventCheckerInit(self, checker: 'IEventListener') -> None:
         for key, priority in checker.register():
             self.eventListenerInit[key][priority].append(checker)
@@ -192,6 +258,9 @@ class Game:
         for c in l:
             l2.append(c())
         return l2
+    def SaveState(self):
+        with open(config.rel('dragon_state.json'), 'w', encoding='utf-8') as f:
+            json.dump(self.state, f, ensure_ascii=False, indent=4, sort_keys=True)
 
     async def PerformDragon(self, user: 'User', parentId: tuple[int, int], word: str) -> ProtocolData:
         user.log.verbose << f"尝试接龙，父节点{parentId}，接龙词{word}。"
@@ -261,11 +330,11 @@ class Game:
                 user.Send(ret)
                 break
         
-        # 检测重复词 TODO
-        if 0:
+        # 检测重复词
+        if word in self.logSet:
             # Event OnDuplicatedWord
             for eln in user.IterAllEvent(UserEvt.OnDuplicatedWord):
-                dodged = await eln.OnDuplicatedWord(user, word)
+                dodged = await eln.OnDuplicatedWord(user, word, self.logSet[word])
                 if dodged:
                     break
             else:
@@ -273,6 +342,10 @@ class Game:
         
         # 创建节点
         tree = self.AddTree(parent, word, user.qq, kwd, hdkwd)
+        # 添加到log里
+        self.logSet[word] = user.qq
+        self.logFile.write(str(tree) + '\n')
+        self.logFile.flush()
         user.data.lastDragonTime = datetime.now().isoformat()
         if first10 := user.data.todayJibi > 0:
             user.data.todayJibi -= 1
@@ -292,7 +365,7 @@ class Game:
                 await user.Death()
         
         # 泳装活动
-        if self.state["current_event"] == "swim" and first10:
+        if self.state.get("current_event") == "swim" and first10:
             n = random.randint(1, 6)
             await user.EventMove(n)
         
