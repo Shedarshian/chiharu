@@ -67,7 +67,7 @@ class IEventListener:
         Parameters:
         user2: The user that cards are exchanged."""
         pass
-    async def OnDeath(self, user: 'User', killer: 'User', time: int, c: 'AttackType') -> Tuple[int, bool]:
+    async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
         """Called when a user is dead.
         
         Arguments:

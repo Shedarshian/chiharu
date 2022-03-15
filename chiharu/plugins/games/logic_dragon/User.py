@@ -1,4 +1,3 @@
-from functools import singledispatchmethod
 from typing import *
 from datetime import datetime, timedelta
 from .UserData import UserData
@@ -68,11 +67,17 @@ class User:
             await self.buf.Flush()
         return True
     async def AddStatus(self, s: Status):
+        dodge = False
         # Event OnStatusAdd
+        self.buf.PushBuffer()
         for eln in self.IterAllEvent(UserEvt.OnStatusAdd):
             dodge = await eln.OnStatusAdd(self, s)
             if dodge:
-                return False
+                break
+        self.Send({"type": "status_add", "name": s.name, "description": s.fullDescription, "dodge": dodge,
+                "settlement": self.buf.CollectBuffer()})
+        if dodge:
+            return False
         if s.isNull and len(l := self.CheckStatus(s.id)) != 0:
             l[0].num += s.count
         else:
@@ -88,22 +93,34 @@ class User:
         """If s is a Status, remove an object status. s need to be in the status of this user.
         If s is a int, remove a certain amount of count of a nullstack status."""
         if isinstance(s, Status):
+            dodge = False
             # Event OnStatusRemove
+            self.buf.PushBuffer()
             for eln in self.IterAllEvent(UserEvt.OnStatusRemove):
                 dodge = await eln.OnStatusRemove(self, s)
                 if dodge:
-                    return False
+                    break
+            self.Send({"type": "status_remove", "name": s.name, "description": s.fullDescription, "dodge": dodge,
+                    "settlement": self.buf.CollectBuffer()})
+            if dodge:
+                return False
             self.data.statusesUnchecked.remove(s)
             self.data.deregisterStatus(s)
             self.data.SaveStatuses()
             return True
         elif isinstance(s, int):
             status = Status.get(s)(count)
+            dodge = False
             # Event OnStatusRemove
+            self.buf.PushBuffer()
             for eln in self.IterAllEvent(UserEvt.OnStatusRemove):
                 dodge = await eln.OnStatusRemove(self, status)
                 if dodge:
-                    return False
+                    break
+            self.Send({"type": "status_remove", "name": status.name, "description": status.fullDescription, "dodge": dodge,
+                    "settlement": self.buf.CollectBuffer()})
+            if dodge:
+                return False
             l = self.CheckStatus(s)
             if len(l) == 0:
                 return False
@@ -114,27 +131,34 @@ class User:
         l = self.CheckStatus(id)
         for s in l:
             await self.RemoveStatus(s)
-    async def AddJibi(self, jibi: int, /, isBuy: bool=False):
+    async def AddJibi(self, jibi: int, /, isBuy: bool=False) -> ProtocolData:
         if jibi == 0:
             return True
         current_jibi = self.data.jibi
         if isBuy and jibi < 0:
             jibi = -jibi
             # Event CheckJibiSpend
+            self.buf.PushBuffer()
             for eln in self.IterAllEvent(UserEvt.CheckJibiSpend):
                 jibi = await eln.CheckJibiSpend(self, jibi)
             if current_jibi < jibi:
-                return False
+                return {"type": "failed", "error_code": 410, "settlement": self.buf.CollectBuffer()}
+            if ret := self.buf.CollectBuffer():
+                self.Send({"type": "settlement", "event_name": "CheckJibiSpend", "settlement": ret})
             jibi = -jibi
+        
         # Event OnJibiChange
+        self.buf.PushBuffer()
         for eln in self.IterAllEvent(UserEvt.OnJibiChange):
             jibi = await eln.OnJibiChange(self, jibi, isBuy)
             if jibi == 0:
                 break
+        self.Send({"type": "jibi_change", "jibi_change": jibi, "current_jibi": max(self.data.jibi + jibi, 0),
+                "is_buy": isBuy, "settlement": self.buf.CollectBuffer()})
         self.data.jibi = max(self.data.jibi + jibi, 0)
         if isBuy and jibi < 0:
             self.data.spendShop -= jibi
-        return True
+        return {"type": "succeed"}
     async def AddEventPt(self, eventPt: int, /, isBuy: bool=False):
         if eventPt == 0:
             return True
@@ -142,44 +166,68 @@ class User:
         if isBuy and eventPt < 0:
             eventPt = -eventPt
             # Event CheckEventPtSpend
+            self.buf.PushBuffer()
             for eln in self.IterAllEvent(UserEvt.CheckEventptSpend):
                 eventPt = await eln.CheckEventptSpend(self, eventPt)
             if currentEventPt < eventPt:
-                return False
+                return {"type": "failed", "error_code": 411, "settlement": self.buf.CollectBuffer()}
+            if ret := self.buf.CollectBuffer():
+                self.Send({"type": "settlement", "event_name": "CheckEventPtSpend", "settlement": ret})
             eventPt = -eventPt
+        
         # Event OnEventPtChange
+        self.buf.PushBuffer()
         for eln in self.IterAllEvent(UserEvt.OnEventptChange):
             eventPt = await eln.OnEventptChange(self, eventPt, isBuy)
             if eventPt == 0:
                 break
+        self.Send({"type": "eventpt_change", "eventpt_change": eventPt,
+                "current_eventpt": max(self.data.eventPt + eventPt, 0),
+                "is_buy": isBuy, "settlement": self.buf.CollectBuffer()})
         self.data.eventPt = max(self.data.eventPt + eventPt, 0)
         return True
-    async def Death(self, minute: int=120, killer: 'User'=None, c: AttackType=None):
+    async def Death(self, minute: int=120, killer: Optional['User']=None, c: AttackType=None):
         dodge = False
         if c is None:
             c = AttackType()
         # Event OnDeath
+        self.buf.PushBuffer()
         for eln in self.IterAllEvent(UserEvt.OnDeath):
             minute, dodge = await eln.OnDeath(self, killer, minute, c)
             minute = int(minute)
             if dodge:
                 break
-        else:
-            from .AllCards import SDeath
-            await self.AddStatus(SDeath(timedelta(minutes=minute)))
+        self.Send({"type": "death", "killer": -1 if killer is None else killer.qq, "time": minute, "dodge": dodge,
+                "settlement": self.buf.CollectBuffer()})
+        if dodge:
+            return
+        from .AllCards import SDeath
+        await self.AddStatus(SDeath(timedelta(minutes=minute)))
     async def Attacked(self, atk: 'Attack'):
+        # TODO restructure
         dodge = False
+        attackerQQ = atk.attacker.qq
         # Event OnAttack
+        self.buf.PushBuffer()
         for eln in atk.attacker.IterAllEvent(UserEvt.OnAttack):
             dodge = await eln.OnAttack(atk.attacker, atk)
             if dodge:
-                return
-        # Event OnAttacked
-        for eln in self.IterAllEvent(UserEvt.OnAttacked):
-            dodge = await eln.OnAttacked(self, atk)
-            if dodge:
-                return
-        await atk.action()
+                break
+        ret = self.buf.CollectBuffer()
+        if dodge:
+            ret2 = []
+        else:
+            # Event OnAttacked
+            self.buf.PushBuffer()
+            for eln in self.IterAllEvent(UserEvt.OnAttacked):
+                dodge = await eln.OnAttacked(self, atk)
+                if dodge:
+                    break
+            ret2 = self.buf.CollectBuffer()
+        if not dodge:
+            await atk.action() # TODO this settlement
+        self.Send({"type": "attack", "name": atk.name, "dodge": dodge, "attacker": attackerQQ,
+            "attacker_settlement": ret, "defender_settlement": ret2})
     async def Killed(self, killer: 'User', minute: int=120):
         from .AllCards import AKill
         attack = AKill(killer, self, minute)

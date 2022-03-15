@@ -276,22 +276,29 @@ class Game:
         # TODO 检测接龙词是否包含不合法字符
 
         dist = 2
-        # Event BeforeDragoned
         dragonState = DragonState(word, parent)
+        # Event BeforeDragoned
+        user.buf.PushBuffer()
         for eln in user.IterAllEvent(UserEvt.BeforeDragoned):
             allowed, dist_mod = await eln.BeforeDragoned(user, dragonState)
             if not allowed:
-                return
+                return {"type": "failed", "error_code": 121, "settlement": user.buf.CollectBuffer()}
             dist += dist_mod
+        if ret := user.buf.CollectBuffer():
+            user.Send({"type": "settlement", "event_name": "BeforeDragoned", "settlement": ret})
+        
         dist = max(dist, 1)
         if user.qq in parent.getParentQQList(dist):
             # Event CheckSuguri
+            user.buf.PushBuffer()
             for eln in user.IterAllEvent(UserEvt.CheckSuguri):
                 allowed = await eln.CheckSuguri(user, dragonState)
                 if allowed:
                     break
             else:
-                return {"type": "failed", "error_code": 120}
+                return {"type": "failed", "error_code": 120, "settlement": user.buf.CollectBuffer()}
+            if ret := user.buf.CollectBuffer():
+                user.Send({"type": "settlement", "event_name": "CheckSuguri", "settlement": ret})
         word = dragonState.word
         kwd = hdkwd = ""
 
@@ -302,8 +309,8 @@ class Game:
             if user.data.todayKeywordJibi > 0:
                 user.data.todayKeywordJibi -= 10
                 jibiToAdd = 10
-            user.buf.ClearBuffer()
             # Event OnKeyword
+            user.buf.PushBuffer()
             for eln in user.IterAllEvent(UserEvt.OnKeyword):
                 jibi = await eln.OnKeyword(user, word, parent, kwd)
                 jibiToAdd += jibi
@@ -318,8 +325,8 @@ class Game:
             if k in word:
                 hdkwd = k
                 jibiToAdd = 10
-                user.buf.ClearBuffer()
                 # Event OnHiddenKeyword
+                user.buf.PushBuffer()
                 for eln in user.IterAllEvent(UserEvt.OnHiddenKeyword):
                     jibi = await eln.OnHiddenKeyword(user, word, parent, hdkwd)
                     jibiToAdd += jibi
@@ -333,12 +340,14 @@ class Game:
         # 检测重复词
         if word in self.logSet:
             # Event OnDuplicatedWord
+            user.buf.PushBuffer()
             for eln in user.IterAllEvent(UserEvt.OnDuplicatedWord):
                 dodged = await eln.OnDuplicatedWord(user, word, self.logSet[word])
                 if dodged:
                     break
             else:
                 await user.Death()
+            user.Send({"type": "duplicate_word", "word": word, "settlement": user.buf.CollectBuffer()})
         
         # 创建节点
         tree = self.AddTree(parent, word, user.qq, kwd, hdkwd)
@@ -357,25 +366,43 @@ class Game:
         if word in self.bombs:
             self.RemoveBomb(word)
             # Event OnBombed
+            user.buf.PushBuffer()
             for eln in user.IterAllEvent(UserEvt.OnBombed):
                 dodged = await eln.OnBombed(user, word)
                 if dodged:
                     break
             else:
                 await user.Death()
+            user.Send({"type": "bomb", "word": word, "settlement": user.buf.CollectBuffer()})
         
         # 泳装活动
-        if self.state.get("current_event") == "swim" and first10:
-            n = random.randint(1, 6)
-            await user.EventMove(n)
+        # if self.state.get("current_event") == "swim" and first10:
+        #     n = random.randint(1, 6)
+        #     await user.EventMove(n)
         
         # Event OnDragoned
+        user.buf.PushBuffer()
         for eln in user.IterAllEvent(UserEvt.OnDragoned):
             await eln.OnDragoned(user, tree, first10)
+        user.Send({"type": "dragon", "father_node_id": parent.idStr, "node_id": tree.idStr, "word": word,
+                "settlement": user.buf.CollectBuffer()})
         
         # 增加麻将券
         user.data.majQuan += 1
+
         return {"type": "succeed"}
-    async def UserUseCard(self, user: 'User', cardId: int) -> ProtocolData:
-        pass
+    async def UserUseCard(self, user: 'User', cardPos: int, cardId: int) -> ProtocolData:
+        card = user.data.handCard[cardPos]
+        if card.id != cardId:
+            return {"type": "failed", "error_code": 200}
+        
+        if len(user.data.handCard) > user.data.cardLimit:
+            user.state['exceed_limit'] = True
+        
+        # Event OnUserUseCard
+        user.buf.PushBuffer()
+        for el in user.IterAllEvent(UserEvt.OnUserUseCard):
+            can_use = await el.OnUserUseCard(user, card)
+            if not can_use:
+                return {"type": "failed", "error_code": 202}
 

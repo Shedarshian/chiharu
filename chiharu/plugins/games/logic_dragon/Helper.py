@@ -1,5 +1,4 @@
 from abc import ABC, ABCMeta, abstractmethod
-import enum
 import itertools
 from textwrap import fill
 from typing import *
@@ -69,21 +68,17 @@ class Saveable(HasId):
 
 class Buffer(ABC):
     def __init__(self, qq: int) -> None:
-        self.datas: list[ProtocolData] = []
-        self.dataBuffer: list[ProtocolData] = []
+        self.dataBufferStack: list[list[ProtocolData]] = [[]]
         self.qq = qq
     def Serialize(self):
-        s = json.dumps(self.datas + self.dataBuffer)
+        s = json.dumps(list(itertools.chain(*self.dataBufferStack)))
         return s
-    def ClearBuffer(self):
-        self.datas.extend(self.dataBuffer)
-        self.dataBuffer = []
+    def PushBuffer(self):
+        self.dataBufferStack.append([])
     def CollectBuffer(self):
-        ret = self.dataBuffer
-        self.dataBuffer = []
-        return ret
+        return self.dataBufferStack.pop()
     def AddData(self, data: ProtocolData):
-        self.dataBuffer.append(data)
+        self.dataBufferStack[-1].append(data)
     dataListener: list[Callable[[list[ProtocolData]], Awaitable[None]]] = []
     @abstractmethod
     async def selfFlush(self):
@@ -92,9 +87,8 @@ class Buffer(ABC):
     async def Flush(self):
         await self.selfFlush()
         for listener in self.dataListener:
-            await listener(self.datas + self.dataBuffer)
-        self.datas.clear()
-        self.dataBuffer.clear()
+            await listener(list(itertools.chain(*self.dataBufferStack)))
+        self.dataBufferStack = [[]]
     @classmethod
     def addDataListener(cls, listener: Callable[[list[ProtocolData]], Awaitable[None]]):
         cls.dataListener.append(listener)
