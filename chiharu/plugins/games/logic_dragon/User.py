@@ -51,7 +51,8 @@ class User:
                 if ret is not None:
                     for eln in ret:
                         yield eln
-    def Send(self, data: ProtocolData):
+    def Send(self, __data: ProtocolData={}, /, **kwargs):
+        data = {"qq": self.qq, **__data, **kwargs}
         self.buf.AddData(data)
     
     def CheckStatus(self, id: int):
@@ -61,7 +62,7 @@ class User:
 
     async def choose(self, flush: bool):
         if not self.active:
-            self.Send({"type": "choose_failed", "reason": "not_active"})
+            self.Send(type="choose_failed", reason="not_active")
             return False
         elif flush:
             await self.buf.Flush()
@@ -69,13 +70,12 @@ class User:
     async def AddStatus(self, s: Status):
         dodge = False
         # Event OnStatusAdd
-        self.buf.PushBuffer()
+        self.Send(type="begin", name="OnStatusAdd")
         for eln in self.IterAllEvent(UserEvt.OnStatusAdd):
             dodge = await eln.OnStatusAdd(self, s)
             if dodge:
                 break
-        self.Send({"type": "status_add", "name": s.name, "description": s.fullDescription, "dodge": dodge,
-                "settlement": self.buf.CollectBuffer()})
+        self.Send(type="OnStatusAdd", name=s.name, description=s.fullDescription, dodge=dodge)
         if dodge:
             return False
         if s.isNull and len(l := self.CheckStatus(s.id)) != 0:
@@ -95,13 +95,12 @@ class User:
         if isinstance(s, Status):
             dodge = False
             # Event OnStatusRemove
-            self.buf.PushBuffer()
+            self.Send(type="begin", name="OnStatusRemove")
             for eln in self.IterAllEvent(UserEvt.OnStatusRemove):
                 dodge = await eln.OnStatusRemove(self, s)
                 if dodge:
                     break
-            self.Send({"type": "status_remove", "name": s.name, "description": s.fullDescription, "dodge": dodge,
-                    "settlement": self.buf.CollectBuffer()})
+            self.Send(type="OnStatusRemove", name=s.name, description=s.fullDescription, dodge=dodge)
             if dodge:
                 return False
             self.data.statusesUnchecked.remove(s)
@@ -112,13 +111,12 @@ class User:
             status = Status.get(s)(count)
             dodge = False
             # Event OnStatusRemove
-            self.buf.PushBuffer()
+            self.Send(type="begin", name="OnStatusRemove")
             for eln in self.IterAllEvent(UserEvt.OnStatusRemove):
                 dodge = await eln.OnStatusRemove(self, status)
                 if dodge:
                     break
-            self.Send({"type": "status_remove", "name": status.name, "description": status.fullDescription, "dodge": dodge,
-                    "settlement": self.buf.CollectBuffer()})
+            self.Send(type="OnStatusRemove", name=status.name, description=status.fullDescription, dodge=dodge)
             if dodge:
                 return False
             l = self.CheckStatus(s)
@@ -138,101 +136,92 @@ class User:
         if isBuy and jibi < 0:
             jibi = -jibi
             # Event CheckJibiSpend
-            self.buf.PushBuffer()
+            self.Send(type="begin", name="CheckJibiSpend")
             for eln in self.IterAllEvent(UserEvt.CheckJibiSpend):
                 jibi = await eln.CheckJibiSpend(self, jibi)
             if current_jibi < jibi:
-                return {"type": "failed", "error_code": 410, "settlement": self.buf.CollectBuffer()}
-            if ret := self.buf.CollectBuffer():
-                self.Send({"type": "settlement", "event_name": "CheckJibiSpend", "settlement": ret})
+                return {"type": "failed", "error_code": 410}
+            self.Send(type="end", name="CheckJibiSpend")
             jibi = -jibi
         
         # Event OnJibiChange
-        self.buf.PushBuffer()
+        self.Send(type="begin", name="OnJibiChange")
         for eln in self.IterAllEvent(UserEvt.OnJibiChange):
             jibi = await eln.OnJibiChange(self, jibi, isBuy)
             if jibi == 0:
                 break
-        self.Send({"type": "jibi_change", "jibi_change": jibi, "current_jibi": max(self.data.jibi + jibi, 0),
-                "is_buy": isBuy, "settlement": self.buf.CollectBuffer()})
         self.data.jibi = max(self.data.jibi + jibi, 0)
+        self.Send(type="OnJibiChange", jibi_change=jibi, current_jibi=self.data.jibi, is_buy=isBuy)
         if isBuy and jibi < 0:
             self.data.spendShop -= jibi
         return {"type": "succeed"}
-    async def AddEventPt(self, eventPt: int, /, isBuy: bool=False):
+    async def AddEventPt(self, eventPt: int, /, isBuy: bool=False) -> ProtocolData:
         if eventPt == 0:
             return True
         currentEventPt = self.data.eventPt
         if isBuy and eventPt < 0:
             eventPt = -eventPt
             # Event CheckEventPtSpend
-            self.buf.PushBuffer()
+            self.Send(type="begin", name="CheckEventPtSpend")
             for eln in self.IterAllEvent(UserEvt.CheckEventptSpend):
                 eventPt = await eln.CheckEventptSpend(self, eventPt)
             if currentEventPt < eventPt:
-                return {"type": "failed", "error_code": 411, "settlement": self.buf.CollectBuffer()}
-            if ret := self.buf.CollectBuffer():
-                self.Send({"type": "settlement", "event_name": "CheckEventPtSpend", "settlement": ret})
+                return {"type": "failed", "error_code": 411}
+            self.Send(type="end", name="CheckEventPtSpend")
             eventPt = -eventPt
         
         # Event OnEventPtChange
-        self.buf.PushBuffer()
+        self.Send(type="begin", name="OnEventPtChange")
         for eln in self.IterAllEvent(UserEvt.OnEventptChange):
             eventPt = await eln.OnEventptChange(self, eventPt, isBuy)
             if eventPt == 0:
                 break
-        self.Send({"type": "eventpt_change", "eventpt_change": eventPt,
-                "current_eventpt": max(self.data.eventPt + eventPt, 0),
-                "is_buy": isBuy, "settlement": self.buf.CollectBuffer()})
         self.data.eventPt = max(self.data.eventPt + eventPt, 0)
+        self.Send(type="OnEventPtChange", eventpt_change=eventPt, current_eventpt=self.data.eventPt,
+                is_buy=isBuy)
         return True
     async def Death(self, minute: int=120, killer: Optional['User']=None, c: AttackType=None):
         dodge = False
         if c is None:
             c = AttackType()
         # Event OnDeath
-        self.buf.PushBuffer()
+        self.Send(type="begin", name="OnDeath")
         for eln in self.IterAllEvent(UserEvt.OnDeath):
             minute, dodge = await eln.OnDeath(self, killer, minute, c)
             minute = int(minute)
             if dodge:
                 break
-        self.Send({"type": "death", "killer": -1 if killer is None else killer.qq, "time": minute, "dodge": dodge,
-                "settlement": self.buf.CollectBuffer()})
+        self.Send(type="OnDeath", killer=-1 if killer is None else killer.qq, time=minute, dodge=dodge)
         if dodge:
             return
         from .AllCards import SDeath
         await self.AddStatus(SDeath(timedelta(minutes=minute)))
     async def Attacked(self, atk: 'Attack'):
-        # TODO restructure
         dodge = False
         attackerQQ = atk.attacker.qq
         # Event OnAttack
-        self.buf.PushBuffer()
+        atk.attacker.Send(type="begin", name="OnAttack")
         for eln in atk.attacker.IterAllEvent(UserEvt.OnAttack):
             dodge = await eln.OnAttack(atk.attacker, atk)
             if dodge:
                 break
-        ret = self.buf.CollectBuffer()
-        if dodge:
-            ret2 = []
-        else:
+        atk.attacker.Send(type="end", name="OnAttack")
+        self.Send(type="begin", name="OnAttacked")
+        if not dodge:
             # Event OnAttacked
-            self.buf.PushBuffer()
             for eln in self.IterAllEvent(UserEvt.OnAttacked):
                 dodge = await eln.OnAttacked(self, atk)
                 if dodge:
                     break
-            ret2 = self.buf.CollectBuffer()
-        if not dodge:
-            await atk.action() # TODO this settlement
-        self.Send({"type": "attack", "name": atk.name, "dodge": dodge, "attacker": attackerQQ,
-            "attacker_settlement": ret, "defender_settlement": ret2})
+            self.Send(type="end", name="OnAttacked")
+            if not dodge:
+                await atk.action()
+        self.Send(type="attacked", name=atk.name, dodge=dodge, attacker=attackerQQ)
     async def Killed(self, killer: 'User', minute: int=120):
         from .AllCards import AKill
         attack = AKill(killer, self, minute)
         await self.Attacked(attack)
-    async def DrawCardEffect(self, card: Card):
+    async def DrawCardEffect(self, card: Card, origin=None):
         if card.consumedOnDraw:
             # Event BeforeCardUse
             for eln in self.IterAllEvent(UserEvt.BeforeCardUse):
@@ -241,7 +230,7 @@ class User:
                     await block
                     return
         await card.OnDraw(self)
-    async def UseCardEffect(self, card: Card):
+    async def UseCardEffect(self, card: Card, origin=None):
         if not card.consumedOnDraw:
             # Event BeforeCardUse
             for eln in self.IterAllEvent(UserEvt.BeforeCardUse):
@@ -256,18 +245,20 @@ class User:
     async def DrawAndUse(self, card: Card=None, /, requirement: Callable=None):
         if card is None:
             # Event BeforeCardDraw
+            self.Send(type="begin", name="BeforeCardDraw")
             for eln in self.IterAllEvent(UserEvt.BeforeCardDraw):
                 ret = await eln.BeforeCardDraw(self, 1, requirement)
                 if ret is not None:
                     cards = ret
                     break
             else:
-                cards = Card.RandomNewCards(self, 1, requirement)
+                cards = self.game.RandomNewCards(self, 1, requirement)
+            self.Send(type="end", name="BeforeCardDraw")
         else:
             cards = [card]
         for c in cards:
-            await self.DrawCardEffect(c)
-            await self.UseCardEffect(c)
+            await self.DrawCardEffect(c, origin="draw_and_use")
+            await self.UseCardEffect(c, origin="draw_and_use")
             # if c.id not in global_state['used_cards']:
             #     global_state['used_cards'].append(c.id)
             #     save_global_state()

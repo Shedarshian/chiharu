@@ -68,17 +68,13 @@ class Saveable(HasId):
 
 class Buffer(ABC):
     def __init__(self, qq: int) -> None:
-        self.dataBufferStack: list[list[ProtocolData]] = [[]]
+        self.dataBuffer: list[ProtocolData] = []
         self.qq = qq
     def Serialize(self):
-        s = json.dumps(list(itertools.chain(*self.dataBufferStack)))
+        s = json.dumps(self.dataBuffer)
         return s
-    def PushBuffer(self):
-        self.dataBufferStack.append([])
-    def CollectBuffer(self):
-        return self.dataBufferStack.pop()
     def AddData(self, data: ProtocolData):
-        self.dataBufferStack[-1].append(data)
+        self.dataBuffer.append(data)
     dataListener: list[Callable[[list[ProtocolData]], Awaitable[None]]] = []
     @abstractmethod
     async def selfFlush(self):
@@ -87,8 +83,8 @@ class Buffer(ABC):
     async def Flush(self):
         await self.selfFlush()
         for listener in self.dataListener:
-            await listener(list(itertools.chain(*self.dataBufferStack)))
-        self.dataBufferStack = [[]]
+            await listener(self.dataBuffer)
+        self.dataBuffer = []
     @classmethod
     def addDataListener(cls, listener: Callable[[list[ProtocolData]], Awaitable[None]]):
         cls.dataListener.append(listener)

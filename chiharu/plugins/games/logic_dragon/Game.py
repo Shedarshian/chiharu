@@ -278,27 +278,25 @@ class Game:
         dist = 2
         dragonState = DragonState(word, parent)
         # Event BeforeDragoned
-        user.buf.PushBuffer()
+        user.Send(type="begin", name="BeforeDragoned")
         for eln in user.IterAllEvent(UserEvt.BeforeDragoned):
             allowed, dist_mod = await eln.BeforeDragoned(user, dragonState)
             if not allowed:
-                return {"type": "failed", "error_code": 121, "settlement": user.buf.CollectBuffer()}
+                return {"type": "failed", "error_code": 121}
             dist += dist_mod
-        if ret := user.buf.CollectBuffer():
-            user.Send({"type": "settlement", "event_name": "BeforeDragoned", "settlement": ret})
+        user.Send(type="end", name="BeforeDragoned")
         
         dist = max(dist, 1)
         if user.qq in parent.getParentQQList(dist):
             # Event CheckSuguri
-            user.buf.PushBuffer()
+            user.Send(type="begin", name="CheckSuguri")
             for eln in user.IterAllEvent(UserEvt.CheckSuguri):
                 allowed = await eln.CheckSuguri(user, dragonState)
                 if allowed:
                     break
             else:
-                return {"type": "failed", "error_code": 120, "settlement": user.buf.CollectBuffer()}
-            if ret := user.buf.CollectBuffer():
-                user.Send({"type": "settlement", "event_name": "CheckSuguri", "settlement": ret})
+                return {"type": "failed", "error_code": 120}
+            user.Send(type="end", name="CheckSuguri")
         word = dragonState.word
         kwd = hdkwd = ""
 
@@ -310,12 +308,11 @@ class Game:
                 user.data.todayKeywordJibi -= 10
                 jibiToAdd = 10
             # Event OnKeyword
-            user.buf.PushBuffer()
+            user.Send(type="begin", name="OnKeyword")
             for eln in user.IterAllEvent(UserEvt.OnKeyword):
                 jibi = await eln.OnKeyword(user, word, parent, kwd)
                 jibiToAdd += jibi
-            user.Send({"type": "keyword", "keyword": kwd, "jibi": jibiToAdd, "left": 0,
-                    "settlement": user.buf.CollectBuffer()})
+            user.Send(type="OnKeyword", keyword=kwd, jibi=jibiToAdd, left=user.data.todayKeywordJibi)
             await user.AddJibi(jibiToAdd)
             ret = self.UpdateKeyword(if_delete=True)
             user.Send(ret)
@@ -326,12 +323,11 @@ class Game:
                 hdkwd = k
                 jibiToAdd = 10
                 # Event OnHiddenKeyword
-                user.buf.PushBuffer()
+                user.Send(type="begin", name="OnHiddenKeyword")
                 for eln in user.IterAllEvent(UserEvt.OnHiddenKeyword):
                     jibi = await eln.OnHiddenKeyword(user, word, parent, hdkwd)
                     jibiToAdd += jibi
-                user.Send({"type": "keyword", "keyword": kwd, "jibi": jibiToAdd,
-                        "settlement": user.buf.CollectBuffer()})
+                user.Send(type="OnHiddenKeyword", keyword=kwd, jibi=jibiToAdd)
                 await user.AddJibi(jibiToAdd)
                 ret = self.UpdateHiddenKeyword(i, True)
                 user.Send(ret)
@@ -340,14 +336,14 @@ class Game:
         # 检测重复词
         if word in self.logSet:
             # Event OnDuplicatedWord
-            user.buf.PushBuffer()
+            user.Send(type="begin", name="OnDuplicatedWord")
             for eln in user.IterAllEvent(UserEvt.OnDuplicatedWord):
                 dodged = await eln.OnDuplicatedWord(user, word, self.logSet[word])
                 if dodged:
                     break
             else:
                 await user.Death()
-            user.Send({"type": "duplicate_word", "word": word, "settlement": user.buf.CollectBuffer()})
+            user.Send(type="OnDuplicatedWord", word=word})
         
         # 创建节点
         tree = self.AddTree(parent, word, user.qq, kwd, hdkwd)
@@ -366,14 +362,14 @@ class Game:
         if word in self.bombs:
             self.RemoveBomb(word)
             # Event OnBombed
-            user.buf.PushBuffer()
+            user.Send(type="begin", name="OnBombed")
             for eln in user.IterAllEvent(UserEvt.OnBombed):
                 dodged = await eln.OnBombed(user, word)
                 if dodged:
                     break
             else:
                 await user.Death()
-            user.Send({"type": "bomb", "word": word, "settlement": user.buf.CollectBuffer()})
+            user.Send(type="OnBombed", word=word)
         
         # 泳装活动
         # if self.state.get("current_event") == "swim" and first10:
@@ -381,11 +377,10 @@ class Game:
         #     await user.EventMove(n)
         
         # Event OnDragoned
-        user.buf.PushBuffer()
+        user.Send(type="begin", name="OnDragoned")
         for eln in user.IterAllEvent(UserEvt.OnDragoned):
             await eln.OnDragoned(user, tree, first10)
-        user.Send({"type": "dragon", "father_node_id": parent.idStr, "node_id": tree.idStr, "word": word,
-                "settlement": user.buf.CollectBuffer()})
+        user.Send(type="OnDragoned", father_node_id=parent.idStr, node_id=tree.idStr, word=word})
         
         # 增加麻将券
         user.data.majQuan += 1
