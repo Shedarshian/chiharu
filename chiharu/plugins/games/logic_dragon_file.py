@@ -8,7 +8,7 @@ from copy import copy, deepcopy
 from dataclasses import dataclass, astuple, field
 from math import ceil, log
 from abc import ABC, ABCMeta, abstractmethod
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, time
 from functools import reduce, wraps
 from contextlib import asynccontextmanager
 from nonebot.command import CommandSession
@@ -7300,7 +7300,10 @@ class tarot(_equipment):
             if user.data.extra.tarot_time == 0:
                 user.send_char(f"今日使用次数已完{句尾}")
                 return
-            h = f"{user.qq} {date.today().isoformat()}"
+            d = date.today()
+            if datetime.now().time() < time(15, 59):
+                d -= timedelta(days=1)
+            h = f"{user.qq} {d.isoformat()}"
             state = random.getstate()
             random.seed(h)
             l1 = list(range(22))
