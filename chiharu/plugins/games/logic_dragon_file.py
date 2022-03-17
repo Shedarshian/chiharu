@@ -4755,6 +4755,7 @@ class youxianshushi_s(_statusdaily):
             atk_new = Kill(attack.attacker, attack.defender, 120)
             await attack.defender.attacked(attack.attacker, atk_new)
             return True,
+        return False,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnAttack: (Priority.OnAttack.youxianshushi, cls)}

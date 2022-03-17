@@ -280,6 +280,7 @@ class User:
             self.Send(type="end", name="BeforeCardDraw")
         else:
             cards = [card]
+        
         self.Send(type="draw_and_use", cards=[c.DumpData() for c in cards])
         for c in cards:
             await self.DrawCardEffect(c)
@@ -311,6 +312,7 @@ class User:
         #             return False
         #     else:
         #         global_state["supernova_user"][0].append(self.qq)
+        
         self.Send(type="draw_cards", cards=[c.DumpData() for c in cards])
         for c in cards:
             if not c.consumedOnDraw:
