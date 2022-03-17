@@ -68,6 +68,7 @@ class User:
             await self.buf.Flush()
         return True
     async def AddStatus(self, s: Status):
+        """添加状态。"""
         dodge = False
         # Event OnStatusAdd
         self.Send(type="begin", name="OnStatusAdd")
@@ -75,7 +76,7 @@ class User:
             dodge = await eln.OnStatusAdd(self, s)
             if dodge:
                 break
-        self.Send(type="OnStatusAdd", name=s.name, description=s.fullDescription, dodge=dodge)
+        self.Send(type="OnStatusAdd", status=s.DumpData(), dodge=dodge)
         if dodge:
             return False
         if s.isNull and len(l := self.CheckStatus(s.id)) != 0:
@@ -90,8 +91,9 @@ class User:
         self.data.SaveStatuses()
         return True
     async def RemoveStatus(self, s: Union[Status, int], count: int=1):
-        """If s is a Status, remove an object status. s need to be in the status of this user.
-        If s is a int, remove a certain amount of count of a nullstack status."""
+        """移除一个状态。
+        如果s是一个状态对象，则移除该对象。该对象需在用户的状态里。
+        如果s是int，则移除count层对应id的可堆叠状态。"""
         if isinstance(s, Status):
             dodge = False
             # Event OnStatusRemove
@@ -100,7 +102,7 @@ class User:
                 dodge = await eln.OnStatusRemove(self, s)
                 if dodge:
                     break
-            self.Send(type="OnStatusRemove", name=s.name, description=s.fullDescription, dodge=dodge)
+            self.Send(type="OnStatusRemove", status=s.DumpData(), dodge=dodge)
             if dodge:
                 return False
             self.data.statusesUnchecked.remove(s)
@@ -116,7 +118,7 @@ class User:
                 dodge = await eln.OnStatusRemove(self, status)
                 if dodge:
                     break
-            self.Send(type="OnStatusRemove", name=status.name, description=status.fullDescription, dodge=dodge)
+            self.Send(type="OnStatusRemove", status=status.DumpData(), dodge=dodge)
             if dodge:
                 return False
             l = self.CheckStatus(s)
@@ -126,12 +128,15 @@ class User:
             self.data.SaveStatuses()
             return True
     async def RemoveAllStatus(self, id: int):
+        """移除全部该id的状态。"""
         l = self.CheckStatus(id)
         for s in l:
             await self.RemoveStatus(s)
     async def AddJibi(self, jibi: int, /, isBuy: bool=False) -> ProtocolData:
+        """获取或损失击毙。
+        isBuy：是否是购买。"""
         if jibi == 0:
-            return True
+            return {"type": "succeed"}
         current_jibi = self.data.jibi
         if isBuy and jibi < 0:
             jibi = -jibi
@@ -156,8 +161,10 @@ class User:
             self.data.spendShop -= jibi
         return {"type": "succeed"}
     async def AddEventPt(self, eventPt: int, /, isBuy: bool=False) -> ProtocolData:
+        """获取或损失活动pt。
+        isBuy：是否是购买。"""
         if eventPt == 0:
-            return True
+            return {"type": "succeed"}
         currentEventPt = self.data.eventPt
         if isBuy and eventPt < 0:
             eventPt = -eventPt
@@ -179,8 +186,9 @@ class User:
         self.data.eventPt = max(self.data.eventPt + eventPt, 0)
         self.Send(type="OnEventPtChange", eventpt_change=eventPt, current_eventpt=self.data.eventPt,
                 is_buy=isBuy)
-        return True
+        return {"type": "succeed"}
     async def Death(self, minute: int=120, killer: Optional['User']=None, c: AttackType=None):
+        """玩家死亡。可以没有击杀者。"""
         dodge = False
         if c is None:
             c = AttackType()
@@ -197,6 +205,7 @@ class User:
         from .AllCards import SDeath
         await self.AddStatus(SDeath(timedelta(minutes=minute)))
     async def Attacked(self, atk: 'Attack'):
+        """玩家受到攻击。"""
         dodge = False
         attackerQQ = atk.attacker.qq
         # Event OnAttack
@@ -218,31 +227,46 @@ class User:
                 await atk.action()
         self.Send(type="attacked", name=atk.name, dodge=dodge, attacker=attackerQQ)
     async def Killed(self, killer: 'User', minute: int=120):
+        """玩家被杀。算作一次攻击。"""
         from .AllCards import AKill
         attack = AKill(killer, self, minute)
         await self.Attacked(attack)
-    async def DrawCardEffect(self, card: Card, origin=None):
+    async def DrawCardEffect(self, card: Card):
+        """结算卡牌抽取效果。"""
         if card.consumedOnDraw:
+            block = None
             # Event BeforeCardUse
+            self.Send(type="begin", name="BeforeCardUse")
             for eln in self.IterAllEvent(UserEvt.BeforeCardUse):
                 block = await eln.BeforeCardUse(self, card)
                 if block is not None:
                     await block
                     return
+            self.Send(type="end", name="BeforeCardUse")
+            if block is not None:
+                return
+        
         await card.OnDraw(self)
-    async def UseCardEffect(self, card: Card, origin=None):
+    async def UseCardEffect(self, card: Card):
+        """结算卡牌使用效果。"""
         if not card.consumedOnDraw:
+            block = None
             # Event BeforeCardUse
+            self.Send(type="begin", name="BeforeCardUse")
             for eln in self.IterAllEvent(UserEvt.BeforeCardUse):
                 block = await eln.BeforeCardUse(self, card)
                 if block is not None:
                     await block
-                    return
+            self.Send(type="end", name="BeforeCardUse")
+            if block is not None:
+                return
+        
         await card.Use(self)
         # Event AfterCardUse
         for eln in self.IterAllEvent(UserEvt.AfterCardUse):
             await eln.AfterCardUse(self, card)
     async def DrawAndUse(self, card: Card=None, /, requirement: Callable=None):
+        """抽即用卡牌。"""
         if card is None:
             # Event BeforeCardDraw
             self.Send(type="begin", name="BeforeCardDraw")
@@ -256,19 +280,22 @@ class User:
             self.Send(type="end", name="BeforeCardDraw")
         else:
             cards = [card]
+        self.Send(type="draw_and_use", cards=[c.DumpData() for c in cards])
         for c in cards:
-            await self.DrawCardEffect(c, origin="draw_and_use")
-            await self.UseCardEffect(c, origin="draw_and_use")
+            await self.DrawCardEffect(c)
+            await self.UseCardEffect(c)
             # if c.id not in global_state['used_cards']:
             #     global_state['used_cards'].append(c.id)
             #     save_global_state()
             await c.OnRemove(self)
-    async def Draw(self, /, num: int=0, cards: List[Card]=None, requirement: Callable=None):
-        # if self.active and self.buf.state.get('exceed_limit'): TODO
-        #     self.send_log(f"因手牌超出上限，不可摸牌{句尾}")
-        #     return False
+    async def Draw(self, num: int=0, /, cards: List[Card]=None, requirement: Callable=None):
+        """抽取卡牌。"""
+        if self.active and self.state.get('exceed_limit'):
+            return {"type": "failed", "error_code": 390}
+
         if cards is None:
             # Event BeforeCardDraw
+            self.Send(type="begin", name="BeforeCardDraw")
             for eln in self.IterAllEvent(UserEvt.BeforeCardDraw):
                 ret = await eln.BeforeCardDraw(self, num, requirement)
                 if ret is not None:
@@ -276,6 +303,7 @@ class User:
                     break
             else:
                 cards = self.game.RandomNewCards(self, num, requirement)
+            self.Send(type="end", name="BeforeCardDraw")
         # elif Card(-65537) in cards: TODO
         #     if self.qq in global_state["supernova_user"][0] + global_state["supernova_user"][1] + global_state["supernova_user"][2]:
         #         cards.remove(Card(-65537))
@@ -283,37 +311,57 @@ class User:
         #             return False
         #     else:
         #         global_state["supernova_user"][0].append(self.qq)
+        self.Send(type="draw_cards", cards=[c.DumpData() for c in cards])
         for c in cards:
             if not c.consumedOnDraw:
                 self.data.AddCard(c)
             await self.DrawCardEffect(c)
+        
         # Event AfterCardDraw
+        self.Send(type="begin", name="AfterCardDraw")
         for eln in self.IterAllEvent(UserEvt.AfterCardDraw):
             await eln.AfterCardDraw(self, cards)
+        self.Send(type="end", name="AfterCardDraw")
+
         self.data.SaveCards()
         return True
     async def UseCard(self, card: Card):
+        """使用卡牌。从手牌中移除卡牌，然后发动使用效果。"""
+        self.Send(type="use_card", card=card.DumpData())
         self.data.RemoveCard(card)
         await self.UseCardEffect(card)
         await card.OnRemove(self)
+
         self.data.SaveCards()
     async def RemoveCards(self, cards: List[Card]):
+        """烧毁卡牌，不结算弃置。"""
+        self.Send(type="remove_cards", cards=[c.DumpData() for c in cards])
         for card in cards:
             self.data.RemoveCard(card)
         for card in cards:
             await card.OnRemove(self)
+        
         # Event AfterCardRemove
+        self.Send(type="begin", name="AfterCardRemove")
         for eln in self.IterAllEvent(UserEvt.AfterCardRemove):
             await eln.AfterCardRemove(self, cards)
+        self.Send(type="end", name="AfterCardRemove")
+
         self.data.SaveCards()
     async def DiscardCards(self, cards: List[Card]):
+        """弃置卡牌。"""
+        self.Send(type="discard_cards", cards=[c.DumpData() for c in cards])
         for card in cards:
             self.data.RemoveCard(card)
         for card in cards:
             await card.OnDiscard(self)
+        
         # Event AfterCardDiscard
+        self.Send(type="begin", name="AfterCardDiscard")
         for eln in self.IterAllEvent(UserEvt.AfterCardDiscard):
             await eln.AfterCardDiscard(self, cards)
+        self.Send(type="end", name="AfterCardDiscard")
+
         self.data.SaveCards()
     async def UseEquipment(self, eq: Equipment):
         await eq.use(self)

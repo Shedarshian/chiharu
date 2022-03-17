@@ -7,15 +7,18 @@ if TYPE_CHECKING:
     from .User import User
 
 class Equipment(IEventListener, Saveable):
-    name = "NoName"
-    description = ""
+    _name = "NoName"
+    _description = ""
     shopDes = "NoDes"
     @property
     def level(self):
         return 1
     @property
-    def fullDescription(self):
-        return f"{self.id}. {self.name}\n\t{self.description}"
+    def name(self):
+        return self._name
+    @property
+    def description(self):
+        return self._description
     def canUse(self, user: 'User') -> tuple[bool, str]:
         return True, ""
     async def use(self, user: 'User') -> None:
@@ -29,5 +32,5 @@ class EquipmentStar(Equipment):
     def level(self):
         return self.count
     @property
-    def fullDescription(self):
-        return f"{self.id}. {self.count * '☆'}{self.name}\n\t{self.description}"
+    def name(self):
+        return f"{self.count * '☆'}{self.name}"

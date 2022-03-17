@@ -4,13 +4,13 @@ from typing import *
 from datetime import datetime, timedelta
 from .EventListener import IEventListener
 from .Helper import Saveable, BuildIdMeta
-from ...config import mysingledispatchmethod
+from .Types import ProtocolData
 if TYPE_CHECKING:
     from .User import User
 
 class Status(IEventListener, Saveable):
     name = "NoName"
-    description = "NoDes"
+    _description = "NoDes"
     isNull = False
     isGlobal = False
     isDaily = False
@@ -24,13 +24,12 @@ class Status(IEventListener, Saveable):
     def valid(self):
         return True
     @property
-    def briefDescription(self):
-        return self.name
-    @property
-    def fullDescription(self):
-        return f"{self.name}：{self.description}"
+    def description(self):
+        return self._description
     def double(self):
         pass
+    def DumpData(self) -> ProtocolData:
+        return {"id": self.id, "name": self.name, "description": self.description, "null": self.isNull, "count": self.count}
 
 class StatusAllNumed(Status):
     dataType = (int,)
@@ -41,12 +40,6 @@ class StatusAllNumed(Status):
         return self.num > 0
     def packData(self):
         return str(self.num)
-    @property
-    def briefDescription(self):
-        return f"{self.num}* {super().briefDescription}"
-    @property
-    def fullDescription(self):
-        return f"{self.num}* {super().fullDescription}"
     def double(self):
         self.num *= 2
 
@@ -65,11 +58,8 @@ class StatusDailyStack(StatusAllNumed):
 
 class StatusNumed(StatusAllNumed):
     @property
-    def briefDescription(self):
-        return f"{Status.briefDescription.fget(self)}\n剩余{self.num}次。"
-    @property
-    def fullDescription(self):
-        return f"{Status.fullDescription.fget(self)}\n剩余{self.num}次。"
+    def description(self):
+        return f"{self._description}\n剩余{self.num}次。"
 
 class StatusTimed(Status):
     dataType = (datetime.fromisoformat,)
@@ -89,12 +79,7 @@ class StatusTimed(Status):
         min = delta.seconds // 60
         return f"{f'{delta.days}日' if delta.days != 0 else ''}{f'{min // 60}时' if min // 60 != 0 else ''}{min % 60}分"
     @property
-    def briefDescription(self):
-        return f"{super().briefDescription}\n\t结束时间：{self.getStr()}。"
-    @property
-    def fullDescription(self):
-        delta = self.time - datetime.now()
-        min = delta.seconds // 60
-        return f"{super().fullDescription}\n\t结束时间：{self.getStr()}。"
+    def description(self):
+        return f"{self._description}\n\t结束时间：{self.getStr()}。"
     def double(self):
         self.time += self.time - datetime.now()

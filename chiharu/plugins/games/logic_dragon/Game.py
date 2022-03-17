@@ -343,7 +343,7 @@ class Game:
                     break
             else:
                 await user.Death()
-            user.Send(type="OnDuplicatedWord", word=word})
+            user.Send(type="OnDuplicatedWord", word=word)
         
         # 创建节点
         tree = self.AddTree(parent, word, user.qq, kwd, hdkwd)
@@ -380,24 +380,54 @@ class Game:
         user.Send(type="begin", name="OnDragoned")
         for eln in user.IterAllEvent(UserEvt.OnDragoned):
             await eln.OnDragoned(user, tree, first10)
-        user.Send(type="OnDragoned", father_node_id=parent.idStr, node_id=tree.idStr, word=word})
+        user.Send(type="OnDragoned", father_node_id=parent.idStr, node_id=tree.idStr, word=word)
         
         # 增加麻将券
         user.data.majQuan += 1
-
         return {"type": "succeed"}
     async def UserUseCard(self, user: 'User', cardPos: int, cardId: int) -> ProtocolData:
         card = user.data.handCard[cardPos]
         if card.id != cardId:
             return {"type": "failed", "error_code": 200}
-        
         if len(user.data.handCard) > user.data.cardLimit:
             user.state['exceed_limit'] = True
         
         # Event OnUserUseCard
-        user.buf.PushBuffer()
+        user.Send(type="begin", name="OnUserUseCard")
         for el in user.IterAllEvent(UserEvt.OnUserUseCard):
             can_use = await el.OnUserUseCard(user, card)
             if not can_use:
                 return {"type": "failed", "error_code": 202}
+        if not card.CanUse(user, False):
+            return {"type": "failed", "error_code": 202}
+        user.Send(type="end", name="OnUserUseCard")
+
+        await user.UseCard(card)
+        user.data.majQuan += 1
+        await user.HandleExceedDiscard()
+        return {"type": "succeed"}
+    async def UserDiscardCards(self, user: 'User', cardPoses: list[int], cardIds: list[int]) -> ProtocolData:
+        cards = [user.data.handCard[i] for i in cardPoses]
+        if not all(c.id == i for c, i in zip(cards, cardIds)):
+            return {"type": "failed", "error_code": 500}
+        if len(user.data.handCard) <= user.data.cardLimit:
+            return {"type": "failed", "error_code": 510}
+        if not all(c.CanDiscard(user) for c in cards):
+            return {"type": "failed", "error_code": 502}
+        user.state['exceed_limit'] = True
+
+        await user.DiscardCards(cards)
+        await user.HandleExceedDiscard()
+        return {"type": "succeed"}
+    async def UserDrawCards(self, user: 'User', num: int) -> ProtocolData:
+        if len(user.data.handCard) > user.data.cardLimit:
+            return {"type": "failed", "error_code": 390}
+        if user.data.drawTime < num:
+            return {"type": "failed", "error_code": 300}
+        
+        user.data.drawTime -= num
+        await user.Draw(num=num)
+        await user.HandleExceedDiscard()
+        return {"type": "succeed"}
+
 
