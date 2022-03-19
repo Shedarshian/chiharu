@@ -857,8 +857,17 @@ async def dragon_buy(buf: SessionBuffer):
         config.logger.dragon << f"【LOG】用户{qq}提交起始词：{s}。"
         if not await user.add_jibi(-70, is_buy=True):
             buf.finish(f"您的击毙不足{句尾}")
+        
+        url = buf.session.current_arg_images[0]
+        import asyncio, functools
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(None, functools.partial(requests.get, url))
+        name = hash(url)
+        with open(config.img(f"{name}.jpg"), 'wb') as f:
+            f.write(response.content)
+
         for group in config.group_id_dict['logic_dragon_supervise']:
-            await get_bot().send_group_msg(group_id=group, message=s)
+            await get_bot().send_group_msg(group_id=group, message=buf.session.current_arg_text.strip() + f"[CQ:image,file={name}.jpg]")
         buf.send(f"您已成功提交{句尾}")
     elif id == 4:
         # (35击毙)回溯一条接龙。首尾接龙时10击毙。
