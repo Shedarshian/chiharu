@@ -5260,6 +5260,9 @@ class bungeezombie(_card):
         if me.check_daily_status('i'):
             user.buf.send(f"蹦极僵尸被寒冰菇冻住了{句尾}")
             user.log << f"蹦极僵尸被寒冰菇冻住了{句尾}"
+        elif g := user.check_limited_status('G'):
+            user.send_log(f"的磁力菇被偷走了{句尾}")
+            await user.remove_limited_status(g[0])
         elif o := more_itertools.only(user.check_limited_status('o', lambda x: not x.is_pumpkin)):
             user.send_log(f"的坚果墙被偷走了{句尾}")
             await user.remove_limited_status(o)
