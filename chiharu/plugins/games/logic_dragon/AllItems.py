@@ -1,7 +1,7 @@
 from typing import *
 import random
 from .Helper import ProtocolData, positive
-from .Item import Item, JibiShopItem
+from .Item import UseableItem, JibiShopItem
 from .Card import Card
 from .User import User
 from .Equipment import Equipment
@@ -21,7 +21,19 @@ class JibiShopCard(JibiShopItem):
         user.data.shopDrawnCard -= 1
         await user.Draw(1)
 
-class ManganQuan(Item):
+class MajQuan(UseableItem):
+    id = 0
+    name = "麻将摸牌券"
+    description = "麻将摸牌券"
+    async def HandleCost(self, user: 'User') -> ProtocolData:
+        if user.data.majQuan < 3:
+            return {"type": "failed", "error_code": 223}
+        user.data.majQuan -= 3
+        return {"type": "succeed"}
+    async def Use(self, user: 'User') -> None:
+        await user.DrawMaj()
+class ManganQuan(UseableItem):
+    id = 1
     name = "满贯抽奖券"
     description = "满贯抽奖券"
     async def HandleCost(self, user: 'User') -> ProtocolData:
@@ -40,7 +52,8 @@ class ManganQuan(Item):
             await user.Draw(3)
         else:
             await user.Draw(2, requirement=positive({1}))
-class YakumanQuan(Item):
+class YakumanQuan(UseableItem):
+    id = 2
     name = "役满抽奖券"
     description = "役满抽奖券"
     async def HandleCost(self, user: 'User') -> ProtocolData:
@@ -73,15 +86,4 @@ class YakumanQuan(Item):
             user.data.SaveEquipments()
         elif c < 0.21:
             await user.Draw(0, cards=[Card.get(161)()])
-class MajQuan(Item):
-    name = "麻将摸牌券"
-    description = "麻将摸牌券"
-    async def HandleCost(self, user: 'User') -> ProtocolData:
-        if user.data.majQuan < 3:
-            return {"type": "failed", "error_code": 223}
-        user.data.majQuan -= 3
-        return {"type": "succeed"}
-    async def Use(self, user: 'User') -> None:
-        await user.DrawMaj()
 
-UsableItems = {c.name: c for c in (ManganQuan, YakumanQuan, MajQuan)}

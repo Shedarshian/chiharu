@@ -28,3 +28,7 @@ class EventShopItem(Item, HasId):
             return {"type": "succeed"}
         else:
             return {"type": "failed", "error_code": 411}
+
+class UseableItem(Item, HasId):
+    def DumpData(self):
+        return {"id": self.id, "name": self.name, "description": self.description}

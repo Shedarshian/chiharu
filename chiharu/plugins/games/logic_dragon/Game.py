@@ -384,6 +384,9 @@ class Game:
         
         # 增加麻将券
         user.data.majQuan += 1
+        if user.data.majQuan % 3 == 0:
+            from .AllItems import MajQuan
+            user.Send({"type": "get_item", "count": 1, "item": MajQuan().DumpData()})
         return {"type": "succeed"}
     async def UserUseCard(self, user: 'User', cardPos: int, cardId: int) -> ProtocolData:
         card = user.data.handCard[cardPos]
@@ -404,6 +407,9 @@ class Game:
 
         await user.UseCard(card)
         user.data.majQuan += 1
+        if user.data.majQuan % 3 == 0:
+            from .AllItems import MajQuan
+            user.Send({"type": "get_item", "count": 1, "item": MajQuan().DumpData()})
         await user.HandleExceedDiscard()
         return {"type": "succeed"}
     async def UserDiscardCards(self, user: 'User', cardPoses: list[int], cardIds: list[int]) -> ProtocolData:
@@ -429,5 +435,6 @@ class Game:
         await user.Draw(num=num)
         await user.HandleExceedDiscard()
         return {"type": "succeed"}
-
+    async def UserCheckData(self, user: 'User', request: ProtocolData) -> ProtocolData:
+        pass
 

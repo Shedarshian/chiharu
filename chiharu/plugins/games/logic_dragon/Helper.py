@@ -90,7 +90,8 @@ class Buffer(ABC):
         cls.dataListener.append(listener)
     @abstractmethod
     async def GetResponse(self, request: ProtocolData) -> ProtocolData:
-        pass
+        await self.Flush()
+        return {"type": "failed", "error_code": -1}
 
 class indexer:
     def __init__(self, fget=None, fset=None):

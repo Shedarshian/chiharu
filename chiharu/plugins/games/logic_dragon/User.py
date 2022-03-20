@@ -263,8 +263,10 @@ class User:
         
         await card.Use(self)
         # Event AfterCardUse
+        self.Send(type="begin", name="AfterCardUse")
         for eln in self.IterAllEvent(UserEvt.AfterCardUse):
             await eln.AfterCardUse(self, card)
+        self.Send(type="end", name="AfterCardUse")
     async def DrawAndUse(self, card: Card=None, /, requirement: Callable=None):
         """抽即用卡牌。"""
         if card is None:
@@ -389,11 +391,13 @@ class User:
         requireCanUse: 是否要求卡牌可以使用。"""
         if not await self.choose(True):
             return None
+        
         def getRequest() -> ProtocolData:
             cardsCanChoose = [i for i, c in enumerate(self.data.handCard)
                 if requirement(c) and (not requireCanUse or c.CanUse(self, True))]
             return {"type": "choose", "object": "hand_card", "can_choose": cardsCanChoose,
                 "min": min, "max": max}
+        
         def checkResponse(response: ProtocolData) -> ProtocolData:
             if response.get("type") != "choose" or response.get("object") != "hand_card" or not isinstance(response.get("chosen"), list):
                 return {"type": "response_invalid", "error_code": 0}
@@ -402,21 +406,25 @@ class User:
             if not all(isinstance(i, int) and i < len(self.data.handCard) for i in response.get("chosen")):
                 return {"type": "response_invalid", "error_code": 110}
             return {"type": "succeed"}
+        
         response = await self.GetResponse(getRequest, checkResponse)
         chosen: list[int] = response["chosen"]
         if len(chosen) == 0:
             self.Send({"type": "choose_failed", "reason": "cant_choose"})
             return None
+        
         return [self.data.handCard[i] for i in chosen]
     async def HandleExceedDiscard(self):
         if not await self.choose(True):
             return None
         if self.state.get('exceed_limit'):
             return None
+        
         idCanNotChoose = (53,)
         requirement = lambda c: c.id not in idCanNotChoose
         x = len(self.data.handCard) - self.data.cardLimit
         toDiscard = await self.ChooseHandCards(x, x, requirement)
+
         await self.DiscardCards([self.data.handCard[i] for i in toDiscard])
 
     async def GetResponse(self,
@@ -427,7 +435,9 @@ class User:
             response = await self.buf.GetResponse(request)
             # 如果response给出的是查询或者不符合要求的数据则继续循环
             if response.get("type") == "check":
-                pass # TODO
-            ret = checkResponse(response)
-            if ret.get("type") == "succeed":
-                return response
+                ret = await self.game.UserCheckData(self, response)
+                self.Send(ret)
+            else:
+                ret = checkResponse(response)
+                if ret.get("type") == "succeed":
+                    return response
