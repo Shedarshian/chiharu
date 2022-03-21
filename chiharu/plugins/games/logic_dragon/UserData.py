@@ -1,5 +1,5 @@
-from copy import copy
 from typing import *
+from copy import copy
 from collections import defaultdict
 import struct
 from ... import config

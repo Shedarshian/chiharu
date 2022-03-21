@@ -7,7 +7,6 @@ from .Attack import Attack, AttackType
 from .Priority import UserEvt, Priority
 from .Types import Pack
 from .Dragon import DragonState, Tree
-from ...config import mysingledispatchmethod
 
 class SDeath(StatusTimed):
     id = -1

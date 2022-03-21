@@ -99,14 +99,16 @@ class Sign(IntEnum):
             "逐梦东方圈、三国杀、uno、很久很久以前、试个好游戏、扑克牌",
             "Minecraft、格雷科技、保持说话不会爆炸、100%鲜橙汁、FF14",
             "密教模拟器及其秘史、植物大战僵尸、Stone Story RPG",
-            "魔法禁书目录，factorio，近代物理",
+            "魔法禁书目录、factorio、近代物理",
             "Misc",
             "东方虹龙洞卡牌、愚蠢",
             "凝视、锈湖"][self]
     @property
     def description(self): # TODO
-        return f"{self.name_ch}。\n\t卡包：{self.contains_ch}的牌掉率提升。"
+        return f"卡包：{self.contains_ch}的牌掉率提升。"
     @classmethod
     def description_all(cls):
         return "\n".join(f"{int(i)}. {i.description}" for i in Sign)
+    def DumpData(self):
+        return {"type": "sign", "id": self.value, "name": self.name_ch, "description": self.description}
     

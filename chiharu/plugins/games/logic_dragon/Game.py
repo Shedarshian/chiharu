@@ -1,5 +1,6 @@
-from io import TextIOWrapper
 from typing import *
+from copy import copy
+from io import TextIOWrapper
 from collections import defaultdict
 from contextlib import contextmanager
 import random, json
@@ -57,10 +58,13 @@ class Game:
             dt -= timedelta(days=1)
         return dt
 
-    @contextmanager
-    def UpdateDragonWords(self):
+    def LoadDragonWords(self):
         with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
             d: TWords = json.load(f)
+        return d
+    @contextmanager
+    def UpdateDragonWords(self):
+        d = self.LoadDragonWords()
         yield d
         with open(config.rel('dragon_words.json'), 'w', encoding='utf-8') as f:
             f.write(json.dumps(d, indent=4, ensure_ascii=False))
@@ -436,5 +440,53 @@ class Game:
         await user.HandleExceedDiscard()
         return {"type": "succeed"}
     async def UserCheckData(self, user: 'User', request: ProtocolData) -> ProtocolData:
-        pass
+        if request["type"] != "check":
+            return {"type": "failed", "error_code": -1, "error_msg": "type is not check in calling UserCheckData"}
+        d = self.LoadDragonWords()
+        ret = copy(request)
+        match request["arg"]:
+            case "keyword_pool":
+                ret["pool"] = len(d['keyword'][1])
+            case "begin_pool":
+                ret["pool"] = len(d['begin'])
+            case "hidden_keyword_pool":
+                ret["pool"] = len(d["hidden"][1])
+            case "card_pool":
+                ret["pool"] = len(Card.idDict)
+            case "keyword":
+                ret["keyword"] = self.keyword
+            case "active":
+                pass # TODO
+            case "profile":
+                ret["jibi_time"] = user.data.todayJibi
+                ret["keyword_jibi"] = user.data.todayKeywordJibi
+                ret["draw_time"] = user.data.drawTime
+                ret["card_limit"] = user.data.cardLimit
+                ret["shop_card"] = user.data.shopDrawnCard
+            case "global_profile":
+                ret["sign"] = Sign(self.state["sign"]).DumpData()
+            case "hand_cards":
+                ret["cards"] = [c.DumpData() for c in user.data.handCard]
+            case "status":
+                ret["status"] = [c.DumpData() for c in user.data.statuses]
+            case "global_status":
+                ret["status"] = [c.DumpData() for c in self.me.statuses]
+            case "equipments":
+                ret["equipments"] = [c.DumpData() for c in user.data.equipments]
+            case "useable_items":
+                pass # TODO
+            case "quests":
+                pass # TODO
+            case "maj":
+                pass # TODO
+            case "jibi":
+                ret["jibi"] = user.data.jibi
+            case "shop":
+                pass # TODO
+            case "bingo":
+                pass # TODO
+            case _:
+                return {"type": "failed", "error_code": 700}
+        return ret
+        
 

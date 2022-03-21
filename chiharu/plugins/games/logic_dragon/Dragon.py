@@ -1,5 +1,6 @@
 from typing import *
 import re
+from .Types import ProtocolData
 
 class DragonState:
     def __init__(self, word: str, parent: 'Tree'):

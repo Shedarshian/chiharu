@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import *
 from .EventListener import IEventListener
 from .Helper import Saveable, BuildIdMeta
-from ...config import mysingledispatchmethod
+from .Types import ProtocolData
 if TYPE_CHECKING:
     from .User import User
 
@@ -23,6 +23,8 @@ class Equipment(IEventListener, Saveable):
         return True, ""
     async def use(self, user: 'User') -> None:
         pass
+    def DumpData(self) -> ProtocolData:
+        return {"id": self.id, "name": self.name, "description": self.description}
 
 class EquipmentStar(Equipment):
     dataType = (int,)

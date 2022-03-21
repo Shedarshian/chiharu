@@ -1,6 +1,5 @@
 from abc import ABC, ABCMeta, abstractmethod
 import itertools
-from textwrap import fill
 from typing import *
 import json
 from .Types import ProtocolData
