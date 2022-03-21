@@ -7092,7 +7092,7 @@ class electron(_card):
         checked = set()
         for branches in Tree._objs:
             found = False
-            node = [tr for tr in branches if tr.qq == user.qq][-1].parent
+            node = None if len(l := [tr for tr in branches if tr.qq == user.qq]) == 0 else l[-1].parent
             while node is not None and node.id_str not in checked:
                 ud = Game.userdata(node.qq)
                 cards = [d for d in ud.hand_card if d.is_metallic]
