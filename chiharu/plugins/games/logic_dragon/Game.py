@@ -488,5 +488,5 @@ class Game:
             case _:
                 return {"type": "failed", "error_code": 700}
         return ret
-        
+    
 

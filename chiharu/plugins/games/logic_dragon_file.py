@@ -4812,7 +4812,7 @@ class railgun(_card):
             l = len(cards) + len(status_nulles) + len(status_dailyes) + len(statuses)
             to_choose: list[tuple[int, Any]] = []
             if user.data.jibi != 0:
-                to_choose.append((0, "1击毙", ("击毙", "1击毙")), 0)
+                to_choose.append((0, "1击毙", ("击毙", "1击毙")))
             to_choose.extend([(1, d.brief_description(), (str(d.id),), i) for i, d in enumerate(cards)])
             to_choose.extend([(2, name_f(d), (name_f(d),), i) for i, d in enumerate(status_nulles)])
             to_choose.extend([(3, name_f(d), (name_f(d),), i) for i, d in enumerate(status_dailyes)])
