@@ -4824,13 +4824,6 @@ class railgun(_card):
                 user.send_log("只有一个物品可发射，自动使用" + to_choose[0][1] + "作为弹药" + 句尾)
                 num, st, _, count = to_choose[0]
             else:
-                prompt = "请选择要发射的弹药，手牌请输入id，状态请输入全名，重新查询列表请输入“重新查询”。\n" + "\n".join(s for i, s, t, c in to_choose)
-                qq: int = (await user.buf.aget(prompt="请at群内一名玩家。\n",
-                    arg_filters=[
-                            lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
-                            validators.fit_size(1, 1, message="请at正确的人数。")
-                        ]))[0]
-                u = User(qq, user.buf)
                 def check(value: str):
                     if value == "重新查询":
                         _raise_failure(prompt)
@@ -4866,16 +4859,16 @@ class railgun(_card):
                         validators.ensure_true(lambda q: q[0] in allqq, message=f"请at与你接龙距离{distance}以内的玩家：\n" + "\n".join(str(q) for q in allqq))
                     ]))[0]
             u = User(qq, user.buf)
-            user.send_char("花费了" + s + "。")
-            if i == 0:
+            user.send_char("花费了" + st + "。")
+            if num == 0:
                 await user.add_jibi(-1)
-            elif i == 1:
+            elif num == 1:
                 await user.remove_cards(cards[count])
-            elif i == 2:
+            elif num == 2:
                 await user.remove_status(status_nulles[count])
-            elif i == 3:
+            elif num == 3:
                 await user.remove_daily_status(status_dailyes[count])
-            elif i == 4:
+            elif num == 4:
                 await user.remove_limited_status(count)
             atk = ARailgun(user, u)
             await u.attacked(user, atk)
