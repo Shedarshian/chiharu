@@ -4812,7 +4812,7 @@ class railgun(_card):
             l = len(cards) + len(status_nulles) + len(status_dailyes) + len(statuses)
             to_choose: list[tuple[int, Any]] = []
             if user.data.jibi != 0:
-                to_choose.append((0, "1击毙", ("击毙", "1击毙")))
+                to_choose.append((0, "1击毙", ("击毙", "1击毙"), 0))
             to_choose.extend([(1, d.brief_description(), (str(d.id),), i) for i, d in enumerate(cards)])
             to_choose.extend([(2, name_f(d), (name_f(d),), i) for i, d in enumerate(status_nulles)])
             to_choose.extend([(3, name_f(d), (name_f(d),), i) for i, d in enumerate(status_dailyes)])
@@ -4824,7 +4824,7 @@ class railgun(_card):
                 user.send_log("只有一个物品可发射，自动使用" + to_choose[0][1] + "作为弹药" + 句尾)
                 num, st, _, count = to_choose[0]
             else:
-                prompt = "请选择要发射的弹药，手牌请输入id，状态请输入全名，重新查询列表请输入“重新查询”。\n" + "\n".join(s for i, s, t in to_choose)
+                prompt = "请选择要发射的弹药，手牌请输入id，状态请输入全名，重新查询列表请输入“重新查询”。\n" + "\n".join(s for i, s, t, c in to_choose)
                 qq: int = (await user.buf.aget(prompt="请at群内一名玩家。\n",
                     arg_filters=[
                             lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
