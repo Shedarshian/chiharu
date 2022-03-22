@@ -4814,8 +4814,8 @@ class railgun(_card):
             if user.data.jibi != 0:
                 to_choose.append((0, "1击毙", ("击毙", "1击毙"), 0))
             to_choose.extend([(1, d.brief_description(), (str(d.id),), i) for i, d in enumerate(cards)])
-            to_choose.extend([(2, name_f(StatusNull(d)), (name_f(StatusNull(d)),), i) for i, d in enumerate(status_nulles)])
-            to_choose.extend([(3, name_f(StatusDaily(d)), (name_f(StatusDaily(d)),), i) for i, d in enumerate(status_dailyes)])
+            to_choose.extend([(2, name_f(StatusNull(d).des), (name_f(StatusNull(d).des),), i) for i, d in enumerate(status_nulles)])
+            to_choose.extend([(3, name_f(StatusDaily(d).des), (name_f(StatusDaily(d).des),), i) for i, d in enumerate(status_dailyes)])
             to_choose.extend([(4, name_f(d.des), (name_f(d.des),), i) for i, d in enumerate(statuses)])
             if len(to_choose) == 0:
                 user.send_log("没有弹药，无法发射" + 句尾)
@@ -4863,7 +4863,7 @@ class railgun(_card):
                 arg_filters=[
                         lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
                         validators.fit_size(1, 1, message="请at正确的人数。"),
-                        validators.ensure_true(lambda q: q[0] in allqq, message=f"请at与你接龙距离{distance}以内的玩家：\n" + "\n".join(str(q[0]) for q[0] in allqq))
+                        validators.ensure_true(lambda q: q[0] in allqq, message=f"请at与你接龙距离{distance}以内的玩家：\n" + "\n".join(str(q) for q in allqq))
                     ]))[0]
             u = User(qq, user.buf)
             user.send_char("花费了" + s + "。")
