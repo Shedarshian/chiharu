@@ -4824,6 +4824,7 @@ class railgun(_card):
                 user.send_log("只有一个物品可发射，自动使用" + to_choose[0][1] + "作为弹药" + 句尾)
                 num, st, _, count = to_choose[0]
             else:
+                prompt = "请选择要发射的弹药，手牌请输入id，状态请输入全名，重新查询列表请输入“重新查询”。\n" + "\n".join(s for i, s, t, c in to_choose)
                 def check(value: str):
                     if value == "重新查询":
                         _raise_failure(prompt)
