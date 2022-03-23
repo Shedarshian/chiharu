@@ -7,7 +7,7 @@ import random, json
 from datetime import date, datetime, time, timedelta
 from .User import User
 from .UserData import UserData
-from .Dragon import Tree, DragonState, TreeEncoder
+from .Dragon import Tree, DragonState
 from .Types import TEvent, TGlobalState, Sign, ProtocolData, TWords
 from .Helper import Buffer
 from .Priority import UserEvt
@@ -15,8 +15,8 @@ from .EventListener import IEventListener
 from .Card import Card
 from ... import config
 
-version = "0.4.0"
-changelog = """0.4.0 Changelog:
+VERSION = "0.4.0"
+CHANGELOG = """0.4.0 Changelog:
 Change:
 再次重构。引入大量新bug。"""
 
@@ -43,7 +43,7 @@ class Game:
             return config.rel(rf'log\dragon_log_{dt.isoformat()}.txt')
         self.treeFilePath = _
         self.logSet: dict[str, int] = {}
-        self.logFile: Optional[TextIOWrapper] = None
+        self.logFile: TextIOWrapper | None = None
         self.LoadLogSet()
         self.LoadTree()
         self.logFile = open(self.treeFilePath(self.getToday()), 'a', encoding='utf-8')
@@ -70,7 +70,7 @@ class Game:
             f.write(json.dumps(d, indent=4, ensure_ascii=False))
     def UpdateKeyword(self, if_delete=False) -> ProtocolData:
         with self.UpdateDragonWords() as d:
-            s = set(d['keyword'][1]) - self.logSet - set(self.bombs)
+            s = set(d['keyword'][1]) - set(self.logSet.keys()) - set(self.bombs)
             if len(s) == 0:
                 keyword = ""
                 return {"type": "failed", "error_code": 451}
@@ -238,7 +238,7 @@ class Game:
         return words
 
     def RegisterEventCheckerInit(self, checker: 'IEventListener') -> None:
-        for key, priority in checker.register():
+        for key, priority in checker.register().items():
             self.eventListenerInit[key][priority].append(checker)
     def CreateUser(self, qq: int, buf: Buffer):
         if qq == self.managerQQ:
@@ -353,8 +353,8 @@ class Game:
         tree = self.AddTree(parent, word, user.qq, kwd, hdkwd)
         # 添加到log里
         self.logSet[word] = user.qq
-        self.logFile.write(str(tree) + '\n')
-        self.logFile.flush()
+        self.logFile.write(str(tree) + '\n')    # type: ignore
+        self.logFile.flush()                    # type: ignore
         user.data.lastDragonTime = datetime.now().isoformat()
         if first10 := user.data.todayJibi > 0:
             user.data.todayJibi -= 1
@@ -436,7 +436,7 @@ class Game:
             return {"type": "failed", "error_code": 300}
         
         user.data.drawTime -= num
-        await user.Draw(num=num)
+        await user.Draw(num)
         await user.HandleExceedDiscard()
         return {"type": "succeed"}
     async def UserCheckData(self, user: 'User', request: ProtocolData) -> ProtocolData:

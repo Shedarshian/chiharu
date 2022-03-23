@@ -1,4 +1,5 @@
 from typing import *
+from .Priority import UserEvt
 if TYPE_CHECKING:
     from .User import User
     from .Card import Card
@@ -164,7 +165,7 @@ class IEventListener:
         Returns:
         int: the modified amount of event_pt to add."""
         pass
-    async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int, 'ProtocolData']:
+    async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         """Called before a user dragoning.
 
         Arguments:
@@ -234,8 +235,8 @@ class IEventListener:
     async def OnNewDay(self, user: 'User') -> None:
         """Called when new day begins."""
         pass
-    def register(self) -> Dict[int, int]:
+    def register(self) -> Dict['UserEvt', int]:
         return {}
     def checkDragonDisplay(self) -> Tuple[int, str, bool, bool]:
         """需返回静态数据，依次为：距离修正值，无法接龙的标志，是否要求首尾，是否要求尾首"""
-        return None
+        raise NotImplementedError

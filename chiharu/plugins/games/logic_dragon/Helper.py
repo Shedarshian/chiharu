@@ -6,29 +6,28 @@ from .Types import ProtocolData
 if TYPE_CHECKING:
     from .Card import Card
 
+THasId = TypeVar("THasId", bound="HasId")
+THasIdType = Type[THasId]
 class BuildIdMeta(ABCMeta):
-    def __new__(cls, clsname: str, bases, attrs):
+    def __new__(cls, clsname: str, bases, attrs, /, **kwargs):
         if len(bases) != 0 and not clsname.startswith('_') and 'id' in attrs and 'idDict' not in attrs:
-            c = super().__new__(cls, clsname, bases, attrs)
+            c = super().__new__(cls, clsname, bases, attrs, **kwargs)
             if attrs['id'] in bases[0].idDict:
                 raise ValueError
             bases[0].idDict[attrs['id']] = c
         else:
-            c = super().__new__(cls, clsname, bases, attrs)
+            c = super().__new__(cls, clsname, bases, attrs, **kwargs)
         return c
-
-THasId = TypeVar("THasId", bound="HasId")
-THasIdType = Type[THasId]
-class HasId(metaclass=BuildIdMeta):
-    id = -1
     if TYPE_CHECKING:
         _idDict: dict[int, THasIdType] = {}
-        @classmethod
         @property
-        def idDict(cls: Type[THasId]) -> dict[int, Type[THasId]]:
+        def idDict(cls: Type[THasId]) -> dict[int, Type[THasId]]: # type: ignore
             return cls._idDict
-    else:
-        idDict = {}
+
+class HasId(metaclass=BuildIdMeta):
+    id = -1
+    if not TYPE_CHECKING:
+        idDict: dict[int, THasIdType] = {}
     @classmethod
     def get(cls: Type[THasId], id: int) -> Type[THasId]:
         if id in cls.idDict: # pylint: disable=unsupported-membership-test
@@ -36,6 +35,7 @@ class HasId(metaclass=BuildIdMeta):
         raise ValueError("哈")
 
 TSaveable = TypeVar('TSaveable', bound='Saveable')
+T = TypeVar('T')
 class Saveable(HasId):
     def __init__(self, *args) -> None:
         pass
@@ -57,12 +57,12 @@ class Saveable(HasId):
     def packAllData(cls, l: Iterable['Saveable']):
         return '/'.join(s.save() for s in l)
     @classmethod
-    def unpackAllData(cls, s: str):
+    def unpackAllData(cls: Type[TSaveable], s: str):
         """data format: "id:data,data/id:data,data" """
-        l: list[cls] = []
+        l: list[TSaveable] = []
         for c in s.split('/'):
             id, els = c.split(':', 2)
-            l.append(cls.idDict[id].load(els)) # pylint: disable=unsubscriptable-object
+            l.append(cls.idDict[int(id)].load(els)) # pylint: disable=unsubscriptable-object
         return l
 
 class Buffer(ABC):
@@ -78,7 +78,6 @@ class Buffer(ABC):
     @abstractmethod
     async def selfFlush(self):
         """DO NOT CLEAR SELF.DATAS!!!"""
-        pass
     async def Flush(self):
         await self.selfFlush()
         for listener in self.dataListener:
@@ -119,4 +118,4 @@ class _indexer:
         self.parent.fset(self.obj, index, item)
 
 def positive(s: set[int]) -> Callable[[Type['Card']], bool]:
-        return lambda c: c.id in s
+    return lambda c: c.id in s

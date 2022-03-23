@@ -51,7 +51,8 @@ class User:
                 if ret is not None:
                     for eln in ret:
                         yield eln
-    def Send(self, __data: ProtocolData={}, /, **kwargs):
+    def Send(self, __data: ProtocolData=None, /, **kwargs):
+        __data = __data or {}
         data = {"qq": self.qq, **__data, **kwargs}
         self.buf.AddData(data)
     
@@ -382,7 +383,7 @@ class User:
         from .AllCards import ADamage
         atk = ADamage(attacker, self, damage, mustHit)
         await self.Attacked(atk)
-    async def ChooseHandCards(self, min: int, max: int, requirement: Callable[[Card], bool]=None,
+    async def ChooseHandCards(self, min: int, max: int, requirement: Callable[[Card], bool]=(lambda *args: True),
         requireCanUse: bool=False):
         """选择手牌。args:
         min: 最少选择的卡牌数目。
@@ -401,9 +402,9 @@ class User:
         def checkResponse(response: ProtocolData) -> ProtocolData:
             if response.get("type") != "choose" or response.get("object") != "hand_card" or not isinstance(response.get("chosen"), list):
                 return {"type": "response_invalid", "error_code": 0}
-            if not min <= len(response.get("chosen")) <= max:
+            if not min <= len(response.get("chosen")) <= max: # type: ignore[arg-type]
                 return {"type": "response_invalid", "error_code": 100}
-            if not all(isinstance(i, int) and i < len(self.data.handCard) for i in response.get("chosen")):
+            if not all(isinstance(i, int) and i < len(self.data.handCard) for i in response.get("chosen")): # type: ignore[union-attr]
                 return {"type": "response_invalid", "error_code": 110}
             return {"type": "succeed"}
         

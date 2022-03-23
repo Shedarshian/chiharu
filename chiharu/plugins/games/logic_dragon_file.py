@@ -409,7 +409,7 @@ class Game:
     session_list: List[CommandSession] = []
     userdatas: Dict[int, 'UserData'] = {}
     @classmethod
-    def wrapper_noarg(cls, f: Awaitable[config.SessionBuffer]):
+    def wrapper_noarg(cls, f: Callable[[Any], Awaitable[config.SessionBuffer]]):
         @wraps(f)
         async def _f(buf: config.SessionBuffer, *args, **kwargs):
             try:
@@ -418,7 +418,7 @@ class Game:
                 await buf.flush()
         return _f
     @classmethod
-    def wrapper(cls, f: Awaitable[config.SessionBuffer]):
+    def wrapper(cls, f: Callable[[Any], Awaitable[config.SessionBuffer]]):
         @wraps(f)
         async def _f(session: CommandSession):
             cls.session_list.append(session)
@@ -3962,7 +3962,8 @@ class guanggaopai(_card):
             "《世界計畫 繽紛舞台！ feat. 初音未來》正式開啓公測！欢迎下载：www.tw-pjsekai.com",
             "嘉然…嘿嘿🤤…小嘉然…嘿嘿🤤然然带我走吧…🤤",
             "这是一个历经多年开发并且仍在更新的，包罗万象、应有尽有的MC整合包；这是一个让各个模组互相联动融为一体，向独立游戏看齐的MC整合包。加入GTNH，一起跨越科技的巅峰！www.gtnewhorizons.com",
-            # "PLACEHOLDER",
+            "真人面对面收割，美女角色在线掉分，发狂玩蛇新天地，尽在 https://arcaea.lowiro.com",
+            "[SPAM]真味探寻不止\n只有6种成分，世棒经典午餐肉就是这么简单！肉嫩多汁、肉香四溢，猪肉含量>90%！源自1937年的美国，快来尝试吧！",
         ])
 
 class baipai(_card):

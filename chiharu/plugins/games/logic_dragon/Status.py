@@ -62,8 +62,8 @@ class StatusNumed(StatusAllNumed):
         return f"{self._description}\n剩余{self.num}次。"
 
 class StatusTimed(Status):
-    dataType = (datetime.fromisoformat,)
-    @singledispatchmethod
+    dataType: Tuple[Callable, ...] = (datetime.fromisoformat,)
+    @singledispatchmethod # type: ignore[misc]
     def __init__(self, data: datetime):
         self.time = data
     @__init__.register

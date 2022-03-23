@@ -44,7 +44,7 @@ class UserData:
                     (?, 0, '', '', '', 4, 0, 0, 0,
                     0, 0, 0, 0, 0, 0, '')""", (qq,))
             t = config.userdata.execute("select * from dragon_data2 where qq=?", (qq,)).fetchone()
-        self.node: TUserData = dict(t)
+        self.node: TUserData = dict(t) # type: ignore
         self._save_file = None
         self.handCard = Card.unpackAllData(self.node['card'])
         self.statusesUnchecked = Status.unpackAllData(self.node['status'])
@@ -242,7 +242,7 @@ class UserData:
     @indexer
     def dragonEventSkill(self, index):
         return (self.eventSkill // 10 ** index) % 10
-    @dragonEventSkill.setter
+    @dragonEventSkill.setter # type: ignore
     def dragonEventSkill(self, index, item):
         if not 0 <= item <= 4:
             raise ValueError
@@ -330,6 +330,3 @@ class UserData:
         config.userdata.execute("update dragon_data2 set equipment=? where qq=?",
             (s := Saveable.packAllData(self.equipments), self.qq))
         self.log.log << f"设置装备为\"{s}\"。"
-    
-    def CheckData(self, request: ProtocolData) -> ProtocolData:
-        pass # TODO

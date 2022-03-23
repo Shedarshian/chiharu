@@ -226,5 +226,4 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         inv_twinsunflower = auto()
         timebomb = auto()
 
-TBoundIntEnum = TypeVar('TBoundIntEnum', bound=IntEnum)
-exchange: dict[UserEvt, Type[TBoundIntEnum]] = {c: Priority.__dict__[c.name] for c in UserEvt}
+exchange: dict[UserEvt, Type[IntEnum]] = {c: Priority.__dict__[c.name] for c in UserEvt}

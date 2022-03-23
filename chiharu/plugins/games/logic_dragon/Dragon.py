@@ -21,11 +21,11 @@ class DragonState:
 
 class Tree:
     __slots__ = ('id', 'parent', 'left', 'right', 'word', 'fork', 'kwd', 'hdkwd', 'qq')
-    def __init__(self, parent: 'Tree', word: str, qq: int, kwd: str, hdkwd: str, id: Tuple[int, int], fork: bool=False):
+    def __init__(self, parent: 'Tree' | None, word: str, qq: int, kwd: str, hdkwd: str, id: Tuple[int, int], fork: bool=False):
         self.parent = parent
         self.id = id
-        self.left = None
-        self.right = None
+        self.left: 'Tree' | None = None
+        self.right: 'Tree' | None = None
         self.word = word
         self.fork = fork
         self.qq = qq
@@ -56,22 +56,22 @@ class Tree:
         return node
     def getParentQQList(self, n: int):
         parent_qqs: List[int] = []
-        begin = self
+        begin: Tree | None = self
         for j in range(n):
-            parent_qqs.append(begin.qq)
-            begin = begin.parent
             if begin is None:
                 break
+            parent_qqs.append(begin.qq)
+            begin = begin.parent
         return parent_qqs
     @classmethod
     def saveFork(cls, node: 'Tree'):
-        return f"/fork/" + node.idStr + ('+' if node.fork else '-')
+        return "/fork/" + node.idStr + ('+' if node.fork else '-')
     @classmethod
     def saveDelete(cls, node: 'Tree'):
-        return f"/delete/" + node.idStr
+        return "/delete/" + node.idStr
     @classmethod
     def saveNew(cls):
-        return f"/new/"
+        return "/new/"
     command_re = re.compile(r"/(fork)/(\d+[a-z]*)(\+|-)|/(delete)/(\d+[a-z]*)|/(new)/")
     tree_re = re.compile(r"(?:(\d+[a-z]*)(?:(\+)?<(-?\d+[a-z]*))?(?:/(\d+)/([^/]*)/([^/]*)/)?) (.*)")
     @classmethod

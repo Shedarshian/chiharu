@@ -81,7 +81,7 @@ class YakumanQuan(UseableItem):
         elif b < 0.12:
             user.data.mangan += 2
         c = random.random()
-        if c < 0.01 and user.data.user.data.CheckEquipment(5) == 0:
+        if c < 0.01 and user.data.CheckEquipment(5) == 0:
             user.data.equipments.append(Equipment.get(5)())
             user.data.SaveEquipments()
         elif c < 0.21:

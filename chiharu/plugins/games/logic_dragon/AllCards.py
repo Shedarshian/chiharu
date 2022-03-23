@@ -16,7 +16,7 @@ class SDeath(StatusTimed):
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         # send something TODO
         return False, 0
-    def register(self) -> Dict[int, int]:
+    def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.death}
 
 class AKill(Attack):
@@ -48,7 +48,7 @@ class SFool(StatusNullStack):
             await user.RemoveStatus(SFool(1))
         return f()
     @classmethod
-    def register(cls) -> dict[int, int]:
+    def register(cls) -> dict[UserEvt, int]:
         return {UserEvt.BeforeCardUse: Priority.BeforeCardUse.fool}
 
 class ADamage(Attack):
@@ -70,7 +70,8 @@ class CMagician(Card):
     def CanUse(self, user: 'User', copy: bool) -> bool:
         return len(user.data.handCard) >= (1 if copy else 2) # TODO 判断不可选择的卡牌
     async def use(self, user: User):
-        l = await user.ChooseHandCards("请选择你手牌中的一张牌（不可选择暴食的蜈蚣与组装机1型），输入id号。", 1, 1,
+        # send TODO "请选择你手牌中的一张牌（不可选择暴食的蜈蚣与组装机1型），输入id号。"
+        l = await user.ChooseHandCards(1, 1,
                 requirement=lambda c: c.id not in (56, 200),
                 requireCanUse=True)
         card = l[0]
@@ -78,7 +79,7 @@ class CMagician(Card):
         await user.UseCardEffect(card)
         await user.UseCardEffect(card)
         await user.UseCardEffect(card)
-        await user.AddStatus(SCantUse(timedelta(weeks=1)))
+        await user.AddStatus(SCantUse(timedelta(weeks=1), card.id))
 class SCantUse(StatusTimed):
     id = 1
     isDebuff = True
@@ -101,7 +102,7 @@ class SCantUse(StatusTimed):
             # TODO send
             return False
         return True
-    def register(self) -> Dict[int, int]:
+    def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnUserUseCard: Priority.OnUserUseCard.cantuse}
 
 class CHierophant(Card):
@@ -124,9 +125,9 @@ class SHierophant(StatusNumed):
         return True, 0
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
         await user.AddJibi(2)
-        self.num = self.num - 1
+        self.num = self.num - 1 # pylint: disable=attribute-defined-outside-init
         user.data.SaveStatuses()
-    def register(self) -> Dict[int, int]:
+    def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.hierophant,
             UserEvt.OnDragoned: Priority.OnDragoned.hierophant}
 class SInvHierophant(StatusNumed):
@@ -141,8 +142,8 @@ class SInvHierophant(StatusNumed):
         return True, 0
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
         await user.AddJibi(-2)
-        self.num = self.num - 1
+        self.num = self.num - 1 # pylint: disable=attribute-defined-outside-init
         user.data.SaveStatuses()
-    def register(self) -> Dict[int, int]:
+    def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.inv_hierophant,
             UserEvt.OnDragoned: Priority.OnDragoned.inv_hierophant}
