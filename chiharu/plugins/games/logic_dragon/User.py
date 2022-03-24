@@ -370,12 +370,8 @@ class User:
         self.data.SaveCards()
     async def UseEquipment(self, eq: Equipment):
         await eq.use(self)
-    async def BuyItem(self, item: Item):
-        response = await item.HandleCost(self)
-        if response.get("type") != "succeed":
-            self.Send(response)
-            return
-        await item.Use(self)
+    async def DrawMaj(self):
+        pass # TODO
 
     async def Damaged(self, damage: int, attacker: 'User'=None, mustHit: bool=False):
         if attacker is None:

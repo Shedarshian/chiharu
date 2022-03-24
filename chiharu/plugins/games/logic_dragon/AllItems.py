@@ -1,7 +1,7 @@
 from typing import *
 import random
 from .Helper import ProtocolData, positive
-from .Item import UseableItem, JibiShopItem
+from .Item import Ticket, JibiShopItem
 from .Card import Card
 from .User import User
 from .Equipment import Equipment
@@ -21,7 +21,7 @@ class JibiShopCard(JibiShopItem):
         user.data.shopDrawnCard -= 1
         await user.Draw(1)
 
-class MajQuan(UseableItem):
+class MajQuan(Ticket):
     id = 0
     name = "麻将摸牌券"
     description = "麻将摸牌券"
@@ -32,7 +32,7 @@ class MajQuan(UseableItem):
         return {"type": "succeed"}
     async def Use(self, user: 'User') -> None:
         await user.DrawMaj()
-class ManganQuan(UseableItem):
+class ManganQuan(Ticket):
     id = 1
     name = "满贯抽奖券"
     description = "满贯抽奖券"
@@ -52,7 +52,7 @@ class ManganQuan(UseableItem):
             await user.Draw(3)
         else:
             await user.Draw(2, requirement=positive({1}))
-class YakumanQuan(UseableItem):
+class YakumanQuan(Ticket):
     id = 2
     name = "役满抽奖券"
     description = "役满抽奖券"

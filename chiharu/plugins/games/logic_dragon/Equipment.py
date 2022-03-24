@@ -19,8 +19,8 @@ class Equipment(IEventListener, Saveable):
     @property
     def description(self):
         return self._description
-    def canUse(self, user: 'User') -> tuple[bool, str]:
-        return True, ""
+    def canUse(self, user: 'User') -> bool:
+        return True
     async def use(self, user: 'User') -> None:
         pass
     def DumpData(self) -> ProtocolData:

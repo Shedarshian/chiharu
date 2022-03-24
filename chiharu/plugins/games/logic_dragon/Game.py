@@ -1,3 +1,4 @@
+from multiprocessing import Event
 from typing import *
 from copy import copy
 from io import TextIOWrapper
@@ -13,6 +14,8 @@ from .Helper import Buffer
 from .Priority import UserEvt
 from .EventListener import IEventListener
 from .Card import Card
+from .Item import Item, JibiShopItem, EventShopItem
+from .Equipment import Equipment
 from ... import config
 
 VERSION = "0.4.0"
@@ -439,7 +442,7 @@ class Game:
         await user.HandleExceedDiscard()
         return {"type": "succeed"}
     async def UserCheckData(self, user: 'User', request: ProtocolData) -> ProtocolData:
-        if request["type"] != "check":
+        if request.get("type") != "check":
             return {"type": "failed", "error_code": -1, "error_msg": "type is not check in calling UserCheckData"}
         d = self.LoadDragonWords()
         ret = copy(request)
@@ -487,5 +490,36 @@ class Game:
             case _:
                 return {"type": "failed", "error_code": 700}
         return ret
-    
+    async def UserBuyItem(self, user: 'User', request: ProtocolData) -> ProtocolData:
+        match request.get("type"):
+            case "buy":
+                item: Type[Item] | None = JibiShopItem.idDict.get(request.get("id")) # type: ignore[arg-type]
+                if item is None:
+                    return {"type": "failed", "error_code": 400}
+            case "buy_event":
+                item = EventShopItem.idDict.get(request.get("id")) # type: ignore[arg-type]
+                if item is None:
+                    return {"type": "failed", "error_code": 400}
+            case _:
+                return {"type": "failed", "error_code": -1, "error_msg": "type not starts with buy in calling UserBuyItem"}
+        t = item()
+        ret = await t.HandleCost(user)
+        if ret.get("type") == "succeed":
+            await t.Use(user)
+            return {"type": "succeed"}
+        return ret
+    async def UserUseEquipment(self, user: 'User', equipmentId: int) -> ProtocolData:
+        if len(user.data.handCard) > user.data.cardLimit:
+            return {"type": "failed", "error_code": 390}
+        if equipmentId not in Equipment.idDict:
+            return {"type": "failed", "error_code": 210}
+        equipment = user.data.CheckEquipment(equipmentId)
+        if equipment is None:
+            return {"type": "failed", "error_code": 211}
+        if not equipment.canUse(user):
+            return {"type": "failed", "error_code": 212}
+        
+        await user.UseEquipment(equipment)
+        await user.HandleExceedDiscard()
+        return {"type": "succeed"}
 

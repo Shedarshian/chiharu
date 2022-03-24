@@ -17,8 +17,7 @@ class JibiShopItem(Item, HasId):
         ret = await user.AddJibi(self.cost, isBuy=True)
         if ret:
             return {"type": "succeed"}
-        else:
-            return {"type": "failed", "error_code": 410}
+        return {"type": "failed", "error_code": 410}
 
 class EventShopItem(Item, HasId):
     cost = 0
@@ -26,9 +25,8 @@ class EventShopItem(Item, HasId):
         ret = await user.AddEventPt(self.cost, isBuy=True)
         if ret:
             return {"type": "succeed"}
-        else:
-            return {"type": "failed", "error_code": 411}
+        return {"type": "failed", "error_code": 411}
 
-class UseableItem(Item, HasId):
+class Ticket(Item, HasId):
     def DumpData(self):
         return {"id": self.id, "name": self.name, "description": self.description}
