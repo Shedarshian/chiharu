@@ -184,7 +184,6 @@ class Game:
                     to_remove.update(self.treeObjs[s[0].id[1]])
                     self.treeObjs[s[0].id[1]] = []
                     count += 1
-            # TODO 额外判断有多个parents的节点
             if count == 0:
                 break
         if tree.parent is not None:

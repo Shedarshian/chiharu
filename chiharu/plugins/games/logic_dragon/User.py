@@ -203,8 +203,8 @@ class User:
         self.Send(type="OnDeath", killer=-1 if killer is None else killer.qq, time=minute, dodge=dodge)
         if dodge:
             return
-        from .AllCards import SDeath
-        await self.AddStatus(SDeath(timedelta(minutes=minute)))
+        from .AllCards import SDeathN1
+        await self.AddStatus(SDeathN1(timedelta(minutes=minute)))
     async def Attacked(self, atk: 'Attack'):
         """玩家受到攻击。"""
         dodge = False
@@ -229,8 +229,8 @@ class User:
         self.Send(type="attacked", name=atk.name, dodge=dodge, attacker=attackerQQ)
     async def Killed(self, killer: 'User', minute: int=120):
         """玩家被杀。算作一次攻击。"""
-        from .AllCards import AKill
-        attack = AKill(killer, self, minute)
+        from .AllCards import AKill0
+        attack = AKill0(killer, self, minute)
         await self.Attacked(attack)
     async def DrawCardEffect(self, card: Card):
         """结算卡牌抽取效果。"""
@@ -380,8 +380,8 @@ class User:
     async def Damaged(self, damage: int, attacker: 'User'=None, mustHit: bool=False):
         if attacker is None:
             attacker = self.dragon
-        from .AllCards import ADamage
-        atk = ADamage(attacker, self, damage, mustHit)
+        from .AllCards import ADamage1
+        atk = ADamage1(attacker, self, damage, mustHit)
         await self.Attacked(atk)
     async def ChooseHandCards(self, min: int, max: int, requirement: Callable[[Card], bool]=(lambda *args: True),
         requireCanUse: bool=False):
@@ -400,11 +400,12 @@ class User:
                 "min": min, "max": max}
         
         def checkResponse(response: ProtocolData) -> ProtocolData:
-            if response.get("type") != "choose" or response.get("object") != "hand_card" or not isinstance(response.get("chosen"), list):
+            chosen = response.get("chosen")
+            if response.get("type") != "choose" or response.get("object") != "hand_card" or not isinstance(chosen, list):
                 return {"type": "response_invalid", "error_code": 0}
-            if not min <= len(response.get("chosen")) <= max: # type: ignore[arg-type]
+            if not min <= len(chosen) <= max:
                 return {"type": "response_invalid", "error_code": 100}
-            if not all(isinstance(i, int) and i < len(self.data.handCard) for i in response.get("chosen")): # type: ignore[union-attr]
+            if not all(isinstance(i, int) and i < len(self.data.handCard) for i in chosen):
                 return {"type": "response_invalid", "error_code": 110}
             return {"type": "succeed"}
         
@@ -426,7 +427,32 @@ class User:
         x = len(self.data.handCard) - self.data.cardLimit
         toDiscard = await self.ChooseHandCards(x, x, requirement)
 
-        await self.DiscardCards([self.data.handCard[i] for i in toDiscard])
+        if toDiscard is not None:
+            await self.DiscardCards([self.data.handCard[i] for i in toDiscard])
+    async def ChoosePlayers(self, min: int, max: int, range: set[int] | None =None):
+        if not await self.choose(True):
+            return None
+        def getRequest() -> ProtocolData:
+            return {"type": "choose", "object": "player", "player_list": None if range is None else list(range),
+                "min": min, "max": max}
+        
+        def checkResponse(response: ProtocolData) -> ProtocolData:
+            chosen = response.get("chosen")
+            if response.get("type") != "choose" or response.get("object") != "player" or not isinstance(chosen, list):
+                return {"type": "response_invalid", "error_code": 0}
+            if not min <= len(chosen) <= max:
+                return {"type": "response_invalid", "error_code": 100}
+            if not all(isinstance(i, int) and (range is None or i in range) for i in chosen):
+                return {"type": "response_invalid", "error_code": 110}
+            return {"type": "succeed"}
+        
+        response = await self.GetResponse(getRequest, checkResponse)
+        chosen: list[int] = response["chosen"]
+        if len(chosen) == 0:
+            self.Send({"type": "choose_failed", "reason": "cant_choose"})
+            return None
+        
+        return chosen
 
     async def GetResponse(self,
             getRequest: Callable[[], ProtocolData],
