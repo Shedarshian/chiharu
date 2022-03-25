@@ -4922,6 +4922,7 @@ class magnet_s(TimedStatus):
         for c in count:
             if c.time <= datetime.now():
                 user.send_log("发动了磁力菇的效果" + 句尾)
+                c.time = datetime.now() + timedelta(days=1)
                 atk = AMagnet(user, attack.attacker, c)
                 await attack.attacker.attacked(user, atk)
                 user.data.save_status_time()
