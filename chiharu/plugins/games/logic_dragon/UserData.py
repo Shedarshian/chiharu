@@ -6,8 +6,8 @@ from ... import config
 from .Types import TUserData, TEvent
 from .Helper import ProtocolData, Saveable, indexer
 from .Card import Card
-from .Status import Status
-from .Equipment import Equipment
+from .Status import Status, TStatus, TStatusStack
+from .Equipment import Equipment, TEquipment
 from .EventListener import IEventListener
 from .Priority import UserEvt
 if TYPE_CHECKING:
@@ -298,15 +298,15 @@ class UserData:
             else:
                 i += 1
         return self.statusesUnchecked
-    def CheckStatus(self, id: int):
-        return [s for s in self.statuses if s.id == id]
-    def CheckStatusStack(self, id: int):
-        l = self.CheckStatus(id)
+    def CheckStatus(self, cls: Type[TStatus]) -> list[TStatus]:
+        return [s for s in self.statuses if s.id == cls.id]
+    def CheckStatusStack(self, cls: Type[TStatusStack]):
+        l = self.CheckStatus(cls)
         if len(l) == 0:
             return 0
         return l[0].count
-    def CheckEquipment(self, id: int):
-        l = [s for s in self.equipments if s.id == id]
+    def CheckEquipment(self, cls: Type[TEquipment]) -> TEquipment | None:
+        l = [s for s in self.equipments if s.id == cls.id]
         if len(l) == 0:
             return None
         return l[0]

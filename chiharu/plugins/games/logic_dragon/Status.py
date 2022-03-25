@@ -8,6 +8,9 @@ from .Types import ProtocolData
 if TYPE_CHECKING:
     from .User import User
 
+TStatus = TypeVar("TStatus", bound='Status')
+TStatusStack = TypeVar("TStatusStack", bound='StatusNullStack | StatusDailyStack')
+
 class Status(IEventListener, Saveable):
     name = "NoName"
     _description = "NoDes"
@@ -18,13 +21,13 @@ class Status(IEventListener, Saveable):
     isMetallic = False
     isRemovable = True
     @property
-    def count(self):
+    def count(self) -> int:
         return 1
     @property
-    def valid(self):
+    def valid(self) -> bool:
         return True
     @property
-    def description(self):
+    def description(self) -> str:
         return self._description
     def double(self):
         pass

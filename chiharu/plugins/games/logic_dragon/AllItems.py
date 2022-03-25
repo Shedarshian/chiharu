@@ -8,11 +8,25 @@ from .Equipment import Equipment
 if TYPE_CHECKING:
     from .Game import Game
 
-class JibiShopCard(JibiShopItem):
+class JibiShopUpdateBegin1(JibiShopItem):
+    id = 1
+    cost = 25
+    name = "刷新接龙词"
+    description = "(25击毙)从起始词库中刷新一条接龙词。"
+    async def Use(self, user: 'User') -> None:
+        word, pic = user.game.UpdateBeginWord(False)
+        user.Send(type="update_begin_word", word=word, pic=pic)
+class JibiShopRevive2(JibiShopItem):
+    id = 2
+    cost = 0
+    name = "减少死亡时间"
+    description = "(1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。"
+
+class JibiShopCard8(JibiShopItem):
     id = 8
     cost = 5
-    name = "抽卡"
-    description = "抽一张卡，每日限一次。"
+    name = "购买抽卡"
+    description = "(5击毙)抽一张卡，每日限一次。"
     async def HandleCost(self, user: 'User') -> ProtocolData:
         if user.data.shopDrawnCard <= 0:
             return {"type": "failed", "error_code": 440}

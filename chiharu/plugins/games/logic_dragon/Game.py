@@ -4,7 +4,7 @@ from copy import copy
 from io import TextIOWrapper
 from collections import defaultdict
 from contextlib import contextmanager
-import random, json
+import random, json, re
 from datetime import date, datetime, time, timedelta
 from .User import User
 from .UserData import UserData
@@ -42,9 +42,6 @@ class Game:
             self.hiddenKeyword = d["hidden"][0]
             self.bombs = d["bombs"]
             self.lastUpdateDate = d["last_update_date"]
-        def _(dt: date):
-            return config.rel(rf'log\dragon_log_{dt.isoformat()}.txt')
-        self.treeFilePath = _
         self.logSet: dict[str, int] = {}
         self.logFile: TextIOWrapper | None = None
         self.LoadLogSet()
@@ -60,6 +57,9 @@ class Game:
         if datetime.now().time() < time(15, 59):
             dt -= timedelta(days=1)
         return dt
+    @classmethod
+    def treeFilePath(cls, dt: date):
+        return config.rel(rf'log\dragon_log_{dt.isoformat()}.txt')
 
     def LoadDragonWords(self):
         with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
@@ -135,9 +135,26 @@ class Game:
     def AddHidden(self, word: str):
         with self.UpdateDragonWords() as d:
             d['hidden'][1].append(word)
+    def UpdateBeginWord(self, isDailyUpdate: bool):
+        with self.UpdateDragonWords() as d:
+            c = random.choice(d['begin'])
+            if isDailyUpdate:
+                d['last_update_date'] = self.lastUpdateDate = date.today().isoformat()
+            d['begin'].remove(c)
+            config.logger.dragon.log << f"更新了起始词：{c}。"
+            if len(d['begin']) == 0:
+                config.logger.dragon.error << "起始词库已空！"
+        word_stripped = re.sub(r'\[CQ:image,file=.*\]', '', c).strip()
+        pic: str | None = match.group(1) if (match := re.match(r'.*\[CQ:image,file=(.*)\]', c)) is not None else None
+        self.logSet[word_stripped] = self.managerQQ
+        if not isDailyUpdate:
+            self.logFile.write(Tree.saveNew()) # type: ignore[union-attr]
+        self.InitTree(isDailyUpdate)
+        self.AddTree(None, word_stripped, self.managerQQ, '', '')
+        return word_stripped, pic
 
-    def InitTree(self, is_daily: bool):
-        if is_daily:
+    def InitTree(self, isDailyUpdate: bool):
+        if isDailyUpdate:
             self.treeForests = []
         else:
             self.treeForests.append(self.treeObjs)
@@ -268,8 +285,11 @@ class Game:
         with open(config.rel('dragon_state.json'), 'w', encoding='utf-8') as f:
             json.dump(self.state, f, ensure_ascii=False, indent=4, sort_keys=True)
 
-    async def PerformDragon(self, user: 'User', parentId: tuple[int, int], word: str) -> ProtocolData:
-        user.log.verbose << f"尝试接龙，父节点{parentId}，接龙词{word}。"
+    async def UserPerformDragon(self, user: 'User', parentIdStr: str, word: str) -> ProtocolData:
+        user.log.verbose << f"尝试接龙，父节点{parentIdStr}，接龙词{word}。"
+        parentId = Tree.strToId(parentIdStr)
+        if parentId is None:
+            return {"type": "failed", "error_code": 100}
         if len(user.data.handCard) > user.data.cardLimit:
             return {"type": "failed", "error_code": 190}
         if not (parent := self.FindTree(parentId)):

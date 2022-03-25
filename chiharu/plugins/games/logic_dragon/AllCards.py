@@ -56,7 +56,7 @@ class SFool0(StatusNullStack):
     isDebuff = True
     async def BeforeCardUse(self, user: 'User', card: 'Card') -> Optional[Awaitable]:
         async def f():
-            await user.RemoveStatus(SFool0(1))
+            await user.RemoveStatus(SFool0, 1)
         return f()
     @classmethod
     def register(cls) -> dict[UserEvt, int]:
@@ -171,5 +171,5 @@ class CLovers6(Card):
     async def Use(self, user: User):
         if (players := await user.ChoosePlayers(1, 1)) is not None:
             u = user.CreateUser(players[0])
-            n = len(u.CheckStatus(SDeathN1.id)) == 0
-            await u.RemoveAllStatus(SDeathN1.id)
+            n = len(u.CheckStatus(SDeathN1)) == 0
+            await u.RemoveAllStatus(SDeathN1)

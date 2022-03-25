@@ -6,6 +6,8 @@ from .Types import ProtocolData
 if TYPE_CHECKING:
     from .User import User
 
+TEquipment = TypeVar("TEquipment", bound='Equipment')
+
 class Equipment(IEventListener, Saveable):
     _name = "NoName"
     _description = ""

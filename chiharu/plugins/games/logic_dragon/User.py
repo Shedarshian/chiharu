@@ -1,9 +1,10 @@
 from typing import *
 from datetime import datetime, timedelta
+import functools
 from .UserData import UserData
 from .Helper import ProtocolData, Buffer
 from .Card import Card
-from .Status import Status
+from .Status import Status, TStatus, TStatusStack
 from .Equipment import Equipment
 from .EventListener import IEventListener
 from .Priority import UserEvt, Priority, exchange
@@ -56,10 +57,10 @@ class User:
         data = {"qq": self.qq, **__data, **kwargs}
         self.buf.AddData(data)
     
-    def CheckStatus(self, id: int):
-        return self.data.CheckStatus(id)
-    def CheckStatusStack(self, id: int):
-        return self.data.CheckStatusStack(id)
+    def CheckStatus(self, cls: Type[TStatus]):
+        return self.data.CheckStatus(cls)
+    def CheckStatusStack(self, cls: Type[TStatusStack]):
+        return self.data.CheckStatusStack(cls)
 
     async def choose(self, flush: bool):
         if not self.active:
@@ -68,7 +69,7 @@ class User:
         elif flush:
             await self.buf.Flush()
         return True
-    async def AddStatus(self, s: Status):
+    async def AddStatus(self, s: TStatus):
         """添加状态。"""
         dodge = False
         # Event OnStatusAdd
@@ -80,7 +81,7 @@ class User:
         self.Send(type="OnStatusAdd", status=s.DumpData(), dodge=dodge)
         if dodge:
             return False
-        if s.isNull and len(l := self.CheckStatus(s.id)) != 0:
+        if s.isNull and len(l := self.CheckStatus(type(s))) != 0:
             l[0].num += s.count
         else:
             self.data.statusesUnchecked.append(s)
@@ -91,46 +92,47 @@ class User:
             #save_global_state()
         self.data.SaveStatuses()
         return True
-    async def RemoveStatus(self, s: Union[Status, int], count: int=1):
+    @functools.singledispatchmethod
+    async def RemoveStatus(self, s: TStatus):
         """移除一个状态。
         如果s是一个状态对象，则移除该对象。该对象需在用户的状态里。
-        如果s是int，则移除count层对应id的可堆叠状态。"""
-        if isinstance(s, Status):
-            dodge = False
-            # Event OnStatusRemove
-            self.Send(type="begin", name="OnStatusRemove")
-            for eln in self.IterAllEvent(UserEvt.OnStatusRemove):
-                dodge = await eln.OnStatusRemove(self, s)
-                if dodge:
-                    break
-            self.Send(type="OnStatusRemove", status=s.DumpData(), dodge=dodge)
+        如果s是状态类型，则移除count层对应id的可堆叠状态。"""
+        dodge = False
+        # Event OnStatusRemove
+        self.Send(type="begin", name="OnStatusRemove")
+        for eln in self.IterAllEvent(UserEvt.OnStatusRemove):
+            dodge = await eln.OnStatusRemove(self, s)
             if dodge:
-                return False
-            self.data.statusesUnchecked.remove(s)
-            self.data.deregisterStatus(s)
-            self.data.SaveStatuses()
-            return True
-        elif isinstance(s, int):
-            status = Status.get(s)(count)
-            dodge = False
-            # Event OnStatusRemove
-            self.Send(type="begin", name="OnStatusRemove")
-            for eln in self.IterAllEvent(UserEvt.OnStatusRemove):
-                dodge = await eln.OnStatusRemove(self, status)
-                if dodge:
-                    break
-            self.Send(type="OnStatusRemove", status=status.DumpData(), dodge=dodge)
+                break
+        self.Send(type="OnStatusRemove", status=s.DumpData(), dodge=dodge)
+        if dodge:
+            return False
+        self.data.statusesUnchecked.remove(s)
+        self.data.deregisterStatus(s)
+        self.data.SaveStatuses()
+        return True
+    @RemoveStatus.register
+    async def _(self, s: Type[TStatusStack], count: int=1):
+        status = s(count)
+        dodge = False
+        # Event OnStatusRemove
+        self.Send(type="begin", name="OnStatusRemove")
+        for eln in self.IterAllEvent(UserEvt.OnStatusRemove):
+            dodge = await eln.OnStatusRemove(self, status)
             if dodge:
-                return False
-            l = self.CheckStatus(s)
-            if len(l) == 0:
-                return False
-            l[0].num -= count
-            self.data.SaveStatuses()
-            return True
-    async def RemoveAllStatus(self, id: int):
+                break
+        self.Send(type="OnStatusRemove", status=status.DumpData(), dodge=dodge)
+        if dodge:
+            return False
+        l = self.CheckStatus(s)
+        if len(l) == 0:
+            return False
+        l[0].num -= count
+        self.data.SaveStatuses()
+        return True
+    async def RemoveAllStatus(self, status: Type[TStatus]):
         """移除全部该id的状态。"""
-        l = self.CheckStatus(id)
+        l = self.CheckStatus(status)
         for s in l:
             await self.RemoveStatus(s)
     async def AddJibi(self, jibi: int, /, isBuy: bool=False) -> ProtocolData:
@@ -449,6 +451,19 @@ class User:
             return None
         
         return chosen
+    async def DecreaseDeathTime(self, time: timedelta):
+        from .AllCards import SDeathN1
+        l = self.CheckStatus(SDeathN1)
+        if len(l) == 0:
+            return True
+        ret = True
+        for c in l:
+            c.time -= time
+            if c.valid():
+                ret = False
+        self.data.statuses
+        self.data.SaveStatuses()
+        return ret
 
     async def GetResponse(self,
             getRequest: Callable[[], ProtocolData],

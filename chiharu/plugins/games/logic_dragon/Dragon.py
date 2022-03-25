@@ -36,11 +36,13 @@ class Tree:
         return str(self.id[0]) + ('' if self.id[1] == 0 else chr(96 + self.id[1]))
     id_re = re.compile(r"(\d+)([a-z]*)")
     @classmethod
-    def strToId(cls, s):
+    def strToId(cls, s: str):
         match = cls.id_re.match(s)
-        return cls.matchToId(match)
+        if match:
+            return cls.matchToId(match)
+        return None
     @classmethod
-    def matchToId(cls, match: re.Match):
+    def matchToId(cls, match: re.Match[str]):
         t = 0
         for c in match.group(2):
             t = t * 26 + ord(c) - 96
