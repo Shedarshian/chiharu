@@ -4865,7 +4865,7 @@ class railgun(_card):
             if num == 0:
                 await user.add_jibi(-1)
             elif num == 1:
-                await user.remove_cards(cards[count])
+                await user.remove_cards([cards[count]])
             elif num == 2:
                 await user.remove_status(status_nulles[count])
             elif num == 3:
