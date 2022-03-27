@@ -5,6 +5,10 @@
 5. User.DrawMaj
 6. 查询其余物品
 7. 其余的卡牌交互规范
-8. 统计数据与logger监听
-9. QQBuffer前端实装
-10. AllCards与AllItems
+8. 其余交互，如选择一个整数
+9. Game的其他交互，以及每日更新
+
+
+21. 统计数据与logger监听
+22. QQBuffer前端实装
+23. AllCards与AllItems

@@ -414,19 +414,6 @@ class User:
             return None
         
         return [self.data.handCard[i] for i in chosen]
-    async def HandleExceedDiscard(self):
-        if not await self.choose(True):
-            return None
-        if self.state.get('exceed_limit'):
-            return None
-        
-        idCanNotChoose = (53,)
-        requirement = lambda c: c.id not in idCanNotChoose
-        x = len(self.data.handCard) - self.data.cardLimit
-        toDiscard = await self.ChooseHandCards(x, x, requirement)
-
-        if toDiscard is not None:
-            await self.DiscardCards([self.data.handCard[i] for i in toDiscard])
     async def ChoosePlayers(self, min: int, max: int, range: set[int] | None =None):
         if not await self.choose(True):
             return None
@@ -451,6 +438,19 @@ class User:
             return None
         
         return chosen
+    async def HandleExceedDiscard(self):
+        if not await self.choose(True):
+            return None
+        if self.state.get('exceed_limit'):
+            return None
+        
+        idCanNotChoose = (53,)
+        requirement = lambda c: c.id not in idCanNotChoose
+        x = len(self.data.handCard) - self.data.cardLimit
+        toDiscard = await self.ChooseHandCards(x, x, requirement)
+
+        if toDiscard is not None:
+            await self.DiscardCards([self.data.handCard[i] for i in toDiscard])
     async def DecreaseDeathTime(self, time: timedelta):
         from .AllCards import SDeathN1
         l = self.CheckStatus(SDeathN1)

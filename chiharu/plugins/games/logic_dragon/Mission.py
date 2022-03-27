@@ -7,7 +7,11 @@ class Mission(HasId):
     def check(self, s: str) -> bool:
         return False
 
-class Mission0(Mission):
-    description = "字数为2"
-    def check(self, s: str) -> bool:
-        return len(s) == 2
+for i in range(0, 7):
+    class _(Mission):
+        id = i
+        description = f"字数为{2 + i}"
+        inQuestStone = True
+        def check(self, s: str) -> bool:
+            return len(s) == 2 + self.id
+    _.__name__ = f"Mission{i}"
