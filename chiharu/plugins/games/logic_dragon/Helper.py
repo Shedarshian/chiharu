@@ -26,6 +26,9 @@ class BuildIdMeta(ABCMeta):
 
 class HasId(metaclass=BuildIdMeta):
     id = -1
+    def __init_subclass__(cls, /, hasIdDict: bool=False) -> None:
+        if hasIdDict:
+            cls.idDict = {} # type: ignore[misc]
     if not TYPE_CHECKING:
         idDict: dict[int, THasIdType] = {}
     @classmethod

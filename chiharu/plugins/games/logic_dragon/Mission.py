@@ -1,7 +1,7 @@
 from typing import *
 from .Helper import HasId
 
-class Mission(HasId):
+class Mission(HasId, hasIdDict=True):
     description = "NoDes"
     inQuestStone = True
     def check(self, s: str) -> bool:

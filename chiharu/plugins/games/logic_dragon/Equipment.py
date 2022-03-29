@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 TEquipment = TypeVar("TEquipment", bound='Equipment')
 
-class Equipment(IEventListener, Saveable):
+class Equipment(IEventListener, Saveable, hasIdDict=True):
     _name = "NoName"
     _description = ""
     shopDes = "NoDes"

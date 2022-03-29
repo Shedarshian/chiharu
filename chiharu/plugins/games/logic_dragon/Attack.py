@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 TAttack = TypeVar("TAttack", bound="Attack")
 TAttackType = Type[TAttack]
-class Attack(HasId):
+class Attack(HasId, hasIdDict=True):
     name = "NoName"
     doublable = True
     reboundable = True
