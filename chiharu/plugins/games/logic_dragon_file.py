@@ -4503,7 +4503,7 @@ class dadiyaodong_s(_statusnull):
             end = branch[-1]
             for i in range(1, 15, 3):
                 tr = end.before(i)
-                if tr.id != (0, 0):
+                if tr is not None and tr.id != (0, 0):
                     to_send[tr.qq] += 1
         if len(to_send) != 0:
             for qq, count in to_send.items():
