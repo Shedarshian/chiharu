@@ -4500,6 +4500,8 @@ class dadiyaodong_s(_statusnull):
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
         to_send = Counter()
         for branch in Tree._objs:
+            if len(branch) == 0:
+                continue
             end = branch[-1]
             for i in range(1, 15, 3):
                 tr = end.before(i)
