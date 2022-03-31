@@ -11,7 +11,7 @@ class Item:
     async def Use(self, user: 'User') -> None:
         pass
 
-class JibiShopItem(Item, HasId):
+class JibiShopItem(Item, HasId, hasIdDict=True):
     cost = 0
     async def HandleCost(self, user: 'User') -> ProtocolData:
         ret = await user.AddJibi(self.cost, isBuy=True)
@@ -19,7 +19,7 @@ class JibiShopItem(Item, HasId):
             return {"type": "succeed"}
         return {"type": "failed", "error_code": 410}
 
-class EventShopItem(Item, HasId):
+class EventShopItem(Item, HasId, hasIdDict=True):
     cost = 0
     async def HandleCost(self, user: 'User') -> ProtocolData:
         ret = await user.AddEventPt(self.cost, isBuy=True)
@@ -27,6 +27,6 @@ class EventShopItem(Item, HasId):
             return {"type": "succeed"}
         return {"type": "failed", "error_code": 411}
 
-class Ticket(Item, HasId):
+class Ticket(Item, HasId, hasIdDict=True):
     def DumpData(self):
         return {"id": self.id, "name": self.name, "description": self.description}

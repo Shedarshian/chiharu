@@ -4927,7 +4927,7 @@ class magnet_s(TimedStatus):
                 await attack.attacker.attacked(user, atk)
                 user.data.save_status_time()
                 return False,
-        return True,
+        return False,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnAttacked: (Priority.OnAttacked.magnet, cls)}

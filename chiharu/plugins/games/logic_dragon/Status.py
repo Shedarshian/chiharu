@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 TStatus = TypeVar("TStatus", bound='Status')
 TStatusStack = TypeVar("TStatusStack", bound='StatusNullStack | StatusDailyStack')
 
-class Status(IEventListener, Saveable):
+class Status(IEventListener, Saveable, hasIdDict=True):
     name = "NoName"
     _description = "NoDes"
     isNull = False

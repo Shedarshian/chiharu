@@ -5,7 +5,7 @@ from .Types import Pack, ProtocolData
 if TYPE_CHECKING:
     from .User import User
 
-class Card(IEventListener, Saveable):
+class Card(IEventListener, Saveable, hasIdDict=True):
     name = "NoName"
     _description = "NoDes"
     newer = 0
@@ -22,7 +22,7 @@ class Card(IEventListener, Saveable):
     def CanDiscard(self, user: 'User') -> bool:
         return True
     async def Use(self, user: 'User') -> None:
-        pass
+        t = Card.idDict[1]
     async def OnRemove(self, user: 'User') -> None:
         pass
     async def OnDraw(self, user: 'User') -> None:

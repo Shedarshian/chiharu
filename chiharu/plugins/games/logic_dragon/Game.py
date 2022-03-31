@@ -28,7 +28,6 @@ class Game:
         self.treeForests: List[List[List['Tree']]] = []
         self.treeObjs: List[List['Tree']] = []
         self.treeMaxBranches = 0
-        self.InitTree(True)
         self.managerQQ = config.selfqq
         self.dragonQQ = 1
         self.me = UserData(self.managerQQ, self)
@@ -285,6 +284,87 @@ class Game:
         with open(config.rel('dragon_state.json'), 'w', encoding='utf-8') as f:
             json.dump(self.state, f, ensure_ascii=False, indent=4, sort_keys=True)
 
+    async def Process(self, request: ProtocolData, buf: Buffer) -> ProtocolData:
+        typ = request.get("type")
+        qq = request.get("qq")
+        if typ is None or qq is None or not isinstance(typ, str) or not isinstance(qq, int):
+            return {"type": "failed", "error_code": 1}
+        user = self.CreateUser(qq, buf)
+        match typ:
+            case "construct":
+                id = request.get("node_id")
+                word = request.get("word")
+                if id is None or word is None or not isinstance(id, str) or not isinstance(word, str):
+                    return {"type": "failed", "error_code": 1}
+                
+                return await self.UserPerformDragon(user, id, word)
+
+            case "use_card":
+                id = request.get("id")
+                name = request.get("name")
+                if id is None and name is None:
+                    return {"type": "failed", "error_code": 1}
+                if id is not None:
+                    if not isinstance(id, int):
+                        return {"type": "failed", "error_code": 1}
+                # TODO 在手牌里的第几张
+            
+            case "use_equipment":
+                id = request.get("id")
+                if id is None or not isinstance(id, int):
+                    return {"type": "failed", "error_code": 1}
+                
+                return await self.UserUseEquipment(user, id)
+
+            case "use":
+                pass # TODO
+
+            case "draw":
+                num = request.get("num")
+                if num is None:
+                    num = 1
+                if not isinstance(num, int):
+                    return {"type": "failed", "error_code": 1}
+
+                return await self.UserDrawCards(user, num)
+
+            case "discard":
+                cards = request.get("cards")
+                if cards is None or not isinstance(cards, list) or not all(isinstance(c, int) for c in cards):
+                    return {"type": "failed", "error_code": 1}
+
+                return await self.UserDiscardCards(user, [], cards) # TODO 在手牌里的第几张
+            
+            case "check":
+                return await self.UserCheckData(user, request)
+            
+            case "buy" | "buy_event":
+                return await self.UserBuyItem(user, request)
+            
+            case "fork":
+                id = request.get("node_id")
+                if id is None or not isinstance(id, str):
+                    return {"type": "failed", "error_code": 1}
+                return await self.UserFork(user, id)
+            
+            case "add_begin":
+                pass # TODO
+            
+            case "add_keyword":
+                pass # TODO
+            
+            case "add_hidden":
+                pass # TODO
+            
+            case "compensate":
+                pass # TODO
+            
+            case "kill":
+                pass # TODO
+
+            case "choose" | _:
+                return {"type": "failed", "error_code": 1}
+
     async def UserPerformDragon(self, user: 'User', parentIdStr: str, word: str) -> ProtocolData:
         user.log.verbose << f"尝试接龙，父节点{parentIdStr}，接龙词{word}。"
         parentId = Tree.strToId(parentIdStr)
@@ -533,7 +613,7 @@ class Game:
             return {"type": "failed", "error_code": 390}
         if equipmentId not in Equipment.idDict:
             return {"type": "failed", "error_code": 210}
-        equipment = user.data.CheckEquipment(equipmentId)
+        equipment = user.data.CheckEquipment(Equipment.get(equipmentId))
         if equipment is None:
             return {"type": "failed", "error_code": 211}
         if not equipment.canUse(user):
@@ -542,4 +622,8 @@ class Game:
         await user.UseEquipment(equipment)
         await user.HandleExceedDiscard()
         return {"type": "succeed"}
+    async def UserUseItem(self, user: 'User', itemName: int) -> ProtocolData:
+        pass
+    async def UserFork(self, user: 'User', nodeIdStr: str) -> ProtocolData:
+        pass
 
