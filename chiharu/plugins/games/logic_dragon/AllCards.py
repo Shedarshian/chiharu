@@ -1,6 +1,6 @@
 from typing import *
 from datetime import timedelta, datetime
-import itertools
+import itertools, random
 from .Card import Card
 from .User import User
 from .Status import Status, StatusNumed, StatusTimed, StatusNullStack, StatusDailyStack
@@ -8,6 +8,7 @@ from .Attack import Attack, AttackType
 from .Priority import UserEvt, Priority
 from .Types import Pack
 from .Dragon import DragonState, Tree
+from .Mission import Mission
 
 class SDeathN1(StatusTimed):
     id = -1
@@ -15,7 +16,8 @@ class SDeathN1(StatusTimed):
     _description = "不可接龙。"
     isDebuff = True
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
-        # send something TODO
+        """因死亡不可接龙。"""
+        user.Send(type="status_effect", status=self.DumpData())
         return False, 0
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.death}
@@ -55,6 +57,8 @@ class SFool0(StatusNullStack):
     _description = "你下次使用卡牌无效。"
     isDebuff = True
     async def BeforeCardUse(self, user: 'User', card: 'Card') -> Optional[Awaitable]:
+        """阻挡使用卡牌。"""
+        user.Send(type="status_effect", status=self.DumpData())
         async def f():
             await user.RemoveStatus(SFool0, 1)
         return f()
@@ -99,8 +103,10 @@ class SCantUse1(StatusTimed):
         min = delta.seconds // 60
         return f"疲劳【{Card(self.cardId).name}】\n\t结束时间：{self.getStr()}。"
     async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
+        """禁止使用卡牌。
+        cardId: 禁止使用的卡牌id。"""
         if self.cardId == card.id:
-            # TODO send
+            user.Send(type="status_effect", status=self.DumpData(), cardId=self.cardId)
             return False
         return True
     def register(self) -> Dict[UserEvt, int]:
@@ -119,6 +125,48 @@ class CHighPriestess2(Card):
         for q in ql:
             await user.CreateUser(q).Killed(user)
 
+class CEmpress3(Card):
+    id = 3
+    name = "III - 女皇"
+    _description = "你当前手牌中所有任务之石的可完成次数+3。如果当前手牌无任务之石，则为你派发一个可完成3次的任务，每次完成获得3击毙，跨日时消失。"
+    positive = 1
+    pack = Pack.tarot
+    async def Use(self, user: 'User') -> None:
+        done = False
+        for card in user.data.handCard:
+            if card.id == 67:
+                card.num += 3 # TODO
+                done = True
+        if not done:
+            await user.AddStatus(SQuest3(3, 3, Mission.RandomQuestStoneId()))
+class SQuest3(StatusNumed):
+    id = 3
+    @property
+    def isDebuff(self):
+        return self.jibi < 0
+    dataType = (int, int, int)
+    def __init__(self, data: int, jibi: int, questId: int) -> None:
+        super().__init__(data)
+        self.jibi = jibi
+        self.questId = questId
+    def packData(self):
+        return f"{super().packData()},{self.jibi},{self.questId}"
+    @property
+    def description(self):
+        return f"今日任务：{Mission.get(self.questId).description}\n\t剩余次数：{self.num}次，完成获得击毙：{self.jibi}。"
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        mission = Mission.get(self.questId)
+        if mission().check(branch.word):
+            self.num = self.num - 1 # pylint: disable=attribute-defined-outside-init
+            await user.AddJibi(self.jibi)
+            user.data.SaveStatuses()
+    async def OnNewDay(self, user: 'User') -> None:
+        await user.RemoveAllStatus(SQuest3)
+    def register(self) -> dict['UserEvt', int]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.quest,
+            UserEvt.OnNewDay: Priority.OnNewDay.quest}
+
+
 class CHierophant5(Card):
     id = 5
     name = "V - 教皇"
@@ -133,11 +181,14 @@ class SHierophant5(StatusNumed):
     name = "V - 教皇"
     _description = "你的下10次接龙中每次额外获得2击毙，但额外要求首尾接龙。"
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        """禁止非首尾接龙。"""
         if not await state.RequireShouwei(user):
-            #
+            user.Send(type="status_effect", status=self.DumpData(), time="BeforeDragoned")
             return False, 0
         return True, 0
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        """奖励2击毙。"""
+        user.Send(type="status_effect", status=self.DumpData(), time="OnDragoned")
         await user.AddJibi(2)
         self.num = self.num - 1 # pylint: disable=attribute-defined-outside-init
         user.data.SaveStatuses()
@@ -150,11 +201,14 @@ class SInvHierophant6(StatusNumed):
     _description = "你的下10次接龙中每次损失2击毙，并且额外要求尾首接龙。"
     isDebuff = True
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        """禁止非尾首接龙。"""
         if not await state.RequireWeishou(user):
-            #
+            user.Send(type="status_effect", status=self.DumpData(), time="BeforeDragoned")
             return False, 0
         return True, 0
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        """损失2击毙。"""
+        user.Send(type="status_effect", status=self.DumpData(), time="OnDragoned")
         await user.AddJibi(-2)
         self.num = self.num - 1 # pylint: disable=attribute-defined-outside-init
         user.data.SaveStatuses()

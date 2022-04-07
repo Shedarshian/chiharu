@@ -35,7 +35,7 @@ class Status(IEventListener, Saveable, hasIdDict=True):
         return {"id": self.id, "name": self.name, "description": self.description, "null": self.isNull, "count": self.count}
 
 class StatusAllNumed(Status):
-    dataType = (int,)
+    dataType: Tuple[Callable[[str], Any],...] = (int,)
     def __init__(self, data: int=1) -> None:
         self.num = data
     @property
@@ -65,7 +65,7 @@ class StatusNumed(StatusAllNumed):
         return f"{self._description}\n剩余{self.num}次。"
 
 class StatusTimed(Status):
-    dataType: Tuple[Callable, ...] = (datetime.fromisoformat,)
+    dataType: Tuple[Callable[[str], Any],...] = (datetime.fromisoformat,)
     @singledispatchmethod # type: ignore[misc]
     def __init__(self, data: datetime):
         self.time = data
