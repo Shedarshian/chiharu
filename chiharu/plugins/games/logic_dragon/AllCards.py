@@ -318,3 +318,47 @@ class SDeath13(StatusDailyStack):
         return time, False
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDeath: Priority.OnDeath.death}
+
+class CRandomMaj29(Card):
+    id = 29
+    name = "扣置的麻将"
+    positive = 1
+    mass = 0.25
+    _description = "增加5次麻将摸牌的机会，然后抽一张卡。"
+    pack = Pack.misc
+    async def Use(self, user: 'User') -> None:
+        user.data.majQuan += 5
+        await user.Draw(1)
+
+class CIll30(Card):
+    id = 30
+    name = "大病一场"
+    positive = -1
+    _description = "抽到时，直到跨日前不得接龙。"
+    consumedOnDraw = True
+    pack = Pack.zhu
+    async def OnDraw(self, user: 'User') -> None:
+        await user.AddStatus(SIll30())
+class SIll30(StatusDailyStack):
+    id = 30
+    name = "大病一场"
+    isDebuff = True
+    isRemovable = False
+    _description = "直到跨日前不得接龙。"
+    async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        # send something
+        return False, 0
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.shengbing}
+
+class CCaiPiaoZhongJiang31(Card):
+    id = 31
+    name = "彩票中奖"
+    positive = 1
+    _description = "抽到时，你立即获得20击毙与两张牌。"
+    consumedOnDraw = True
+    pack = Pack.zhu
+    async def OnDraw(self, user: 'User') -> None:
+        await user.AddJibi(20)
+        await user.Draw(2)
+
