@@ -256,4 +256,46 @@ class SHermit9(StatusDailyStack):
         return {UserEvt.OnDuplicatedWord: Priority.OnDuplicatedWord.hermit,
             UserEvt.OnBombed: Priority.OnBombed.hermit}
 
+class CWheelOfFortune10(Card):
+    id = 10
+    name = "X - 命运之轮"
+    positive = 0
+    _description = "直至下次刷新前，在商店增加抽奖机，可以花费5击毙抽奖。"
+    pack = Pack.tarot
+    async def Use(self, user: 'User') -> None:
+        await user.ume.AddStatus(SWOF10())
+class SWOF10(Status):
+    id = 10
+    name = "命运之轮"
+    _description = "直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
+    isGlobal = True
 
+class CJustice11(Card):
+    id = 11
+    name = "XI - 正义"
+    positive = 1
+    _description = "现在你身上每有一个状态，奖励你5击毙。"
+    pack = Pack.tarot
+    async def Use(self, user: 'User') -> None:
+        n = len(user.data.statuses)
+        user.Send(type="card_effect", status=self.DumpData(), time="OnCardUse")
+        await user.AddJibi(n * 5)
+
+class CHangedMan12(Card):
+    id = 12
+    name = "XII - 倒吊人"
+    positive = 1
+    _description = "你立即死亡，然后免疫你下一次死亡。"
+    pack = Pack.tarot
+    async def Use(self, user: 'User') -> None:
+        await user.AddStatus(SDeathN1(seconds = 120))
+        await user.AddStatus(SHangedMan12())
+class SHangedMan12(StatusNullStack):
+    id = 12
+    name = "倒吊人"
+    _description = "免疫你下一次死亡。"
+    async def OnDeath(self, user: 'User', attacker: 'User') -> bool:
+        self.num -= 1
+        reutrn False
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDeath: Priority.OnDeath.miansi}
