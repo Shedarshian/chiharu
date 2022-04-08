@@ -288,7 +288,7 @@ class CHangedMan12(Card):
     _description = "你立即死亡，然后免疫你下一次死亡。"
     pack = Pack.tarot
     async def Use(self, user: 'User') -> None:
-        await user.AddStatus(SDeathN1(seconds = 120))
+        await user.Death()
         await user.AddStatus(SHangedMan12())
 class SHangedMan12(StatusNullStack):
     id = 12
@@ -296,6 +296,6 @@ class SHangedMan12(StatusNullStack):
     _description = "免疫你下一次死亡。"
     async def OnDeath(self, user: 'User', attacker: 'User') -> bool:
         self.num -= 1
-        reutrn False
+        return True
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDeath: Priority.OnDeath.miansi}
