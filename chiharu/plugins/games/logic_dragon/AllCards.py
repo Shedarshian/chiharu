@@ -266,7 +266,7 @@ class CWheelOfFortune10(Card):
         await user.ume.AddStatus(SWOF10())
 class SWOF10(Status):
     id = 10
-    name = "命运之轮"
+    name = "X - 命运之轮"
     _description = "直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
     isGlobal = True
 
@@ -291,10 +291,30 @@ class CHangedMan12(Card):
         await user.AddStatus(SHangedMan12())
 class SHangedMan12(StatusNullStack):
     id = 12
-    name = "倒吊人"
+    name = "XII - 倒吊人"
     _description = "免疫你下一次死亡。"
-    async def OnDeath(self, user: 'User', attacker: 'User') -> bool:
+    async def OnDeath(self, user: 'User', time: int) -> Tuple[int, bool]:
         self.num -= 1
-        return True
+        return time, True
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDeath: Priority.OnDeath.miansi}
+
+class CDeath13(Card):
+    id = 13
+    name = "XIII - 死神"
+    positive = 0
+    _description = "今天的所有死亡时间加倍。"
+    pack = Pack.tarot
+    async def Use(self, user: 'User') -> None:
+        await user.ume.AddDailyStatus(SDeath13())
+class SDeath13(StatusDailyStack):
+    id = 13
+    name = "XIII - 死神"
+    isGlobal = True
+    isDebuff = True
+    async def OnDeath(self, user: 'User', time: int) -> Tuple[int, bool]:
+        for i in range(self.count()):
+            time *= 2
+        return time, False
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDeath: Priority.OnDeath.death}
