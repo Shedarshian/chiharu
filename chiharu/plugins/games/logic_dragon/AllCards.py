@@ -278,7 +278,6 @@ class CJustice11(Card):
     pack = Pack.tarot
     async def Use(self, user: 'User') -> None:
         n = len(user.data.statuses)
-        user.Send(type="card_effect", status=self.DumpData(), time="OnCardUse")
         await user.AddJibi(n * 5)
 
 class CHangedMan12(Card):
