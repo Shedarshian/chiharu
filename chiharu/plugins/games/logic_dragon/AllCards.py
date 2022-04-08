@@ -166,6 +166,14 @@ class SQuest3(StatusNumed):
         return {UserEvt.OnDragoned: Priority.OnDragoned.quest,
             UserEvt.OnNewDay: Priority.OnNewDay.quest}
 
+class CEmperor4(Card):
+    id = 4
+    name = "IV - 皇帝"
+    positive = 1
+    _description = "为你派发一个随机任务，可完成10次，每次完成获得2击毙，跨日时消失。"
+    pack = Pack.tarot
+    async def Use(self, user: 'User') -> None:
+        await user.AddStatus(SQuest3(10, 2, Mission.RandomQuestStoneId()))
 
 class CHierophant5(Card):
     id = 5
@@ -227,3 +235,25 @@ class CLovers6(Card):
             u = user.CreateUser(players[0])
             n = len(u.CheckStatus(SDeathN1)) == 0
             await u.RemoveAllStatus(SDeathN1)
+
+class CHermit9(Card):
+    id = 9
+    name = "IX - 隐者"
+    positive = 1
+    _description = "今天你不会因为接到重复词或触雷而死亡。"
+    pack = Pack.tarot
+    async def Use(self, user: 'User') -> None:
+        await user.AddStatus(SHermit9())
+class SHermit9(StatusDailyStack):
+    id = 9
+    name = "IX - 隐者"
+    _description = "今天你不会因为接到重复词或触雷而死亡。"
+    async def OnDuplicatedWord(self, user: 'User', word: str, originalQQ: int) -> bool:
+        return True
+    async def OnBombed(self, user: 'User', word: str) -> bool:
+        return True
+    def register(self) -> Dict['UserEvt', int]:
+        return {UserEvt.OnDuplicatedWord: Priority.OnDuplicatedWord.hermit,
+            UserEvt.OnBombed: Priority.OnBombed.hermit}
+
+
