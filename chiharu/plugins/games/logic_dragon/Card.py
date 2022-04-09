@@ -14,6 +14,7 @@ class Card(IEventListener, Saveable, hasIdDict=True):
     mass = 0.1
     consumedOnDraw = False
     pack = Pack.misc
+    isMetallic = False
     @property
     def description(self):
         return self._description

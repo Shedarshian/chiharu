@@ -47,7 +47,7 @@ class CFool0(Card):
     positive = -1
     newer = 2
     _description = "抽到时附加效果：你下次使用卡牌无效。"
-    consumed_on_draw = True
+    consumedOnDraw = True
     pack = Pack.tarot
     async def OnDraw(self, user: 'User') -> None:
         await user.AddStatus(SFool0())
@@ -361,4 +361,68 @@ class CCaiPiaoZhongJiang31(Card):
     async def OnDraw(self, user: 'User') -> None:
         await user.AddJibi(20)
         await user.Draw(2)
+
+class CDragonTube54(Card):
+    name = "龙之烟管"
+    id = 54
+    positive = 1
+    _description = "你今天通过普通接龙获得的击毙上限增加10。"
+    isMetallic = True
+    mass = 0.2
+    pack = Pack.honglongdong
+    async def Use(self, user: 'User') -> None:
+        user.data.todayJibi += 10
+
+class CXingYunTuJiao55(Card):
+    name = "幸运兔脚"
+    id = 55
+    positive = 1
+    _description = "抽取一张正面卡并立即发动其使用效果。"
+    pack = Pack.honglongdong
+    async def Use(self, user: 'User') -> None:
+        await user.DrawAndUse(positive={1})
+
+class CBaoShiDeWuGong56(Card):
+    name = "暴食的蜈蚣"
+    id = 56
+    positive = 1
+    _description = "你的手牌上限永久+1。"
+    pack = Pack.honglongdong
+    def weight(cls, user: User):
+        # if user.data.card_limit < 20:
+        #     return 1 + user.data.luck / 10 * (20 - user.data.card_limit)
+        return 1
+    async def Use(self, user: 'User') -> None:
+        # TODO user.data.cardLimitRaw += 1
+        pass
+
+class zhaocaimao(Card):
+    name = "擅长做生意的招财猫"
+    id = 57
+    positive = 1
+    _description = "你今天可以额外购买3次商店里的购买卡牌。"
+    pack = Pack.honglongdong
+    async def Use(self, user: 'User') -> None:
+        user.data.shopDrawnCard += 3
+
+class CPlusTwo60(Card):
+    name = "+2"
+    id = 60
+    positive = 0
+    _description = "下一个接龙的人摸一张非负面卡和一张非正面卡。"
+    pack = Pack.uno
+    async def Use(self, user: 'User') -> None:
+        await user.ume.addDailyStatus(SPlusTwo60())
+class SPlusTwo60(StatusNullStack):
+    id = 60
+    _description = "下一个接龙的人摸一张非负面卡和一张非正面卡。"
+    isGlobal = True
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        count = self.count()
+        await user.ume.removeStatus(self)
+        # TODO
+        cards = list(itertools.chain(*[[drawCard(user, {-1, 0}), drawCard(user, {0, 1})] for i in range(count)]))
+        await user.Draw(0, cards=cards)
+    def register(self) -> Dict['UserEvt', int]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.plus2}
 
