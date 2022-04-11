@@ -1,6 +1,9 @@
 from typing import *
 from datetime import timedelta, datetime
+from copy import copy
 import itertools, random
+
+from numpy import require
 from .Card import Card
 from .User import User
 from .Status import Status, StatusNumed, StatusTimed, StatusNullStack, StatusDailyStack
@@ -9,6 +12,7 @@ from .Priority import UserEvt, Priority
 from .Types import Pack
 from .Dragon import DragonState, Tree
 from .Mission import Mission
+from .Helper import positive
 
 class SDeathN1(StatusTimed):
     id = -1
@@ -293,7 +297,7 @@ class SHangedMan12(StatusNullStack):
     id = 12
     name = "XII - 倒吊人"
     _description = "免疫你下一次死亡。"
-    async def OnDeath(self, user: 'User', time: int) -> Tuple[int, bool]:
+    async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
         self.num -= 1
         return time, True
     def register(self) -> Dict[UserEvt, int]:
@@ -306,15 +310,14 @@ class CDeath13(Card):
     _description = "今天的所有死亡时间加倍。"
     pack = Pack.tarot
     async def Use(self, user: 'User') -> None:
-        await user.ume.AddDailyStatus(SDeath13())
+        await user.ume.AddStatus(SDeath13())
 class SDeath13(StatusDailyStack):
     id = 13
     name = "XIII - 死神"
     isGlobal = True
     isDebuff = True
-    async def OnDeath(self, user: 'User', time: int) -> Tuple[int, bool]:
-        for i in range(self.count()):
-            time *= 2
+    async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
+        time *= 2 ** self.count
         return time, False
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDeath: Priority.OnDeath.death}
@@ -380,7 +383,7 @@ class CXingYunTuJiao55(Card):
     _description = "抽取一张正面卡并立即发动其使用效果。"
     pack = Pack.honglongdong
     async def Use(self, user: 'User') -> None:
-        await user.DrawAndUse(positive={1})
+        await user.DrawAndUse(requirement=positive({1}))
 
 class CBaoShiDeWuGong56(Card):
     name = "暴食的蜈蚣"
@@ -388,13 +391,14 @@ class CBaoShiDeWuGong56(Card):
     positive = 1
     _description = "你的手牌上限永久+1。"
     pack = Pack.honglongdong
-    def weight(cls, user: User):
+    @staticmethod
+    def _weight(user: User):
         # if user.data.card_limit < 20:
         #     return 1 + user.data.luck / 10 * (20 - user.data.card_limit)
         return 1
+    weight = _weight
     async def Use(self, user: 'User') -> None:
-        # TODO user.data.cardLimitRaw += 1
-        pass
+        user.data.cardLimitRaw += 1
 
 class zhaocaimao(Card):
     name = "擅长做生意的招财猫"
@@ -412,17 +416,15 @@ class CPlusTwo60(Card):
     _description = "下一个接龙的人摸一张非负面卡和一张非正面卡。"
     pack = Pack.uno
     async def Use(self, user: 'User') -> None:
-        await user.ume.AddDailyStatus(SPlusTwo60())
+        await user.ume.AddStatus(SPlusTwo60())
 class SPlusTwo60(StatusNullStack):
     id = 60
     name = "+2"
     _description = "下一个接龙的人摸一张非负面卡和一张非正面卡。"
     isGlobal = True
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
-        count = self.count()
         await user.ume.RemoveStatus(self)
-        # TODO
-        cards = list(itertools.chain(*[[drawCard(user, {-1, 0}), drawCard(user, {0, 1})] for i in range(count)]))
+        cards = list(itertools.chain(*[[user.game.RandomNewCards(user, requirement=positive({-1, 0}))[0], user.game.RandomNewCards(user, requirement=positive({0, 1}))[0]] for i in range(self.count)]))
         await user.Draw(0, cards=cards)
     def register(self) -> Dict['UserEvt', int]:
         return {UserEvt.OnDragoned: Priority.OnDragoned.plus2}
@@ -435,9 +437,9 @@ class CLuckyCharm73(Card):
     _description = "持有此卡时，每天只能使用一张其他卡牌，你的幸运值+1。使用将丢弃这张卡。"
     pack = Pack.orange_juice
     async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
-        if card is not CLuchyCharm73:
+        if not isinstance(card, CLuckyCharm73):
             # user.send_log("今天幸运护符的使用卡牌次数已用完" + 句尾)
-            await user.AddDailyStatus(SLuckyCharm73())
+            await user.AddStatus(SLuckyCharm73())
         return True
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnUserUseCard: Priority.OnUserUseCard.xingyunhufu}
@@ -447,7 +449,7 @@ class SLuckyCharm73(StatusDailyStack):
     _description = "今天你不能使用除幸运护符以外的卡牌。"
     isDebuff = True
     async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
-        if CLuckyCharm73 in user.data.handCard and card is not CLuckyCharm73:
+        if any(isinstance(c, CLuckyCharm73) for c in user.data.handCard) and not isinstance(card, CLuckyCharm73):
             # TODO
             return False
         return True
@@ -468,7 +470,7 @@ class SJiSuZhuangZhi74(StatusNullStack):
     _description = "你下次可以连续接龙两次。"
     async def CheckSuguri(self, user: 'User', state: 'DragonState') -> bool:
         # TODO
-        await user.RemoveStatus(SJiSuZhuangZhi74, 1)
+        await user.RemoveStatus(SJiSuZhuangZhi74(1))
         return True
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.CheckSuguri: Priority.CheckSuguri.jisuzhuangzhi}
@@ -489,7 +491,7 @@ class CJianDieYuBei78(Card):
     _description = "今日卡池中有一定概率出现【邪恶的间谍行动~执行】。"
     pack = Pack.orange_juice
     async def Use(self, user: 'User') -> None:
-        await user.ume.AddDailyStatus(SJianDieYuBei78())
+        await user.ume.AddStatus(SJianDieYuBei78())
 class SJianDieYuBei78(StatusDailyStack):
     id = 78
     name = "邪恶的间谍行动～预备"
@@ -503,8 +505,8 @@ class CQiJiManBu79(Card):
     pack = Pack.orange_juice
     async def Use(self, user: 'User') -> None:
         n = len(user.data.handCard)
-        await user.DiscardCards(copy(user.data.handCard))
-        await user.Draw(n, positive={0, 1})
+        await user.DiscardCards(copy(user.data.handCard)) # I think this need to be shallow copy
+        await user.Draw(n, requirement=positive({0, 1}))
 
 class CComicSans80(Card): # TODO
     name = "Comic Sans"
@@ -513,7 +515,7 @@ class CComicSans80(Card): # TODO
     _description = "七海千春今天所有生成的图片均使用Comic Sans作为西文字体（中文使用华文彩云）。"
     pack = Pack.playtest
     async def Use(self, user: 'User') -> None:
-        await user.ume.AddDailyStatus(SComicSans80())
+        await user.ume.AddStatus(SComicSans80())
 class SComicSans80(StatusDailyStack):
     name = "Comic Sans"
     id = 80
