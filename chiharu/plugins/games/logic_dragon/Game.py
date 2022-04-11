@@ -6,6 +6,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 import random, json, re
 from datetime import date, datetime, time, timedelta
+import unicodedata
 from .User import User
 from .UserData import UserData
 from .Dragon import Tree, DragonState
@@ -301,13 +302,14 @@ class Game:
 
             case "use_card":
                 id = request.get("id")
-                name = request.get("name")
-                if id is None and name is None:
+                data = request.get("data", "")
+                if id is None or not isinstance(id, int) or not isinstance(data, str):
                     return {"type": "failed", "error_code": 1}
-                if id is not None:
-                    if not isinstance(id, int):
-                        return {"type": "failed", "error_code": 1}
-                # TODO 在手牌里的第几张
+                l = [c for c in user.data.handCard if c.id == id and c.packData() == data]
+                if len(l) == 0:
+                    return {"type": "failed", "error_code": 200}
+                
+                return await self.UserUseCard(user, l[0])
             
             case "use_equipment":
                 id = request.get("id")
@@ -330,10 +332,19 @@ class Game:
 
             case "discard":
                 cards = request.get("cards")
-                if cards is None or not isinstance(cards, list) or not all(isinstance(c, int) for c in cards):
+                if cards is None or not isinstance(cards, list) or not all(isinstance(c, dict) for c in cards):
                     return {"type": "failed", "error_code": 1}
+                handCardWithData = [(c.id, c.packData()) for c in user.data.handCard]
+                handCards: list[Card] = []
+                for c in cards:
+                    te = c.get("id"), c.get("data", "")
+                    if te[0] is None or not isinstance(te[0], int) or not isinstance(te[1], str):
+                        return {"type": "failed", "error_code": 1}
+                    if te not in handCardWithData:
+                        return {"type": "failed", "error_code": 500}
+                    handCards.append(user.data.handCard[handCardWithData.index(te)])
 
-                return await self.UserDiscardCards(user, [], cards) # TODO 在手牌里的第几张
+                return await self.UserDiscardCards(user, handCards)
             
             case "check":
                 return await self.UserCheckData(user, request)
@@ -379,7 +390,9 @@ class Game:
         if parent.left is not None and not parent.fork:
             return {"type": "failed", "error_code": 102}
 
-        # TODO 检测接龙词是否包含不合法字符
+        word = unicodedata.normalize("NFC", word)
+        if any(unicodedata.category(c) == "Cc" for c in word):
+            return {"type": "failed", "error_code": 110}
 
         dist = 2
         dragonState = DragonState(word, parent)
@@ -494,10 +507,7 @@ class Game:
             from .AllItems import MajQuan
             user.Send({"type": "get_item", "count": 1, "item": MajQuan().DumpData()})
         return {"type": "succeed"}
-    async def UserUseCard(self, user: 'User', cardPos: int, cardId: int) -> ProtocolData:
-        card = user.data.handCard[cardPos]
-        if card.id != cardId:
-            return {"type": "failed", "error_code": 200}
+    async def UserUseCard(self, user: 'User', card: Card) -> ProtocolData:
         if len(user.data.handCard) > user.data.cardLimit:
             user.state['exceed_limit'] = True
         
@@ -518,10 +528,7 @@ class Game:
             user.Send({"type": "get_item", "count": 1, "item": MajQuan().DumpData()})
         await user.HandleExceedDiscard()
         return {"type": "succeed"}
-    async def UserDiscardCards(self, user: 'User', cardPoses: list[int], cardIds: list[int]) -> ProtocolData:
-        cards = [user.data.handCard[i] for i in cardPoses]
-        if not all(c.id == i for c, i in zip(cards, cardIds)):
-            return {"type": "failed", "error_code": 500}
+    async def UserDiscardCards(self, user: 'User', cards: list[Card]) -> ProtocolData:
         if len(user.data.handCard) <= user.data.cardLimit:
             return {"type": "failed", "error_code": 510}
         if not all(c.CanDiscard(user) for c in cards):

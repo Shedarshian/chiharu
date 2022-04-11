@@ -4173,7 +4173,7 @@ class xiaohunfashu(_card):
     name = "销魂法术"
     id = 108
     positive = 1
-    description = "对指定玩家发动，该玩家的每条状态都有1/2的概率被清除（统治不列颠除外）；或是发送qq=2711644761对千春使用，消除【XXI-世界】外50%的全局状态，最多5个。"
+    description = "对指定玩家发动，该玩家的每条可清除状态都有1/2的概率被清除；或是发送qq=2711644761对千春使用，消除【XXI-世界】外50%的全局状态，最多5个。"
     pack = Pack.cultist
     @classmethod
     async def use(cls, user: User) -> None:
@@ -4500,6 +4500,8 @@ class dadiyaodong_s(_statusnull):
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
         to_send = Counter()
         for branch in Tree._objs:
+            if len(branch) == 0:
+                continue
             end = branch[-1]
             for i in range(1, 15, 3):
                 tr = end.before(i)
@@ -4975,13 +4977,13 @@ class AMagnet(Attack):
 class sunflower(_card):
     name = "向日葵"
     id = 130
-    description = "附加buff：跨日结算时你获得1击毙。此buff最多叠加10层。"
+    description = "种植植物向日葵：跨日结算时你获得1击毙。场上最多存在十株(双子)向日葵。"
     status = '('
     positive = 1
     pack = Pack.pvz
 class sunflower_s(_statusnull):
     id = '('
-    des = "向日葵：跨日结算时你获得1击毙。此buff最多叠加10层。"
+    des = "向日葵：跨日结算时你获得1击毙。场上最多存在十株(双子)向日葵。"
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
         s = user.check_status(')')
@@ -5016,7 +5018,7 @@ newday_check[0] |= set("()[]")
 class wallnut(_card):
     name = "坚果墙"
     id = 131
-    description = "为你吸收死亡时间总计4小时。"
+    description = "种植植物坚果墙：为你吸收死亡时间总计4小时。重复使用将修补坚果墙。"
     positive = 1
     mass = 0.2
     pack = Pack.pvz
@@ -5083,7 +5085,7 @@ class iceshroom(_card):
     name = "寒冰菇"
     id = 132
     positive = -1
-    description = "抽到时附加全局buff：今天每个人都需要额外隔一个才能接龙。"
+    description = "抽到时种植寒冰菇：今天每个人都需要额外隔一个才能接龙。"
     consumed_on_draw = True
     on_draw_global_daily_status = 'i'
     pack = Pack.pvz
@@ -5112,7 +5114,7 @@ class hotshroom_s(_statusdaily):
 class twinsunflower(_card):
     name = "双子向日葵"
     id = 133
-    description = "只能在你有“向日葵”buff时使用。使你的一层“向日葵”buff变成“双子向日葵”buff（跨日结算时你获得2击毙）。此buff与“向日葵”buff加在一起最多叠加10层。"
+    description = "只能在你场上存在向日葵时种植。使你的一株向日葵变成双子向日葵(跨日结算时你获得2击毙)。场上最多存在十株(双子)向日葵。"
     positive = 1
     failure_message = "你场地上没有“向日葵”" + 句尾
     pack = Pack.pvz
@@ -5129,7 +5131,7 @@ class twinsunflower(_card):
         user.send_char(f"的一株“向日葵”变成了“双子向日葵”{句尾}")
 class twinsunflower_s(_statusnull):
     id = ')'
-    des = "双子向日葵：跨日结算时你获得2击毙。此buff与“向日葵”buff加在一起最多叠加10层。"
+    des = "双子向日葵：跨日结算时你获得2击毙。场上最多存在十株(双子)向日葵。"
     @classmethod
     async def OnNewDay(cls, count: TCount, user: 'User') -> Tuple[()]:
         user.buf.send(f"玩家{user.qq}种下的双子向日葵产出了{2 * min(count, 10)}击毙{句尾}")
@@ -5157,9 +5159,9 @@ class inv_twinsunflower_s(_statusnull):
         return {UserEvt.OnNewDay: (Priority.OnNewDay.inv_twinsunflower, cls)}
 
 class pumpkin(_card):
-    name = "南瓜头"
+    name = "南瓜保护套"
     id = 134
-    description = "为你吸收死亡时间总计6小时。可与坚果墙叠加。"
+    description = "种植植物南瓜保护套：为你吸收死亡时间总计6小时。重复使用将修补南瓜保护套。可与坚果墙叠加。"
     positive = 1
     mass = 0.2
     pack = Pack.pvz
@@ -5169,10 +5171,10 @@ class pumpkin(_card):
         if len(o) > 0:
             o[0].num = 360
             user.data.save_status_time()
-            user.send_log("修补了" + user.char + f"的南瓜头{句尾}")
+            user.send_log("修补了" + user.char + f"的南瓜保护套{句尾}")
         else:
             await user.add_limited_status(SAbsorb(360, True))
-            user.send_log(f"种植了南瓜头{句尾}")
+            user.send_log(f"种植了南瓜保护套{句尾}")
 
 class imitator(_card):
     name = "模仿者"

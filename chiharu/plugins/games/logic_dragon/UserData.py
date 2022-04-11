@@ -261,6 +261,10 @@ class UserData:
     def notFirstRound(self, value):
         self.node['flags'] = (self.node['flags'] & ~2) + int(bool(value)) * 2
         config.userdata.execute("update dragon_data2 set flags=? where qq=?", (self.node['flags'], self.qq))
+    
+    @property
+    def luck(self):
+        return 0 # TODO
 
     def reregisterAll(self):
         self.eventListener = defaultdict(lambda: defaultdict(list))

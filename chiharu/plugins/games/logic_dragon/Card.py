@@ -14,6 +14,7 @@ class Card(IEventListener, Saveable, hasIdDict=True):
     mass = 0.1
     consumedOnDraw = False
     pack = Pack.misc
+    isMetallic = False
     @property
     def description(self):
         return self._description
@@ -32,5 +33,5 @@ class Card(IEventListener, Saveable, hasIdDict=True):
     async def OnGive(self, user: 'User', other: 'User') -> None:
         pass
     def DumpData(self) -> ProtocolData:
-        return {"id": self.id, "name": self.name, "description": self.description, "eff_draw": self.consumedOnDraw}
+        return {"id": self.id, "name": self.name, "description": self.description, "eff_draw": self.consumedOnDraw, "data": self.packData()}
 
