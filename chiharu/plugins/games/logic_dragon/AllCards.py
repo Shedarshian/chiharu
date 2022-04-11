@@ -47,7 +47,7 @@ class CFool0(Card):
     positive = -1
     newer = 2
     _description = "抽到时附加效果：你下次使用卡牌无效。"
-    consumed_on_draw = True
+    consumedOnDraw = True
     pack = Pack.tarot
     async def OnDraw(self, user: 'User') -> None:
         await user.AddStatus(SFool0())
@@ -266,7 +266,7 @@ class CWheelOfFortune10(Card):
         await user.ume.AddStatus(SWOF10())
 class SWOF10(Status):
     id = 10
-    name = "命运之轮"
+    name = "X - 命运之轮"
     _description = "直至下次刷新前，在商店增加抽奖机，可以消耗5击毙抽奖。"
     isGlobal = True
 
@@ -291,10 +291,232 @@ class CHangedMan12(Card):
         await user.AddStatus(SHangedMan12())
 class SHangedMan12(StatusNullStack):
     id = 12
-    name = "倒吊人"
+    name = "XII - 倒吊人"
     _description = "免疫你下一次死亡。"
-    async def OnDeath(self, user: 'User', attacker: 'User') -> bool:
+    async def OnDeath(self, user: 'User', time: int) -> Tuple[int, bool]:
         self.num -= 1
-        return True
+        return time, True
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDeath: Priority.OnDeath.miansi}
+
+class CDeath13(Card):
+    id = 13
+    name = "XIII - 死神"
+    positive = 0
+    _description = "今天的所有死亡时间加倍。"
+    pack = Pack.tarot
+    async def Use(self, user: 'User') -> None:
+        await user.ume.AddDailyStatus(SDeath13())
+class SDeath13(StatusDailyStack):
+    id = 13
+    name = "XIII - 死神"
+    isGlobal = True
+    isDebuff = True
+    async def OnDeath(self, user: 'User', time: int) -> Tuple[int, bool]:
+        for i in range(self.count()):
+            time *= 2
+        return time, False
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDeath: Priority.OnDeath.death}
+
+class CRandomMaj29(Card):
+    id = 29
+    name = "扣置的麻将"
+    positive = 1
+    mass = 0.25
+    _description = "增加5次麻将摸牌的机会，然后抽一张卡。"
+    pack = Pack.misc
+    async def Use(self, user: 'User') -> None:
+        user.data.majQuan += 5
+        await user.Draw(1)
+
+class CIll30(Card):
+    id = 30
+    name = "大病一场"
+    positive = -1
+    _description = "抽到时，直到跨日前不得接龙。"
+    consumedOnDraw = True
+    pack = Pack.zhu
+    async def OnDraw(self, user: 'User') -> None:
+        await user.AddStatus(SIll30())
+class SIll30(StatusDailyStack):
+    id = 30
+    name = "大病一场"
+    isDebuff = True
+    isRemovable = False
+    _description = "直到跨日前不得接龙。"
+    async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        # send something
+        return False, 0
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.shengbing}
+
+class CCaiPiaoZhongJiang31(Card):
+    id = 31
+    name = "彩票中奖"
+    positive = 1
+    _description = "抽到时，你立即获得20击毙与两张牌。"
+    consumedOnDraw = True
+    pack = Pack.zhu
+    async def OnDraw(self, user: 'User') -> None:
+        await user.AddJibi(20)
+        await user.Draw(2)
+
+class CDragonTube54(Card):
+    name = "龙之烟管"
+    id = 54
+    positive = 1
+    _description = "你今天通过普通接龙获得的击毙上限增加10。"
+    isMetallic = True
+    mass = 0.2
+    pack = Pack.honglongdong
+    async def Use(self, user: 'User') -> None:
+        user.data.todayJibi += 10
+
+class CXingYunTuJiao55(Card):
+    name = "幸运兔脚"
+    id = 55
+    positive = 1
+    _description = "抽取一张正面卡并立即发动其使用效果。"
+    pack = Pack.honglongdong
+    async def Use(self, user: 'User') -> None:
+        await user.DrawAndUse(positive={1})
+
+class CBaoShiDeWuGong56(Card):
+    name = "暴食的蜈蚣"
+    id = 56
+    positive = 1
+    _description = "你的手牌上限永久+1。"
+    pack = Pack.honglongdong
+    def weight(cls, user: User):
+        # if user.data.card_limit < 20:
+        #     return 1 + user.data.luck / 10 * (20 - user.data.card_limit)
+        return 1
+    async def Use(self, user: 'User') -> None:
+        # TODO user.data.cardLimitRaw += 1
+        pass
+
+class zhaocaimao(Card):
+    name = "擅长做生意的招财猫"
+    id = 57
+    positive = 1
+    _description = "你今天可以额外购买3次商店里的购买卡牌。"
+    pack = Pack.honglongdong
+    async def Use(self, user: 'User') -> None:
+        user.data.shopDrawnCard += 3
+
+class CPlusTwo60(Card):
+    name = "+2"
+    id = 60
+    positive = 0
+    _description = "下一个接龙的人摸一张非负面卡和一张非正面卡。"
+    pack = Pack.uno
+    async def Use(self, user: 'User') -> None:
+        await user.ume.AddDailyStatus(SPlusTwo60())
+class SPlusTwo60(StatusNullStack):
+    id = 60
+    name = "+2"
+    _description = "下一个接龙的人摸一张非负面卡和一张非正面卡。"
+    isGlobal = True
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        count = self.count()
+        await user.ume.RemoveStatus(self)
+        # TODO
+        cards = list(itertools.chain(*[[drawCard(user, {-1, 0}), drawCard(user, {0, 1})] for i in range(count)]))
+        await user.Draw(0, cards=cards)
+    def register(self) -> Dict['UserEvt', int]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.plus2}
+
+class CLuckyCharm73(Card):
+    name = "幸运护符"
+    id = 73
+    # hold_des = '幸运护符：每天只能使用一张其他卡牌，你的幸运值+1。'
+    positive = 1
+    _description = "持有此卡时，每天只能使用一张其他卡牌，你的幸运值+1。使用将丢弃这张卡。"
+    pack = Pack.orange_juice
+    async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
+        if card is not CLuchyCharm73:
+            # user.send_log("今天幸运护符的使用卡牌次数已用完" + 句尾)
+            await user.AddDailyStatus(SLuckyCharm73())
+        return True
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnUserUseCard: Priority.OnUserUseCard.xingyunhufu}
+class SLuckyCharm73(StatusDailyStack):
+    id = 73
+    name = "幸运护符次数已用完："
+    _description = "今天你不能使用除幸运护符以外的卡牌。"
+    isDebuff = True
+    async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
+        if CLuckyCharm73 in user.data.handCard and card is not CLuckyCharm73:
+            # TODO
+            return False
+        return True
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnUserUseCard: Priority.OnUserUseCard.xingyunhufus}
+
+class CJiSuZhuangZhi74(Card):
+    name = "极速装置"
+    id = 74
+    positive = 1
+    _description = '你下次你可以连续接龙两次。'
+    pack = Pack.orange_juice
+    async def Use(self, user: 'User') -> None:
+        user.AddStatus(SJiSuZhuangZhi74())
+class SJiSuZhuangZhi74(StatusNullStack):
+    id = 74
+    name = "极速装置"
+    _description = "你下次可以连续接龙两次。"
+    async def CheckSuguri(self, user: 'User', state: 'DragonState') -> bool:
+        # TODO
+        await user.RemoveStatus(SJiSuZhuangZhi74, 1)
+        return True
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.CheckSuguri: Priority.CheckSuguri.jisuzhuangzhi}
+
+class CZhongShenDeXiXi76(Card):
+    name = "众神的嬉戏"
+    id = 76
+    positive = 0
+    _description = '抽取一张卡并立即发动其使用效果。'
+    pack = Pack.orange_juice
+    async def Use(self, user: 'User') -> None:
+        await user.DrawAndUse()
+
+class CJianDieYuBei78(Card):
+    name = "邪恶的间谍行动～预备"
+    id = 78
+    positive = 0
+    _description = "今日卡池中有一定概率出现【邪恶的间谍行动~执行】。"
+    pack = Pack.orange_juice
+    async def Use(self, user: 'User') -> None:
+        await user.ume.AddDailyStatus(SJianDieYuBei78())
+class SJianDieYuBei78(StatusDailyStack):
+    id = 78
+    name = "邪恶的间谍行动～预备"
+    _description = "今日卡池中有一定概率出现【邪恶的间谍行动~执行】。"
+
+class CQiJiManBu79(Card):
+    name = "奇迹漫步"
+    id = 79
+    positive = 1
+    _description = "弃置你所有手牌，并摸取等量的非负面牌。"
+    pack = Pack.orange_juice
+    async def Use(self, user: 'User') -> None:
+        n = len(user.data.handCard)
+        await user.DiscardCards(copy(user.data.handCard))
+        await user.Draw(n, positive={0, 1})
+
+class CComicSans80(Card): # TODO
+    name = "Comic Sans"
+    id = 80
+    positive = 0
+    _description = "七海千春今天所有生成的图片均使用Comic Sans作为西文字体（中文使用华文彩云）。"
+    pack = Pack.playtest
+    async def Use(self, user: 'User') -> None:
+        await user.ume.AddDailyStatus(SComicSans80())
+class SComicSans80(StatusDailyStack):
+    name = "Comic Sans"
+    id = 80
+    isGlobal = True
+    _description = "七海千春今天所有生成的图片均使用Comic Sans作为西文字体（中文使用华文彩云）。"
+
