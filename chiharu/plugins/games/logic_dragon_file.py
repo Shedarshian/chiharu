@@ -7520,6 +7520,10 @@ class kuaizou_s(_statusnull):
     des = "快走：在活动中，你下次行走距离加倍。"
 
 me = UserData(config.selfqq)
+def new_me():
+    global me
+    del me
+    me = UserData(config.selfqq)
 
 dragon: Callable[[User], User] = lambda user: User(1, user.buf)
 

@@ -50,7 +50,7 @@ with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         current_event = "mid-autumn"
     del d
 
-from .logic_dragon_file import Equipment, Priority, TAttackType, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check, _statusnull, _statusdaily, Status, TModule, _equipment, DragonState, MajOneHai, Sign
+from .logic_dragon_file import Equipment, Priority, TAttackType, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check, _statusnull, _statusdaily, Status, TModule, _equipment, DragonState, MajOneHai, Sign, new_me
 from . import logic_dragon_file
 
 # log
@@ -322,7 +322,7 @@ async def daily_update(buf: SessionBuffer) -> str:
                 await eln.OnNewDay(n, user)
     save_data()
     Game.userdatas.clear()
-    me._reregister_things()
+    new_me()
     word = await update_begin_word(is_daily=True)
     await buf.flush()
     if today.isoweekday() == 7:

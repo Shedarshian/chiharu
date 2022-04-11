@@ -51,7 +51,7 @@ class Status:
                     t2 = []
                     for i in t:
                         j = copy(self.same[i])
-                        while 1:
+                        while len(j):
                             if min(j) not in t2:
                                 t2.append(min(j))
                                 break
