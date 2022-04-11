@@ -240,6 +240,33 @@ class CLovers6(Card):
             n = len(u.CheckStatus(SDeathN1)) == 0
             await u.RemoveAllStatus(SDeathN1)
 
+class CChariot7(Card):
+    id = 7
+    name = "VII - 战车"
+    positive = 1
+    newer = 5
+    _description = "对你今天第一次和最后一次接龙中间接龙的人（除了你自己）每人做一次10%致死的击毙判定。"
+    pack = Pack.tarot
+    async def Use(self, user: User) -> None:
+        to_kill = set()
+        for l in user.game.treeObjs:
+            node = l[-1]
+            temp: List[Tree] = []
+            while node.id[0] != 0:
+                if node.qq == user.qq:
+                    if len(temp) != 0:
+                        to_kill |= set(n.qq for n in temp)
+                    temp = [node]
+                elif len(temp) != 0:
+                    temp.append(node)
+                node = node.parent
+        if user.qq in to_kill:
+            to_kill.remove(user.qq)
+        to_kill = set(qq for qq in to_kill if random.random() < (0.1 + 0.01 * user.data.luck))
+        # user.buf.send(f"{'，'.join(f'[CQ:at,qq={qq}]' for qq in to_kill)}被你击杀了{句尾}")
+        for qq in to_kill:
+            await user.CreateUser(qq).Killed(user)
+
 class CHermit9(Card):
     id = 9
     name = "IX - 隐者"
