@@ -427,7 +427,7 @@ class CBaoShiDeWuGong56(Card):
     async def Use(self, user: 'User') -> None:
         user.data.cardLimitRaw += 1
 
-class zhaocaimao(Card):
+class CZhaoCaiMao57(Card):
     name = "擅长做生意的招财猫"
     id = 57
     positive = 1
