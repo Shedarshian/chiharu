@@ -256,6 +256,12 @@ class Game:
                         words.append(word)
         return words
 
+    def AllUserQQs(self, sqlRequirement: str="") -> list[int]:
+        if sqlRequirement == "":
+            l = config.userdata.execute("select qq from dragon_data where dead=false").fetchall()
+        else:
+            l = config.userdata.execute("select qq from dragon_data where dead=false and " + sqlRequirement).fetchall()
+        return [c["qq"] for c in l]
     def RegisterEventCheckerInit(self, checker: 'IEventListener') -> None:
         for key, priority in checker.register().items():
             self.eventListenerInit[key][priority].append(checker)
@@ -527,6 +533,8 @@ class Game:
             from .AllItems import MajQuan
             user.Send({"type": "get_item", "count": 1, "item": MajQuan().DumpData()})
         await user.HandleExceedDiscard()
+
+        self.state["last_card_user"] = user.qq
         return {"type": "succeed"}
     async def UserDiscardCards(self, user: 'User', cards: list[Card]) -> ProtocolData:
         if len(user.data.handCard) <= user.data.cardLimit:

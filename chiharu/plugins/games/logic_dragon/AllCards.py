@@ -2,8 +2,6 @@ from typing import *
 from datetime import timedelta, datetime
 from copy import copy
 import itertools, random
-
-from numpy import require
 from .Card import Card
 from .User import User
 from .Status import Status, StatusNumed, StatusTimed, StatusNullStack, StatusDailyStack
@@ -252,7 +250,7 @@ class CChariot7(Card):
         for l in user.game.treeObjs:
             node = l[-1]
             temp: List[Tree] = []
-            while node.id[0] != 0:
+            while node.parent is not None:
                 if node.qq == user.qq:
                     if len(temp) != 0:
                         to_kill |= set(n.qq for n in temp)
@@ -325,7 +323,7 @@ class SHangedMan12(StatusNullStack):
     name = "XII - 倒吊人"
     _description = "免疫你下一次死亡。"
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
-        self.num -= 1
+        self.num -= 1 # pylint: disable=no-member
         return time, True
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDeath: Priority.OnDeath.miansi}
@@ -341,6 +339,7 @@ class CDeath13(Card):
 class SDeath13(StatusDailyStack):
     id = 13
     name = "XIII - 死神"
+    _description = "今天的所有死亡时间加倍。"
     isGlobal = True
     isDebuff = True
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
@@ -348,6 +347,108 @@ class SDeath13(StatusDailyStack):
         return time, False
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDeath: Priority.OnDeath.death}
+
+class CTemperance14(Card):
+    name = "XIV - 节制"
+    id = 14
+    _description = "随机抽取1名玩家，今天该玩家不能使用除胶带外的卡牌。"
+    positive = 0
+    pack = Pack.tarot
+    async def Use(self, user: 'User') -> None:
+        l = user.game.AllUserQQs()
+        qq = random.choice(l)
+        target = user.CreateUser(qq)
+        atk = ATemperance14(user, target)
+        await target.Attacked(user, atk)
+class ATemperance14(Attack):
+    id = 14
+    name = "节制"
+    doublable = False
+    async def selfAction(self):
+        await self.defender.AddStatus(STemperance14())
+class STemperance14(StatusDailyStack):
+    id = 14
+    name = "XIV - 节制"
+    _description = "今天你不能使用除胶带外的卡牌。"
+    isDebuff = True
+    async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
+        if card.id != 100:
+            return False
+        return True
+    def register(self) -> Dict['UserEvt', int]:
+        return {UserEvt.OnUserUseCard: Priority.OnUserUseCard.temperance}
+
+class CDevil15(Card):
+    name = "XV - 恶魔"
+    id = 15
+    positive = 1
+    _description = "击毙上一位使用卡牌的人。"
+    pack = Pack.tarot
+    async def Use(self, user: 'User') -> None:
+        qq = user.game.state['last_card_user']
+        u = user.CreateUser(qq)
+        await u.Killed(user)
+
+class CTower16(Card):
+    name = "XVI - 高塔"
+    id = 16
+    positive = 0
+    _description = "随机解除至多3个雷，随机击毙3个玩家。"
+    pack = Pack.tarot
+    async def Use(self, user: 'User') -> None:
+        for i in range(3):
+            if len(user.game.bombs) == 0:
+                break
+            b = random.choice(user.game.bombs)
+            user.game.RemoveBomb(b)
+        l = user.game.AllUserQQs()
+        p: List[int] = []
+        for i in range(3):
+            p.append(random.choice(l))
+            l.remove(p[-1])
+        for q in p:
+            await user.CreateUser(q).Killed(user)
+
+class CStar17(Card):
+    name = "XVII - 星星"
+    id = 17
+    positive = 0
+    _description = "今天的每个词有10%的几率进入奖励词池。"
+    pack = Pack.tarot
+    async def Use(self, user: 'User') -> None:
+        await user.ume.AddStatus(SStar17())
+class SStar17(StatusDailyStack):
+    id = 17
+    _description = "XVII - 星星：今天的每个词有10%的几率进入奖励词池。"
+    isGlobal = True
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        if random.random() > 0.9 ** self.num:
+            user.game.AddKeyword(branch.word)
+    def register(self) -> Dict['UserEvt', int]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.star}
+
+class CSun19(Card):
+    name = "XIX - 太阳"
+    id = 19
+    positive = 1
+    _description = "随机揭示一个隐藏奖励词。"
+    pack = Pack.tarot
+    async def Use(self, user: 'User') -> None:
+        random.choice(user.game.hiddenKeyword) # TODO
+
+class CJudgement20(Card):
+    name = "XX - 审判"
+    id = 20
+    positive = 0
+    newer = 3
+    _description = "若你今天接龙次数小于5，则扣除20击毙，若你今天接龙次数大于20，则获得20击毙。"
+    pack = Pack.tarot
+    async def Use(self, user: 'User') -> None:
+        n = [tree.qq for tree in itertools.chain(*itertools.chain(user.game.treeObjs, *user.game.treeForests))].count(user.qq)
+        if n < 5:
+            await user.AddJibi(-20)
+        elif n > 20:
+            await user.AddJibi(20)
 
 class CRandomMaj29(Card):
     id = 29
