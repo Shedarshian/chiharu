@@ -60,6 +60,8 @@ class User:
         self.Send(type="status_effect", status=status.DumpData(), **kwargs)
     def SendCardEffect(self, card: Card, /, **kwargs):
         self.Send(type="card_effect", card=card.DumpData(), **kwargs)
+    def SendCardUse(self, card: Card, /, **kwargs):
+        self.Send(type="card_effect", card=card.DumpData(), **kwargs)
     
     def CheckStatus(self, cls: Type[TStatus]):
         return self.data.CheckStatus(cls)

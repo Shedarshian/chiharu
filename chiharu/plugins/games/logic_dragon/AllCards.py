@@ -121,9 +121,12 @@ class CHighPriestess2(Card):
     positive = 1
     pack = Pack.tarot
     async def Use(self, user: User):
+        """击杀的玩家。
+        userIDs: 被击杀的玩家qq号列表。"""
         counter = Counter([tree.qq for tree in itertools.chain(*itertools.chain(user.game.treeObjs, *user.game.treeForests))])
         l = counter.most_common()
         ql = [qq for qq, time in l if time == l[0][1]]
+        user.SendCardUse(self, userIDs=ql)
         for q in ql:
             await user.CreateUser(q).Killed(user)
 
