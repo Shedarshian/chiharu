@@ -56,6 +56,10 @@ class User:
         __data = __data or {}
         data = {"qq": self.qq, **__data, **kwargs}
         self.buf.AddData(data)
+    def SendStatusEffect(self, status: Status, /, **kwargs):
+        self.Send(type="status_effect", status=status.DumpData(), **kwargs)
+    def SendCardEffect(self, card: Card, /, **kwargs):
+        self.Send(type="card_effect", card=card.DumpData(), **kwargs)
     
     def CheckStatus(self, cls: Type[TStatus]):
         return self.data.CheckStatus(cls)

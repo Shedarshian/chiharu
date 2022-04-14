@@ -60,7 +60,7 @@ class SFool0(StatusNullStack):
     isDebuff = True
     async def BeforeCardUse(self, user: 'User', card: 'Card') -> Optional[Awaitable]:
         """阻挡使用卡牌。"""
-        user.Send(type="status_effect", status=self.DumpData())
+        user.SendStatusEffect(self)
         async def f():
             await user.RemoveStatus(SFool0, 1)
         return f()
@@ -108,7 +108,7 @@ class SCantUse1(StatusTimed):
         """禁止使用卡牌。
         cardId: 禁止使用的卡牌id。"""
         if self.cardId == card.id:
-            user.Send(type="status_effect", status=self.DumpData(), cardId=self.cardId)
+            user.SendStatusEffect(self, cardId=self.cardId)
             return False
         return True
     def register(self) -> Dict[UserEvt, int]:
@@ -157,9 +157,14 @@ class SQuest3(StatusNumed):
     def description(self):
         return f"今日任务：{Mission.get(self.questId).description}\n\t剩余次数：{self.num}次，完成获得击毙：{self.jibi}。"
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
-        mission = Mission.get(self.questId)
-        if mission().check(branch.word):
+        """完成任务。
+        jibi: 获得的击毙数。
+        remain: 剩余完成次数。
+        mission: 任务描述。"""
+        mission = Mission.get(self.questId)()
+        if mission.check(branch.word):
             self.num = self.num - 1 # pylint: disable=attribute-defined-outside-init
+            user.SendStatusEffect(self, remain=self.num, jibi=self.jibi, mission=mission.description)
             await user.AddJibi(self.jibi)
             user.data.SaveStatuses()
     async def OnNewDay(self, user: 'User') -> None:
@@ -193,12 +198,12 @@ class SHierophant5(StatusNumed):
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         """禁止非首尾接龙。"""
         if not await state.RequireShouwei(user):
-            user.Send(type="status_effect", status=self.DumpData(), time="BeforeDragoned")
+            user.SendStatusEffect(self, time="BeforeDragoned")
             return False, 0
         return True, 0
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
         """奖励2击毙。"""
-        user.Send(type="status_effect", status=self.DumpData(), time="OnDragoned")
+        user.SendStatusEffect(self, time="OnDragoned")
         await user.AddJibi(2)
         self.num = self.num - 1 # pylint: disable=attribute-defined-outside-init
         user.data.SaveStatuses()
@@ -213,12 +218,12 @@ class SInvHierophant6(StatusNumed):
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         """禁止非尾首接龙。"""
         if not await state.RequireWeishou(user):
-            user.Send(type="status_effect", status=self.DumpData(), time="BeforeDragoned")
+            user.SendStatusEffect(self, time="BeforeDragoned")
             return False, 0
         return True, 0
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
         """损失2击毙。"""
-        user.Send(type="status_effect", status=self.DumpData(), time="OnDragoned")
+        user.SendStatusEffect(self, time="OnDragoned")
         await user.AddJibi(-2)
         self.num = self.num - 1 # pylint: disable=attribute-defined-outside-init
         user.data.SaveStatuses()
@@ -278,8 +283,12 @@ class SHermit9(StatusDailyStack):
     name = "IX - 隐者"
     _description = "今天你不会因为接到重复词或触雷而死亡。"
     async def OnDuplicatedWord(self, user: 'User', word: str, originalQQ: int) -> bool:
+        """抵消接到重复词死亡效果。"""
+        user.SendStatusEffect(self, time="OnDuplicatedWord")
         return True
     async def OnBombed(self, user: 'User', word: str) -> bool:
+        """抵消触雷死亡效果。"""
+        user.SendStatusEffect(self, time="OnBombed")
         return True
     def register(self) -> Dict['UserEvt', int]:
         return {UserEvt.OnDuplicatedWord: Priority.OnDuplicatedWord.hermit,
