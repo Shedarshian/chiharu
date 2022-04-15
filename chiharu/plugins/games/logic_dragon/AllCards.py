@@ -1,6 +1,7 @@
 from typing import *
 from datetime import timedelta, datetime
 from copy import copy
+from math import ceil
 import itertools, random
 from .Card import Card
 from .User import User
@@ -272,7 +273,7 @@ class CChariot7(Card):
         if user.qq in to_kill:
             to_kill.remove(user.qq)
         to_kill = set(qq for qq in to_kill if random.random() < (0.1 + 0.01 * user.data.luck))
-        user.SendOnCardUse(self, to_kill)
+        user.SendCardUse(self, to_kill=list(to_kill))
         for qq in to_kill:
             await user.CreateUser(qq).Killed(user)
 
@@ -812,17 +813,17 @@ class CPC81(Card):
     pack = Pack.playtest
     async def Use(self, user: 'User') -> None:
         user.SendCardUse(self)
-        qqs = [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))]#TODO
+        qqs = [tree.qq for tree in itertools.chain(*itertools.chain(user.game.treeObjs, *user.game.treeForests))]#TODO
         for qq in set(qqs):
             await user.CreateUser(qq).AddStatus(SWin81())
 class SWin81(StatusDailyStack):
     id = 81
     name = "胜利"
-    _description = "恭喜，今天你赢了"
+    _description = "恭喜，今天你赢了。"
 class SDefeat82(StatusDailyStack):
     id = 82
     name = "失败"
-    _description = "对不起，今天你输了"
+    _description = "对不起，今天你输了。"
     isDebuff = True
 
 class CSuicideKing90(Card):
@@ -879,7 +880,7 @@ class STransformer93(StatusNullStack):
         """加倍击毙变化
         count：加倍的次数"""
         count = self.count
-        user.SendStatusEfect(self, count)
+        user.SendStatusEffect(self, count=count)
         await user.RemoveAllStatus(STransformer93)
         return jibi * 2 ** count
     def register(self) -> Dict[UserEvt, int]:
@@ -896,7 +897,7 @@ class SInvTransformer92(StatusNullStack):
         """加倍击毙变化
         count：加倍的次数"""
         count = self.count
-        user.SendStatusEfect(self, count)
+        user.SendStatusEffect(self, count=count)
         await user.RemoveAllStatus(SInvTransformer92)
         return ceil(jibi / 2 ** count)
     def register(self) -> Dict[UserEvt, int]:
