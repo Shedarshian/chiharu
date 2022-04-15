@@ -145,6 +145,12 @@ class IEventListener:
         Returns:
         int: the modified amount of jibi to add."""
         pass
+    async def AfterJibiChange(self, user: 'User') -> None:
+        """Called after a user added some jibi or decreased some jibi.
+
+        Arguments:
+        user: user who changed jibi."""
+        pass
     async def CheckEventptSpend(self, user: 'User', eventPt: int) -> int:
         """Called when a user intended to use event_pt to buy something.
 

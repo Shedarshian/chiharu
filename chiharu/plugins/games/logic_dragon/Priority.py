@@ -129,6 +129,8 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         shenmouyuanlv = auto()          # 绿帽：击毙减半则免单
         train = auto()                  # 火车：便乘
         bingo = auto()
+    class AfterJibiChange(IntEnum):
+        zpm = auto()                    #zpm：检查是否消除
     class CheckEventptSpend(IntEnum):
         pass
     class OnEventptChange(IntEnum):

@@ -885,7 +885,7 @@ class STransformer93(StatusNullStack):
         return jibi * 2 ** count
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.CheckJibiSpend: Priority.CheckJibiSpend.bianyaqi,
-            UserEvt.OnJibiChange: Priority.OnJibiChange.inv_bianyaqi}
+            UserEvt.OnJibiChange: Priority.OnJibiChange.bianyaqi}
 class SInvTransformer92(StatusNullStack):
     name = "反转·变压器（♣10）"
     id = 92
@@ -901,5 +901,71 @@ class SInvTransformer92(StatusNullStack):
         await user.RemoveAllStatus(SInvTransformer92)
         return ceil(jibi / 2 ** count)
     def register(self) -> Dict[UserEvt, int]:
-        return {UserEvt.CheckJibiSpend: Priority.CheckJibiSpend.bianyaqi,
+        return {UserEvt.CheckJibiSpend: Priority.CheckJibiSpend.inv_bianyaqi,
             UserEvt.OnJibiChange: Priority.OnJibiChange.inv_bianyaqi}
+
+class CAdCard94(Card):
+    name = "广告牌"
+    id = 94
+    positive = 0
+    consumedOnDraw = True
+    pack = Pack.poker
+    @property
+    def description(self):
+        return random.choice([
+            "广告位永久招租，联系邮箱：shedarshian@gmail.com",
+            "MUASTG，车万原作游戏前沿逆向研究，主要研究弹幕判定、射击火力、ZUN引擎弹幕设计等，曾发表车万顶刊华胥三绝，有意者加群796991184",
+            "你想明白生命的意义吗？你想真正……的活着吗？\n\t☑下载战斗天邪鬼：https://pan.baidu.com/s/1FIAxhHIaggld3yRAyFr9FA",
+            "欢迎关注甜品站弹幕研究协会，国内一流的东方STG学术交流平台，从避弹，打分到neta，可以学到各种高端姿势：https://www.isndes.com/ms?m=2",
+            "[CQ:at,qq=1469335215]哈斯塔快去画逻辑接龙卡图",
+            "《世界計畫 繽紛舞台！ feat. 初音未來》正式開啓公測！欢迎下载：www.tw-pjsekai.com",
+            "嘉然…嘿嘿🤤…小嘉然…嘿嘿🤤然然带我走吧…🤤",
+            "这是一个历经多年开发并且仍在更新的，包罗万象、应有尽有的MC整合包；这是一个让各个模组互相联动融为一体，向独立游戏看齐的MC整合包。加入GTNH，一起跨越科技的巅峰！www.gtnewhorizons.com",
+            "真人面对面收割，美女角色在线掉分，发狂玩蛇新天地，尽在 https://arcaea.lowiro.com",
+            "[SPAM]真味探寻不止\n只有6种成分，世棒经典午餐肉就是这么简单！肉嫩多汁、肉香四溢，猪肉含量>90%！源自1937年的美国，快来尝试吧！",
+        ])
+
+class CEmptyCard95(Card):
+    name = "白牌"
+    id = 95
+    positive = 1
+    _description = "选择你手牌中的一张牌，执行其使用效果。"
+    pack = Pack.poker
+    @property
+    def CanUse(self, user: 'User', copy: bool) -> bool:
+        return len(user.data.handCard) >= (1 if copy else 2)
+    async def Use(self, user: 'User') -> None:
+        """使用卡牌效果
+        card：被使用效果的卡牌"""
+        l = await user.ChooseHandCards(1, 1,
+                requirement=lambda c: c.id not in (95),
+                requireCanUse=True)
+        card = l[0]
+        user.SendCardUse(self, card=card)
+        await user.UseCardEffect(card)
+
+class CZPM101(Card):
+    name = "Zero-Point Module"
+    id = 101
+    positive = 1
+    _description = "抽到时附加buff：若你当前击毙少于100，则每次接龙为你额外提供1击毙，若你当前击毙多于100，此buff立即消失。"
+    on_draw_status = 'Z'
+    newer = 3
+    consumed_on_draw = True
+    is_metallic = True
+    pack = Pack.gregtech
+class SZPM101(StatusNullStack):
+    id = 101
+    name = "零点模块"
+    _description = "若你当前击毙不多于100，则每次接龙为你额外提供1击毙，若你当前击毙多于100，此buff立即消失。"
+    isMetallic = True
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        user.SendStatusEffect(self, worktype = 'addJibi')
+        await user.AddJibi(1)
+    async def AfterJibiChange(self, user: 'User') -> None:
+        if user.data.jibi > 100:
+            user.SendStatusEffect(self, worktype = 'discard')
+            await user.RemoveAllStatus(SZPM101)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.zpm,
+            UserEvt.AfterJibiChange: Piority.AferJibiChange.zpm}
