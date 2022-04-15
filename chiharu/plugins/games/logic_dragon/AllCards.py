@@ -52,6 +52,7 @@ class CFool0(Card):
     consumedOnDraw = True
     pack = Pack.tarot
     async def OnDraw(self, user: 'User') -> None:
+        user.SendCardOnDraw(self)
         await user.AddStatus(SFool0())
 class SFool0(StatusNullStack):
     id = 0
@@ -254,6 +255,8 @@ class CChariot7(Card):
     _description = "对你今天第一次和最后一次接龙中间接龙的人（除了你自己）每人做一次10%致死的击毙判定。"
     pack = Pack.tarot
     async def Use(self, user: User) -> None:
+        '''概率杀死中间接龙的人
+        to_kill：需要杀死的人'''
         to_kill = set()
         for l in user.game.treeObjs:
             node = l[-1]
@@ -269,7 +272,7 @@ class CChariot7(Card):
         if user.qq in to_kill:
             to_kill.remove(user.qq)
         to_kill = set(qq for qq in to_kill if random.random() < (0.1 + 0.01 * user.data.luck))
-        # user.buf.send(f"{'，'.join(f'[CQ:at,qq={qq}]' for qq in to_kill)}被你击杀了{句尾}")
+        user.SendOnCardUse(self, to_kill)
         for qq in to_kill:
             await user.CreateUser(qq).Killed(user)
 
@@ -489,7 +492,8 @@ class SIll30(StatusDailyStack):
     isRemovable = False
     _description = "直到跨日前不得接龙。"
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
-        # send something
+        '''因病了不能接龙'''
+        user.SendStatusEffect(self)
         return False, 0
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.shengbing}
@@ -800,3 +804,101 @@ class SComicSans80(StatusDailyStack):
     isGlobal = True
     _description = "七海千春今天所有生成的图片均使用Comic Sans作为西文字体（中文使用华文彩云）。"
 
+class CPC81(Card):
+    name = "PC"
+    id = 81
+    positive = 1
+    _description = '今天接过龙的所有人立刻获得胜利。'
+    pack = Pack.playtest
+    async def Use(self, user: 'User') -> None:
+        user.SendCardUse(self)
+        qqs = [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))]#TODO
+        for qq in set(qqs):
+            await user.CreateUser(qq).AddStatus(SWin81())
+class SWin81(StatusDailyStack):
+    id = 81
+    name = "胜利"
+    _description = "恭喜，今天你赢了"
+class SDefeat82(StatusDailyStack):
+    id = 82
+    name = "失败"
+    _description = "对不起，今天你输了"
+    isDebuff = True
+
+class CSuicideKing90(Card):
+    name = "自杀之王（♥K）"
+    id = 90
+    positive = -1
+    _description = "抽到时立即死亡。"
+    consumedOnDraw = True
+    pack = Pack.poker
+    async def OnDraw(self, user: 'User') -> None:
+        user.SendCardOnDraw(self)
+        await user.Death()
+
+class CPig90(Card):
+    name = "猪（♠Q）"
+    id = 91
+    positive = -1
+    _description = "抽到时损失20击毙（但不会扣至0以下）。"
+    consumedOnDraw = True
+    pack = Pack.poker
+    async def OnDraw(self, user: 'User') -> None:
+        user.SendCardOnDraw(self)
+        await user.AddJibi(-20)
+
+class CSheep92(Card):
+    name = "羊（♦J）"
+    id = 92
+    positive = 1
+    _description = "抽到时获得20击毙。"
+    consumedOnDraw = True
+    pack = Pack.poker
+    async def OnDraw(self, user: 'User') -> None:
+        user.SendCardOnDraw(self)
+        await user.AddJibi(20)
+
+class CTransformer93(Card):
+    name = "变压器（♣10）"
+    id = 93
+    positive = 0
+    _description = "下一次你的击毙变动变动值加倍。"
+    isMetallic = True
+    mass = 0.2
+    pack = Pack.poker
+    async def Use(self, user: 'User') -> None:
+        await user.AddStatus(STransformer93())
+class STransformer93(StatusNullStack):
+    name = "变压器（♣10）"
+    id = 93
+    _description = "下一次你的击毙变动变动值加倍。"
+    isMetallic = True
+    async def CheckJibiSpend(self, user: 'User', jibi: int) -> int:
+        return jibi * 2 ** self.count
+    async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
+        """加倍击毙变化
+        count：加倍的次数"""
+        count = self.count
+        user.SendStatusEfect(self, count)
+        await user.RemoveAllStatus(STransformer93)
+        return jibi * 2 ** count
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.CheckJibiSpend: Priority.CheckJibiSpend.bianyaqi,
+            UserEvt.OnJibiChange: Priority.OnJibiChange.inv_bianyaqi}
+class SInvTransformer92(StatusNullStack):
+    name = "反转·变压器（♣10）"
+    id = 92
+    _description = "下一次你的击毙变动变动值减半。"
+    isMetallic = True
+    async def CheckJibiSpend(self, user: 'User', jibi: int) -> int:
+        return ceil(jibi / 2 ** self.count)
+    async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
+        """加倍击毙变化
+        count：加倍的次数"""
+        count = self.count
+        user.SendStatusEfect(self, count)
+        await user.RemoveAllStatus(SInvTransformer92)
+        return ceil(jibi / 2 ** count)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.CheckJibiSpend: Priority.CheckJibiSpend.bianyaqi,
+            UserEvt.OnJibiChange: Priority.OnJibiChange.inv_bianyaqi}

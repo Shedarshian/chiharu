@@ -3927,7 +3927,7 @@ class bianyaqi_s(_statusnull):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.CheckJibiSpend: (Priority.CheckJibiSpend.bianyaqi, cls),
-            UserEvt.OnJibiChange: (Priority.OnJibiChange.bianyaqi, cls)}
+            UserEvt.OnJibiChange: (Priority.OnJibiChange.inv_bianyaqi, cls)}
 class inv_bianyaqi_s(_statusnull):
     id = '1'
     des = "反转·变压器（♣10）：下一次你的击毙变动变动值减半。"
@@ -3942,7 +3942,7 @@ class inv_bianyaqi_s(_statusnull):
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.CheckJibiSpend: (Priority.CheckJibiSpend.bianyaqi, cls),
-            UserEvt.OnJibiChange: (Priority.OnJibiChange.bianyaqi, cls)}
+            UserEvt.OnJibiChange: (Priority.OnJibiChange.inv_bianyaqi, cls)}
 
 class guanggaopai(_card):
     name = "广告牌"
@@ -4361,7 +4361,7 @@ class panjuea_s(_statusnull):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if status is panjueb_s or status is panjueb_activated_s:
-            user.send_char(f"从五个人前面接来了最终判决β{句尾}")
+            user.send_char(f"判决重合，被判处死刑，陷入无法战斗状态{句尾}")
             for i in range(min(count, count2)):
                 await user.remove_status('A', remove_all=False)
             await user.add_limited_status(Swufazhandou(datetime.now() + timedelta(minutes=240)))
@@ -4383,7 +4383,7 @@ class panjuea_activated_s(_statusnull):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if status is panjueb_s or status is panjueb_activated_s:
-            user.send_char(f"从五个人前面接来了最终判决β{句尾}")
+            user.send_char(f"判决重合，被判处死刑，陷入无法战斗状态{句尾}")
             for i in range(min(count, count2)):
                 await user.remove_status('a', remove_all=False)
             await user.add_limited_status(Swufazhandou(datetime.now() + timedelta(minutes=240)))
@@ -4409,7 +4409,7 @@ class panjueb_s(_statusnull):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if status is panjuea_s or status is panjuea_activated_s:
-            user.send_char(f"从五个人前面接来了最终判决α{句尾}")
+            user.send_char(f"判决重合，被判处死刑，陷入无法战斗状态{句尾}")
             for i in range(min(count, count2)):
                 user.remove_status('B', remove_all=False)
             await user.add_limited_status(Swufazhandou(datetime.now() + timedelta(minutes=240)))
@@ -4431,7 +4431,7 @@ class panjueb_activated_s(_statusnull):
     @classmethod
     async def OnStatusAdd(cls, count: TCount, user: 'User', status: TStatusAll, count2: int) -> Tuple[int]:
         if status is panjuea_s or status is panjuea_activated_s:
-            user.send_char(f"从五个人前面接来了最终判决α{句尾}")
+            user.send_char(f"判决重合，被判处死刑，陷入无法战斗状态{句尾}")
             for i in range(min(count, count2)):
                 await user.remove_status('b', remove_all=False)
             await user.add_limited_status(Swufazhandou(datetime.now() + timedelta(minutes=240)))
