@@ -522,13 +522,13 @@ class CMinus1Ma39(Card):
     mass = 0.75
     pack = Pack.sanguosha
     async def Use(self, user: 'User') -> None:
-        await user.AddStatus(SMinus1Ma36())
+        await user.AddStatus(SMinus1Ma39())
 class SMinus1Ma39(StatusDailyStack):
     name = "-1马"
     id = 39
     _description = "今天你可以少隔一个接龙，但最少隔一个。"
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
-        return True, -self.count()
+        return True, -self.count
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.minus1ma}
 class SPlus1Ma36(StatusDailyStack):
@@ -537,7 +537,7 @@ class SPlus1Ma36(StatusDailyStack):
     isDebuff = True
     _description = "今天你必须额外隔一个才能接龙。"
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
-        return True, self.count()
+        return True, self.count
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.plus1ma}
 
@@ -554,7 +554,9 @@ class SSiHuiHuiBiZhiYao50(StatusNullStack):
     id = 50
     _description = "你下次死亡时自动消耗5击毙免除死亡。若击毙不足则不发动。"
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
-        if await user.AddJibi(-5, is_buy=True):
+        """消耗5击毙免除死亡。"""
+        if await user.AddJibi(-5, isBuy=True):
+            user.SendStatusEffect(self)
             await user.RemoveStatus(SSiHuiHuiBiZhiYao50())
             return time, True
         return time, False
@@ -565,9 +567,11 @@ class SInvSiHuiHuiBiZhiYao53(StatusNullStack):
     id = 53
     _description = "你下次死亡时获得5击毙，但是死亡时间增加2h。"
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
-        count = self.count()
+        """获得5击毙，但是死亡时间增加2h。"""
+        count = self.count
+        user.SendStatusEffect(self)
         await user.AddJibi(5 * count)
-        await user.RemoveAllStatus(SInvSiHuiHuiBiZhiYao53())
+        await user.RemoveAllStatus(SInvSiHuiHuiBiZhiYao53)
         return time + 120 * count, False
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDeath: Priority.OnDeath.inv_sihuihuibizhiyao}
@@ -588,8 +592,10 @@ class SHuiYe52(StatusNullStack):
     _description = "你下一次死亡的时候奖励你抽一张卡。"
     isMetallic = True
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
-        count = self.count()
-        await user.RemoveAllStatus(SHuiYe52())
+        """抽一张卡。"""
+        count = self.count
+        user.SendStatusEffect(self)
+        await user.RemoveAllStatus(SHuiYe52)
         await user.Draw(count)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDeath: Priority.OnDeath.huiye}
@@ -600,35 +606,37 @@ class SInvHuiYe54(StatusNullStack):
     isDebuff = True
     isMetallic = True
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
-        '''cards：因为此状态需要弃掉的卡牌'''
-        count = self.count()
-        await user.RemoveAllStatus(SInvHuiYe54())
+        '''随机弃一张牌。
+        cards：因为此状态需要弃掉的卡牌。'''
+        count = self.count
+        await user.RemoveAllStatus(SInvHuiYe54)
         x = min(len(user.data.handCard), count)
         l = copy(user.data.handCard)
-        l2: List[TCard] = []
+        l2: List[Card] = []
         for i in range(x):
             l2.append(random.choice(l))
             l.remove(l2[-1])
         user.SendStatusEffect(self, cards = l2)
-        await user.discardCards(l2)
+        await user.DiscardCards(l2)
+        return time, False
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDeath: Priority.OnDeath.inv_huiye}
 
-class CBlank(Card):
+class CBlank53(Card):
     name = "空白卡牌"
     id = 53
     positive = -1
     _description = "使用时弃置随机5张手牌。此牌不可因手牌超出上限而被弃置。"
     pack = Pack.honglongdong
     async def Use(self, user: 'User') -> None:
-        '''cards：因为此状态需要弃掉的卡牌'''
+        '''弃置随机5张手牌。
+        cards：因为此状态需要弃掉的卡牌'''
         if len(user.data.handCard) <= 5:
-            user.send_log("弃光了所有手牌。")
             user.SendCardUse(self, cards = copy(user.data.handCard))
             await user.DiscardCards(copy(user.data.handCard))
         else:
             l = copy(user.data.handCard)
-            l2: List[TCard] = []
+            l2: List[Card] = []
             for j in range(5):
                 l2.append(random.choice(l))
                 l.remove(l2[-1])
