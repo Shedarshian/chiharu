@@ -130,7 +130,7 @@ class CHighPriestess2(Card):
         ql = [qq for qq, time in l if time == l[0][1]]
         user.SendCardUse(self, userIDs=ql)
         for q in ql:
-            await user.CreateUser(q).Killed(user)
+            await user.CreateUser(q).Killed(user, isAOE = (len(q1)>1))
 
 class CEmpress3(Card):
     id = 3
@@ -275,7 +275,7 @@ class CChariot7(Card):
         to_kill = set(qq for qq in to_kill if random.random() < (0.1 + 0.01 * user.data.luck))
         user.SendCardUse(self, to_kill=list(to_kill))
         for qq in to_kill:
-            await user.CreateUser(qq).Killed(user)
+            await user.CreateUser(qq).Killed(user, isAOE = (len(to_kill) > 1))
 
 class CHermit9(Card):
     id = 9
@@ -423,7 +423,7 @@ class CTower16(Card):
             p.append(random.choice(l))
             l.remove(p[-1])
         for q in p:
-            await user.CreateUser(q).Killed(user)
+            await user.CreateUser(q).Killed(user, isAOE = (len(p)>1))
 
 class CStar17(Card):
     name = "XVII - 星星"
@@ -450,7 +450,7 @@ class CSun19(Card):
     _description = "随机揭示一个隐藏奖励词。"
     pack = Pack.tarot
     async def Use(self, user: 'User') -> None:
-        random.choice(user.game.hiddenKeyword) # TODO
+        user.SendCardUse(self, hiddenKeyword = random.choice(user.game.hiddenKeyword))
 
 class CJudgement20(Card):
     name = "XX - 审判"
@@ -894,8 +894,8 @@ class SInvTransformer92(StatusNullStack):
     async def CheckJibiSpend(self, user: 'User', jibi: int) -> int:
         return ceil(jibi / 2 ** self.count)
     async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
-        """加倍击毙变化
-        count：加倍的次数"""
+        """减半击毙变化
+        count：减半的次数"""
         count = self.count
         user.SendStatusEffect(self, count=count)
         await user.RemoveAllStatus(SInvTransformer92)
@@ -949,11 +949,11 @@ class CZPM101(Card):
     id = 101
     positive = 1
     _description = "抽到时附加buff：若你当前击毙少于100，则每次接龙为你额外提供1击毙，若你当前击毙多于100，此buff立即消失。"
-    on_draw_status = 'Z'
-    newer = 3
-    consumed_on_draw = True
-    is_metallic = True
+    consumedOnDraw = True
+    isMetallic = True
     pack = Pack.gregtech
+    async def OnDraw(self, user: 'User') -> None:
+        await user.AddStatus(SZPM101())
 class SZPM101(StatusNullStack):
     id = 101
     name = "零点模块"
@@ -969,3 +969,135 @@ class SZPM101(StatusNullStack):
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDragoned: Priority.OnDragoned.zpm,
             UserEvt.AfterJibiChange: Piority.AferJibiChange.zpm}
+
+class CMcGuffin239102(Card):
+    name = "Mc Guffium 239"
+    id = 102
+    positive = 1
+    _description = "下一次同时对多人生效的攻击效果不对你生效。"
+    pack = Pack.gregtech
+    async def Use(self, user: 'User') -> None:
+        await user.AddStatus(SMcGufin239102())
+class SMcGuffin239102(StatusNullStack):
+    name = "Mc Guffium 239"
+    id = 102
+    _description = "下一次同时对多人生效的攻击效果不对你生效。"
+    async def OnAttacked(self, user: 'User', attack: 'Attack') -> bool:
+        if attack.counter.isAOE:
+            user.SendStatusEffect(self)
+            await user.RemoveStatus(self)
+            return False
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnAttacked: Priority.OnAttacked.McGuffium239}
+
+class CJuJiFaShu105(Card):
+    name = "聚集法术"
+    id = 105
+    positive = 1
+    _description = "将两张手牌的id相加变为新的手牌。若这两牌id之和不是已有卡牌的id，则变为【邪恶的间谍行动～执行】。"
+    # failure_message = "你的手牌不足，无法使用" + 句尾
+    pack = Pack.cultist
+    @property 
+    def CanUse(self, user: 'User', copy: bool) -> bool:
+        return len(user.data.handCard) >= (2 if copy else 3)
+    async def Use(self, user: 'User') -> None:
+        l = await user.ChooseHandCards(2, 2)
+        await user.RemoveCards([l[0],l[1]])
+        id_new = l[0].id + l[1].id
+        if id_new not in Card.idDict:
+            user.SendCardUse(self, id = -1)
+            id_new = -1
+        else:
+            user.SendCardUse(self, id = id_new)
+        await user.draw(0, cards=[Card.get(id_new)()])
+
+class CLieBianFaShu106(Card):
+    name = "裂变法术"
+    id = 106
+    positive = 1
+    _description = "将一张手牌变为两张随机牌，这两张牌的id之和为之前的卡牌的id。若不存在这样的组合，则变为两张【邪恶的间谍行动～执行】。"
+    # failure_message = "你的手牌不足，无法使用" + 句尾
+    pack = Pack.cultist
+    @property 
+    def CanUse(self, user: 'User', copy: bool) -> bool:
+        return len(user.data.handCard) >= (1 if copy else 2)
+    async def Use(self, user: 'User') -> None:
+        l = await user.ChooseHandCards(1, 1)
+        await user.RemoveCards([l[0]])
+        l2 = [(id, l[0].id - id) for id in Card.idDict if l[0].id - id in Card.idDict]
+        if len(l2) == 0:
+            user.SendCardUse(self, ids = (-1,-1))
+            id_new = (-1, -1)
+        else:
+            id_new = random.choice(l2)
+            user.SendCardUse(self, ids = id_new)
+        await user.draw(0, cards=[Card.get(id_new[0])(), Card.get(id_new[1])()])
+
+class CJingXingFaShu107(Card):
+    name = "警醒法术"
+    id = 107
+    positive = 1
+    _description = "揭示至多三个雷。"
+    pack = Pack.cultist
+    async def Use(self, user: 'User') -> None:
+        k = min(len(user.game.bombs), 3)
+        l = []
+        for i in range(k):
+            l.append(random.choice(user.game.bombs))
+            while l[-1] in l[:-1]:
+                l[-1] = random.choice(user.game.bombs)
+        user.SendCardUse(self, bombs = l)
+
+class CXiaoHunFaShu108(Card):
+    name = "销魂法术"
+    id = 108
+    positive = 1
+    _description = "对指定玩家发动，该玩家的每条可清除状态都有1/2的概率被清除；或是发送qq=2711644761对千春使用，消除【XXI-世界】外50%的全局状态，最多5个。"
+    pack = Pack.cultist
+    async def Use(self, user: 'User') -> None:
+        pass # TODO
+class AXiaoHunFaShu108(Attack):
+    id = 108
+    name = "销魂法术"
+    doublable = False
+    async def selfAction(self):
+        pass # TODO
+
+class CRanSheFaShu109(Card):
+    name = "蚺虵法术"
+    id = 109
+    positive = 1
+    _description = "对指定玩家发动，该玩家当日每次接龙需额外遵循首尾接龙规则。"
+    pack = Pack.cultist
+    async def Use(self, user: 'User') -> None:
+        pass # TODO
+class ARanSheFaShu109(Attack):
+    id = 108
+    name = "销魂法术"
+    doublable = False
+    async def selfAction(self):
+        await self.defender.AddStatus(SRanSheFaShu109())
+class SRanSheFaShu109(StatusDailyStack):
+    id = 109
+    name = "蚺虵法术"
+    _description = "你当日每次接龙需额外遵循首尾接龙规则。"
+    async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        if not await state.RequireShouwei(user):
+            user.SendStatusEffect(self)
+            return False, 0
+        return True, 0
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.ranshefashu}
+class SInvRanSheFaShu108(StatusDailyStack):
+    id = 108
+    name = "反转·蚺虵法术"
+    _description = "你当日每次接龙需额外遵循尾首接龙规则。"
+    async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        if not await state.RequireWeishou(user):
+            user.SendStatusEffect(self)
+            return False, 0
+        return True, 0
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.inv_ranshefashu}
+
+

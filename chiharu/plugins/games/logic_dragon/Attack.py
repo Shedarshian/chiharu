@@ -47,3 +47,5 @@ class AttackType:
     pierce: Callable = nothing
     jump: bool = False
     hpzero: bool = False
+    isAOE: bool = False
+

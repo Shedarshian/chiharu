@@ -237,10 +237,11 @@ class User:
             if not dodge:
                 await atk.action()
         self.Send(type="attacked", name=atk.name, dodge=dodge, attacker=attackerQQ)
-    async def Killed(self, killer: 'User', minute: int=120):
+    async def Killed(self, killer: 'User', minute: int=120, isAOE = False):
         """玩家被杀。算作一次攻击。"""
         from .AllCards import AKill0
         attack = AKill0(killer, self, minute)
+        attack.counter.isAOE = isAOE
         await self.Attacked(attack)
     async def DrawCardEffect(self, card: Card):
         """结算卡牌抽取效果。"""
