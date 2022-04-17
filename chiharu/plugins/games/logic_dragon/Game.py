@@ -25,6 +25,7 @@ Change:
 再次重构。引入大量新bug。"""
 
 class Game:
+    eventListenerInit: defaultdict[UserEvt, TEvent] = defaultdict(lambda: defaultdict(list))
     def __init__(self) -> None:
         self.treeForests: List[List[List['Tree']]] = []
         self.treeObjs: List[List['Tree']] = []
@@ -32,7 +33,6 @@ class Game:
         self.managerQQ = config.selfqq
         self.dragonQQ = 1
         self.me = UserData(self.managerQQ, self)
-        self.eventListenerInit: defaultdict[UserEvt, TEvent] = defaultdict(lambda: defaultdict(list))
         self.userdatas: Dict[int, 'UserData'] = {}
         with open(config.rel('dragon_state.json'), encoding='utf-8') as f:
             self.state: TGlobalState = json.load(f)
@@ -262,9 +262,10 @@ class Game:
         else:
             l = config.userdata.execute("select qq from dragon_data where dead=false and " + sqlRequirement).fetchall()
         return [c["qq"] for c in l]
-    def RegisterEventCheckerInit(self, checker: 'IEventListener') -> None:
+    @classmethod
+    def RegisterEventCheckerInit(cls, checker: 'IEventListener') -> None:
         for key, priority in checker.register().items():
-            self.eventListenerInit[key][priority].append(checker)
+            cls.eventListenerInit[key][priority].append(checker)
     def CreateUser(self, qq: int, buf: Buffer):
         if qq == self.managerQQ:
             return User(self.me, buf, self)

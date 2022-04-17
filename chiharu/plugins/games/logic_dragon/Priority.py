@@ -112,6 +112,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         antimatter = auto()             # 反物质维度：自动使用卡牌
     class CheckJibiSpend(IntEnum):
         bianyaqi = auto()
+        inv_bianyaqi = auto()
         steamsummer = auto()
         beijingcard = auto()
     class OnJibiChange(IntEnum):

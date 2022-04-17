@@ -3,6 +3,7 @@ from datetime import timedelta, datetime
 from copy import copy
 from math import ceil
 import itertools, random
+from .Game import Game
 from .Card import Card
 from .User import User
 from .Status import Status, StatusNumed, StatusTimed, StatusNullStack, StatusDailyStack
@@ -11,6 +12,7 @@ from .Priority import UserEvt, Priority
 from .Types import Pack
 from .Dragon import DragonState, Tree
 from .Mission import Mission
+from .EventListener import IEventListener
 from .Helper import positive
 
 class SDeathN1(StatusTimed):
@@ -133,7 +135,7 @@ class CHighPriestess2(Card):
         ql = [qq for qq, time in l if time == l[0][1]]
         user.SendCardUse(self, userIDs=ql)
         for q in ql:
-            await user.CreateUser(q).Killed(user, isAOE = (len(q1)>1))
+            await user.CreateUser(q).Killed(user, isAOE = (len(ql) > 1))
 
 class CEmpress3(Card):
     id = 3
@@ -607,6 +609,7 @@ class SHuiYe52(StatusNullStack):
         user.SendStatusEffect(self)
         await user.RemoveAllStatus(SHuiYe52)
         await user.Draw(count)
+        return time, False
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDeath: Priority.OnDeath.huiye}
 class SInvHuiYe54(StatusNullStack):
@@ -1173,16 +1176,17 @@ class SPanjueA111(StatusNullStack):
     _description = "你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与最终判决β重合时，罪行加重，判处死刑。"
     isDebuff = True
     async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
+        """判决重合，无法战斗。"""
         if isinstance(status, SPanjueB112) or isinstance(status, SPanjueBActivated107):
             user.SendStatusEffect(self)
             await user.RemoveAllStatus(SPanjueA111)
-            await user.AddStatus(SWuFaZhanDou(timedelta(hours=4)))
+            await user.AddStatus(SWufazhandou108(timedelta(hours=4)))
             return True
         return False
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
         count = self.count
         await user.RemoveAllStatus(SPanjueA111)
-        await user.AddStatus(SPanjueActivated(count))
+        await user.AddStatus(SPanjueAActivated106(count))
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnStatusAdd: Priority.OnStatusAdd.panjue,
             UserEvt.OnDragoned: Priority.OnDragoned.panjue}
@@ -1192,10 +1196,11 @@ class SPanjueAActivated106(StatusNullStack):
     _description = "将此buff传递给你接龙后第五次接龙的玩家。与最终判决β重合时，罪行加重，判处死刑。"
     isDebuff = True
     async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
+        """判决重合，无法战斗。"""
         if isinstance(status, SPanjueB112) or isinstance(status, SPanjueBActivated107):
             user.SendStatusEffect(self)
             await user.RemoveAllStatus(SPanjueA111)
-            await user.AddStatus(SWuFaZhanDou(timedelta(hours=4)))
+            await user.AddStatus(SWufazhandou108(timedelta(hours=4)))
             return True
         return False
     def register(self) -> Dict[UserEvt, int]:
@@ -1216,6 +1221,7 @@ class SPanjueB112(StatusNullStack):
     _description = "你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与最终判决α重合时，罪行加重，判处死刑。"
     isDebuff = True
     async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
+        """判决重合，无法战斗。"""
         if isinstance(status, SPanjueA111) or isinstance(status, SPanjueAActivated106):
             user.SendStatusEffect(self)
             await user.RemoveAllStatus(SPanjueB112)
@@ -1225,7 +1231,7 @@ class SPanjueB112(StatusNullStack):
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
         count = self.count
         await user.RemoveAllStatus(SPanjueB112)
-        await user.AddStatus(SPanjueBctivated107(count))
+        await user.AddStatus(SPanjueBActivated107(count))
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnStatusAdd: Priority.OnStatusAdd.panjue,
             UserEvt.OnDragoned: Priority.OnDragoned.panjue}
@@ -1235,6 +1241,7 @@ class SPanjueBActivated107(StatusNullStack):
     _description = "将此buff传递给你接龙后第五次接龙的玩家。与最终判决α重合时，罪行加重，判处死刑。"
     isDebuff = True
     async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
+        """判决重合，无法战斗。"""
         if isinstance(status, SPanjueA111) or isinstance(status, SPanjueAActivated106):
             user.SendStatusEffect(self)
             await user.RemoveAllStatus(SPanjueBActivated107)
@@ -1246,15 +1253,16 @@ class SPanjueBActivated107(StatusNullStack):
 
 class IPanjueChecker(IEventListener):
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
-        if (nd := branch.before(5)) and nd.qq != config.selfqq and nd.qq != 0 and (u := User(nd.qq, user.buf)) != user:
+        if (nd := branch.before(5)) and nd.qq != user.game.managerQQ and nd.qq != 0 and (u := user.CreateUser(nd.qq)) != user:
             if na := u.CheckStatus(SPanjueAActivated106):
                 await u.RemoveAllStatus(SPanjueAActivated106)
-                await user.AddStatus(SPanjueA111(), na)
+                await user.AddStatus(SPanjueA111(na))
             if nb := u.CheckStatus(SPanjueBActivated107):
                 await u.RemoveAllStatus(SPanjueBActivated107)
-                await user.AddStatus(SPanjueB112(), nb)
+                await user.AddStatus(SPanjueB112(nb))
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDragoned: Priority.OnDragoned.panjuecheck}
+Game.RegisterEventCheckerInit(IPanjueChecker())
 
 class SWufazhandou108(StatusTimed):
     id = 108
@@ -1263,6 +1271,7 @@ class SWufazhandou108(StatusTimed):
     isDebuff = True
     isRemovable = False
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        """无法战斗，不能接龙。"""
         user.SendStatusEffect(self)
         return False, 0
     def register(self) -> Dict[UserEvt, int]:
@@ -1276,9 +1285,10 @@ class SShuairuo95(StatusTimed):
         """击毙收入减少
         njibi：减少后的击毙收入"""
         if jibi > 0:
-            njibi = ceil(0.75*jibi)
-            user.SendStatusEffect(self, njibi)
+            njibi = ceil(0.75 * jibi)
+            user.SendStatusEffect(self, njibi=njibi)
             return njibi
+        return jibi
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnJibiChange: Priority.OnJibiChange.shuairuo}
 
