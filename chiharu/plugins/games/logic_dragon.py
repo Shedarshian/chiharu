@@ -488,6 +488,8 @@ async def dragon_construct(buf: SessionBuffer):
             else:
                 buf.send(f"成功接龙{句尾}接龙词：{word}，id为【{tree_node.id_str}】。", end='')
                 user.data.last_dragon_time = datetime.now().isoformat()
+                global_state['last_dragon_time'] = datetime.now().isoformat()
+                save_global_state()
                 if first10 := user.data.today_jibi > 0:
                     user.log << f"仍有{user.data.today_jibi}次奖励机会。"
                     buf.send(f"奖励1击毙。")

@@ -676,7 +676,7 @@ class CXingYunTuJiao55(Card):
     async def Use(self, user: 'User') -> None:
         await user.DrawAndUse(requirement=positive({1}))
 
-class CBaoShiDeWuGong56(Card):
+class CBaoshideWugong56(Card):
     name = "暴食的蜈蚣"
     id = 56
     positive = 1

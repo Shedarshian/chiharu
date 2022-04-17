@@ -717,7 +717,7 @@ class UserData:
         return assembling.get_card_limit(self.extra.assembling, c)
     @property
     def card_limit(self):
-        return min(20, self.card_limit_raw + self.card_limit_from_assembling)
+        return min(20, self.card_limit_raw + self.card_limit_from_assembling)+self.daily_status.count('H')
     @property
     def card_limit_raw(self):
         return self.node['card_limit']
@@ -7179,6 +7179,154 @@ class randommaj2(_card):
         user.data.extra.maj_quan += 15
         user.send_log("增加了5张麻将摸牌券" + 句尾)
         await user.draw(1)
+
+
+class YamatoTamasi(_card):
+    id = 250
+    name = "大和魂"
+    positive = 0
+    newer = 7
+    description = "当你死亡时，千春为你吟诵一首俳句。"
+    pack = Pack.silly
+    consumed_on_draw = True
+    on_draw_status = 'Y'
+class SYamatoTamasi(_statusnull):
+    id = 'Y'
+    des = "大和魂：当你死亡时，千春为你吟诵一首俳句。"
+    @classmethod
+    async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TAttackType) -> Tuple[int, bool]:
+        await user.remove_status('Y', remove_all=False)
+        msg = random.choice(["",
+        "",
+        ""])
+        user.buf.send("千春道：{msg}")
+        return time, False
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDeath: (Priority.OnDeath.yamatotamasi, cls)}
+
+# class wirecutter(_card):
+#     id = 251
+#     name = "剪线钳"
+#     positive = 0
+#     newer = 7
+#     description = "改变你的性别。"
+#     pack = Pack.silly
+#     @classmethod
+#     async def use(cls, user: User) -> None:
+#         pass # TODO
+
+class TYPEA(_card):
+    id = 252
+    name = "TYPE-A"
+    positive = 0
+    newer = 7
+    description = "当规则为首尾或尾首接龙时，如果你接龙时按另一者接，那么你会死于强迫症。"
+    pack = Pack.silly
+    consumed_on_draw = True
+    on_draw_daily_status = 'A'
+class STYPEA(_statusdaily):
+    id = 'A'
+    des = "TYPE-A：当规则为首尾或尾首接龙时，如果你接龙时按另一者接，那么你会死于强迫症。"
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
+        async def OnShouWei(self, user):
+            if self.weishou and not self.shouwei:
+                user.buf.send(f"因弄反首尾接龙死于强迫症")
+                await user.death()
+        async def OnWeiShou(self, user):
+            if self.shouwei and not self.weishou:
+                user.buf.send(f"因弄反尾首接龙死于强迫症")
+                await user.death()
+        state.OnShouWei = OnShouWei
+        state.OnWeiShou = OnWeiShou
+        return True, 0, ""
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.typea, cls)}
+class STYPEC(_statusdaily):
+    id = 'a'
+    des = "TYPE-C：当规则为首尾或尾首接龙时，你接龙时可以按任意一个接。"
+    @classmethod
+    async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
+        async def OnShouWei(self, user):
+            if self.weishou:
+                self.shouwei = True
+        async def OnWweShou(self, user):
+            if self.shouwei:
+                self.weishou = True
+        state.OnShouWei = OnShouWei
+        state.OnWeiShou = OnWeiShou
+        return True, 0, ""
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.typec, cls)}
+
+class Onemore(_card):
+    id = 253
+    name = "再来一瓶"
+    positive = 1
+    newer = 7
+    description = "抽一张卡"
+    pack = Pack.silly
+    @classmethod
+    async def use(cls, user: User) -> None:
+        await user.draw(1)
+
+class Heianjian22(_card):
+    id = 254
+    name = "黑暗剑22"
+    description = "你获得装备黑暗剑22"
+    positive = 0
+    newer = 7
+    pack = Pack.silly
+
+class HungryCentipede(_card):
+    id = 255
+    name = "饥饿的百足虫"
+    description = "他看起来像是暴食的蜈蚣，但其实不是。使用后，今天内手牌上限+1。"
+    positive = 1
+    newer = 7
+    pack = Pack.silly
+    daily_status = 'H'
+class SHungruCentipede(_statusdaily):
+    id = 'H'
+    des = "饥饿的百足虫：他看起来像是贪食的蜈蚣，但其实不是。今天内手牌上限+1。"
+
+# class aomenduchang(_card):
+
+class Orga(_card):
+    id = 257
+    name = "奥尔加"
+    description = "附加全局状态奥尔加"
+    positive = 0
+    newer = 7
+    pack = Pack.silly
+    on_draw_global_daily_status = ''
+class SOrga(_statusdaily):
+    id = 'G'
+    des = "奥尔加：今日内，如果距离上一次接龙之间的时间差小于一小时，那么路就会不断延伸。"
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        if datetime.now() <= datetime.fromisoformat(global_state['last_dragon_time']) + timedelta(hours=1):
+            user.buf.send("道路还在不断延伸...\n")
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.orga, cls)}
+class SInvOrga(_statusdaily):
+    id = 'g'
+    des = "反转·奥尔加：可能会有意想不到的事情发生。"
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        def inb(words: str):
+            return words in branch.word
+        if inb("女") or inb("唱歌") or inb("男人死") or inb("女人唱歌男人死"):
+            user.buf.send("ₘₙⁿ\n▏n\n█▏　､⺍\n█▏ ⺰ʷʷｨ\n█◣▄██◣\n◥██████▋\n　◥████ █▎\n　　███▉ █▎\n　◢████◣⌠ₘ℩\n　　██◥█◣\≫\n　　██　◥█◣\n　　█▉　　█▊\n　　█▊　　█▊\n　　█▊　　█▋\n　　 █▏　　█▙\n　　 █\n止まるんじゃねぇぞ！\n")
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.inv_orga, cls)}
+
+# class oneplusoneequal12(_card): #TODO
+
+# class showyourfoolish(_card): #TODO
 
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):

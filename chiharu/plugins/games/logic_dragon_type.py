@@ -28,6 +28,7 @@ class TGlobalState(TypedDict):
     event_route: List[int]
     bingo_state: List[int]
     sign: int
+    last_dragon_time = str
 
 class TUserData(TypedDict):
     qq: int
@@ -242,6 +243,8 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         invlazhuyandong = auto()
         lieshouzhixue = auto()
         invlieshouzhixue = auto()
+        typea = auto()                  #typeA：死于强迫症
+        typec = auto()                  #typeC：正反插皆可
         ourostone = auto()              # 衔尾蛇：首尾
                                         # contains two buffs
         ranshefashu = auto()            # **法术：首尾
@@ -273,6 +276,8 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
     class OnDragoned(IntEnum):
         mofajiqu = auto()               # 魔法汲取：回复MP
         juedou = auto()                 # 决斗减次数
+        orga = auto()                   # 道路还在不断延伸
+        inv_orga = auto()               # 所以说，不要停下啊
         queststone = auto()             # 任务：完成+3击毙
         quest = auto()
         bingo = auto()                  # bingo：接龙任务
