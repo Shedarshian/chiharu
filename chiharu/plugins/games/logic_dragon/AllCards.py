@@ -450,6 +450,8 @@ class CSun19(Card):
     _description = "随机揭示一个隐藏奖励词。"
     pack = Pack.tarot
     async def Use(self, user: 'User') -> None:
+        """揭示一个隐藏奖励词。
+        hiddenKeyword: 所揭示的奖励词。"""
         user.SendCardUse(self, hiddenKeyword = random.choice(user.game.hiddenKeyword))
 
 class CJudgement20(Card):
@@ -931,14 +933,13 @@ class CEmptyCard95(Card):
     positive = 1
     _description = "选择你手牌中的一张牌，执行其使用效果。"
     pack = Pack.poker
-    @property
     def CanUse(self, user: 'User', copy: bool) -> bool:
         return len(user.data.handCard) >= (1 if copy else 2)
     async def Use(self, user: 'User') -> None:
         """使用卡牌效果
         card：被使用效果的卡牌"""
         l = await user.ChooseHandCards(1, 1,
-                requirement=lambda c: c.id not in (95),
+                requirement=lambda c: c.id not in (95,),
                 requireCanUse=True)
         card = l[0]
         user.SendCardUse(self, card=card)
@@ -960,15 +961,17 @@ class SZPM101(StatusNullStack):
     _description = "若你当前击毙不多于100，则每次接龙为你额外提供1击毙，若你当前击毙多于100，此buff立即消失。"
     isMetallic = True
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
-        user.SendStatusEffect(self, worktype = 'addJibi')
+        """接龙为你提供1击毙。"""
+        user.SendStatusEffect(self, time='OnDragoned')
         await user.AddJibi(1)
     async def AfterJibiChange(self, user: 'User') -> None:
+        """当前击毙多于100，buff消失。"""
         if user.data.jibi > 100:
-            user.SendStatusEffect(self, worktype = 'discard')
+            user.SendStatusEffect(self, time='AfterJibiChange')
             await user.RemoveAllStatus(SZPM101)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDragoned: Priority.OnDragoned.zpm,
-            UserEvt.AfterJibiChange: Piority.AferJibiChange.zpm}
+            UserEvt.AfterJibiChange: Priority.AfterJibiChange.zpm}
 
 class CMcGuffin239102(Card):
     name = "Mc Guffium 239"
@@ -977,16 +980,18 @@ class CMcGuffin239102(Card):
     _description = "下一次同时对多人生效的攻击效果不对你生效。"
     pack = Pack.gregtech
     async def Use(self, user: 'User') -> None:
-        await user.AddStatus(SMcGufin239102())
+        await user.AddStatus(SMcGuffin239102())
 class SMcGuffin239102(StatusNullStack):
     name = "Mc Guffium 239"
     id = 102
     _description = "下一次同时对多人生效的攻击效果不对你生效。"
     async def OnAttacked(self, user: 'User', attack: 'Attack') -> bool:
+        """此攻击同时对多人生效，无效此攻击。"""
         if attack.counter.isAOE:
             user.SendStatusEffect(self)
             await user.RemoveStatus(self)
-            return False
+            return True
+        return False
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnAttacked: Priority.OnAttacked.McGuffium239}
 
@@ -997,10 +1002,11 @@ class CJuJiFaShu105(Card):
     _description = "将两张手牌的id相加变为新的手牌。若这两牌id之和不是已有卡牌的id，则变为【邪恶的间谍行动～执行】。"
     # failure_message = "你的手牌不足，无法使用" + 句尾
     pack = Pack.cultist
-    @property 
     def CanUse(self, user: 'User', copy: bool) -> bool:
         return len(user.data.handCard) >= (2 if copy else 3)
     async def Use(self, user: 'User') -> None:
+        """将两张手牌聚集。
+        id: 聚集结果的id。"""
         l = await user.ChooseHandCards(2, 2)
         await user.RemoveCards([l[0],l[1]])
         id_new = l[0].id + l[1].id
@@ -1009,7 +1015,7 @@ class CJuJiFaShu105(Card):
             id_new = -1
         else:
             user.SendCardUse(self, id = id_new)
-        await user.draw(0, cards=[Card.get(id_new)()])
+        await user.Draw(0, cards=[Card.get(id_new)()])
 
 class CLieBianFaShu106(Card):
     name = "裂变法术"
@@ -1018,20 +1024,21 @@ class CLieBianFaShu106(Card):
     _description = "将一张手牌变为两张随机牌，这两张牌的id之和为之前的卡牌的id。若不存在这样的组合，则变为两张【邪恶的间谍行动～执行】。"
     # failure_message = "你的手牌不足，无法使用" + 句尾
     pack = Pack.cultist
-    @property 
     def CanUse(self, user: 'User', copy: bool) -> bool:
         return len(user.data.handCard) >= (1 if copy else 2)
     async def Use(self, user: 'User') -> None:
+        """将一张手牌分解。
+        ids: 分解结果的id列表。"""
         l = await user.ChooseHandCards(1, 1)
         await user.RemoveCards([l[0]])
         l2 = [(id, l[0].id - id) for id in Card.idDict if l[0].id - id in Card.idDict]
         if len(l2) == 0:
-            user.SendCardUse(self, ids = (-1,-1))
+            user.SendCardUse(self, ids = [-1,-1])
             id_new = (-1, -1)
         else:
             id_new = random.choice(l2)
-            user.SendCardUse(self, ids = id_new)
-        await user.draw(0, cards=[Card.get(id_new[0])(), Card.get(id_new[1])()])
+            user.SendCardUse(self, ids = list(id_new))
+        await user.Draw(0, cards=[Card.get(id_new[0])(), Card.get(id_new[1])()])
 
 class CJingXingFaShu107(Card):
     name = "警醒法术"
@@ -1040,6 +1047,8 @@ class CJingXingFaShu107(Card):
     _description = "揭示至多三个雷。"
     pack = Pack.cultist
     async def Use(self, user: 'User') -> None:
+        """揭示雷。
+        bombs: 所揭示的雷列表。"""
         k = min(len(user.game.bombs), 3)
         l = []
         for i in range(k):
@@ -1085,6 +1094,7 @@ class SRanSheFaShu109(StatusDailyStack):
     name = "蚺虵法术"
     _description = "你当日每次接龙需额外遵循首尾接龙规则。"
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        """需首尾接龙。"""
         if not await state.RequireShouwei(user):
             user.SendStatusEffect(self)
             return False, 0
@@ -1096,6 +1106,7 @@ class SInvRanSheFaShu108(StatusDailyStack):
     name = "反转·蚺虵法术"
     _description = "你当日每次接龙需额外遵循尾首接龙规则。"
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        """需尾首接龙。"""
         if not await state.RequireWeishou(user):
             user.SendStatusEffect(self)
             return False, 0
@@ -1119,13 +1130,13 @@ class SNightbloom110(StatusNumed):
     _description = "你每接龙三次会损失1击毙"
     @property
     def description(self):
-        return f"{self._description}\n\t剩余{(self.num+2) // 3}次。"
+        return f"{self._description}\n\t剩余{(self.num + 2) // 3}次。" # pylint: disable=no-member
     def double(self):
-        user.AddStatus(SNightbloom110(self.num))
-    @classmethod
+        self.num *= 2 # pylint: disable=no-member
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
-        self.num -=1
-        if self.num % 3 ==0:
+        """奖励击毙。"""
+        self.num -= 1 # pylint: disable=no-member
+        if self.num % 3 == 0: # pylint: disable=no-member
             user.SendStatusEffect(self)
             await user.AddJibi(-1)
     def register(self) -> Dict[UserEvt, int]:
@@ -1136,13 +1147,13 @@ class SInvNightbloom105(StatusNumed):
     _description = "你每接龙三次会获得1击毙。"
     @property
     def description(self):
-        return f"{self._description}\n\t剩余{(self.num+2) // 3}次。"
+        return f"{self._description}\n\t剩余{(self.num + 2) // 3}次。" # pylint: disable=no-member
     def double(self):
-        user.AddStatus(SInvNightbloom105(self.num))
-    @classmethod
+        self.num *= 2 # pylint: disable=no-member
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
-        self.num -=1
-        if self.num % 3 ==0:
+        """奖励击毙。"""
+        self.num -= 1 # pylint: disable=no-member
+        if self.num % 3 == 0: # pylint: disable=no-member
             user.SendStatusEffect(self)
             await user.AddJibi(1)
     def register(self) -> Dict[UserEvt, int]:

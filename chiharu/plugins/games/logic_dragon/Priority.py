@@ -19,6 +19,7 @@ class UserEvt(Enum):
     AfterStatusRemove = auto()
     CheckJibiSpend = auto()
     OnJibiChange = auto()
+    AfterJibiChange = auto()
     CheckEventptSpend = auto()
     OnEventptChange = auto()
     BeforeDragoned = auto()
