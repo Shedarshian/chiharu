@@ -1070,7 +1070,10 @@ class CRanSheFaShu109(Card):
     _description = "对指定玩家发动，该玩家当日每次接龙需额外遵循首尾接龙规则。"
     pack = Pack.cultist
     async def Use(self, user: 'User') -> None:
-        pass # TODO
+        if (players := await user.ChoosePlayers(1, 1)) is not None:
+            target = user.CreateUser(players[0])
+            atk = ARanSheFaShu109(user, target)
+            await target.Attacked(user, atk)
 class ARanSheFaShu109(Attack):
     id = 108
     name = "销魂法术"
@@ -1099,5 +1102,51 @@ class SInvRanSheFaShu108(StatusDailyStack):
         return True, 0
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.inv_ranshefashu}
+
+class CNightbloom110(Card):
+    name = "月下彼岸花"
+    id = 110
+    positive = -1
+    _description = "抽到时附加buff：你每接龙三次会损失1击毙，效果发动20次消失。"
+    consumedOnDraw = True
+    pack = Pack.ff14
+    async def OnDraw(self, user: 'User') -> None:
+        await user.AddStatus(SNightbloom110(60))
+class SNightbloom110(StatusNumed):
+    name = "月下彼岸花"
+    id = 110
+    isDebuff = True
+    _description = "你每接龙三次会损失1击毙"
+    @property
+    def description(self):
+        return f"{self._description}\n\t剩余{(self.num+2) // 3}次。"
+    def double(self):
+        user.AddStatus(SNightbloom110(self.num))
+    @classmethod
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        self.num -=1
+        if self.num % 3 ==0:
+            user.SendStatusEffect(self)
+            await user.AddJibi(-1)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.bianhua}
+class SInvNightbloom105(StatusNumed):
+    name = "反转·月下彼岸花"
+    id = 105
+    _description = "你每接龙三次会获得1击毙。"
+    @property
+    def description(self):
+        return f"{self._description}\n\t剩余{(self.num+2) // 3}次。"
+    def double(self):
+        user.AddStatus(SInvNightbloom105(self.num))
+    @classmethod
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        self.num -=1
+        if self.num % 3 ==0:
+            user.SendStatusEffect(self)
+            await user.AddJibi(1)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.inv_bianhua}
+
 
 
