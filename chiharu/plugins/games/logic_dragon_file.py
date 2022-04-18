@@ -178,12 +178,13 @@ class IEventListener:
         int: the count of the status really add."""
         pass
     @classmethod
-    async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[bool]:
+    async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool, remover: Optional['User']=None) -> Tuple[bool]:
         """Called when a status is removed.
         
         Arguments:
         status: a str for statusnull/statusdaily, or a T_status object.
         remove_all: if remove all this state.
+        remover: who removes this state.
         
         Returns:
         bool: whether the removement is dodged."""
@@ -1053,10 +1054,10 @@ class User:
                 save_global_state()
             self.data.save_status_time()
             return True
-    async def remove_status(self, s: str, /, remove_all=True):
+    async def remove_status(self, s: str, /, remove_all=True, remover: Optional['User']=None):
         # Event OnStatusRemove
         for eln, n in self.IterAllEventList(UserEvt.OnStatusRemove, Priority.OnStatusRemove):
-            dodge, = await eln.OnStatusRemove(n, self, StatusNull(s), remove_all)
+            dodge, = await eln.OnStatusRemove(n, self, StatusNull(s), remove_all, remover=remover)
             if dodge:
                 return False
         else:
@@ -1080,10 +1081,10 @@ class User:
                     global_state['global_status'].remove([0, s])
                 save_global_state()
             return True
-    async def remove_daily_status(self, s: str, /, remove_all=True):
+    async def remove_daily_status(self, s: str, /, remove_all=True, remover: Optional['User']=None):
         # Event OnStatusRemove
         for eln, n in self.IterAllEventList(UserEvt.OnStatusRemove, Priority.OnStatusRemove):
-            dodge, = await eln.OnStatusRemove(n, self, StatusDaily(s), remove_all)
+            dodge, = await eln.OnStatusRemove(n, self, StatusDaily(s), remove_all, remover=remover)
             if dodge:
                 return False
         else:
@@ -1107,10 +1108,10 @@ class User:
                     global_state['global_status'].remove([1, s])
                 save_global_state()
             return True
-    async def remove_limited_status(self, s: T_status):
+    async def remove_limited_status(self, s: T_status, /, remover: Optional['User']=None):
         # Event OnStatusRemove
         for eln, n in self.IterAllEventList(UserEvt.OnStatusRemove, Priority.OnStatusRemove):
-            dodge, = await eln.OnStatusRemove(n, self, s, False)
+            dodge, = await eln.OnStatusRemove(n, self, s, False, remover=remover)
             if dodge:
                 return False
         else:
@@ -1125,13 +1126,13 @@ class User:
                 save_global_state()
             self.data.save_status_time()
             return True
-    async def remove_all_limited_status(self, s: str):
+    async def remove_all_limited_status(self, s: str, /, remover: Optional['User']=None):
         l = [c for c in self.data.status_time if c.id == s]
         if len(l) == 0:
             return self.data.status_time
         # Event OnStatusRemove
         for eln, n in self.IterAllEventList(UserEvt.OnStatusRemove, Priority.OnStatusRemove):
-            dodge, = await eln.OnStatusRemove(n, self, l[0], True)
+            dodge, = await eln.OnStatusRemove(n, self, l[0], True, remover=remover)
             if dodge:
                 return False
         else:
@@ -2345,7 +2346,7 @@ class SInvincible(TimedStatus):
     async def OnDeath(cls, count: TCount, user: 'User', killer: 'User', time: int, c: TAttackType) -> Tuple[int, bool]:
         if await c.pierce():
             user.send_log(f"无敌的效果被幻想杀手消除了{句尾}")
-            await user.remove_all_limited_status('v')
+            await user.remove_all_limited_status('v', remover=killer)
         else:
             user.send_log(f"触发了无敌的效果，免除死亡{句尾}")
             return time, True
@@ -2584,7 +2585,7 @@ class lovers(_card):
                     ])
             u = User(l[0], user.buf)
             n = len(u.check_limited_status('d')) == 0
-            await u.remove_all_limited_status('d')
+            await u.remove_all_limited_status('d', remover=user)
             user.buf.send(f"已复活{句尾}" + ("（虽然目标并没有死亡）" if n else ''))
 
 class chariot(_card):
@@ -2716,7 +2717,7 @@ class miansi(_statusnull):
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
         if await c.pierce():
             user.send_log(f"免死的效果被幻想杀手消除了{句尾}")
-            await user.remove_status('r', remove_all=True)
+            await user.remove_status('r', remove_all=True, remover=killer)
             return time, False
         else:
             user.send_log(f"触发了免死的效果，免除死亡{句尾}")
@@ -2992,33 +2993,29 @@ class wenhuazixin(_card):
     @classmethod
     async def use(cls, user: User) -> None:
         ume = Userme(user)
-        statuses = [c for c in me.status if StatusNull(c).removeable]
-        daily_statuses = [c for c in me.daily_status if StatusDaily(c).removeable]
-        status_times = [c for c in me.status_time_checked if c.removeable]
-        l = len(statuses) + len(daily_statuses) + len(status_times)
-        if l == 0:
+        statuses = [(0, c) for c in me.status if StatusNull(c).removeable]
+        daily_statuses = [(1, c) for c in me.daily_status if StatusDaily(c).removeable]
+        status_times = [(2, c) for c in me.status_time_checked if c.removeable]
+        l: list[tuple[int, str | T_status]] = statuses + daily_statuses + status_times
+        if len(l) == 0:
             return
         import math
         num = min(math.ceil(l * 0.75), 5)
-        l2 = list(range(l))
-        l3 = []
+        l3: list[tuple[int, str | T_status]] = []
         for i in range(num):
-            j = random.choice(l2)
+            j = random.choice(l)
             l3.append(j)
-            l2.remove(j)
+            l.remove(j)
         for j in l3:
-            if j < len(statuses):
-                user.send_log("移除了" + name_f(StatusNull(statuses[j]).des))
-                await ume.remove_status(statuses[j], remove_all=False)
-                continue
-            j -= len(statuses)
-            if j < len(daily_statuses):
-                user.send_log("移除了" + name_f(StatusDaily(daily_statuses[j]).des))
-                await ume.remove_daily_status(daily_statuses[j], remove_all=False)
-                continue
-            j -= len(daily_statuses)
-            user.send_log("移除了" + name_f(status_times[j].des))
-            await ume.remove_limited_status(status_times[j])
+            if j[0] == 0:
+                user.send_log("移除了" + name_f(StatusNull(j[1]).des))
+                await ume.remove_status(j[1], remove_all=False, remover=user)
+            elif j[0] == 1:
+                user.send_log("移除了" + name_f(StatusDaily(j[1]).des))
+                await ume.remove_daily_status(j[1], remove_all=False, remover=user)
+            else:
+                user.send_log("移除了" + name_f(j[2].des))
+                await ume.remove_limited_status(j[2], remover=user)
         me.save_status_time()
 
 class lebusishu(_card):
@@ -3165,7 +3162,7 @@ class ATiesuolianhuan(Attack):
     doublable = False
     async def self_action(self):
         if self.defender.check_status('l'):
-            await self.defender.remove_status('l')
+            await self.defender.remove_status('l', remover=self.attacker)
         else:
             await self.defender.add_status('l')
 class tiesuolianhuan_s(_statusnull):
@@ -3236,7 +3233,7 @@ class sihuihuibizhiyao_s(_statusnull):
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
         if await c.pierce():
             user.send_log(f"死秽回避之药的效果被幻想杀手消除了{句尾}")
-            await user.remove_status('s', remove_all=True)
+            await user.remove_status('s', remove_all=True, remover=killer)
             return time, False
         elif await user.add_jibi(-5, is_buy=True):
             user.send_log(f"触发了死秽回避之药的效果，免除死亡{句尾}")
@@ -3253,7 +3250,7 @@ class inv_sihuihuibizhiyao_s(_statusnull):
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
         if await c.pierce():
             user.send_log(f"反转·死秽回避之药的效果被幻想杀手消除了{句尾}")
-            await user.remove_status('t')
+            await user.remove_status('t', remover=killer)
             return time, False
         user.send_log(f"触发了{count}次反转·死秽回避之药的效果，增加{5 * count}击毙，死亡时间增加{2 * count}小时{句尾}")
         await user.add_jibi(5 * count)
@@ -3278,11 +3275,12 @@ class huiye_s(_statusnull):
     is_metallic = True
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
-        await user.remove_status('x')
         if await c.pierce():
             user.send_log(f"辉夜姬的秘密宝箱的效果被幻想杀手消除了{句尾}")
+            await user.remove_status('x', remover=killer)
         else:
             user.send_log(f"触发了辉夜姬的秘密宝箱{句尾}奖励抽卡{count}张。")
+            await user.remove_status('x')
             await user.draw(count)
         return time, False
     @classmethod
@@ -3295,11 +3293,12 @@ class inv_huiye_s(_statusnull):
     is_metallic = True
     @classmethod
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
-        await user.remove_status('y')
         if await c.pierce():
             user.send_log(f"反转·辉夜姬的秘密宝箱的效果被幻想杀手消除了{句尾}")
+            await user.remove_status('y', remover=killer)
         else:
             user.send_log(f"触发了反转·辉夜姬的秘密宝箱{句尾}随机弃{count}张卡。")
+            await user.remove_status('y')
             x = min(len(user.data.hand_card), count)
             l = copy(user.data.hand_card)
             l2: List[TCard] = []
@@ -3584,7 +3583,7 @@ class hongsezhihuan_s(_statusnull):
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
         if await c.pierce():
             user.send_log(f"虹色之环的效果被幻想杀手消除了{句尾}")
-            await user.remove_status('h', remove_all=True)
+            await user.remove_status('h', remove_all=True, remover=killer)
             return time, False
         for a in range(count):
             await user.remove_status('h', remove_all=False)
@@ -4005,12 +4004,12 @@ class jiaodai(_card):
             if c.id != 'd' and c.is_debuff and c.removeable and has > 0:
                 has -= 1
                 user.send_char(f"的{c.des[:c.des.index('：')]}被取消了{句尾}")
-                await user.remove_status(c.id, remove_all=False)
+                await user.remove_status(c.id, remove_all=False, remover=user)
         for c in map(StatusDaily, user.data.daily_status):
             if c.id != 'd' and c.is_debuff and c.removeable and has > 0:
                 has -= 1
                 user.send_char(f"的{c.des[:c.des.index('：')]}被取消了{句尾}")
-                await user.remove_daily_status(c.id, remove_all=False)
+                await user.remove_daily_status(c.id, remove_all=False, remover=user)
         i = 0
         while i < len(user.data.status_time_checked):
             s = user.data.status_time[i]
@@ -4018,7 +4017,7 @@ class jiaodai(_card):
                 has -= 1
                 des = s.des
                 user.send_log(f"的{des[:des.index('：')]}被取消了{句尾}")
-                await user.remove_limited_status(s)
+                await user.remove_limited_status(s, remover=user)
             else:
                 i += 1
         user.data.save_status_time()
@@ -4094,7 +4093,7 @@ class McGuffium239_s(_statusnull):
         if isinstance(attack, ALiwujiaohuan):
             if await attack.counter.pierce():
                 user.send_log(f"Mc Guffium 239的效果被幻想杀手消除了{句尾}")
-                await user.remove_status('G', remove_all=True)
+                await user.remove_status('G', remove_all=True, remover=attack.attacker)
             else:
                 user.buf.send(f"玩家{user.qq}触发了Mc Guffium 239，礼物交换对{user.char}无效{句尾}")
                 user.log << f"触发了Mc Guffium 239。"
@@ -4187,31 +4186,29 @@ class xiaohunfashu(_card):
             if qq == config.selfqq:
                 user.send_log(f"选择了千春{句尾}消除了【XXI-世界】外的50%的全局状态{句尾}")
                 ume = Userme(user)
-                statuses = [c for c in me.status if StatusNull(c).removeable]
-                daily_statuses = [c for c in me.daily_status if StatusDaily(c).removeable]
-                status_times = [c for c in me.status_time_checked if c.removeable]
-                l = len(statuses) + len(daily_statuses) + len(status_times)
+                statuses = [(0, c) for c in me.status if StatusNull(c).removeable]
+                daily_statuses = [(1, c) for c in me.daily_status if StatusDaily(c).removeable]
+                status_times = [(2, c) for c in me.status_time_checked if c.removeable]
+                l: list[tuple[int, str | T_status]] = statuses + daily_statuses + status_times
+                if len(l) == 0:
+                    return
                 import math
                 num = min(math.ceil(l * 0.5), 5)
-                l2 = list(range(l))
-                l3 = []
+                l3: list[tuple[int, str | T_status]] = []
                 for i in range(num):
-                    j = random.choice(l2)
+                    j = random.choice(l)
                     l3.append(j)
-                    l2.remove(j)
+                    l.remove(j)
                 for j in l3:
-                    if j < len(statuses):
-                        user.send_log("移除了" + name_f(StatusNull(statuses[j]).des))
-                        await ume.remove_status(statuses[j])
-                        continue
-                    j -= len(statuses)
-                    if j < len(daily_statuses):
-                        user.send_log("移除了" + name_f(StatusDaily(daily_statuses[j]).des))
-                        await ume.remove_daily_status(daily_statuses[j])
-                        continue
-                    j -= len(daily_statuses)
-                    user.send_log("移除了" + name_f(status_times[j].des))
-                    await ume.remove_limited_status(status_times[j])
+                    if j[0] == 0:
+                        user.send_log("移除了" + name_f(StatusNull(j[1]).des))
+                        await ume.remove_status(j[1], remove_all=False, remover=user)
+                    elif j[0] == 1:
+                        user.send_log("移除了" + name_f(StatusDaily(j[1]).des))
+                        await ume.remove_daily_status(j[1], remove_all=False, remover=user)
+                    else:
+                        user.send_log("移除了" + name_f(j[2].des))
+                        await ume.remove_limited_status(j[2], remover=user)
                 me.save_status_time()
             else:
                 user.send_log(f"选择了玩家{qq}{句尾}")
@@ -4226,26 +4223,24 @@ class AXiaohunfashu(Attack):
         for c in self.defender.data.status:
             if random.random() > 0.5 ** self.multiplier or not StatusNull(c).removeable:
                 continue
-            await self.defender.remove_status(c, remove_all=False)
+            await self.defender.remove_status(c, remove_all=False, remover=self.attacker)
             des = StatusNull(c).des
             self.defender.send_log(f"的{des[:des.index('：')]}被消除了{句尾}")
         # 每日状态
         for c in self.defender.data.daily_status:
             if random.random() > 0.5 ** self.multiplier or not StatusDaily(c).removeable:
                 continue
-            await self.defender.remove_daily_status(c, remove_all=False)
+            await self.defender.remove_daily_status(c, remove_all=False, remover=self.attacker)
             des = StatusDaily(c).des
             self.defender.send_log(f"的{des[:des.index('：')]}被消除了{句尾}")
         # 带附加值的状态
-        l = self.defender.data.status_time_checked
+        l = [c for c in self.defender.data.status_time_checked if c.removeable]
         i = 0
-        while i < len(l):
-            if random.random() > 0.5 ** self.multiplier or not l[i].removeable:
-                i += 1
-            else:
-                des = l[i].des
+        for i in l:
+            if random.random() < 0.5 ** self.multiplier:
+                des = i.des
                 self.defender.send_log(f"的{des[:des.index('：')]}被消除了{句尾}")
-                l.pop(i)
+                await self.defender.remove_limited_status(i, remover=self.attacker)
         self.defender.data.save_status_time()
 
 class ranshefashu(_card):
@@ -4621,7 +4616,7 @@ class wardenspaean(_card):
         for c in map(StatusDaily, user.data.daily_status):
             if c is shengbing:
                 user.send_char(f"的大病一场被取消了{句尾}")
-                await user.remove_daily_status('d')
+                await user.remove_daily_status('d', remover=user)
                 return
         await user.add_limited_status('w',3)
 class wardenspaean_s(NumedStatus):
@@ -4710,7 +4705,7 @@ class vector_s(_statusnull):
     @classmethod
     async def OnAttacked(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
         if await attack.counter.pierce():
-            await user.remove_status('v', remove_all=True)
+            await user.remove_status('v', remove_all=True, remover=attack.attacker)
             user.send_log(f"矢量操作的效果被幻想杀手消除了{句尾}")
             return False,
         if attack.reboundable:
@@ -4744,7 +4739,7 @@ class youxianshushi_s(_statusdaily):
     @classmethod
     async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
         if await attack.counter.pierce():
-            await Userme(user).remove_daily_status('y', remove_all=True)
+            await Userme(user).remove_daily_status('y', remove_all=True, remover=attack.attacker)
             user.send_log(f"优先术式的效果被幻想杀手消除了{句尾}")
             return False,
         elif isinstance(attack, ALiwujiaohuan):
@@ -4869,11 +4864,11 @@ class railgun(_card):
             elif num == 1:
                 await user.remove_cards([cards[count]])
             elif num == 2:
-                await user.remove_status(status_nulles[count])
+                await user.remove_status(status_nulles[count], remover=user)
             elif num == 3:
-                await user.remove_daily_status(status_dailyes[count])
+                await user.remove_daily_status(status_dailyes[count], remover=user)
             elif num == 4:
-                await user.remove_limited_status(count)
+                await user.remove_limited_status(count, remover=user)
             atk = ARailgun(user, u)
             await u.attacked(user, atk)
 class ARailgun(Attack):
@@ -4887,15 +4882,15 @@ class ARailgun(Attack):
         for s in self.defender.data.status:
             if StatusNull(s).is_metallic and random.random() > (0.5 - 0.02 * self.attacker.data.luck) ** self.multiplier:
                 self.defender.send_log(f"的{name_f(StatusNull(s).des)}被烧掉了{句尾}")
-                await self.defender.remove_status(s)
+                await self.defender.remove_status(s, remover=self.attacker)
         for s in self.defender.data.daily_status:
             if StatusDaily(s).is_metallic and random.random() > (0.5 - 0.02 * self.attacker.data.luck) ** self.multiplier:
                 self.defender.send_log(f"的{name_f(StatusDaily(s).des)}被烧掉了{句尾}")
-                await self.defender.remove_daily_status(s)
+                await self.defender.remove_daily_status(s, remover=self.attacker)
         for s in self.defender.data.status_time_checked:
             if s.is_metallic and random.random() > (0.5 - 0.02 * self.attacker.data.luck) ** self.multiplier:
                 self.defender.send_log(f"的{name_f(s.des)}被烧掉了{句尾}")
-                await self.defender.remove_limited_status(s)
+                await self.defender.remove_limited_status(s, remover=self.attacker)
 
 class magnet(_card):
     id = 129
@@ -4960,18 +4955,18 @@ class AMagnet(Attack):
             if i < len(status_nulles):
                 self.defender.buf.send("的状态：" + StatusNull(status_nulles[i]).brief_des)
                 self.defender.log << "移除了永久状态" + status_nulles[i]
-                await self.defender.remove_status(status_nulles[i])
+                await self.defender.remove_status(status_nulles[i], remover=self.attacker)
                 return
             i -= len(status_nulles)
             if i < len(status_dailyes):
                 self.defender.buf.send("的状态：" + StatusDaily(status_dailyes[i]).brief_des)
                 self.defender.log << "移除了每日状态" + status_dailyes[i]
-                await self.defender.remove_daily_status(status_dailyes[i])
+                await self.defender.remove_daily_status(status_dailyes[i], remover=self.attacker)
                 return
             i -= len(status_dailyes)
             self.defender.buf.send("的状态：" + statuses[i].brief_des)
             self.defender.log << "移除了状态" + str(statuses[i])
-            await self.defender.remove_limited_status(status_dailyes[i])
+            await self.defender.remove_limited_status(status_dailyes[i], remover=self.attacker)
             return
 
 class sunflower(_card):
@@ -5585,16 +5580,16 @@ class Sexplore(NumedStatus):
                     if ss[0] == 0 and me.check_status(ss[1]):
                         sdes = StatusNull(ss[1]).des
                         user.send_log(f"移除了{sdes[:sdes.index('：')]}。")
-                        await Userme(user).remove_status(ss[1], remove_all=False)
+                        await Userme(user).remove_status(ss[1], remove_all=False, remover=user)
                     elif ss[0] == 1 and me.check_daily_status(ss[1]):
                         sdes = StatusDaily(ss[1]).des
                         user.send_log(f"移除了{sdes[:sdes.index('：')]}。")
-                        await Userme(user).remove_daily_status(ss[1], remove_all=False)
+                        await Userme(user).remove_daily_status(ss[1], remove_all=False, remover=user)
                     elif ss[0] == 2 and (gl := 
                             Userme(user).check_limited_status((sl := eval(ss[1]).id), lambda c: repr(c) == ss[1])):
                         sdes = gl[0].des
                         user.send_log(f"移除了{sdes[:sdes.index('：')]}。")
-                        await Userme(user).remove_limited_status(gl[0])
+                        await Userme(user).remove_limited_status(gl[0], remover=user)
                     else:
                         user.buf.send(f"上一个添加的全局状态早就被清除了{句尾}")
                         user.log << "上一个添加的全局状态早就被清除了。"
@@ -5848,7 +5843,7 @@ class Sshangba(_statusdaily):
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
         if await c.pierce():
             user.send_log(f"伤疤的效果被幻想杀手消除了{句尾}")
-            await user.remove_status('S')
+            await user.remove_status('S', remover=killer)
         else:
             user.send_log(f"触发了伤疤{句尾}奖励{2 * count}击毙。")
             await user.add_jibi(2 * count)
@@ -5864,7 +5859,7 @@ class Sinvshangba(_statusdaily):
     async def OnDeath(cls, count: TCount, user: User, killer: User, time: int, c: TAttackType) -> Tuple[int, bool]:
         if await c.pierce():
             user.send_log(f"反转-伤疤的效果被幻想杀手消除了{句尾}")
-            await user.remove_status('P')
+            await user.remove_status('P', remover=killer)
         else:
             user.send_log(f"触发了反转-伤疤{句尾}失去{2 * count}击毙。")
             await user.add_jibi(-2 * count)
@@ -6226,7 +6221,7 @@ class upsidedown(_card):
                     to_remove += c
                     to_add += revert_status_map[c]
             for c in to_remove:
-                await u.remove_status(c, remove_all=False)
+                await u.remove_status(c, remove_all=False, remover=user)
             for c in to_add:
                 await u.add_status(c)
         await _s(user)
@@ -6243,7 +6238,7 @@ class upsidedown(_card):
                     to_remove += c
                     to_add += revert_daily_status_map[c]
             for c in to_remove:
-                await u.remove_daily_status(c, remove_all=False)
+                await u.remove_daily_status(c, remove_all=False, remover=user)
             for c in to_add:
                 await u.add_daily_status(c)
         await _d(user)
@@ -6562,7 +6557,7 @@ class train(_card):
         for tr in l:
             if random.random() < 0.25:
                 user.send_log(f"的火车和玩家{tr.qq}的火车发生了碰撞{句尾}")
-                await Userme(user).remove_limited_status(tr)
+                await Userme(user).remove_limited_status(tr, remover=user)
                 return
         await Userme(user).add_limited_status(STrain(user.qq, False))
 class STrain(_status):
@@ -6864,7 +6859,7 @@ class flamethrower(_card):
     async def on_draw(cls, user: User) -> None:
         if me.check_daily_status('i'):
             user.send_char(f"摧毁了一个寒冰菇，获得了50击毙{句尾}" + user.char + f"就是今天的英雄{句尾}")
-            Userme(user).remove_daily_status('i', remove_all=False)
+            Userme(user).remove_daily_status('i', remove_all=False, remover=user)
             await user.add_jibi(50)
         else:
             user.send_char(f"今天没有寒冰菇{句尾}" + user.char + f"被击毙了{句尾}")
@@ -7049,15 +7044,15 @@ class wormhole(_card):
                 await u2.draw(0, cards=[s])
             elif i == 1:
                 user.send_log(f"的状态{s.des[:s.des.index('：')]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
-                await user.remove_status(s.id)
+                await user.remove_status(s.id, remover=user)
                 await u2.add_status(s.id)
             elif i == 2:
                 user.send_log(f"的状态{s.des[:s.des.index('：')]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
-                await user.remove_daily_status(s.id)
+                await user.remove_daily_status(s.id, remover=user)
                 await u2.add_daily_status(s.id)
             elif i == 3:
                 user.send_log(f"的状态{s.des[:s.des.index('：')]}转移给了[CQ:at,qq={u2.qq}]{句尾}")
-                await user.remove_limited_status(s)
+                await user.remove_limited_status(s, remover=user)
                 await u2.add_limited_status(s)
 
 class photoelectric(_card):
@@ -7302,6 +7297,7 @@ class Orga(_card):
     positive = 0
     newer = 8
     pack = Pack.silly
+    consumed_on_draw = True
     on_draw_global_daily_status = 'G'
 class SOrga(_statusdaily):
     id = 'G'
@@ -7329,6 +7325,45 @@ class SInvOrga(_statusdaily):
 # class oneplusoneequal12(_card): #TODO
 
 # class showyourfoolish(_card): #TODO
+
+class shuffer(_card):
+    id = 262
+    name = "洗牌器"
+    description = "抽到时，将你的手牌洗牌。"
+    positive = 0
+    newer = 8
+    pack = Pack.silly
+    consumed_on_draw = True
+    @classmethod
+    async def on_draw(cls, user: User) -> None:
+        random.shuffle(user.data.hand_card)
+        user.data.set_cards()
+        user.send_log("的手牌被洗牌了" + 句尾)
+
+class fakeattack(_card):
+    id = 265
+    name = "佯攻"
+    description = "选择一个玩家，对他进行一次无任何效果的攻击。"
+    positive = 1
+    newer = 8
+    pack = Pack.silly
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if await user.choose():
+            config.logger.dragon << f"【LOG】询问用户{user.qq}选择玩家。"
+            qq: int = (await user.buf.aget(prompt="请at群内一名玩家。\n",
+                arg_filters=[
+                        lambda s: [int(r) for r in re.findall(r'qq=(\d+)', str(s))],
+                        validators.fit_size(1, 1, message="请at正确的人数。")
+                    ]))[0]
+            u = User(qq, user.buf)
+            atk = Afakeattack(user, u)
+            await u.attacked(user, atk)
+class Afakeattack(Attack):
+    name = "佯攻"
+    doublable = False
+    async def self_action(self):
+        self.attacker.send_char(f"攻击了" + self.defender.char + 句尾)
 
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):
@@ -7711,7 +7746,7 @@ class penhuo(DragonSkill):
         await user.damaged(100 + dragon(user).data.dragon_level * 2)
         if me.check_daily_status('i'):
             user.buf.send(f"火焰解除了寒冰菇的效果{句尾}")
-            await Userme(me).remove_daily_status('i', remove_all=True)
+            await Userme(me).remove_daily_status('i', remove_all=True, remover=user)
 class yaoren(DragonSkill):
     id = 2
     name = "咬人"
@@ -7775,7 +7810,7 @@ class hudun_s(_statusnull):
         if isinstance(attack, Damage):
             if await attack.counter.pierce():
                 user.buf.send(f"护盾的效果被幻想杀手消除了{句尾}")
-                await user.remove_status('d', remove_all=True)
+                await user.remove_status('d', remove_all=True, remover=attack.attacker)
             else:
                 user.send_char(f"的闪避率增加了20%{句尾}")
                 await user.remove_status('d', remove_all=False)
@@ -7925,7 +7960,7 @@ class huoyanxuanwo(DragonSkill):
             await User(qq, user.buf).damaged(100 + dragon(user).data.dragon_level * 2)
         if me.check_daily_status('i'):
             user.buf.send(f"火焰解除了寒冰菇的效果{句尾}")
-            await Userme(me).remove_daily_status('i', remove_all=True)
+            await Userme(user).remove_daily_status('i', remove_all=True, remover=user)
 class xujiadexiwang(DragonSkill):
     id = 15
     name = "虚假的希望"
@@ -7970,17 +8005,17 @@ class qumo(DragonSkill):
         if i <= len(user.data.status):
             st = StatusNull(user.data.status[i])
             user.send_log(f"失去了状态：{st.brief_des}{句尾}")
-            await user.remove_status(user.data.status[i])
+            await user.remove_status(user.data.status[i], remover=dragon(user))
         elif i <= len(user.data.daily_status):
             i -= len(user.data.status)
             st = StatusDaily(user.data.daily_status[i])
             user.send_log(f"失去了状态：{st.brief_des}{句尾}")
-            await user.remove_daily_status(user.data.daily_status[i])
+            await user.remove_daily_status(user.data.daily_status[i], remover=dragon(user))
         else:
             i -= len(user.data.status) + len(user.data.daily_status)
             st = user.data.status_time[i]
             user.send_log(f"失去了状态：{st.brief_des}{句尾}")
-            await user.remove_limited_status(st)
+            await user.remove_limited_status(st, remover=dragon(user))
         if not st.is_debuff:
             await user.damaged(100 + dragon(user).data.dragon_level * 2)
 
