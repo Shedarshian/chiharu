@@ -11,6 +11,7 @@ from abc import ABC, ABCMeta, abstractmethod
 from datetime import date, datetime, timedelta, time
 from functools import reduce, wraps
 from contextlib import asynccontextmanager
+from nonebot import get_bot
 from nonebot.command import CommandSession
 from pypinyin import pinyin, Style
 from nonebot.command.argfilter import extractors, validators
@@ -7337,7 +7338,7 @@ class showyourfoolish(_card):
         if await user.choose():
             card = random.choice([c for id, c in _card.card_id_dict.items() if c.pack == Pack.silly])
             cdes = card.full_description()
-            user.buf.send("你抽到的愚蠢卡牌是：\n{cdes}\n")
+            user.buf.send(f"你抽到的愚蠢卡牌是：\n{cdes}\n")
             res: str = (await user.buf.aget(prompt="请选择“他很愚蠢”或“他不够愚蠢”",
                 arg_filters=[
                     extractors.extract_text,
@@ -7346,9 +7347,9 @@ class showyourfoolish(_card):
             if res == '他很愚蠢':
                 user.draw(0, cards=[card])
             elif res == '他不够愚蠢':
-                config.logger.dragon << f"【LOG】询问用户{qq}提交的卡牌。"
+                config.logger.dragon << f"【LOG】询问用户{user.qq}提交的卡牌。"
                 s = await user.buf.aget(prompt="请提交卡牌名与卡牌效果描述，所属类别默认为愚蠢扩展包。\n\t请注意，只能输入一次。")
-                config.logger.dragon << f"【LOG】用户{qq}提交卡牌{s}。"
+                config.logger.dragon << f"【LOG】用户{user.qq}提交卡牌{s}。"
                 for group in config.group_id_dict['logic_dragon_supervise']:
                     await get_bot().send_group_msg(group_id=group, message=s)
                 user.buf.send(f"您已成功提交{句尾}")
