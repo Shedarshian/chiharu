@@ -7324,7 +7324,34 @@ class SInvOrga(_statusdaily):
 
 # class oneplusoneequal12(_card): #TODO
 
-# class showyourfoolish(_card): #TODO
+class showyourfoolish(_card):
+    id = 261
+    name = "奇文共赏"
+    description = "抽到此卡时，展示一张愚蠢卡牌包的卡，你可以选择：\n\t他很愚蠢：你获得这张卡；\n\t他不够愚蠢：免费提交一张卡，并(在经过审查后)自动加入愚蠢扩展包。"
+    positive = 0
+    newer = 8
+    pack = Pack.silly
+    consumed_on_draw = True
+    @classmethod
+    async def on_draw(cls, user: User) -> None:
+        if await user.choose():
+            card = random.choice([c for id, c in _card.card_id_dict.items() if c.pack == Pack.silly])
+            cdes = card.full_description()
+            user.buf.send("你抽到的愚蠢卡牌是：\n{cdes}\n")
+            res: str = (await user.buf.aget(prompt="请选择“他很愚蠢”或“他不够愚蠢”",
+                arg_filters=[
+                    extractors.extract_text,
+                    validators.ensure_true(lambda c: c == "他很愚蠢" or c == "他不够愚蠢", message = "请选择“他很愚蠢”或“他不够愚蠢”")
+                    ]))
+            if res == '他很愚蠢':
+                user.draw(0, cards=[card])
+            elif res == '他不够愚蠢':
+                config.logger.dragon << f"【LOG】询问用户{qq}提交的卡牌。"
+                s = await user.buf.aget(prompt="请提交卡牌名与卡牌效果描述，所属类别默认为愚蠢扩展包。\n\t请注意，只能输入一次。")
+                config.logger.dragon << f"【LOG】用户{qq}提交卡牌{s}。"
+                for group in config.group_id_dict['logic_dragon_supervise']:
+                    await get_bot().send_group_msg(group_id=group, message=s)
+                user.buf.send(f"您已成功提交{句尾}")
 
 class shuffer(_card):
     id = 262
