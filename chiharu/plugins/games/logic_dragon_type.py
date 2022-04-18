@@ -174,6 +174,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         imaginebreaker = auto()         # 幻杀：破防
                                         # imagine breaker is suggested to be the first
         youxianshushi = auto()          # 优先术式：无效，变成击杀
+        Ugun = auto()                   # U型枪管：变成攻击自己
         vector = auto()                 # 矢量：双倍
         youlong = auto()                # 幼龙：造成伤害*1.5
         bizhong = auto()                # 必中：必中并且造成伤害*1.5
@@ -202,6 +203,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         beacon1 = auto()                # 全局速度插件
         bingo = auto()
     class OnStatusRemove(IntEnum):
+        bestchiharu = auto()
         train = auto()
     class AfterStatusRemove(IntEnum):
         antimatter = auto()             # 反物质维度：自动使用卡牌

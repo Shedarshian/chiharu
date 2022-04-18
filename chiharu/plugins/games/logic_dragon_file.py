@@ -7365,6 +7365,48 @@ class Afakeattack(Attack):
     async def self_action(self):
         self.attacker.send_char(f"攻击了" + self.defender.char + 句尾)
 
+class Ugun(_card):
+    id = 266
+    name = "U型枪管"
+    description = "抽到时附加全局状态：今天所有攻击别人的效果都变成攻击自己。"
+    positive = 0
+    newer = 8
+    pack = Pack.silly
+    on_draw_global_daily_status = 'u'
+class SUgun(_statusdaily):
+    id = 'u'
+    des = "今天所有攻击别人的效果都变成攻击自己。"
+    @classmethod
+    async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
+        user.send_log("的攻击变成了攻击你自己" + 句尾)
+        attack.defender = attack.attacker
+        return False,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnAttack: (Priority.OnAttack.Ugun, cls)}
+
+class bestchiharu(_card):
+    id = 267
+    name = "守护我们最好的千春"
+    description = "为千春加上同名状态：此状态被移除时，扣除移除者25击毙。"
+    positive = 1
+    newer = 8
+    pack = Pack.silly
+    global_status = 'C'
+class Sbestchiharu(_statusnull):
+    id = 'C'
+    des = "守护我们最好的千春：此状态被移除时，扣除移除者25击毙。"
+    is_global = True
+    @classmethod
+    async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool, remover: Optional['User'] = None) -> Tuple[bool]:
+        if status is Sbestchiharu:
+            remover.send_log("怎么能伤害我们最好的千春😠" + 句尾 + f"扣除你{25 * count}击毙" + 句尾)
+            await remover.add_jibi(-25 * count)
+        return False,
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnStatusRemove: (Priority.OnStatusRemove.bestchiharu, cls)}
+
 mission: List[Tuple[int, str, Callable[[str], bool]]] = []
 def add_mission(doc: str):
     def _(f: Callable[[str], bool]):
