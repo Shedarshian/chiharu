@@ -6287,7 +6287,7 @@ for c in ('AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'cd', '34'
     revert_status_map[c[0]] = c[1]
     revert_status_map[c[1]] = c[0]
 revert_daily_status_map: Dict[str, str] = {}
-for c in ('RZ', 'Bt', 'Ii', 'Mm', 'op', '@#', 'SP', 'CE', 'lk', 'KL'):
+for c in ('RZ', 'Bt', 'Ii', 'Mm', 'op', '@#', 'SP', 'CE', 'lk', 'KL', 'Aa', 'Gg'):
     revert_daily_status_map[c[0]] = c[1]
     revert_daily_status_map[c[1]] = c[0]
 
