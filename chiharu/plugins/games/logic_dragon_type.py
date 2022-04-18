@@ -151,6 +151,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
     class AfterExchange(IntEnum):
         pass
     class OnDeath(IntEnum):
+        yamatotamasi = auto()           # 大和魂：吟诵俳句
         invincible = auto()             # 吸血鬼：免疫死亡
         explore = auto()                # 秘史衍生：免疫死亡，以及死亡时间减少
         miansi = auto()                 # 倒吊人：免疫一次死亡

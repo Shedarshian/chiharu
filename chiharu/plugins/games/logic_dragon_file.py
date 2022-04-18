@@ -7199,7 +7199,7 @@ class SYamatoTamasi(_statusnull):
         msg = random.choice(["",
         "",
         ""])
-        user.buf.send("千春道：{msg}")
+        user.buf.send(f"千春道：{msg}。")
         return time, False
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -7230,13 +7230,13 @@ class STYPEA(_statusdaily):
     des = "TYPE-A：当规则为首尾或尾首接龙时，如果你接龙时按另一者接，那么你会死于强迫症。"
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
-        async def OnShouWei(self, user):
+        async def OnShouWei(self: DragonState, user: 'User'):
             if self.weishou and not self.shouwei:
-                user.buf.send(f"因弄反首尾接龙死于强迫症")
+                user.buf.send_log(f"因弄反首尾接龙死于强迫症" + 句尾)
                 await user.death()
-        async def OnWeiShou(self, user):
+        async def OnWeiShou(self: DragonState, user: 'User'):
             if self.shouwei and not self.weishou:
-                user.buf.send(f"因弄反尾首接龙死于强迫症")
+                user.buf.send_log(f"因弄反尾首接龙死于强迫症" + 句尾)
                 await user.death()
         state.OnShouWei = OnShouWei
         state.OnWeiShou = OnWeiShou
@@ -7249,10 +7249,10 @@ class STYPEC(_statusdaily):
     des = "TYPE-C：当规则为首尾或尾首接龙时，你接龙时可以按任意一个接。"
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: 'User', state: DragonState) -> Tuple[bool, int, str]:
-        async def OnShouWei(self, user):
+        async def OnShouWei(self: DragonState, user: 'User'):
             if self.weishou:
                 self.shouwei = True
-        async def OnWweShou(self, user):
+        async def OnWeiShou(self: DragonState, user: 'User'):
             if self.shouwei:
                 self.weishou = True
         state.OnShouWei = OnShouWei
@@ -7267,7 +7267,7 @@ class Onemore(_card):
     name = "再来一瓶"
     positive = 1
     newer = 7
-    description = "抽一张卡"
+    description = "抽一张卡。"
     pack = Pack.silly
     @classmethod
     async def use(cls, user: User) -> None:
@@ -7276,7 +7276,7 @@ class Onemore(_card):
 class Heianjian22(_card):
     id = 254
     name = "黑暗剑22"
-    description = "你获得装备黑暗剑22"
+    description = "你获得装备黑暗剑22。"
     positive = 0
     newer = 7
     pack = Pack.silly
@@ -7298,14 +7298,15 @@ class SHungruCentipede(_statusdaily):
 class Orga(_card):
     id = 257
     name = "奥尔加"
-    description = "附加全局状态奥尔加"
+    description = "附加全局状态奥尔加。"
     positive = 0
     newer = 7
     pack = Pack.silly
-    on_draw_global_daily_status = ''
+    on_draw_global_daily_status = 'G'
 class SOrga(_statusdaily):
     id = 'G'
     des = "奥尔加：今日内，如果距离上一次接龙之间的时间差小于一小时，那么路就会不断延伸。"
+    is_global = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if datetime.now() <= datetime.fromisoformat(global_state['last_dragon_time']) + timedelta(hours=1):
@@ -7315,6 +7316,7 @@ class SOrga(_statusdaily):
 class SInvOrga(_statusdaily):
     id = 'g'
     des = "反转·奥尔加：可能会有意想不到的事情发生。"
+    is_global = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         def inb(words: str):
