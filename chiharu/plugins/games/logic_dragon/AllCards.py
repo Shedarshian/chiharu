@@ -251,7 +251,7 @@ class CLovers6(Card):
         if (players := await user.ChoosePlayers(1, 1)) is not None:
             u = user.CreateUser(players[0])
             n = len(u.CheckStatus(SDeathN1)) == 0
-            await u.RemoveAllStatus(SDeathN1)
+            await u.RemoveAllStatus(SDeathN1, remover=user)
 
 class CChariot7(Card):
     id = 7

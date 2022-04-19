@@ -101,7 +101,7 @@ class User:
         self.data.SaveStatuses()
         return True
     @functools.singledispatchmethod
-    async def RemoveStatus(self, s: TStatus):
+    async def RemoveStatus(self, s: TStatus, /, remover: 'User' | None=None):
         """移除一个状态。
         如果s是一个状态对象，则移除该对象。该对象需在用户的状态里。
         如果s是状态类型，则移除count层对应id的可堆叠状态。"""
@@ -109,7 +109,7 @@ class User:
         # Event OnStatusRemove
         self.Send(type="begin", name="OnStatusRemove")
         for eln in self.IterAllEvent(UserEvt.OnStatusRemove):
-            dodge = await eln.OnStatusRemove(self, s)
+            dodge = await eln.OnStatusRemove(self, s, remover=remover)
             if dodge:
                 break
         self.Send(type="OnStatusRemove", status=s.DumpData(), dodge=dodge)
@@ -120,13 +120,13 @@ class User:
         self.data.SaveStatuses()
         return True
     @RemoveStatus.register
-    async def _(self, s: Type[TStatusStack], count: int=1):
+    async def _(self, s: Type[TStatusStack], count: int=1, /, remover: 'User' | None=None):
         status = s(count)
         dodge = False
         # Event OnStatusRemove
         self.Send(type="begin", name="OnStatusRemove")
         for eln in self.IterAllEvent(UserEvt.OnStatusRemove):
-            dodge = await eln.OnStatusRemove(self, status)
+            dodge = await eln.OnStatusRemove(self, status, remover=remover)
             if dodge:
                 break
         self.Send(type="OnStatusRemove", status=status.DumpData(), dodge=dodge)
@@ -138,11 +138,11 @@ class User:
         l[0].num -= count
         self.data.SaveStatuses()
         return True
-    async def RemoveAllStatus(self, status: Type[TStatus]):
+    async def RemoveAllStatus(self, status: Type[TStatus], /, remover: 'User' | None=None):
         """移除全部该id的状态。"""
         l = self.CheckStatus(status)
         for s in l:
-            await self.RemoveStatus(s)
+            await self.RemoveStatus(s, remover=remover)
     async def AddJibi(self, jibi: int, /, isBuy: bool=False) -> ProtocolData:
         """获取或损失击毙。
         isBuy：是否是购买。"""

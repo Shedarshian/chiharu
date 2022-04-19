@@ -110,11 +110,12 @@ class IEventListener:
         Returns:
         bool: True if dodged."""
         pass
-    async def OnStatusRemove(self, user: 'User', status: 'Status') -> bool:
+    async def OnStatusRemove(self, user: 'User', status: 'Status', remover: 'User' | None=None) -> bool:
         """Called when a status is removed.
         
         Arguments:
         status: a str for statusnull/statusdaily, or a T_status object.
+        remover: the remover.
         
         Returns:
         bool: whether the removement is dodged."""
