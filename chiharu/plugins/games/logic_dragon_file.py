@@ -6269,6 +6269,15 @@ class upsidedown(_card):
             elif l[i].id == 'u':
                 l[i] = Scashprinter(l[i].num)
                 user.send_log(f"的反转·印钞机{'幸运地' if d > 0.5 else ''}被反转了{句尾}")
+            elif l[i].id == 'g':
+                from wirecutter import genderlist
+                if l[i].num == 0:
+                    l[i].num = 1
+                elif l[i].num == 1:
+                    l[i].num = 0
+                else:
+                    l[i].num = nnum := random.choice(range(2,len(genderlist))) if l[i].num != nnum 
+                user.buf.send("你的性别被改变至{}。".format(genderlist[l[0].num]) + 句尾)
         user.data.save_status_time()
         # 全局状态
         await _s(Userme(user))
@@ -7201,16 +7210,47 @@ class SYamatoTamasi(_statusnull):
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDeath: (Priority.OnDeath.yamatotamasi, cls)}
 
-# class wirecutter(_card):
-#     id = 251
-#     name = "剪线钳"
-#     positive = 0
-#     newer = 8
-#     description = "改变你的性别。"
-#     pack = Pack.silly
-#     @classmethod
-#     async def use(cls, user: User) -> None:
-#         pass # TODO
+class wirecutter(_card):
+    id = 251
+    name = "剪线钳"
+    positive = 0
+    newer = 8
+    description = "改变你的性别。"
+    pack = Pack.silly
+    @classmethod
+    async def use(cls, user: User) -> None:
+        genderlist = ["Male","Female","Aftgender","Agender","Agenderfluid","Agenderflux","Agiaspec","Agingender","Aiaspec","Aingender","Aliagender","Alysgender","Ambonec","Androgyne","Anongender","Aporagender","Aporine","Aragender","Asterfluid","Axera","Axvir","Azurgirl","Bigender","Boi","Boyfluid","Boyflux","Butch"]
+        l = user.check_limited_status('g')
+        if len(l) != 0:
+            if l[0].num == 0:
+                l[0].num = 1
+            elif l[0].num == 1:
+                l[0].num = 0
+            else:
+                l[0].num = nnum := random.choice(range(2,len(genderlist))) if l[0].num != nnum 
+            user.buf.send("你的性别被改变至{}。".format(genderlist[l[0].num]) + 句尾)
+            user.data.save_status_time()
+        else:
+            res: str = (await user.buf.aget(prompt="请选择“二元性别”或“非二元性别”",
+                arg_filters=[
+                    extractors.extract_text,
+                    validators.ensure_true(lambda c: c == "二元性别" or c == "非二元性别", message = "请选择“二元性别”或“非二元性别”")
+                    ]))
+            if res == "二元性别":
+                nnum = random.choice([0,1]))
+            elif res == "非二元性别":
+                nnum = random.choice(range(2,len(genderlist)))
+            else:
+                nnum = -1
+            user.buf.send("你获得的性别为{}".format(genderlist[nnum]))
+            user.add_limited_status(Sgender(nnum))
+class Sgender(NumedStatus):
+    id = 'g'
+    genderlist = ["Male","Female","Aftgender","Agender","Agenderfluid","Agenderflux","Agiaspec","Agingender","Aiaspec","Aingender","Aliagender","Alysgender","Ambonec","Androgyne","Anongender","Aporagender","Aporine","Aragender","Asterfluid","Axera","Axvir","Azurgirl","Bigender","Boi","Boyfluid","Boyflux","Butch"]
+    def __str__(self) -> str:
+        return "你当前性别为{genderlist[self.num]}"
+    def double(self):
+        return [self]
 
 class TYPEA(_card):
     id = 252
