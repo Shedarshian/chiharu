@@ -1079,7 +1079,8 @@ class User:
                     while [0, s] in global_state['global_status']:
                         global_state['global_status'].remove([0, s])
                 else:
-                    global_state['global_status'].remove([0, s])
+                    if [0, s] in global_state['global_status']:
+                        global_state['global_status'].remove([0, s])
                 save_global_state()
             return True
     async def remove_daily_status(self, s: str, /, remove_all=True, remover: Optional['User']=None):
@@ -1106,7 +1107,8 @@ class User:
                     while [1, s] in global_state['global_status']:
                         global_state['global_status'].remove([1, s])
                 else:
-                    global_state['global_status'].remove([1, s])
+                    if [1, s] in global_state['global_status']:
+                        global_state['global_status'].remove([1, s])
                 save_global_state()
             return True
     async def remove_limited_status(self, s: T_status, /, remover: Optional['User']=None):
@@ -1485,29 +1487,29 @@ class User:
         require_can_use: 是否要求卡牌可以使用。"""
         config.logger.dragon << f"【LOG】询问用户{self.qq}选择牌。"
         cards_can_not_choose_fin = cards_can_not_choose_org = set(cards_can_not_choose)
-        if await self.choose():
-            prompt = attempt + "\n" + "\n".join(c.brief_description() for c in self.data.hand_card)
-            ca = lambda l: len(list(c for c in self.data.hand_card if c.id not in cards_can_not_choose_fin)) < min
-            arg_filters = [extractors.extract_text,
-                    check_handcard(self),
-                    lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
-                    check_if_unable(ca, self.buf.session),
-                    validators.fit_size(min, max, message="请输入正确的张数。"),
-                    validators.ensure_true(
-                        lambda l: all(i in _card.card_id_dict for i in l) and
-                        len(list((Counter(l) - Counter([c.id for c in self.data.hand_card])).elements())) == 0,
-                        message=f"您选择了错误的卡牌{句尾}")]
-            if require_can_use:
-                arg_filters.append(ensure_true_lambda(
-                    lambda l: Card(l[0]).can_use(self, True),
-                    message_lambda=lambda l: Card(l[0]).failure_message))
-                cards_can_not_choose_fin = cards_can_not_choose_org | \
-                    set(c.id for c in self.data.hand_card if not c.can_use(self, True))
-            if len(cards_can_not_choose_fin) != 0:
-                arg_filters.append(validators.ensure_true(
-                    lambda l: len(set(l) & cards_can_not_choose_fin) == 0,
-                    message=f"此卡牌不可选择{句尾}"))
-            try:
+        try:
+            if await self.choose():
+                prompt = attempt + "\n" + "\n".join(c.brief_description() for c in self.data.hand_card)
+                ca = lambda l: len(list(c for c in self.data.hand_card if c.id not in cards_can_not_choose_fin)) < min
+                arg_filters = [extractors.extract_text,
+                        check_handcard(self),
+                        lambda s: list(map(int, re.findall(r'\-?\d+', str(s)))),
+                        check_if_unable(ca, self.buf.session),
+                        validators.fit_size(min, max, message="请输入正确的张数。"),
+                        validators.ensure_true(
+                            lambda l: all(i in _card.card_id_dict for i in l) and
+                            len(list((Counter(l) - Counter([c.id for c in self.data.hand_card])).elements())) == 0,
+                            message=f"您选择了错误的卡牌{句尾}")]
+                if require_can_use:
+                    arg_filters.append(ensure_true_lambda(
+                        lambda l: Card(l[0]).can_use(self, True),
+                        message_lambda=lambda l: Card(l[0]).failure_message))
+                    cards_can_not_choose_fin = cards_can_not_choose_org | \
+                        set(c.id for c in self.data.hand_card if not c.can_use(self, True))
+                if len(cards_can_not_choose_fin) != 0:
+                    arg_filters.append(validators.ensure_true(
+                        lambda l: len(set(l) & cards_can_not_choose_fin) == 0,
+                        message=f"此卡牌不可选择{句尾}"))
                 try:
                     if ca(None):
                         raise UnableRequirement
@@ -1517,14 +1519,14 @@ class User:
                 except UnableRequirement:
                     self.send_log(f"手牌无法选择，选择进程中止{句尾}")
                     yield None
-            except NotActive:
-                pass
-            finally:
-                self.data.set_cards()
-                self.data.save_status_time()
-                save_data()
-        else:
-            yield None
+                finally:
+                    self.data.set_cards()
+                    self.data.save_status_time()
+                    save_data()
+            else:
+                yield None
+        except NotActive:
+            pass
     async def damaged(self, damage: int, attacker=None, must_hit=False):
         if attacker is None:
             attacker = dragon(self)
@@ -7349,6 +7351,7 @@ class SOrga(_statusdaily):
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         if datetime.now() <= datetime.fromisoformat(global_state['last_dragon_time']) + timedelta(hours=1):
             user.buf.send("道路还在不断延伸...\n")
+    @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.orga, cls)}
 class SInvOrga(_statusdaily):
@@ -7361,6 +7364,7 @@ class SInvOrga(_statusdaily):
             return words in branch.word
         if inb("女") or inb("唱歌") or inb("男人死") or inb("女人唱歌男人死"):
             user.buf.send("ₘₙⁿ\n▏n\n█▏　､⺍\n█▏ ⺰ʷʷｨ\n█◣▄██◣\n◥██████▋\n　◥████ █▎\n　　███▉ █▎\n　◢████◣⌠ₘ℩\n　　██◥█◣\≫\n　　██　◥█◣\n　　█▉　　█▊\n　　█▊　　█▊\n　　█▊　　█▋\n　　 █▏　　█▙\n　　 █\n止まるんじゃねぇぞ！\n")
+    @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.inv_orga, cls)}
 
@@ -7378,7 +7382,7 @@ class showyourfoolish(_card):
     async def on_draw(cls, user: User) -> None:
         if await user.choose():
             card = random.choice([c for id, c in _card.card_id_dict.items() if c.pack == Pack.silly])
-            cdes = card.full_description()
+            cdes = card.full_description(user.qq)
             user.buf.send(f"你抽到的愚蠢卡牌是：\n{cdes}\n")
             res: str = (await user.buf.aget(prompt="请选择“他很愚蠢”或“他不够愚蠢”",
                 arg_filters=[
