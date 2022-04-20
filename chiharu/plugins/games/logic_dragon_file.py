@@ -7248,6 +7248,8 @@ class Sgender(NumedStatus):
     @property
     def des(self) -> str:
         return f"你当前性别为{genderlist[self.num]}。"
+    def __str__(self) -> str:
+        return self.des
     def double(self):
         return [self]
 
