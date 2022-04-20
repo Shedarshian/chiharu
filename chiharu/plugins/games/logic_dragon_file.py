@@ -7245,8 +7245,9 @@ class wirecutter(_card):
             await user.add_limited_status(Sgender(nnum))
 class Sgender(NumedStatus):
     id = 'g'
-    def __str__(self) -> str:
-        return f"你当前性别为{genderlist[self.num]}"
+    @property
+    def des(self) -> str:
+        return f"你当前性别为{genderlist[self.num]}。"
     def double(self):
         return [self]
 
