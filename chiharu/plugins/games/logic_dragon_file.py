@@ -7242,7 +7242,7 @@ class wirecutter(_card):
             else:
                 nnum = random.choice(range(2, len(genderlist)))
             user.buf.send("你获得的性别为{}。".format(genderlist[nnum]))
-            user.add_limited_status(Sgender(nnum))
+            await user.add_limited_status(Sgender(nnum))
 class Sgender(NumedStatus):
     id = 'g'
     def __str__(self) -> str:
