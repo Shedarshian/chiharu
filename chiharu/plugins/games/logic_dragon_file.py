@@ -1921,6 +1921,7 @@ Userme: Callable[[User], User] = lambda user: User(config.selfqq, user.buf)
 def save_data():
     config.userdata_db.commit()
 
+up_newer = 8
 def cards_to_str(cards: List[TCard]):
     return '，'.join(c.brief_description() for c in cards)
 def draw_cards(user: User, positive: Optional[Set[int]]=None, k: int=1, extra_lambda=None):
@@ -1929,7 +1930,7 @@ def draw_cards(user: User, positive: Optional[Set[int]]=None, k: int=1, extra_la
     if extra_lambda is not None:
         cards = [c for c in cards if extra_lambda(c)]
     packs = Sign(global_state["sign"]).pack()
-    weight = [(c.weight(user) if callable(c.weight) else c.weight) + (4 if c.pack in packs else 0) for c in cards]
+    weight = [(c.weight(user) if callable(c.weight) else c.weight) + (4 if c.pack in packs else 0) + (3 if c.newer == up_newer else 0) for c in cards]
     if me.check_daily_status('j') and (not x or x and (-1 in positive)):
         l = [(Card(-1) if random.random() < 0.2 else random.choices(cards, weight)[0]) for i in range(k)]
     else:

@@ -28,7 +28,7 @@ class TGlobalState(TypedDict):
     event_route: List[int]
     bingo_state: List[int]
     sign: int
-    last_dragon_time = str
+    last_dragon_time: str
 
 class TUserData(TypedDict):
     qq: int
@@ -364,7 +364,7 @@ class Sign(IntEnum):
     momi = 3
     xieshen = 4
     tianqiong = 5
-    #feixi = 6
+    feixi = 6
     @classmethod
     def random(cls):
         import random
