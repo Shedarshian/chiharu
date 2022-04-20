@@ -6611,7 +6611,7 @@ class STrain(_status):
                 await User(tr.qq, user.buf).add_jibi(1)
         return jibi,
     @classmethod
-    async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool) -> Tuple[bool]:
+    async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool, remover: Optional['User'] = None) -> Tuple[bool]:
         # TODO structure need change 目前无法处理一部分闪避一部分被消的情况
         if isinstance(status, STrain):
             for tr in count:
