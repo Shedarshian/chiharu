@@ -1396,6 +1396,7 @@ class SExcogitation117(StatusNullStack):
     id = 117
     _description = "当你一次使用/损失了超过你现有击毙一半以上的击毙时，恢复这些击毙。"
     async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
+        """恢复击毙。"""
         if jibi < 0 and -jibi > user.data.jibi / 2:
             await user.RemoveStatus(SExcogitation117)
             user.SendStatusEffect(self)
