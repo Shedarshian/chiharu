@@ -345,6 +345,8 @@ class SHangedMan12(StatusNullStack):
     name = "XII - 倒吊人"
     _description = "免疫你下一次死亡。"
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
+        """免死。"""
+        user.SendStatusEffect(self)
         self.num -= 1 # pylint: disable=no-member
         return time, True
     def register(self) -> Dict[UserEvt, int]:
@@ -365,6 +367,8 @@ class SDeath13(StatusDailyStack):
     isGlobal = True
     isDebuff = True
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
+        """时间加倍。"""
+        user.SendStatusEffect(self)
         time *= 2 ** self.count
         return time, False
     def register(self) -> Dict[UserEvt, int]:
@@ -394,7 +398,9 @@ class STemperance14(StatusDailyStack):
     _description = "今天你不能使用除胶带外的卡牌。"
     isDebuff = True
     async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
+        """不能使用卡牌。"""
         if card.id != 100:
+            user.SendStatusEffect(self)
             return False
         return True
     def register(self) -> Dict['UserEvt', int]:
@@ -407,7 +413,10 @@ class CDevil15(Card):
     _description = "击毙上一位使用卡牌的人。"
     pack = Pack.tarot
     async def Use(self, user: 'User') -> None:
+        """击毙。
+        userQQ: 被击毙的人的qq。"""
         qq = user.game.state['last_card_user']
+        user.SendCardUse(self, userQQ=qq)
         u = user.CreateUser(qq)
         await u.Killed(user)
 
@@ -418,6 +427,8 @@ class CTower16(Card):
     _description = "随机解除至多3个雷，随机击毙3个玩家。"
     pack = Pack.tarot
     async def Use(self, user: 'User') -> None:
+        """击毙。
+        qqlist: 被击毙的人的qq的列表。"""
         for i in range(3):
             if len(user.game.bombs) == 0:
                 break
@@ -428,6 +439,7 @@ class CTower16(Card):
         for i in range(3):
             p.append(random.choice(l))
             l.remove(p[-1])
+        user.SendCardUse(self, qqlist=p)
         for q in p:
             await user.CreateUser(q).Killed(user, isAOE = (len(p)>1))
 
@@ -441,10 +453,14 @@ class CStar17(Card):
         await user.ume.AddStatus(SStar17())
 class SStar17(StatusDailyStack):
     id = 17
-    _description = "XVII - 星星：今天的每个词有10%的几率进入奖励词池。"
+    name = "XVII - 星星"
+    _description = "今天的每个词有10%的几率进入奖励词池。"
     isGlobal = True
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        """添加奖励词。
+        word: 添加的词。"""
         if random.random() > 0.9 ** self.num:
+            user.SendStatusEffect(self, word=branch.word)
             user.game.AddKeyword(branch.word)
     def register(self) -> Dict['UserEvt', int]:
         return {UserEvt.OnDragoned: Priority.OnDragoned.star}
@@ -501,7 +517,7 @@ class SIll30(StatusDailyStack):
     isRemovable = False
     _description = "直到跨日前不得接龙。"
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
-        '''因病了不能接龙'''
+        '''因病了不能接龙。'''
         user.SendStatusEffect(self)
         return False, 0
     def register(self) -> Dict[UserEvt, int]:
@@ -715,6 +731,8 @@ class SPlusTwo60(StatusNullStack):
     _description = "下一个接龙的人摸一张非负面卡和一张非正面卡。"
     isGlobal = True
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        """摸牌。"""
+        user.SendStatusEffect(self)
         await user.ume.RemoveStatus(self)
         cards = list(itertools.chain(*[[user.game.RandomNewCards(user, requirement=positive({-1, 0}))[0], user.game.RandomNewCards(user, requirement=positive({0, 1}))[0]] for i in range(self.count)]))
         await user.Draw(0, cards=cards)
@@ -729,8 +747,9 @@ class CLuckyCharm73(Card):
     _description = "持有此卡时，每天只能使用一张其他卡牌，你的幸运值+1。使用将丢弃这张卡。"
     pack = Pack.orange_juice
     async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
+        """今天幸运护符的使用卡牌次数已完。"""
         if not isinstance(card, CLuckyCharm73):
-            # user.send_log("今天幸运护符的使用卡牌次数已用完" + 句尾)
+            user.SendCardEffect(self)
             await user.AddStatus(SLuckyCharm73())
         return True
     def register(self) -> Dict[UserEvt, int]:
@@ -741,8 +760,9 @@ class SLuckyCharm73(StatusDailyStack):
     _description = "今天你不能使用除幸运护符以外的卡牌。"
     isDebuff = True
     async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
+        """不能使用除幸运护符以外的卡牌。"""
         if any(isinstance(c, CLuckyCharm73) for c in user.data.handCard) and not isinstance(card, CLuckyCharm73):
-            # TODO
+            user.SendStatusEffect(self)
             return False
         return True
     def register(self) -> Dict[UserEvt, int]:
@@ -755,13 +775,14 @@ class CJiSuZhuangZhi74(Card):
     _description = '你下次你可以连续接龙两次。'
     pack = Pack.orange_juice
     async def Use(self, user: 'User') -> None:
-        user.AddStatus(SJiSuZhuangZhi74())
+        await user.AddStatus(SJiSuZhuangZhi74())
 class SJiSuZhuangZhi74(StatusNullStack):
     id = 74
     name = "极速装置"
     _description = "你下次可以连续接龙两次。"
     async def CheckSuguri(self, user: 'User', state: 'DragonState') -> bool:
-        # TODO
+        """使用极速装置。"""
+        user.SendStatusEffect(self)
         await user.RemoveStatus(SJiSuZhuangZhi74(1))
         return True
     def register(self) -> Dict[UserEvt, int]:
@@ -808,7 +829,7 @@ class CComicSans80(Card): # TODO
     pack = Pack.playtest
     async def Use(self, user: 'User') -> None:
         await user.ume.AddStatus(SComicSans80())
-class SComicSans80(StatusDailyStack):
+class SComicSans80(StatusDailyStack): # TODO
     name = "Comic Sans"
     id = 80
     isGlobal = True
@@ -821,6 +842,7 @@ class CPC81(Card):
     _description = '今天接过龙的所有人立刻获得胜利。'
     pack = Pack.playtest
     async def Use(self, user: 'User') -> None:
+        """全部胜利。"""
         user.SendCardUse(self)
         qqs = [tree.qq for tree in itertools.chain(*itertools.chain(user.game.treeObjs, *user.game.treeForests))]#TODO
         for qq in set(qqs):
@@ -843,6 +865,7 @@ class CSuicideKing90(Card):
     consumedOnDraw = True
     pack = Pack.poker
     async def OnDraw(self, user: 'User') -> None:
+        """死了。"""
         user.SendCardOnDraw(self)
         await user.Death()
 
@@ -854,6 +877,7 @@ class CPig91(Card):
     consumedOnDraw = True
     pack = Pack.poker
     async def OnDraw(self, user: 'User') -> None:
+        """抽到了猪。"""
         user.SendCardOnDraw(self)
         await user.AddJibi(-20)
 
@@ -865,6 +889,7 @@ class CSheep92(Card):
     consumedOnDraw = True
     pack = Pack.poker
     async def OnDraw(self, user: 'User') -> None:
+        """抽到了羊。"""
         user.SendCardOnDraw(self)
         await user.AddJibi(20)
 
@@ -1343,7 +1368,10 @@ class SEruption114(StatusDailyStack):
     _description = "地火喷发：今天所有的接龙词都有10%的几率变成地雷。"
     isGlobal = True
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        """添加地雷。
+        word: 添加的词。"""
         if random.random() > 0.9 ** self.num:
+            user.SendStatusEffect(self, word=branch.word)
             user.game.AddBomb(branch.word)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDragoned: Priority.OnDragoned.eruption}
