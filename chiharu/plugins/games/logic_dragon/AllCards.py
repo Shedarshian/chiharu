@@ -846,7 +846,7 @@ class CSuicideKing90(Card):
         user.SendCardOnDraw(self)
         await user.Death()
 
-class CPig90(Card):
+class CPig91(Card):
     name = "猪（♠Q）"
     id = 91
     positive = -1
@@ -1310,9 +1310,10 @@ class SEarthquake113(StatusNullStack):
     isGlobal = True
     async def OnNewDay(self, user: 'User') -> None:
         '''扣除玩家击毙
-        Tpair：玩家qq和对应玩家被扣除击毙的次数'''
-        to_send = Counter()
-        for branch in user.game.TreeObjs:
+        qq: 玩家qq
+        count: 扣除的击毙的次数'''
+        to_send: Counter[int] = Counter()
+        for branch in user.game.treeObjs:
             if len(branch) == 0:
                 continue
             end = branch[-1]
@@ -1322,7 +1323,7 @@ class SEarthquake113(StatusNullStack):
                     to_send[tr.qq] += 1
         if len(to_send) != 0:
             for qq, count in to_send.items():
-                user.SendStatusEffect(self, Tpair = (qq,count))
+                user.SendStatusEffect(self, qq=qq, count=count)
                 await user.CreateUser(qq).AddJibi(-4 * count)
         await user.ume.RemoveStatus(SEarthquake113)
     def register(self) -> Dict[UserEvt, int]:
@@ -1335,14 +1336,14 @@ class CEruption114(Card):
     positive = 0
     pack = Pack.ff14
     async def Use(self, user: 'User') -> None:
-        user.ume.AddStatus(SEruption114())
+        await user.ume.AddStatus(SEruption114())
 class SEruption114(StatusDailyStack):
     name = "地火喷发"
     id = 114
     _description = "地火喷发：今天所有的接龙词都有10%的几率变成地雷。"
     isGlobal = True
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
-        if random.random() > 0.9 ** count:
+        if random.random() > 0.9 ** self.num:
             user.game.AddBomb(branch.word)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDragoned: Priority.OnDragoned.eruption}
@@ -1360,10 +1361,12 @@ class SConfession116(StatusDailyStack):
     id = 116
     _description = "今天每次你获得击毙时额外获得1击毙。"
     async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
+        """额外获得击毙。
+        count: 增加的击毙数"""
         if jibi > 0:
-            user.SendStatusEffect(self, count = self.count)
-            return jibi + count,
-        return jibi,
+            user.SendStatusEffect(self, count=self.count)
+            return jibi + self.count
+        return jibi
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnJibiChange: Priority.OnJibiChange.confession}
 class SInvConfession94(StatusDailyStack):
@@ -1371,34 +1374,34 @@ class SInvConfession94(StatusDailyStack):
     id = 94
     _description = "今日每次你获得击毙时少获得1击毙。"
     async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
+        """额外获得击毙。
+        count: 减少的击毙数"""
         if jibi > 0:
-            user.SendStatusEffect(self, count = self.count)
-            return max(jibi - count, 0),
-        return jibi,
+            user.SendStatusEffect(self, count=self.count)
+            return max(jibi - self.count, 0)
+        return jibi
     def register(self) -> Dict[UserEvt, int]:
-        return {UserEvt.OnJibiChange: Priority.OnJibiChange.confession}
+        return {UserEvt.OnJibiChange: Priority.OnJibiChange.inv_confession}
 
 class CExcogitation117(Card):
     name = "深谋远虑之策"
     id = 117
     _description = "当你一次使用/损失了超过你现有击毙一半以上的击毙时，恢复这些击毙。"
     positive = 0
-    status = 'n'
     pack = Pack.ff14
     async def Use(self, user: 'User') -> None:
-        user.AddStatus(SExcogitation117())
+        await user.AddStatus(SExcogitation117())
 class SExcogitation117(StatusNullStack):
     name = "深谋远虑之策"
     id = 117
     _description = "当你一次使用/损失了超过你现有击毙一半以上的击毙时，恢复这些击毙。"
     async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
         if jibi < 0 and -jibi > user.data.jibi / 2:
-            await user.RemoveStatus(self)
+            await user.RemoveStatus(SExcogitation117)
             user.SendStatusEffect(self)
             return 0
         return jibi
-    @classmethod
-    def register(cls) -> dict[int, TEvent]:
+    def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnJibiChange: Priority.OnJibiChange.excogitation}
 
 class CMixidiyatu118(Card):
@@ -1408,7 +1411,7 @@ class CMixidiyatu118(Card):
     positive = 0
     pack = Pack.ff14
     async def Use(self, user: 'User') -> None:
-        user.AddStatus(SMixidiyatu118())
+        await user.AddStatus(SMixidiyatu118())
 class SMixidiyatu118(StatusNullStack):
     name = "通灵之术-密西迪亚兔"
     id = 118
