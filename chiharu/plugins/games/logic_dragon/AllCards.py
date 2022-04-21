@@ -2,6 +2,7 @@ from typing import *
 from datetime import timedelta, datetime
 from copy import copy
 from math import ceil
+from collections import Counter
 import itertools, random
 from .Game import Game
 from .Card import Card
@@ -970,7 +971,7 @@ class SZPM101(StatusNullStack):
         """接龙为你提供1击毙。"""
         user.SendStatusEffect(self, time='OnDragoned')
         await user.AddJibi(1)
-    async def AfterJibiChange(self, user: 'User') -> None:
+    async def AfterJibiChange(self, user: 'User', jibi: int) -> None:
         """当前击毙多于100，buff消失。"""
         if user.data.jibi > 100:
             user.SendStatusEffect(self, time='AfterJibiChange')
@@ -1254,10 +1255,10 @@ class SPanjueBActivated107(StatusNullStack):
 class IPanjueChecker(IEventListener):
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
         if (nd := branch.before(5)) and nd.qq != user.game.managerQQ and nd.qq != 0 and (u := user.CreateUser(nd.qq)) != user:
-            if na := u.CheckStatus(SPanjueAActivated106):
+            if na := u.CheckStatusStack(SPanjueAActivated106):
                 await u.RemoveAllStatus(SPanjueAActivated106)
                 await user.AddStatus(SPanjueA111(na))
-            if nb := u.CheckStatus(SPanjueBActivated107):
+            if nb := u.CheckStatusStack(SPanjueBActivated107):
                 await u.RemoveAllStatus(SPanjueBActivated107)
                 await user.AddStatus(SPanjueB112(nb))
     def register(self) -> Dict[UserEvt, int]:
@@ -1292,4 +1293,127 @@ class SShuairuo95(StatusTimed):
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnJibiChange: Priority.OnJibiChange.shuairuo}
 
+class CEarthquake113(Card):
+    id = 113
+    name = "大地摇动"
+    _description = "抽到时附加全局buff：今天每个分支最后接龙的第2,5,8,11,14个人每人扣除4击毙。"
+    positive = -1
+    pack = Pack.ff14
+    consumedOnDraw = True
+    async def OnDraw(self, user: 'User') -> None:
+        await user.ume.AddStatus(SEarthquake113())
+class SEarthquake113(StatusNullStack):
+    id = 113
+    name = "大地摇动"
+    _description = "今天每个分支最后接龙的第2,5,8,11,14个人每人扣除4击毙。"
+    isDebuff = True
+    isGlobal = True
+    async def OnNewDay(self, user: 'User') -> None:
+        '''扣除玩家击毙
+        Tpair：玩家qq和对应玩家被扣除击毙的次数'''
+        to_send = Counter()
+        for branch in user.game.TreeObjs:
+            if len(branch) == 0:
+                continue
+            end = branch[-1]
+            for i in range(1, 15, 3):
+                tr = end.before(i)
+                if tr is not None and tr.id != (0, 0):
+                    to_send[tr.qq] += 1
+        if len(to_send) != 0:
+            for qq, count in to_send.items():
+                user.SendStatusEffect(self, Tpair = (qq,count))
+                await user.CreateUser(qq).AddJibi(-4 * count)
+        await user.ume.RemoveStatus(SEarthquake113)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnNewDay: Priority.OnNewDay.earthquake}
 
+class CEruption114(Card):
+    name = "地火喷发"
+    id = 114
+    _description = "今天所有的接龙词都有10%的几率变成地雷。"
+    positive = 0
+    pack = Pack.ff14
+    async def Use(self, user: 'User') -> None:
+        user.ume.AddStatus(SEruption114())
+class SEruption114(StatusDailyStack):
+    name = "地火喷发"
+    id = 114
+    _description = "地火喷发：今天所有的接龙词都有10%的几率变成地雷。"
+    isGlobal = True
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        if random.random() > 0.9 ** count:
+            user.game.AddBomb(branch.word)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.eruption}
+
+class CConfession116(Card):
+    name = "告解"
+    id = 116
+    _description = "今天每次你获得击毙时额外获得1击毙。"
+    positive = 1
+    pack = Pack.ff14
+    async def Use(self, user: 'User') -> None:
+        user.AddStatus(SConfession116())
+class SConfession116(StatusDailyStack):
+    name = "告解"
+    id = 116
+    _description = "今天每次你获得击毙时额外获得1击毙。"
+    async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
+        if jibi > 0:
+            user.SendStatusEffect(self, count = self.count)
+            return jibi + count,
+        return jibi,
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnJibiChange: Priority.OnJibiChange.confession}
+class SInvConfession94(StatusDailyStack):
+    name = "反转·告解"
+    id = 94
+    _description = "今日每次你获得击毙时少获得1击毙。"
+    async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
+        if jibi > 0:
+            user.SendStatusEffect(self, count = self.count)
+            return max(jibi - count, 0),
+        return jibi,
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnJibiChange: Priority.OnJibiChange.confession}
+
+class CExcogitation117(Card):
+    name = "深谋远虑之策"
+    id = 117
+    _description = "当你一次使用/损失了超过你现有击毙一半以上的击毙时，恢复这些击毙。"
+    positive = 0
+    status = 'n'
+    pack = Pack.ff14
+    async def Use(self, user: 'User') -> None:
+        user.AddStatus(SExcogitation117())
+class SExcogitation117(StatusNullStack):
+    name = "深谋远虑之策"
+    id = 117
+    _description = "当你一次使用/损失了超过你现有击毙一半以上的击毙时，恢复这些击毙。"
+    async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
+        if jibi < 0 and -jibi > user.data.jibi / 2:
+            await user.RemoveStatus(self)
+            user.SendStatusEffect(self)
+            return 0
+        return jibi
+    @classmethod
+    def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnJibiChange: Priority.OnJibiChange.excogitation}
+
+class CMixidiyatu118(Card):
+    name = "通灵之术-密西迪亚兔"
+    id = 118
+    _description = "你的头上会出现一只可爱的小兔子。"
+    positive = 0
+    pack = Pack.ff14
+    async def Use(self, user: 'User') -> None:
+        user.AddStatus(SMixidiyatu118())
+class SMixidiyatu118(StatusNullStack):
+    name = "通灵之术-密西迪亚兔"
+    id = 118
+    _description = "你的头上会出现一只可爱的小兔子。"
+class SInvMixidiyatu91(StatusNullStack):
+    name = "反转·通灵之术-密西迪亚兔"
+    id = 91
+    _description = "你的屁股上出现了一只可爱的小兔子。"

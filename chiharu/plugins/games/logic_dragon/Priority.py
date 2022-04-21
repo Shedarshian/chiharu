@@ -116,8 +116,8 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         steamsummer = auto()
         beijingcard = auto()
     class OnJibiChange(IntEnum):
-        gaojie = auto()                 # 告解：每获得击毙+1击毙
-        inv_gaojie = auto()             # 反转告解
+        confession = auto()             # 告解：每获得击毙+1击毙
+        inv_confession = auto()         # 反转告解
         bikini = auto()                 # 比基尼：有几率翻倍
         schoolsui = auto()              # 死库水：有几率免单
         beacon = auto()                 # 个人插件-产能：有几率加获得，有上限-节能：有几率降支出，有上限
@@ -128,7 +128,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         inv_bianyaqi = auto()           # 反转变压器
         steamsummer = auto()            # Steam夏季促销：减半购买支出
         beijingcard = auto()            # 一卡通：根据消费总量打折
-        shenmouyuanlv = auto()          # 绿帽：击毙减半则免单
+        excogitation = auto()           # 绿帽：击毙减半则免单
         train = auto()                  # 火车：便乘
         bingo = auto()
     class AfterJibiChange(IntEnum):
@@ -204,7 +204,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         panjuecheck = auto()            # 判决重合 contains both a and b
         jack_in_the_box = auto()        # 玩偶匣：爆炸判定
         star = auto()                   # 星星：奖励词判定
-        dihuopenfa = auto()             # 地火：埋雷判定
+        eruption = auto()               # 地火：埋雷判定
         xixueshashou = auto()           # 吸血杀手：抽卡判定
         forkbomb = auto()               # 叉子炸弹：分叉判定
         timebomb = auto()               # 定时炸弹：计次
@@ -229,5 +229,6 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         inv_sunflower = auto()
         inv_twinsunflower = auto()
         timebomb = auto()
+        earthquake = auto()
 
 exchange: dict[UserEvt, Type[IntEnum]] = {c: Priority.__dict__[c.name] for c in UserEvt}
