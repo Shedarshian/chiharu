@@ -1310,7 +1310,7 @@ class SEarthquake113(StatusNullStack):
     isGlobal = True
     async def OnNewDay(self, user: 'User') -> None:
         '''扣除玩家击毙
-        qq: 玩家qq
+        userQQ: 玩家qq
         count: 扣除的击毙的次数'''
         to_send: Counter[int] = Counter()
         for branch in user.game.treeObjs:
@@ -1323,7 +1323,7 @@ class SEarthquake113(StatusNullStack):
                     to_send[tr.qq] += 1
         if len(to_send) != 0:
             for qq, count in to_send.items():
-                user.SendStatusEffect(self, qq=qq, count=count)
+                user.SendStatusEffect(self, userQQ=qq, count=count)
                 await user.CreateUser(qq).AddJibi(-4 * count)
         await user.ume.RemoveStatus(SEarthquake113)
     def register(self) -> Dict[UserEvt, int]:
@@ -1355,7 +1355,7 @@ class CConfession116(Card):
     positive = 1
     pack = Pack.ff14
     async def Use(self, user: 'User') -> None:
-        user.AddStatus(SConfession116())
+        await user.AddStatus(SConfession116())
 class SConfession116(StatusDailyStack):
     name = "告解"
     id = 116
