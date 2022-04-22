@@ -7194,7 +7194,7 @@ class YamatoTamasi(_card):
     name = "大和魂"
     positive = 0
     newer = 8
-    description = "当你死亡时，千春为你吟诵一首俳句。"
+    description = "抽到时附加状态：当你死亡时，千春为你吟诵一首俳句。"
     pack = Pack.silly
     consumed_on_draw = True
     on_draw_status = 'Y'
@@ -7258,9 +7258,9 @@ class Sgender(NumedStatus):
 class TYPEA(_card):
     id = 252
     name = "TYPE-A"
-    positive = 0
+    positive = -1
     newer = 8
-    description = "当规则为首尾或尾首接龙时，如果你接龙时按另一者接，那么你会死于强迫症。"
+    description = "抽到时附加状态：当规则为首尾或尾首接龙时，如果你接龙时按另一者接，那么你会死于强迫症。"
     pack = Pack.silly
     consumed_on_draw = True
     on_draw_daily_status = 'A'
@@ -7337,7 +7337,7 @@ class SHungruCentipede(_statusdaily):
 class Orga(_card):
     id = 257
     name = "奥尔加"
-    description = "附加全局状态奥尔加。"
+    description = "抽到时，附加全局状态奥尔加。"
     positive = 0
     newer = 8
     pack = Pack.silly
