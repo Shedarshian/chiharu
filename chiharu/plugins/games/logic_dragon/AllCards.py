@@ -844,7 +844,7 @@ class CPC81(Card):
     async def Use(self, user: 'User') -> None:
         """全部胜利。"""
         user.SendCardUse(self)
-        qqs = [tree.qq for tree in itertools.chain(*itertools.chain(user.game.treeObjs, *user.game.treeForests))]#TODO
+        qqs = [tree.qq for tree in itertools.chain(*itertools.chain(user.game.treeObjs, *user.game.treeForests))]
         for qq in set(qqs):
             await user.CreateUser(qq).AddStatus(SWin81())
 class SWin81(StatusDailyStack):
@@ -1102,7 +1102,18 @@ class AXiaoHunFaShu108(Attack):
     name = "销魂法术"
     doublable = False
     async def selfAction(self):
-        pass # TODO
+        to_remove: list[Status] = []
+        for status in self.defender.data.statuses:
+            if not status.isRemovable:
+                continue
+            if status.isNull:
+                n = sum(1 for i in range(status.count) if random.random() > 0.5 ** self.multiplier)
+                to_remove.append(type(status)(n))
+            else:
+                if random.random() > 0.5 ** self.multiplier:
+                    to_remove.append(status)
+        for status in to_remove:
+            await self.defender.RemoveStatus(status, remover=self.attacker)
 
 class CRanSheFaShu109(Card):
     name = "蚺虵法术"

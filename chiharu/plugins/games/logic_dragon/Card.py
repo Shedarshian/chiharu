@@ -1,4 +1,5 @@
 from typing import *
+import re
 from .EventListener import IEventListener
 from .Helper import Saveable, BuildIdMeta
 from .Types import Pack, ProtocolData
@@ -34,4 +35,7 @@ class Card(IEventListener, Saveable, hasIdDict=True):
         pass
     def DumpData(self) -> ProtocolData:
         return {"id": self.id, "name": self.name, "description": self.description, "eff_draw": self.consumedOnDraw, "data": self.packData()}
-
+    def __init_subclass__(cls) -> None:
+        if match := re.search(r"DLC(\d+)", cls.__module__):
+            cls.newer = int(match.group(1))
+        return super().__init_subclass__()
