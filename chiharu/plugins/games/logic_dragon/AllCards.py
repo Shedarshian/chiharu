@@ -977,6 +977,77 @@ class CEmptyCard95(Card):
         user.SendCardUse(self, card=card)
         await user.UseCardEffect(card)
 
+class CJiaodai100(Card):
+    name = "布莱恩科技航空专用强化胶带FAL84型"
+    id = 100
+    positive = 1
+    _description = "取消掉你身上的至多6种可取消的负面状态，并免疫下次即刻生效的负面状态。"
+    pack = Pack.gregtech
+    @property
+    def weight(cls, user: User):
+        if user.data.luck == 0:
+            return 1
+        count = sum(1 for c in user.data.statuses if c.isDebuff and c.isRemoveable)
+        return 1 + user.data.luck / 5 * min(count, 6)
+    async def Use(self, user: 'User') -> None:
+        '''消除负面状态
+        sname：负面状态的名字
+        count：负面状态的层数'''
+        has = 6
+        for c in user.data.statuses:
+            if has <= 0:
+                break
+            if not c.isDebuff or not c.isRemovable:
+                continue
+            if has >= c.count:
+                has -= c.count
+                user.SendCardUse(self, sname = c.name, count = c.count)
+                await user.RemoveStatus(c, remover=user)
+            elif has < c.count:
+                user.SendCardUse(self, sname = c.name, count = has)
+                await user.RemoveStatus(type(c)(has), remover=user)
+                has = 0
+        await user.AddStatus(SJiaodai100())
+class SJiaodai100(StatusNullStack):
+    name = "布莱恩科技航空专用强化胶带FAL84型"
+    id = 100
+    positive = 1
+    _description = "免疫下次即刻生效的负面状态。"
+    async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
+        if status.isDebuff and status.isRemovable:
+            '''免除负面状态
+            flag：是否防止了全部的负面状态'''
+            if self.count >= status.count:
+                user.SendStatusEffect(self, flag = 'all')
+                await user.RemoveStatus(SJiaodai100(status.count))
+                return True
+            else:
+                status.num -= self.count
+                user.SendStatusEffect(self, flag = 'part')
+                await user.RemoveAllStatus(SJiaodai100)
+        return False
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnStatusAdd: Priority.OnStatusAdd.jiaodai}
+class SInvJiaodai90(StatusNulStack):
+    name = "反转·布莱恩科技航空专用强化胶带FAL84型"
+    id = 90
+    _description = "免疫你下次即刻生效的非负面状态。"
+    async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
+        if not status.isDebuff and status.isRemovable:
+            '''免除非负面状态
+            flag：是否防止了全部的非负面状态'''
+            if self.count >= status.count:
+                user.SendStatusEffect(self, flag = 'all')
+                await user.RemoveStatus(SInvJiaodai900(status.count))
+                return True
+            else:
+                status.num -= self.count
+                user.SendStatusEffect(self, flag = 'part')
+                await user.RemoveAllStatus(SInvJiaodai90)
+        return False
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnStatusAdd: Priority.OnStatusAdd.inv_jiaodai}
+
 class CZPM101(Card):
     name = "Zero-Point Module"
     id = 101
@@ -1460,3 +1531,50 @@ class SInvMixidiyatu91(StatusNullStack):
     name = "反转·通灵之术-密西迪亚兔"
     id = 91
     _description = "你的屁股上出现了一只可爱的小兔子。"
+
+class CWardensPaean119(Card):
+    name = "光阴神的礼赞凯歌"
+    id = 119
+    _description = "免疫三次负面状态或消耗全部次数免疫大病一场，或主动使用解除大病一场。"
+    positive = 1
+    pack = Pack.ff14
+    @property
+    def weight(cls, user: User):
+        if user.check_daily_status('d'):
+            return 1 + user.data.luck / 2
+        return 1
+    async def Use(self, user: 'User') -> None:
+        for c in user.data.statuses:
+            if isinstance(c,SIll30):
+                user.SendCardUse(self)
+                await user.RemoveAllStatus(SIll30, remover=user)
+                return
+        await user.AddStatus(SWardensPeaen119(3))
+class SWardensPaean119(StatusNumed):
+    name = "光阴神的礼赞凯歌"
+    id = 119
+    _description = "免疫三次负面状态或消耗全部次数免疫大病一场，或主动使用解除大病一场。"
+    @property
+    def double(self):
+        pass # TODO
+    async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
+        if isinstance(status, SIll30) and self.count == 3:
+            '''免除负面状态
+            flag：是否防止了全部的负面状态'''
+            user.SendStatusEffect(self, flag = 'ill')
+            await user.RemoveStatus(self)
+            return True
+        elif status.isDebuff and status.isRemovable:
+            if self.count >= status.count:
+                user.SendStatusEffect(self, flag = 'all')
+                self.num -= status.count
+                user.data.SaveStatuses()
+                return True
+            else:
+                status.num -= self.count
+                user.SendStatusEffect(self, flag = 'part')
+                await user.RemoveStatus(self)
+                user.data.SaveStatuses()
+        return False
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnStatusAdd: Priority.OnStatusAdd.paean}
