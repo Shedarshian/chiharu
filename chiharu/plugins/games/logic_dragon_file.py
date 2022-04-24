@@ -37,7 +37,7 @@ def find_or_new(qq: int):
         config.logger.dragon << "【WARNING】试图find qq=0的node。"
     t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     if t is None:
-        extra_data_init = me.extra.data.pack()
+        extra_data_init = Game.me.extra.data.pack()
         config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop, equipment, event_stage, event_shop, extra_data, dead, flags, hp, mp) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 0, 0, 0, ?, 0, 0, ?, false, 0, 500, 500)', (qq, '', '', '', '', '[]', '{}', extra_data_init))
         t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     return t
@@ -437,7 +437,7 @@ class Game:
     @classmethod
     def userdata(cls, qq: int):
         if qq == config.selfqq:
-            return me
+            return Game.me
         if qq in cls.userdatas:
             return cls.userdatas[qq]
         u = UserData(qq)
@@ -997,7 +997,7 @@ class User:
         if extra_listeners is not None:
             user_lists += extra_listeners
         if not no_global and not (self.check_status('%') and self.buf.state.get('circus')):
-            user_lists.append(me.event_listener[evt])
+            user_lists.append(Game.me.event_listener[evt])
         for p in priority:
             for e in user_lists:
                 ret = e.get(p)
@@ -1933,7 +1933,7 @@ def draw_cards(user: User, positive: Optional[Set[int]]=None, k: int=1, extra_la
         cards = [c for c in cards if extra_lambda(c)]
     packs = Sign(global_state["sign"]).pack()
     weight = [(c.weight(user) if callable(c.weight) else c.weight) + (4 if c.pack in packs else 0) + (1.5 if c.newer == up_newer else 0) for c in cards]
-    if me.check_daily_status('j') and (not x or x and (-1 in positive)):
+    if Game.me.check_daily_status('j') and (not x or x and (-1 in positive)):
         l = [(Card(-1) if random.random() < 0.2 else random.choices(cards, weight)[0]) for i in range(k)]
     else:
         l = random.choices(cards, weight, k=k)
@@ -2854,14 +2854,14 @@ class moon_s(_statusnull):
     @classmethod
     async def on_add(cls, count: TCount):
         from .logic_dragon import add_hidden_keyword
-        to_add_amount = count - min(0, 2 + me.check_status('k') - me.check_status('o'))
+        to_add_amount = count - min(0, 2 + Game.me.check_status('k') - Game.me.check_status('o'))
         if to_add_amount != 0:
             add_hidden_keyword(count=to_add_amount)
     @classmethod
     async def on_remove(cls, remove_all=True):
         from .logic_dragon import remove_hidden_keyword
-        count = me.check_status('k') if remove_all else 1
-        to_remove_amount = count - min(0, 2 + me.check_status('k') - me.check_status('o'))
+        count = Game.me.check_status('k') if remove_all else 1
+        to_remove_amount = count - min(0, 2 + Game.me.check_status('k') - Game.me.check_status('o'))
         if to_remove_amount != 0:
             remove_hidden_keyword(count=to_remove_amount)
     @classmethod
@@ -2878,14 +2878,14 @@ class inv_moon_s(_statusnull):
     @classmethod
     async def on_add(cls, count: TCount):
         from .logic_dragon import remove_hidden_keyword
-        to_remove_amount = count - min(0, 2 + me.check_status('k') - me.check_status('o'))
+        to_remove_amount = count - min(0, 2 + Game.me.check_status('k') - Game.me.check_status('o'))
         if to_remove_amount != 0:
             remove_hidden_keyword(count=to_remove_amount)
     @classmethod
     async def on_remove(cls, remove_all=True):
         from .logic_dragon import add_hidden_keyword
-        count = me.check_status('o') if remove_all else 1
-        to_add_amount = count - min(0, 2 + me.check_status('k') - me.check_status('o'))
+        count = Game.me.check_status('o') if remove_all else 1
+        to_add_amount = count - min(0, 2 + Game.me.check_status('k') - Game.me.check_status('o'))
         if to_add_amount != 0:
             add_hidden_keyword(count=to_add_amount)
     @classmethod
@@ -2997,9 +2997,9 @@ class wenhuazixin(_card):
     @classmethod
     async def use(cls, user: User) -> None:
         ume = Userme(user)
-        statuses = [(0, c) for c in me.status if StatusNull(c).removeable]
-        daily_statuses = [(1, c) for c in me.daily_status if StatusDaily(c).removeable]
-        status_times = [(2, c) for c in me.status_time_checked if c.removeable]
+        statuses = [(0, c) for c in Game.me.status if StatusNull(c).removeable]
+        daily_statuses = [(1, c) for c in Game.me.daily_status if StatusDaily(c).removeable]
+        status_times = [(2, c) for c in Game.me.status_time_checked if c.removeable]
         l: list[tuple[int, str | T_status]] = statuses + daily_statuses + status_times
         if len(l) == 0:
             return
@@ -3020,7 +3020,7 @@ class wenhuazixin(_card):
             else:
                 user.send_log("移除了" + name_f(j[2].des))
                 await ume.remove_limited_status(j[2], remover=user)
-        me.save_status_time()
+        Game.me.save_status_time()
 
 class lebusishu(_card):
     id = 35
@@ -3131,7 +3131,7 @@ class SJuedou(TimedStatus):
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
         count[0].count -= 1
-        me.save_status_time()
+        Game.me.save_status_time()
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.BeforeDragoned: (Priority.BeforeDragoned.juedou, cls),
@@ -3713,11 +3713,11 @@ class huxiangjiaohuan(_card):
     pack = Pack.orange_juice
     @classmethod
     async def use(cls, user: User):
-        l = me.check_limited_status('x')
+        l = Game.me.check_limited_status('x')
         if l:
             l[0] += [user.qq]
             user.log << f"被加入交换堆栈，现为{l[0].list}。"
-            me.save_status_time()
+            Game.me.save_status_time()
         else:
             await Userme(user).add_limited_status(SHuxiangjiaohuan([user.qq]))
 class SHuxiangjiaohuan(ListStatus):
@@ -3732,7 +3732,7 @@ class SHuxiangjiaohuan(ListStatus):
     @classmethod
     async def OnHiddenKeyword(cls, count: TCount, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
         to_exchange = count[0].list.pop()
-        me.save_status_time()
+        Game.me.save_status_time()
         u = User(to_exchange, user.buf)
         atk = AHuxiangjiaohuan(u, user)
         await user.attacked(u, atk)
@@ -4190,9 +4190,9 @@ class xiaohunfashu(_card):
             if qq == config.selfqq:
                 user.send_log(f"选择了千春{句尾}消除了【XXI-世界】外的50%的全局状态{句尾}")
                 ume = Userme(user)
-                statuses = [(0, c) for c in me.status if StatusNull(c).removeable]
-                daily_statuses = [(1, c) for c in me.daily_status if StatusDaily(c).removeable]
-                status_times = [(2, c) for c in me.status_time_checked if c.removeable]
+                statuses = [(0, c) for c in Game.me.status if StatusNull(c).removeable]
+                daily_statuses = [(1, c) for c in Game.me.daily_status if StatusDaily(c).removeable]
+                status_times = [(2, c) for c in Game.me.status_time_checked if c.removeable]
                 l: list[tuple[int, str | T_status]] = statuses + daily_statuses + status_times
                 if len(l) == 0:
                     return
@@ -4213,7 +4213,7 @@ class xiaohunfashu(_card):
                     else:
                         user.send_log("移除了" + name_f(j[2].des))
                         await ume.remove_limited_status(j[2], remover=user)
-                me.save_status_time()
+                Game.me.save_status_time()
             else:
                 user.send_log(f"选择了玩家{qq}{句尾}")
                 u = User(qq, user.buf)
@@ -5226,7 +5226,7 @@ class jack_in_the_box_s(_statusnull):
     is_metallic = True
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-        if me.check_daily_status('i'):
+        if Game.me.check_daily_status('i'):
             return
         if random.random() > 0.95 ** count:
             user.send_log(f"的玩偶匣爆炸了{句尾}")
@@ -5255,7 +5255,7 @@ class bungeezombie(_card):
     pack = Pack.pvz
     @classmethod
     async def on_draw(cls, user: User) -> None:
-        if me.check_daily_status('i'):
+        if Game.me.check_daily_status('i'):
             user.buf.send(f"蹦极僵尸被寒冰菇冻住了{句尾}")
             user.log << f"蹦极僵尸被寒冰菇冻住了{句尾}"
         elif g := user.check_limited_status('G'):
@@ -5286,7 +5286,7 @@ class polezombie(_card):
     pack = Pack.pvz
     @classmethod
     async def on_draw(cls, user: User) -> None:
-        if me.check_daily_status('i'):
+        if Game.me.check_daily_status('i'):
             user.buf.send(f"撑杆跳僵尸被寒冰菇冻住了{句尾}")
             user.log << f"撑杆跳僵尸被寒冰菇冻住了{句尾}"
         else:
@@ -5582,11 +5582,11 @@ class Sexplore(NumedStatus):
                     user.send_log(f"没有可以清除的全局状态{句尾}")
                 else:
                     ss = global_state['global_status'][-1]
-                    if ss[0] == 0 and me.check_status(ss[1]):
+                    if ss[0] == 0 and Game.me.check_status(ss[1]):
                         sdes = StatusNull(ss[1]).des
                         user.send_log(f"移除了{sdes[:sdes.index('：')]}。")
                         await Userme(user).remove_status(ss[1], remove_all=False, remover=user)
-                    elif ss[0] == 1 and me.check_daily_status(ss[1]):
+                    elif ss[0] == 1 and Game.me.check_daily_status(ss[1]):
                         sdes = StatusDaily(ss[1]).des
                         user.send_log(f"移除了{sdes[:sdes.index('：')]}。")
                         await Userme(user).remove_daily_status(ss[1], remove_all=False, remover=user)
@@ -6286,11 +6286,11 @@ class upsidedown(_card):
         # 全局状态
         await _s(Userme(user))
         await _d(Userme(user))
-        # l = me.status_time_checked
+        # l = Game.me.status_time_checked
         # for i in range(len(l)):
         #     if random.random() > 0.5:
         #         continue
-        # me.save_status_time()
+        # Game.me.save_status_time()
 revert_status_map: Dict[str, str] = {}
 for c in ('AB', 'ab', 'st', 'xy', 'Mm', 'QR', '12', '89', '([', ')]', 'cd', '34', 'JK', '|/', 'LI', '&*', '^$'):
     revert_status_map[c[0]] = c[1]
@@ -6567,7 +6567,7 @@ class train(_card):
     pack = Pack.factorio
     @classmethod
     async def use(cls, user: User) -> None:
-        l = me.check_limited_status('t')
+        l = Game.me.check_limited_status('t')
         for tr in l:
             if random.random() < 0.25:
                 user.send_log(f"的火车和玩家{tr.qq}的火车发生了碰撞{句尾}")
@@ -6782,7 +6782,7 @@ class lab(_card):
         if user.data.luck == 0:
             return 1
         count = 0
-        if me.check_limited_status('t', lambda c: c.qq == user.qq):
+        if Game.me.check_limited_status('t', lambda c: c.qq == user.qq):
             count += 1
         if user.data.check_equipment(3) != 0:
             count += 1
@@ -6791,7 +6791,7 @@ class lab(_card):
         return 1 + user.data.luck / 5 * count
     @classmethod
     async def use(cls, user: User) -> None:
-        if t1 := me.check_limited_status('t', lambda c: c.qq == user.qq):
+        if t1 := Game.me.check_limited_status('t', lambda c: c.qq == user.qq):
             user.send_log("有火车，" + user.char + f"的每辆火车获得了火车跳板{句尾}")
             for tr in t1:
                 tr.if_def = True
@@ -6871,7 +6871,7 @@ class flamethrower(_card):
     pack = Pack.factorio
     @classmethod
     async def on_draw(cls, user: User) -> None:
-        if me.check_daily_status('i'):
+        if Game.me.check_daily_status('i'):
             user.send_char(f"摧毁了一个寒冰菇，获得了50击毙{句尾}" + user.char + f"就是今天的英雄{句尾}")
             Userme(user).remove_daily_status('i', remove_all=False, remover=user)
             await user.add_jibi(50)
@@ -7132,7 +7132,7 @@ class laplace(_card):
     @classmethod
     async def use(cls, user: User) -> None:
         ume = Userme(user)
-        if l := me.check_limited_status('P'):
+        if l := Game.me.check_limited_status('P'):
             if len(l[0].list) >= 3:
                 cards = [Card(c) for c in l[0].list[:3]]
             else:
@@ -7169,7 +7169,7 @@ class SLaplace(ListStatus):
             new = draw_cards(user, positive, n - len(can_draw), extra_lambda)
         for c in to_remove:
             count[0].list.remove(c.id)
-        me.save_status_time()
+        Game.me.save_status_time()
         return to_remove + new,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
@@ -7822,11 +7822,10 @@ class kuaizou_s(_statusnull):
     id = 'D'
     des = "快走：在活动中，你下次行走距离加倍。"
 
-me = UserData(config.selfqq)
+Game.me = UserData(config.selfqq)
 def new_me():
-    global me
-    del me
-    me = UserData(config.selfqq)
+    del Game.me
+    Game.me = UserData(config.selfqq)
 
 dragon: Callable[[User], User] = lambda user: User(1, user.buf)
 
@@ -7860,9 +7859,9 @@ class penhuo(DragonSkill):
     @classmethod
     async def use(cls, user: User, branch: Tree):
         await user.damaged(100 + dragon(user).data.dragon_level * 2)
-        if me.check_daily_status('i'):
+        if Game.me.check_daily_status('i'):
             user.buf.send(f"火焰解除了寒冰菇的效果{句尾}")
-            await Userme(me).remove_daily_status('i', remove_all=True, remover=user)
+            await Userme(user).remove_daily_status('i', remove_all=True, remover=user)
 class yaoren(DragonSkill):
     id = 2
     name = "咬人"
@@ -8074,7 +8073,7 @@ class huoyanxuanwo(DragonSkill):
         qqs = [tree.qq for tree in itertools.chain(*itertools.chain(Tree._objs, *Tree.forests))]
         for qq in set(qqs):
             await User(qq, user.buf).damaged(100 + dragon(user).data.dragon_level * 2)
-        if me.check_daily_status('i'):
+        if Game.me.check_daily_status('i'):
             user.buf.send(f"火焰解除了寒冰菇的效果{句尾}")
             await Userme(user).remove_daily_status('i', remove_all=True, remover=user)
 class xujiadexiwang(DragonSkill):

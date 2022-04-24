@@ -50,7 +50,7 @@ with open(config.rel('dragon_words.json'), encoding='utf-8') as f:
         current_event = "mid-autumn"
     del d
 
-from .logic_dragon_file import Equipment, Priority, TAttackType, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, me, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check, _statusnull, _statusdaily, Status, TModule, _equipment, DragonState, MajOneHai, Sign, new_me
+from .logic_dragon_file import Equipment, Priority, TAttackType, TEventListener, TQuest, UserData, UserEvt, global_state, save_global_state, save_data, mission, get_mission, Userme, draw_card, Card, _card, Game, User, _status, Tree, StatusNull, StatusDaily, newday_check, _statusnull, _statusdaily, Status, TModule, _equipment, DragonState, MajOneHai, Sign, new_me
 from . import logic_dragon_file
 
 # log
@@ -294,7 +294,7 @@ async def daily_update(buf: SessionBuffer) -> str:
     if today.isoweekday() == 7:
         global_state["sign"] = Sign.random()
     save_global_state()
-    if me.check_daily_status('s'):
+    if Game.me.check_daily_status('s'):
         await User(config.selfqq, buf).remove_daily_status('s', remove_all=False)
         config.userdata.execute('update dragon_data set today_jibi=10, today_keyword_jibi=10, shop_drawn_card=1, spend_shop=0')
         for r in config.userdata.execute("select qq, daily_status from dragon_data").fetchall():
@@ -302,7 +302,7 @@ async def daily_update(buf: SessionBuffer) -> str:
                 await User(r['qq'], buf).remove_daily_status('d')
     else: #TODO：当个人daily_status中存在'l'时，仅消除负面daily_status及它自身
         config.userdata.execute('update dragon_data set daily_status=?, today_jibi=10, today_keyword_jibi=10, shop_drawn_card=1, spend_shop=0', ('',))
-    if today.isoweekday() == 7 and me.check_status('\\'):
+    if today.isoweekday() == 7 and Game.me.check_status('\\'):
         await User(config.selfqq, buf).remove_status('\\')
     for r in config.userdata.execute("select qq, status, daily_status, status_time, equipment from dragon_data").fetchall():
         def _(s, st):
@@ -740,7 +740,7 @@ async def dragon_check(buf: SessionBuffer):
     elif data in ("卡池", "card_pool"):
         buf.finish("当前卡池大小为：" + str(len(_card.card_id_dict)))
     elif data in ("全局状态", "global_status"):
-        l = list(_(me))
+        l = list(_(Game.me))
         ret = '\n'.join((s if k == 1 else f'{k}* ' + s) for k, s in l)
         if ret == '':
             buf.finish(f"目前没有全局状态{句尾}")
@@ -751,7 +751,7 @@ async def dragon_check(buf: SessionBuffer):
         buf.finish("第一个完成一行或一列或一个对角线的玩家，以及第一个全部完成的玩家，将会获得一张超新星作为奖励，总共2张。\n" + bingo_checker.print())
     user = User(qq, buf)
     if data in ("商店", "shop"):
-        buf.finish(f"1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. ({10 if me.check_daily_status('o') or me.check_daily_status('p') else 35}击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。\n8. (5击毙)抽一张卡，每日限一次。" + ("\n9. (24击毙)解除无法战斗状态并以衰弱状态复生" if user.check_limited_status('D') else '') + (f"\n16. (5击毙)🎰🎲💰选我抽奖{句尾}💰🎲🎰" if me.check_daily_status('O') else ''))
+        buf.finish(f"1. (25击毙)从起始词库中刷新一条接龙词。\n2. (1击毙/15分钟)死亡时，可以消耗击毙减少死亡时间。\n3. (70击毙)向起始词库中提交一条词（需审核）。提交时请携带一张图。\n4. ({10 if Game.me.check_daily_status('o') or Game.me.check_daily_status('p') else 35}击毙)回溯一条接龙。\n5. (10击毙)将一条前一段时间内接过的词标记为雷。雷的存在无时间限制，若有人接到此词则立即被炸死。\n6. (5击毙)刷新一组隐藏奖励词。\n7. (50击毙)提交一张卡牌候选（需审核）。请提交卡牌名、来源、与卡牌效果描述。\n8. (5击毙)抽一张卡，每日限一次。" + ("\n9. (24击毙)解除无法战斗状态并以衰弱状态复生" if user.check_limited_status('D') else '') + (f"\n16. (5击毙)🎰🎲💰选我抽奖{句尾}💰🎲🎰" if Game.me.check_daily_status('O') else ''))
     elif data in ("详细手牌", "full_hand_cards"):
         cards = user.data.hand_card
         if len(cards) == 0:
@@ -792,11 +792,11 @@ async def dragon_check(buf: SessionBuffer):
     elif data in ("活动词", "active"):
         words = Tree.get_active()
         m = user.check_daily_status('m')
-        i = me.check_daily_status('i')
-        I = me.check_daily_status('I')
+        i = Game.me.check_daily_status('i')
+        I = Game.me.check_daily_status('I')
         M = user.check_daily_status('M')
         dis = max(2 + i - I - m + M, 1)
-        buf.finish("当前活动词" + ('🔄' if me.check_daily_status('o') else '♻️' if me.check_daily_status('p') else '') + "为：\n" + '\n'.join(f"{s.word}，{'⚠️' if qq in s.get_parent_qq_list(dis) else '❌' if len(l := user.check_limited_status('n')) > 0 and not l[0].check_node(s) else ''}id为{s.id_str}" for s in words))
+        buf.finish("当前活动词" + ('🔄' if Game.me.check_daily_status('o') else '♻️' if Game.me.check_daily_status('p') else '') + "为：\n" + '\n'.join(f"{s.word}，{'⚠️' if qq in s.get_parent_qq_list(dis) else '❌' if len(l := user.check_limited_status('n')) > 0 and not l[0].check_node(s) else ''}id为{s.id_str}" for s in words))
     elif data in ("资料", "profile"):
         ret = f"本周星座为：{Sign(global_state['sign']).description}\n你的资料为：\n今日剩余获得击毙次数：{user.data.today_jibi}。\n今日剩余获得关键词击毙：{user.data.today_keyword_jibi}。\n剩余抽卡券：{user.data.draw_time}。\n手牌上限：{user.data.card_limit}。" + (f"\n活动pt：{user.data.event_pt}。\n当前在活动第{user.data.event_stage}。" if current_event == "swim" else "")
         if user.data.extra.maj_quan // 3 != 0:
@@ -891,7 +891,7 @@ async def dragon_buy(buf: SessionBuffer):
         elif to_do not in Tree.get_active(have_fork=False):
             buf.send(f"只可回溯活动节点{句尾}")
         else:
-            cost = -10 if me.check_daily_status('o') or me.check_daily_status('p') else -35
+            cost = -10 if Game.me.check_daily_status('o') or Game.me.check_daily_status('p') else -35
             if not await user.add_jibi(cost, is_buy=True):
                 buf.finish(f"您的击毙不足{句尾}")
             to_do.remove()
@@ -949,7 +949,7 @@ async def dragon_buy(buf: SessionBuffer):
             i += 1
         await user.add_limited_status(Status('S')(datetime.now() + timedelta(minutes=240)))
         user.data.save_status_time()
-    elif id == 16 and me.check_daily_status('O'):
+    elif id == 16 and Game.me.check_daily_status('O'):
         # (5击毙)抽奖
         # 15 + 2 LUCK %几率掉一张卡
         # 15 - LUCK %几率获得1-5击毙
