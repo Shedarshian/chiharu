@@ -410,6 +410,7 @@ class Damage(Attack):
 class Game:
     session_list: List[CommandSession] = []
     userdatas: Dict[int, 'UserData'] = {}
+    me: 'UserData' = None
     @classmethod
     def wrapper_noarg(cls, f: Callable[[Any], Awaitable[config.SessionBuffer]]):
         @wraps(f)
