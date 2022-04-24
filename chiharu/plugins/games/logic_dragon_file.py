@@ -4903,6 +4903,7 @@ class magnet(_card):
     positive = 1
     newer = 7
     pack = Pack.pvz
+    is_metallic = True
     @classmethod
     async def use(self, user: User):
         await user.add_limited_status(magnet_s(datetime.now()))
