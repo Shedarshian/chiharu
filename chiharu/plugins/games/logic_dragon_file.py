@@ -7382,17 +7382,18 @@ class showyourfoolish(_card):
     consumed_on_draw = True
     @classmethod
     async def on_draw(cls, user: User) -> None:
-        if await user.choose():
+        if await user.choose(flush=False):
             card = random.choice([c for id, c in _card.card_id_dict.items() if c.pack == Pack.silly])
             cdes = card.full_description(user.qq)
             user.buf.send(f"你抽到的愚蠢卡牌是：\n{cdes}\n")
+            await user.buf.flush()
             res: str = (await user.buf.aget(prompt="请选择“他很愚蠢”或“他不够愚蠢”",
                 arg_filters=[
                     extractors.extract_text,
                     validators.ensure_true(lambda c: c == "他很愚蠢" or c == "他不够愚蠢", message = "请选择“他很愚蠢”或“他不够愚蠢”")
                     ]))
             if res == '他很愚蠢':
-                user.draw(0, cards=[card])
+                await user.draw(0, cards=[card])
             elif res == '他不够愚蠢':
                 config.logger.dragon << f"【LOG】询问用户{user.qq}提交的卡牌。"
                 s = await user.buf.aget(prompt="请提交卡牌名与卡牌效果描述，所属类别默认为愚蠢扩展包。\n\t请注意，只能输入一次。")
