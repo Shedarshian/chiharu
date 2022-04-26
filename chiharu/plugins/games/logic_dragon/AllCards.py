@@ -82,9 +82,10 @@ class CMagician1(Card):
     _description = "选择一张你的手牌（不可选择暴食的蜈蚣与组装机1型），发动3次该手牌的使用效果，并弃置之。此后一周内不得使用该卡。"
     pack = Pack.tarot
     def CanUse(self, user: 'User', copy: bool) -> bool:
-        return len(user.data.handCard) >= (1 if copy else 2) # TODO 判断不可选择的卡牌
+        return len(c for c in user.data.handCard if c.id not in (56, 200)) >= (1 if copy else 2)
     async def use(self, user: User):
-        # send TODO "请选择你手牌中的一张牌（不可选择暴食的蜈蚣与组装机1型），输入id号。"
+        """试图选择卡牌。"""
+        user.SendCardUse(self)
         l = await user.ChooseHandCards(1, 1,
                 requirement=lambda c: c.id not in (56, 200),
                 requireCanUse=True)
@@ -249,6 +250,8 @@ class CLovers6(Card):
     positive = 1
     pack = Pack.tarot
     async def Use(self, user: User):
+        """选择玩家复活。"""
+        user.SendCardUse(self)
         if (players := await user.ChoosePlayers(1, 1)) is not None:
             u = user.CreateUser(players[0])
             n = len(u.CheckStatus(SDeathN1)) == 0
@@ -489,6 +492,12 @@ class CJudgement20(Card):
             await user.AddJibi(-20)
         elif n > 20:
             await user.AddJibi(20)
+
+class SWorld21(Status):
+    id = 21
+    name = "XXI - 世界"
+    _description = "除大病一场外，所有“直到跨日为止”的效果延长至明天。"
+    isGlobal = True
 
 class CRandomMaj29(Card):
     id = 29
@@ -821,7 +830,7 @@ class CQiJiManBu79(Card):
         await user.DiscardCards(copy(user.data.handCard)) # I think this need to be shallow copy
         await user.Draw(n, requirement=positive({0, 1}))
 
-class CComicSans80(Card): # TODO
+class CComicSans80(Card):
     name = "Comic Sans"
     id = 80
     positive = 0
@@ -829,7 +838,7 @@ class CComicSans80(Card): # TODO
     pack = Pack.playtest
     async def Use(self, user: 'User') -> None:
         await user.ume.AddStatus(SComicSans80())
-class SComicSans80(StatusDailyStack): # TODO
+class SComicSans80(StatusDailyStack):
     name = "Comic Sans"
     id = 80
     isGlobal = True
@@ -969,12 +978,14 @@ class CEmptyCard95(Card):
         return len(c for c in user.data.handCard if c.id not in (95,)) >= (1 if copy else 2)
     async def Use(self, user: 'User') -> None:
         """使用卡牌效果
+        choose: True时为选择牌的提示。False时为使用卡牌效果。
         card：被使用效果的卡牌"""
+        user.SendCardUse(self, choose=True)
         l = await user.ChooseHandCards(1, 1,
                 requirement=lambda c: c.id not in (95,),
                 requireCanUse=True)
         card = l[0]
-        user.SendCardUse(self, card=card)
+        user.SendCardUse(self, choose=False, card=card)
         await user.UseCardEffect(card)
 
 class CJiaodai100(Card):
@@ -1111,15 +1122,17 @@ class CJuJiFaShu105(Card):
         return len(user.data.handCard) >= (2 if copy else 3)
     async def Use(self, user: 'User') -> None:
         """将两张手牌聚集。
+        choose: True时为选择卡牌提示。
         id: 聚集结果的id。"""
+        user.SendCardUse(self, choose=True)
         l = await user.ChooseHandCards(2, 2)
         await user.RemoveCards([l[0], l[1]])
         id_new = l[0].id + l[1].id
         if id_new not in Card.idDict:
-            user.SendCardUse(self, id = -1)
+            user.SendCardUse(self, choose=False, id = -1)
             id_new = -1
         else:
-            user.SendCardUse(self, id = id_new)
+            user.SendCardUse(self, choose=False, id = id_new)
         await user.Draw(0, cards=[Card.get(id_new)()])
 
 class CLieBianFaShu106(Card):
@@ -1133,16 +1146,18 @@ class CLieBianFaShu106(Card):
         return len(user.data.handCard) >= (1 if copy else 2)
     async def Use(self, user: 'User') -> None:
         """将一张手牌分解。
+        choose: True时为选择卡牌提示。
         ids: 分解结果的id列表。"""
+        user.SendCardUse(self, choose=True)
         l = await user.ChooseHandCards(1, 1)
         await user.RemoveCards([l[0]])
         l2 = [(id, l[0].id - id) for id in Card.idDict if l[0].id - id in Card.idDict]
         if len(l2) == 0:
-            user.SendCardUse(self, ids = [-1,-1])
+            user.SendCardUse(self, choose=False, ids = [-1,-1])
             id_new = (-1, -1)
         else:
             id_new = random.choice(l2)
-            user.SendCardUse(self, ids = list(id_new))
+            user.SendCardUse(self, choose=False, ids = list(id_new))
         await user.Draw(0, cards=[Card.get(id_new[0])(), Card.get(id_new[1])()])
 
 class CJingXingFaShu107(Card):
@@ -1169,7 +1184,28 @@ class CXiaoHunFaShu108(Card):
     _description = "对指定玩家发动，该玩家的每条可清除状态都有1/2的概率被清除；或是发送qq=2711644761对千春使用，消除【XXI-世界】外50%的全局状态，最多5个。"
     pack = Pack.cultist
     async def Use(self, user: 'User') -> None:
-        pass # TODO
+        """发动效果。
+        choose: True时为选择玩家提示。
+        chiharu: 是否选择的是千春。"""
+        user.SendCardUse(self, choose=True)
+        if (players := await user.ChoosePlayers(1, 1)) is not None:
+            player = players[0]
+            if player == user.game.managerQQ:
+                user.SendCardUse(self, choose=False, chiharu=True)
+                l = list(itertools.chain(*[[type(status)()] * status.count if status.isNull else [status] for status in user.game.me.statuses if status.isRemovable and not isinstance(status, SWorld21)]))
+                num = min(ceil(len(l) * 0.5), 5)
+                l3: list[Status] = []
+                for i in range(num):
+                    j = random.choice(l)
+                    l3.append(j)
+                    l.remove(j)
+                ume = user.ume
+                for status in l3:
+                    await ume.RemoveStatus(status, remover=user)
+            else:
+                user.SendCardUse(self, choose=False, chiharu=False)
+                atk = AXiaoHunFaShu108(user, u := user.CreateUser(player))
+                await u.Attacked(atk)
 class AXiaoHunFaShu108(Attack):
     id = 108
     name = "销魂法术"
@@ -1195,6 +1231,8 @@ class CRanSheFaShu109(Card):
     _description = "对指定玩家发动，该玩家当日每次接龙需额外遵循首尾接龙规则。"
     pack = Pack.cultist
     async def Use(self, user: 'User') -> None:
+        """选择玩家。"""
+        user.SendCardUse(self)
         if (players := await user.ChoosePlayers(1, 1)) is not None:
             target = user.CreateUser(players[0])
             atk = ARanSheFaShu109(user, target)
