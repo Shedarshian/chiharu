@@ -521,10 +521,12 @@ class Game:
         # Event OnUserUseCard
         user.Send(type="begin", name="OnUserUseCard")
         for el in user.IterAllEvent(UserEvt.OnUserUseCard):
-            can_use = await el.OnUserUseCard(user, card)
+            can_use, blocked = await el.OnUserUseCard(user, card)
+            if blocked:
+                break
             if not can_use:
                 return {"type": "failed", "error_code": 202}
-        if not card.CanUse(user, False):
+        if not blocked and not card.CanUse(user, False):
             return {"type": "failed", "error_code": 202}
         user.Send(type="end", name="OnUserUseCard")
 

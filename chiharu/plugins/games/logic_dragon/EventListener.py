@@ -9,14 +9,15 @@ if TYPE_CHECKING:
     from .Types import ProtocolData
 
 class IEventListener:
-    async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
+    async def OnUserUseCard(self, user: 'User', card: 'Card') -> Tuple[bool, bool]:
         """Called before a user intend to use a card.
 
         Arguments:
         card: The card to be used.
 
         Returns:
-        bool: represents whether the card can be used."""
+        bool: represents whether the card can be used.
+        bool: whether the card use will be blocked."""
         pass
     async def BeforeCardDraw(self, user: 'User', n: int, requirement: Optional[Callable]) -> Optional[list['Card']]:
         """Called Before a card is drawn in any cases. Includes cards consumed when drawn.

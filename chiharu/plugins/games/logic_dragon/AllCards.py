@@ -112,13 +112,13 @@ class SCantUse1(StatusTimed):
         delta = self.time - datetime.now()
         min = delta.seconds // 60
         return f"疲劳【{Card(self.cardId).name}】\n\t结束时间：{self.getStr()}。"
-    async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
+    async def OnUserUseCard(self, user: 'User', card: 'Card') -> tuple[bool, bool]:
         """禁止使用卡牌。
         cardId: 禁止使用的卡牌id。"""
         if self.cardId == card.id:
             user.SendStatusEffect(self, cardId=self.cardId)
-            return False
-        return True
+            return False, False
+        return True, False
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnUserUseCard: Priority.OnUserUseCard.cantuse}
 
@@ -397,12 +397,12 @@ class STemperance14(StatusDailyStack):
     name = "XIV - 节制"
     _description = "今天你不能使用除胶带外的卡牌。"
     isDebuff = True
-    async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
+    async def OnUserUseCard(self, user: 'User', card: 'Card') -> tuple[bool, bool]:
         """不能使用卡牌。"""
         if card.id != 100:
             user.SendStatusEffect(self)
-            return False
-        return True
+            return False, False
+        return True, False
     def register(self) -> Dict['UserEvt', int]:
         return {UserEvt.OnUserUseCard: Priority.OnUserUseCard.temperance}
 
@@ -746,12 +746,12 @@ class CLuckyCharm73(Card):
     positive = 1
     _description = "持有此卡时，每天只能使用一张其他卡牌，你的幸运值+1。使用将丢弃这张卡。"
     pack = Pack.orange_juice
-    async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
+    async def OnUserUseCard(self, user: 'User', card: 'Card') -> tuple[bool, bool]:
         """今天幸运护符的使用卡牌次数已完。"""
         if not isinstance(card, CLuckyCharm73):
             user.SendCardEffect(self)
             await user.AddStatus(SLuckyCharm73())
-        return True
+        return True, False
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnUserUseCard: Priority.OnUserUseCard.xingyunhufu}
 class SLuckyCharm73(StatusDailyStack):
@@ -759,12 +759,12 @@ class SLuckyCharm73(StatusDailyStack):
     name = "幸运护符次数已用完："
     _description = "今天你不能使用除幸运护符以外的卡牌。"
     isDebuff = True
-    async def OnUserUseCard(self, user: 'User', card: 'Card') -> bool:
+    async def OnUserUseCard(self, user: 'User', card: 'Card') -> tuple[bool, bool]:
         """不能使用除幸运护符以外的卡牌。"""
         if any(isinstance(c, CLuckyCharm73) for c in user.data.handCard) and not isinstance(card, CLuckyCharm73):
             user.SendStatusEffect(self)
-            return False
-        return True
+            return False, False
+        return True, False
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnUserUseCard: Priority.OnUserUseCard.xingyunhufus}
 
@@ -966,7 +966,7 @@ class CEmptyCard95(Card):
     _description = "选择你手牌中的一张牌，执行其使用效果。"
     pack = Pack.poker
     def CanUse(self, user: 'User', copy: bool) -> bool:
-        return len(user.data.handCard) >= (1 if copy else 2)
+        return len(c for c in user.data.handCard if c.id not in (95,)) >= (1 if copy else 2)
     async def Use(self, user: 'User') -> None:
         """使用卡牌效果
         card：被使用效果的卡牌"""
@@ -1113,7 +1113,7 @@ class CJuJiFaShu105(Card):
         """将两张手牌聚集。
         id: 聚集结果的id。"""
         l = await user.ChooseHandCards(2, 2)
-        await user.RemoveCards([l[0],l[1]])
+        await user.RemoveCards([l[0], l[1]])
         id_new = l[0].id + l[1].id
         if id_new not in Card.idDict:
             user.SendCardUse(self, id = -1)
