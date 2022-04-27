@@ -115,9 +115,9 @@ class SCantUse1(StatusTimed):
         return f"疲劳【{Card(self.cardId).name}】\n\t结束时间：{self.getStr()}。"
     async def OnUserUseCard(self, user: 'User', card: 'Card') -> tuple[bool, bool]:
         """禁止使用卡牌。
-        cardId: 禁止使用的卡牌id。"""
+        forbiddencard: 禁止使用的卡牌。"""
         if self.cardId == card.id:
-            user.SendStatusEffect(self, cardId=self.cardId)
+            user.SendStatusEffect(self, forbiddencard=card.DumpData())
             return False, False
         return True, False
     def register(self) -> Dict[UserEvt, int]:
