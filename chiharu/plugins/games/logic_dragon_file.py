@@ -1924,7 +1924,7 @@ Userme: Callable[[User], User] = lambda user: User(config.selfqq, user.buf)
 def save_data():
     config.userdata_db.commit()
 
-up_newer = 8
+up_newer = -1
 def cards_to_str(cards: List[TCard]):
     return '，'.join(c.brief_description() for c in cards)
 def draw_cards(user: User, positive: Optional[Set[int]]=None, k: int=1, extra_lambda=None):
