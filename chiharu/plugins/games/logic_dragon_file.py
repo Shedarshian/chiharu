@@ -2561,7 +2561,7 @@ class inv_hierophant_s(NumedStatus):
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
         if not await state.require_weishou(user):
-            return False, 0, "教皇说，你需要首尾接龙，接龙失败。"
+            return False, 0, "教皇说，你需要尾首接龙，接龙失败。"
         return True, 0, ""
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:

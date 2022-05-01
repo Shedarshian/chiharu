@@ -261,7 +261,6 @@ class CChariot7(Card):
     id = 7
     name = "VII - 战车"
     positive = 1
-    newer = 5
     _description = "对你今天第一次和最后一次接龙中间接龙的人（除了你自己）每人做一次10%致死的击毙判定。"
     pack = Pack.tarot
     async def Use(self, user: User) -> None:
@@ -370,8 +369,9 @@ class SDeath13(StatusDailyStack):
     isGlobal = True
     isDebuff = True
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
-        """时间加倍。"""
-        user.SendStatusEffect(self)
+        """时间加倍。
+        count：加倍的次数"""
+        user.SendStatusEffect(self, count = self.count)
         time *= 2 ** self.count
         return time, False
     def register(self) -> Dict[UserEvt, int]:
@@ -489,9 +489,13 @@ class CJudgement20(Card):
     async def Use(self, user: 'User') -> None:
         n = [tree.qq for tree in itertools.chain(*itertools.chain(user.game.treeObjs, *user.game.treeForests))].count(user.qq)
         if n < 5:
+            user.SendCardUse(self, flag = '-')
             await user.AddJibi(-20)
         elif n > 20:
+            user.SendCardUse(self, flag = '+')
             await user.AddJibi(20)
+        else:
+            user.SendCardUse(self, flag = '0')
 
 class SWorld21(Status):
     id = 21
@@ -605,9 +609,10 @@ class SInvSiHuiHuiBiZhiYao53(StatusNullStack):
     id = 53
     _description = "你下次死亡时获得5击毙，但是死亡时间增加2h。"
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
-        """获得5击毙，但是死亡时间增加2h。"""
+        """获得5击毙，但是死亡时间增加2h。
+        count：buff层数"""
         count = self.count
-        user.SendStatusEffect(self)
+        user.SendStatusEffect(self, count = count)
         await user.AddJibi(5 * count)
         await user.RemoveAllStatus(SInvSiHuiHuiBiZhiYao53)
         return time + 120 * count, False
@@ -630,9 +635,10 @@ class SHuiYe52(StatusNullStack):
     _description = "你下一次死亡的时候奖励你抽一张卡。"
     isMetallic = True
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
-        """抽一张卡。"""
+        """因死亡抽卡。
+        count：抽卡的张数"""
         count = self.count
-        user.SendStatusEffect(self)
+        user.SendStatusEffect(self, count = count)
         await user.RemoveAllStatus(SHuiYe52)
         await user.Draw(count)
         return time, False
@@ -740,7 +746,8 @@ class SPlusTwo60(StatusNullStack):
     _description = "下一个接龙的人摸一张非负面卡和一张非正面卡。"
     isGlobal = True
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
-        """摸牌。"""
+        """摸两张牌。
+        count：摸两张牌的次数"""
         user.SendStatusEffect(self)
         await user.ume.RemoveStatus(self)
         cards = list(itertools.chain(*[[user.game.RandomNewCards(user, requirement=positive({-1, 0}))[0], user.game.RandomNewCards(user, requirement=positive({0, 1}))[0]] for i in range(self.count)]))
@@ -921,11 +928,13 @@ class STransformer93(StatusNullStack):
         return jibi * 2 ** self.count
     async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
         """加倍击毙变化
-        count：加倍的次数"""
+        count：加倍的次数
+        njibi：修正后的击毙变化量"""
         count = self.count
-        user.SendStatusEffect(self, count=count)
+        njibi = jibi * 2 ** count
+        user.SendStatusEffect(self, count=count, njibi=njibi)
         await user.RemoveAllStatus(STransformer93)
-        return jibi * 2 ** count
+        return njibi
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.CheckJibiSpend: Priority.CheckJibiSpend.bianyaqi,
             UserEvt.OnJibiChange: Priority.OnJibiChange.bianyaqi}
@@ -938,11 +947,13 @@ class SInvTransformer92(StatusNullStack):
         return ceil(jibi / 2 ** self.count)
     async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
         """减半击毙变化
-        count：减半的次数"""
+        count：减半的次数
+        njibi：修正后的击毙变化量"""
         count = self.count
-        user.SendStatusEffect(self, count=count)
+        njibi = ceil(jibi / 2 ** count)
+        user.SendStatusEffect(self, count=count, njibi=njibi)
         await user.RemoveAllStatus(SInvTransformer92)
-        return ceil(jibi / 2 ** count)
+        return njibi
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.CheckJibiSpend: Priority.CheckJibiSpend.inv_bianyaqi,
             UserEvt.OnJibiChange: Priority.OnJibiChange.inv_bianyaqi}
@@ -1022,7 +1033,6 @@ class CJiaodai100(Card):
 class SJiaodai100(StatusNullStack):
     name = "布莱恩科技航空专用强化胶带FAL84型"
     id = 100
-    positive = 1
     _description = "免疫下次即刻生效的负面状态。"
     async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
         if status.isDebuff and status.isRemovable:
@@ -1084,7 +1094,7 @@ class SZPM101(StatusNullStack):
         """当前击毙多于100，buff消失。"""
         if user.data.jibi > 100:
             user.SendStatusEffect(self, time='AfterJibiChange')
-            await user.RemoveAllStatus(SZPM101)
+            await user.RemoveAllStatus(SZPM101())
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDragoned: Priority.OnDragoned.zpm,
             UserEvt.AfterJibiChange: Priority.AfterJibiChange.zpm}
@@ -1105,7 +1115,7 @@ class SMcGuffin239102(StatusNullStack):
         """此攻击同时对多人生效，无效此攻击。"""
         if attack.counter.isAOE:
             user.SendStatusEffect(self)
-            await user.RemoveStatus(self)
+            await user.RemoveStatus(SMcGuffin239102())
             return True
         return False
     def register(self) -> Dict[UserEvt, int]:
@@ -1123,16 +1133,17 @@ class CJuJiFaShu105(Card):
     async def Use(self, user: 'User') -> None:
         """将两张手牌聚集。
         choose: True时为选择卡牌提示。
-        id: 聚集结果的id。"""
+        id: 聚集结果的id。
+        available：是否能找到对应id号的卡牌。"""
         user.SendCardUse(self, choose=True)
         l = await user.ChooseHandCards(2, 2)
         await user.RemoveCards([l[0], l[1]])
         id_new = l[0].id + l[1].id
         if id_new not in Card.idDict:
-            user.SendCardUse(self, choose=False, id = -1)
+            user.SendCardUse(self, choose=False, id = id_new, available = False)
             id_new = -1
         else:
-            user.SendCardUse(self, choose=False, id = id_new)
+            user.SendCardUse(self, choose=False, id = id_new, available = True)
         await user.Draw(0, cards=[Card.get(id_new)()])
 
 class CLieBianFaShu106(Card):
@@ -1147,17 +1158,18 @@ class CLieBianFaShu106(Card):
     async def Use(self, user: 'User') -> None:
         """将一张手牌分解。
         choose: True时为选择卡牌提示。
+        available：是否能找到对应id的卡牌。
         ids: 分解结果的id列表。"""
         user.SendCardUse(self, choose=True)
         l = await user.ChooseHandCards(1, 1)
         await user.RemoveCards([l[0]])
         l2 = [(id, l[0].id - id) for id in Card.idDict if l[0].id - id in Card.idDict]
         if len(l2) == 0:
-            user.SendCardUse(self, choose=False, ids = [-1,-1])
+            user.SendCardUse(self, choose=False, available = False)
             id_new = (-1, -1)
         else:
             id_new = random.choice(l2)
-            user.SendCardUse(self, choose=False, ids = list(id_new))
+            user.SendCardUse(self, choose=False, available = True, ids = list(id_new))
         await user.Draw(0, cards=[Card.get(id_new[0])(), Card.get(id_new[1])()])
 
 class CJingXingFaShu107(Card):
@@ -1190,7 +1202,7 @@ class CXiaoHunFaShu108(Card):
         user.SendCardUse(self, choose=True)
         if (players := await user.ChoosePlayers(1, 1)) is not None:
             player = players[0]
-            if player == user.game.managerQQ:
+            if player == user.game.managerQQ:#TODO
                 user.SendCardUse(self, choose=False, chiharu=True)
                 l = list(itertools.chain(*[[type(status)()] * status.count if status.isNull else [status] for status in user.game.me.statuses if status.isRemovable and not isinstance(status, SWorld21)]))
                 num = min(ceil(len(l) * 0.5), 5)
@@ -1618,3 +1630,4 @@ class SWardensPaean119(StatusNumed):
         return False
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnStatusAdd: Priority.OnStatusAdd.paean}
+
