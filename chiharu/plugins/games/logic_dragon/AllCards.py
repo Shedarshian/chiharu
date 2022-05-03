@@ -636,7 +636,7 @@ class SJuedou37(StatusTimed):
     def valid(self):
         return self.time >= datetime.now() and self.count > 0
     def packData(self) -> str:
-        return ','.join(self.time.isoformat(), str(self.player1), str(self.player2), str(self.count))
+        return ','.join((self.time.isoformat(), str(self.player1), str(self.player2), str(self.count)))
     @property
     def description(self):
         return f"决斗：接下来的{self.count}次接龙由玩家{self.player1}与{self.player2}之间进行。\n\t结束时间：{self.getStr()}。"
