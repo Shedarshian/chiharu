@@ -122,6 +122,12 @@ class Game:
         with self.UpdateDragonWords() as d:
             d["bombs"].remove(word)
             self.bombs.remove(word)
+    def RemoveAllBomb(self, p: Optional[float] = None):
+        with self.UpdateDragonWords() as d:
+            if p is None:
+                d['bombs'] = []
+            else:
+                d['bombs'] = [bomb for bomb in d['bombs'] if random.random() > p]
     def AddBomb(self, word: str):
         with self.UpdateDragonWords() as d:
             d["bombs"].append(word)

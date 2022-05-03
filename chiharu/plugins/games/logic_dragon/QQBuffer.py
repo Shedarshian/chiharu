@@ -279,6 +279,14 @@ class QQBuffer(Buffer):
                     if not isinstance(card, dict) or card.get("type") != "card":
                         continue
                     match card.get("id"):
+                        case 0:
+                            pass
+                        case 90:
+                            prompt += char + "自杀了。"
+                        case 91:
+                            prompt += char + "损失了20击毙。"
+                        case 92:
+                            prompt += char + "获得了20击毙。"
                         case _:
                             pass
 

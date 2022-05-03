@@ -16,6 +16,7 @@ class Card(IEventListener, Saveable, hasIdDict=True):
     consumedOnDraw = False
     pack = Pack.misc
     isMetallic = False
+    desNeedInit = False
     @property
     def description(self):
         return self._description
