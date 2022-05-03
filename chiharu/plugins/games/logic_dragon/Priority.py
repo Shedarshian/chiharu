@@ -9,7 +9,7 @@ class UserEvt(Enum):
     AfterCardDraw = auto()
     AfterCardDiscard = auto()
     AfterCardRemove = auto()
-    AfterExchange = auto()
+    AfterCardGive = auto()
     OnDeath = auto()
     OnAttack = auto()
     OnAttacked = auto()
@@ -54,7 +54,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         belt = auto()
     class AfterCardRemove(IntEnum):
         pass
-    class AfterExchange(IntEnum):
+    class AfterCardGive(IntEnum):
         pass
     class OnDeath(IntEnum):
         invincible = auto()             # 吸血鬼：免疫死亡

@@ -63,11 +63,12 @@ class IEventListener:
         Parameters:
         cards: The cards removed."""
         pass
-    async def AfterExchange(self, user: 'User', user2: 'User') -> None:
-        """Called after cards are exchanged.
+    async def AfterCardGive(self, user: 'User', user2: 'User', card: 'Card') -> None:
+        """Called after cards given.
 
         Parameters:
-        user2: The user that cards are exchanged."""
+        user2: The user that cards given.
+        card: The card given."""
         pass
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
         """Called when a user is dead.

@@ -385,6 +385,18 @@ class User:
         await eq.use(self)
     async def DrawMaj(self):
         pass # TODO
+    async def GiveCard(self, other: 'User', card: Card):
+        """将卡牌给予另一玩家。从玩家手牌中移除，再加入另一玩家手牌。"""
+        self.data.RemoveCard(card)
+        other.data.AddCard(card)
+        
+        # Event AfterCardGive
+        self.Send(type="begin", name="AfterCardGive")
+        for eln in self.IterAllEvent(UserEvt.AfterCardGive):
+            await eln.AfterCardGive(self, other, card)
+        self.Send(type="end", name="AfterCardGive")
+
+        self.data.SaveCards()
 
     async def Damaged(self, damage: int, attacker: 'User'=None, mustHit: bool=False):
         if attacker is None:

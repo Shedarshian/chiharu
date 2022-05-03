@@ -7,7 +7,7 @@ import itertools, random
 from .Game import Game
 from .Card import Card, CardDoubleNumed, CardNumed
 from .User import User
-from .Status import Status, StatusNumed, StatusTimed, StatusNullStack, StatusDailyStack
+from .Status import Status, StatusListInt, StatusNumed, StatusTimed, StatusNullStack, StatusDailyStack
 from .Attack import Attack, AttackType
 from .Priority import UserEvt, Priority
 from .Types import Pack
@@ -1175,49 +1175,59 @@ class SJiSuZhuangZhi74(StatusNullStack):
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.CheckSuguri: Priority.CheckSuguri.jisuzhuangzhi}
 
-# class huxiangjiaohuan(_card): TODO
-#     name = '互相交换'
-#     id = 75
-#     positive = 0
-#     description = "下一个接中隐藏奖励词的玩家手牌与你互换，手牌量变化最多为2。"
-#     pack = Pack.orange_juice
-#     @classmethod
-#     async def use(cls, user: User):
-#         l = Game.me.check_limited_status('x')
-#         if l:
-#             l[0] += [user.qq]
-#             user.log << f"被加入交换堆栈，现为{l[0].list}。"
-#             Game.me.save_status_time()
-#         else:
-#             await Userme(user).add_limited_status(SHuxiangjiaohuan([user.qq]))
-# class SHuxiangjiaohuan(ListStatus):
-#     id = 'x'
-#     des = "互相交换：下一个接中隐藏奖励词的玩家手牌与某人互换。"
-#     def __str__(self):
-#         return '\n'.join("互相交换：下一个接中隐藏奖励词的玩家手牌与某人互换。" for i in self.list)
-#     @property
-#     def brief_des(self):
-#         return '\n'.join("互相交换" for i in self.list)
-#     is_global = True
-#     @classmethod
-#     async def OnHiddenKeyword(cls, count: TCount, user: 'User', word: str, parent: 'Tree', keyword: str) -> Tuple[int]:
-#         to_exchange = count[0].list.pop()
-#         Game.me.save_status_time()
-#         u = User(to_exchange, user.buf)
-#         atk = AHuxiangjiaohuan(u, user)
-#         await user.attacked(u, atk)
-#         return 0,
-#     @classmethod
-#     def register(cls) -> dict[int, TEvent]:
-#         return {UserEvt.OnHiddenKeyword: (Priority.OnHiddenKeyword.huxiangjiaohuan, cls)}
-# class AHuxiangjiaohuan(Attack):
-#     name = "攻击：互相交换"
-#     doublable = False
-#     async def self_action(self):
-#         self.defender.send_char(f"与[CQ:at,qq={self.attacker.qq}]交换了手牌{句尾}")
-#         jibi = (self.defender.data.jibi, self.attacker.data.jibi)
-#         self.defender.log << f"与{self.attacker.qq}交换了手牌。"
-#         await self.defender.exchange(self.attacker, max_sub=2)
+class CHuxiangjiaohuan75(Card):
+    name = '互相交换'
+    id = 75
+    positive = 0
+    _description = "下一个接中隐藏奖励词的玩家手牌与你互换，手牌量变化最多为2。"
+    pack = Pack.orange_juice
+    async def Use(self, user: 'User') -> None:
+        l = user.ume.CheckStatus(SHuxiangjiaohuan75)
+        if len(l) != 0:
+            l[0].list += [user.qq]
+            user.data.SaveStatuses()
+        else:
+            await user.ume.AddStatus(SHuxiangjiaohuan75([user.qq]))
+class SHuxiangjiaohuan75(StatusListInt):
+    id = 75
+    name = "互相交换"
+    isGlobal = True
+    @property
+    def description(self) -> str:
+        return f"下{len(self.list)}个接中隐藏奖励词的玩家手牌与某人互换。"
+    async def OnHiddenKeyword(self, user: 'User', word: str, parent: 'Tree', keyword: str) -> int:
+        to_exchange = self.list.pop()
+        user.data.SaveStatuses()
+        u = User(to_exchange, user.buf)
+        atk = AHuxiangjiaohuan75(u, user)
+        await user.Attacked(atk)
+        return 0
+    def register(self) -> Dict['UserEvt', int]:
+        return {UserEvt.OnHiddenKeyword: Priority.OnHiddenKeyword.huxiangjiaohuan}
+class AHuxiangjiaohuan75(Attack):
+    id = 75
+    name = "攻击：互相交换"
+    doublable = False
+    async def selfAction(self):
+        max_sub = 2
+        target_card = copy(self.defender.data.handCard)
+        self_card = copy(self.attacker.data.handCard)
+        target_choose = list(range(len(target_card)))
+        self_choose = list(range(len(self_card)))
+        if len(target_card) - len(self_card) > max_sub:
+            random.shuffle(target_choose)
+            target_choose = target_choose[:len(self_card) + max_sub]
+            target_choose.sort()
+            target_card = [target_card[i] for i in target_choose]
+        elif len(self_card) - len(target_card) > max_sub:
+            random.shuffle(self_choose)
+            self_choose = self_choose[:len(target_card) + max_sub]
+            self_choose.sort()
+            self_card = [self_card[i] for i in self_choose]
+        for card in self_card:
+            await self.attacker.GiveCard(self.defender, card)
+        for card in target_card:
+            await self.defender.GiveCard(self.attacker, card)
 
 class CZhongShenDeXiXi76(Card):
     name = "众神的嬉戏"

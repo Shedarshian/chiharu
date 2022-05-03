@@ -86,3 +86,15 @@ class StatusTimed(Status):
         return f"{self._description}\n\t结束时间：{self.getStr()}。"
     def double(self):
         self.time += self.time - datetime.now()
+
+class StatusListInt(Status):
+    dataType: Tuple[Callable[[str], Any],...] = (lambda s: [int(x) for x in s.split(';')],)
+    def __init__(self, data: list[int]):
+        self.list = data
+    @property
+    def valid(self):
+        return len(self.list) != 0
+    def packData(self) -> str:
+        return ';'.join(str(x) for x in self.list)
+
+
