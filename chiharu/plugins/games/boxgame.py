@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from dataclasses import dataclass
-from typing import Dict, TypeVar, List, Tuple
+from typing import TYPE_CHECKING, Dict, TypeVar, List, Tuple
 import functools
+from typing_extensions import Self
 
-__all__ = {'IPos', 'Grid2D', 'Grid2DSquare', 'Grid2DHexagonH', 'Grid2DHexagonV', 'Grid3D',
+__all__ = ('IPos', 'Grid2D', 'Grid2DSquare', 'Grid2DHexagonH', 'Grid2DHexagonV', 'Grid3D',
            'IBox',
            'ISpace', 'ISpaceOverlap', 'ISpaceNoOverlap',
-           'IBoxGame'}
+           'IBoxGame')
 
 class IPos(ABC):
     '''Interface for position.'''
@@ -30,21 +31,22 @@ class IPos(ABC):
         pass
 TPos = TypeVar('TPos', bound=IPos)
 
-@dataclass(frozen=True)
+TGrid2D = TypeVar('TGrid2D', bound='Grid2D')
+@dataclass(frozen=True, unsafe_hash=True)
 class Grid2D(IPos):
     x: int
     y: int
     class Directions:
         pass
-    def __add__(self, other):
+    def __add__(self: TGrid2D, other: TGrid2D):
         return self.__class__(self.x + other.x, self.y + other.y)
-    def __iadd__(self, other):
+    def __iadd__(self: TGrid2D, other: TGrid2D):
         return self.__class__(self.x + other.x, self.y + other.y)
-    def __sub__(self, other):
+    def __sub__(self: TGrid2D, other: TGrid2D):
         return self.__class__(self.x - other.x, self.y - other.y)
-    def __isub__(self, other):
+    def __isub__(self: TGrid2D, other: TGrid2D):
         return self.__class__(self.x - other.x, self.y - other.y)
-    def __imul__(self, other):
+    def __imul__(self: TGrid2D, other: TGrid2D):
         if isinstance(other, int):
             return self.__class__(other * self.x, other * self.y)
         return NotImplemented
@@ -54,14 +56,24 @@ class Grid2D(IPos):
         return self.x != 0 or self.y != 0
 
 class Grid2DSquare(Grid2D):
-    pass
+    class Directions:
+        UP: 'Grid2DSquare' = None
+        RIGHT: 'Grid2DSquare' = None
+        DOWN: 'Grid2DSquare' = None
+        LEFT: 'Grid2DSquare' = None
 Grid2DSquare.Directions.UP = Grid2DSquare(0, -1)
 Grid2DSquare.Directions.RIGHT = Grid2DSquare(1, 0)
 Grid2DSquare.Directions.DOWN = Grid2DSquare(0, 1)
 Grid2DSquare.Directions.LEFT = Grid2DSquare(-1, 0)
 
 class Grid2DHexagonH(Grid2D):
-    pass
+    class Directions:
+        UPLEFT: 'Grid2DHexagonH' = None
+        UPRIGHT: 'Grid2DHexagonH' = None
+        RIGHT: 'Grid2DHexagonH' = None
+        DOWNRIGHT: 'Grid2DHexagonH' = None
+        DOWNLEFT: 'Grid2DHexagonH' = None
+        LEFT: 'Grid2DHexagonH' = None
 Grid2DHexagonH.Directions.UPLEFT = Grid2DHexagonH(0, -1)
 Grid2DHexagonH.Directions.UPRIGHT = Grid2DHexagonH(1, -1)
 Grid2DHexagonH.Directions.RIGHT = Grid2DHexagonH(1, 0)
@@ -70,7 +82,13 @@ Grid2DHexagonH.Directions.DOWNRIGHT = Grid2DHexagonH(0, -1)
 Grid2DHexagonH.Directions.DOWNLEFT = Grid2DHexagonH(-1, 1)
 
 class Grid2DHexagonV(Grid2D):
-    pass
+    class Directions:
+        UP: 'Grid2DHexagonV' = None
+        UPRIGHT: 'Grid2DHexagonV' = None
+        DOWN: 'Grid2DHexagonV' = None
+        DOWNRIGHT: 'Grid2DHexagonV' = None
+        DOWNLEFT: 'Grid2DHexagonV' = None
+        UPLEFT: 'Grid2DHexagonV' = None
 Grid2DHexagonV.Directions.UP = Grid2DHexagonV(0, -1)
 Grid2DHexagonV.Directions.UPRIGHT = Grid2DHexagonV(1, -1)
 Grid2DHexagonV.Directions.DOWNRIGHT = Grid2DHexagonV(1, 0)
@@ -78,21 +96,37 @@ Grid2DHexagonV.Directions.DOWN = Grid2DHexagonV(0, 1)
 Grid2DHexagonV.Directions.DOWNLEFT = Grid2DHexagonV(-1, 1)
 Grid2DHexagonV.Directions.UPLEFT = Grid2DHexagonV(-1, 0)
 
-@dataclass(frozen=True)
+TGrid3D = TypeVar("TGrid3D", bound='Grid3D')
+@dataclass(frozen=True, unsafe_hash=True)
 class Grid3D(IPos):
     x: int
     y: int
     z: int
-    def __add__(self, other):
+    class Directions:
+        UP: 'Grid3D' = None
+        DOWN: 'Grid3D' = None
+        FRONT: 'Grid3D' = None
+        BACK: 'Grid3D' = None
+        LEFT: 'Grid3D' = None
+        RIGHT: 'Grid3D' = None
+    def __add__(self: TGrid3D, other: TGrid3D):
         return self.__class__(self.x + other.x, self.y + other.y, self.z + other.z)
-    def __iadd__(self, other):
+    def __iadd__(self: TGrid3D, other: TGrid3D):
         return self.__class__(self.x + other.x, self.y + other.y, self.z + other.z)
-    def __sub__(self, other):
+    def __sub__(self: TGrid3D, other: TGrid3D):
         return self.__class__(self.x - other.x, self.y - other.y, self.z - other.z)
-    def __isub__(self, other):
+    def __isub__(self: TGrid3D, other: TGrid3D):
         return self.__class__(self.x - other.x, self.y - other.y, self.z - other.z)
+    def __neg__(self):
+        return self.__class__(-self.x, -self.y, -self.z)
     def __bool__(self):
         return self.x != 0 or self.y != 0 or self.z != 0
+Grid3D.Directions.UP = Grid3D(0, 0, -1)
+Grid3D.Directions.DOWN = Grid3D(0, 0, 1)
+Grid3D.Directions.FRONT = Grid3D(0, -1, 0)
+Grid3D.Directions.BACK = Grid3D(0, 1, 0)
+Grid3D.Directions.LEFT = Grid3D(-1, 0, 0)
+Grid3D.Directions.RIGHT = Grid3D(1, 0, 0)
 
 class IBox(ABC):
     pos_type = None
