@@ -159,13 +159,15 @@ class Game:
         self.AddTree(None, word_stripped, self.managerQQ, '', '')
         return word_stripped, pic
 
-    def InitTree(self, isDailyUpdate: bool):
+    def InitTree(self, isDailyUpdate: bool, /, if_log=True):
         if isDailyUpdate:
             self.treeForests = []
         else:
             self.treeForests.append(self.treeObjs)
         self.treeObjs = []
         self.treeMaxBranches = 0
+        if if_log:
+            self.logFile.write(Tree.saveNew())
     def FindTree(self, id: Tuple[int, int]):
         if id is None:
             return None
@@ -176,7 +178,7 @@ class Game:
         except IndexError:
             return None
     def AddTree(self, parent: Optional[Tree], word: str, qq: int, kwd: str, hdkwd: str, fork: bool=False,
-            /, id: tuple[int, int]=None):
+            /, id: tuple[int, int]=None, if_log=True):
         if id is None:
             if parent:
                 id = (parent.id[0] + 1, parent.id[1])
@@ -195,8 +197,10 @@ class Game:
             for i in range(id[1] + 1 - self.treeMaxBranches):
                 self.treeObjs.append([])
             self.treeMaxBranches = id[1] + 1
+        if if_log:
+            self.logFile.write(str(tree))
         return tree
-    def RemoveTree(self, tree: Tree):
+    def RemoveTree(self, tree: Tree, /, if_log=True):
         id = tree.id
         begin = id[0] - self.treeObjs[id[1]][0].id[0]
         to_remove = set(self.treeObjs[id[1]][begin:])
@@ -216,6 +220,12 @@ class Game:
             if tree.parent.left is self:
                 tree.parent.left = tree.parent.right
             tree.parent.right = None
+        if if_log:
+            self.logFile.write(Tree.saveDelete(tree))
+    def ForkTree(self, tree: Tree, fork: bool, /, if_log=True):
+        tree.fork = fork
+        if if_log:
+            self.logFile.write(Tree.saveFork(tree))
     def LoadLogSet(self):
         if self.logFile is not None:
             self.logFile.close()
@@ -244,13 +254,13 @@ class Game:
                     if ret is None:
                         continue
                     elif ret["type"] == "fork":
-                        self.FindTree(ret["id"]).fork = ret["fork"]
+                        self.ForkTree(self.FindTree(ret["id"]), ret["fork"], if_log=False)
                     elif ret["type"] == "delete":
-                        self.RemoveTree(self.FindTree(ret["id"]))
+                        self.RemoveTree(self.FindTree(ret["id"]), if_log=False)
                     elif ret["type"] == "new":
-                        self.InitTree(False)
+                        self.InitTree(False, if_log=False)
                     elif ret["type"] == "tree":
-                        self.AddTree(self.FindTree(ret["parentId"]), ret["word"], ret["qq"], ret["keyword"], ret["hiddenKeyword"], ret["fork"], id=ret["id"])
+                        self.AddTree(self.FindTree(ret["parentId"]), ret["word"], ret["qq"], ret["keyword"], ret["hiddenKeyword"], ret["fork"], id=ret["id"], if_log=False)
         except FileNotFoundError:
             pass
     def TreeActiveNodes(self, have_fork=True):

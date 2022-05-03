@@ -129,9 +129,9 @@ class QQBuffer(Buffer):
                         case 52:
                             prompt += char + f"触发了辉夜姬的秘密宝箱的效果，抽{data.get('count')}张卡。"
                         case 54:
-                            prompt += char + f"触发了反转·辉夜姬的秘密宝箱的效果，弃掉了{f"【{card.get('name')}】" for card in data.get('cards')}。"
+                            prompt += char + f"""触发了反转·辉夜姬的秘密宝箱的效果，弃掉了{''.join(f"【{card.get('name')}】" for card in data.get('cards'))}。"""
                         case 60:
-                            prompt += char + f"触发了+2的效果，摸{count := data.get('count')}张非负面卡和{count}张非正面卡。"
+                            prompt += char + f"触发了+2的效果，摸{(count := data.get('count'))}张非负面卡和{count}张非正面卡。"
                         case 73:
                             prompt += char + "不能使用除幸运护符之外的卡牌。"
                         case 74:
@@ -144,17 +144,17 @@ class QQBuffer(Buffer):
                             sname = data.get('rstatus').get('name')
                             scount = data.get('rstatus').get('count')
                             if data.get('flag') == 'all':
-                                sdes = f"触发了胶带的效果，完全防住了{f"{count}层" if count > 1 else ''}【{sname}】。"
+                                sdes = f"触发了胶带的效果，完全防住了{f'{count}层' if count > 1 else ''}【{sname}】。"
                             elif data.get('flag') == 'part':
-                                sdes = f"触发了胶带的效果，防住了{f"{count}层" if count > 1 else ''}【{sname}】，但没有完全防住。"
+                                sdes = f"触发了胶带的效果，防住了{f'{count}层' if count > 1 else ''}【{sname}】，但没有完全防住。"
                             prompt += char + sdes
                         case 90:
                             sname = data.get('rstatus').get('name')
                             scount = data.get('rstatus').get('count')
                             if data.get('flag') == 'all':
-                                sdes = f"触发了反转·胶带的效果，完全防住了{f"{count}层" if count > 1 else ''}【{sname}】。"
+                                sdes = f"触发了反转·胶带的效果，完全防住了{f'{count}层' if count > 1 else ''}【{sname}】。"
                             elif data.get('flag') == 'part':
-                                sdes = f"触发了反转·胶带的效果，防住了{f"{count}层" if count > 1 else ''}【{sname}】，但没有完全防住。"
+                                sdes = f"触发了反转·胶带的效果，防住了{f'{count}层' if count > 1 else ''}【{sname}】，但没有完全防住。"
                             prompt += char + sdes
                         case 101:
                             if time := data.get('time') == 'OnDragoned':
@@ -171,14 +171,15 @@ class QQBuffer(Buffer):
                             prompt += char + "因月下彼岸花扣除1击毙。"
                         case 105:
                             prompt += char + "因反转·月下彼岸花获得1击毙。"
-                        case 111 or 106 or 112 or 107:
+                        case 111 | 106 | 112 | 107:
                             prompt += char + "判决重合，被判处死刑，陷入无法战斗状态。"
                         case 108:
                             prompt += char + "无法战斗，不能接龙。"
                         case 95:
                             prompt += char + "因衰弱，获得击毙减少。"
                         case 113:
-                            prompt += f"{"大地摇动被触发了，\n"if "大地摇动被触发了" not in prompt else ''}玩家{data.get('userQQ')}被扣除了{4 * data.get('count')}击毙。"
+                            n = '\n'
+                            prompt += f"{f'大地摇动被触发了：{n}' if '大地摇动被触发了' not in prompt else ''}玩家{data.get('userQQ')}被扣除了{4 * data.get('count')}击毙。"
                         case 114:
                             pass
                         case 116:
@@ -193,9 +194,9 @@ class QQBuffer(Buffer):
                             if flag := data.get('flag') == 'ill':
                                 sdes = f"触发了光阴神的礼赞凯歌，免除生病。"
                             elif flag == 'all':
-                                sdes = f"触发了凯歌的效果，完全防住了{f"{count}层" if count > 1 else ''}【{sname}】。"
+                                sdes = f"触发了凯歌的效果，完全防住了{f'{count}层' if count > 1 else ''}【{sname}】。"
                             elif flag == 'part':
-                                sdes = f"触发了凯歌的效果，防住了{f"{count}层" if count > 1 else ''}【{sname}】，但没有完全防住。"
+                                sdes = f"触发了凯歌的效果，防住了{f'{count}层' if count > 1 else ''}【{sname}】，但没有完全防住。"
                         case _:
                             pass
                 case "card_use":
@@ -235,7 +236,7 @@ class QQBuffer(Buffer):
                                     pass
                         case 53:
                             if len(cards := data.get('cards')) > 0:
-                                prompt += char + f"失去了手牌{''.join(f"【{card.get('name')}】" for card in cards)}。"
+                                prompt += char + f"""失去了手牌{''.join(f"【{card.get('name')}】" for card in cards)}。"""
                         case 81:
                             prompt += f"今天接龙的所有人都赢了。恭喜你们。"
                         case 95:

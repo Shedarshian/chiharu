@@ -15,6 +15,8 @@ from .Dragon import DragonState, Tree
 from .Mission import Mission
 from .EventListener import IEventListener
 from .Helper import positive
+from ... import config
+log = config.logger.dragon
 
 class SDeathN1(StatusTimed):
     id = -1
@@ -487,6 +489,8 @@ class CJudgement20(Card):
     _description = "若你今天接龙次数小于5，则扣除20击毙，若你今天接龙次数大于20，则获得20击毙。"
     pack = Pack.tarot
     async def Use(self, user: 'User') -> None:
+        """审判。
+        flag: 为'"-"时代表扣除20击毙，为"+"时表示获得20击毙，为"0"时表示不加不减。"""
         n = [tree.qq for tree in itertools.chain(*itertools.chain(user.game.treeObjs, *user.game.treeForests))].count(user.qq)
         if n < 5:
             user.SendCardUse(self, flag = '-')
@@ -556,17 +560,17 @@ class CWenhuaZixin(Card):
     async def Use(self, user: 'User') -> None:
         '''移除全局状态
         rstatus：每一步被移除的状态'''
-        statuses = [c for c in user.ume.statuses if c.removable]
+        statuses = list(itertools.chain(*(([c.__class__()] * c.count if c.isNull else [c]) for c in user.ume.data.statuses if c.isRemovable)))
         if len(statuses) == 0:
             return
-        num = min(ceil(len(statuses)*0.75), 5)
-        l = []
+        num = min(ceil(len(statuses) * 0.75), 5)
+        l: list[Status] = []
         for i in range(num):
             c = random.choice(statuses)
             l.append(c)
             statuses.remove(c)
         for d in l:
-            user.sendCardUse(self, rstatus = d.Dumpdata())
+            user.SendCardUse(self, rstatus = d.DumpData())
             await user.ume.RemoveStatus(d, remover = user)
 
 class CLebusishu35(Card):#TODO
@@ -577,7 +581,7 @@ class CLebusishu35(Card):#TODO
     pack = Pack.sanguosha
     consumedOnDraw = True
     async def OnDraw(self, user: 'User') -> None:
-        user.AddStatus(SLebusishu35())
+        await user.AddStatus(SLebusishu35())
 class SLebusishu35(StatusDailyStack):
     id = 35
     name = "乐不思蜀"
@@ -608,34 +612,36 @@ class CJuedou37(Card):
     _description = "指定一名玩家，下10次接龙为你与祂之间进行（持续1小时后过期）。"
     pack = Pack.sanguosha
     async def Use(self, user: 'User') -> None:
+        """决斗
+        choose: True时为选择玩家提示。
+        ruser: 被选中的玩家。"""
+        user.SendCardUse(choose=True)
         if (players := await user.ChoosePlayers(1, 1)) is not None:
             player = players[0]
-            if user.ume.CheckStatus(SJuedou37()) is not None:
-                await user.ume.RemoveAllStatus(SJuedou37())
-            user.SendCardUse(self, ruser = player)
-            await user.ume.AddStatus(SJuedou37(datetime.now()+timedelta(hour=1), user.qq, player, 10))
+            if user.ume.CheckStatus(SJuedou37) is not None:
+                await user.ume.RemoveAllStatus(SJuedou37)
+            user.SendCardUse(self, choose=False, ruser = player)
+            await user.ume.AddStatus(SJuedou37(timedelta(hour=1), user.qq, player, 10))
 class SJuedou37(StatusTimed):
     id = 37
     name = "决斗"
     isGlobal = True
-    def __init__(self, data: datetime, player1: int, player2: int, count: int):
+    dataType: Tuple[Callable[[str], Any],...] = (datetime.fromisoformat, int, int, int)
+    def __init__(self, data: datetime | timedelta, player1: int, player2: int, count: int):
         self.player1 = player1
         self.player2 = player2
         self.count = count
-        super().__init__(s)
+        super().__init__(data)
     @property
     def valid(self):
         return self.time >= datetime.now() and self.count > 0
-    def __repr__(self) -> str:
-        return self.construct_repr(str(self.time), self.player1, self.player2, self.count)
-    def getStr(self):
-        delta = self.time - datetime.now()
-        min = delta.seconds // 60
-        return f"{f'{min // 60}时' if min // 60 != 0 else ''}{min % 60}分"
+    def packData(self) -> str:
+        return ','.join(self.time.isoformat(), str(self.player1), str(self.player2), str(self.count))
     @property
     def description(self):
-        return f"决斗：接下来的接龙由玩家{self.player1}与{self.player2}之间进行。\n\t结束时间：{self.getStr()}。"
+        return f"决斗：接下来的{self.count}次接龙由玩家{self.player1}与{self.player2}之间进行。\n\t结束时间：{self.getStr()}。"
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        """不可干扰决斗。"""
         if user.qq == self.player1 or user.qq == self.player2:
             return True, -100
         else:
@@ -656,18 +662,23 @@ class CTiesuolianhuan39(Card):
     isMetallic = True
     pack = Pack.sanguosha
     async def Use(self, user: 'User') -> None:
+        """铁索连环。
+        choose: True时为选择玩家提示。
+        tplayer: 被连环的玩家qq列表。"""
+        user.SendCardUse(self, choose=True)
         if players := user.ChoosePlayers(1, 2) is not None:
+            user.SendCardUse(self, choose=False, tplayer = players)
             for target in players:
                 atk = ATiesuolianhuan38(user, u := user.CreateUser(target))
                 atk.counter.isAOE = (len(players) > 1)
                 await u.Attacked(atk)
-            user.SendCardUse(self, tplayer = players)
 class ATiesuolianhuan38(Attack):
     name = "铁索连环"
     doublable = False
     async def selfAction(self):
-        if self.defender.CheckStatus(STiesuolianhuan38()) is not None:
-            await self.defender.RemoveAllStatus(STiesuolianhuan38(), remover=self.attacker)
+        if self.defender.CheckStatus(STiesuolianhuan38) is not None:
+            # TODO SendAttack
+            await self.defender.RemoveAllStatus(STiesuolianhuan38, remover=self.attacker)
         else:
             await self.defender.AddStatus(STiesuolianhuan38())
 class STiesuolianhuan38(StatusNullStack):
@@ -679,16 +690,18 @@ class STiesuolianhuan38(StatusNullStack):
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
         '''连坐死亡
         rqqs：被连坐的玩家'''
-        all_qqs: Lise[int] = []
+        all_qqs: list[int] = []
+        all_users: list[User] = []
         for r in user.game.AllUserQQs():
             if r == user.qq:
                 continue
-            if user.CreateUser(r).CheckStatus(STiesuolianhuan38()) is not None:
+            if (u := user.CreateUser(r)).CheckStatusStack(STiesuolianhuan38) != 0:
                 all_qqs.append(r)
+                all_users.append(u)
         user.SendStatusEffect(self, tqqs = all_qqs)
-        for p in all_qqs:
-            await (u := user.CreateUser(p)).RemoveAllStatus(STiesuolianhuan38)
-            await u.killed(user, minute = time, isAOE = len(all_qqs) > 1)
+        for u in all_users:
+            await u.RemoveAllStatus(STiesuolianhuan38)
+            await u.Killed(user, minute = time, isAOE = len(all_qqs) > 1)
         return time, False
 
 class CMinus1Ma39(Card):
@@ -796,7 +809,7 @@ class SInvHuiYe54(StatusNullStack):
         for i in range(x):
             l2.append(random.choice(l))
             l.remove(l2[-1])
-        user.SendStatusEffect(self, cards = l2)
+        user.SendStatusEffect(self, cards = [c.DumpData() for c in l2])
         await user.DiscardCards(l2)
         return time, False
     def register(self) -> Dict[UserEvt, int]:
@@ -820,7 +833,7 @@ class CBlank53(Card):
             for j in range(5):
                 l2.append(random.choice(l))
                 l.remove(l2[-1])
-            user.SendCardUse(self, cards = l2)
+            user.SendCardUse(self, cards = [c.DumpData() for c in l2])
             await user.DiscardCards(l2)
 
 class CDragonTube54(Card):
@@ -883,7 +896,7 @@ class SPlusTwo60(StatusNullStack):
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
         """摸两张牌。
         count：摸两张牌的次数"""
-        user.SendStatusEffect(self)
+        user.SendStatusEffect(self, count=self.count)
         await user.ume.RemoveStatus(self)
         cards = list(itertools.chain(*[[user.game.RandomNewCards(user, requirement=positive({-1, 0}))[0], user.game.RandomNewCards(user, requirement=positive({0, 1}))[0]] for i in range(self.count)]))
         await user.Draw(0, cards=cards)
@@ -897,23 +910,17 @@ class CDream62(Card):
     _description = "50%概率回溯到随机一个节点，50%概率随机一个节点立即分叉。"
     mass = 0
     pack = Pack.once_upon_a_time
-    async def Use(self, user: 'User') -> None:#TODO
-        # node = random.choice(list(itertools.chain(*Tree._objs)))
-        # c = random.random()
-        # config.logger.dragon << f"【DEBUG】c={c}"
-        # if c < 0.5 + 0.02 * user.data.luck:
-        #     if c > 0.5:
-        #         user.buf.send("幸运地", end='')
-        #     user.buf.send(f"回溯到了节点{node.id_str}{句尾}")
-        #     for n in node.childs:
-        #         n.remove()
-        #     from .logic_dragon import rewrite_log_file
-        #     rewrite_log_file()
-        # else:
-        #     user.buf.send(f"节点{node.id_str}被分叉了{句尾}")
-        #     config.logger.dragon << f"【LOG】节点{node.id_str}被分叉了。"
-        #     node.fork = True
-        pass
+    async def Use(self, user: 'User') -> None:
+        node = random.choice(list(itertools.chain(*user.game.treeObjs)))
+        c = random.random()
+        if c < 0.5 + 0.02 * user.data.luck:
+            if_luck = c > 0.5
+            if node.left is not None:
+                user.game.RemoveTree(node.left)
+            if node.right is not None:
+                user.game.RemoveTree(node.right)
+        else:
+            user.game.ForkTree(node, True)
 
 class CHezuowujian63(Card):
     name = "合作无间"
@@ -922,6 +929,7 @@ class CHezuowujian63(Card):
     _description = "拆除所有雷，每个雷有70%的概率被拆除。"
     pack = Pack.explodes
     async def Use(self, user: 'User') -> None:
+        """拆除了所有雷。"""
         user.SendCardUse(self)
         await user.game.RemoveAllBomb(0.7)
 
@@ -933,10 +941,10 @@ class COuroStone66(Card):
     mass = 0.2
     pack = Pack.stone_story
     async def Use(self, user: 'User') -> None:
-        if user.ume.CheckStatus(SOuroStone66()) is not None:
-            user.ume.RemoveAllStatus(SOuroStone66())
-        if user.ume.CheckStatus(SInvOuroStone63()) is not None:
-            user.ume.RemoveAllStatus(SInvOuroStone63())
+        if user.ume.CheckStatus(SOuroStone66) is not None:
+            user.ume.RemoveAllStatus(SOuroStone66)
+        if user.ume.CheckStatus(SInvOuroStone63) is not None:
+            user.ume.RemoveAllStatus(SInvOuroStone63)
         await user.ume.AddStatus(SOuroStone66())
 class SOuroStone66(StatusDailyStack):
     name = "衔尾蛇之石"
@@ -944,9 +952,11 @@ class SOuroStone66(StatusDailyStack):
     _description = "规则为首尾接龙直至跨日。"
     isGlobal = True
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        """需首尾接龙。"""
         if not await state.RequireShouwei(user):
             user.SendStatusEffect(self)
             return False, 0
+        return True, 0
     def register(self) -> Dict['UserEvt', int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.ourostone}
 class SInvOuroStone63(StatusDailyStack):
@@ -955,13 +965,15 @@ class SInvOuroStone63(StatusDailyStack):
     _description = "规则为尾首接龙直至跨日。"
     isGlobal = True
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        """需尾首接龙。"""
         if not await state.RequireWeishou(user):
             user.SendStatusEffect(self)
             return False, 0
+        return True, 0
     def register(self) -> Dict['UserEvt', int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.ourostone}
 
-class queststone(_card):
+class queststone(Card):
     name = "任务之石"
     id = 67
     positive = 1
@@ -969,7 +981,7 @@ class queststone(_card):
     desNeedInit = True
     mass = 0.2
     pack = Pack.stone_story
-#     @classmethod
+#     @classmethod TODO
 #     def quest_des(cls, qq: int):
 #         r = Game.userdata(qq).quest_c
 #         m = mission[r['id']][1]
@@ -1027,12 +1039,14 @@ class SCunqianguan70(StatusNullStack):
     isMetallic = True
     isGlobal = True
     async def OnHiddenKeyword(self, user: 'User', word: str, parent: 'Tree', keyword: str) -> int:
+        """存钱罐，奖励+10击毙。
+        count：触发次数。"""
         user.SendStatusEffect(self, count = self.count)
         await user.ume.RemoveAllStatus(self)
-        return count * 10,
+        return self.count * 10
     def register(self) -> Dict['UserEvt', int]:
         return {UserEvt.OnHiddenKeyword: Priority.OnHiddenKeyword.cunqianguan}
-class SInvCunqianguan72(_statusnull):
+class SInvCunqianguan72(StatusNullStack):
     id = 72
     name = "反转·存钱罐"
     _description = "下次触发隐藏词的奖励-10击毙。"
@@ -1040,9 +1054,11 @@ class SInvCunqianguan72(_statusnull):
     isGlobal = True
     isDebuff = True
     async def OnHiddenKeyword(self, user: 'User', word: str, parent: 'Tree', keyword: str) -> int:
+        """反转存钱罐，奖励-10击毙。
+        count：触发次数。"""
         user.SendStatusEffect(self, count = self.count)
         await user.ume.RemoveAllStatus(self)
-        return -count * 10,
+        return -self.count * 10,
     def register(self) -> Dict['UserEvt', int]:
         return {UserEvt.OnHiddenKeyword: Priority.OnHiddenKeyword.inv_cunqianguan}
 
@@ -1059,10 +1075,13 @@ class SHongsezhihuan71(StatusNullStack):
     name = "虹色之环"
     _description = '下次死亡时，有1/2几率闪避，1/2几率死亡时间+1小时。'
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
+        """闪避死亡。
+        success: 闪避是否成功。
+        lucky: 是否因幸运加成。"""
         for a in range(self.count):
-            await user.RemoveStatus(SHongsezhihuan(1))
+            await user.RemoveStatus(SHongsezhihuan71(1))
             if (c := random.random()) < 0.5 + 0.02 * user.data.luck:
-                lucky = false
+                lucky = False
                 if c > 0.5:
                     lucky = True
                 user.SendStatusEffect(self, success = True, lucky = lucky)
@@ -1074,7 +1093,7 @@ class SHongsezhihuan71(StatusNullStack):
     def register(self) -> Dict['UserEvt', int]:
         return {UserEvt.OnDeath: Priority.OnDeath.hongsezhihuan}
 
-# class liwujiaohuan(_card):
+# class liwujiaohuan(_card): TODO
 #     name = "礼物交换"
 #     id = 72
 #     positive = 1
@@ -1177,7 +1196,7 @@ class SJiSuZhuangZhi74(StatusNullStack):
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.CheckSuguri: Priority.CheckSuguri.jisuzhuangzhi}
 
-# class huxiangjiaohuan(_card):
+# class huxiangjiaohuan(_card): TODO
 #     name = '互相交换'
 #     id = 75
 #     positive = 0
@@ -1230,7 +1249,7 @@ class CZhongShenDeXiXi76(Card):
     async def Use(self, user: 'User') -> None:
         await user.DrawAndUse()
 
-# class lveduozhebopu(_card):
+# class lveduozhebopu(_card): TODO
 #     name = "掠夺者啵噗"
 #     id = 77
 #     positive = 1
@@ -1300,8 +1319,8 @@ class SJianDieYuBei78(StatusDailyStack):
     name = "邪恶的间谍行动～预备"
     isGlobal = True
     _description = "今日卡池中有一定概率出现【邪恶的间谍行动~执行】。"
-class CJianDieZhiXing_1(Card):
-    pass
+class CJianDieZhiXingN1(Card):
+    pass # TODO
 
 class CQiJiManBu79(Card):
     name = "奇迹漫步"
@@ -1571,7 +1590,7 @@ class SZPM101(StatusNullStack):
         """当前击毙多于100，buff消失。"""
         if user.data.jibi > 100:
             user.SendStatusEffect(self, time='AfterJibiChange')
-            await user.RemoveAllStatus(SZPM101())
+            await user.RemoveAllStatus(SZPM101)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDragoned: Priority.OnDragoned.zpm,
             UserEvt.AfterJibiChange: Priority.AfterJibiChange.zpm}
@@ -2116,7 +2135,7 @@ class CImagineBreaker120(Card):
     pack = Pack.toaru
     async def Use(self, user: 'User') -> None:
         await user.AddStatus(SImagineBreaker120())
-class SImagineBreaker(StatusNullStack):
+class SImagineBreaker120(StatusNullStack):
     name = "幻想杀手"
     id = 120
     _description = "你的下一次攻击无视对方的所有反制效果，下一次目标为你的攻击无效。以上两项只能发动一项。"
@@ -2175,13 +2194,15 @@ class SYouxianShushi123(StatusDailyStack):
     _description = "今天所有攻击效果都变为击杀，礼物交换无效。"
     isGlobal = True
     async def OnAttack(self, user: 'User', attack: 'Attack') -> bool:
-        if isinstance(attack, ALiwuJiaohuan72()):
+        """优先术式。
+        flag: liwujiaohuan：礼物交换无效。else：其他攻击。"""
+        if isinstance(attack, ALiwuJiaohuan72):
             user.SendStatusEffect(self, flag = 'liwujiaohuan')
             return True
-        elif not isinstance(attack, AKill0()) or not isinstance(attack, ADamage1()):
-            user.SendStatusEffect(self)
+        elif not isinstance(attack, AKill0) or not isinstance(attack, ADamage1):
+            user.SendStatusEffect(self, flag='else')
             atk_new = AKill0(attack.attacker, attack.defender, 120)
-            awit attack.defender.Attacked(attack.attacker, atk_new)
+            await attack.defender.Attacked(attack.attacker, atk_new)
             return True
         return False
     def register(self) -> Dict[UserEvt, int]:
