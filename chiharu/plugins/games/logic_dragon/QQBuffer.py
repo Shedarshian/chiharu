@@ -192,7 +192,7 @@ class QQBuffer(Buffer):
                             sname = data.get('rstatus').get('name')
                             scount = data.get('rstatus').get('count')
                             if flag := data.get('flag') == 'ill':
-                                sdes = f"触发了光阴神的礼赞凯歌，免除生病。"
+                                sdes = "触发了光阴神的礼赞凯歌，免除生病。"
                             elif flag == 'all':
                                 sdes = f"触发了凯歌的效果，完全防住了{f'{count}层' if count > 1 else ''}【{sname}】。"
                             elif flag == 'part':
@@ -238,7 +238,7 @@ class QQBuffer(Buffer):
                             if len(cards := data.get('cards')) > 0:
                                 prompt += char + f"""失去了手牌{''.join(f"【{card.get('name')}】" for card in cards)}。"""
                         case 81:
-                            prompt += f"今天接龙的所有人都赢了。恭喜你们。"
+                            prompt += "今天接龙的所有人都赢了。恭喜你们。"
                         case 95:
                             if data.get('choose'):
                                 prompt += "请选择一张手牌："
