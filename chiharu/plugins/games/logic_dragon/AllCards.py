@@ -5,7 +5,7 @@ from math import ceil
 from collections import Counter
 import itertools, random
 from .Game import Game
-from .Card import Card
+from .Card import Card, CardDoubleNumed, CardNumed
 from .User import User
 from .Status import Status, StatusNumed, StatusTimed, StatusNullStack, StatusDailyStack
 from .Attack import Attack, AttackType
@@ -973,7 +973,7 @@ class SInvOuroStone63(StatusDailyStack):
     def register(self) -> Dict['UserEvt', int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.ourostone}
 
-class queststone(Card):
+class CQueststone67(CardDoubleNumed):
     name = "任务之石"
     id = 67
     positive = 1
@@ -981,46 +981,25 @@ class queststone(Card):
     desNeedInit = True
     mass = 0.2
     pack = Pack.stone_story
-#     @classmethod TODO
-#     def quest_des(cls, qq: int):
-#         r = Game.userdata(qq).quest_c
-#         m = mission[r['id']][1]
-#         remain = r['remain']
-#         return "\t当前任务：" + m + f"剩余{remain}次。"
-#     @classmethod
-#     def full_description(cls, qq: int):
-#         return super().full_description(qq) + "\n" + cls.quest_des(qq)
-#     @classmethod
-#     async def on_draw(cls, user: User):
-#         user.data.quests.append({'id': (i := get_mission()), 'remain': 3})
-#         config.logger.dragon << f"【LOG】用户{user.qq}刷新了一个任务{mission[i][1]}，现有任务：{[mission[c['id']][1] for c in user.data.quests]}。"
-#         save_global_state()
-#     @classmethod
-#     async def on_remove(cls, user: User):
-#         r = user.data.pop_quest()
-#         config.logger.dragon << f"【LOG】用户{user.qq}删除了一个任务{mission[r['id']][1]}，现有任务：{[mission[c['id']][1] for c in user.data.quests]}。"
-#         save_global_state()
-#     @classmethod
-#     async def on_give(cls, user: User, target: User):
-#         r = user.data.pop_quest()
-#         config.logger.dragon << f"【LOG】用户{user.qq}删除了一个任务{mission[r['id']][1]}，现有任务：{[mission[c['id']][1] for c in user.data.quests]}。"
-#         target.data.quests.append(r)
-#         config.logger.dragon << f"【LOG】用户{target.qq}增加了一个任务{mission[r['id']][1]}，现有任务：{[mission[c['id']][1] for c in target.data.quests]}。"
-#         save_global_state()
-#     @classmethod
-#     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
-#         for m in user.data.quests:
-#             if m['remain'] > 0:
-#                 id, name, func = mission[m['id']]
-#                 if func(branch.word):
-#                     user.send_char(f"完成了任务：{name[:-1]}{句尾}奖励3击毙。此任务还可完成{m['remain'] - 1}次。")
-#                     user.log << f"完成了一次任务{name}，剩余{m['remain'] - 1}次。"
-#                     m['remain'] -= 1
-#                     await user.add_jibi(3)
-#                     save_global_state()
-#     @classmethod
-#     def register(cls) -> dict[int, TEvent]:
-#         return {UserEvt.OnDragoned: (Priority.OnDragoned.queststone, cls)}
+    @property
+    def QuestDes(self):
+        # pylint: disable=no-member
+        r = Mission.get(self.num1)().description
+        remain = self.num2
+        return "\t当前任务：" + r + f"。剩余{remain}次。"
+    @property
+    def description(self):
+        return self._description + "\n" + self.QuestDes
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+         # pylint: disable=no-member
+        quest = Mission.get(self.num1)()
+        if self.num2 > 0:
+            if quest.check(branch.word):
+                user.SendCardEffect(self)
+                self.num2 -= 1
+                await user.AddJibi(3)
+    def register(self) -> Dict['UserEvt', int]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.queststone}
 
 class CCunqianguan70(Card):
     name = "存钱罐"
