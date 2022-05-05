@@ -215,7 +215,7 @@ class User:
         self.Send(type="OnDeath", killer=-1 if killer is None else killer.qq, time=minute, dodge=dodge)
         if dodge:
             return
-        from .AllCards import SDeathN1
+        from .AllCards0 import SDeathN1
         await self.AddStatus(SDeathN1(timedelta(minutes=minute)))
     async def Attacked(self, atk: 'Attack'):
         """玩家受到攻击。"""
@@ -241,7 +241,7 @@ class User:
         self.Send(type="attacked", name=atk.name, dodge=dodge, attacker=attackerQQ)
     async def Killed(self, killer: 'User', minute: int=120, isAOE = False):
         """玩家被杀。算作一次攻击。"""
-        from .AllCards import AKill0
+        from .AllCards0 import AKill0
         attack = AKill0(killer, self, minute)
         attack.counter.isAOE = isAOE
         await self.Attacked(attack)
@@ -401,7 +401,7 @@ class User:
     async def Damaged(self, damage: int, attacker: 'User'=None, mustHit: bool=False):
         if attacker is None:
             attacker = self.dragon
-        from .AllCards import ADamage1
+        from .AllCards0 import ADamage1
         atk = ADamage1(attacker, self, damage, mustHit)
         await self.Attacked(atk)
     async def ChooseHandCards(self, min: int, max: int, requirement: Callable[[Card], bool]=(lambda *args: True),
@@ -475,7 +475,7 @@ class User:
         if toDiscard is not None:
             await self.DiscardCards([self.data.handCard[i] for i in toDiscard])
     async def DecreaseDeathTime(self, time: timedelta):
-        from .AllCards import SDeathN1
+        from .AllCards0 import SDeathN1
         l = self.CheckStatus(SDeathN1)
         if len(l) == 0:
             return True
