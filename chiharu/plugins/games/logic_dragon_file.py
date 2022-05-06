@@ -4879,7 +4879,7 @@ class railgun(_card):
 class ARailgun(Attack):
     name = "超电磁炮"
     async def self_action(self):
-        self.defender.death(120 * self.multiplier)
+        self.defender.death(120 * self.multiplier, killer = self.attacker)
         for d in self.defender.data.hand_card:
             if d.is_metallic and random.random() > (0.5 - 0.02 * self.attacker.data.luck) ** self.multiplier:
                 self.defender.send_log(f"的{d.name}被烧掉了{句尾}")

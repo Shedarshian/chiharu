@@ -734,3 +734,147 @@ class SYouxianShushi123(StatusDailyStack):
         return False
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnAttack: Priority.OnAttack.youxianshushi}
+
+class CXixueShashou124(Card):
+    name = "吸血杀手"
+    id = 124
+    positive = 1
+    _description = "今天你每次接龙时有10%几率获得一张【吸血鬼】。"
+    pack = Pack.toaru
+    async def Use(self, user: 'User') -> None:
+        await user.AddStatus(SXixueShashou124())
+class SXixueShashou124(StatusDailyStack):
+    name = "吸血杀手"
+    id = 124
+    _description = "今天你每次接龙时有10%几率获得一张【吸血鬼】。"
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        '''概率抽卡'''
+        for i in range(self.count):
+            if random.random() < 0.1 + 0.01 * user.data.luck:
+                user.SendStatusEffect(self)
+                await user.Draw(0, cards=[Card(-2)])
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.xixueshashou}
+class CVampireN2(Card):
+    name = "吸血鬼"
+    id = -2
+    positive = 1
+    weight = 0
+    _description = "此牌通常情况下无法被抽到。2小时内免疫死亡。"
+    mass = 0.5
+    pack = Pack.toaru
+    async def Use(self, user: 'User') -> None:
+        await user.AddStatus(SVampireN2(timedelta(hours=1)))
+class SVampireN2(StatusTimed):
+    name = "吸血鬼"
+    id = -2
+    _description = "免疫死亡。"
+    async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
+        user.SendStatusEffect(self)
+        return time, True
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDeath: Priority.OnDeath.vampire}
+
+class CRailgun125(Card):
+    id = 125
+    name = "超电磁炮"
+    _description = "花费1击毙或者手牌中一张金属制的牌或者身上一个金属制的buff，选择一个与你接龙距离3以内（若选择的是金属则为5以内）的人击毙。目标身上的每个金属制buff有1/2的几率被烧掉。"
+    pack = Pack.toaru
+    positive = 1
+    # failure_message = "使用此卡必须身上有弹药并且今天接过龙" + 句尾
+    def CanUse(self, user: 'User', copy: bool) -> bool:
+        if user.qq not in [tree.qq for tree in itertools.chain(*itertools.chain(user.game.treeObjs, *user.game.treeForests))]:
+            return False
+        if user.data.jibi != 0:
+            return True
+        cards = [d for d in user.data.handCard if d.isMetallic]
+        statuses = [s for s in user.data.statuses if s.isMetallic]
+        return len(cards) + len(statuses) != 0
+    async def Use(self, user: 'User') -> None:
+        async def ChooseAmmo(self, ammoList: List[str | Card | Status]):
+            #TODO
+            return tammo
+            # prompt = "请选择要发射的弹药，手牌请输入id，状态请输入全名，重新查询列表请输入“重新查询”。\n" + "\n".join(s for i, s, t, c in to_choose)
+            # def check(value: str):
+            #     if value == "重新查询":
+            #         _raise_failure(prompt)
+            #     for i, s, t, count in to_choose:
+            #         if value in t:
+            #             return (i, s, count)
+            #     _raise_failure("请选择一个在列表中的物品，重新查询列表请输入“重新查询”。")
+            # user.buf.send(prompt)
+            # await user.buf.flush()
+            # num, st, count = await user.buf.aget(prompt="", arg_filters=[
+            #     extractors.extract_text,
+            #     check_handcard(user),
+            #     check
+            # ])
+        '''进行电磁炮攻击
+        success：是否成功攻击
+        在success为False时调用:
+        reason：使用失败的理由
+        在success为True时调用:
+        chooseAmmo：True为询问弹药选择
+        ammoList：可用弹药列表
+        tammo：发射使用的弹药
+        chooseUser：True为询问攻击目标
+        tuser：攻击到的玩家'''
+        if await user.choose(flush=False):
+            if user.qq not in [tree.qq for tree in itertools.chain(*itertools.chain(user.game.treeObjs, *user.game.treeForests))]:
+                user.SendCardUse(self, success = False, reason = 'NoStartPoint')
+                return False
+            cards = [d for d in user.data.handCard if d.isMetallic]
+            statuses = [s for s in user.data.statuses if s.isMetallic]
+            l = len(cards) + len(statuses)
+            to_choose: list[str | Card | Status] = []
+            if user.data.jibi != 0:
+                to_choose.append(("1击毙")
+            to_choose.extend(cards)
+            to_choose.extend(statuses)
+            if len(to_choose) == 0:
+                user.SendCardUse(self, success = False, reason = 'NoAmmo')
+                return
+            elif len(to_choose) == 1:
+                user.SendCardUse(self, success = True, chooseAmmo = False)
+                tammo = to_choose[0]
+            else:
+                user.SendCardUse(self, success = True, chooseAmmo = True, ammoList = to_choose)
+                tammo = await self.ChooseAmmo(self, to_choose)
+            distance = 3 if tammp == "1击毙" else 5
+            allqq = set()
+            for branches in user.game.treeObjs:
+                for node in branches:
+                    if node.qq == user.qq:
+                        for s in range(-distance, distance + 1):
+                            for i in range(-(distance - abs(s)), distance - abs(s) + 1):
+                                ret = user.game.Findtree((node.id[0] + s, node.id[1] + i))
+                                if ret is not None:
+                                    allqq.add(ret.qq)
+            allqq.remove(user.qq)
+            user.SendCardUse(self, success = True, chooseUser = True)
+            tqq = user.ChoosePlayers(1, 1, range = list(allqq))[0]
+            user.SendCardUse(self, success = True, tammo = tammo, tuser = tqq)
+            if tammo == "1击毙":
+                await user.AddJibi(-1)
+            elif isinstance(tammo, Card):
+                await user.RemoveCards([tammo])
+            elif isinstance(tammo, Status):
+                await user.RemoveStatus(tammo, remover=user)
+            u = user.CreateUser(tqq)
+            atk = ARailgun125(user, u)
+            await u.attacked(user, atk)
+class ARailgun125(Attack):
+    name = "超电磁炮"
+    async def selfAction(self):
+        self.defender.Death(120 * self.multiplier, killer = self.attacker)
+        '''烧毁金属制品
+        tcard：被烧毁的卡牌
+        tstatus：被烧毁的状态'''
+        for d in self.defender.data.handCard:
+            if d.isMetallic and random.random() > (0.5 - 0.02 * self.attacker.data.luck) ** self.multiplier:
+                self.defender.SendAttack(self, tcard = d)
+                await self.defender.RemoveCards([d])
+        for s in self.defender.data.statuses:
+            if s.isMetallic and random.random() > (0.5 - 0.02 * self.attacker.data.luck) ** self.multiplier:
+                self.defender.SendAttack(self, status = s)
+                await self.defender.RemoveStatus(s, remover = self.attacker)

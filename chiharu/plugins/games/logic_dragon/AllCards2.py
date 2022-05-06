@@ -601,7 +601,7 @@ class CQiJiManBu79(Card):
     _description = "弃置你所有手牌，并摸取等量的非负面牌。"
     pack = Pack.orange_juice
     async def Use(self, user: 'User') -> None:
-        n = len(user.data.handCard)                       # what if handCard is None
+        n = len(user.data.handCard)
         await user.DiscardCards(copy(user.data.handCard)) # I think this need to be shallow copy
         await user.Draw(n, requirement=positive({0, 1}))
 

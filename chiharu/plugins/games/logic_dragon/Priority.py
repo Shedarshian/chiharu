@@ -57,7 +57,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
     class AfterCardGive(IntEnum):
         pass
     class OnDeath(IntEnum):
-        invincible = auto()             # 吸血鬼：免疫死亡
+        vampire = auto()             # 吸血鬼：免疫死亡
         explore = auto()                # 秘史衍生：免疫死亡，以及死亡时间减少
         miansi = auto()                 # 倒吊人：免疫一次死亡
         sihuihuibizhiyao = auto()       # 死秽：消耗击毙免疫一次死亡
