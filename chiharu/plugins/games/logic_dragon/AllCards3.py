@@ -764,12 +764,13 @@ class CVampireN2(Card):
     mass = 0.5
     pack = Pack.toaru
     async def Use(self, user: 'User') -> None:
-        await user.AddStatus(SVampireN2(timedelta(hours=1)))
+        await user.AddStatus(SVampireN2(timedelta(hours=2)))
 class SVampireN2(StatusTimed):
     name = "吸血鬼"
     id = -2
     _description = "免疫死亡。"
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
+        """免疫死亡。"""
         user.SendStatusEffect(self)
         return time, True
     def register(self) -> Dict[UserEvt, int]:
@@ -783,14 +784,30 @@ class CRailgun125(Card):
     positive = 1
     # failure_message = "使用此卡必须身上有弹药并且今天接过龙" + 句尾
     def CanUse(self, user: 'User', copy: bool) -> bool:
+        """无法使用原因。
+        flag: "dragon":今天未接过龙, "ammo":没有弹药"""
         if user.qq not in [tree.qq for tree in itertools.chain(*itertools.chain(user.game.treeObjs, *user.game.treeForests))]:
+            user.SendCardEffect(self, reason='NoStartPoint', time="CanUse")
             return False
         if user.data.jibi != 0:
             return True
         cards = [d for d in user.data.handCard if d.isMetallic]
         statuses = [s for s in user.data.statuses if s.isMetallic]
-        return len(cards) + len(statuses) != 0
+        if len(cards) + len(statuses) != 0:
+            return True
+        user.SendCardEffect(self, reason="NoAmmo", time="CanUse")
+        return False
     async def Use(self, user: 'User') -> None:
+        '''进行电磁炮攻击
+        success：是否成功攻击
+        在success为False时调用:
+        reason：使用失败的理由
+        在success为True时调用:
+        chooseAmmo：True为询问弹药选择
+        ammoList：可用弹药列表
+        tammo：发射使用的弹药，击毙时为“1击毙”
+        chooseUser：True为询问攻击目标
+        tuser：攻击到的玩家'''
         async def ChooseAmmo(self, ammoList: List[str | Card | Status]):
             #TODO
             return tammo
@@ -809,26 +826,16 @@ class CRailgun125(Card):
             #     check_handcard(user),
             #     check
             # ])
-        '''进行电磁炮攻击
-        success：是否成功攻击
-        在success为False时调用:
-        reason：使用失败的理由
-        在success为True时调用:
-        chooseAmmo：True为询问弹药选择
-        ammoList：可用弹药列表
-        tammo：发射使用的弹药
-        chooseUser：True为询问攻击目标
-        tuser：攻击到的玩家'''
         if await user.choose(flush=False):
             if user.qq not in [tree.qq for tree in itertools.chain(*itertools.chain(user.game.treeObjs, *user.game.treeForests))]:
                 user.SendCardUse(self, success = False, reason = 'NoStartPoint')
-                return False
+                return
             cards = [d for d in user.data.handCard if d.isMetallic]
             statuses = [s for s in user.data.statuses if s.isMetallic]
             l = len(cards) + len(statuses)
             to_choose: list[str | Card | Status] = []
             if user.data.jibi != 0:
-                to_choose.append(("1击毙")
+                to_choose.append("1击毙")
             to_choose.extend(cards)
             to_choose.extend(statuses)
             if len(to_choose) == 0:
@@ -839,21 +846,21 @@ class CRailgun125(Card):
                 tammo = to_choose[0]
             else:
                 user.SendCardUse(self, success = True, chooseAmmo = True, ammoList = to_choose)
-                tammo = await self.ChooseAmmo(self, to_choose)
-            distance = 3 if tammp == "1击毙" else 5
+                tammo = await ChooseAmmo(self, to_choose)
+            distance = 3 if tammo == "1击毙" else 5
             allqq = set()
             for branches in user.game.treeObjs:
                 for node in branches:
                     if node.qq == user.qq:
                         for s in range(-distance, distance + 1):
                             for i in range(-(distance - abs(s)), distance - abs(s) + 1):
-                                ret = user.game.Findtree((node.id[0] + s, node.id[1] + i))
+                                ret = user.game.FindTree((node.id[0] + s, node.id[1] + i))
                                 if ret is not None:
                                     allqq.add(ret.qq)
             allqq.remove(user.qq)
             user.SendCardUse(self, success = True, chooseUser = True)
             tqq = user.ChoosePlayers(1, 1, range = list(allqq))[0]
-            user.SendCardUse(self, success = True, tammo = tammo, tuser = tqq)
+            user.SendCardUse(self, success = True, tammo = tammo if isinstance(tammo, str) else tammo.DumpData(), tuser = tqq)
             if tammo == "1击毙":
                 await user.AddJibi(-1)
             elif isinstance(tammo, Card):
@@ -862,7 +869,7 @@ class CRailgun125(Card):
                 await user.RemoveStatus(tammo, remover=user)
             u = user.CreateUser(tqq)
             atk = ARailgun125(user, u)
-            await u.attacked(user, atk)
+            await u.Attacked(atk)
 class ARailgun125(Attack):
     name = "超电磁炮"
     async def selfAction(self):
@@ -872,9 +879,9 @@ class ARailgun125(Attack):
         tstatus：被烧毁的状态'''
         for d in self.defender.data.handCard:
             if d.isMetallic and random.random() > (0.5 - 0.02 * self.attacker.data.luck) ** self.multiplier:
-                self.defender.SendAttack(self, tcard = d)
+                self.defender.SendAttack(self, tcard = d.DumpData())
                 await self.defender.RemoveCards([d])
         for s in self.defender.data.statuses:
             if s.isMetallic and random.random() > (0.5 - 0.02 * self.attacker.data.luck) ** self.multiplier:
-                self.defender.SendAttack(self, status = s)
+                self.defender.SendAttack(self, status = s.DumpData())
                 await self.defender.RemoveStatus(s, remover = self.attacker)

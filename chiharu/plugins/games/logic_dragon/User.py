@@ -72,6 +72,7 @@ class User:
     def CheckStatusStack(self, cls: Type[TStatusStack]):
         return self.data.CheckStatusStack(cls)
     def CheckSunflower(self):
+        from AllCards4 import SSunflower130, STwinSunflower133
         return self.CheckStatusStack(SSunflower130) + self.CheckStatusStack(STwinSunflower133)
 
     async def choose(self, flush: bool):

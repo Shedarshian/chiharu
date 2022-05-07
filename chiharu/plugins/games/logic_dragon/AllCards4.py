@@ -48,8 +48,8 @@ class SMagnetShroom129(StatusTimed):
         if self.time < datetime.now():
             user.SendStatusEffect(self)
             self.time = datetime.now() + timedelta(days=1)
-            atk = AMagnetShroom129(user.attack.attacker)
-            await attack.attacker.attacked(atk)
+            atk = AMagnetShroom129(attack.attacker)
+            await attack.attacker.Attacked(atk)
             user.data.SaveStatuses()
             return False
         return False
@@ -80,8 +80,10 @@ class CSunflower130(Card):
     pack = Pack.pvz
     @property
     def CanUse(self, user: 'User', copy: bool) -> bool:
-        return (user.CheckSunflower()<10)
+        return (user.CheckSunflower() < 10)
     async def Use(self, user: 'User') -> None:
+        """种植
+        success: 是否成功。"""
         if user.CheckSunflower() >= 10:
             user.SendCardUse(self, success = False)
             return
@@ -92,15 +94,17 @@ class SSunflower130(StatusNullStack):
     id = 130
     description = "跨日结算时你获得1击毙。场上最多存在十株(双子)向日葵。"
     async def OnNewDay(self, user: 'User') -> None:
+        """获得击毙
+        jibi: 获得的击毙。"""
         user.SendStatusEffect(self, jibi = self.count)
         await user.AddJibi(self.count)
     async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
         if isinstance(status, SSunflower130):
-            status.num = min(status.num, 10 - user.CheckSunflower)
+            status.num = min(status.num, 10 - user.CheckSunflower())
         elif isinstance(status, STwinSunflower133):
-            if (u := status.num+user.CheckSunflower()) > 10:
-                user.RemoveStatus(SSunflower130(u-10))
-        return False
+            if (u := status.num + user.CheckSunflower()) > 10:
+                await user.RemoveStatus(SSunflower130(u - 10))
+        return status.num == 0
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnNewDay: Priority.OnNewDay.sunflower,
             UserEvt.OnStatusAdd: Priority.OnStatusAdd.sunflower}
@@ -109,6 +113,9 @@ class SInvSunflower125(StatusNullStack):
     id = 125
     description = "跨日结算时你损失1击毙。"
     async def OnNewDay(self, user: 'User') -> None:
+        """失去击毙
+        jibi: 失去的击毙。
+        turn: 转过来的数量。"""
         count = self.count
         await user.AddJibi(-count)
         n = 0
@@ -132,7 +139,7 @@ class CWallnut131(Card):
         o = user.CheckStatus(SWallnut131)
         if len(o) > 0:
             o[0].num = 240
-            user.SaveStatuses()
+            user.data.SaveStatuses()
             user.SendCardUse(self, type = 'mend')
         else:
             await user.AddStatus(SWallnut131(240))
@@ -143,8 +150,13 @@ class SWallnut131(StatusNumed):
     _description = "为你吸收死亡时间。"
     @property
     def description(self):
+        # pylint: disable=no-member
         return f"{self._description}\n剩余时间：{self.num}分钟。"
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
+        """抵挡死亡。
+        atime: 抵挡的时间。
+        dead: 是否死亡"""
+        # pylint: disable=no-member
         if c.jump:
             return time, False
         m = min(self.num, time)
@@ -152,7 +164,7 @@ class SWallnut131(StatusNumed):
         time -= m
         dead = (time == 0)
         user.SendStatusEffect(self, atime = m, dead = dead)
-        user.SaveStatuses()
+        user.data.SaveStatuses()
         return time, dead
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDeath: Priority.OnDeath.wallnut}
@@ -195,9 +207,11 @@ class CTwinSunflower133(Card):
     pack = Pack.pvz
     @property
     def CanUse(self, user: 'User', copy: bool) -> bool:
-        return (user.CheckStatusStack(SSunflower130)!=0)
+        return (user.CheckStatusStack(SSunflower130) != 0)
     async def Use(self, user: 'User') -> None:
-        if user.CheckStatusStack(SSunflower130)==0:
+        """种植
+        success: 是否成功。"""
+        if user.CheckStatusStack(SSunflower130) == 0:
             user.SendCardUse(self, success = False)
             return
         user.SendCardUse(self, success = True)
@@ -208,28 +222,33 @@ class STwinSunflower133(StatusNullStack):
     id = 133
     description = "跨日结算时你获得2击毙。场上最多存在十株(双子)向日葵。"
     async def OnNewDay(self, user: 'User') -> None:
+        """获得击毙
+        jibi: 获得的击毙。"""
         user.SendStatusEffect(self, jibi = self.count)
         await user.AddJibi(self.count)
     async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
         if isinstance(status, SSunflower130) or isinstance(status, STwinSunflower133):
             status.num = min(status.num, 10 - user.CheckSunflower)
-        return False
+        return status.num == 0
     def register(self) -> Dict[UserEvt, int]:
-        return {UserEvt.OnNewDay: Priority.OnNewDay.twinsunflower
+        return {UserEvt.OnNewDay: Priority.OnNewDay.twinsunflower,
             UserEvt.OnStatusAdd: Priority.OnStatusAdd.twinsunflower}
 class SInvSunflower78(StatusNullStack):
     name = "双子背日葵"
     id = 78
     description = "跨日结算时你损失2击毙。"
     async def OnNewDay(self, user: 'User') -> None:
+        """失去击毙
+        jibi: 失去的击毙。
+        turn: 转过来的数量。"""
         count = self.count
-        await user.AddJibi(-2*count)
+        await user.AddJibi(-2 * count)
         n = 0
         for i in range(self.count):
             if random.random() > 0.5:
                 await user.RemoveStatus(SInvSunflower125(1))
                 n += 1
-        user.SendStatusEffect(self, jibi = to_add, turned = n)
+        user.SendStatusEffect(self, jibi = 2 * count, turned = n)
         await user.AddStatus(STwinSunflower133(n))
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnNewDay: Priority.OnNewDay.inv_twinsunflower}
@@ -245,7 +264,7 @@ class CPumpkin134(Card):
         o = user.CheckStatus(SPumpkin134)
         if len(o) > 0:
             o[0].num = 360
-            user.SaveStatuses()
+            user.data.SaveStatuses()
             user.SendCardUse(self, type = 'mend')
         else:
             await user.AddStatus(SPumpkin134(360))
@@ -256,8 +275,13 @@ class SPumpkin134(StatusNumed):
     _description = "为你吸收死亡时间。"
     @property
     def description(self):
+        # pylint: disable=no-member
         return f"{self._description}\n剩余时间：{self.num}分钟。"
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
+        """抵挡死亡。
+        atime: 抵挡的时间。
+        dead: 是否死亡"""
+        # pylint: disable=no-member
         if c.jump:
             return time, False
         m = min(self.num, time)
@@ -265,7 +289,7 @@ class SPumpkin134(StatusNumed):
         time -= m
         dead = (time == 0)
         user.SendStatusEffect(self, atime = m, dead = dead)
-        user.SaveStatuses()
+        user.data.SaveStatuses()
         return time, dead
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDeath: Priority.OnDeath.pumpkin}
@@ -277,7 +301,7 @@ class CImitator135(Card):
     description = "你下一张抽到的卡会额外再给你一张。"
     pack = Pack.pvz
     async def Use(self, user: 'User') -> None:
-        user.AddStatus(SImitator135())
+        await user.AddStatus(SImitator135())
 class SImitator135(StatusNullStack):
     name = "模仿者"
     id = 135
@@ -288,7 +312,7 @@ class SImitator135(StatusNullStack):
             to_add = cards
         else:
             await user.RemoveAllStatus(SImitator135)
-            to_add = cards[:count]
+            to_add = cards[:self.count]
         user.SendStatusEffect(self, cards = [c.DumpData() for c in to_add])
         await user.Draw(cards = to_add)
     def register(self) -> Dict[UserEvt, int]:
