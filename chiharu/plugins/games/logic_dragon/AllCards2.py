@@ -288,10 +288,12 @@ class CQueststone67(CardDoubleNumed):
                 self.num2 -= 1
                 user.SendCardEffect(self, time="OnDragoned", remain=self.num2, mission=quest.description)
                 await user.AddJibi(3)
+                user.data.SaveStatuses()
     async def OnNewDay(self, user: 'User') -> None:
         user.SendCardEffect(self, time="OnNewDay")
         self.num1 = Mission.RandomQuestStoneId()
         self.num2 = 3
+        user.data.SaveStatuses()
     def register(self) -> Dict['UserEvt', int]:
         return {UserEvt.OnDragoned: Priority.OnDragoned.queststone,
                 UserEvt.OnNewDay: Priority.OnNewDay.queststone}
