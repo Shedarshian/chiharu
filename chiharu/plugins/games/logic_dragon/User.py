@@ -71,6 +71,8 @@ class User:
         return self.data.CheckStatus(cls)
     def CheckStatusStack(self, cls: Type[TStatusStack]):
         return self.data.CheckStatusStack(cls)
+    def CheckSunflower(self):
+        return self.CheckStatusStack(SSunflower130) + self.CheckStatusStack(STwinSunflower133)
 
     async def choose(self, flush: bool):
         if not self.active:

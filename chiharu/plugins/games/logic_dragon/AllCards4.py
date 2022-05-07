@@ -80,10 +80,9 @@ class CSunflower130(Card):
     pack = Pack.pvz
     @property
     def CanUse(self, user: 'User', copy: bool) -> bool:
-        return (user.CheckStatusStack(SSunflower130) + user.CheckStatusStack(STwinSunflower133)<10)
+        return (user.CheckSunflower()<10)
     async def Use(self, user: 'User') -> None:
-        ss = user.CheckStatusStack(SSunflower130) + user.CheckStatusStack(STwinSunflower133)
-        if ss >= 10:
+        if user.CheckSunflower() >= 10:
             user.SendCardUse(self, success = False)
             return
         user.SendCardUse(self, success = True)
@@ -95,8 +94,16 @@ class SSunflower130(StatusNullStack):
     async def OnNewDay(self, user: 'User') -> None:
         user.SendStatusEffect(self, jibi = self.count)
         await user.AddJibi(self.count)
+    async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
+        if isinstance(status, SSunflower130):
+            status.num = min(status.num, 10 - user.CheckSunflower)
+        elif isinstance(status, STwinSunflower133):
+            if (u := status.num+user.CheckSunflower()) > 10:
+                user.RemoveStatus(SSunflower130(u-10))
+        return False
     def register(self) -> Dict[UserEvt, int]:
-        return {UserEvt.OnNewDay: Priority.OnNewDay.sunflower}
+        return {UserEvt.OnNewDay: Priority.OnNewDay.sunflower,
+            UserEvt.OnStatusAdd: Priority.OnStatusAdd.sunflower}
 class SInvSunflower125(StatusNullStack):
     name = "背日葵"
     id = 125
@@ -110,9 +117,7 @@ class SInvSunflower125(StatusNullStack):
                 await user.RemoveStatus(SInvSunflower125(1))
                 n += 1
         user.SendStatusEffect(self, jibi = count, turned = n)
-        for i in range(n):
-            if user.CheckStatusStack(SSunflower130) + user.CheckStatusStack(STwinSunflower133) < 10:
-                await user.AddStatus(SSunflower130())
+        await user.AddStatus(SSunflower130(n))
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnNewDay: Priority.OnNewDay.inv_sunflower}
 
@@ -205,8 +210,13 @@ class STwinSunflower133(StatusNullStack):
     async def OnNewDay(self, user: 'User') -> None:
         user.SendStatusEffect(self, jibi = self.count)
         await user.AddJibi(self.count)
+    async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
+        if isinstance(status, SSunflower130) or isinstance(status, STwinSunflower133):
+            status.num = min(status.num, 10 - user.CheckSunflower)
+        return False
     def register(self) -> Dict[UserEvt, int]:
-        return {UserEvt.OnNewDay: Priority.OnNewDay.twinsunflower}
+        return {UserEvt.OnNewDay: Priority.OnNewDay.twinsunflower
+            UserEvt.OnStatusAdd: Priority.OnStatusAdd.twinsunflower}
 class SInvSunflower78(StatusNullStack):
     name = "双子背日葵"
     id = 78
@@ -220,10 +230,7 @@ class SInvSunflower78(StatusNullStack):
                 await user.RemoveStatus(SInvSunflower125(1))
                 n += 1
         user.SendStatusEffect(self, jibi = to_add, turned = n)
-        for i in range(n):
-            if user.CheckStatusStack(SSunflower130) + user.CheckStatusStack(STwinSunflower133) >= 10:
-                await user.RemoveStatus(SSunflower130())
-            await user.AddStatus(STwinSunflower133())
+        await user.AddStatus(STwinSunflower133(n))
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnNewDay: Priority.OnNewDay.inv_twinsunflower}
 
@@ -282,7 +289,7 @@ class SImitator135(StatusNullStack):
         else:
             await user.RemoveAllStatus(SImitator135)
             to_add = cards[:count]
-        user.SendStatusEffect(self. cards = [c.DumpData() for c in to_add])
+        user.SendStatusEffect(self, cards = [c.DumpData() for c in to_add])
         await user.Draw(cards = to_add)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.AfterCardDraw: Priority.AfterCardDraw.imitator}
