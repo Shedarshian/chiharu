@@ -1,8 +1,6 @@
 from typing import *
 from datetime import datetime, timedelta
 import functools
-
-from chiharu.plugins.games.logic_dragon_file import TEventListener
 from .UserData import UserData
 from .Helper import ProtocolData, Buffer
 from .Card import Card
@@ -50,7 +48,7 @@ class User:
             user_lists.append(self.me.eventListener[evt])
         for p in exchange[evt]:
             for e in user_lists:
-                ret: list[TEventListener] | None = e.get(p)
+                ret: list[IEventListener] | None = e.get(p)
                 if ret is not None:
                     for eln in ret:
                         yield eln

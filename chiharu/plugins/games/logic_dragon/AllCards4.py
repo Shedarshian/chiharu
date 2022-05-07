@@ -45,10 +45,11 @@ class SMagnetShroom129(StatusTimed):
     def double(self):
         pass
     async def OnAttacked(self, user: 'User', attack: 'Attack') -> bool:
+         # pylint: disable=access-member-before-definition,attribute-defined-outside-init
         if self.time < datetime.now():
             user.SendStatusEffect(self)
             self.time = datetime.now() + timedelta(days=1)
-            atk = AMagnetShroom129(attack.attacker)
+            atk = AMagnetShroom129(user, attack.attacker)
             await attack.attacker.Attacked(atk)
             user.data.SaveStatuses()
             return False
@@ -78,9 +79,8 @@ class CSunflower130(Card):
     description = "种植植物向日葵：跨日结算时你获得1击毙。场上最多存在十株(双子)向日葵。"
     positive = 1
     pack = Pack.pvz
-    @property
     def CanUse(self, user: 'User', copy: bool) -> bool:
-        return (user.CheckSunflower() < 10)
+        return user.CheckSunflower() < 10
     async def Use(self, user: 'User') -> None:
         """种植
         success: 是否成功。"""
@@ -101,10 +101,11 @@ class SSunflower130(StatusNullStack):
     async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
         if isinstance(status, SSunflower130):
             status.num = min(status.num, 10 - user.CheckSunflower())
+            return status.num == 0
         elif isinstance(status, STwinSunflower133):
             if (u := status.num + user.CheckSunflower()) > 10:
                 await user.RemoveStatus(SSunflower130(u - 10))
-        return status.num == 0
+        return False
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnNewDay: Priority.OnNewDay.sunflower,
             UserEvt.OnStatusAdd: Priority.OnStatusAdd.sunflower}
@@ -205,9 +206,8 @@ class CTwinSunflower133(Card):
     positive = 1
     # failure_message = "你场地上没有“向日葵”" + 句尾
     pack = Pack.pvz
-    @property
     def CanUse(self, user: 'User', copy: bool) -> bool:
-        return (user.CheckStatusStack(SSunflower130) != 0)
+        return user.CheckStatusStack(SSunflower130) != 0
     async def Use(self, user: 'User') -> None:
         """种植
         success: 是否成功。"""
@@ -228,8 +228,9 @@ class STwinSunflower133(StatusNullStack):
         await user.AddJibi(self.count)
     async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
         if isinstance(status, SSunflower130) or isinstance(status, STwinSunflower133):
-            status.num = min(status.num, 10 - user.CheckSunflower)
-        return status.num == 0
+            status.num = min(status.num, 10 - user.CheckSunflower())
+            return status.num == 0
+        return False
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnNewDay: Priority.OnNewDay.twinsunflower,
             UserEvt.OnStatusAdd: Priority.OnStatusAdd.twinsunflower}
@@ -306,7 +307,7 @@ class SImitator135(StatusNullStack):
     name = "模仿者"
     id = 135
     description = "你下一张抽到的卡会额外再给你一张。"
-    async def AfterCardDraw(self, user: 'User', cards: Iterable['Card']) -> None:
+    async def AfterCardDraw(self, user: 'User', cards: list['Card']) -> None:
         if self.count > len(cards):
             await user.RemoveStatus(SImitator135(len(cards)))
             to_add = cards

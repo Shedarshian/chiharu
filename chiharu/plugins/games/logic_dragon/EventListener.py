@@ -45,19 +45,19 @@ class IEventListener:
         Arguments:
         card: The card used."""
         pass
-    async def AfterCardDraw(self, user: 'User', cards: Iterable['Card']) -> None:
+    async def AfterCardDraw(self, user: 'User', cards: list['Card']) -> None:
         """Called after cards are drawn.
 
         Parameters:
         cards: The cards drawn."""
         pass
-    async def AfterCardDiscard(self, user: 'User', cards: Iterable['Card']) -> None:
+    async def AfterCardDiscard(self, user: 'User', cards: list['Card']) -> None:
         """Called after cards are discarded.
 
         Parameters:
         cards: The cards discarded."""
         pass
-    async def AfterCardRemove(self, user: 'User', cards: Iterable['Card']) -> None:
+    async def AfterCardRemove(self, user: 'User', cards: list['Card']) -> None:
         """Called after cards are removed.
 
         Parameters:
