@@ -264,6 +264,10 @@ class CQueststone67(CardDoubleNumed):
     desNeedInit = True
     mass = 0.2
     pack = Pack.stone_story
+    def __init__(self) -> None:
+        super().__init__()
+        self.num1 = Mission.RandomQuestStoneId()
+        self.num2 = 3
     @property
     def QuestDes(self):
         # pylint: disable=no-member
@@ -274,15 +278,23 @@ class CQueststone67(CardDoubleNumed):
     def description(self):
         return self._description + "\n" + self.QuestDes
     async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
-         # pylint: disable=no-member
+        """完成任务
+        remain: 剩余次数
+        mission: 任务描述"""
+        # pylint: disable=no-member
         quest = Mission.get(self.num1)()
         if self.num2 > 0:
             if quest.check(branch.word):
-                user.SendCardEffect(self)
                 self.num2 -= 1
+                user.SendCardEffect(self, time="OnDragoned", remain=self.num2, mission=quest.description)
                 await user.AddJibi(3)
+    async def OnNewDay(self, user: 'User') -> None:
+        user.SendCardEffect(self, time="OnNewDay")
+        self.num1 = Mission.RandomQuestStoneId()
+        self.num2 = 3
     def register(self) -> Dict['UserEvt', int]:
-        return {UserEvt.OnDragoned: Priority.OnDragoned.queststone}
+        return {UserEvt.OnDragoned: Priority.OnDragoned.queststone,
+                UserEvt.OnNewDay: Priority.OnNewDay.queststone}
 
 class CCunqianguan70(Card):
     name = "存钱罐"

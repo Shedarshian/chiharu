@@ -42,8 +42,8 @@ class Card(IEventListener, Saveable, hasIdDict=True):
 
 class CardNumed(Card):
     dataType: Tuple[Callable[[str], Any],...] = (int,)
-    def __init__(self, data: int=1) -> None:
-        self.num = data
+    def __init__(self) -> None:
+        self.num = 0
     def packData(self):
         return str(self.num)
     def DumpData(self) -> ProtocolData:
@@ -51,9 +51,9 @@ class CardNumed(Card):
 
 class CardDoubleNumed(Card):
     dataType: Tuple[Callable[[str], Any],...] = (int, int)
-    def __init__(self, data1: int, data2: int) -> None:
-        self.num1 = data1
-        self.num2 = data2
+    def __init__(self) -> None:
+        self.num1 = 0
+        self.num2 = 0
     def packData(self):
         return f"{self.num1},{self.num2}"
     def DumpData(self) -> ProtocolData:
