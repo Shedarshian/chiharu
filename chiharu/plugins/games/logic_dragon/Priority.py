@@ -65,7 +65,8 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         inv_sihuihuibizhiyao = auto()   # 反转死秽
         death = auto()                  # 死神：死亡时间加倍
         fuhuoguanghuan = auto()         # 因hp归零死亡时间除以12
-        absorb = auto()                 # 吸收死亡时间
+        pumpkin = auto()                # 吸收死亡时间
+        wallnut = auto()
         changsheng = auto()             # 吸收死亡时间MkII
         tiesuolianhuan = auto()         # 铁索连环：一起下地狱
         lveduozhebopu = auto()          # 掠夺者：被弃

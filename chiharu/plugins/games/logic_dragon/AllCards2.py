@@ -635,8 +635,8 @@ class SWin81(StatusDailyStack):
     id = 81
     name = "胜利"
     _description = "恭喜，今天你赢了。"
-class SDefeat82(StatusDailyStack):
-    id = 82
+class SDefeat79(StatusDailyStack):
+    id = 79
     name = "失败"
     _description = "对不起，今天你输了。"
     isDebuff = True
