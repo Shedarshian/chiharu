@@ -318,3 +318,83 @@ class SImitator135(StatusNullStack):
         await user.Draw(cards = to_add)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.AfterCardDraw: Priority.AfterCardDraw.imitator}
+
+class CJackInTheBox136(Card):
+    name = "玩偶匣"
+    id = 136
+    positive = -1
+    _description = "抽到时附加buff：你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。若场上有寒冰菇状态则不会爆炸。"
+    consumedOnDraw = True
+    isMetallic = True
+    pack = Pack.pvz
+    async def OnDraw(self, user: 'User') -> None:
+        user.SendCardOnDraw(self)
+        await user.AddStatus(SJackInTheBox136())
+class SJackInTheBox136(StatusNullStack):
+    name = "玩偶匣"
+    id = 136
+    _description = "你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。若场上有寒冰菇状态则不会爆炸。"
+    isDebuff = True
+    isMetallic = True
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        '''炸死好多人
+        tqqs：被炸死的玩家QQ'''
+        if user.ume.CheckStatus(SIceShroom132):
+            return
+        if random.random() > 0.95 ** self.count:
+            await user.RemoveStatus(SJackInTheBox136())
+            qqs = {user.qq}
+            id = branch.id
+            for i, j in itertools.product(range(-2, 3), range(-2, 3)):
+                ret = user.game.findTree((id[0] + i, id[1] + j))
+                if ret is not None:
+                    qqs.add(ret.qq)
+            qqs -= {user.game.managerQQ}
+            user.SendStatusEffect(self, tqqs = list(qqs))
+            for qqq in qqs:
+                await user.CreateUser(qqq).killed(user)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.jack_in_the_box}
+
+class CBungeeZombie137(Card):
+    name = "蹦极僵尸"
+    id = 137
+    positive = -1
+    _description = "抽到时依照优先级移除你的一层植物效果。若你没有植物，则放下一只僵尸，你死亡一个小时。若场上有寒冰菇状态则不会生效。"
+    consumedOnDraw = True
+    pack = Pack.pvz
+    async def OnDraw(self, user: 'User') -> None:
+        if user.ume.CheckStatus(SIceShroom132):
+            user.SendCardOnDraw(self, flag = "iceshroom")
+        elif mag := user.CheckStatus(SMagnetShroom129):
+            user.SendCardOnDraw(self, flag = 'magnetshroom')
+            await user.RemoveStatus(mag[0])
+        elif nut := user.CheckStatus(SWallnut131):
+            user.SendCardOnDraw(self, flag = 'wallnut')
+            await user.RemoveStatus(nut[0])
+        elif user.CheckStatus(STwinSunflower133):
+            user.SendCardOnDraw(self, flag = 'twinsunflower')
+            await user.RemoveStatus(STwinSunflower133(1))
+        elif user.CheckStatus(SSunflower130):
+            user.SendCardOnDraw(self, flag = 'sunflower')
+            await user.RemoveStatus(SSunflower130(1))
+        elif pkn := user.CheckStatus(SPumpkin134):
+            user.SendCardOnDraw(self, flag = 'pumpkin')
+            await user.RemoveStatus(pkn[0])
+        else:
+            user.SendCardOnDraw(self, flag = 'zombie')
+            await user.Death(minute=60)
+
+class CPoleZombie(Card):
+    name = "撑杆跳僵尸"
+    id = 138
+    positive = -1
+    _description = "抽到时击毙你一次，此击毙不会被坚果墙或南瓜保护套阻挡。若场上有寒冰菇状态则不会生效。"
+    consumedOnDraw = True
+    pack = Pack.pvz
+    async def OnDraw(self, user: 'User') -> None:
+        if user.ume.CheckStatus(SIceShroom132):
+            user.SendCardOnDraw(self, flag = "iceshroom")
+        else:
+            user.SendCardOnDraw(self, flag = 'success')
+            await user.Death(c=AttackType(jump = True))
