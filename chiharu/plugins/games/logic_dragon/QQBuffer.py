@@ -82,6 +82,8 @@ class QQBuffer(Buffer):
                     match card.get("id"):
                         case 73:
                             prompt += char + "今天幸运护符的使用卡牌次数已完。"
+                        case 77:
+                            pass # TODO
                         case _:
                             pass
                 case "status_effect":
@@ -122,6 +124,10 @@ class QQBuffer(Buffer):
                             pass
                         case 30:
                             prompt += char + "病了，不能接龙。"
+                        case 37:
+                            pass
+                        case 38:
+                            prompt += f"因铁索连环的效果，玩家{''.join(f'[CQ:at,qq={qqq}]' for qqq in data.get('tqqs'))}也同样被击毙了。"
                         case 50:
                             prompt += char + "触发了死秽回避之药的效果，扣除5击毙，免除死亡。"
                         case 53:
@@ -132,6 +138,19 @@ class QQBuffer(Buffer):
                             prompt += char + f"""触发了反转·辉夜姬的秘密宝箱的效果，弃掉了{''.join(f"【{card.get('name')}】" for card in data.get('cards'))}。"""
                         case 60:
                             prompt += char + f"触发了+2的效果，摸{(count := data.get('count'))}张非负面卡和{count}张非正面卡。"
+                        case 66:
+                            prompt += "因衔尾蛇之石，今日需要首尾接龙，接龙失败。"
+                        case 63:
+                            prompt += "因石之蛇尾衔，今日需要尾首接龙，接龙失败。"
+                        case 70:
+                            prompt += f"触发了{count:=data.get('count')}次存钱罐的效果，多获得{count*10}击毙。"
+                        case 72:
+                            prompt += f"触发了{count:=data.get('count')}次反转·存钱罐的效果，少获得{count*10}击毙。"
+                        case 71:
+                            if data.get('seccess'):
+                                prompt += char + '幸运地' if data.get('lucky') else '' + "闪避了死亡。"
+                            else:
+                                prompt += char + "没能成功闪避，死亡时间增加一小时。"
                         case 73:
                             prompt += char + "不能使用除幸运护符之外的卡牌。"
                         case 74:
@@ -197,6 +216,32 @@ class QQBuffer(Buffer):
                                 sdes = f"触发了凯歌的效果，完全防住了{f'{count}层' if count > 1 else ''}【{sname}】。"
                             elif flag == 'part':
                                 sdes = f"触发了凯歌的效果，防住了{f'{count}层' if count > 1 else ''}【{sname}】，但没有完全防住。"
+                        case 121:
+                            pass # TODO
+                        case 123:
+                            pass # TODO
+                        case 124:
+                            prompt += char + "获得了一张【吸血鬼】。"
+                        case -2:
+                            prompt += char + "因吸血鬼效果免疫死亡。"
+                        case 129:
+                            prompt += char + "发动了磁力菇的效果。"
+                        case 130:
+                            prompt += f"玩家{data.get('qq')}种植的向日葵产出了{data.get('jibi')}击毙。"
+                        case 125:
+                            prompt += f"玩家{data.get('qq')}种植的背日葵消耗了{data.get('jibi')}击毙{f'，但{n:=data.get('turned')}朵背日葵转了过来' if n > 0 else ''}。"
+                        case 131:
+                            prompt += f"坚果墙为{char}吸收了{data.get('atime')}分钟的死亡时间{f"，{char}没死" if data.get('dead') else ''}。"
+                        case 133:
+                            prompt += f"玩家{data.get('qq')}种植的双子向日葵产出了{data.get('jibi')}击毙。"
+                        case 78:
+                            prompt += f"玩家{data.get('qq')}种植的双子背日葵消耗了{data.get('jibi')}击毙{f'，但{n:=data.get('turned')}朵双子向日葵转了过来' if n > 0 else ''}。"
+                        case 134:
+                            prompt += f"南瓜保护套为{char}吸收了{data.get('atime')}分钟的死亡时间{f"，{char}没死" if data.get('dead') else ''}。"
+                        case 135:
+                            prompt += char + f"触发了模仿者的效果，获得了{''.join(f'【{card.get('name')}】' for card in data.get('cards'))}。"
+                        case 136:
+                            prompt += char + f"手上的玩偶匣爆炸了，炸死了{' '.join(f'[CQ:at,qq={qqq}]' for qqq in data.get('tqqs'))}。"
                         case _:
                             pass
                 case "card_use":
@@ -221,7 +266,7 @@ class QQBuffer(Buffer):
                         case 15:
                             prompt += f"上一位使用卡牌的人是[CQ:at,qq={data.get('userQQ')}]。"
                         case 16:
-                            prompt += f"随机被击毙的玩家是{''.join(f'[CQ:at,qq={q}' for q in data.get('qqlist'))}。"
+                            prompt += f"随机被击毙的玩家是{''.join(f'[CQ:at,qq={q}]' for q in data.get('qqlist'))}。"
                         case 19:
                             prompt += char + f"揭示的隐藏奖励词是： {data.get('hiddenKeyword')} 。"
                         case 20:
@@ -234,9 +279,25 @@ class QQBuffer(Buffer):
                                     prompt += "但无事发生。"
                                 case _:
                                     pass
+                        case 32:
+                            prompt += char + f"移除了全局状态{data.get('rstatus').get('name')}。"
+                        case 37:
+                            if data.get('choose'):
+                                prompt += "请选择一名玩家与祂决斗："
+                            else:
+                                prompt += char + f"指定了玩家[CQ:at,qq={data.get('ruser')}]，一小时内下10次接龙为你与祂之间进行。"
+                        case 38:
+                            if data.get('choose'):
+                                prompt += "请选择一或两位玩家切换连环状态："
+                            else:
+                                prompt += char + f"""成功切换了{f"[CQ:at,qq={t:=data.get('tplayer')[0]}]" + "" if len(t) == 1 else f"和[CQ:at,qq={t[1]}]"}的连环状态。"""
                         case 53:
                             if len(cards := data.get('cards')) > 0:
                                 prompt += char + f"""失去了手牌{''.join(f"【{card.get('name')}】" for card in cards)}。"""
+                        case 63:
+                            prompt += char + "拆除了许多的雷。"
+                        case 72:
+                            pass # TODO
                         case 81:
                             prompt += "今天接龙的所有人都赢了。恭喜你们。"
                         case 95:
@@ -271,8 +332,52 @@ class QQBuffer(Buffer):
                                 prompt += "请选择一名玩家或发送qq=2711644761对千春使用："
                             elif data.get('chiharu'):
                                 pass#TODO
+                        case 109:
+                            prompt += "请选择一名玩家："
                         case 119:
                             prompt += char + "移除了自己身上的大病一场。"
+                        case 125:
+                            if not data.get('success'):
+                                match data.get('reason'):
+                                    case 'NoDragon':
+                                        prompt += "使用失败，今日没有接过龙。"
+                                    case 'NoAmmo':
+                                        prompt += "使用失败，没有可用弹药。"
+                            elif not data.get('chooseAmmo'):
+                                prompt += f"可使用的弹药仅有{tammo.get('name') if tammo.get('name') else tammo}，自动使用。"
+                            elif data.get('chooseAmmo'):
+                                ss = "请从下列选项中选择想要发射的弹药："
+                                for ammo in data.get('ammoList'):
+                                    if isinstance(ammo, str):
+                                        ss += '\n' + ammo
+                                    else:
+                                        ss += '\n' + ammo.get('name')
+                                prompt += ss
+                            elif data.get('chooseAmmo') is None:
+                                if data.get('chooseUser'):
+                                    prompt += "请从下列玩家中选择你要攻击的玩家：\n" + '\n'.join(f"玩家{qq}" for qq in data.get('userList'))
+                                else:
+                                    prompt += f"你使用{(tammo:=data.get('tammo')).get('name') if tammo.get('name') else tammo}攻击了[CQ:at,qq={data.get('tuser')}]。"
+                        case 130:
+                            if data.get('success'):
+                                prompt += char + "成功种植了向日葵。"
+                            else:
+                                prompt += char + "场上已经有太多的向日葵了，种植失败。"
+                        case 131:
+                            if t:=data.get('type') == 'mend':
+                                prompt += char + "修补了场上的坚果墙。"
+                            elif t == 'plant':
+                                prompt += char + "种植了坚果墙。"
+                        case 133:
+                            if data.get('success'):
+                                prompt += char + "成功在一株向日葵上种植了双子向日葵。"
+                            else:
+                                prompt += char + "场上没有向日葵，种植失败。"
+                        case 134:
+                            if t:=data.get('type') == 'mend':
+                                prompt += char + "修补了场上的南瓜保护套。"
+                            elif t == 'plant':
+                                prompt += char + "种植了南瓜保护套。"
                         case _:
                             pass
                 case "card_on_draw":
@@ -288,6 +393,10 @@ class QQBuffer(Buffer):
                             prompt += char + "损失了20击毙。"
                         case 92:
                             prompt += char + "获得了20击毙。"
+                        case 137:
+                            pass # TODO
+                        case 138:
+                            pass # TODO
                         case _:
                             pass
 

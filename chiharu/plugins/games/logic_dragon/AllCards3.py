@@ -807,6 +807,7 @@ class CRailgun125(Card):
         ammoList：可用弹药列表
         tammo：发射使用的弹药，击毙时为“1击毙”
         chooseUser：True为询问攻击目标
+        userList：可以攻击的玩家列表
         tuser：攻击到的玩家'''
         async def ChooseAmmo(self, ammoList: List[str | Card | Status]):
             #TODO
@@ -828,7 +829,7 @@ class CRailgun125(Card):
             # ])
         if await user.choose(flush=False):
             if user.qq not in [tree.qq for tree in itertools.chain(*itertools.chain(user.game.treeObjs, *user.game.treeForests))]:
-                user.SendCardUse(self, success = False, reason = 'NoStartPoint')
+                user.SendCardUse(self, success = False, reason = 'NoDragon')
                 return
             cards = [d for d in user.data.handCard if d.isMetallic]
             statuses = [s for s in user.data.statuses if s.isMetallic]
@@ -842,8 +843,8 @@ class CRailgun125(Card):
                 user.SendCardUse(self, success = False, reason = 'NoAmmo')
                 return
             elif len(to_choose) == 1:
-                user.SendCardUse(self, success = True, chooseAmmo = False)
                 tammo = to_choose[0]
+                user.SendCardUse(self, success = True, chooseAmmo = False, tammo = tammo if isinstance(tammo, str) else tammo.DumpData())
             else:
                 user.SendCardUse(self, success = True, chooseAmmo = True, ammoList = to_choose)
                 tammo = await ChooseAmmo(self, to_choose)
@@ -858,7 +859,7 @@ class CRailgun125(Card):
                                 if ret is not None:
                                     allqq.add(ret.qq)
             allqq.remove(user.qq)
-            user.SendCardUse(self, success = True, chooseUser = True)
+            user.SendCardUse(self, success = True, chooseUser = True, userList = allqq)
             tqq = user.ChoosePlayers(1, 1, range = list(allqq))[0]
             user.SendCardUse(self, success = True, tammo = tammo if isinstance(tammo, str) else tammo.DumpData(), tuser = tqq)
             if tammo == "1击毙":
