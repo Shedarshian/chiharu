@@ -34,6 +34,15 @@ class Block(Box):
     stationary: int = 0
     ladder: frozenset[Grid3D] = frozenset()
     # display: int = 0
+
+@dataclass
+class Action:
+    boxes: list[Box]
+    dir: Grid3D
+    roll: int = 0 # 1：同向滚动，-1：逆向滚动
+    ifmove2: bool = False
+    consequence: list['Action'] = []
+
 class SausageGame:
     def __init__(self) -> None:
         # 玩家，烤架，肠（是否包含烤架，是否上面已烤，是否下面已烤），方块（是否是火炉，四面是否附着梯子，是否活动）
@@ -42,6 +51,7 @@ class SausageGame:
         grill = Grill(self.playerPos + self.player.facing)
         self.board: list[Box] = [self.player, grill]
         self.blocks: list[tuple[Block,...]] = []
+        self.sausages: list[tuple[HalfSausage, HalfSausage]] = []
         mx = max(0, 0, *(b.stationary for b in self.board if isinstance(b, Block)))
         if mx != 0:
             self.blocks = [tuple(b for b in self.board if isinstance(b, Block) and b.stationary == i) for i in range(1, mx + 1)]
@@ -72,9 +82,11 @@ class SausageGame:
         if box is None:
             return True
         ifMove = isinstance(box, Player) # 真的时候考虑脚下肠反向，假的时候考虑玩家脚下方块划船
+        todo: list[tuple[Box, Grid3D, int]] = []
         if ifMove:
-            foot = box.pos + DOWN
-            
+            foot = self.get(box.pos + DOWN)
+            if isinstance(foot, HalfSausage) and foot.otherFacing.dot(dir) == 0:
+                todo.append((foot, -dir, True))
         # 有一些是必须被推，推不动则反作用的，有一些是option被推的比如向上传递
     @property
     def playerPos(self):
@@ -84,14 +96,14 @@ class SausageGame:
             return []
         l = self.getObject(box)
         return [b for box in l if (b := self.get(box.pos + DOWN)) is not None and b not in l]
-    def getObject(self, box: Box) -> list[Box]:
+    def getObject(self, box: Box) -> tuple[Box,...]:
         if isinstance(box, HalfSausage):
-            return [box, box.otherHalf(self)]
+            return box, box.otherHalf(self)
         elif isinstance(box, Block):
             if box.stationary == 0:
-                return [box]
-            return list(self.blocks[box.stationary])
+                return box,
+            return self.blocks[box.stationary]
         elif isinstance(box, Player):
-            return [box, box.grill(self)] if box.hasGrill else [box]
+            return (box, box.grill(self)) if box.hasGrill else (box,)
         else:
-            return [box]
+            return box,

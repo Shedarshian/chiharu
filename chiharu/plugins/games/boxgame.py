@@ -46,7 +46,11 @@ class Grid2D(IPos):
         return self.__class__(self.x - other.x, self.y - other.y)
     def __isub__(self: TGrid2D, other: TGrid2D):
         return self.__class__(self.x - other.x, self.y - other.y)
-    def __imul__(self: TGrid2D, other: TGrid2D):
+    def __mul__(self: TGrid2D, other):
+        if isinstance(other, int):
+            return self.__class__(other * self.x, other * self.y)
+        return NotImplemented
+    def __imul__(self: TGrid2D, other):
         if isinstance(other, int):
             return self.__class__(other * self.x, other * self.y)
         return NotImplemented
@@ -54,6 +58,8 @@ class Grid2D(IPos):
         return self.__class__(-self.x, -self.y)
     def __bool__(self):
         return self.x != 0 or self.y != 0
+    def dot(self: TGrid2D, other: TGrid2D):
+        return self.x * other.x + self.y * other.y
 
 class Grid2DSquare(Grid2D):
     class Directions:
@@ -117,10 +123,20 @@ class Grid3D(IPos):
         return self.__class__(self.x - other.x, self.y - other.y, self.z - other.z)
     def __isub__(self: TGrid3D, other: TGrid3D):
         return self.__class__(self.x - other.x, self.y - other.y, self.z - other.z)
+    def __mul__(self: TGrid3D, other):
+        if isinstance(other, int):
+            return self.__class__(other * self.x, other * self.y, other * self.z)
+        return NotImplemented
+    def __imul__(self: TGrid3D, other):
+        if isinstance(other, int):
+            return self.__class__(other * self.x, other * self.y, other * self.z)
+        return NotImplemented
     def __neg__(self):
         return self.__class__(-self.x, -self.y, -self.z)
     def __bool__(self):
         return self.x != 0 or self.y != 0 or self.z != 0
+    def dot(self: TGrid3D, other: TGrid3D):
+        return self.x * other.x + self.y * other.y + self.z * other.z
 Grid3D.Directions.UP = Grid3D(0, 0, -1)
 Grid3D.Directions.DOWN = Grid3D(0, 0, 1)
 Grid3D.Directions.FRONT = Grid3D(0, -1, 0)
