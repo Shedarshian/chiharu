@@ -156,3 +156,7 @@ class SExplore140(StatusNumed):
             user.send_log("置身避雪神庙：")
             user.buf.send("神庙可以回避一些袭击。本次接龙不会因为一周内接龙过或是踩雷而被击毙，但也没有接龙成功。")
         return True, 0
+
+
+
+
