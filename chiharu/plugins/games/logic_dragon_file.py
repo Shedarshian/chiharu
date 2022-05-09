@@ -5496,7 +5496,7 @@ class Sexplore(NumedStatus):
             elif i == 3:
                 user.send_log("置身凯格琳的财宝：")
                 user.buf.send("这里曾经是银矿，再下面则是具名者的藏匿。获得5击毙，然后抽取一张非正面卡片并立即使用。")
-                user.add_jibi(5)
+                await user.add_jibi(5)
                 await user.draw_and_use(positive={0, -1})
             elif i == 4:
                 user.send_log("置身高威尔旅馆：")
@@ -5532,7 +5532,7 @@ class Sexplore(NumedStatus):
             elif i == 1:
                 user.send_log("置身费米尔修道院：")
                 user.buf.send("僧侣信奉象征欲望的杯之准则。失去5击毙，然后你今天每次接龙额外获得1击毙。")
-                user.add_jibi(-5)
+                await user.add_jibi(-5)
                 await user.add_daily_status('C')
             elif i == 2:
                 user.send_log("置身俄尔托斯树林：")
@@ -5546,10 +5546,11 @@ class Sexplore(NumedStatus):
             elif i == 3:
                 user.send_log("置身范德沙夫收藏馆：")
                 user.buf.send("严密把守的储藏室中有不吉利的宝物。获得10击毙，并触发你手牌中一张非正面卡牌的效果。如果你的手中没有非正面卡牌，则将一张“邪恶的间谍行动～执行”置入你的手牌。")
-                user.add_jibi(10)
+                await user.add_jibi(10)
                 cs = [c for c in user.data.hand_card if c.positive != 1]
                 if len(cs) == 0:
-                    user.draw(0, cards=[Card(-1)])
+                    user.send_log("手上没有非正面卡牌。")
+                    await user.draw(0, cards=[Card(-1)])
                 else:
                     card = random.choice(cs)
                     user.send_log(f"触发的宝物选择了卡牌{card.name}。")

@@ -242,6 +242,122 @@ class QQBuffer(Buffer):
                             prompt += char + f"触发了模仿者的效果，获得了{''.join(f'【{card.get('name')}】' for card in data.get('cards'))}。"
                         case 136:
                             prompt += char + f"手上的玩偶匣爆炸了，炸死了{' '.join(f'[CQ:at,qq={qqq}]' for qqq in data.get('tqqs'))}。"
+                        case 140:
+                            if time := data.get('time') == 'BeforeDragoned':
+                                if mid := data.get('mid') == 'reroll':
+                                    prompt += "随机到了死亡，重新随机。"
+                                elif mid == 1:
+                                    match data.get('mnum'):
+                                        case 1:
+                                            prompt += char + "置身被遗忘的密特拉寺：\n你在此地进行了虔诚（）的祈祷。如果你此次接龙因各种原因被击毙，减少0～10%的死亡时间。"
+                                        case 2:
+                                            prompt += char + "置身洛克伍德沼地：\n成真的神明或是在守望此地。如果你此次接龙被击毙，减少25%死亡时间。"
+                                        case 4:
+                                            prompt += char + "置身大公的城塞：\n他平复了许多人的干渴，最终又败给了自己的干渴。若你因本次接龙被击毙，减少50%的死亡时间。"
+                                        case 5:
+                                            prompt += char + "置身避雪神庙：\n神庙可以回避一些袭击。本次接龙不会因为一周内接龙过或是踩雷而被击毙，但也没有接龙成功。"
+                            elif time == 'OnDragoned':
+                                match [data.get('mnum'), data.get('mid')]:
+                                    case [1, 0]:
+                                        prompt += char + "置身斯特拉斯科因的寓所：\n发现了一些稀有的收藏。抽取一张广告牌。"
+                                    case [1, 2]:
+                                        prompt += char + "置身凯特与赫洛有限公司：\n你在因不明爆炸而荒废的大厦中可能寻得一些东西，或是失去一些东西。\n" + char + "获得" if data.get('jibi') else "失去" + "了1击毙。"
+                                    case [1, 3]:
+                                        prompt += char + "置身圣亚割尼医院：\n医院给了你活力。你在本日获得额外1次接龙获得击毙的机会。"
+                                    case [1, 4]:
+                                        prompt += char + "置身许伦的圣菲利克斯之会众：\n你被虔诚的教徒们包围了，他们追奉启之法则。你下一次接龙需要进行首尾接龙。"
+                                    case [1, -1]:
+                                        prompt += char + "置身荒废的河岸街：\n你掉进了河里。被击毙15分钟，并失去状态“探索都城”。"
+                                    case [2, 0]:
+                                        prompt += char + "置身格拉德温湖：\n此处有蛇群把守。下一个接龙的人需要进行首尾接龙。"
+                                    case [2, 2]:
+                                        prompt += char + "置身克罗基斯山丘：\n守望此地之人将充满伤疤。今天你每死亡一次便获得2击毙。"
+                                    case [2, 3]:
+                                        prompt += char + "置身凯格琳的财宝：\n这里曾经是银矿，再下面则是具名者的藏匿。获得5击毙，然后抽取一张非正面卡片并立即使用。"
+                                    case [2, 4]:
+                                        prompt += char + "置身高威尔旅馆：\n藏书室非常隐蔽。25%概率抽一张卡。"
+                                    case [2, -1]:
+                                        prompt += char + "置身凯尔伊苏姆：\n你在最后一个房间一念之差被困住了。被击毙30分钟，并失去状态“探索各郡”。"
+                                    case [3, 0]:
+                                        prompt += char + "置身拉维林城堡：\n住在这里的曾是太阳王的后裔。随机解除你的一个负面效果。\n" + f"{char}的【{data.get('tstatus').get('name')}】被解除了。" if data.get('tstatus') else f"{char}没有负面状态。"
+                                    case [3, 1]:
+                                        prompt += char + "置身费米尔修道院：\n僧侣信奉象征欲望的杯之准则。失去5击毙，然后你今天每次接龙额外获得1击毙。"
+                                    case [3, 2]:
+                                        prompt += char + "置身俄尔托斯树林：\n你目睹了群鸦的回忆。触发本日内曾被使用过的一张卡片的效果。\n" + f"遇见的群鸦选择了卡牌【{(c:=data.get('tcard')).get('name')}】。" if c else "今日没有使用过卡牌。"
+                                    case [3, 3]:
+                                        prompt += char + "置身范德沙夫收藏馆：\n严密把守的储藏室中有不吉利的宝物。获得10击毙，并触发你手牌中一张非正面卡牌的效果。如果你的手中没有非正面卡牌，则将一张【邪恶的间谍行动～执行】置入你的手牌。\n" + f"{char}触发的宝物选择了【{(c:=data.get('tcard')).get('name')}】。" if c else f"{char}手中没有非正面卡牌。"
+                                    case [3, 4]:
+                                        prompt += char + "置身钥匙猎人的阁楼：\n我们听说了一名狩猎空想之钥的古怪猎人所著的一小批古怪书籍。你今天获得额外五次接龙机会。"
+                                    case [3, -1]:
+                                        prompt += char + "置身一望无际的巨石阵：\n当无月之夜来临，当地人会补充残留下的东西。被击毙60分钟，并失去状态“探索大陆”。"
+                                    case [4, 0]:
+                                        prompt += char + "置身蜡烛岩洞：\n岩洞的内部出乎意料地明亮。你下一次接龙只需要相隔一个人。"
+                                    case [4, 2]:
+                                        prompt += char + "置身格吕内瓦尔德的常驻马戏团：\n马戏团众人在每个地方都贴满了写满图标的纸张，这个地方散发着虚界的气息。你的下一次接龙不受全局状态的影响。"
+                                    case [4, 3]:
+                                        ss = ''
+                                        if s:=data.get('tstatus') is None:
+                                            ss = "没有可以清除的全局状态。"
+                                        elif s is False:
+                                            ss = "上一个添加的全局状态早就被清除了。"
+                                        else:
+                                            ss = f"移除了{s.get('name')}。"
+                                        prompt += char + "置身瑞弗克塔楼：\n你们离去时，残塔消失了。清除上一个添加的全局状态。\n" + ss
+                                    case [4, 4]:
+                                        prompt += char + "置身库兹涅佐夫的捐赠：\n库兹涅佐夫公爵将他沾满鲜血的财富的四分之一捐给这座地方大学以建立末世学学部。随机添加一个全局状态。\n" + f"添加了全局状态“{data.get('tstatus').get('name')}”。"
+                                    case [4, -1]:
+                                        prompt += char + "置身狐百合原野：\n我们将布浸入氨水，蒙在脸上，以抵抗狐百合的香气。即便这样，我们仍然头晕目眩，身体却对各种矛盾的欲望作出回应。被击毙90分钟，并失去状态“探索森林尽头之地”。"
+                                    case [5, 0]:
+                                        prompt += char + "置身猎手之穴：\n在这里必须隐藏自己。上一个人下一次接龙需要间隔三个人。" + "\n无上一个接龙的玩家。" if data.get('notgt') else ''
+                                    case [5, 1]:
+                                        prompt += char + "不，你的接龙失败了。"
+                                    case [5, 2]:
+                                        prompt += char + "置身伊克玛维之眼：\n这里是观星台，是大地的眼睛。公开揭示今天一个隐藏奖励词，该效果每天只会触发一次。\n" + f"你揭示的一个隐藏奖励词是：{tword:=data.get('tword')}。" if tword else "今天已经触发过观星台。"
+                                    case [5, 3]:
+                                        prompt += char + "置身石狼陵墓：\n送葬者不见踪影，而死者被引来此处。本次接龙额外获得10击毙。"
+                                    case [5,-1]:
+                                        prompt += char + "置身无影众王的墓群：\n众王皆向往不死，而仅有一人实现了愿望，其他人只留下了陪葬品。立刻被击毙120分钟，并失去状态“探索撕身山脉”。"
+                                    case [6, 0]:
+                                        prompt += char + "置身被星辰击碎的神殿：\n掉落的陨石反而成了朝拜的对象。在你之后接龙的一个人会额外获得5击毙。"
+                                    case [6, 1]:
+                                        prompt += char + "置身拉贡之墓：\n曾经不死的长生者的尸体被保存得很好，直到我们到来。击毙上一个接龙的玩家十五分钟。" + "\n无上一个接龙的玩家。" if data.get('notgt') else ''
+                                    case [6, 2]:
+                                        prompt += char + "置身墨萨拿：\n村民们拥有超过自然限度的长寿。获得状态“长生的宴席”。"
+                                    case [6, 3]:
+                                        prompt += char + "置身七蟠寺：\n这座寺庙存在于每一重历史之中。你将于今天结束的正面状态延长至明天。"
+                                    case [6, -1]:
+                                        prompt += char + "置身弥阿：\n有时是我们寻到死者拥有的知识，有时是死者寻到我们。被击毙180分钟，并失去状态“探索荒寂而平阔的沙地”。"
+                                    case [7, 0]:
+                                        prompt += char + "置身渡鸦屿：\n索奎焰特在洞壁上用一百种语言描述他们悲惨的历史。获得一个可以完成10次的新任务，每次可以获得2击毙。\n" + f"{char}获得的任务是：{data.get('tquest')}。"
+                                    case [7, 1]:
+                                        prompt += char + "置身格里克堡：\n帝国和岛屿没有在任何正史中出现过，但岛上总督的堡垒还在，或许他本人也是。直到失去状态“探索薄暮群屿”，抵御所有死亡效果。"
+                                    case [7, 2]:
+                                        prompt += char + "置身克丽斯塔贝号船骸：\n一头海兽来向这艘船求爱，但当船不回应这份爱慕时，海兽击碎了它。选择一张手牌弃置，然后抽两张正面卡牌。\n请选择你手牌中的一张牌弃置，输入id号。"
+                                    case [7, 3]:
+                                        ss = ''
+                                        if flag:=data.get('flag') == 'addjibi':
+                                            ss = char + "获得了20击毙。"
+                                        elif flag == 'drawcard':
+                                            ss = char + "抽了一张卡。"
+                                        elif flag == 'nocard':
+                                            ss = char + "无手牌可弃。"
+                                        elif flag == 'discardcard':
+                                            ss = char + f"丢弃了【{data.get('tcard').get('name')}】。"
+                                        prompt += char + "置身深邃之门的圣滕特雷托之僧院：\n僧院危悬在崖边，它早该坠入海中了。从以下三个效果中随机触发一个：获得20击毙、抽一张牌或随机弃置一张牌。\n" + ss
+                                    case [7, -1]:
+                                        prompt += char + "置身午港：\n这座名为“午”的小小岛港是不死者的流放地。被击毙240分钟，并失去状态“探索薄暮群屿”。"
+                            elif time == 'OnDeath':
+                                match [data.get('mnum'), data.get('mid')]:
+                                    case [1, 1]:
+                                        prompt += char + f"触发了被遗忘的密特拉寺的效果，死亡时间减少了{data.get('s') * 100:.2f}%。"
+                                    case [2, 1]:
+                                        prompt += char + "触发了洛克伍德沼地的效果，死亡时间减少了25%。"
+                                    case [4, 1]:
+                                        prompt += char + "触发了大公的城塞的效果，死亡时间减少了50%。"
+                                    case [5, 1]:
+                                        prompt += char + "触发了避雪神庙的效果，回避了死亡。"
+                                    case [8, 0]:
+                                        prompt += char + "触发了堡垒的效果，免除死亡。"
                         case _:
                             pass
                 case "card_use":
@@ -378,6 +494,20 @@ class QQBuffer(Buffer):
                                 prompt += char + "修补了场上的南瓜保护套。"
                             elif t == 'plant':
                                 prompt += char + "种植了南瓜保护套。"
+                        case 140:
+                            prompt += char + "取消了之前的探索并" if data.get('overrite') else '' + "开始探索都城。"
+                        case 141:
+                            prompt += char + "取消了之前的探索并" if data.get('overrite') else '' + "开始探索各郡。"
+                        case 142:
+                            prompt += char + "取消了之前的探索并" if data.get('overrite') else '' + "开始探索大陆。"
+                        case 143:
+                            prompt += char + "取消了之前的探索并" if data.get('overrite') else '' + "开始探索森林尽头之地。"
+                        case 144:
+                            prompt += char + "取消了之前的探索并" if data.get('overrite') else '' + "开始探索撕身山脉。"
+                        case 145:
+                            prompt += char + "取消了之前的探索并" if data.get('overrite') else '' + "开始探索荒寂而平阔的沙地。"
+                        case 146:
+                            prompt += char + "取消了之前的探索并" if data.get('overrite') else '' + "开始探索薄暮群屿。"
                         case _:
                             pass
                 case "card_on_draw":

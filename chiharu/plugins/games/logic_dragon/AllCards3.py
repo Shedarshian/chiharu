@@ -752,7 +752,7 @@ class SXixueShashou124(StatusDailyStack):
         for i in range(self.count):
             if random.random() < 0.1 + 0.01 * user.data.luck:
                 user.SendStatusEffect(self)
-                await user.Draw(0, cards=[Card(-2)])
+                await user.Draw(cards=[Card.get(-2)()])
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDragoned: Priority.OnDragoned.xixueshashou}
 class CVampireN2(Card):

@@ -137,25 +137,286 @@ class SExplore140(StatusNumed):
     def double(self):
         pass
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
-        user.buf.state['mishi_id'] = i = random.randint(0, 5 if count[0].num <= 4 else 4)
-        user.buf.state['dragon_who'] = user.qq
-        if count[0].num <= 4 and i == 5 or count[0].num > 4 and i == 4:
+        user.state['mishi_id'] = i = random.randint(0, 5 if self.num <= 4 else 4)
+        user.state['dragon_who'] = user.qq
+        if self.num <= 4 and i == 5 or self.num > 4 and i == 4:
             if random.random() < 0.1 * min(user.data.luck, 5):
-                user.send_log("随机到了死亡，重新随机" + 句尾)
-                user.buf.state['mishi_id'] = i = random.randint(0, 5 if count[0].num <= 4 else 4)
-        if count[0].num == 1 and i == 1:
-            user.send_log("置身被遗忘的密特拉寺：")
-            user.buf.send("你在此地进行了虔诚（）的祈祷。如果你此次接龙因各种原因被击毙，减少0～10%的死亡时间。")
-        elif count[0].num == 2 and i == 1:
-            user.send_log("置身洛克伍德沼地：")
-            user.buf.send("成真的神明或是在守望此地。如果你此次接龙被击毙，减少25%死亡时间。")
-        elif count[0].num == 4 and i == 1:
-            user.send_log("置身大公的城塞：")
-            user.buf.send("他平复了许多人的干渴，最终又败给了自己的干渴。若你因本次接龙被击毙，减少50%的死亡时间。")
-        elif count[0].num == 5 and i == 1:
-            user.send_log("置身避雪神庙：")
-            user.buf.send("神庙可以回避一些袭击。本次接龙不会因为一周内接龙过或是踩雷而被击毙，但也没有接龙成功。")
+                user.SendStatusEffect(self, time = 'BeforeDragoned', mid = 'reroll')
+                user.state['mishi_id'] = i = random.randint(0, 5 if self.num <= 4 else 4)
+        if self.num == 1 and i == 1:
+            user.SendStatusEffect(self, time = 'BeforeDragoned', mnum = 1, mid = 1)
+        elif self.num == 2 and i == 1:
+            user.SendStatusEffect(self, time = 'BeforeDragoned', mnum = 2, mid = 1)
+        elif self.num == 4 and i == 1:
+            user.SendStatusEffect(self, time = 'BeforeDragoned', mnum = 4, mid = 1)
+        elif self.num == 5 and i == 1:
+            user.SendStatusEffect(self, time = 'BeforeDragoned', mnum = 5, mid = 1)
         return True, 0
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        if (i := user.state.get('mishi_id')) is None:
+            i = random.randint(0, 5 if self.num <= 4 else 4)
+        if self.num == 1:
+            if i == 0:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 1, mid = 0)
+                await user.Draw(cards=[Card.get(94)()])
+            elif i == 1:
+                pass
+            elif i == 2:
+                if random.random() < 0.5:
+                    jibi = True
+                    user.SendStatusEffect(self, time = 'OnDragoned', mnum = 1, mid = 2, jibi = jibi)
+                    await user.AddJibi(1)
+                else:
+                    jibi = False
+                    user.SendStatusEffect(self, time = 'OnDragoned', mnum = 1, mid = 2, jibi = jibi)
+                    await user.AddJibi(-1)
+            elif i == 3:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 1, mid = 3)
+                user.data.todayJibi += 1
+                # config.logger.dragon << f"【LOG】用户{user.qq}增加了接龙击毙上限至{user.data.today_jibi}。"
+            elif i == 4:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 1, mid = 4)
+                await user.AddStatus(SJiaotu) #TODO
+            else:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 1, mid = -1)
+                self.num = 0
+                await user.death(15)
+                user.data.SaveStatuses()
+        elif self.num == 2:
+            if i == 0:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 2, mid = 0)
+                await user.ume.AddStatus(SShequn)#TODO
+            elif i == 1:
+                pass
+            elif i == 2:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 2, mid = 2)
+                await user.AddStatus(SShangba)#TODO
+            elif i == 3:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 2, mid = 3)
+                await user.AddJibi(5)
+                await user.DrawAndUse(requirement=positive({0, -1}))
+            elif i == 4:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 2, mid = 4)
+                if random.random() < 0.25:
+                    await user.Draw(1)
+            else:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 2, mid = -1)
+                self.num = 0
+                await user.Death(30)
+                user.data.SaveStatuses()
+        elif self.num == 3:
+            if i == 0:
+                l = [s for s in user.data.statuses if s.isDebuff]
+                if len(l) == 0:
+                    tstatus = False
+                    user.SendStatusEffect(self, time = 'OnDragoned', mnum = 3, mid = 0, tstatus = tstatus)
+                else:
+                    c = random.choice(l)
+                    tstatus = c.Dumpdata()
+                    user.SendStatusEffect(self, time = 'OnDragoned', mnum = 3, mid = 0, tstatus = tstatus)
+                    await user.RemoveStatus(c)
+            elif i == 1:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 3, mid = 1)
+                user.AddJibi(-5)
+                await user.AddStatus(SBeizhizhunze)#TODO
+            elif i == 2:
+                if len(cs:=user.game.state['used_cards']) == 0:
+                    c = False
+                    user.SendStatusEffect(self, time = 'OnDragoned', mnum = 3, mid = 2, tcard = c)
+                else:
+                    card = Card.get(random.choice(cs))()
+                    c = card.DumpData()
+                    user.SendStatusEffect(self, time = 'OnDragoned', mnum = 3, mid = 2, tcard = c)
+                    await user.UseCardEffect(card)
+            elif i == 3:
+                cs = [c for c in user.data.handCard if c.positive != 1]
+                if len(cs) == 0:
+                    c = False
+                    user.SendStatusEffect(self, time = 'OnDragoned', mnum = 3, mid = 3, tcard = c)
+                    await user.AddJibi(10)
+                    await user.Draw(cards=[Card.get(-1)()])
+                else:
+                    card = random.choice(cs)
+                    c = card.DumpData()
+                    user.SendStatusEffect(self, time = 'OnDragoned', mnum = 3, mid = 3, tcard = c)
+                    await user.AddJibi(10)
+                    await user.UseCardEffect(card)
+            elif i == 4:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 3, mid = 4)
+                user.data.todayJibi += 5
+                # config.logger.dragon << f"【LOG】用户{user.qq}增加了接龙击毙上限至{user.data.today_jibi}。"
+            else:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 3, mid = -1)
+                self.num = 0
+                await user.Death(60)
+                user.data.SaveStatuses()
+        elif self.num == 4:
+            if i == 0:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 4, mid = 0)
+                await user.AddStatus(SLazhuyandong)#TODO
+            elif i == 1:
+                pass
+            elif i == 2:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 4, mid = 2)
+                await user.AddStatus(SCircus)#TODO
+            elif i == 3: #TODO remember to add statuses into 'global_status', not id.
+                if len(user.game.state['global_status']) == 0:
+                    tstatus = None
+                    user.SendStatusEffect(self, time = 'OnDragoned', mnum = 4, mid = 3, tstatus = tstatus)
+                else:
+                    ss = user.game.state['global_status'][-1]
+                    if user.ume.CheckStatus(ss):
+                        tstatus = ss.DumpData()
+                        user.SendStatusEffect(self, time = 'OnDragoned', mnum = 4, mid = 3, tstatus = tstatus)
+                        await user.ume.RemoveStatus(ss)
+                    else:
+                        tstatus = False
+                        user.SendStatusEffect(self, time = 'OnDragoned', mnum = 4, mid = 3, tstatus = tstatus)
+            elif i == 4:
+                while True:
+                    s = random.choice([st for id, st in Status.id_dict.items() if st.isNull])()
+                    if s.isGlobal:
+                        break
+                tstatus = s.DumpData()
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 4, mid = 4, tstatus = tstatus)
+                await user.ume.AddStatus(s)
+            else:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 4, mid = -1)
+                self.num = 0
+                await user.Death(90)
+                user.data.SaveStatuses()
+        elif self.num == 5:
+            if i == 0:
+                pq = branch.parent.qq
+                if pq != config.selfqq and pq != 0:
+                    user.CreateUser(pq).AddStatus(Slieshouzhixue)#TODO
+                    notgt = False
+                else:
+                    notgt = True
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 5, mid = 0, notgt = notgt)
+            elif i == 1:
+                if not user.state.get("branch_removed"):
+                    user.state["branch_removed"] = True
+                    user.game.RemoveTree(branch)
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 5, mid = 1)
+            elif i == 2:#TODO remember to reset in OnNewDay
+                if not global_state['observatory']:
+                    tword = random.choice(user.game.hiddenKeyword)
+                    global_state['observatory'] = True
+                else:
+                    tword = False
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 5, mid = 2, tword = tword)
+            elif i == 3:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 5, mid = 3)
+                await user.AddJibi(10)
+            else:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 5, mid = -1)
+                self.num = 0
+                await user.Death(120)
+                user.data.SaveStatuses()
+        elif self.num == 6:
+            if i == 0:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 6, mid = 0)
+                await user.ume.AddStatus(SShendian)#TODO
+            elif i == 1:
+                pq = branch.parent.qq
+                if pq != config.selfqq and pq != 0:
+                    notgt = False
+                    user.SendStatusEffect(self, time = 'OnDragoned', mnum = 6, mid = 1, notgt = notgt)
+                    await user.CreateUser(pq).Death(15)
+                else:
+                    notgt = True
+                    user.SendStatusEffect(self, time = 'OnDragoned', mnum = 6, mid = 1, notgt = notgt)
+            elif i == 2:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 6, mid = 2)
+                await user.AddStatus(Schangsheng(120))#TODO
+            elif i == 3:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 6, mid = 3)
+                await user.add_daily_status(STemple) #TODO
+            else:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 6, mid = -1)
+                self.num = 0
+                await user.Death(180)
+                user.data.SaveStatuses()
+        elif self.num == 7 or self.num == 8:
+            if i == 0:
+                await user.AddStatus(SQuest3(10, 2, n:=Mission.RandomQuestStoneId()))
+                tquest = Mission.get(n).description
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 7, mid = 0, tquest = tquest)
+            elif i == 1:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 7, mid = 1)
+                self.num = 8
+                user.data.SaveStatuses()
+            elif i == 2:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 7, mid = 2)
+                if l := await user.ChooseHandCards(1, 1):
+                    await user.DiscardCards(l[0])
+                await user.draw(2, requirement=positive({1}))
+            elif i == 3:
+                j = random.randint(0, 2)
+                if j == 0:
+                    user.SendStatusEffect(self, time = 'OnDragoned', mnum = 7, mid = 3, flag = 'addjibi')
+                    await user.AddJibi(20)
+                elif j == 1:
+                    user.SendStatusEffect(self, time = 'OnDragoned', mnum = 7, mid = 3, flag = 'drawcard')
+                    await user.Draw(1)
+                elif len(user.data.handCard) == 0:
+                    user.SendStatusEffect(self, time = 'OnDragoned', mnum = 7, mid = 3, flag = 'nocard')
+                else:
+                    cd = random.choice(user.data.handCard)
+                    user.SendStatusEffect(self, time = 'OnDragoned', mnum = 7, mid = 3, flag = 'discardcard', tcard = cd.DumpData())
+                    await user.DiscardCards([cd])
+            else:
+                user.SendStatusEffect(self, time = 'OnDragoned', mnum = 7, mid = -1)
+                self.num = 0
+                await user.Death(240)
+                user.data.SaveStatuses()
+        else:
+            self.num = 0
+            user.data.SaveStatuses()
+        user.state.pop('mishi_id')
+    async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
+        i = user.state.get('mishi_id') # maybe None but no problem
+        if user.state.get('dragon_who') != user.qq:
+            return time, False
+        if self.num == 1 and i == 1:
+            # if await c.pierce():
+            #     user.send_log(f"被遗忘的密特拉寺的效果被幻想杀手消除了{句尾}")
+            #     return time, False
+            s = random.random() * 0.1
+            user.SendStatusEffect(self, time = 'OnDeath', mnum = 1, mid = 1, s = s)
+            return (1 - s) * time, False
+        elif self.num == 2 and i == 1:
+            # if await c.pierce():
+            #     user.send_log(f"洛克伍德沼地的效果被幻想杀手消除了{句尾}")
+            #     return time, False
+            user.SendStatusEffect(self, time = 'OnDeath', mnum = 2, mid = 1)
+            return 0.75 * time, False
+        elif self.num == 4 and i == 1:
+            # if await c.pierce():
+            #     user.send_log(f"大公的城塞的效果被幻想杀手消除了{句尾}")
+            #     return time, False
+            user.SendStatusEffect(self, time = 'OnDeath', mnum = 3, mid = 1)
+            return 0.5 * time, False
+        elif self.num == 5 and i == 1:
+            # if await c.pierce():
+            #     user.send_log(f"避雪神庙的效果被幻想杀手消除了{句尾}")
+            #     return time, False
+            user.SendStatusEffect(self, time = 'OnDeath', mnum = 5, mid = 1)
+            return 0, True
+        elif self.num == 8:
+            # if await c.pierce():
+            #     user.send_log(f"堡垒的效果被幻想杀手消除了{句尾}")
+            #     self.num = 7
+            #     user.data.SaveStatuses()
+            #     return time, False
+            user.SendStatusEffect(self, time = 'OnDeath', mnum = 8, mid = 0)
+            return time, True
+        return time, False
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.explore,
+            UserEvt.OnDragoned: Priority.OnDragoned.explore,
+            UserEvt.OnDeath: Priority.OnDeath.explore}
 
 
 
