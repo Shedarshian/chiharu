@@ -6,7 +6,7 @@ import itertools, random
 from .Game import Game
 from .Card import Card
 from .User import User
-from .Status import Status, StatusNumed, StatusTimed, StatusNullStack, StatusDailyStack
+from .Status import Status, StatusNumed, StatusTimed, StatusNullStack, StatusDailyStack, StatusListInt
 from .Attack import Attack, AttackType
 from .Priority import UserEvt, Priority
 from .Types import Pack
@@ -452,7 +452,6 @@ class CJudgement20(Card):
     name = "XX - 审判"
     id = 20
     positive = 0
-    newer = 3
     _description = "若你今天接龙次数小于5，则扣除20击毙，若你今天接龙次数大于20，则获得20击毙。"
     pack = Pack.tarot
     async def Use(self, user: 'User') -> None:
@@ -468,6 +467,13 @@ class CJudgement20(Card):
         else:
             user.SendCardUse(self, flag = '0')
 
+class CWorld21(Card):
+    name = "XXI - 世界"
+    id = 21
+    _description = "除大病一场外，所有“直到跨日为止”的效果延长至明天。"
+    pack = Pack.tarot
+    async def Use(self, user: 'User') -> None:
+        await user.ume.AddStatus(SWorld21())
 class SWorld21(Status):
     id = 21
     name = "XXI - 世界"
@@ -549,17 +555,17 @@ class CLebusishu35(Card):#TODO
     consumedOnDraw = True
     async def OnDraw(self, user: 'User') -> None:
         await user.AddStatus(SLebusishu35())
-class SLebusishu35(StatusDailyStack):
+class SLebusishu35(StatusListInt):
     id = 35
     name = "乐不思蜀"
     isDebuff = True
     _description = '今天每次接龙时，你进行一次判定。有3/4的几率你不得从该节点接龙。'
-class SInvLebusishu(StatusDailyStack):
-    id = 36
+class SInvLebusishu32(StatusListInt):
+    id = 32
     name = "反转·乐不思蜀"
     isDebuff = True
     _description = '今天每次接龙时，你进行一次判定。有1/4的几率你不得从该节点接龙。'
-class ILeChecker(IEventListener):
+class ILeChecker(IEventListener):#TODO
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDragoned: Priority.OnDragoned.lecheck}
 

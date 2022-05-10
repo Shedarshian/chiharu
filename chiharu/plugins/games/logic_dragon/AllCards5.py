@@ -17,7 +17,7 @@ from .Helper import positive
 from ... import config
 log = config.logger.dragon
 
-class CMishi140(_card):
+class CMishi140(Card):
     name = "密教残篇"
     id = 140
     positive = 1
@@ -30,9 +30,9 @@ class CMishi140(_card):
             user.data.SaveStatuses()
             user.SendCardUse(self, overwrite = True)
         else:
-            await user.add_limited_status(Sexplore(1))
+            await user.AddStatus(SExplore140(1))
             user.SendCardUse(self, overwrite = False)
-class CMishi141(_card):
+class CMishi141(Card):
     name = "鬼祟的真相"
     id = 141
     positive = 1
@@ -45,9 +45,9 @@ class CMishi141(_card):
             user.data.SaveStatuses()
             user.SendCardUse(self, overwrite = True)
         else:
-            await user.add_limited_status(Sexplore(2))
+            await user.AddStatus(SExplore140(2))
             user.SendCardUse(self, overwrite = False)
-class CMishi142(_card):
+class CMishi142(Card):
     name = "被遗忘的史籍"
     id = 142
     positive = 1
@@ -60,9 +60,9 @@ class CMishi142(_card):
             user.data.SaveStatuses()
             user.SendCardUse(self, overwrite = True)
         else:
-            await user.add_limited_status(Sexplore(3))
+            await user.AddStatus(SExplore140(3))
             user.SendCardUse(self, overwrite = False)
-class CMishi143(_card):
+class CMishi143(Card):
     name = "禁断的史诗"
     id = 143
     positive = 1
@@ -75,9 +75,9 @@ class CMishi143(_card):
             user.data.SaveStatuses()
             user.SendCardUse(self, overwrite = True)
         else:
-            await user.add_limited_status(Sexplore(4))
+            await user.AddStatus(SExplore140(4))
             user.SendCardUse(self, overwrite = False)
-class CMishi144(_card):
+class CMishi144(Card):
     name = "悬而未定的模棱两可"
     id = 144
     positive = 1
@@ -90,9 +90,9 @@ class CMishi144(_card):
             user.data.SaveStatuses()
             user.SendCardUse(self, overwrite = True)
         else:
-            await user.add_limited_status(Sexplore(5))
+            await user.AddStatus(SExplore140(5))
             user.SendCardUse(self, overwrite = False)
-class CMishi145(_card):
+class CMishi145(Card):
     name = "浪游旅人的地图"
     id = 145
     positive = 1
@@ -105,9 +105,9 @@ class CMishi145(_card):
             user.data.SaveStatuses()
             user.SendCardUse(self, overwrite = True)
         else:
-            await user.add_limited_status(Sexplore(6))
+            await user.AddStatus(SExplore140(6))
             user.SendCardUse(self, overwrite = False)
-class CMishi146(_card):
+class CMishi146(Card):
     name = "午港奇闻"
     id = 146
     positive = 1
@@ -120,7 +120,7 @@ class CMishi146(_card):
             user.data.SaveStatuses()
             user.SendCardUse(self, overwrite = True)
         else:
-            await user.add_limited_status(SExplore140(7))
+            await user.AddStatus(SExplore140(7))
             user.SendCardUse(self, overwrite = False)
 class SExplore140(StatusNumed):
     id = 140
@@ -418,6 +418,217 @@ class SExplore140(StatusNumed):
             UserEvt.OnDragoned: Priority.OnDragoned.explore,
             UserEvt.OnDeath: Priority.OnDeath.explore}
 
+class SJiaotu141(StatusNullStack):
+    name = "置身许伦的圣菲利克斯之会众"
+    id = 141
+    _description = "被虔诚的教徒们包围，他们追奉启之法则，你下一次接龙需要进行首尾接龙。"
+    isDebuff = True
+    async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        if not await state.RequireShouWei(user):
+            user.SendStatusEffect(self)
+            return False, 0
+        return True, 0
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        await user.RemoveStatus(self)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.jiaotu,
+            UserEvt.OnDragoned: Priority.OnDragoned.jiaotu}
+class SInvJiaotu142(StatusNullStack):
+    name = "反转-置身许伦的圣菲利克斯之会众"
+    id = 142
+    _description = "被虔诚的教徒们包围，他们追奉启之法则，你下一次接龙需要进行尾首接龙。"
+    isDebuff = True
+    async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        if not await state.RequireWeiShou(user):
+            user.SendStatusEffect(self)
+            return False, 0
+        return True, 0
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        await user.RemoveStatus(self)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.inv_jiaotu,
+            UserEvt.OnDragoned: Priority.OnDragoned.inv_jiaotu}
 
+class SShequn143(StatusNullStack):
+    name = "置身格拉德温湖"
+    id = 142
+    _description = "此处有蛇群把守。下一个接龙的人需要进行首尾接龙。"
+    isDebuff = True
+    isGlobal = True
+    async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        if not await state.RequireShouWei(user):
+            user.SendStatusEffect(self)
+            return False, 0
+        return True, 0
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        await user.RemoveStatus(self)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.shequn,
+            UserEvt.OnDragoned: Priority.OnDragoned.shequn}
+class SInvShequn144(StatusNullStack):
+    name = "反转-置身格拉德温湖"
+    id = 144
+    _description = "此处有蛇群把守。下一个接龙的人需要进行尾首接龙。"
+    isDebuff = True
+    isGlobal = True
+    async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        if not await state.RequireWeiShou(user):
+            user.SendStatusEffect(self)
+            return False, 0
+        return True, 0
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        await user.RemoveStatus(self)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.inv_shequn,
+            UserEvt.OnDragoned: Priority.OnDragoned.inv_shequn}
 
+class SShangba145(StatusDailyStack):
+    name = "伤疤"
+    id = 145
+    _description = "今天你每死亡一次便获得2击毙。"
+    async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
+        # if await c.pierce():
+        #     user.send_log(f"伤疤的效果被幻想杀手消除了{句尾}")
+        #     await user.remove_status('S', remover=killer)
+        user.SendStatusEffect(self, count = self.count)
+        await user.AddJibi(2*self.count)
+        return time, False
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDeath: Priority.OnDeath.shangba}
+class SInvShangba146(StatusDailyStack):
+    name = "反转-伤疤"
+    id = 145
+    _description = "今天你每死亡一次便失去2击毙。"
+    async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
+        # if await c.pierce():
+        #     user.send_log(f"反转-伤疤的效果被幻想杀手消除了{句尾}")
+        #     await user.remove_status('S', remover=killer)
+        user.SendStatusEffect(self, count = self.count)
+        await user.AddJibi(-2*self.count)
+        return time, False
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDeath: Priority.OnDeath.inv_shangba}
 
+class SBeizhizhunze76(StatusDailyStack):
+    name = "杯之准则"
+    id = 76
+    _description = "你今天每次接龙额外获得1击毙。"
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        user.SendStatusEffect(self, count = self.count)
+        await user.AddJibi(self.count)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.beizhizhunze}
+class SBeizhizhunze62(StatusDailyStack):
+    name = "反转-杯之准则"
+    id = 62
+    _description = "你今天每次接龙额外失去1击毙。"
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        user.SendStatusEffect(self, count = self.count)
+        await user.AddJibi(-1*self.count)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.inv_beizhizhunze}
+
+class SLazhuyandong57(StatusNullStack):
+    name = "置身蜡烛岩洞"
+    id = 57
+    _description = "下一次接龙可以少间隔一个人。"
+    async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        return True, -1
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        await user.RemoveStatus(self)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.lazhuyandong,
+            UserEvt.OnDragoned: Priority.OnDragoned.lazhuyandong}
+class SInvLazhuyandong56(StatusNullStack):
+    name = "反转-置身蜡烛岩洞"
+    id = 57
+    _description = "下一次接龙需要多间隔一个人。"
+    async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        return True, 1
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        await user.RemoveStatus(self)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.inv_lazhuyandong,
+            UserEvt.OnDragoned: Priority.OnDragoned.inv_lazhuyandong}
+
+class SCircus55(StatusNullStack):
+    name = "置身格吕内瓦尔德的常驻马戏团"
+    id = 55
+    _description = "下一次接龙不受全局状态的影响。"
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        user.SendStatusEffect(self)
+        await user.RemoveStatus(self)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.circus}
+
+class SLieshouzhixue31(StatusNullStack):
+    name = "置身猎手之穴"
+    id = 31
+    _description = "下一次接龙需要多间隔一个人。"
+    async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        return True, 1
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        await user.RemoveStatus(self)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.lieshouzhixue,
+            UserEvt.OnDragoned: Priority.OnDragoned.lieshouzhixue}
+class SInvLieshouzhixue29(StatusNullStack):
+    name = "反转-置身猎手之穴"
+    id = 29
+    _description = "下一次接龙可以少间隔一个人。"
+    async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
+        return True, -1
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        await user.RemoveStatus(self)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.inv_lieshouzhixue,
+            UserEvt.OnDragoned: Priority.OnDragoned.inv_lieshouzhixue}
+
+class SShendian153(StatusNullStack):
+    name = "置身被星辰击碎的神殿"
+    id = 153
+    _description = "之后接龙的一个人会额外获得5击毙。"
+    isGlobal = True
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        user.SendStatusEffect(self, count = self.count)
+        await user.AddJibi(5*self.count)
+        await user.ume.RemoveStatus(self)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.shendian}
+class SInvShendian157(StatusNullStack):
+    name = "反转-置身被星辰击碎的神殿"
+    id = 157
+    _description = "之后接龙的一个人会额外失去5击毙。"
+    isGlobal = True
+    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+        user.SendStatusEffect(self, count = self.count)
+        await user.AddJibi(-5*self.count)
+        await user.ume.RemoveStatus(self)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.inv_shendian}
+
+class SChangsheng(StatusNumed):#TODO
+    name = "长生的宴席"
+    id = ?
+    _description = "可抵消死亡时间。"
+    @property
+    def description(self):
+        return f"{self._description}\n\t剩余{self.num}分钟。"
+    async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
+        # if await c.pierce():
+        m = min(self.num, time)
+        self.num -= m
+        time -= m
+        user.SendStatusEffect(self, time = m, dead = (time == 0))
+        return time, (time == 0)
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.OnDeath: Priority.OnDeath.changsheng}
+
+class STemple160(StatusDailyStack):
+    name = "置身七蟠寺"
+    id = 160
+    _description = "今天结束的非负面状态延长至明天。"
+class SInvTemple161(StatusDailyStack):
+    name = "反转-置身七蟠寺"
+    id = 161
+    _description = "今天结束的负面状态延长至明天。"
