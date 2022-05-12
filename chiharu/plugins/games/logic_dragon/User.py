@@ -99,9 +99,10 @@ class User:
             self.data.statusesUnchecked.append(s)
             self.data.registerStatus(s)
         if s.isGlobal:
-            pass
-            #global_state['global_status'].extend([[0, s]] * count)
-            #save_global_state()
+            if s.isNull:
+                self.game.state['global_status'].extend([s.__class__(1).save()] * s.count)
+            else:
+                self.game.state['global_status'].append(s.save())
         self.data.SaveStatuses()
         return True
     @functools.singledispatchmethod
@@ -121,6 +122,14 @@ class User:
             return False
         self.data.statusesUnchecked.remove(s)
         self.data.deregisterStatus(s)
+        if s.isGlobal:
+            if s.isNull:
+                to_remove = s.__class__(1).save()
+            else:
+                to_remove = s.save()
+            for i in range(s.count):
+                if to_remove in self.game.state["global_status"]:
+                    self.game.state["global_status"].remove(to_remove)
         self.data.SaveStatuses()
         return True
     @RemoveStatus.register
@@ -140,6 +149,11 @@ class User:
         if len(l) == 0:
             return False
         l[0].num -= count
+        if status.isGlobal:
+            to_remove = s(1).save()
+            for i in range(count):
+                if to_remove in self.game.state["global_status"]:
+                    self.game.state["global_status"].remove(to_remove)
         self.data.SaveStatuses()
         return True
     async def RemoveAllStatus(self, status: Type[TStatus], /, remover: 'User' | None=None):

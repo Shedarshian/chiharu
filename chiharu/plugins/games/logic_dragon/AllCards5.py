@@ -218,7 +218,7 @@ class SExplore140(StatusNumed):
             elif i == 1:
                 user.SendStatusEffect(self, time = 'OnDragoned', mnum = 3, mid = 1)
                 user.AddJibi(-5)
-                await user.AddStatus(SBeizhizhunze62)
+                await user.AddStatus(SBeizhizhunze76)
             elif i == 2:
                 if len(cs := user.game.state['used_cards']) == 0:
                     c = False

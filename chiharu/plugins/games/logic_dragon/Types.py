@@ -38,6 +38,8 @@ class TGlobalState(TypedDict):
     current_shop: str
 class TUserState(TypedDict, total=False):
     circus: bool
+    mishi_id: int
+    dragon_who: int
 
 class TWords(TypedDict):
     keyword: Tuple[str, List[str]]
