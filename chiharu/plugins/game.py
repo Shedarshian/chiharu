@@ -228,7 +228,7 @@ class GameSameGroup:
 #     # args: -play.maj.begin 'type_str public/private+password' or '友人房id+password(optional)'
 #     await session.send('已为您参与匹配')
 
-class TRoomPrivate(TypedDict):
+class TRoomPrivate(TypedDict, total=False):
     players: list[int]
     public: bool
     id: int
