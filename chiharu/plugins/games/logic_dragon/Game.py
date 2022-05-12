@@ -419,6 +419,10 @@ class Game:
 
         dist = 2
         dragonState = DragonState(word, parent)
+        
+        if not user.state.get('circus'):
+            user.state['circus'] = True
+
         # Event BeforeDragoned
         user.Send(type="begin", name="BeforeDragoned")
         for eln in user.IterAllEvent(UserEvt.BeforeDragoned):

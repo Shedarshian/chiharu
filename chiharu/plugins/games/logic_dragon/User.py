@@ -8,7 +8,7 @@ from .Status import Status, TStatus, TStatusStack
 from .Equipment import Equipment
 from .EventListener import IEventListener
 from .Priority import UserEvt, Priority, exchange
-from .Types import TEvent
+from .Types import TEvent, TUserState
 from .Attack import Attack, AttackType
 from .Item import Item
 if TYPE_CHECKING:
@@ -20,7 +20,7 @@ class User:
         self.data = ud
         self.buf = buf
         self.game = game
-        self.state: dict[str, Any] = {}
+        self.state: TUserState = {}
     def __del__(self):
         self.data.DecreaseRef()
     def CreateUser(self, qq):
@@ -44,7 +44,8 @@ class User:
         user_lists = [self.data.eventListener[evt]]
         if extra_listeners is not None:
             user_lists += extra_listeners
-        if not no_global:
+        from AllCards5 import SCircus55
+        if not no_global and not (self.CheckStatusStack(SCircus55) and self.state.get('circus')):
             user_lists.append(self.me.eventListener[evt])
         for p in exchange[evt]:
             for e in user_lists:

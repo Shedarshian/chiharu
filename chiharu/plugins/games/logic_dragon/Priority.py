@@ -73,7 +73,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         huiye = auto()                  # 宝箱：抽卡
         inv_huiye = auto()              # 反转宝箱
         shangba = auto()                # 伤疤：+2击毙
-        invshangba = auto()
+        inv_shangba = auto()
         antimatter = auto()             # 反物质维度：自动使用卡牌
         bingo = auto()                  # bingo任务
     class OnAttack(IntEnum):

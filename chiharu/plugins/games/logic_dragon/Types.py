@@ -29,13 +29,15 @@ class TGlobalState(TypedDict):
     last_card_user: int
     supernova_user: List[List[int]]
     used_cards: List[int]
-    global_status: List[Tuple[int, str]]
+    global_status: List[str]
     observatory: bool
     event_route: List[int]
     bingo_state: List[int]
     sign: int
     current_event: str
     current_shop: str
+class TUserState(TypedDict, total=False):
+    circus: bool
 
 class TWords(TypedDict):
     keyword: Tuple[str, List[str]]
