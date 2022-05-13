@@ -4,13 +4,13 @@ from math import ceil
 from collections import Counter
 import itertools, random
 from .Game import Game
-from .Card import Card
+from .Card import Card, CardNumed
 from .User import User
 from .Status import Status, StatusNumed, StatusTimed, StatusNullStack, StatusDailyStack
 from .Attack import Attack, AttackType
 from .Priority import UserEvt, Priority
 from .Types import Pack
-from .Dragon import DragonState, Tree
+from .Dragon import DragonState, TreeLeaf
 from .Mission import Mission
 from .EventListener import IEventListener
 from .Helper import positive
@@ -30,13 +30,13 @@ class SMindgap150(StatusDailyStack):
     name = "小心空隙"
     _description = "今天接龙时有20%几率被神隐，被神隐的词消失，接龙人需再等待两个词才可接龙。"
     isGlobal = True
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         if random.random() < 0.3:
             l = [s for s in user.CheckStatus(SNoDragon) if s.length == 3] #TODO
-            if len(l)==0:
-                await user.AddStatus(SNoDragon([branch.parent.id_str], 3))
+            if len(l) == 0:
+                await user.AddStatus(SNoDragon([branch.parent.idStr], 3))
             else:
-                l[0].list.append(branch.parent.id_str)
+                l[0].list.append(branch.parent.idStr)
             user.data.SaveStatuses()
             if not user.state.get('branch_removed'):
                 user.state['branch_removed'] = True
@@ -60,7 +60,7 @@ class SSteamSummer151(StatusNullStack):
         return jibi // 2 ** self.count
     async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
         if isBuy:
-            await user.RemoveAllStatuses(self)
+            await user.RemoveAllStatus(SSteamSummer151)
             return jibi // 2 ** self.count
         return jibi
     def register(self) -> Dict[UserEvt, int]:
@@ -78,49 +78,52 @@ class CForkbomb152(Card):
     async def Use(self, user: 'User') -> None:
         await user.ume.AddStatus(SForkbomb152())
 class SForkbomb152(StatusDailyStack):
-    id = 'b'
-    _description = "Fork Bomb：今天每个接龙词都有5%几率变成分叉点。"
+    id = 152
+    name = "Fork Bomb"
+    _description = "今天每个接龙词都有5%几率变成分叉点。"
     isGlobal = True
     isMetallic = True
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         if (c := random.random()) > (0.95 - 0.005 * user.data.luck) ** self.count:
             lucky = False
             if c < 0.95 ** self.count:
                 lucky = True
             user.SendStatusEffect(self, lucky = lucky)
-            branch.fork = True
+            user.game.ForkTree(branch, True)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDragoned: Priority.OnDragoned.forkbomb}
 
-class CBeijingCard153(Card):
+class CBeijingCard153(CardNumed):
     name = "北京市市政交通一卡通"
     id = 153
     positive = 1
     _description = "持有此卡时，你当天在商店总消费达100击毙后商店所有物品变为8折，当天在商店总消费达150击毙后商店所有物品变为5折，当天在商店总消费达400击毙后不再打折。"
-    # hold_des = "北京市市政交通一卡通：你当天在商店总消费达100击毙后商店所有物品变为8折，当天在商店总消费达150击毙后商店所有物品变为5折，当天在商店总消费达400击毙后不再打折。"
     pack = Pack.misc
     async def CheckJibiSpend(self, user: 'User', jibi: int) -> int:
         if 100 <= user.data.spendShop < 150:
-            jibi = int(jibi * 0.8 ** self.count)
+            jibi = int(jibi * 0.8 ** self.num)
         elif 150 <= user.data.spendShop < 400:
-            jibi = int(jibi * 0.5 ** self.count)
+            jibi = int(jibi * 0.5 ** self.num)
         return jibi
     async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
-        if jibi < 0 and is_buy:
+        if jibi < 0 and isBuy:
             flag = '0'
             if 100 <= user.data.spendShop < 150:
-                jibi = int(jibi * 0.8 ** self.count)
+                jibi = int(jibi * 0.8 ** self.num)
                 flag = '8'
             elif 150 <= user.data.spendShop < 400:
-                jibi = int(jibi * 0.5 ** self.count)
+                jibi = int(jibi * 0.5 ** self.num)
                 flag = '5'
             elif user.data.spendShop >= 400:
                 flag = '400'
             user.SendCardEffect(self, jibi = jibi, flag = flag)
         return jibi
+    async def OnNewDay(self, user: 'User') -> None:
+        self.num = 0 # pylint: disable=attribute-defined-outside-init
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnJibiChange: Priority.OnJibiChange.beijingcard,
-            UserEvt.CheckJibiSpend: Priority.CheckJibiSpend.beijingcard}
+            UserEvt.CheckJibiSpend: Priority.CheckJibiSpend.beijingcard,
+            UserEvt.OnNewDay: Priority.OnNewDay.beijingcard}
 
 class CTimebomb154(Card):
     name = "定时炸弹"
@@ -138,10 +141,11 @@ class STimebomb154(StatusNumed):
     _description = "需要此后在今日内完成10次接龙，否则在跨日时扣除2*剩余次数的击毙。"
     isDebuff = True
     isMetallic = True
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         self.num -= 1
         user.data.SaveStatuses()
     async def OnNewDay(self, user: 'User') -> None:
+        # pylint: disable=access-member-before-definition,attribute-defined-outside-init
         b = 2 * self.num
         user.SendStatusEffect(self, jibi = b)
         await user.AddJibi(-b)
@@ -166,12 +170,12 @@ class SCashPrinter155(StatusNumed):
     id = 155
     _description = "你接下来接龙时会奖励接了上一个词的人1击毙。如果上一个词是起始词则不消耗生效次数。"
     isMetallic = True
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         pq = branch.parent.qq
         if pq != user.game.managerQQ and pq != 0:
             user.SendStatusEffect(self, success = True)
             await user.CreateUser(pq).AddJibi(1)
-            self.num -= 1
+            self.num -= 1 # pylint: disable=no-member
             user.data.SaveStatuses()
         else:
             user.SendStatusEffect(self, success = False)
@@ -182,12 +186,12 @@ class SInvCashPrinter156(StatusNumed):
     id = 156
     _description = "你接下来接龙时会扣除接了上一个词的人1击毙。如果上一个词是起始词则不消耗生效次数。"
     isMetallic = True
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         pq = branch.parent.qq
         if pq != user.game.managerQQ and pq != 0:
             user.SendStatusEffect(self, success = True)
             await user.CreateUser(pq).AddJibi(-1)
-            self.num -= 1
+            self.num -= 1 # pylint: disable=no-member
             user.data.SaveStatuses()
         else:
             user.SendStatusEffect(self, success = False)

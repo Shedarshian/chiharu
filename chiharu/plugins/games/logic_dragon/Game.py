@@ -1,5 +1,6 @@
 from multiprocessing import Event
 from typing import *
+from typing_extensions import overload
 from copy import copy
 from io import TextIOWrapper
 from collections import defaultdict
@@ -9,7 +10,7 @@ from datetime import date, datetime, time, timedelta
 import unicodedata
 from .User import User
 from .UserData import UserData
-from .Dragon import Tree, DragonState
+from .Dragon import Tree, DragonState, TreeLeaf, TreeRoot
 from .Types import TEvent, TGlobalState, Sign, ProtocolData, TWords
 from .Helper import Buffer
 from .Priority import UserEvt
@@ -166,7 +167,7 @@ class Game:
             self.treeForests.append(self.treeObjs)
         self.treeObjs = []
         self.treeMaxBranches = 0
-        if if_log:
+        if if_log and self.logFile is not None:
             self.logFile.write(Tree.saveNew())
     def FindTree(self, id: Tuple[int, int]):
         if id is None:
@@ -177,6 +178,12 @@ class Game:
             return self.treeObjs[id[1]][id[0] - self.treeObjs[id[1]][0].id[0]]
         except IndexError:
             return None
+    @overload
+    def AddTree(self, parent: Tree, word: str, qq: int, kwd: str, hdkwd: str, fork: bool=False,
+            /, id: tuple[int, int]=None, if_log=True) -> TreeLeaf: ...
+    @overload
+    def AddTree(self, parent: None, word: str, qq: int, kwd: str, hdkwd: str, fork: bool=False,
+            /, id: tuple[int, int]=None, if_log=True) -> TreeRoot: ...      
     def AddTree(self, parent: Optional[Tree], word: str, qq: int, kwd: str, hdkwd: str, fork: bool=False,
             /, id: tuple[int, int]=None, if_log=True):
         if id is None:
@@ -188,7 +195,10 @@ class Game:
                 id = (id[0], self.treeMaxBranches)
                 if parent:
                     parent.fork = True
-        tree = Tree(parent, word, qq, kwd, hdkwd, id=id, fork=fork)
+        if parent is None or id == (0, 0):
+            tree: Tree = TreeRoot(word, qq, fork=fork)
+        else:
+            tree = TreeLeaf(parent, word, qq, kwd, hdkwd, id=id, fork=fork)
         if parent and parent.left is None:
             parent.left = tree
         elif parent and parent.right is None:
@@ -197,7 +207,7 @@ class Game:
             for i in range(id[1] + 1 - self.treeMaxBranches):
                 self.treeObjs.append([])
             self.treeMaxBranches = id[1] + 1
-        if if_log:
+        if if_log and self.logFile is not None:
             self.logFile.write(str(tree))
         return tree
     def RemoveTree(self, tree: Tree, /, if_log=True):
@@ -220,11 +230,11 @@ class Game:
             if tree.parent.left is self:
                 tree.parent.left = tree.parent.right
             tree.parent.right = None
-        if if_log:
+        if if_log and self.logFile is not None:
             self.logFile.write(Tree.saveDelete(tree))
     def ForkTree(self, tree: Tree, fork: bool, /, if_log=True):
         tree.fork = fork
-        if if_log:
+        if if_log and self.logFile is not None:
             self.logFile.write(Tree.saveFork(tree))
     def LoadLogSet(self):
         if self.logFile is not None:

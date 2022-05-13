@@ -10,7 +10,7 @@ from .Status import Status, StatusNumed, StatusTimed, StatusNullStack, StatusDai
 from .Attack import Attack, AttackType
 from .Priority import UserEvt, Priority
 from .Types import Pack
-from .Dragon import DragonState, Tree
+from .Dragon import DragonState, TreeLeaf
 from .Mission import Mission
 from .EventListener import IEventListener
 from .Helper import positive
@@ -336,7 +336,7 @@ class SJackInTheBox136(StatusNullStack):
     _description = "你每次接龙时有5%的几率爆炸，炸死以你为中心5x5的人，然后buff消失。若场上有寒冰菇状态则不会爆炸。"
     isDebuff = True
     isMetallic = True
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         '''炸死好多人
         tqqs：被炸死的玩家QQ'''
         if user.ume.CheckStatus(SIceShroom132):
@@ -346,13 +346,13 @@ class SJackInTheBox136(StatusNullStack):
             qqs = {user.qq}
             id = branch.id
             for i, j in itertools.product(range(-2, 3), range(-2, 3)):
-                ret = user.game.findTree((id[0] + i, id[1] + j))
+                ret = user.game.FindTree((id[0] + i, id[1] + j))
                 if ret is not None:
                     qqs.add(ret.qq)
             qqs -= {user.game.managerQQ}
             user.SendStatusEffect(self, tqqs = list(qqs))
             for qqq in qqs:
-                await user.CreateUser(qqq).killed(user)
+                await user.CreateUser(qqq).Killed(user)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.OnDragoned: Priority.OnDragoned.jack_in_the_box}
 

@@ -224,6 +224,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         mindgap = auto()                # 小心空隙：接龙失败，接龙人需再等待2个节点接龙
     class OnNewDay(IntEnum):
         queststone = auto()
+        beijingcard = auto()
         tarot = auto()
         quest = auto()
         sunflower = auto()

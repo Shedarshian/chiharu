@@ -1,3 +1,4 @@
+from abc import ABC
 from typing import *
 import re
 from .Types import ProtocolData
@@ -19,7 +20,7 @@ class DragonState:
         await self.OnWeiShou(user)
         return self.weishou
 
-class Tree:
+class Tree(ABC):
     __slots__ = ('id', 'parent', 'left', 'right', 'word', 'fork', 'kwd', 'hdkwd', 'qq')
     def __init__(self, parent: 'Tree' | None, word: str, qq: int, kwd: str, hdkwd: str, id: Tuple[int, int], fork: bool=False):
         self.parent = parent
@@ -81,17 +82,25 @@ class Tree:
         match = cls.command_re.match(s)
         if match:
             if match.group(1) is not None:
-                return {"type": "fork", "id": Tree.strToId(match.group(2)), "fork": match.group(3) == '+'}
+                return {"type": "fork", "id": cls.strToId(match.group(2)), "fork": match.group(3) == '+'}
             elif match.group(2) is not None:
-                return {"type": "delete", "id": Tree.strToId(match.group(2))}
+                return {"type": "delete", "id": cls.strToId(match.group(2))}
             else:
                 return {"type": "new"}
         match2 = cls.tree_re.match(s)
         if match2:
-            return {"type": "tree", "id": Tree.strToId(match2.group(1)), "fork": match2.group(2) == "+",
-                "parentId": Tree.strToId(match2.group(3)),
+            return {"type": "tree", "id": cls.strToId(match2.group(1)), "fork": match2.group(2) == "+",
+                "parentId": cls.strToId(match2.group(3)),
                 "qq": int(match2.group(4)), "keyword": match2.group(5), "hiddenKeyword": match2.group(6),
                 "word": match2.group(7)}
         return None
-        
+
+class TreeRoot(Tree):
+    def __init__(self, word: str, qq: int, fork: bool = False):
+        super().__init__(None, word, qq, "", "", (0, 0), fork)
+        self.parent: None = None
+class TreeLeaf(Tree):
+    def __init__(self, parent: 'Tree', word: str, qq: int, kwd: str, hdkwd: str, id: Tuple[int, int], fork: bool = False):
+        super().__init__(parent, word, qq, kwd, hdkwd, id, fork)
+        self.parent: Tree = parent
 

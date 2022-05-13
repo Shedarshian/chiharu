@@ -40,6 +40,8 @@ class TUserState(TypedDict, total=False):
     circus: bool
     mishi_id: int
     dragon_who: int
+    branch_removed: bool
+    exceed_limit: bool
 
 class TWords(TypedDict):
     keyword: Tuple[str, List[str]]

@@ -1,3 +1,4 @@
+from pydoc import cram
 from typing import *
 from copy import copy
 from math import ceil
@@ -8,7 +9,7 @@ from .Status import Status, StatusListInt, StatusNumed, StatusTimed, StatusNullS
 from .Attack import Attack, AttackType
 from .Priority import UserEvt, Priority
 from .Types import Pack
-from .Dragon import DragonState, Tree
+from .Dragon import DragonState, TreeLeaf
 from .Mission import Mission
 from .Helper import positive
 from ... import config
@@ -176,7 +177,7 @@ class SPlusTwo60(StatusNullStack):
     name = "+2"
     _description = "下一个接龙的人摸一张非负面卡和一张非正面卡。"
     isGlobal = True
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         """摸两张牌。
         count：摸两张牌的次数"""
         user.SendStatusEffect(self, count=self.count)
@@ -277,7 +278,7 @@ class CQueststone67(CardDoubleNumed):
     @property
     def description(self):
         return self._description + "\n" + self.QuestDes
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         """完成任务
         remain: 剩余次数
         mission: 任务描述"""
@@ -314,7 +315,7 @@ class SCunqianguan70(StatusNullStack):
     _description = "下次触发隐藏词的奖励+10击毙。"
     isMetallic = True
     isGlobal = True
-    async def OnHiddenKeyword(self, user: 'User', word: str, parent: 'Tree', keyword: str) -> int:
+    async def OnHiddenKeyword(self, user: 'User', word: str, parent: 'TreeLeaf', keyword: str) -> int:
         """存钱罐，奖励+10击毙。
         count：触发次数。"""
         user.SendStatusEffect(self, count = self.count)
@@ -329,12 +330,12 @@ class SInvCunqianguan72(StatusNullStack):
     isMetallic = True
     isGlobal = True
     isDebuff = True
-    async def OnHiddenKeyword(self, user: 'User', word: str, parent: 'Tree', keyword: str) -> int:
+    async def OnHiddenKeyword(self, user: 'User', word: str, parent: 'TreeLeaf', keyword: str) -> int:
         """反转存钱罐，奖励-10击毙。
         count：触发次数。"""
         user.SendStatusEffect(self, count = self.count)
         await user.ume.RemoveAllStatus(self)
-        return -self.count * 10,
+        return -self.count * 10
     def register(self) -> Dict['UserEvt', int]:
         return {UserEvt.OnHiddenKeyword: Priority.OnHiddenKeyword.inv_cunqianguan}
 
@@ -356,9 +357,9 @@ class SHongsezhihuan71(StatusNullStack):
         lucky: 是否因幸运加成。"""
         for a in range(self.count):
             await user.RemoveStatus(SHongsezhihuan71(1))
-            if (c := random.random()) < 0.5 + 0.02 * user.data.luck:
+            if (cr := random.random()) < 0.5 + 0.02 * user.data.luck:
                 lucky = False
-                if c > 0.5:
+                if cr > 0.5:
                     lucky = True
                 user.SendStatusEffect(self, success = True, lucky = lucky)
                 return time, True
@@ -492,10 +493,10 @@ class SHuxiangjiaohuan75(StatusListInt):
     @property
     def description(self) -> str:
         return f"下{len(self.list)}个接中隐藏奖励词的玩家手牌与某人互换。"
-    async def OnHiddenKeyword(self, user: 'User', word: str, parent: 'Tree', keyword: str) -> int:
+    async def OnHiddenKeyword(self, user: 'User', word: str, parent: 'TreeLeaf', keyword: str) -> int:
         to_exchange = self.list.pop()
         user.data.SaveStatuses()
-        u = User(to_exchange, user.buf)
+        u = user.CreateUser(to_exchange)
         atk = AHuxiangjiaohuan75(u, user)
         await user.Attacked(atk)
         return 0
@@ -563,7 +564,7 @@ class CZhongShenDeXiXi76(Card):
 #         await user.discard_cards([cls] * count)
 #         return time, False
 #     @classmethod
-#     async def OnDragoned(cls, count: TCount, user: User, branch: 'Tree', first10: bool) -> Tuple[()]:
+#     async def OnDragoned(cls, count: TCount, user: User, branch: 'TreeLeaf', first10: bool) -> Tuple[()]:
 #         global global_state
 #         last_qq = branch.parent.qq
 #         if branch.parent.id != (0, 0):
@@ -768,7 +769,7 @@ class CEmptyCard95(Card):
     _description = "选择你手牌中的一张牌，执行其使用效果。"
     pack = Pack.poker
     def CanUse(self, user: 'User', copy: bool) -> bool:
-        return len(c for c in user.data.handCard if c.id not in (95,)) >= (1 if copy else 2)
+        return len([c for c in user.data.handCard if c.id not in (95,)]) >= (1 if copy else 2)
     async def Use(self, user: 'User') -> None:
         """使用卡牌效果
         choose: True时为选择牌的提示。False时为使用卡牌效果。

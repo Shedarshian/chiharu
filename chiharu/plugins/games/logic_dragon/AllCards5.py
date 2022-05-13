@@ -10,7 +10,7 @@ from .Status import Status, StatusNumed, StatusTimed, StatusNullStack, StatusDai
 from .Attack import Attack, AttackType
 from .Priority import UserEvt, Priority
 from .Types import Pack
-from .Dragon import DragonState, Tree
+from .Dragon import DragonState, TreeLeaf
 from .Mission import Mission
 from .EventListener import IEventListener
 from .Helper import positive
@@ -152,7 +152,7 @@ class SExplore140(StatusNumed):
         elif self.num == 5 and i == 1:
             user.SendStatusEffect(self, time = 'BeforeDragoned', mnum = 5, mid = 1)
         return True, 0
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         if (i := user.state.get('mishi_id')) is None:
             i = random.randint(0, 5 if self.num <= 4 else 4)
         if self.num == 1:
@@ -426,7 +426,7 @@ class SJiaotu141(StatusNullStack):
             user.SendStatusEffect(self)
             return False, 0
         return True, 0
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         await user.RemoveStatus(self)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.jiaotu,
@@ -441,7 +441,7 @@ class SInvJiaotu142(StatusNullStack):
             user.SendStatusEffect(self)
             return False, 0
         return True, 0
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         await user.RemoveStatus(self)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.inv_jiaotu,
@@ -458,7 +458,7 @@ class SShequn143(StatusNullStack):
             user.SendStatusEffect(self)
             return False, 0
         return True, 0
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         await user.RemoveStatus(self)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.shequn,
@@ -474,7 +474,7 @@ class SInvShequn144(StatusNullStack):
             user.SendStatusEffect(self)
             return False, 0
         return True, 0
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         await user.RemoveStatus(self)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.inv_shequn,
@@ -511,7 +511,7 @@ class SBeizhizhunze76(StatusDailyStack):
     name = "杯之准则"
     id = 76
     _description = "你今天每次接龙额外获得1击毙。"
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         user.SendStatusEffect(self, count = self.count)
         await user.AddJibi(self.count)
     def register(self) -> Dict[UserEvt, int]:
@@ -520,7 +520,7 @@ class SInvBeizhizhunze62(StatusDailyStack):
     name = "反转-杯之准则"
     id = 62
     _description = "你今天每次接龙额外失去1击毙。"
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         user.SendStatusEffect(self, count = self.count)
         await user.AddJibi(-1 * self.count)
     def register(self) -> Dict[UserEvt, int]:
@@ -532,7 +532,7 @@ class SLazhuyandong57(StatusNullStack):
     _description = "下一次接龙可以少间隔一个人。"
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, -1
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         await user.RemoveStatus(self)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.lazhuyandong,
@@ -543,7 +543,7 @@ class SInvLazhuyandong56(StatusNullStack):
     _description = "下一次接龙需要多间隔一个人。"
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, 1
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         await user.RemoveStatus(self)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.inv_lazhuyandong,
@@ -553,7 +553,7 @@ class SCircus55(StatusNullStack):
     name = "置身格吕内瓦尔德的常驻马戏团"
     id = 55
     _description = "下一次接龙不受全局状态的影响。"
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         user.SendStatusEffect(self)
         await user.RemoveStatus(self)
     def register(self) -> Dict[UserEvt, int]:
@@ -565,7 +565,7 @@ class SLieshouzhixue31(StatusNullStack):
     _description = "下一次接龙需要多间隔一个人。"
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, 1
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         await user.RemoveStatus(self)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.lieshouzhixue,
@@ -576,7 +576,7 @@ class SInvLieshouzhixue29(StatusNullStack):
     _description = "下一次接龙可以少间隔一个人。"
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, -1
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         await user.RemoveStatus(self)
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.inv_lieshouzhixue,
@@ -587,7 +587,7 @@ class SShendian153(StatusNullStack):
     id = 153
     _description = "之后接龙的一个人会额外获得5击毙。"
     isGlobal = True
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         user.SendStatusEffect(self, count = self.count)
         await user.AddJibi(5 * self.count)
         await user.ume.RemoveStatus(self)
@@ -598,7 +598,7 @@ class SInvShendian157(StatusNullStack):
     id = 157
     _description = "之后接龙的一个人会额外失去5击毙。"
     isGlobal = True
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         user.SendStatusEffect(self, count = self.count)
         await user.AddJibi(-5 * self.count)
         await user.ume.RemoveStatus(self)

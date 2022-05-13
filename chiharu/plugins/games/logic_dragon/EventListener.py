@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from .Card import Card
     from .Attack import Attack, AttackType
     from .Status import Status
-    from .Dragon import Tree, DragonState
+    from .Dragon import DragonState, TreeLeaf
     from .Types import ProtocolData
 
 class IEventListener:
@@ -193,7 +193,7 @@ class IEventListener:
         Returns:
         bool: represents if accelerated."""
         pass
-    async def OnKeyword(self, user: 'User', word: str, parent: 'Tree', keyword: str) -> int:
+    async def OnKeyword(self, user: 'User', word: str, parent: 'TreeLeaf', keyword: str) -> int:
         """Called when a user hit a keyword.
         
         Arguments:
@@ -204,7 +204,7 @@ class IEventListener:
         Returns:
         int: the amount of jibi to add."""
         pass
-    async def OnHiddenKeyword(self, user: 'User', word: str, parent: 'Tree', keyword: str) -> int:
+    async def OnHiddenKeyword(self, user: 'User', word: str, parent: 'TreeLeaf', keyword: str) -> int:
         """Called when a user hit a hidden keyword.
         
         Arguments:
@@ -234,7 +234,7 @@ class IEventListener:
         Returns:
         bool: represents whether the hit is dodged."""
         pass
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         """Called when the user complete a dragon.
         
         Arguments:

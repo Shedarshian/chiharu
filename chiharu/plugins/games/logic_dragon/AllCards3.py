@@ -10,7 +10,7 @@ from .Status import Status, StatusNumed, StatusTimed, StatusNullStack, StatusDai
 from .Attack import Attack, AttackType
 from .Priority import UserEvt, Priority
 from .Types import Pack
-from .Dragon import DragonState, Tree
+from .Dragon import DragonState, TreeLeaf
 from .Mission import Mission
 from .EventListener import IEventListener
 from .Helper import positive
@@ -104,7 +104,7 @@ class SZPM101(StatusNullStack):
     name = "零点模块"
     _description = "若你当前击毙不多于100，则每次接龙为你额外提供1击毙，若你当前击毙多于100，此buff立即消失。"
     isMetallic = True
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         """接龙为你提供1击毙。"""
         user.SendStatusEffect(self, time='OnDragoned')
         await user.AddJibi(1)
@@ -316,7 +316,7 @@ class SNightbloom110(StatusNumed):
     @property
     def description(self):
         return f"{self._description}\n\t剩余{(self.num + 2) // 3}次。" # pylint: disable=no-member
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         """扣除击毙。"""
         self.num -= 1 # pylint: disable=no-member
         if self.num % 3 == 0: # pylint: disable=no-member
@@ -331,7 +331,7 @@ class SInvNightbloom105(StatusNumed):
     @property
     def description(self):
         return f"{self._description}\n\t剩余{(self.num + 2) // 3}次。" # pylint: disable=no-member
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         """奖励击毙。"""
         self.num -= 1 # pylint: disable=no-member
         if self.num % 3 == 0: # pylint: disable=no-member
@@ -362,7 +362,7 @@ class SPanjueA111(StatusNullStack):
             await user.AddStatus(SWufazhandou108(timedelta(hours=4)))
             return True
         return False
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         count = self.count
         await user.RemoveAllStatus(SPanjueA111)
         await user.AddStatus(SPanjueAActivated106(count))
@@ -407,7 +407,7 @@ class SPanjueB112(StatusNullStack):
             await user.AddStatus(SWufazhandou108(timedelta(hours=4)))
             return True
         return False
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         count = self.count
         await user.RemoveAllStatus(SPanjueB112)
         await user.AddStatus(SPanjueBActivated107(count))
@@ -431,7 +431,7 @@ class SPanjueBActivated107(StatusNullStack):
         return {UserEvt.OnStatusAdd: Priority.OnStatusAdd.panjue_activated}
 
 class IPanjueChecker(IEventListener):
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         if (nd := branch.before(5)) and nd.qq != user.game.managerQQ and nd.qq != 0 and (u := user.CreateUser(nd.qq)) != user:
             if na := u.CheckStatusStack(SPanjueAActivated106):
                 await u.RemoveAllStatus(SPanjueAActivated106)
@@ -520,7 +520,7 @@ class SEruption114(StatusDailyStack):
     id = 114
     _description = "地火喷发：今天所有的接龙词都有10%的几率变成地雷。"
     isGlobal = True
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         """添加地雷。
         word: 添加的词。"""
         if random.random() > 0.9 ** self.num:
@@ -729,7 +729,7 @@ class SYouxianShushi123(StatusDailyStack):
         elif not isinstance(attack, AKill0) or not isinstance(attack, ADamage1):
             user.SendStatusEffect(self, flag='else')
             atk_new = AKill0(attack.attacker, attack.defender, 120)
-            await attack.defender.Attacked(attack.attacker, atk_new)
+            await attack.defender.Attacked(atk_new)
             return True
         return False
     def register(self) -> Dict[UserEvt, int]:
@@ -747,7 +747,7 @@ class SXixueShashou124(StatusDailyStack):
     name = "吸血杀手"
     id = 124
     _description = "今天你每次接龙时有10%几率获得一张【吸血鬼】。"
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         '''概率抽卡'''
         for i in range(self.count):
             if random.random() < 0.1 + 0.01 * user.data.luck:
@@ -860,7 +860,10 @@ class CRailgun125(Card):
                                     allqq.add(ret.qq)
             allqq.remove(user.qq)
             user.SendCardUse(self, success = True, chooseUser = True, userList = allqq)
-            tqq = user.ChoosePlayers(1, 1, range = list(allqq))[0]
+            tqqs = await user.ChoosePlayers(1, 1, range = set(allqq))
+            if tqqs is None:
+                return
+            tqq = tqqs[0]
             user.SendCardUse(self, success = True, tammo = tammo if isinstance(tammo, str) else tammo.DumpData(), tuser = tqq)
             if tammo == "1击毙":
                 await user.AddJibi(-1)

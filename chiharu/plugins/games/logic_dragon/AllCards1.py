@@ -10,7 +10,7 @@ from .Status import Status, StatusNumed, StatusTimed, StatusNullStack, StatusDai
 from .Attack import Attack, AttackType
 from .Priority import UserEvt, Priority
 from .Types import Pack
-from .Dragon import DragonState, Tree
+from .Dragon import DragonState, Tree, TreeLeaf
 from .Mission import Mission
 from .EventListener import IEventListener
 from ... import config
@@ -50,7 +50,7 @@ class CMagician1(Card):
     _description = "选择一张你的手牌（不可选择暴食的蜈蚣与组装机1型），发动3次该手牌的使用效果，并弃置之。此后一周内不得使用该卡。"
     pack = Pack.tarot
     def CanUse(self, user: 'User', copy: bool) -> bool:
-        return len(c for c in user.data.handCard if c.id not in (56, 200)) >= (1 if copy else 2)
+        return len([c for c in user.data.handCard if c.id not in (56, 200)]) >= (1 if copy else 2)
     async def use(self, user: User):
         """试图选择卡牌。"""
         user.SendCardUse(self)
@@ -136,7 +136,7 @@ class SQuest3(StatusNumed):
     @property
     def description(self):
         return f"今日任务：{Mission.get(self.questId).description}\n\t剩余次数：{self.num}次，完成获得击毙：{self.jibi}。"
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         """完成任务。
         jibi: 获得的击毙数。
         remain: 剩余完成次数。
@@ -181,7 +181,7 @@ class SHierophant5(StatusNumed):
             user.SendStatusEffect(self, time="BeforeDragoned")
             return False, 0
         return True, 0
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         """奖励2击毙。"""
         user.SendStatusEffect(self, time="OnDragoned")
         await user.AddJibi(2)
@@ -201,7 +201,7 @@ class SInvHierophant6(StatusNumed):
             user.SendStatusEffect(self, time="BeforeDragoned")
             return False, 0
         return True, 0
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         """损失2击毙。"""
         user.SendStatusEffect(self, time="OnDragoned")
         await user.AddJibi(-2)
@@ -428,7 +428,7 @@ class SStar17(StatusDailyStack):
     name = "XVII - 星星"
     _description = "今天的每个词有10%的几率进入奖励词池。"
     isGlobal = True
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         """添加奖励词。
         word: 添加的词。"""
         if random.random() > 0.9 ** self.num:
@@ -588,13 +588,13 @@ class CJuedou37(Card):
         """决斗
         choose: True时为选择玩家提示。
         ruser: 被选中的玩家。"""
-        user.SendCardUse(choose=True)
+        user.SendCardUse(self, choose=True)
         if (players := await user.ChoosePlayers(1, 1)) is not None:
             player = players[0]
             if user.ume.CheckStatus(SJuedou37) is not None:
                 await user.ume.RemoveAllStatus(SJuedou37)
             user.SendCardUse(self, choose=False, ruser = player)
-            await user.ume.AddStatus(SJuedou37(timedelta(hour=1), user.qq, player, 10))
+            await user.ume.AddStatus(SJuedou37(timedelta(hours=1), user.qq, player, 10))
 class SJuedou37(StatusTimed):
     id = 37
     name = "决斗"
@@ -603,16 +603,16 @@ class SJuedou37(StatusTimed):
     def __init__(self, data: datetime | timedelta, player1: int, player2: int, count: int):
         self.player1 = player1
         self.player2 = player2
-        self.count = count
+        self._count = count
         super().__init__(data)
     @property
     def valid(self):
-        return self.time >= datetime.now() and self.count > 0
+        return self.time >= datetime.now() and self._count > 0
     def packData(self) -> str:
-        return ','.join((self.time.isoformat(), str(self.player1), str(self.player2), str(self.count)))
+        return ','.join((self.time.isoformat(), str(self.player1), str(self.player2), str(self._count)))
     @property
     def description(self):
-        return f"决斗：接下来的{self.count}次接龙由玩家{self.player1}与{self.player2}之间进行。\n\t结束时间：{self.getStr()}。"
+        return f"决斗：接下来的{self._count}次接龙由玩家{self.player1}与{self.player2}之间进行。\n\t结束时间：{self.getStr()}。"
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         """不可干扰决斗。"""
         if user.qq == self.player1 or user.qq == self.player2:
@@ -620,8 +620,8 @@ class SJuedou37(StatusTimed):
         else:
             user.SendStatusEffect(self, time = 'BeforeDragoned')
             return False, 0
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
-        self.count -= 1
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
+        self._count -= 1
         user.ume.data.SaveStatuses()
     def register(self) -> Dict[UserEvt, int]:
         return {UserEvt.BeforeDragoned: Priority.BeforeDragoned.juedou,
@@ -639,7 +639,7 @@ class CTiesuolianhuan39(Card):
         choose: True时为选择玩家提示。
         tplayer: 被连环的玩家qq列表。"""
         user.SendCardUse(self, choose=True)
-        if players := user.ChoosePlayers(1, 2) is not None:
+        if (players := await user.ChoosePlayers(1, 2)) is not None:
             user.SendCardUse(self, choose=False, tplayer = players)
             for target in players:
                 atk = ATiesuolianhuan38(user, u := user.CreateUser(target))
