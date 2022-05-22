@@ -6356,7 +6356,7 @@ class SBritian(ListStatus):
         return [self]
     @property
     def brief_des(self) -> str:
-        return f"统治不列颠\n\t包含：{','.join(str(c) for c in self.list)}。"
+        return f"统治不列颠{('\n\t包含：'+','.join(str(c) for c in self.list)) if len(self.list) > 0 else ''}。"
     def check(self) -> bool:
         return True
     @classmethod

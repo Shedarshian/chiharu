@@ -6,7 +6,7 @@ import itertools, random
 from .Game import Game
 from .Card import Card, CardNumed
 from .User import User
-from .Status import Status, StatusNumed, StatusTimed, StatusNullStack, StatusDailyStack
+from .Status import Status, StatusNumed, StatusTimed, StatusNullStack, StatusDailyStack, StatusListInt
 from .Attack import Attack, AttackType
 from .Priority import UserEvt, Priority
 from .Types import Pack
@@ -207,3 +207,78 @@ class CUpsideDown156(Card):
     pack = Pack.misc
     async def Use(self, user: 'User') -> None:
         pass
+
+class CBloom157(Card):
+    id = 157
+    name = "绽放"
+    positive = 1
+    _description = "摸13张牌，然后弃牌至max(4,手牌上限-6)张（最多为10）。（特别的，可以弃置空白卡牌）"
+    pack = Pack.misc
+    async def Use(self, user: 'User') -> None:
+        await user.draw(13)
+        if x := len(user.data.handCard) - min(10, max(4, user.data.cardLimit - 6)) > 0:
+            if not await user.choose():
+                random.shuffle(user.data.handCard)
+                user.data.SaveCards()
+                await user.discard_cards(user.data.handCard[max(4, user.data.cardLimit - 6):])
+                user.SendCardUse(self, cardnum = x, cards = [c.DumpData() for c in user.data.handCard])
+            else:
+                user.SendCardUse(self, cardnum = x, choose = True)
+                async with user.ChooseHandCards(x, x) as l:
+                    user.buf.send("成功弃置。")
+                    await user.discard_cards([Card(i) for i in l])
+
+class CExcalibur158(Card):
+    id = 158
+    name = "EX咖喱棒"
+    positive = 1
+    _description = "只可在胜利时使用。统治不列颠。"
+    isMetallic = True
+    mass = 1
+    pack = Pack.misc
+    from AllCards2 import SWin81
+    @classmethod
+    def CanUse(cls, user: User, copy: bool) -> bool:
+        return user.CheckStatusStack(SWin81) > 0
+    @classmethod
+    async def use(cls, user: User) -> None:
+        if user.CheckStatusStack(SWin81) == 0:
+            user.SendCardUse(self, success = False)
+        else:
+            user.SendCardUse(self, success = True)
+            await user.AddStatus(SBritian158([]))
+class SBritian158(StatusListInt):
+    id = 158
+    name = "统治不列颠"
+    _description = "使用塔罗牌系列牌时，若本效果不包含“魔力 - {该塔罗牌名}”，不发动该牌的原本使用效果，并为本效果增加“魔力 - {该塔罗牌名}”。当拥有所有22种“魔力 - {塔罗牌名}”时，获得装备“塔罗原典”。"
+    isRemovable = False
+    @property
+    def valid(self):
+        return True
+    def description(self) -> str:
+        return self._description + f"\n\t包含：{'，'.join(('“魔力 - ' + Card.get(i)().name[Card.get(i)().name.index(' - ') + 3:] + '”') for i in self.list)}。" if len(self.list) > 0 else ''
+    async def BeforeCardUse(self, user: 'User', card: 'Card') -> Optional[Awaitable]:
+        if card.id <= 21 and card.id >= 0:
+            if card.id not in self.list:
+                async def f():
+                    user.SendStatusEffect(self, tid = card.id)
+                    self.list.append(card.id)
+                    self.list.sort()
+                    user.SendStatusEffect(self, list = self.list)
+                    if len(self.list) == 22:
+                        await user.RemoveStatus(self)
+                        b = user.data.CheckEquipment(2)
+                        user.SendStatusEffect(self, tstar = b)
+                        # user.data.equipment[2] = b + 1 #TODO
+                        # elif b == 6:
+                        #     user.send_log(f"将装备“塔罗原典”升星至{b + 1}星{句尾}")
+                        #     user.send_log("仍可继续升级，不过8星以上的塔罗原典将不会有任何额外作用。")
+                        # elif b >= 7:
+                        #     user.send_log(f"将装备“塔罗原典”升星至{b + 1}星（虽然没有什么作用）{句尾}")
+                            # user.send_log(f"将装备“塔罗原典”升星至{b + 1}星{句尾}")
+                    user.data.SaveStatuses()
+                return f()
+        return None
+    def register(self) -> Dict[UserEvt, int]:
+        return {UserEvt.BeforeCardUse: Priority.BeforeCardUse.britian}
+
