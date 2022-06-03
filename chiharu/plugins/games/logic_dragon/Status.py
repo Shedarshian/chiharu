@@ -20,6 +20,7 @@ class Status(IEventListener, Saveable, hasIdDict=True):
     isDebuff = False
     isMetallic = False
     isRemovable = True
+    isReversable = False
     @property
     def count(self) -> int:
         return 1
@@ -30,6 +31,8 @@ class Status(IEventListener, Saveable, hasIdDict=True):
     def description(self) -> str:
         return self._description
     def double(self):
+        pass
+    def reverse(self):
         pass
     def DumpData(self) -> ProtocolData:
         return {"id": self.id, "name": self.name, "description": self.description, "null": self.isNull, "count": self.count}

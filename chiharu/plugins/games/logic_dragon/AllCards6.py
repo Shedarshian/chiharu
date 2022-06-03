@@ -206,7 +206,22 @@ class CUpsideDown156(Card):
     weight = 5
     pack = Pack.misc
     async def Use(self, user: 'User') -> None:
-        pass
+        worklist: List[Tuple(Status, Status)]
+        for s in user.data.statuses:
+            if s.isReversable:
+                if (c:=s.count) > 1 and s.isNull:
+                    n = 0
+                    for i in range(c):
+                        if random.random() > 0.5:
+                            n += 1
+                    worklist.append(s.reverse(n))
+                else:
+                    if random.random() > 0.5:
+                        worklist.append(s.reverse())
+        for t in worklist:
+            user.SendCardUse(self, tstatus = t[0].DumpData())
+            await user.RemoveStatus(t[0])
+            await user.AddStatus(t[1])
 
 class CBloom157(Card):
     id = 157
