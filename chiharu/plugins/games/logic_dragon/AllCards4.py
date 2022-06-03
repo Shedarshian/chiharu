@@ -93,6 +93,9 @@ class SSunflower130(StatusNullStack):
     name = "向日葵"
     id = 130
     description = "跨日结算时你获得1击毙。场上最多存在十株(双子)向日葵。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SSunflower130(c), SInvSunflower125(c))
     async def OnNewDay(self, user: 'User') -> None:
         """获得击毙
         jibi: 获得的击毙。"""
@@ -113,6 +116,9 @@ class SInvSunflower125(StatusNullStack):
     name = "背日葵"
     id = 125
     description = "跨日结算时你损失1击毙。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvSunflower125(c), SSunflower130(c))
     async def OnNewDay(self, user: 'User') -> None:
         """失去击毙
         jibi: 失去的击毙。
@@ -185,6 +191,9 @@ class SIceShroom132(StatusDailyStack):
     _description = "今天每个人都需要额外隔一个才能接龙。"
     isDebuff = True
     isGlobal = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SIceShroom132(c), SHotShroom90(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, 1
     def register(self) -> Dict[UserEvt, int]:
@@ -194,6 +203,9 @@ class SHotShroom90(StatusDailyStack):
     id = 90
     _description = "今天每个人都可以少隔一个接龙。"
     isGlobal = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SHotShroom90(c), SIceShroom132(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, -1
     def register(self) -> Dict[UserEvt, int]:
@@ -221,6 +233,9 @@ class STwinSunflower133(StatusNullStack):
     name = "双子向日葵"
     id = 133
     description = "跨日结算时你获得2击毙。场上最多存在十株(双子)向日葵。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (STwinSunflower133(c), SInvSunflower78(c))
     async def OnNewDay(self, user: 'User') -> None:
         """获得击毙
         jibi: 获得的击毙。"""
@@ -238,6 +253,9 @@ class SInvSunflower78(StatusNullStack):
     name = "双子背日葵"
     id = 78
     description = "跨日结算时你损失2击毙。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvSunflower78(c), STwinSunflower133(c))
     async def OnNewDay(self, user: 'User') -> None:
         """失去击毙
         jibi: 失去的击毙。

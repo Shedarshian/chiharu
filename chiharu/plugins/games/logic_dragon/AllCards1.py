@@ -175,6 +175,9 @@ class SHierophant5(StatusNumed):
     id = 5
     name = "V - 教皇"
     _description = "你的下10次接龙中每次额外获得2击毙，但额外要求首尾接龙。"
+    isReversable = True
+    def reverse(self):
+        return (self, SInvHierophant6(self.count))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         """禁止非首尾接龙。"""
         if not await state.RequireShouwei(user):
@@ -195,6 +198,9 @@ class SInvHierophant6(StatusNumed):
     name = "反转 - 教皇"
     _description = "你的下10次接龙中每次损失2击毙，并且额外要求尾首接龙。"
     isDebuff = True
+    isReversable = True
+    def reverse(self):
+        return (self, SHierophant5(self.count))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         """禁止非尾首接龙。"""
         if not await state.RequireWeishou(user):
@@ -428,6 +434,10 @@ class SStar17(StatusDailyStack):
     name = "XVII - 星星"
     _description = "今天的每个词有10%的几率进入奖励词池。"
     isGlobal = True
+    isReversable = True
+    def reverse(self, c: Int):
+        from AllCards3 import SEruption114
+        return (SStar17(c), SEruption114(c))
     async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         """添加奖励词。
         word: 添加的词。"""
@@ -546,7 +556,7 @@ class CWenhuaZixin(Card):
             user.SendCardUse(self, rstatus = d.DumpData())
             await user.ume.RemoveStatus(d, remover = user)
 
-class CLebusishu35(Card):#TODO
+class CLebusishu35(Card):#TODO reverse TODO
     id = 35
     name = "乐不思蜀"
     positive = -1
@@ -690,6 +700,9 @@ class SMinus1Ma39(StatusDailyStack):
     name = "-1马"
     id = 39
     _description = "今天你可以少隔一个接龙，但最少隔一个。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SMinus1Ma39(c), SPlus1Ma36(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, -self.count
     def register(self) -> Dict[UserEvt, int]:
@@ -697,8 +710,11 @@ class SMinus1Ma39(StatusDailyStack):
 class SPlus1Ma36(StatusDailyStack):
     name = "+1马"
     id = 36
-    isDebuff = True
     _description = "今天你必须额外隔一个才能接龙。"
+    isDebuff = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SPlus1Ma36(c), SMinus1Ma39(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, self.count
     def register(self) -> Dict[UserEvt, int]:

@@ -420,6 +420,9 @@ class SJiaotu141(StatusNullStack):
     name = "置身许伦的圣菲利克斯之会众"
     id = 141
     _description = "被虔诚的教徒们包围，他们追奉启之法则，你下一次接龙需要进行首尾接龙。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SJiaotu141(c), SInvJiaotu142(c))
     isDebuff = True
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         if not await state.RequireShouwei(user):
@@ -435,6 +438,9 @@ class SInvJiaotu142(StatusNullStack):
     name = "反转-置身许伦的圣菲利克斯之会众"
     id = 142
     _description = "被虔诚的教徒们包围，他们追奉启之法则，你下一次接龙需要进行尾首接龙。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvJiaotu142(c), SJiaotu141(c))
     isDebuff = True
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         if not await state.RequireWeishou(user):
@@ -453,6 +459,9 @@ class SShequn143(StatusNullStack):
     _description = "此处有蛇群把守。下一个接龙的人需要进行首尾接龙。"
     isDebuff = True
     isGlobal = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SShequn143(c), SInvShequn144(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         if not await state.RequireShouwei(user):
             user.SendStatusEffect(self)
@@ -469,6 +478,9 @@ class SInvShequn144(StatusNullStack):
     _description = "此处有蛇群把守。下一个接龙的人需要进行尾首接龙。"
     isDebuff = True
     isGlobal = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvShequn144(c), SShequn143(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         if not await state.RequireWeishou(user):
             user.SendStatusEffect(self)
@@ -484,6 +496,9 @@ class SShangba145(StatusDailyStack):
     name = "伤疤"
     id = 145
     _description = "今天你每死亡一次便获得2击毙。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SShangba145(c), SInvShangba146(c))
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
         # if await c.pierce():
         #     user.send_log(f"伤疤的效果被幻想杀手消除了{句尾}")
@@ -497,6 +512,9 @@ class SInvShangba146(StatusDailyStack):
     name = "反转-伤疤"
     id = 145
     _description = "今天你每死亡一次便失去2击毙。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvShangba146(c), SShangba145(c))
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
         # if await c.pierce():
         #     user.send_log(f"反转-伤疤的效果被幻想杀手消除了{句尾}")
@@ -511,6 +529,9 @@ class SBeizhizhunze76(StatusDailyStack):
     name = "杯之准则"
     id = 76
     _description = "你今天每次接龙额外获得1击毙。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SBeizhizhunze76(c), SInvBeizhizhunze62(c))
     async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         user.SendStatusEffect(self, count = self.count)
         await user.AddJibi(self.count)
@@ -520,6 +541,10 @@ class SInvBeizhizhunze62(StatusDailyStack):
     name = "反转-杯之准则"
     id = 62
     _description = "你今天每次接龙额外失去1击毙。"
+    isDebuff = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvBeizhizhunze62(c), SBeizhizhunze76(c))
     async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         user.SendStatusEffect(self, count = self.count)
         await user.AddJibi(-1 * self.count)
@@ -530,6 +555,9 @@ class SLazhuyandong57(StatusNullStack):
     name = "置身蜡烛岩洞"
     id = 57
     _description = "下一次接龙可以少间隔一个人。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SLazhuyandong57(c), SInvLazhuyandong56(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, -1
     async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
@@ -541,6 +569,9 @@ class SInvLazhuyandong56(StatusNullStack):
     name = "反转-置身蜡烛岩洞"
     id = 57
     _description = "下一次接龙需要多间隔一个人。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvLazhuyandong56(c), SLazhuyandong57(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, 1
     async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
@@ -563,6 +594,9 @@ class SLieshouzhixue31(StatusNullStack):
     name = "置身猎手之穴"
     id = 31
     _description = "下一次接龙需要多间隔一个人。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SLieshouzhixue31(c), SInvLieshouzhixue29(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, 1
     async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
@@ -574,6 +608,9 @@ class SInvLieshouzhixue29(StatusNullStack):
     name = "反转-置身猎手之穴"
     id = 29
     _description = "下一次接龙可以少间隔一个人。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvLieshouzhixue29(c), SLieshouzhixue31(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, -1
     async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
@@ -587,6 +624,9 @@ class SShendian153(StatusNullStack):
     id = 153
     _description = "之后接龙的一个人会额外获得5击毙。"
     isGlobal = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SShendian153(c), SInvShendian157(c))
     async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         user.SendStatusEffect(self, count = self.count)
         await user.AddJibi(5 * self.count)
@@ -598,6 +638,9 @@ class SInvShendian157(StatusNullStack):
     id = 157
     _description = "之后接龙的一个人会额外失去5击毙。"
     isGlobal = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvShendian157(c), SShendian153(c))
     async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         user.SendStatusEffect(self, count = self.count)
         await user.AddJibi(-5 * self.count)

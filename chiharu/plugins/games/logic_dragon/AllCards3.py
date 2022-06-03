@@ -52,6 +52,9 @@ class SJiaodai100(StatusNullStack):
     name = "布莱恩科技航空专用强化胶带FAL84型"
     id = 100
     _description = "免疫下次即刻生效的负面状态。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SJiaodai100(c), SInvJiaodai90(c))
     async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
         if status.isDebuff and status.isRemovable:
             '''免除负面状态
@@ -72,6 +75,9 @@ class SInvJiaodai90(StatusNullStack):
     name = "反转·布莱恩科技航空专用强化胶带FAL84型"
     id = 90
     _description = "免疫你下次即刻生效的非负面状态。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvJiaodai90(c), SJiaodai100(c))
     async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
         if not status.isDebuff and status.isRemovable:
             '''免除非负面状态
@@ -278,6 +284,9 @@ class SRanSheFaShu109(StatusDailyStack):
     id = 109
     name = "蚺虵法术"
     _description = "你当日每次接龙需额外遵循首尾接龙规则。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SRanSheFaShu109(c), SInvRanSheFaShu108(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         """需首尾接龙。"""
         if not await state.RequireShouwei(user):
@@ -290,6 +299,9 @@ class SInvRanSheFaShu108(StatusDailyStack):
     id = 108
     name = "反转·蚺虵法术"
     _description = "你当日每次接龙需额外遵循尾首接龙规则。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvRanSheFaShu108(c), SRanSheFaShu109(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         """需尾首接龙。"""
         if not await state.RequireWeishou(user):
@@ -313,6 +325,9 @@ class SNightbloom110(StatusNumed):
     id = 110
     isDebuff = True
     _description = "你每接龙三次会损失1击毙"
+    isReversable = True
+    def reverse(self):
+        return (self, SInvNightbloom105(self.count))
     @property
     def description(self):
         return f"{self._description}\n\t剩余{(self.num + 2) // 3}次。" # pylint: disable=no-member
@@ -328,6 +343,9 @@ class SInvNightbloom105(StatusNumed):
     name = "反转·月下彼岸花"
     id = 105
     _description = "你每接龙三次会获得1击毙。"
+    isReversable = True
+    def reverse(self):
+        return (self, SNightbloom110(self.count))
     @property
     def description(self):
         return f"{self._description}\n\t剩余{(self.num + 2) // 3}次。" # pylint: disable=no-member
@@ -354,6 +372,9 @@ class SPanjueA111(StatusNullStack):
     id = 111
     _description = "你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与最终判决β重合时，罪行加重，判处死刑。"
     isDebuff = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SPanjueA111(c), SPanjueB112(c))
     async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
         """判决重合，无法战斗。"""
         if isinstance(status, SPanjueB112) or isinstance(status, SPanjueBActivated107):
@@ -374,6 +395,9 @@ class SPanjueAActivated106(StatusNullStack):
     id = 106
     _description = "将此buff传递给你接龙后第五次接龙的玩家。与最终判决β重合时，罪行加重，判处死刑。"
     isDebuff = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SPanjueAActivated106(c), SPanjueBActivated107(c))
     async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
         """判决重合，无法战斗。"""
         if isinstance(status, SPanjueB112) or isinstance(status, SPanjueBActivated107):
@@ -399,6 +423,9 @@ class SPanjueB112(StatusNullStack):
     id = 112
     _description = "你下次接龙后，将此buff传递给你接龙后第五次接龙的玩家。与最终判决α重合时，罪行加重，判处死刑。"
     isDebuff = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SPanjueB112(c), SPanjueA111(c))
     async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
         """判决重合，无法战斗。"""
         if isinstance(status, SPanjueA111) or isinstance(status, SPanjueAActivated106):
@@ -419,6 +446,9 @@ class SPanjueBActivated107(StatusNullStack):
     id = 107
     _description = "将此buff传递给你接龙后第五次接龙的玩家。与最终判决α重合时，罪行加重，判处死刑。"
     isDebuff = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SPanjueBActivated107(c), SPanjueAActivated106(c))
     async def OnStatusAdd(self, user: 'User', status: 'Status') -> bool:
         """判决重合，无法战斗。"""
         if isinstance(status, SPanjueA111) or isinstance(status, SPanjueAActivated106):
@@ -518,8 +548,12 @@ class CEruption114(Card):
 class SEruption114(StatusDailyStack):
     name = "地火喷发"
     id = 114
-    _description = "地火喷发：今天所有的接龙词都有10%的几率变成地雷。"
+    _description = "今天所有的接龙词都有10%的几率变成地雷。"
     isGlobal = True
+    isReversable = True
+    def reverse(self, c: Int):
+        from AllCards1 import SStar17
+        return (SEruption114(c), SStar17(c))
     async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         """添加地雷。
         word: 添加的词。"""
@@ -541,6 +575,9 @@ class SConfession116(StatusDailyStack):
     name = "告解"
     id = 116
     _description = "今天每次你获得击毙时额外获得1击毙。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SConfession116(c), SInvConfession94(c))
     async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
         """额外获得击毙。
         count: 增加的击毙数"""
@@ -554,6 +591,10 @@ class SInvConfession94(StatusDailyStack):
     name = "反转·告解"
     id = 94
     _description = "今日每次你获得击毙时少获得1击毙。"
+    isDebuff = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvConfession94(c), SConfession116(c))
     async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
         """额外获得击毙。
         count: 减少的击毙数"""
@@ -598,10 +639,16 @@ class SMixidiyatu118(StatusNullStack):
     name = "通灵之术-密西迪亚兔"
     id = 118
     _description = "你的头上会出现一只可爱的小兔子。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SMixidiyatu118(c), SInvMixidiyatu91(c))
 class SInvMixidiyatu91(StatusNullStack):
     name = "反转·通灵之术-密西迪亚兔"
     id = 91
     _description = "你的屁股上出现了一只可爱的小兔子。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvMixidiyatu91(c), SMixidiyatu118(c))
 
 class CWardensPaean119(Card):
     name = "光阴神的礼赞凯歌"

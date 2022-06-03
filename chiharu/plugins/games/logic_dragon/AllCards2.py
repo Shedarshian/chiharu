@@ -27,6 +27,9 @@ class SSiHuiHuiBiZhiYao50(StatusNullStack):
     name = "死秽回避之药"
     id = 50
     _description = "你下次死亡时自动消耗5击毙免除死亡。若击毙不足则不发动。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SSiHuiHuiBiZhiYao50(c), SInvSiHuiHuiBiZhiYao53(c))
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
         """消耗5击毙免除死亡。"""
         if await user.AddJibi(-5, isBuy=True):
@@ -40,6 +43,9 @@ class SInvSiHuiHuiBiZhiYao53(StatusNullStack):
     name = "反转·死秽回避之药"
     id = 53
     _description = "你下次死亡时获得5击毙，但是死亡时间增加2h。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvSiHuiHuiBiZhiYao53(c), SSiHuiHuiBiZhiYao50(c))
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
         """获得5击毙，但是死亡时间增加2h。
         count：buff层数"""
@@ -66,6 +72,9 @@ class SHuiYe52(StatusNullStack):
     id = 52
     _description = "你下一次死亡的时候奖励你抽一张卡。"
     isMetallic = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SHuiYe52(c), SInvHuiYe54(c))
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
         """因死亡抽卡。
         count：抽卡的张数"""
@@ -82,6 +91,9 @@ class SInvHuiYe54(StatusNullStack):
     _description = "你下一次死亡的时候随机弃一张牌。"
     isDebuff = True
     isMetallic = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvHuiYe54(c), SHuiYe52(c))
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
         '''随机弃一张牌。
         cards：因为此状态需要弃掉的卡牌。'''
@@ -235,6 +247,9 @@ class SOuroStone66(StatusDailyStack):
     id = 66
     _description = "规则为首尾接龙直至跨日。"
     isGlobal = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SOuroStone66(c), SInvOuroStone63(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         """需首尾接龙。"""
         if not await state.RequireShouwei(user):
@@ -248,6 +263,9 @@ class SInvOuroStone63(StatusDailyStack):
     id = 63
     _description = "规则为尾首接龙直至跨日。"
     isGlobal = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvOuroStone63(c), SOuroStone66(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         """需尾首接龙。"""
         if not await state.RequireWeishou(user):
@@ -315,6 +333,9 @@ class SCunqianguan70(StatusNullStack):
     _description = "下次触发隐藏词的奖励+10击毙。"
     isMetallic = True
     isGlobal = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SCunqianguan70(c), SInvCunqianguan72(c))
     async def OnHiddenKeyword(self, user: 'User', word: str, parent: 'TreeLeaf', keyword: str) -> int:
         """存钱罐，奖励+10击毙。
         count：触发次数。"""
@@ -330,6 +351,9 @@ class SInvCunqianguan72(StatusNullStack):
     isMetallic = True
     isGlobal = True
     isDebuff = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvCunqianguan72(c), SCunqianguan70(c))
     async def OnHiddenKeyword(self, user: 'User', word: str, parent: 'TreeLeaf', keyword: str) -> int:
         """反转存钱罐，奖励-10击毙。
         count：触发次数。"""
@@ -650,11 +674,17 @@ class SWin81(StatusDailyStack):
     id = 81
     name = "胜利"
     _description = "恭喜，今天你赢了。"
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SWin81(c), SDefeat79(c))
 class SDefeat79(StatusDailyStack):
     id = 79
     name = "失败"
     _description = "对不起，今天你输了。"
     isDebuff = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SDefeat79(c), SWin81(c))
 
 class CSuicideKing90(Card):
     name = "自杀之王（♥K）"
@@ -707,6 +737,9 @@ class STransformer93(StatusNullStack):
     id = 93
     _description = "下一次你的击毙变动变动值加倍。"
     isMetallic = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (STransformer93(c), SInvTransformer92(c))
     async def CheckJibiSpend(self, user: 'User', jibi: int) -> int:
         return jibi * 2 ** self.count
     async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:
@@ -726,6 +759,9 @@ class SInvTransformer92(StatusNullStack):
     id = 92
     _description = "下一次你的击毙变动变动值减半。"
     isMetallic = True
+    isReversable = True
+    def reverse(self, c: Int):
+        return (SInvTransformer92(c), STransformer93(c))
     async def CheckJibiSpend(self, user: 'User', jibi: int) -> int:
         return ceil(jibi / 2 ** self.count)
     async def OnJibiChange(self, user: 'User', jibi: int, isBuy: bool) -> int:

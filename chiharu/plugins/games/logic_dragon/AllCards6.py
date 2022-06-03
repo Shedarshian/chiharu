@@ -170,6 +170,9 @@ class SCashPrinter155(StatusNumed):
     id = 155
     _description = "你接下来接龙时会奖励接了上一个词的人1击毙。如果上一个词是起始词则不消耗生效次数。"
     isMetallic = True
+    isReversable = True
+    def reverse(self):
+        return (self, SInvCashPrinter156(self.count))
     async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         pq = branch.parent.qq
         if pq != user.game.managerQQ and pq != 0:
@@ -186,6 +189,9 @@ class SInvCashPrinter156(StatusNumed):
     id = 156
     _description = "你接下来接龙时会扣除接了上一个词的人1击毙。如果上一个词是起始词则不消耗生效次数。"
     isMetallic = True
+    isReversable = True
+    def reverse(self):
+        return (self, SCashPrinter155(self.count))
     async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         pq = branch.parent.qq
         if pq != user.game.managerQQ and pq != 0:
@@ -210,18 +216,23 @@ class CUpsideDown156(Card):
         for s in user.data.statuses:
             if s.isReversable:
                 if (c:=s.count) > 1 and s.isNull:
-                    n = 0
+                    n: Int = 0
                     for i in range(c):
                         if random.random() > 0.5:
                             n += 1
-                    worklist.append(s.reverse(n))
+                    if n > 0 and n <= s.count:
+                        worklist.append(s.reverse(n))
                 else:
                     if random.random() > 0.5:
                         worklist.append(s.reverse())
         for t in worklist:
             user.SendCardUse(self, tstatus = t[0].DumpData())
-            await user.RemoveStatus(t[0])
-            await user.AddStatus(t[1])
+            if t[0].isGlobal:
+                await user.ume.RemoveStatus(t[0])
+                await user.ume.AddStatus(t[1])
+            else:
+                await user.RemoveStatus(t[0])
+                await user.AddStatus(t[1])
 
 class CBloom157(Card):
     id = 157
