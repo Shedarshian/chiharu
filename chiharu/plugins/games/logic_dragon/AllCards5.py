@@ -421,7 +421,7 @@ class SJiaotu141(StatusNullStack):
     id = 141
     _description = "被虔诚的教徒们包围，他们追奉启之法则，你下一次接龙需要进行首尾接龙。"
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SJiaotu141(c), SInvJiaotu142(c))
     isDebuff = True
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
@@ -439,7 +439,7 @@ class SInvJiaotu142(StatusNullStack):
     id = 142
     _description = "被虔诚的教徒们包围，他们追奉启之法则，你下一次接龙需要进行尾首接龙。"
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SInvJiaotu142(c), SJiaotu141(c))
     isDebuff = True
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
@@ -460,7 +460,7 @@ class SShequn143(StatusNullStack):
     isDebuff = True
     isGlobal = True
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SShequn143(c), SInvShequn144(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         if not await state.RequireShouwei(user):
@@ -479,7 +479,7 @@ class SInvShequn144(StatusNullStack):
     isDebuff = True
     isGlobal = True
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SInvShequn144(c), SShequn143(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         if not await state.RequireWeishou(user):
@@ -497,7 +497,7 @@ class SShangba145(StatusDailyStack):
     id = 145
     _description = "今天你每死亡一次便获得2击毙。"
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SShangba145(c), SInvShangba146(c))
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
         # if await c.pierce():
@@ -513,7 +513,7 @@ class SInvShangba146(StatusDailyStack):
     id = 145
     _description = "今天你每死亡一次便失去2击毙。"
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SInvShangba146(c), SShangba145(c))
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
         # if await c.pierce():
@@ -530,7 +530,7 @@ class SBeizhizhunze76(StatusDailyStack):
     id = 76
     _description = "你今天每次接龙额外获得1击毙。"
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SBeizhizhunze76(c), SInvBeizhizhunze62(c))
     async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         user.SendStatusEffect(self, count = self.count)
@@ -543,7 +543,7 @@ class SInvBeizhizhunze62(StatusDailyStack):
     _description = "你今天每次接龙额外失去1击毙。"
     isDebuff = True
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SInvBeizhizhunze62(c), SBeizhizhunze76(c))
     async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         user.SendStatusEffect(self, count = self.count)
@@ -556,7 +556,7 @@ class SLazhuyandong57(StatusNullStack):
     id = 57
     _description = "下一次接龙可以少间隔一个人。"
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SLazhuyandong57(c), SInvLazhuyandong56(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, -1
@@ -570,7 +570,7 @@ class SInvLazhuyandong56(StatusNullStack):
     id = 57
     _description = "下一次接龙需要多间隔一个人。"
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SInvLazhuyandong56(c), SLazhuyandong57(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, 1
@@ -595,7 +595,7 @@ class SLieshouzhixue31(StatusNullStack):
     id = 31
     _description = "下一次接龙需要多间隔一个人。"
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SLieshouzhixue31(c), SInvLieshouzhixue29(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, 1
@@ -609,7 +609,7 @@ class SInvLieshouzhixue29(StatusNullStack):
     id = 29
     _description = "下一次接龙可以少间隔一个人。"
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SInvLieshouzhixue29(c), SLieshouzhixue31(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, -1
@@ -625,7 +625,7 @@ class SShendian153(StatusNullStack):
     _description = "之后接龙的一个人会额外获得5击毙。"
     isGlobal = True
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SShendian153(c), SInvShendian157(c))
     async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         user.SendStatusEffect(self, count = self.count)
@@ -639,7 +639,7 @@ class SInvShendian157(StatusNullStack):
     _description = "之后接龙的一个人会额外失去5击毙。"
     isGlobal = True
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SInvShendian157(c), SShendian153(c))
     async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         user.SendStatusEffect(self, count = self.count)
@@ -669,7 +669,13 @@ class STemple160(StatusDailyStack):
     name = "置身七蟠寺"
     id = 160
     _description = "今天结束的非负面状态延长至明天。"
+    isReversable = True
+    def reverse(self, c: int):
+        return (STemple160(c), SInvTemple161(c))
 class SInvTemple161(StatusDailyStack):
     name = "反转-置身七蟠寺"
     id = 161
     _description = "今天结束的负面状态延长至明天。"
+    isReversable = True
+    def reverse(self, c: int):
+        return (SInvTemple161(c), STemple160(c))

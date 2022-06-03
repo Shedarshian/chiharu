@@ -212,11 +212,11 @@ class CUpsideDown156(Card):
     weight = 5
     pack = Pack.misc
     async def Use(self, user: 'User') -> None:
-        worklist: List[Tuple(Status, Status)]
+        worklist: List[Tuple[Status | None, Status | None]] = []
         for s in user.data.statuses:
             if s.isReversable:
-                if (c:=s.count) > 1 and s.isNull:
-                    n: Int = 0
+                if (c := s.count) > 1 and s.isNull:
+                    n: int = 0
                     for i in range(c):
                         if random.random() > 0.5:
                             n += 1
@@ -225,14 +225,18 @@ class CUpsideDown156(Card):
                 else:
                     if random.random() > 0.5:
                         worklist.append(s.reverse())
-        for t in worklist:
-            user.SendCardUse(self, tstatus = t[0].DumpData())
-            if t[0].isGlobal:
-                await user.ume.RemoveStatus(t[0])
-                await user.ume.AddStatus(t[1])
+        for t1, t2 in worklist:
+            if t1 is None:
+                continue
+            user.SendCardUse(self, tstatus = t1.DumpData())
+            if t1.isGlobal:
+                await user.ume.RemoveStatus(t1)
+                if t2 is not None:
+                    await user.ume.AddStatus(t2)
             else:
-                await user.RemoveStatus(t[0])
-                await user.AddStatus(t[1])
+                await user.RemoveStatus(t1)
+                if t2 is not None:
+                    await user.AddStatus(t2)
 
 class CBloom157(Card):
     id = 157
@@ -241,18 +245,17 @@ class CBloom157(Card):
     _description = "摸13张牌，然后弃牌至max(4,手牌上限-6)张（最多为10）。（特别的，可以弃置空白卡牌）"
     pack = Pack.misc
     async def Use(self, user: 'User') -> None:
-        await user.draw(13)
+        await user.Draw(13)
         if x := len(user.data.handCard) - min(10, max(4, user.data.cardLimit - 6)) > 0:
-            if not await user.choose():
+            if not await user.choose(True):
                 random.shuffle(user.data.handCard)
                 user.data.SaveCards()
-                await user.discard_cards(user.data.handCard[max(4, user.data.cardLimit - 6):])
+                await user.DiscardCards(user.data.handCard[max(4, user.data.cardLimit - 6):])
                 user.SendCardUse(self, cardnum = x, cards = [c.DumpData() for c in user.data.handCard])
             else:
                 user.SendCardUse(self, cardnum = x, choose = True)
-                async with user.ChooseHandCards(x, x) as l:
-                    user.buf.send("成功弃置。")
-                    await user.discard_cards([Card(i) for i in l])
+                cards = await user.ChooseHandCards(x, x)
+                await user.DiscardCards(cards)
 
 class CExcalibur158(Card):
     id = 158
@@ -262,12 +265,11 @@ class CExcalibur158(Card):
     isMetallic = True
     mass = 1
     pack = Pack.misc
-    from AllCards2 import SWin81
-    @classmethod
-    def CanUse(cls, user: User, copy: bool) -> bool:
+    def CanUse(self, user: User, copy: bool) -> bool:
+        from .AllCards2 import SWin81
         return user.CheckStatusStack(SWin81) > 0
-    @classmethod
-    async def use(cls, user: User) -> None:
+    async def use(self, user: User) -> None:
+        from .AllCards2 import SWin81
         if user.CheckStatusStack(SWin81) == 0:
             user.SendCardUse(self, success = False)
         else:

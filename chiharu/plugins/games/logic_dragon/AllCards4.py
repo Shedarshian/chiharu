@@ -94,7 +94,7 @@ class SSunflower130(StatusNullStack):
     id = 130
     description = "跨日结算时你获得1击毙。场上最多存在十株(双子)向日葵。"
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SSunflower130(c), SInvSunflower125(c))
     async def OnNewDay(self, user: 'User') -> None:
         """获得击毙
@@ -117,7 +117,7 @@ class SInvSunflower125(StatusNullStack):
     id = 125
     description = "跨日结算时你损失1击毙。"
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SInvSunflower125(c), SSunflower130(c))
     async def OnNewDay(self, user: 'User') -> None:
         """失去击毙
@@ -192,7 +192,7 @@ class SIceShroom132(StatusDailyStack):
     isDebuff = True
     isGlobal = True
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SIceShroom132(c), SHotShroom90(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, 1
@@ -204,7 +204,7 @@ class SHotShroom90(StatusDailyStack):
     _description = "今天每个人都可以少隔一个接龙。"
     isGlobal = True
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SHotShroom90(c), SIceShroom132(c))
     async def BeforeDragoned(self, user: 'User', state: 'DragonState') -> Tuple[bool, int]:
         return True, -1
@@ -234,7 +234,7 @@ class STwinSunflower133(StatusNullStack):
     id = 133
     description = "跨日结算时你获得2击毙。场上最多存在十株(双子)向日葵。"
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (STwinSunflower133(c), SInvSunflower78(c))
     async def OnNewDay(self, user: 'User') -> None:
         """获得击毙
@@ -254,7 +254,7 @@ class SInvSunflower78(StatusNullStack):
     id = 78
     description = "跨日结算时你损失2击毙。"
     isReversable = True
-    def reverse(self, c: Int):
+    def reverse(self, c: int):
         return (SInvSunflower78(c), STwinSunflower133(c))
     async def OnNewDay(self, user: 'User') -> None:
         """失去击毙

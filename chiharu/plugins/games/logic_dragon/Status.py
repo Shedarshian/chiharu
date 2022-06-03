@@ -32,8 +32,8 @@ class Status(IEventListener, Saveable, hasIdDict=True):
         return self._description
     def double(self):
         pass
-    def reverse(self):
-        pass
+    def reverse(self, n: int) -> tuple['Status' | None, 'Status' | None]:
+        return None, None
     def DumpData(self) -> ProtocolData:
         return {"id": self.id, "name": self.name, "description": self.description, "null": self.isNull, "count": self.count}
 
