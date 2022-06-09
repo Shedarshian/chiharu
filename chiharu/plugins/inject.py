@@ -6,10 +6,10 @@ import functools
 from datetime import timedelta
 from more_itertools import only
 from nonebot import permission, get_bot
-from nonebot.command import CommandHandler_T, Command, CommandSession, CommandManager, _YieldException
+from nonebot.command import CommandHandler_T, Command, CommandSession, CommandManager, _YieldException, PermissionPolicy_T
 from nonebot.command.argfilter import ValidateError
 from nonebot.helpers import render_expression
-from nonebot.typing import CommandName_T, Patterns_T, PermChecker_T
+from nonebot.typing import CommandName_T, Patterns_T
 from nonebot.session import BaseSession
 from nonebot.permission import check_permission
 from nonebot.plugin import Plugin
@@ -114,7 +114,7 @@ class MyCommand(Command):
     __slots__ = ('des', 'short_des', 'environment', 'hide', 'hide_in_parent', 'args', 'display_id', 'is_help')
     def __init__(self, *, name: CommandName_T, func: CommandHandler_T,
                  only_to_me: bool, privileged: bool,
-                 perm_checker_func: PermChecker_T,
+                 permission: PermissionPolicy_T,
                  expire_timeout: Optional[timedelta],
                  run_timeout: Optional[timedelta],
                  session_class: Optional[Type[CommandSession]],
@@ -123,7 +123,7 @@ class MyCommand(Command):
                  hide: bool, hide_in_parent: bool,
                  args: Optional[tuple], display_id: int):
         super().__init__(name=name, func=func, only_to_me=only_to_me,
-                privileged=privileged, perm_checker_func=perm_checker_func,
+                privileged=privileged, permission=permission,
                 expire_timeout=expire_timeout, run_timeout=run_timeout,
                 session_class=session_class)
         self.des = des
@@ -164,7 +164,7 @@ class CommandGroup:
                 await session.send(ret, ensure_private=('.'.join(name) == 'thwiki' and session.ctx['group_id'] in config.group_id_dict['thwiki_send']))
         cmd = MyCommand(name=name, func=_,
                 only_to_me=False, privileged=False,
-                perm_checker_func=functools.partial(check_permission, permission_required=permission.EVERYBODY),
+                permission=...,
                 expire_timeout=..., run_timeout=..., session_class=None,
                 des=des, short_des=short_des, environment=environment,
                 hide=hide, hide_in_parent=hide_in_parent or hide, display_id=display_id, args=())
@@ -257,8 +257,7 @@ def on_command(name: Union[str, CommandName_T], *,
                 return await func_original(session, *args, **kwargs)
         func = _f
 
-        perm_checker = functools.partial(check_permission, permission_required=permission)
-        cmd = MyCommand(name=cmd_name, func=func, perm_checker_func=perm_checker,
+        cmd = MyCommand(name=cmd_name, func=func, permission=...,
                       only_to_me=only_to_me, privileged=privileged,
                       expire_timeout=expire_timeout, run_timeout=run_timeout, session_class=session_class,
                       des=func.__doc__,
