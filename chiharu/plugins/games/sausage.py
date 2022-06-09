@@ -1,5 +1,5 @@
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import more_itertools
 from .boxgame import Grid3D
@@ -37,11 +37,11 @@ class Block(Box):
 
 @dataclass
 class Action:
-    boxes: list[Box]
+    boxes: list[Box] = field(default_factory=list)
     dir: Grid3D
     roll: int = 0 # 1：同向滚动，-1：逆向滚动
     ifmove2: bool = False
-    consequence: list['Action'] = []
+    consequence: list['Action'] = field(default_factory=list)
 
 class SausageGame:
     def __init__(self) -> None:
