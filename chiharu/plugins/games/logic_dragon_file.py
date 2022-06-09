@@ -7449,10 +7449,11 @@ class Ugun(_card):
     positive = 0
     newer = 8
     pack = Pack.silly
+    consumed_on_draw = True
     on_draw_global_daily_status = 'u'
 class SUgun(_statusdaily):
     id = 'u'
-    des = "今天所有攻击别人的效果都变成攻击自己。"
+    des = "U型枪管：今天所有攻击别人的效果都变成攻击自己。"
     is_global = True
     @classmethod
     async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
