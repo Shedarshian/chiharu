@@ -272,10 +272,12 @@ def on_command(name: Union[str, CommandName_T], *,
             cmd.args_parser_func = shell_like_args_parser
         
         nonlocal aliases
-        global CommandManager
-        CommandManager.add_command(cmd_name, cmd)
-        CommandManager.add_aliases(aliases, cmd)
-        CommandManager.add_patterns(patterns, cmd)
+        if Plugin.GlobalTemp.now_within_plugin:
+            Plugin.GlobalTemp.commands.append((cmd, aliases, patterns))
+        else:
+            CommandManager.add_command(cmd_name, cmd)
+            CommandManager.add_aliases(aliases, cmd)
+            CommandManager.add_patterns(patterns, cmd)
         parent_name = cmd_name[:-1]
         if parent_name not in CommandGroup.command_group_dict:
             CommandGroup.command_group_dict[parent_name] = {'help_addition': set(), 'leaf': {cmd_name[-1]: cmd}}
@@ -298,7 +300,6 @@ def on_command(name: Union[str, CommandName_T], *,
                 else:
                     CommandGroup.command_group_dict[parent_name].help_addition.add(cmd)
         
-        Plugin.GlobalTemp.commands.add(cmd)
         func.args_parser = cmd.args_parser
 
         return func
