@@ -7453,6 +7453,7 @@ class Ugun(_card):
 class SUgun(_statusdaily):
     id = 'u'
     des = "今天所有攻击别人的效果都变成攻击自己。"
+    is_global = True
     @classmethod
     async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
         user.send_log("的攻击变成了攻击你自己" + 句尾)
