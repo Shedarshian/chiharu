@@ -1669,7 +1669,9 @@ class User:
                     prompt += f"\n{names[i]}：" + ' '.join(str(s) for s in can_choose[i])
             if huchu:
                 prompt += "\n和出"
-            def check(value: str):
+            async def check(value: str):
+                if value == "重新询问":
+                    _raise_failure(f"{self.char}摸到了{str(to_draw)}{句尾}{self.char}现在的牌是：\n{await MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}")
                 try:
                     for i in range(3):
                         if value.startswith(names[i]) and len(can_choose[i]) != 0:
@@ -1681,9 +1683,9 @@ class User:
                             return (i, maj)
                     if value.strip() == "和出":
                         return (3, True)
-                    _raise_failure("请选择一个可执行的操作。")
+                    _raise_failure("请选择一个可执行的操作，输入重新询问再发送一次。")
                 except MajIdError:
-                    _raise_failure("请输入正确的麻将牌。")
+                    _raise_failure("请输入正确的麻将牌，输入重新询问再发送一次。")
             self.buf.send(prompt)
             await self.buf.flush()
             choose, to_choose = await self.buf.aget(prompt="", arg_filters=[
@@ -1699,7 +1701,9 @@ class User:
                     prompt += "请选择一张牌切牌。"
                 else:
                     prompt += f"请选择一张牌{names[choose]}：" + ' '.join(str(s) for s in can_choose[choose])
-                def check3(value: str):
+                async def check3(value: str):
+                    if value == "重新询问":
+                        _raise_failure(f"{self.char}摸到了{str(to_draw)}{句尾}{self.char}现在的牌是：\n{await MajOneHai.draw_maj(hand_maj, self.data.maj[1], to_draw)}")
                     try:
                         i = choose
                         maj = MajOneHai(value.strip())
@@ -1707,7 +1711,7 @@ class User:
                             _raise_failure(["请选择手牌中的一张牌切出。", "请选择可立直的牌。", "请选择可暗杠的牌。"][i])
                         return maj
                     except MajIdError:
-                        _raise_failure("请输入正确的麻将牌。")
+                        _raise_failure("请输入正确的麻将牌，输入重新询问再发送一次。")
                 self.buf.send(prompt)
                 await self.buf.flush()
                 to_choose = await self.buf.aget(prompt="", arg_filters=[
@@ -6281,7 +6285,7 @@ class upsidedown(_card):
                 elif l[i].num == 1:
                     l[i].num = 0
                 else:
-                    l[i].num = (nnum := random.choice(range(2, len(genderlist) - 1))) if l[i].num > nnum else nnum + 1
+                    l[i].num = nnum if l[i].num > (nnum := random.choice(range(2, len(genderlist) - 1))) else nnum + 1
                 user.buf.send("你的性别被改变到了{}".format(genderlist[l[i].num]) + 句尾)
         user.data.save_status_time()
         # 全局状态

@@ -1255,9 +1255,8 @@ async def dragon_op(session: CommandSession):
 @Game.wrapper
 async def dragon_test(buf: SessionBuffer):
     qq = buf.ctx['user_id']
-    user = User(1824789744, buf)
-    async with user.settlement():
-        await user.draw_maj(MajOneHai('6m'))
+    user = User(1206861220, buf)
+    user.data.extra.maj_quan += 3
     save_data()
 
 @on_command(('dragon', 'maj'), only_to_me=False, hide=True, environment=env_supervise)
