@@ -2565,7 +2565,7 @@ class inv_hierophant_s(NumedStatus):
     @classmethod
     async def BeforeDragoned(cls, count: TCount, user: User, state: DragonState) -> Tuple[bool, int, str]:
         if not await state.require_weishou(user):
-            return False, 0, "教皇说，你需要首尾接龙，接龙失败。"
+            return False, 0, "教皇说，你需要尾首接龙，接龙失败。"
         return True, 0, ""
     @classmethod
     async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
@@ -4883,7 +4883,7 @@ class railgun(_card):
 class ARailgun(Attack):
     name = "超电磁炮"
     async def self_action(self):
-        self.defender.death(120 * self.multiplier)
+        self.defender.death(120 * self.multiplier, killer = self.attacker)
         for d in self.defender.data.hand_card:
             if d.is_metallic and random.random() > (0.5 - 0.02 * self.attacker.data.luck) ** self.multiplier:
                 self.defender.send_log(f"的{d.name}被烧掉了{句尾}")
@@ -5500,7 +5500,7 @@ class Sexplore(NumedStatus):
             elif i == 3:
                 user.send_log("置身凯格琳的财宝：")
                 user.buf.send("这里曾经是银矿，再下面则是具名者的藏匿。获得5击毙，然后抽取一张非正面卡片并立即使用。")
-                user.add_jibi(5)
+                await user.add_jibi(5)
                 await user.draw_and_use(positive={0, -1})
             elif i == 4:
                 user.send_log("置身高威尔旅馆：")
@@ -5536,7 +5536,7 @@ class Sexplore(NumedStatus):
             elif i == 1:
                 user.send_log("置身费米尔修道院：")
                 user.buf.send("僧侣信奉象征欲望的杯之准则。失去5击毙，然后你今天每次接龙额外获得1击毙。")
-                user.add_jibi(-5)
+                await user.add_jibi(-5)
                 await user.add_daily_status('C')
             elif i == 2:
                 user.send_log("置身俄尔托斯树林：")
@@ -5550,10 +5550,11 @@ class Sexplore(NumedStatus):
             elif i == 3:
                 user.send_log("置身范德沙夫收藏馆：")
                 user.buf.send("严密把守的储藏室中有不吉利的宝物。获得10击毙，并触发你手牌中一张非正面卡牌的效果。如果你的手中没有非正面卡牌，则将一张“邪恶的间谍行动～执行”置入你的手牌。")
-                user.add_jibi(10)
+                await user.add_jibi(10)
                 cs = [c for c in user.data.hand_card if c.positive != 1]
                 if len(cs) == 0:
-                    user.draw(0, cards=[Card(-1)])
+                    user.send_log("手上没有非正面卡牌。")
+                    await user.draw(0, cards=[Card(-1)])
                 else:
                     card = random.choice(cs)
                     user.send_log(f"触发的宝物选择了卡牌{card.name}。")
@@ -6359,7 +6360,7 @@ class SBritian(ListStatus):
         return [self]
     @property
     def brief_des(self) -> str:
-        return f"统治不列颠\n\t包含：{','.join(str(c) for c in self.list)}。"
+        return f"统治不列颠{('\n\t包含：'+','.join(str(c) for c in self.list)) if len(self.list) > 0 else ''}。"
     def check(self) -> bool:
         return True
     @classmethod
@@ -7452,10 +7453,12 @@ class Ugun(_card):
     positive = 0
     newer = 8
     pack = Pack.silly
+    consumed_on_draw = True
     on_draw_global_daily_status = 'u'
 class SUgun(_statusdaily):
     id = 'u'
-    des = "今天所有攻击别人的效果都变成攻击自己。"
+    des = "U型枪管：今天所有攻击别人的效果都变成攻击自己。"
+    is_global = True
     @classmethod
     async def OnAttack(cls, count: TCount, user: 'User', attack: 'Attack') -> Tuple[bool]:
         user.send_log("的攻击变成了攻击你自己" + 句尾)

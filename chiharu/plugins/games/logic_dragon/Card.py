@@ -39,3 +39,22 @@ class Card(IEventListener, Saveable, hasIdDict=True):
         if match := re.search(r"DLC(\d+)", cls.__module__):
             cls.newer = int(match.group(1))
         return super().__init_subclass__()
+
+class CardNumed(Card):
+    dataType: Tuple[Callable[[str], Any],...] = (int,)
+    def __init__(self) -> None:
+        self.num = 0
+    def packData(self):
+        return str(self.num)
+    def DumpData(self) -> ProtocolData:
+        return super().DumpData() | {"num": self.num}
+
+class CardDoubleNumed(Card):
+    dataType: Tuple[Callable[[str], Any],...] = (int, int)
+    def __init__(self) -> None:
+        self.num1 = 0
+        self.num2 = 0
+    def packData(self):
+        return f"{self.num1},{self.num2}"
+    def DumpData(self) -> ProtocolData:
+        return super().DumpData() | {"num1": self.num1, "num2": self.num2}

@@ -20,6 +20,7 @@ class Status(IEventListener, Saveable, hasIdDict=True):
     isDebuff = False
     isMetallic = False
     isRemovable = True
+    isReversable = False
     @property
     def count(self) -> int:
         return 1
@@ -31,6 +32,8 @@ class Status(IEventListener, Saveable, hasIdDict=True):
         return self._description
     def double(self):
         pass
+    def reverse(self, n: int) -> tuple['Status' | None, 'Status' | None]:
+        return None, None
     def DumpData(self) -> ProtocolData:
         return {"id": self.id, "name": self.name, "description": self.description, "null": self.isNull, "count": self.count}
 
@@ -86,3 +89,15 @@ class StatusTimed(Status):
         return f"{self._description}\n\t结束时间：{self.getStr()}。"
     def double(self):
         self.time += self.time - datetime.now()
+
+class StatusListInt(Status):
+    dataType: Tuple[Callable[[str], Any],...] = (lambda s: [int(x) for x in s.split(';')],)
+    def __init__(self, data: list[int]):
+        self.list = data
+    @property
+    def valid(self):
+        return len(self.list) != 0
+    def packData(self) -> str:
+        return ';'.join(str(x) for x in self.list)
+
+

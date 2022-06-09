@@ -9,7 +9,7 @@ class UserEvt(Enum):
     AfterCardDraw = auto()
     AfterCardDiscard = auto()
     AfterCardRemove = auto()
-    AfterExchange = auto()
+    AfterCardGive = auto()
     OnDeath = auto()
     OnAttack = auto()
     OnAttacked = auto()
@@ -54,10 +54,10 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         belt = auto()
     class AfterCardRemove(IntEnum):
         pass
-    class AfterExchange(IntEnum):
+    class AfterCardGive(IntEnum):
         pass
     class OnDeath(IntEnum):
-        invincible = auto()             # 吸血鬼：免疫死亡
+        vampire = auto()             # 吸血鬼：免疫死亡
         explore = auto()                # 秘史衍生：免疫死亡，以及死亡时间减少
         miansi = auto()                 # 倒吊人：免疫一次死亡
         sihuihuibizhiyao = auto()       # 死秽：消耗击毙免疫一次死亡
@@ -65,14 +65,15 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         inv_sihuihuibizhiyao = auto()   # 反转死秽
         death = auto()                  # 死神：死亡时间加倍
         fuhuoguanghuan = auto()         # 因hp归零死亡时间除以12
-        absorb = auto()                 # 吸收死亡时间
+        pumpkin = auto()                # 吸收死亡时间
+        wallnut = auto()
         changsheng = auto()             # 吸收死亡时间MkII
         tiesuolianhuan = auto()         # 铁索连环：一起下地狱
         lveduozhebopu = auto()          # 掠夺者：被弃
         huiye = auto()                  # 宝箱：抽卡
         inv_huiye = auto()              # 反转宝箱
         shangba = auto()                # 伤疤：+2击毙
-        invshangba = auto()
+        inv_shangba = auto()
         antimatter = auto()             # 反物质维度：自动使用卡牌
         bingo = auto()                  # bingo任务
     class OnAttack(IntEnum):
@@ -149,17 +150,17 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         iceshroom = auto()              # 冰/热菇：全局计算距离
         hotshroom = auto()
         lazhuyandong = auto()           # 秘史衍生：计算距离
-        invlazhuyandong = auto()
+        inv_lazhuyandong = auto()
         lieshouzhixue = auto()
-        invlieshouzhixue = auto()
+        inv_lieshouzhixue = auto()
         ourostone = auto()              # 衔尾蛇：首尾
                                         # contains two buffs
         ranshefashu = auto()            # **法术：首尾
         inv_ranshefashu = auto()
         jiaotu = auto()                 # 秘史衍生：首尾
-        invjiaotu = auto()
+        inv_jiaotu = auto()
         shequn = auto()
-        invshequn = auto()
+        inv_shequn = auto()
         hierophant = auto()             # 教皇：首尾
         inv_hierophant = auto()
         uncertainty = auto()            # 不确定性原理：修改接龙词
@@ -193,11 +194,11 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         inv_bianhua = auto()            # 反转
         zpm = auto()                    # ZPM：新手保护，+1击毙
         shendian = auto()               # 秘史衍生：+5击毙
-        invshendian = auto()
+        inv_shendian = auto()
         beizhizhunze = auto()           # +1击毙
-        invbeizhizhunze = auto()
+        inv_beizhizhunze = auto()
         cashprinter = auto()            # 给前面的人+1击毙
-        invcashprinter = auto()         # 给前面的人-1击毙
+        inv_cashprinter = auto()        # 给前面的人-1击毙
         plus2 = auto()                  # +2：抽两张牌
         xixuegui = auto()               # ？？？？
         panjue = auto()                 # 判决传播 contains both a and b
@@ -210,18 +211,20 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         timebomb = auto()               # 定时炸弹：计次
         circus = auto()                 # 秘史衍生：被弃
         lazhuyandong = auto()
-        invlazhuyandong = auto()
+        inv_lazhuyandong = auto()
         lieshouzhixue = auto()
-        invlieshouzhixue = auto()
+        inv_lieshouzhixue = auto()
         shequn = auto()
-        invshequn = auto()
+        inv_shequn = auto()
         jiaotu = auto()
-        invjiaotu = auto()
+        inv_jiaotu = auto()
         explore = auto()                # 秘史
         kongzhongcanting = auto()       # 空中餐厅「逻辑」：随机回满血/复活
         lecheck = auto()                # 乐不思蜀：某其他人不可从此节点接龙
         mindgap = auto()                # 小心空隙：接龙失败，接龙人需再等待2个节点接龙
     class OnNewDay(IntEnum):
+        queststone = auto()
+        beijingcard = auto()
         tarot = auto()
         quest = auto()
         sunflower = auto()

@@ -1,8 +1,6 @@
 from typing import *
 from datetime import datetime, timedelta
 import functools
-
-from chiharu.plugins.games.logic_dragon_file import TEventListener
 from .UserData import UserData
 from .Helper import ProtocolData, Buffer
 from .Card import Card
@@ -10,7 +8,7 @@ from .Status import Status, TStatus, TStatusStack
 from .Equipment import Equipment
 from .EventListener import IEventListener
 from .Priority import UserEvt, Priority, exchange
-from .Types import TEvent
+from .Types import TEvent, TUserState
 from .Attack import Attack, AttackType
 from .Item import Item
 if TYPE_CHECKING:
@@ -22,7 +20,7 @@ class User:
         self.data = ud
         self.buf = buf
         self.game = game
-        self.state: dict[str, Any] = {}
+        self.state: TUserState = {}
     def __del__(self):
         self.data.DecreaseRef()
     def CreateUser(self, qq):
@@ -46,11 +44,12 @@ class User:
         user_lists = [self.data.eventListener[evt]]
         if extra_listeners is not None:
             user_lists += extra_listeners
-        if not no_global:
+        from AllCards5 import SCircus55
+        if not no_global and not (self.CheckStatusStack(SCircus55) and self.state.get('circus')):
             user_lists.append(self.me.eventListener[evt])
         for p in exchange[evt]:
             for e in user_lists:
-                ret: list[TEventListener] | None = e.get(p)
+                ret: list[IEventListener] | None = e.get(p)
                 if ret is not None:
                     for eln in ret:
                         yield eln
@@ -71,6 +70,9 @@ class User:
         return self.data.CheckStatus(cls)
     def CheckStatusStack(self, cls: Type[TStatusStack]):
         return self.data.CheckStatusStack(cls)
+    def CheckSunflower(self):
+        from AllCards4 import SSunflower130, STwinSunflower133
+        return self.CheckStatusStack(SSunflower130) + self.CheckStatusStack(STwinSunflower133)
 
     async def choose(self, flush: bool):
         if not self.active:
@@ -97,9 +99,10 @@ class User:
             self.data.statusesUnchecked.append(s)
             self.data.registerStatus(s)
         if s.isGlobal:
-            pass
-            #global_state['global_status'].extend([[0, s]] * count)
-            #save_global_state()
+            if s.isNull:
+                self.game.state['global_status'].extend([s.__class__(1).save()] * s.count)
+            else:
+                self.game.state['global_status'].append(s.save())
         self.data.SaveStatuses()
         return True
     @functools.singledispatchmethod
@@ -119,6 +122,14 @@ class User:
             return False
         self.data.statusesUnchecked.remove(s)
         self.data.deregisterStatus(s)
+        if s.isGlobal:
+            if s.isNull:
+                to_remove = s.__class__(1).save()
+            else:
+                to_remove = s.save()
+            for i in range(s.count):
+                if to_remove in self.game.state["global_status"]:
+                    self.game.state["global_status"].remove(to_remove)
         self.data.SaveStatuses()
         return True
     @RemoveStatus.register
@@ -138,6 +149,11 @@ class User:
         if len(l) == 0:
             return False
         l[0].num -= count
+        if status.isGlobal:
+            to_remove = s(1).save()
+            for i in range(count):
+                if to_remove in self.game.state["global_status"]:
+                    self.game.state["global_status"].remove(to_remove)
         self.data.SaveStatuses()
         return True
     async def RemoveAllStatus(self, status: Type[TStatus], /, remover: 'User' | None=None):
@@ -215,7 +231,7 @@ class User:
         self.Send(type="OnDeath", killer=-1 if killer is None else killer.qq, time=minute, dodge=dodge)
         if dodge:
             return
-        from .AllCards import SDeathN1
+        from .AllCards0 import SDeathN1
         await self.AddStatus(SDeathN1(timedelta(minutes=minute)))
     async def Attacked(self, atk: 'Attack'):
         """玩家受到攻击。"""
@@ -241,7 +257,7 @@ class User:
         self.Send(type="attacked", name=atk.name, dodge=dodge, attacker=attackerQQ)
     async def Killed(self, killer: 'User', minute: int=120, isAOE = False):
         """玩家被杀。算作一次攻击。"""
-        from .AllCards import AKill0
+        from .AllCards0 import AKill0
         attack = AKill0(killer, self, minute)
         attack.counter.isAOE = isAOE
         await self.Attacked(attack)
@@ -385,11 +401,23 @@ class User:
         await eq.use(self)
     async def DrawMaj(self):
         pass # TODO
+    async def GiveCard(self, other: 'User', card: Card):
+        """将卡牌给予另一玩家。从玩家手牌中移除，再加入另一玩家手牌。"""
+        self.data.RemoveCard(card)
+        other.data.AddCard(card)
+        
+        # Event AfterCardGive
+        self.Send(type="begin", name="AfterCardGive")
+        for eln in self.IterAllEvent(UserEvt.AfterCardGive):
+            await eln.AfterCardGive(self, other, card)
+        self.Send(type="end", name="AfterCardGive")
+
+        self.data.SaveCards()
 
     async def Damaged(self, damage: int, attacker: 'User'=None, mustHit: bool=False):
         if attacker is None:
             attacker = self.dragon
-        from .AllCards import ADamage1
+        from .AllCards0 import ADamage1
         atk = ADamage1(attacker, self, damage, mustHit)
         await self.Attacked(atk)
     async def ChooseHandCards(self, min: int, max: int, requirement: Callable[[Card], bool]=(lambda *args: True),
@@ -463,7 +491,7 @@ class User:
         if toDiscard is not None:
             await self.DiscardCards([self.data.handCard[i] for i in toDiscard])
     async def DecreaseDeathTime(self, time: timedelta):
-        from .AllCards import SDeathN1
+        from .AllCards0 import SDeathN1
         l = self.CheckStatus(SDeathN1)
         if len(l) == 0:
             return True

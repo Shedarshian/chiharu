@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from .Card import Card
     from .Attack import Attack, AttackType
     from .Status import Status
-    from .Dragon import Tree, DragonState
+    from .Dragon import DragonState, TreeLeaf
     from .Types import ProtocolData
 
 class IEventListener:
@@ -45,29 +45,30 @@ class IEventListener:
         Arguments:
         card: The card used."""
         pass
-    async def AfterCardDraw(self, user: 'User', cards: Iterable['Card']) -> None:
+    async def AfterCardDraw(self, user: 'User', cards: list['Card']) -> None:
         """Called after cards are drawn.
 
         Parameters:
         cards: The cards drawn."""
         pass
-    async def AfterCardDiscard(self, user: 'User', cards: Iterable['Card']) -> None:
+    async def AfterCardDiscard(self, user: 'User', cards: list['Card']) -> None:
         """Called after cards are discarded.
 
         Parameters:
         cards: The cards discarded."""
         pass
-    async def AfterCardRemove(self, user: 'User', cards: Iterable['Card']) -> None:
+    async def AfterCardRemove(self, user: 'User', cards: list['Card']) -> None:
         """Called after cards are removed.
 
         Parameters:
         cards: The cards removed."""
         pass
-    async def AfterExchange(self, user: 'User', user2: 'User') -> None:
-        """Called after cards are exchanged.
+    async def AfterCardGive(self, user: 'User', user2: 'User', card: 'Card') -> None:
+        """Called after cards given.
 
         Parameters:
-        user2: The user that cards are exchanged."""
+        user2: The user that cards given.
+        card: The card given."""
         pass
     async def OnDeath(self, user: 'User', killer: Optional['User'], time: int, c: 'AttackType') -> Tuple[int, bool]:
         """Called when a user is dead.
@@ -192,7 +193,7 @@ class IEventListener:
         Returns:
         bool: represents if accelerated."""
         pass
-    async def OnKeyword(self, user: 'User', word: str, parent: 'Tree', keyword: str) -> int:
+    async def OnKeyword(self, user: 'User', word: str, parent: 'TreeLeaf', keyword: str) -> int:
         """Called when a user hit a keyword.
         
         Arguments:
@@ -203,7 +204,7 @@ class IEventListener:
         Returns:
         int: the amount of jibi to add."""
         pass
-    async def OnHiddenKeyword(self, user: 'User', word: str, parent: 'Tree', keyword: str) -> int:
+    async def OnHiddenKeyword(self, user: 'User', word: str, parent: 'TreeLeaf', keyword: str) -> int:
         """Called when a user hit a hidden keyword.
         
         Arguments:
@@ -233,7 +234,7 @@ class IEventListener:
         Returns:
         bool: represents whether the hit is dodged."""
         pass
-    async def OnDragoned(self, user: 'User', branch: 'Tree', first10: bool) -> None:
+    async def OnDragoned(self, user: 'User', branch: 'TreeLeaf', first10: bool) -> None:
         """Called when the user complete a dragon.
         
         Arguments:
