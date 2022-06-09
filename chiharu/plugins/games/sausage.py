@@ -37,7 +37,7 @@ class Block(Box):
 
 @dataclass
 class Action:
-    boxes: list[Box] = field(default_factory=list)
+    boxes: list[Box]
     dir: Grid3D
     roll: int = 0 # 1：同向滚动，-1：逆向滚动
     ifmove2: bool = False
