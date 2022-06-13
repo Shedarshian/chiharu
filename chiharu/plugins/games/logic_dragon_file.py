@@ -2621,7 +2621,7 @@ class chariot(_card):
         if user.qq in to_kill:
             to_kill.remove(user.qq)
         to_kill = set(qq for qq in to_kill if random.random() < (0.1 + 0.01 * user.data.luck))
-        user.buf.send(f"{'，'.join(f'[CQ:at,qq={qq}]' for qq in to_kill)}被你击杀了{句尾}")
+        user.buf.send(f"{'，'.join(f'[CQ:at,qq={qq}]' for qq in to_kill)}被你击杀了{句尾}" if len(to_kill) > 0 else f'但没有车到任何人{句尾}')
         for qq in to_kill:
             await User(qq, user.buf).killed(user)
 
