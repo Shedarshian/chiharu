@@ -3009,7 +3009,7 @@ class wenhuazixin(_card):
         if len(l) == 0:
             return
         import math
-        num = min(math.ceil(l * 0.75), 5)
+        num = min(math.ceil(len(l) * 0.75), 5)
         l3: list[tuple[int, str | T_status]] = []
         for i in range(num):
             j = random.choice(l)
