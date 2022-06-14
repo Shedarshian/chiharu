@@ -3023,8 +3023,8 @@ class wenhuazixin(_card):
                 user.send_log("移除了" + name_f(StatusDaily(j[1]).des))
                 await ume.remove_daily_status(j[1], remove_all=False, remover=user)
             else:
-                user.send_log("移除了" + name_f(j[2].des))
-                await ume.remove_limited_status(j[2], remover=user)
+                user.send_log("移除了" + name_f(j[1].des))
+                await ume.remove_limited_status(j[1], remover=user)
         Game.me.save_status_time()
 
 class lebusishu(_card):
@@ -7484,8 +7484,8 @@ class Sbestchiharu(_statusnull):
     @classmethod
     async def OnStatusRemove(cls, count: TCount, user: 'User', status: TStatusAll, remove_all: bool, remover: Optional['User'] = None) -> Tuple[bool]:
         if status is Sbestchiharu:
-            remover.send_log("怎么能伤害我们最好的千春😠" + 句尾 + f"扣除你{25 * count}击毙" + 句尾)
-            await remover.add_jibi(-25 * count)
+            remover.send_log("怎么能伤害我们最好的千春😠" + 句尾 + f"扣除你{25 * (count if remove_all else 1)}击毙" + 句尾)
+            await remover.add_jibi(-25 * (count if remove_all else 1))
         return False,
     @classmethod
     def register(cls) -> dict[int, TEvent]:
