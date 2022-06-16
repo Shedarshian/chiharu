@@ -219,7 +219,7 @@ async def check_boss():
     # stdin, stdout, stderr = ssh.exec_command('/workfs/bes/qity/shell/script/submit -c')
     # output = ''.join(stdout.readlines()).strip()
     global told_permission_denied
-    if output != '' and output != 'submit -c':
+    if output.strip() != '' and output.strip() != 'submit -c':
         if 'Permission denied' in output:
             if not told_permission_denied:
                 for group in config.group_id_dict['boss']:
