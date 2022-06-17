@@ -7785,7 +7785,7 @@ class goldenbelt_checker(IEventListener):
             user.send_log("获得了装备：金腰带" + 句尾)
             user.data.save_equipment()
     @classmethod
-    async def register(cls) -> dict[int, TEvent]:
+    def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: Priority.OnDragoned.jinyaodai}
 UserData.register_checker(goldenbelt_checker)
 
