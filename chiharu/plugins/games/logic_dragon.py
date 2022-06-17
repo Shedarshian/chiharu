@@ -699,6 +699,7 @@ async def dragon_check(buf: SessionBuffer):
     手牌/hand_cards：查询自己当前手牌。
     详细手牌/full_hand_cards：查询自己当前详细手牌。
     装备/equipments：查询自己当前装备。
+    收集/collections：查询自己当前收集。
     任务/quest：查询自己手牌中的任务之石的任务。
     麻将/maj：查询自己的麻将。
     击毙/jibi：查询自己的击毙数。
@@ -772,6 +773,11 @@ async def dragon_check(buf: SessionBuffer):
         if len(equipments) == 0:
             buf.finish(f"你没有装备{句尾}")
         buf.finish("你的装备为：\n" + '\n'.join(Equipment(id).full_description(num, user) for id, num in equipments.items()))
+    elif data in ("收集", "collections"):
+        collections = user.data.collections
+        if 0 not in collections or len(collections[0]) == 0:#if len(collections) == 0 or 0 in collections and len(collections[0]) == 0:
+            buf.finish(f"你没有收集品{句尾}")
+        buf.finish("你的收集品为：\n单字卡：" + '，'.join(("“" + "苟利国家生死以岂因祸福避趋之"[i] + "”" for i in user.data.collections[0])))
     elif data in ("击毙", "jibi"):
         buf.finish("你的击毙数为：" + str(user.data.jibi))
     elif data in ("详细状态", "full_status"):
