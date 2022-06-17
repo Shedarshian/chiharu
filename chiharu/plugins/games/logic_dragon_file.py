@@ -615,7 +615,7 @@ class UserData:
         self.equipment: Dict[int, int] = property_dict(partial(save, 'equipment'), {})
         self.equipment.data = eval(self.node['equipment'])
         self.collections: Dict[int, Any] = property_dict(partial(save, 'collections'), {})
-        self.equipment.data = eval(self.node['collections'])
+        self.collections.data = eval(self.node['collections'])
         def save2(value):
             config.userdata.execute(f"update dragon_data set extra_data=? where qq=?", (value, self.qq))
         self.extra = DynamicExtraData(self.node['extra_data'], save2)
