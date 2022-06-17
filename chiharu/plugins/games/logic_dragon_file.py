@@ -1,15 +1,14 @@
 import itertools, hashlib
 import random, more_itertools, json, re
-from typing import Any, Awaitable, Callable, Coroutine, Dict, Generic, Iterable, List, NamedTuple, Optional, Set, Tuple, Type, TypeVar, TypedDict, Union, final, Iterable, Annotated
+from typing import Any, Awaitable, Callable, Coroutine, Dict, Generic, Iterable, List, NamedTuple, Optional, Set, Tuple, Type, TypeVar, TypedDict, Union, final, Annotated
 from collections import Counter, UserDict, UserList, defaultdict
-from functools import lru_cache, partial, wraps
+from functools import lru_cache, partial, wraps, reduce
 from struct import unpack, pack
 from copy import copy, deepcopy
 from dataclasses import dataclass, astuple, field
 from math import ceil, log
 from abc import ABC, ABCMeta, abstractmethod
 from datetime import date, datetime, timedelta, time
-from functools import reduce, wraps
 from contextlib import asynccontextmanager
 from nonebot import get_bot
 from nonebot.command import CommandSession
@@ -38,7 +37,7 @@ def find_or_new(qq: int):
     t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     if t is None:
         extra_data_init = Game.me.extra.data.pack()
-        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop, equipment, event_stage, event_shop, extra_data, dead, flags, hp, mp) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 0, 0, 0, ?, 0, 0, ?, false, 0, 500, 500)', (qq, '', '', '', '', '[]', '{}', extra_data_init))
+        config.userdata.execute('insert into dragon_data (qq, jibi, draw_time, today_jibi, today_keyword_jibi, death_time, card, status, daily_status, status_time, card_limit, shop_drawn_card, event_pt, spend_shop, equipment, event_stage, event_shop, extra_data, dead, flags, hp, mp, collections) values (?, 0, 0, 10, 10, ?, ?, ?, ?, ?, 4, 0, 0, 0, ?, 0, 0, ?, false, 0, 500, 500, ?)', (qq, '', '', '', '', '[]', '{}', extra_data_init, '{}'))
         t = config.userdata.execute("select * from dragon_data where qq=?", (qq,)).fetchone()
     return t
 
@@ -615,6 +614,8 @@ class UserData:
             self.maj: Tuple[List[int], List[int]] = eval(self.node['maj']) # ([1, 2, 3], [4])
         self.equipment: Dict[int, int] = property_dict(partial(save, 'equipment'), {})
         self.equipment.data = eval(self.node['equipment'])
+        self.collections: Dict[int, Any] = property_dict(partial(save, 'collections'), {})
+        self.equipment.data = eval(self.node['collections'])
         def save2(value):
             config.userdata.execute(f"update dragon_data set extra_data=? where qq=?", (value, self.qq))
         self.extra = DynamicExtraData(self.node['extra_data'], save2)
@@ -675,6 +676,8 @@ class UserData:
         self.status_time.f(self.status_time.data)
     def save_equipment(self):
         self.equipment.f(self.equipment.data)
+    def save_collections(self):
+        self.collections.f(self.collections.data)
     def save_maj(self):
         config.userdata.execute("update dragon_data set maj=? where qq=?", (str(self.maj), self.qq))
         config.logger.dragon << f"【LOG】设置用户{self.qq}麻将为{str(self.maj)}。"
@@ -7750,7 +7753,42 @@ class dushen_ring(_equipment):
     def full_description(cls, count: TCount, user: User) -> str:
         return f"{cls.id}. {cls.name}\n\t{cls.description(count)}"
 
-# 爬塔格子
+class golden_belt(_equipment):
+    id = 6
+    name = "金腰带"
+    description = "你的姿势水平+1。"
+class goldenbelt_checker(IEventListener):
+    @classmethod
+    async def OnDragoned(cls, count: TCount, user: 'User', branch: 'Tree', first10: bool) -> Tuple[()]:
+        if user.data.check_equipment(6):
+            return
+        if 0 not in user.data.collections:
+            user.data.collections[0] = []
+        p = list(itertools.chain(*pinyin(branch.word, errors='ignore', style=Style.NORMAL, strict=True)))
+        alls = ("gou", "li", "guo", "jia", "sheng", "si", "yi", "qi", "yin", "huo", "fu", "bi", "qu", "zhi")
+        allzi = "苟利国家生死以岂因祸福避趋之"
+        l = [i for i, n in enumerate(alls) if n in p and i not in user.data.collections[0]]
+        luck = False
+        if len(l) == 0:
+            if random.random() < user.data.luck * 0.004:
+                l = list(range(14))
+                luck = True
+            else:
+                return
+        elif random.random() < 0.5:
+            return
+        i = random.choice(l)
+        user.data.collections[0] = sorted(user.data.collections[0] + [i])
+        user.send_log(f"{'幸运地' if luck else ''} 收集 到了单字卡“{allzi[i]}”{句尾}")
+        if len(user.data.collections[0]) == 14:
+            user.data.equipment[6] = 1
+            user.send_log("获得了装备：金腰带" + 句尾)
+            user.data.save_equipment()
+    @classmethod
+    async def register(cls) -> dict[int, TEvent]:
+        return {UserEvt.OnDragoned: Priority.OnDragoned.jinyaodai}
+UserData.register_checker(goldenbelt_checker)
+
 class Grid:
     __slots__ = ('stage', 'hashed')
     pool: Dict[int, 'Grid'] = {}

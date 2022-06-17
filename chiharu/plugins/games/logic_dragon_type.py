@@ -53,6 +53,7 @@ class TUserData(TypedDict):
     flags: int
     hp: int
     mp: int
+    collections: str
 
 async def nothing(): return False
 
@@ -281,6 +282,7 @@ class Priority:  # 依照每个优先级从前往后find，而不是iterate
         juedou = auto()                 # 决斗减次数
         orga = auto()                   # 道路还在不断延伸
         inv_orga = auto()               # 所以说，不要停下啊
+        jinyaodai = auto()
         queststone = auto()             # 任务：完成+3击毙
         quest = auto()
         bingo = auto()                  # bingo：接龙任务
