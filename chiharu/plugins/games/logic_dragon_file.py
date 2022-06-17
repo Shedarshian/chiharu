@@ -7786,7 +7786,7 @@ class goldenbelt_checker(IEventListener):
             user.data.save_equipment()
     @classmethod
     def register(cls) -> dict[int, TEvent]:
-        return {UserEvt.OnDragoned: Priority.OnDragoned.jinyaodai}
+        return {UserEvt.OnDragoned: (Priority.OnDragoned.jinyaodai, cls)}
 UserData.register_checker(goldenbelt_checker)
 
 class Grid:
