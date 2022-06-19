@@ -7784,6 +7784,7 @@ class goldenbelt_checker(IEventListener):
             user.data.equipment[6] = 1
             user.send_log("获得了装备：金腰带" + 句尾)
             user.data.save_equipment()
+            user.data.collections[0] = []
     @classmethod
     def register(cls) -> dict[int, TEvent]:
         return {UserEvt.OnDragoned: (Priority.OnDragoned.jinyaodai, cls)}
