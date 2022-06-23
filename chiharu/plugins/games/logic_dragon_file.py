@@ -1228,8 +1228,8 @@ class User:
             if dodge:
                 return
         # Event OnAttacked
-        for eln, n in self.IterAllEventList(UserEvt.OnAttacked, Priority.OnAttacked):
-            dodge, = await eln.OnAttacked(n, self, attack)
+        for eln, n in attack.defender.IterAllEventList(UserEvt.OnAttacked, Priority.OnAttacked):
+            dodge, = await eln.OnAttacked(n, attack.defender, attack)
             if dodge:
                 return
         await attack.action()
