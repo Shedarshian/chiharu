@@ -315,31 +315,29 @@ class CEnvelop160(Card):
     name = "信封"
     _description = "花费2击毙，选择一张手牌，将其寄给一名指定的玩家，50%概率使该玩家再获得一张信封。"
     positive = 1
-    failure_message = "你的击毙不足" + 句尾
     pack = Pack.misc
-    @property
     def CanUse(self, user: User, copy: bool) -> bool:
-        return user.data.jibi >= 2
+        return user.data.jibi >= 2 and (copy and len(user.data.handCard) >= 1 or not copy and len(user.data.handCard) >= 2)
     async def use(self, user: User) -> None:
         if not await user.AddJibi(-2, isBuy=True):
             user.SendCardUse(self, success = False)
             return
-        if await user.choose():
-            async with user.ChooseHandCards(1, 1) as l:
-                if (players := await user.ChoosePlayers(1, 1)) is not None:
-                    u = user.CreateUser(players[0])
-                    c = Card(l[0])
-                    await user.RemoveCards([c])
-                    a = random.random()
-                    lucky = False
-                    if a > 0.5 + 0.02 * min(u.data.luck, 5) + 0.02 * min(user.data.luck, 5):
-                        cards = [c]
-                    else:
-                        if a > 0.5:
-                            lucky = True
-                        cards=[c, envelop]
-                    user.SendCardUse(self, success = True, tqq = target.qq, cards = [c.Dumpdata() for c in cards], lucky = lucky)
-                    await target.Draw(cards = cards)
+        if await user.choose(False):
+            cards = await user.ChooseHandCards(1, 1)
+            if (players := await user.ChoosePlayers(1, 1)) is not None:
+                u = user.CreateUser(players[0])
+                c = Card.get(cards[0])()
+                await user.RemoveCards([c])
+                a = random.random()
+                lucky = False
+                if a > 0.5 + 0.02 * min(u.data.luck, 5) + 0.02 * min(user.data.luck, 5):
+                    cards2 = [c]
+                else:
+                    if a > 0.5:
+                        lucky = True
+                    cards2 = [c, CEnvelop160()]
+                user.SendCardUse(self, success = True, tqq = u.qq, cards = [c.DumpData() for c in cards2], lucky = lucky)
+                await u.Draw(cards = cards2)
 
 class CVoiceControl161(Card):
     id = 161
