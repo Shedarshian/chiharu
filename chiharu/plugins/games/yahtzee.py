@@ -132,7 +132,7 @@ class AI(Player):
                     stat, wjscore, _, els = line.split(",", 3)
                     if stat == ''.join("1" if name in self.scoreboard else "0" for name in reversed(Player.Name)) and int(wjscore) in (-1, self.wjscore):
                         break
-                for name, count, _ in more_itertools.chunked(els.split(","), 3):
+                for name, count, _ in more_itertools.chunked(els.split(","), 2):
                     if name == ''.join(str(i) for i in self._all_dice):
                         saved_count = int(count)
                         break
