@@ -173,8 +173,10 @@ async def yahtzee_aishow(session: CommandSession):
                 await sleep(1)
                 ai.unfix(which)
                 ai.roll()
-        await session.aget(prompt="请输入“继续”继续。", arg_filters=[extractors.extract_text, 
-                    validators.ensure_true(lambda s: s == "继续")])
+        if i0 != 11:
+            await session.send("请输入“继续”继续。")
+            while await session.aget(prompt="", arg_filters=[extractors.extract_text]) != "继续":
+                pass
     await session.send("最终得分：\n" + ai.str_scoreboard)
 
 yahtzee = GameSameGroup('yahtzee')
