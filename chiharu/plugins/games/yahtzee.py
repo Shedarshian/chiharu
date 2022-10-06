@@ -141,7 +141,7 @@ async def yahtzee_aishow(session: CommandSession):
         time = 2
     if time < 0.5:
         session.finish("操作间隔不可小于0.5s" + config.句尾)
-    if await session.aget(prompt=f"将开始快艇骰子AI表演，操作间隔为{time}s，输入确认继续，输入返回退出。", arg_filters=[extractors.extract_text]) != "继续":
+    if await session.aget(prompt=f"将开始快艇骰子AI表演，操作间隔为{time}s，输入确认继续，输入返回退出。", arg_filters=[extractors.extract_text]) != "确认":
         session.finish("已退出。")
     ai = AI()
     for i0 in range(12):
