@@ -1,10 +1,14 @@
+from asyncio import sleep
+from distutils.cmd import Command
 import random, itertools, more_itertools
 from collections import Counter
 from enum import Enum, auto
-from typing import Dict, Any, Awaitable
-from nonebot import get_bot, CommandSession, NLPSession
+from typing import Callable, Dict, Any, Awaitable
+from nonebot import get_bot, CommandSession, NLPSession, permission
 import aiocqhttp
+from nonebot.command.argfilter import extractors, validators
 from .. import config
+from ..inject import on_command
 from ..game import GameSameGroup
 from .achievement import achievement
 
@@ -23,9 +27,9 @@ class Player:
         大顺 = auto()
         快艇 = auto()
     def __init__(self):
-        self.scoreboard = {}
-        self._fixed_dice = []
-        self._float_dice = []
+        self.scoreboard: dict[Player.Name, int] = {}
+        self._fixed_dice: list[int] = []
+        self._float_dice: list[int] = []
         self.rolled_count = 3
     @property
     def temp_scoreboard(self):
@@ -47,6 +51,9 @@ class Player:
         t[Player.Name.大顺] = 30 if ss == {1, 2, 3, 4, 5} or ss == {2, 3, 4, 5, 6} else 0
         t[Player.Name.小顺] = 15 if {1, 2, 3, 4} <= ss or {2, 3, 4, 5} <= ss or {3, 4, 5, 6} <= ss else 0
         return t
+    @property
+    def _all_dice(self):
+        return sorted(self._fixed_dice + self._float_dice)
     def roll(self):
         self._float_dice = sorted([random.randint(1, 6) for i in range(5 - len(self._fixed_dice))])
         self.rolled_count -= 1
@@ -54,8 +61,8 @@ class Player:
             self._fixed_dice += self._float_dice
             self._float_dice = []
         self._fixed_dice.sort()
-    def unfix(self, unfixed):
-        t = self._fixed_dice + self._float_dice
+    def unfix(self, unfixed: list[int]):
+        t = self._all_dice
         for c in unfixed:
             try:
                 t.remove(c)
@@ -63,7 +70,7 @@ class Player:
                 return -1
         self._float_dice = list(unfixed)
         self._fixed_dice = t
-    def score(self, name):
+    def score(self, name: Name):
         if name in self.scoreboard:
             return -1
         self.scoreboard[name] = self.temp_scoreboard[name]
@@ -72,8 +79,11 @@ class Player:
         self._float_dice = []
         return self.scoreboard[name]
     @property
+    def wjscore(self):
+        return sum(self.scoreboard[Player.Name.__members__[x]] for x in ['一', '二', '三', '四', '五', '六'] if Player.Name.__members__[x] in self.scoreboard)
+    @property
     def final_score(self):
-        if sum(self.scoreboard[Player.Name.__members__[x]] for x in ['一', '二', '三', '四', '五', '六'] if Player.Name.__members__[x] in self.scoreboard) >= 63:
+        if self.wjscore >= 63:
             return sum(self.scoreboard.values()) + 35
         else:
             return sum(self.scoreboard.values())
@@ -92,6 +102,57 @@ class Player:
     def str_temp_scoreboard(self):
         t = self.temp_scoreboard
         return '  '.join(f'{name.name}：{t[name]}分' for name in Player.Name if name not in self.scoreboard)
+
+class AI(Player):
+    async def process(self):
+        pass
+
+@on_command(("play", "yahtzee", "aishow"), hide=True, display_parents='game', permission=permission.GROUP_ADMIN)
+async def yahtzee_aishow(session: CommandSession):
+    """快艇骰子AI表演，仅限管理员使用。操作间隔可加在指令后。"""
+    try:
+        time = 2 if session.current_arg_text.strip() == "" else float(session.current_arg_text.strip())
+    except ValueError:
+        time = 2
+    if time < 0.5:
+        session.finish("操作间隔不可小于0.5s" + config.句尾)
+    if await session.aget(prompt=f"将开始快艇骰子AI表演，操作间隔为{time}s，输入确认继续，输入返回退出。", arg_filters=[extractors.extract_text]) != "继续":
+        session.finish("已退出。")
+    ai = AI()
+    for i0 in range(12):
+        ai.roll()
+        for _ in range(2):
+            await session.send(f'AI扔出骰子{ai.float_dice}，已固定骰子{ai.fixed_dice}\n剩余重扔次数：{ai.rolled_count}')
+            with open(config.rel(f"yahtzeeAI/exp{12 - i0}-{ai.rolled_count}.csv"), encoding="uf-8") as f:
+                for line in f:
+                    stat, wjscore, _, els = line.split(",", 4)
+                    if stat == ''.join("1" if name in ai.scoreboard else "0" for name in reversed(Player.Name)) and int(wjscore) == ai.wjscore:
+                        break
+                for name, count, _ in more_itertools.chunked(els.split(","), 3):
+                    if name == ''.join(str(i) for i in ai._all_dice):
+                        saved_count = count
+                        break
+            if saved_count == 0:
+                break
+            to_reroll = [ai._all_dice[i] for i, x in enumerate(reversed(f"{saved_count:0>5b}")) if x == "1"]
+            await sleep(time)
+            await session.send("AI重扔" + ",".join(to_reroll) + "。")
+            ai.unfix(to_reroll)
+            ai.roll()
+        with open(config.rel(f"yahtzeeAI/exp{12 - i0}-0.csv"), encoding="uf-8") as f:
+            for line in f:
+                stat, wjscore, _, els = line.split(",", 4)
+                if stat == ''.join("1" if name in ai.scoreboard else "0" for name in reversed(Player.Name)) and int(wjscore) == ai.wjscore:
+                    break
+            for name, count, _ in more_itertools.chunked(els.split(","), 3):
+                if name == ''.join(str(i) for i in ai._all_dice):
+                    saved_count = count
+                    break
+        choose = Player.Name(int(saved_count))
+        await sleep(time)
+        ai.score(choose)
+        await session.send("AI计分" + choose.name + ("。" if i0 == 11 else "，当前得分：\n" + ai.str_scoreboard))
+    await session.send("最终得分：\n" + ai.str_scoreboard)
 
 yahtzee = GameSameGroup('yahtzee')
 config.CommandGroup(('play', 'yahtzee'), hide=True)
@@ -146,8 +207,8 @@ async def yahtzee_end(session: CommandSession, data: Dict[str, Any]):
     await session.send('已删除')
 
 @yahtzee.process(only_short_message=True)
-async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func: Awaitable):
-    p = data['boards'][data['current_player']]
+async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func: Callable[[], Awaitable]):
+    p: Player = data['boards'][data['current_player']]
     command = session.msg_text.strip()
     if command.startswith('重扔') and session.ctx['user_id'] == data['players'][data['current_player']]:
         if p.rolled_count <= 0:
