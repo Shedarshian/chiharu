@@ -109,7 +109,7 @@ class AI(Player):
         with open(config.rel(f"yahtzeeAI\\exp{12 - len(self.scoreboard)}-{self.rolled_count}.csv"), encoding="utf-8") as f:
             for line in f:
                 stat, wjscore, _, els = line.split(",", 3)
-                if stat == ''.join("1" if name in self.scoreboard else "0" for name in reversed(Player.Name)) and int(wjscore) == self.wjscore:
+                if stat == ''.join("1" if name in self.scoreboard else "0" for name in reversed(Player.Name)) and int(wjscore) in (-1, self.wjscore):
                     break
             for name, count, _ in more_itertools.chunked(els.split(","), 3):
                 if name == ''.join(str(i) for i in self._all_dice):
@@ -121,7 +121,7 @@ class AI(Player):
             with open(config.rel(f"yahtzeeAI\\exp{12 - len(self.scoreboard)}-0.csv"), encoding="utf-8") as f:
                 for line in f:
                     stat, wjscore, _, els = line.split(",", 3)
-                    if stat == ''.join("1" if name in self.scoreboard else "0" for name in reversed(Player.Name)) and int(wjscore) == self.wjscore:
+                    if stat == ''.join("1" if name in self.scoreboard else "0" for name in reversed(Player.Name)) and int(wjscore) in (-1, self.wjscore):
                         break
                 for name, count, _ in more_itertools.chunked(els.split(","), 3):
                     if name == ''.join(str(i) for i in self._all_dice):
@@ -136,27 +136,32 @@ class AI(Player):
 async def yahtzee_aishow(session: CommandSession):
     """快艇骰子AI表演，仅限管理员使用。操作间隔可加在指令后。"""
     try:
-        time = 2 if session.current_arg_text.strip() == "" else float(session.current_arg_text.strip())
+        time = 4 if session.current_arg_text.strip() == "" else float(session.current_arg_text.strip())
     except ValueError:
-        time = 2
-    if time < 0.5:
-        session.finish("操作间隔不可小于0.5s" + config.句尾)
+        time = 4
+    if time < 1:
+        session.finish("操作间隔不可小于1s" + config.句尾)
     if await session.aget(prompt=f"将开始快艇骰子AI表演，操作间隔为{time}s，输入确认继续，输入返回退出。", arg_filters=[extractors.extract_text]) != "确认":
         session.finish("已退出。")
     ai = AI()
     for i0 in range(12):
         ai.roll()
         for _ in range(3):
-            await session.send(f'AI扔出骰子{ai.float_dice}，已固定骰子{ai.fixed_dice}\n剩余重扔次数：{ai.rolled_count}')
+            if ai.rolled_count == 0:
+                await session.send(f'AI骰子为{ai.fixed_dice}\n剩余重扔次数：0')
+            else:
+                await session.send(f'AI扔出骰子{ai.float_dice}，已固定骰子{ai.fixed_dice}\n剩余重扔次数：{ai.rolled_count}')
             await sleep(time)
             do, which = ai.process()
             if do == "计分":
                 choose = Player.Name(which[0])
                 ai.score(choose)
                 await session.send("AI计分" + choose.name + ("。" if i0 == 11 else "，当前得分：\n" + ai.str_scoreboard))
+                await sleep(1)
                 break
             else:
                 await session.send("AI重扔" + ",".join(str(i) for i in which) + "。")
+                await sleep(1)
                 ai.unfix(which)
                 ai.roll()
     await session.send("最终得分：\n" + ai.str_scoreboard)
