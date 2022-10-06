@@ -97,6 +97,9 @@ class Player:
     def float_dice(self):
         return '无' if len(self._float_dice) == 0 else ",".join(map(str, self._float_dice))
     @property
+    def all_dice(self):
+        return '无' if len(a := self._all_dice) == 0 else ",".join(map(str, a))
+    @property
     def str_scoreboard(self):
         return '  '.join(f'{name.name}：{self.scoreboard[name]}分' for name in Player.Name if name in self.scoreboard) + f'\n总分：{self.final_score}分'
     @property
@@ -156,7 +159,7 @@ async def yahtzee_aishow(session: CommandSession):
             if ai.rolled_count == 0:
                 await session.send(f'AI骰子为{ai.fixed_dice}\n剩余重扔次数：0')
             else:
-                await session.send(f'AI扔出骰子{ai.float_dice}，已固定骰子{ai.fixed_dice}\n剩余重扔次数：{ai.rolled_count}')
+                await session.send(f'AI扔出骰子{ai.float_dice}，已固定骰子{ai.fixed_dice}，总骰子{ai.all_dice}\n剩余重扔次数：{ai.rolled_count}')
             await sleep(time)
             do, which = ai.process()
             if do == "计分":
