@@ -106,7 +106,7 @@ class Player:
 
 class AI(Player):
     def process(self) -> tuple[str, list[int]]:
-        with open(config.rel(f"yahtzeeAI\\exp{12 - len(self.scoreboard)}-{self.rolled_count}.csv"), encoding="uf-8") as f:
+        with open(config.rel(f"yahtzeeAI\\exp{12 - len(self.scoreboard)}-{self.rolled_count}.csv"), encoding="utf-8") as f:
             for line in f:
                 stat, wjscore, _, els = line.split(",", 4)
                 if stat == ''.join("1" if name in self.scoreboard else "0" for name in reversed(Player.Name)) and int(wjscore) == self.wjscore:
