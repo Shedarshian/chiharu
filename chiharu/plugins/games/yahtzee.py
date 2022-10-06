@@ -118,7 +118,7 @@ class AI(Player):
         if self.rolled_count == 0:
             return "计分", [saved_count + 1]
         elif saved_count == 0:
-            with open(config.rel(f"yahtzeeAI\\exp{12 - len(self.scoreboard)}-0.csv"), encoding="uf-8") as f:
+            with open(config.rel(f"yahtzeeAI\\exp{12 - len(self.scoreboard)}-0.csv"), encoding="utf-8") as f:
                 for line in f:
                     stat, wjscore, _, els = line.split(",", 3)
                     if stat == ''.join("1" if name in self.scoreboard else "0" for name in reversed(Player.Name)) and int(wjscore) == self.wjscore:
