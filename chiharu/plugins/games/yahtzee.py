@@ -116,7 +116,7 @@ class AI(Player):
                     saved_count = int(count)
                     break
         if self.rolled_count == 0:
-            return "计分", [saved_count]
+            return "计分", [saved_count + 1]
         elif saved_count == 0:
             with open(config.rel(f"yahtzeeAI\\exp{12 - len(self.scoreboard)}-0.csv"), encoding="uf-8") as f:
                 for line in f:
@@ -127,7 +127,7 @@ class AI(Player):
                     if name == ''.join(str(i) for i in self._all_dice):
                         saved_count = int(count)
                         break
-            return "计分", [saved_count]
+            return "计分", [saved_count + 1]
         else:
             return "重扔", [self._all_dice[i] for i, x in enumerate(reversed(f"{saved_count:0>5b}")) if x == "1"]
 
