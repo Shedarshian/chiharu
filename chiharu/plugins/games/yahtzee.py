@@ -150,7 +150,7 @@ async def yahtzee_aishow(session: CommandSession):
         time = 4
     if time < 1:
         session.finish("操作间隔不可小于1s" + config.句尾)
-    if await session.aget(prompt=f"将开始快艇骰子AI表演，操作间隔为{time}s，输入确认继续，输入返回退出。", arg_filters=[extractors.extract_text]) != "确认":
+    if await session.aget(prompt=f"将开始快艇骰子AI表演，操作间隔为{time}s，输入“确认”继续，输入返回退出。", arg_filters=[extractors.extract_text]) != "确认":
         session.finish("已退出。")
     ai = AI()
     for i0 in range(12):
@@ -173,6 +173,8 @@ async def yahtzee_aishow(session: CommandSession):
                 await sleep(1)
                 ai.unfix(which)
                 ai.roll()
+        await session.aget(prompt="请输入“继续”继续。", arg_filters=[extractors.extract_text, 
+                    validators.ensure_true(lambda s: s == "继续")])
     await session.send("最终得分：\n" + ai.str_scoreboard)
 
 yahtzee = GameSameGroup('yahtzee')
