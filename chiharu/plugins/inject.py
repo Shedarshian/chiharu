@@ -200,7 +200,7 @@ class CommandGroup:
 from . import config
 def on_command(name: Union[str, CommandName_T], *,
                aliases: Union[Iterable[str], str] = (),
-               permission: int = permission.EVERYBODY,
+               permission: Union[PermissionPolicy_T, Iterable[PermissionPolicy_T]] = ...,
                patterns: Patterns_T = (),
                only_to_me: bool = True,
                privileged: bool = False,
@@ -234,6 +234,10 @@ def on_command(name: Union[str, CommandName_T], *,
     :param display_parents: can be displayed in other command's help content
     :param display_id: order in parents' help contents
     """
+    from nonebot import permission as perm
+    real_permission = perm.aggregate_policy(permission) \
+        if isinstance(permission, Iterable) else permission
+
     if type(args) is str:
         args = (args,)
     if session_class is not None and not issubclass(session_class,
@@ -257,7 +261,7 @@ def on_command(name: Union[str, CommandName_T], *,
                 return await func_original(session, *args, **kwargs)
         func = _f
 
-        cmd = MyCommand(name=cmd_name, func=func, permission=...,
+        cmd = MyCommand(name=cmd_name, func=func, permission=real_permission,
                       only_to_me=only_to_me, privileged=privileged,
                       expire_timeout=expire_timeout, run_timeout=run_timeout, session_class=session_class,
                       des=func.__doc__,
