@@ -1,4 +1,5 @@
 from asyncio import sleep
+from ctypes import Union
 from distutils.cmd import Command
 import random, itertools, more_itertools
 from collections import Counter
@@ -104,8 +105,31 @@ class Player:
         return '  '.join(f'{name.name}：{t[name]}分' for name in Player.Name if name not in self.scoreboard)
 
 class AI(Player):
-    async def process(self):
-        pass
+    def process(self) -> tuple[str, list[int]]:
+        with open(config.rel(f"yahtzeeAI/exp{12 - len(self.scoreboard)}-{self.rolled_count}.csv"), encoding="uf-8") as f:
+            for line in f:
+                stat, wjscore, _, els = line.split(",", 4)
+                if stat == ''.join("1" if name in self.scoreboard else "0" for name in reversed(Player.Name)) and int(wjscore) == self.wjscore:
+                    break
+            for name, count, _ in more_itertools.chunked(els.split(","), 3):
+                if name == ''.join(str(i) for i in self._all_dice):
+                    saved_count = int(count)
+                    break
+        if self.rolled_count == 0:
+            return "计分", [saved_count]
+        elif saved_count == 0:
+            with open(config.rel(f"yahtzeeAI/exp{12 - len(self.scoreboard)}-0.csv"), encoding="uf-8") as f:
+                for line in f:
+                    stat, wjscore, _, els = line.split(",", 4)
+                    if stat == ''.join("1" if name in self.scoreboard else "0" for name in reversed(Player.Name)) and int(wjscore) == self.wjscore:
+                        break
+                for name, count, _ in more_itertools.chunked(els.split(","), 3):
+                    if name == ''.join(str(i) for i in self._all_dice):
+                        saved_count = int(count)
+                        break
+            return "计分", [saved_count]
+        else:
+            return "重扔", [self._all_dice[i] for i, x in enumerate(reversed(f"{saved_count:0>5b}")) if x == "1"]
 
 @on_command(("play", "yahtzee", "aishow"), hide=True, display_parents='game', permission=permission.GROUP_ADMIN)
 async def yahtzee_aishow(session: CommandSession):
@@ -121,37 +145,19 @@ async def yahtzee_aishow(session: CommandSession):
     ai = AI()
     for i0 in range(12):
         ai.roll()
-        for _ in range(2):
+        for _ in range(3):
             await session.send(f'AI扔出骰子{ai.float_dice}，已固定骰子{ai.fixed_dice}\n剩余重扔次数：{ai.rolled_count}')
-            with open(config.rel(f"yahtzeeAI/exp{12 - i0}-{ai.rolled_count}.csv"), encoding="uf-8") as f:
-                for line in f:
-                    stat, wjscore, _, els = line.split(",", 4)
-                    if stat == ''.join("1" if name in ai.scoreboard else "0" for name in reversed(Player.Name)) and int(wjscore) == ai.wjscore:
-                        break
-                for name, count, _ in more_itertools.chunked(els.split(","), 3):
-                    if name == ''.join(str(i) for i in ai._all_dice):
-                        saved_count = count
-                        break
-            if saved_count == 0:
-                break
-            to_reroll = [ai._all_dice[i] for i, x in enumerate(reversed(f"{saved_count:0>5b}")) if x == "1"]
             await sleep(time)
-            await session.send("AI重扔" + ",".join(to_reroll) + "。")
-            ai.unfix(to_reroll)
-            ai.roll()
-        with open(config.rel(f"yahtzeeAI/exp{12 - i0}-0.csv"), encoding="uf-8") as f:
-            for line in f:
-                stat, wjscore, _, els = line.split(",", 4)
-                if stat == ''.join("1" if name in ai.scoreboard else "0" for name in reversed(Player.Name)) and int(wjscore) == ai.wjscore:
-                    break
-            for name, count, _ in more_itertools.chunked(els.split(","), 3):
-                if name == ''.join(str(i) for i in ai._all_dice):
-                    saved_count = count
-                    break
-        choose = Player.Name(int(saved_count))
-        await sleep(time)
-        ai.score(choose)
-        await session.send("AI计分" + choose.name + ("。" if i0 == 11 else "，当前得分：\n" + ai.str_scoreboard))
+            do, which = ai.process()
+            if do == "计分":
+                choose = Player.Name(which[0])
+                ai.score(choose)
+                await session.send("AI计分" + choose.name + ("。" if i0 == 11 else "，当前得分：\n" + ai.str_scoreboard))
+                break
+            else:
+                await session.send("AI重扔" + ",".join(str(i) for i in which) + "。")
+                ai.unfix(which)
+                ai.roll()
     await session.send("最终得分：\n" + ai.str_scoreboard)
 
 yahtzee = GameSameGroup('yahtzee')
