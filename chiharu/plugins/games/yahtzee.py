@@ -106,7 +106,7 @@ class Player:
 
 class AI(Player):
     def process(self) -> tuple[str, list[int]]:
-        with open(config.rel(f"yahtzeeAI/exp{12 - len(self.scoreboard)}-{self.rolled_count}.csv"), encoding="uf-8") as f:
+        with open(config.rel(f"yahtzeeAI\\exp{12 - len(self.scoreboard)}-{self.rolled_count}.csv"), encoding="uf-8") as f:
             for line in f:
                 stat, wjscore, _, els = line.split(",", 4)
                 if stat == ''.join("1" if name in self.scoreboard else "0" for name in reversed(Player.Name)) and int(wjscore) == self.wjscore:
@@ -118,7 +118,7 @@ class AI(Player):
         if self.rolled_count == 0:
             return "计分", [saved_count]
         elif saved_count == 0:
-            with open(config.rel(f"yahtzeeAI/exp{12 - len(self.scoreboard)}-0.csv"), encoding="uf-8") as f:
+            with open(config.rel(f"yahtzeeAI\\exp{12 - len(self.scoreboard)}-0.csv"), encoding="uf-8") as f:
                 for line in f:
                     stat, wjscore, _, els = line.split(",", 4)
                     if stat == ''.join("1" if name in self.scoreboard else "0" for name in reversed(Player.Name)) and int(wjscore) == self.wjscore:
@@ -131,7 +131,8 @@ class AI(Player):
         else:
             return "重扔", [self._all_dice[i] for i, x in enumerate(reversed(f"{saved_count:0>5b}")) if x == "1"]
 
-@on_command(("play", "yahtzee", "aishow"), hide=True, display_parents='game', permission=permission.GROUP_ADMIN or permission.GROUP_OWNER, only_to_me=False)
+@on_command(("play", "yahtzee", "aishow"), hide=True, display_parents='game', permission=permission.GROUP_ADMIN | permission.GROUP_OWNER, only_to_me=False)
+@config.ErrorHandle
 async def yahtzee_aishow(session: CommandSession):
     """快艇骰子AI表演，仅限管理员使用。操作间隔可加在指令后。"""
     try:
