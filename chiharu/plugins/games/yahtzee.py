@@ -131,7 +131,7 @@ class AI(Player):
         else:
             return "重扔", [self._all_dice[i] for i, x in enumerate(reversed(f"{saved_count:0>5b}")) if x == "1"]
 
-@on_command(("play", "yahtzee", "aishow"), hide=True, display_parents='game', permission=permission.GROUP_ADMIN, only_to_me=False)
+@on_command(("play", "yahtzee", "aishow"), hide=True, display_parents='game', permission=permission.GROUP_ADMIN or permission.GROUP_OWNER, only_to_me=False)
 async def yahtzee_aishow(session: CommandSession):
     """快艇骰子AI表演，仅限管理员使用。操作间隔可加在指令后。"""
     try:
