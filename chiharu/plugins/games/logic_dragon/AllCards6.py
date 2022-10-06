@@ -342,24 +342,24 @@ class CEnvelop160(Card):
 class CVoiceControl161(Card):
     id = 161
     name = "声控"
-    description = "摸一张指定的麻将牌，然后50%概率抽一张牌。"
+    _description = "摸一张指定的麻将牌，然后50%概率抽一张牌。"
     positive = 1
     pack = Pack.misc
     async def use(self, user: User) -> None:
         f"{await MajOneHai.draw_maj([MajOneHai(s) for s in user.data.maj[0]], [MajOneHai(s).hai for s in user.data.maj[1]])}"
-        if await user.choose():
-            hai = (await user.buf.aget(prompt=f"你的麻将牌是：{await MajOneHai.draw_maj([MajOneHai(s) for s in user.data.maj[0]], [MajOneHai(s).hai for s in user.data.maj[1]])}，请指定任意一张麻将牌摸取：\n",
-                arg_filters=[
-                        lambda s: [r for r in re.findall(r'\d[spmz]', str(s))],
-                        validators.fit_size(1, 1, message="请输入一张牌。")
-                    ]))[0]
-            h = MajOneHai(hai)
-            await user.draw_maj(h)
-        b = random.random()
-        if b < 0.5 + 0.02 * user.data.luck:
-            await user.draw(1, replace_prompt=user.char + f"声控的很大声，一张牌{'幸运地' if b > 0.5 else ''}从天花板上掉了下来，竟然是：")
+        # if await user.choose():
+        #     hai = (await user.buf.aget(prompt=f"你的麻将牌是：{await MajOneHai.draw_maj([MajOneHai(s) for s in user.data.maj[0]], [MajOneHai(s).hai for s in user.data.maj[1]])}，请指定任意一张麻将牌摸取：\n",
+        #         arg_filters=[
+        #                 lambda s: [r for r in re.findall(r'\d[spmz]', str(s))],
+        #                 validators.fit_size(1, 1, message="请输入一张牌。")
+        #             ]))[0]
+        #     h = MajOneHai(hai)
+        #     await user.draw_maj(h)
+        # b = random.random()
+        # if b < 0.5 + 0.02 * user.data.luck:
+        #     await user.draw(1, replace_prompt=user.char + f"声控的很大声，一张牌{'幸运地' if b > 0.5 else ''}从天花板上掉了下来，竟然是：")
 
-class zhanxingshu(_card):
+class CAstrology162(Card):
     id = 162
     name = "占星术"
     _description = "一周之内只能使用一次本卡牌。使用后可以自选一个星座，将本周的星座改变。"
@@ -368,28 +368,28 @@ class zhanxingshu(_card):
     async def use(self, user: User) -> None:
         if await user.choose():
             user.SendCardUse(self, choose = True)
-            await user.buf.flush()
-            num = (await user.buf.aget(prompt="", arg_filters=[
-                extractors.extract_text,
-                check_handcard(user),
-                lambda s: [int(c) for c in re.findall(r'\-?\d+', str(s))],
-                validators.fit_size(1, 1, message="请输入正确的数目。"),
-                validators.ensure_true(lambda l: l[0] in list(Sign), message="请输入存在的星座编号。")
-            ]))[0]
-            user.log << f"选择了{num}。"
-            global_state["sign"] = num
-            user.send_log(f"改变了当前星座至{Sign(num).name_ch}{句尾}")
-            save_global_state()
-            await Userme(user).add_status('\\')
-class zhanxingshu_exhaust(_statusnull):
+            # await user.buf.flush()
+            # num = (await user.buf.aget(prompt="", arg_filters=[
+            #     extractors.extract_text,
+            #     check_handcard(user),
+            #     lambda s: [int(c) for c in re.findall(r'\-?\d+', str(s))],
+            #     validators.fit_size(1, 1, message="请输入正确的数目。"),
+            #     validators.ensure_true(lambda l: l[0] in list(Sign), message="请输入存在的星座编号。")
+            # ]))[0]
+            # user.log << f"选择了{num}。"
+            # global_state["sign"] = num
+            # user.send_log(f"改变了当前星座至{Sign(num).name_ch}{句尾}")
+            # save_global_state()
+            await user.ume.AddStatus(SAstrologyExhaust102())
+class SAstrologyExhaust102(StatusNullStack):
     id = 102
     name = "星象已尽"
     _description = "本周星座已被改变。"
     isDebuff = True
     isRemoveable = False
     async def OnUserUseCard(self, user: 'User', card: 'Card') -> Tuple[bool, bool]:
-        if card is zhanxingshu:
+        if isinstance(card, CAstrology162()):
             return False, False
         return True, False
     def register(self) -> Dict[UserEvt, int]:
-        return {UserEvt.OnUserUseCard: Priority.OnUserUseCard.zhanxingshu}
+        return {UserEvt.OnUserUseCard: Priority.OnUserUseCard.astrology}

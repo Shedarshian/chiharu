@@ -33,7 +33,7 @@ class UserEvt(Enum):
 
 class Priority:  # 依照每个优先级从前往后find，而不是iterate
     class OnUserUseCard(IntEnum):
-        zhanxingshu = auto()
+        astrology = auto()
         temperance = auto()
         cantuse = auto()
         xingyunhufus = auto()
