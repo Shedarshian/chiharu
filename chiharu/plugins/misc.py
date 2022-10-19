@@ -9,6 +9,7 @@ from nonebot.message import escape
 from .inject import on_command
 from . import config
 from .birth import myFormatter
+from .helper.dice.dice import parser, ParserError
 from . import math as cmath
 from .games import maj
 from .games.achievement import achievement
@@ -862,18 +863,10 @@ async def roll(session: CommandSession):
     """随机骰子。
     使用例：-misc.r 3d20+d6+2d
     d前不填默认为1，d后不填默认为100"""
-    l = session.current_arg_text.split('+')
-    ret = []
-    for c in l:
-        match = re.match(r'^(\d*)d(\d*)$', c.strip())
-        if not match:
-            session.finish('语法错误')
-        n = int(match.group(1) or 1)
-        d = int(match.group(2) or 100)
-        if n >= 100:
-            session.finish('骰子过多')
-        for i in range(n):
-            ret.append(random.randint(1, d))
-        if len(ret) >= 100:
-            session.finish('骰子过多')
-    await session.send('骰子结果为：\n' + '+'.join(str(c) for c in ret) + '=' + str(sum(ret)))
+    try:
+        l = parser.parse(session.current_arg_text).compute()
+    except ParserError as e:
+        await session.send('SyntaxError: ' + str(e))
+    except Exception as e:
+        await session.send(type(e).__name__ + ': ' + str(e))
+    await session.send('骰子结果为：\n' + '\n='.join(l))
