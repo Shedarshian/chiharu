@@ -9,7 +9,6 @@ from nonebot.message import escape
 from .inject import on_command
 from . import config
 from .birth import myFormatter
-from .helper.dice.dice import parser, ParserError
 from . import math as cmath
 from .games import maj
 from .games.achievement import achievement
@@ -863,6 +862,7 @@ async def roll(session: CommandSession):
     """随机骰子。
     使用例：-misc.r 3d20+d6+2d
     d前不填默认为1，d后不填默认为100"""
+    from .helper.dice.dice import parser, ParserError
     try:
         l = parser.parse(session.current_arg_text).compute()
     except ParserError as e:
