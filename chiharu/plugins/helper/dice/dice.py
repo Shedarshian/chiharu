@@ -164,7 +164,7 @@ class ExpressionParser:
         if not p or p.type == "EOF":
             raise ParserError("Unexpected end of file.")
         else:
-            raise ParserError('')
+            raise ParserError(str(p))
     def build(self, **kwargs):
         self.parser = yacc.yacc(module=self, **kwargs)
     def parse(self, string, lexer=lexer) -> DiceTree:
