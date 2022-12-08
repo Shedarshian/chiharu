@@ -319,6 +319,7 @@ async def add_ai(session: CommandSession):
             return
     if group_id in yahtzee.uncomplete and qq in yahtzee.uncomplete[group_id]['players']:
         yahtzee.uncomplete[group_id]["hasai"] = True
+        await session.send("已为此局游戏添加ai。")
     else:
         await session.send('请先加入游戏再添加ai。')
         return
