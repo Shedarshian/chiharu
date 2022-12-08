@@ -49,7 +49,7 @@ async def SaveSub(session: CommandSession):
     """存入mbf子程序。
     可用选项：
         -d, --description：存入描述字符串。"""
-    opts, args = getopt.gnu_getopt(session.args['argv'], 'd:', ['description='])
+    opts, args = getopt.gnu_getopt(session.state['argv'], 'd:', ['description='])
     des = None
     for o, a in opts:
         if o in ('-d', '--description'):
@@ -128,11 +128,11 @@ async def Run(session: CommandSession):
 async def _(session: CommandSession):
     content = session.current_arg_text
     if content.find('\n') == -1:
-        session.args['strins'] = content
-        session.args['strin'] = ""
+        session.state['strins'] = content
+        session.state['strin'] = ""
     else:
-        session.args['strins'] = content[:content.find('\n') + 1]
-        session.args['strin'] = content[content.find('\n') + 1:]
+        session.state['strins'] = content[:content.find('\n') + 1]
+        session.state['strin'] = content[content.find('\n') + 1:]
 
 def save():
     global mbfSub
