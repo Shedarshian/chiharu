@@ -110,6 +110,8 @@ ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 with open(config.rel("boss_check.txt")) as f:
     BossCheck = bool(int(f.readline().strip('\n')))
+with open(config.rel("boss_check_begin.txt")) as f:
+    BeginCheck = bool(int(f.readline().strip('\n')))
 with open(config.rel("QAQ.txt")) as f:
     p = f.readline().strip('\n')
     ssh.connect("lxslc7.ihep.ac.cn", 22, 'qity', p)
@@ -155,16 +157,17 @@ async def boss_reboot(session: CommandSession):
     isLoggedin = True
     await session.send('boss rebooted!')
 
-# @on_command(('boss', 'begin'), only_to_me=False, hide=True)
+@on_command(('boss', 'begin'), only_to_me=False, hide=True)
 @config.ErrorHandle
 async def boss_begin(session: CommandSession):
-    if not isLoggedin:
-        await session.send('not logged in!')
-        return
-    BossCheck = True
-    with open(config.rel("boss_check.txt"), 'w') as f:
-        f.write('1')
-    await session.send('boss check begin!')
+    global BeginCheck
+    BeginCheck = bool(session.current_arg_text)
+    with open(config.rel("boss_check_begin.txt"), 'w') as f:
+        f.write(str(int(BeginCheck)))
+    if BeginCheck:
+        await session.send('boss check begin!')
+    else:
+        await session.send('boss check end!')
 
 # @on_command(('boss', 'process'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
@@ -205,7 +208,9 @@ class Status:
 
 @scheduler.scheduled_job('cron', id='check_boss', minute='00-57/3')
 async def check_boss():
-    global BossCheck, isLoggedin, told_not_logged_in, interact
+    global BeginCheck, BossCheck, isLoggedin, told_not_logged_in, interact
+    if not BeginCheck:
+        return
     bot = get_bot()
     if not isLoggedin:
         if not told_not_logged_in:
