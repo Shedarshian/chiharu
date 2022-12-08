@@ -215,13 +215,16 @@ async def yahtzee_begin_complete(session: CommandSession, data: Dict[str, Any]):
             name = c['card']
     except aiocqhttp.exceptions.ActionFailed:
         name = str(qq)
-    if 'names' in data:
-        data['names'].append(name)
-    else:
-        data['names'] = [name]
     if "hasai" in data and data["hasai"]:
-        data['players'].append(AI())
-    await session.send(f'玩家{name}已参与匹配，游戏开始，任何时候输入"查看分数"可以查看全部玩家当前分数')
+        data['ai'] = AI()
+    if qq not in data['players']:
+        if 'names' in data:
+            data['names'].append(name)
+        else:
+            data['names'] = [name]
+        await session.send(f'玩家{name}已参与匹配，游戏开始，任何时候输入"查看分数"可以查看全部玩家当前分数')
+    else:
+        await session.send('游戏开始，任何时候输入"查看分数"可以查看全部玩家当前分数')
     #开始游戏
     data['boards'] = [Player() for qq in data['players']]
     data['current_player'] = 0
@@ -260,44 +263,45 @@ async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func
             return
         await session.send(f'玩家{data["names"][data["current_player"]]}计分 {c}，{ret}点。')
         data['current_player'] += 1
-        p = data['boards'][data['current_player']]
-        if isinstance(p, AI):
-            p.roll()
-            for _ in range(3):
-                if p.rolled_count == 0:
-                    await session.send(f'AI骰子为{p.fixed_dice}\n剩余重扔次数：0')
-                else:
-                    await session.send(f'AI扔出骰子{p.float_dice}，已固定骰子{p.fixed_dice}，总骰子{p.all_dice}\n剩余重扔次数：{p.rolled_count}')
-                await sleep(4)
-                do, which = p.process()
-                if do == "计分":
-                    choose = Player.Name(which[0])
-                    p.score(choose)
-                    await session.send("AI计分" + choose.name + "，当前得分：\n" + p.str_scoreboard)
-                    await sleep(1)
-                    break
-                else:
-                    await session.send("AI重扔" + ",".join(str(i) for i in which) + "。")
-                    await sleep(1)
-                    p.unfix(which)
-                    p.roll()
-            data['current_player'] += 1
-        else:
-            p.roll()
         if data['current_player'] >= len(data['players']):
             data['current_player'] = 0
+            if data["hasai"]:
+                ai: AI = data['ai']
+                ai.roll()
+                for _ in range(3):
+                    if ai.rolled_count == 0:
+                        await session.send(f'AI骰子为{ai.fixed_dice}\n剩余重扔次数：0')
+                    else:
+                        await session.send(f'AI扔出骰子{ai.float_dice}，已固定骰子{ai.fixed_dice}，总骰子{ai.all_dice}\n剩余重扔次数：{ai.rolled_count}')
+                    await sleep(4)
+                    do, which = ai.process()
+                    if do == "计分":
+                        choose = Player.Name(which[0])
+                        ai.score(choose)
+                        await session.send("AI计分" + choose.name + "，当前得分：\n" + ai.str_scoreboard)
+                        await sleep(1)
+                        break
+                    else:
+                        await session.send("AI重扔" + ",".join(str(i) for i in which) + "。")
+                        await sleep(1)
+                        ai.unfix(which)
+                        ai.roll()
             if len(data['boards'][data['current_player']].scoreboard) == 12:
-                await session.send('游戏结束，计分板如下：\n' + '\n'.join(f'玩家{name}分数：\n{board.str_scoreboard}\n总分为：{board.final_score}分' for (name, board) in zip(data['names'], data['boards'])))
+                await session.send('游戏结束，计分板如下：\n' + '\n'.join(f'玩家{name}分数：\n{board.str_scoreboard}\n总分为：{board.final_score}分' for (name, board) in zip(data['names'], data['boards'])) + (f'\nAI分数：\n{data["ai"].str_scoreboard}\n总分为：{data["ai"].final_score}分' if data["hasai"] else ""))
                 f = [board.final_score for board in data['boards']]
+                if data["hasai"]:
+                    f.append(data["ai"].final_score)
                 m = max(f)
-                await session.send('玩家' + '，'.join([data['names'][i] for i, x in enumerate(f) if x == m]) + '胜出！')
+                await session.send('玩家' + '，'.join([(data['names'] + ["AI"])[i] for i, x in enumerate(f) if x == m]) + '胜出！')
                 if m > 200:
                     for i, x in enumerate(f):
-                        if x == m:
+                        if i != len(f) - 1 and x == m:
                             if achievement.yahtzee.get(str(data['players'][i])):
                                 await session.send(achievement.yahtzee.get_str())
                 await delete_func()
                 return
+        p = data['boards'][data['current_player']]
+        p.roll()
         await session.send(f'轮到玩家{data["names"][data["current_player"]]}，扔出骰子{p.float_dice}，已固定骰子{p.fixed_dice}\n剩余重扔次数：{p.rolled_count}\n输入如"重扔 5,5,6"重扔，如"计分 快艇"计分')
     elif command == '查看分数' or command == '查询分数':
         await session.send('\n'.join(f'玩家{name}分数：\n{board.str_scoreboard}' for (name, board) in zip(data['names'], data['boards'])))
