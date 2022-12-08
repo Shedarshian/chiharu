@@ -87,7 +87,7 @@ async def Time(session: CommandSession):
         future = _Run(session.get('strins'), session.get('strin'))
         with ThreadPoolExecutor() as pool:
             strout, _break, runtime = await loop.run_in_executor(pool, future.result)
-    except (TimeoutError, _base.CancelledError):
+    except (asyncio.exceptions.TimeoutError, TimeoutError, _base.CancelledError):
         session.finish("time out!")
     except ZeroDivisionError:
         await session.send("ZeroDivisionError: integer division or modulo by zero")
