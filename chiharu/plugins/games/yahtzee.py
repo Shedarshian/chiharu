@@ -219,6 +219,8 @@ async def yahtzee_begin_complete(session: CommandSession, data: Dict[str, Any]):
         data['names'].append(name)
     else:
         data['names'] = [name]
+    if "hasai" in data and data["hasai"]:
+        data['players'].append(AI())
     await session.send(f'玩家{name}已参与匹配，游戏开始，任何时候输入"查看分数"可以查看全部玩家当前分数')
     #开始游戏
     data['boards'] = [Player() for qq in data['players']]
@@ -258,6 +260,30 @@ async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func
             return
         await session.send(f'玩家{data["names"][data["current_player"]]}计分 {c}，{ret}点。')
         data['current_player'] += 1
+        p = data['boards'][data['current_player']]
+        if isinstance(p, AI):
+            p.roll()
+            for _ in range(3):
+                if p.rolled_count == 0:
+                    await session.send(f'AI骰子为{p.fixed_dice}\n剩余重扔次数：0')
+                else:
+                    await session.send(f'AI扔出骰子{p.float_dice}，已固定骰子{p.fixed_dice}，总骰子{p.all_dice}\n剩余重扔次数：{p.rolled_count}')
+                await sleep(4)
+                do, which = p.process()
+                if do == "计分":
+                    choose = Player.Name(which[0])
+                    p.score(choose)
+                    await session.send("AI计分" + choose.name + "，当前得分：\n" + p.str_scoreboard)
+                    await sleep(1)
+                    break
+                else:
+                    await session.send("AI重扔" + ",".join(str(i) for i in which) + "。")
+                    await sleep(1)
+                    p.unfix(which)
+                    p.roll()
+            data['current_player'] += 1
+        else:
+            p.roll()
         if data['current_player'] >= len(data['players']):
             data['current_player'] = 0
             if len(data['boards'][data['current_player']].scoreboard) == 12:
@@ -272,10 +298,27 @@ async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func
                                 await session.send(achievement.yahtzee.get_str())
                 await delete_func()
                 return
-        p = data['boards'][data['current_player']]
-        p.roll()
         await session.send(f'轮到玩家{data["names"][data["current_player"]]}，扔出骰子{p.float_dice}，已固定骰子{p.fixed_dice}\n剩余重扔次数：{p.rolled_count}\n输入如"重扔 5,5,6"重扔，如"计分 快艇"计分')
     elif command == '查看分数' or command == '查询分数':
         await session.send('\n'.join(f'玩家{name}分数：\n{board.str_scoreboard}' for (name, board) in zip(data['names'], data['boards'])))
     elif command == '重新查询':
         await session.send(f'您当前扔出骰子{p.float_dice}，已固定骰子{p.fixed_dice}\n剩余重扔次数：{p.rolled_count}\n输入如"重扔 5,5,6"重扔，如"计分 快艇"计分')
+
+@on_command(("play", "yahtzee", "addai"), hide=True, only_to_me=False)
+@config.ErrorHandle
+async def add_ai(session: CommandSession):
+    try:
+        group_id = int(session.ctx['group_id'])
+    except KeyError:
+        await session.send("请在群里玩")
+        return
+    qq = int(session.ctx['user_id'])
+    if group_id in yahtzee.center:
+        for dct in yahtzee.center[group_id]:
+            await session.send('正在游戏中，无法加入ai。')
+            return
+    if group_id in yahtzee.uncomplete and qq in yahtzee.uncomplete[group_id]['players']:
+        yahtzee.uncomplete[group_id]["hasai"] = True
+    else:
+        await session.send('请先加入游戏再添加ai。')
+        return

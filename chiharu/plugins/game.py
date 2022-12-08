@@ -40,10 +40,10 @@ config.CommandGroup('play', hide=True)
 
 class GameSameGroup:
     # group_id: [{'players': [qq], 'game': GameSameGroup instance, 'anything': anything}]
-    center = {}
+    center: dict[int, list[dict[str, Any]]] = {}
     def __init__(self, name: str, can_private=False):
         # group_id: {'players': [qq], 'anything': anything}
-        self.uncomplete = {}
+        self.uncomplete: dict[int, dict[str, Any]] = {}
         self.name = name
         self.can_private = can_private
     def begin_uncomplete(self, command: Iterable[str], player: Tuple[int, int]):
@@ -138,6 +138,7 @@ class GameSameGroup:
                     bot = get_bot()
                     for group in config.group_id_dict['log']:
                         await bot.send_group_msg(group_id=group, message='%s begin in group %s' % (self.name, group_id))
+            return _f
         return _
     def end(self, end_command: Iterable[str]):
         self.end_command = end_command
