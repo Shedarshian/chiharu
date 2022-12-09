@@ -214,7 +214,7 @@ async def quiz(session: CommandSession):
         -t, --time 接六位月份码查看历史趣题。
         -a, --answer 查看答案。
     欢迎提交好的东方化（或其他IP化也欢迎~）的趣题至维护者邮箱shedarshian@gmail.com（难度至少让维护者能看懂解答）"""
-    opts, args = getopt.gnu_getopt(session.args['argv'], 't:a', ['time=', 'answer'])
+    opts, args = getopt.gnu_getopt(session.state['argv'], 't:a', ['time=', 'answer'])
     d = datetime.date.today()
     s, ans = None, False
     for o, a in opts:
