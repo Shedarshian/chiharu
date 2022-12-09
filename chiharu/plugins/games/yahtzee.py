@@ -217,6 +217,8 @@ async def yahtzee_begin_complete(session: CommandSession, data: Dict[str, Any]):
         name = str(qq)
     if "hasai" in data and data["hasai"]:
         data['ai'] = AI()
+    else:
+        data["hasai"] = False
     if qq not in data['players']:
         if 'names' in data:
             data['names'].append(name)
@@ -304,7 +306,7 @@ async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func
         p.roll()
         await session.send(f'轮到玩家{data["names"][data["current_player"]]}，扔出骰子{p.float_dice}，已固定骰子{p.fixed_dice}\n剩余重扔次数：{p.rolled_count}\n输入如"重扔 5,5,6"重扔，如"计分 快艇"计分')
     elif command == '查看分数' or command == '查询分数':
-        await session.send('\n'.join(f'玩家{name}分数：\n{board.str_scoreboard}' for (name, board) in zip(data['names'], data['boards'])))
+        await session.send('\n'.join(f'玩家{name}分数：\n{board.str_scoreboard}' for (name, board) in zip(data['names'], data['boards'])) + (f"\nAI分数：\n{data['ai'].str_scoreboard}" if data["hasai"] else ""))
     elif command == '重新查询':
         await session.send(f'您当前扔出骰子{p.float_dice}，已固定骰子{p.fixed_dice}\n剩余重扔次数：{p.rolled_count}\n输入如"重扔 5,5,6"重扔，如"计分 快艇"计分')
 
