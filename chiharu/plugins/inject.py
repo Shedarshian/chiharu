@@ -271,7 +271,7 @@ def on_command(name: Union[str, CommandName_T], *,
                       args=args, display_id=display_id)
         if shell_like:
             async def shell_like_args_parser(session):
-                session.args['argv'] = shlex.split(session.current_arg)
+                session.state['argv'] = shlex.split(session.current_arg)
 
             cmd.args_parser_func = shell_like_args_parser
         
