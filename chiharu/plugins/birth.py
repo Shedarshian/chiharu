@@ -32,7 +32,7 @@ async def CheckSeiyuu(session: CommandSession):
     """查询声优信息。不止一个时返回列表第count个。不给出count则列出max个供选择。
     可用选项：
         -m, --max：声优不止一个时最多列出的个数。默认为15。"""
-    opts, args = getopt.gnu_getopt(session.args['argv'], 'm:', ['max='])
+    opts, args = getopt.gnu_getopt(session.argv, 'm:', ['max='])
     max_count = 15
     for o, a in opts:
         if o in ('-m', '--max'):
@@ -108,7 +108,7 @@ async def BirthToday(session: CommandSession):
     可用范围：lovelive, imas, bandori, 227, pjsk
     可用选项：
         -d, --date：指定日期，格式为MMDD。"""
-    opts, args = getopt.gnu_getopt(session.args['argv'], 'd:', ['date='])
+    opts, args = getopt.gnu_getopt(session.argv, 'd:', ['date='])
     date = None
     for o, a in opts:
         if o in ('-d', '--date'):
@@ -123,7 +123,7 @@ async def BirthToday(session: CommandSession):
 @on_command(('birth', 'add'), only_to_me=False, hide=True, permission=permission.SUPERUSER, shell_like=True)
 @config.ErrorHandle
 async def BirthAdd(session: CommandSession):
-    month, day, *args = session.args['argv']
+    month, day, *args = session.argv
     with open(config.rel("birth.json"), encoding='utf-8') as birth_file:
         birth = json.load(birth_file)
     t = {}
