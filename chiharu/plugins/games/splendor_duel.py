@@ -1,5 +1,5 @@
-from typing import TypedDict
-import itertools, more_itertools, random
+from typing import TypedDict, Literal
+import itertools, more_itertools, random, math
 from collections import Counter
 from enum import Enum, auto
 from PIL import Image, ImageDraw, ImageChops, ImageFont
@@ -10,24 +10,6 @@ from nonebot import CommandSession
 # from ..game import GameSameGroup
 # from .achievement import achievement, cp, cp_add
 
-class Card:
-    def __init__(self, c: dict[str, str]) -> None:
-        self.id = int(c["id"])
-        self.level = int(c["level"])
-        self.point = int(c["point"])
-        self.color = c["color"]
-        self.profit = int(c["profit"])
-        self.special: str | None = c["special"]
-        self.crown = int(c["crown"] or 0)
-        self.price = Counter({r: int(c["cost_" + r.name] or 0) for r in Color.all_board_tokens()})
-def ReadCards() -> list[Card]:
-    from pathlib import Path
-    import csv
-    with (Path(__file__).parent / "splendor_duel.csv").open(encoding="utf-8-sig") as f:
-        return [Card(row) for row in csv.DictReader(f)] # type: ignore
-all_cards = ReadCards()
-def GetCard(i: int) -> Card:
-    return all_cards[i]
 class Color(Enum):
     white = auto()
     blue = auto()
@@ -49,35 +31,101 @@ class Color(Enum):
     @classmethod
     def all_cards(cls):
         return Color.white, Color.blue, Color.green, Color.red, Color.black, Color.gray
+    @property
+    def code(self):
+        return "#ffa2af" if self == Color.pink else "yellow" if self == Color.gold else self.name
+class Card:
+    def __init__(self, c: dict[str, str]) -> None:
+        self.id = int(c["id"])
+        self.level = int(c["level"])
+        self.point = int(c["point"])
+        self.color = c["color"]
+        self.profit = int(c["profit"])
+        self.special = c["special"]
+        self.crown = int(c["crown"] or 0)
+        self.price = Counter({r: int(c["cost_" + r.name] or 0) for r in Color.all_board_tokens()})
+def ReadCards() -> list[Card]:
+    from pathlib import Path
+    import csv
+    with (Path(__file__).parent / "splendor_duel.csv").open(encoding="utf-8-sig") as f:
+        return [Card(row) for row in csv.DictReader(f)] # type: ignore
+all_cards = ReadCards()
+def GetCard(i: int) -> Card:
+    return all_cards[i]
 
-def TokenImg(c: Color, num: int=1, isPrice: bool=False, outline: bool=False) -> Image:
-    img = Image.new("RGBA", (24, 24), "#00000000")
+def TokenImg(c: Color, num: int=1, isPrice: bool=False, outline: bool=True, size: int=1):
+    img = Image.new("RGBA", (24 * size, 24 * size), "#00000000")
     dr = ImageDraw.Draw(img)
-    color = "#ffa2af" if c == Color.pink else "yellow" if c == Color.gold else c.name
-    dr.ellipse((0, 0, 23, 23), fill="#f0cab2", outline=color, width=4)
+    if c == Color.gray:
+        for i, d in enumerate(Color.all_gems()):
+            dr.pieslice((3 * size, 3 * size, 21 * size - 1, 21 * size - 1), start=72 * i, end=72 * (i + 1), fill=d.code)
+    dr.ellipse((0, 0, 24 * size - 1, 24 * size - 1), fill="#f0cab2", outline=c.code, width=(5, 8)[size - 1])
     if outline:
-        dr.ellipse((0, 0, 23, 23), fill=None, outline="black", width=1)
-    if num != 1 and not isPrice:
-        font = ImageFont.truetype("msyhbd.ttc", 10)
-        dr.text((12, 12), str(num), fill="black", font=font, anchor="mm")
+        dr.ellipse((0, 0, 24 * size - 1, 24 * size - 1), fill=None, outline="black", width=1)
+    if num != 1 or isPrice:
+        font = ImageFont.truetype("msyhbd.ttc", 10 * size)
+        dr.text((12 * size, 12 * size), str(num), fill="black", font=font, anchor="mm")
     elif c == Color.pink:
-        dr.ellipse((8, 8, 15, 15), fill=color, width=0)
+        dr.ellipse((8 * size, 8 * size, 16 * size - 1, 16 * size - 1), fill=c.code, width=0)
     else:
-        dr.regular_polygon((12, 12, 5), 4 if c == Color.gold else 3, fill=color)
+        dr.regular_polygon((12 * size, 12 * size, 5 * size), 4 if c == Color.gold else 3, fill=c.code)
     return img
+CARDHEIGHT = 64
+CARDWIDTH = 128
 def CardImg(c: Card):
-    img = Image.new("RGBA", (128, 64), "#00000000")
+    img = Image.new("RGBA", (CARDWIDTH, CARDHEIGHT), "#00000000")
     dr = ImageDraw.Draw(img)
-    color = "#ffa2af" if c.color == "pink" else "yellow" if c.color == "gold" else "gray" if c.color == "imitate" else "silver" if c.color == "white" else c.color
+    color = "#ffa2af" if c.color == "pink" else "yellow" if c.level == 3 else "gray" if c.color == "imitate" else "silver" if c.color == "white" else c.color
     dr.rounded_rectangle((0, 0, 127, 40), radius=8, fill=color, outline="black", width=1)
-    dr.rounded_rectangle((0, 24, 127, 64), radius=8, fill="white", outline="black", width=1)
+    dr.rounded_rectangle((0, 24, 127, 63), radius=8, fill="white", outline="black", width=1)
     dr.rectangle((1, 24, 126, 31), fill=color)
-    if c.color == "imitate":
-        pass
-    else:
-        for i in range(c.profit):
-            token = TokenImg(Color[c.color], outline=True)
-            img.paste(token, (100 - 24 * i, 4))
+    # upper right corner: profit
+    for i in range(c.profit):
+        token = TokenImg(Color.gray if c.color == "imitate" else Color[c.color])
+        img.alpha_composite(token, (100 - 20 * i, 4))
+    # upper middle: crown
+    if c.crown != 0:
+        dr.regular_polygon((64, 16, 12), 5, fill="yellow")
+        if c.crown != 1:
+            font = ImageFont.truetype("msyhbd.ttc", 10)
+            dr.text((64, 16), str(c.crown), "black", font, anchor="mm")
+    # upper left corner: point
+    if c.point != 0:
+        font = ImageFont.truetype("msyhbd.ttc", 24)
+        dr.text((16, 16), str(c.point), "white" if c.color in ("black", "blue") else "black", font, anchor="mm")
+    # lower left corner: special
+    if c.special != "":
+        dr.ellipse((4, 36, 28, 60), "purple")
+        font = ImageFont.truetype("msyhbd.ttc", 18)
+        match c.special:
+            case "steal":
+                dr.text((17, 48), "S", "white", font, anchor="mm")
+            case "scroll":
+                dr.text((16, 48), "P", "white", font, anchor="mm")
+            case "gem":
+                dr.regular_polygon((16, 48, 6), 3, fill="white")
+            case "turn":
+                dr.text((17, 48), "T", "white", font, anchor="mm")
+    # lower right: cost
+    for i, (d, n) in enumerate(reversed([(e, n) for e, n in c.price.items() if n != 0])):
+        token = TokenImg(d, n, True)
+        img.alpha_composite(token, (100 - 28 * i, 36))
+    # lower right: 3/6 crown
+    if c.level == 3:
+        font = ImageFont.truetype("msyhbd.ttc", 10)
+        dr.regular_polygon((114, 50, 12), 5, fill="yellow", outline="black")
+        dr.regular_polygon((86, 50, 12), 5, fill="yellow", outline="black")
+        dr.text((114, 50), "6", "black", font, anchor="mm")
+        dr.text((86, 50), "3", "black", font, anchor="mm")
+        dr.line((103, 38, 95, 62), "black", 1)
+    return img
+def CardBack(lv: int):
+    img = Image.new("RGBA", (CARDWIDTH, CARDHEIGHT), "#00000000")
+    dr = ImageDraw.Draw(img)
+    color = {0: "darkseagreen", 1: "darkorange", 2: "darkslateblue"}.get(lv, "white")
+    dr.rounded_rectangle((0, 0, 127, 63), radius=8, fill=color, outline="black", width=1)
+    for i in range(lv + 1):
+        dr.ellipse((60 + 12 * i - 6 * lv, 36, 67 + 12 * i - 6 * lv, 43), fill="white")
     return img
 
 class Player:
@@ -106,6 +154,9 @@ class Player:
     @property
     def total_tokens(self) -> int:
         return self.tokens.total()
+    @property
+    def max_card_len(self):
+        return max(len(l) for l in self.cards.values())
     
     def GetScroll(self):
         if self.board.scroll >= 1:
@@ -136,7 +187,8 @@ class Player:
             self.GetToken(i, j)
         return 1
     def RefillToken(self):
-        self.board.RefillToken()
+        if self.board.RefillToken() == -1:
+            return -1
         self.opponent.GetScroll()
         return 1
     def GetLineToken(self, i: int, j: int, i2: int=-1, j2: int=-1, i3: int=-1, j3: int=-1):
@@ -259,26 +311,88 @@ class Player:
         self.tokens.subtract(c)
         return 1
     def CheckWin(self):
-        return max(self.points.values()) >= 10 or self.crown >= 10 or self.sum_points >= 20
+        return max(n for i, n in self.points.items() if i != Color.gray) >= 10 or self.crown >= 10 or self.sum_points >= 20
+
+    def TokenImg(self):
+        img = Image.new("RGBA", (8 * 64, 2 * 64), "#00000000")
+        # 512, 128
+        m = math.ceil(self.tokens.total() / 2)
+        x = 4
+        j = 0
+        for c, n in self.tokens.items():
+            length = 28 * (n + 1)
+            if x + length >= 7 * 64:
+                x = 4
+                j = 1
+            if n != 0:
+                x += length
+            for i in range(n):
+                img.alpha_composite(TokenImg(c, size=2), (x - 28 * (i + 1), j * 64))
+        return img
+    def ReserveImg(self):
+        dist = 24
+        img = Image.new("RGBA", (3 * (CARDHEIGHT + dist), 128), "#00000000")
+        # 264, 128 无右侧空间
+        dr = ImageDraw.Draw(img)
+        for i, c in enumerate(self.reserve_cards):
+            t = CardImg(c).rotate(90, expand=1).crop((32, 0, 96, 128))
+            img.alpha_composite(t, (i * (CARDHEIGHT + dist) + dist, 0))
+            dr.text((i * (CARDHEIGHT + dist) + dist - 1, 21), "pqr"[i], "black", self.board.alpha_font, "rt")
+        return img
+    def ScrollImg(self):
+        img = Image.new("RGBA", (32, 128), "#00000000")
+        # 32, 128
+        if self.scroll > 0:
+            return img
+        dr = ImageDraw.Draw(img)
+        font = ImageFont.truetype("msyhbd.ttc", 18)
+        for i in range(self.scroll):
+            dr.ellipse((4, 4 + 32 * i, 28, 28 + 32 * i), "purple")
+            dr.text((16, 16 + 32 * i), "P", "white", font, anchor="mm")
+        return img
+    def CardImg(self):
+        wdist = 4
+        hdist = 4
+        def pos(w: float, h: float, offset: tuple[int, int]=(0, 0)):
+            return int(w * (CARDWIDTH + wdist) + wdist) + offset[0], int(h * (CARDHEIGHT // 2 + hdist) + hdist) + offset[1]
+        # 下方没有空像素
+        img = Image.new("RGBA", pos(6, 9, (0, CARDHEIGHT // 2)), "#00000000")
+        # 796, 328
+        dr = ImageDraw.Draw(img)
+        for i, (c, l) in enumerate(self.cards.items()):
+            for j, card in enumerate(l):
+                img.alpha_composite(CardImg(card), pos(i, j))
+            if i <= 4 and len(l) > 0:
+                dr.text(pos(i, 0, (-1, 21)), "FGHIJ"[i], "black", self.board.alpha_font, "rt")
+        return img
+    def Img(self, active: bool):
+        color = "lightblue" if active else "lightpink"
+        img = Image.new("RGBA", (810, 464), color)
+        img.alpha_composite(self.CardImg(), (7, 0))
+        img.alpha_composite(self.ReserveImg(), (0, 334))
+        img.alpha_composite(self.ScrollImg(), (266, 334))
+        img.alpha_composite(self.TokenImg(), (298, 334))
+        return img
 
 class Board:
     def __init__(self) -> None:
-        self.tokens: list[Color] = Color.all_gems() * 4 + [Color.pink] * 2 + [Color.gold] * 3
-        self.board_tokens: list[list[Color | None]] = [[None] * 5] * 5
+        self.tokens: list[Color] = list(Color.all_gems()) * 4 + [Color.pink] * 2 + [Color.gold] * 3
+        self.board_tokens: list[list[Color | None]] = [[None] * 5 for i in range(5)]
         self.scroll = 3
         self.cards = [all_cards[:30], all_cards[30:54], all_cards[54:67], all_cards[67:]]
-        for i in range(4):
+        for i in range(3):
             random.shuffle(self.cards[i])
         self.pyramid: list[list[Card]] = [[], [], [], []]
         for j in range(3):
             for i in range(5 - j):
                 self.pyramid[j].append(self.cards[j].pop())
-        self.pyramid[4] = [c for c in self.cards[3]]
+        self.pyramid[3] = [c for c in self.cards[3]]
         self.players = (Player(self, 0), Player(self, 1))
         self.current_player_id = 0
         self.next_player_id = 0
         self.RefillToken()
         self.players[1].GetScroll()
+        self.alpha_font = ImageFont.truetype("msyhbd.ttc", 16)
     @property
     def current_player(self):
         return self.players[self.current_player_id]
@@ -316,6 +430,73 @@ class Board:
         self.current_player_id = self.next_player_id
         self.next_player_id = 1 - self.current_player_id
 
+    def BoardImg(self):
+        def pos(w: int, h: int, offset: tuple[int, int]=(0, 0)):
+            return w * 64 + offset[0] + 16, h * 64 + offset[1] + 112
+        img = Image.new("RGBA", pos(5, 5), "#00000000")
+        # 336, 440
+        dr = ImageDraw.Draw(img)
+        dr.rounded_rectangle((pos(0, 0), pos(5, 5)), radius=16, fill="saddlebrown", outline="black", width=1)
+        for i in range(5):
+            for j in range(5):
+                dr.rounded_rectangle((pos(i, j, (4, 4)), pos(i + 1, j + 1, (-4, -4))), radius=8, fill="antiquewhite")
+        curr = (2, 2)
+        for n in (1, 2, 3, 3, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 0, 0, 0, 0, 1, 1, 1, 1):
+            dr.regular_polygon(pos(*curr, (32, 32)) + (8,), 3, 90 - 90 * n, "black")
+            next = curr[0] + (a := [(1, 0), (0, 1), (-1, 0), (0, -1)][n])[0], curr[1] + a[1]
+            dr.line(pos(*curr, (32, 32)) + pos(*next, (32, 32)), "black", 3)
+            curr = next
+        for i in range(5):
+            for j in range(5):
+                if self.board_tokens[j][i] is None:
+                    continue
+                token = TokenImg(self.board_tokens[j][i], size=2)
+                img.alpha_composite(token, pos(i, j, (9, 9)))
+            dr.text(pos(0, i, (-1, 21)), str(i + 1), "black", self.alpha_font, "rt")
+            dr.text(pos(i, 0, (21, -1)), "ABCDE"[i], "black", self.alpha_font, "lb")
+        # TODO 右上角剩余币数
+        return img
+    def PyramidImg(self):
+        wdist = 20
+        hdist = 8
+        def pos(w: float, h: float, offset: tuple[int, int]=(0, 0)):
+            return int(w * (CARDWIDTH + wdist) + wdist) + offset[0], int(h * (CARDHEIGHT + hdist) + hdist) + offset[1]
+        img = Image.new("RGBA", pos(3, 6), "#00000000")
+        # 464, 440
+        dr = ImageDraw.Draw(img)
+        for i in range(3):
+            for j, card in enumerate(self.pyramid[i]):
+                img.alpha_composite(CardImg(card), pos(2 - i, j + 0.5 * i))
+                dr.text(pos(2 - i, j + 0.5 * i, (-1, 21)), ("jklmn", "efgh", "abc")[i][j], "black", self.alpha_font, "rt")
+        for i in range(3):
+            if len(self.cards[i]) == 0:
+                continue
+            img.alpha_composite(CardBack(i), pos(2 - i, 5))
+            dr.text(pos(2 - i, 5, (-1, 21)), "oid"[i], "black", self.alpha_font, "rt")
+        return img
+    def MiddleImg(self):
+        hdist = 20
+        img = Image.new("RGBA", (810, 64), "#00000000")
+        dr = ImageDraw.Draw(img)
+        for i, c in enumerate(self.pyramid[3]):
+            img.alpha_composite(CardImg(c), (i * (CARDWIDTH + hdist) + hdist, 0))
+            dr.text((i * (CARDWIDTH + hdist) + hdist - 1, 21), "stuv"[i], "black", self.alpha_font, "rt")
+        font = ImageFont.truetype("msyhbd.ttc", 18)
+        for i in range(self.scroll):
+            dr.ellipse((616 + 32 * i, 12, 640 + 32 * i, 36), "purple")
+            dr.text((628 + 32 * i, 24), "P", "white", font, anchor="mm")
+        return img
+    def Img(self, player_id: int, vertical: bool):
+        if vertical:
+            img = Image.new("RGBA", (810, 1440), "antiquewhite")
+            img.alpha_composite(self.players[1 - player_id].Img(False).rotate(180), (0, 0))
+            img.alpha_composite(self.MiddleImg(), (0, 466))
+            img.alpha_composite(self.PyramidImg(), (0, 534))
+            img.alpha_composite(self.BoardImg(), (464, 534))
+            img.alpha_composite(self.players[player_id].Img(True), (0, 974))
+        else:
+            img = Image.new("RGBA", (810, 1440), "antiquewhite")
+        return img
 
 # sp2 = GameSameGroup('splendor_duel')
 # config.CommandGroup(('play', 'splendor_duel'), hide=True)
