@@ -219,6 +219,20 @@ class GameSameGroup:
         with open(config.rel(f'games\\user_data\\{qq}.json'), 'w', encoding='utf-8') as f:
             f.write(json.dumps(data, ensure_ascii=False,
                                indent=4, separators=(',', ': ')))
+    @classmethod
+    async def get_name(cls, session: CommandSession):
+        import aiocqhttp
+        qq = session.ctx['user_id']
+        group = session.ctx['group_id']
+        try:
+            c = await get_bot().get_group_member_info(group_id=group, user_id=qq)
+            if c['card'] == '':
+                name = c['nickname']
+            else:
+                name = c['card']
+        except aiocqhttp.exceptions.ActionFailed:
+            name = str(qq)
+        return name
 
 # example usage for GamePrivate:
 # maj = GamePrivate('maj')

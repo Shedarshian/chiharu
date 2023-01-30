@@ -167,6 +167,7 @@ class User:
         if jibi == 0:
             return {"type": "succeed"}
         current_jibi = self.data.jibi
+        original_jibi = jibi
         if isBuy and jibi < 0:
             jibi = -jibi
             # Event CheckJibiSpend
@@ -178,6 +179,7 @@ class User:
             self.Send(type="end", name="CheckJibiSpend")
             jibi = -jibi
         
+        jibi = original_jibi
         # Event OnJibiChange
         self.Send(type="begin", name="OnJibiChange")
         for eln in self.IterAllEvent(UserEvt.OnJibiChange):

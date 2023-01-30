@@ -1,14 +1,14 @@
-from typing import TypedDict, Literal
-import itertools, more_itertools, random, math
+from typing import Any, Awaitable, Callable, Literal, Generator, Annotated
+import itertools, random, math, re
 from collections import Counter
 from enum import Enum, auto
-from PIL import Image, ImageDraw, ImageChops, ImageFont
-import base64
-from nonebot import CommandSession
-# from .. import config, game
-# from ..config import on_command
-# from ..game import GameSameGroup
-# from .achievement import achievement, cp, cp_add
+from PIL import Image, ImageDraw, ImageFont
+import base64, aiocqhttp
+from nonebot import CommandSession, NLPSession
+from .. import config, game
+from ..config import on_command
+from ..game import GameSameGroup
+from .achievement import achievement, cp, cp_add
 
 class Color(Enum):
     white = auto()
@@ -127,6 +127,10 @@ def CardBack(lv: int):
     for i in range(lv + 1):
         dr.ellipse((60 + 12 * i - 6 * lv, 36, 67 + 12 * i - 6 * lv, 43), fill="white")
     return img
+def GemCorr(s: str | None):
+    if s is None or len(s) < 2 or s[0] not in 'ABCDE' or s[1] not in '12345':
+        return (-1, -1)
+    return ('ABCDE'.index(s[0]), '12345'.index(s[1]))
 
 class Player:
     def __init__(self, board: 'Board', id: int) -> None:
@@ -136,6 +140,8 @@ class Player:
         self.scroll = 0
         self.cards: dict[Color, list[Card]] = {key: [] for key in Color.all_cards()}
         self.reserve_cards: list[Card] = []
+        self.state: Literal[0, 1, 2] = 0 # 0: begin, 1: discard, 2-5: buying
+        self.buyCardState = None
     @property
     def opponent(self):
         return self.board.players[1 - self.id]
@@ -191,11 +197,12 @@ class Player:
             return -1
         self.opponent.GetScroll()
         return 1
-    def GetLineToken(self, i: int, j: int, i2: int=-1, j2: int=-1, i3: int=-1, j3: int=-1):
+    def GetLineToken(self, pos1: tuple[int, int], pos2: tuple[int, int], pos3: tuple[int, int]=(-1, -1)):
         """-1: 下标越界或不在一条线上，2: 对手获得一个卷轴。"""
+        i, j = pos1; i2, j2 = pos2; i3, j3 = pos3
         if i2 == j2 == i3 == j3 == -1:
             return -1 if self.GetToken(i, j) == -1 else 1
-        if not self.board.checkLine(i, j, i2, j2, i3, j3):
+        if not self.board.checkLine(pos1, pos2, pos3):
             return -1
         t1 = self.GetToken(i, j)
         t2 = self.GetToken(i2, j2)
@@ -210,7 +217,7 @@ class Player:
             self.opponent.GetScroll()
             return 2
         return 1
-    def BuyCard(self, i: int, j: int):
+    def BuyCard(self, i: int, j: int) -> Generator[Literal[2, 3, 4, 5], Any, Literal[-1, -3, -2, 1]]:
         """购买已预订卡时i为3。-1: 下标越界，-2: 货币不足，-3: 无法模仿，2: 选择模仿颜色，3: 选择偷取颜色，4: 选择获取token，5: 选择皇冠卡。"""
         if not (0 <= i < 3 and 0 <= j < len(self.board.pyramid[i]) or i == 3 and 0 <= j < len(self.reserve_cards)):
             return -1
@@ -396,13 +403,20 @@ class Board:
     @property
     def current_player(self):
         return self.players[self.current_player_id]
+    @property 
+    def has_gem(self):
+        return not all(all(c in (None, Color.gold) for c in x) for x in self.board_tokens)
+    @property 
+    def has_gold(self):
+        return any(any(c == Color.gold for c in x) for x in self.board_tokens)
     def popToken(self, i: int, j: int):
         if 0 <= i < 5 and 0 <= j < 5:
             t = self.board_tokens[i][j]
             self.board_tokens[i][j] = None
             return t
         return None
-    def checkLine(self, i: int, j: int, i2: int, j2: int, i3: int=-1, j3: int=-1):
+    def checkLine(self, pos1: tuple[int, int], pos2: tuple[int, int], pos3: tuple[int, int]=(-1, -1)):
+        i, j = pos1; i2, j2 = pos2; i3, j3 = pos3
         if not (0 <= i < 5 and 0 <= j < 5 and 0 <= i2 < 5 and 0 <= j2 < 5 and (0 <= i3 < 5 and 0 <= j3 < 5 or (i3, j3) == (-1, -1))):
             return False
         if self.board_tokens[i][j] in (None, Color.gold) or self.board_tokens[i2][j2] in (None, Color.gold) or ((i3, j3) != (-1, -1) and self.board_tokens[i3][j3] in (None, Color.gold)):
@@ -413,7 +427,7 @@ class Board:
         if d1 == d2 and d1 in ((1, 0), (0, 1), (1, 1)):
             return True
         return False
-    
+
     def RefillToken(self):
         if len(self.tokens) == 0:
             return -1
@@ -448,9 +462,9 @@ class Board:
             curr = next
         for i in range(5):
             for j in range(5):
-                if self.board_tokens[j][i] is None:
+                if self.board_tokens[j][i] is not None:
                     continue
-                token = TokenImg(self.board_tokens[j][i], size=2)
+                token = TokenImg(self.board_tokens[j][i], size=2) # type: ignore
                 img.alpha_composite(token, pos(i, j, (9, 9)))
             dr.text(pos(0, i, (-1, 21)), str(i + 1), "black", self.alpha_font, "rt")
             dr.text(pos(i, 0, (21, -1)), "ABCDE"[i], "black", self.alpha_font, "lb")
@@ -487,7 +501,7 @@ class Board:
             dr.text((628 + 32 * i, 24), "P", "white", font, anchor="mm")
         return img
     def Img(self, player_id: int, vertical: bool):
-        if vertical:
+        if vertical or True:
             img = Image.new("RGBA", (810, 1440), "antiquewhite")
             img.alpha_composite(self.players[1 - player_id].Img(False).rotate(180), (0, 0))
             img.alpha_composite(self.MiddleImg(), (0, 466))
@@ -495,13 +509,145 @@ class Board:
             img.alpha_composite(self.BoardImg(), (464, 534))
             img.alpha_composite(self.players[player_id].Img(True), (0, 974))
         else:
-            img = Image.new("RGBA", (810, 1440), "antiquewhite")
+            img = Image.new("RGBA", (810, 1440), "antiquewhite") # TODO horizontal
         return img
+    def SaveImg(self, player_id: int, vertical: bool):
+        self.Img(player_id, vertical).save(config.img('sp2.png'))
+        return config.cq.img('sp2.png')
 
-# sp2 = GameSameGroup('splendor_duel')
-# config.CommandGroup(('play', 'splendor_duel'), hide=True)
-# config.CommandGroup('splendor_duel', des='璀璨宝石：对决。', short_des='璀璨宝石：对决。', hide_in_parent=True, display_parents='game')
+sp2 = GameSameGroup('splendor2')
+config.CommandGroup(('play', 'splendor2'), hide=True)
+config.CommandGroup('splendor2', des='璀璨宝石：对决。', short_des='璀璨宝石：对决。', hide_in_parent=True, display_parents='game')
 
+@sp2.begin_uncomplete(('play', 'splendor2', 'begin'), (2, 2))
+async def sp2_begin_uncomplete(session: CommandSession, data: dict[str, Any]):
+    # data: {'players': [qq], 'args': [args], 'anything': anything}
+    name = await GameSameGroup.get_name(session)
+    data['names'] = [name]
+    await session.send(f'玩家{name}已参与匹配，等待第二人。')
 
+@sp2.begin_complete(('play', 'splendor2', 'confirm'))
+async def sp2_begin_complete(session: CommandSession, data: dict[str, Any]):
+    # data: {'players': [qq], 'game': GameSameGroup instance, 'args': [args], 'anything': anything}
+    qq = session.ctx['user_id']
+    name = await GameSameGroup.get_name(session)
+    data['names'].append(name)
+    data['vertical'] = [True, True]
+    await session.send(f'玩家{name}已参与匹配，游戏开始。游戏时可随时使用“切换横向”或“切换纵向”来切换ui排布。')
+    # 开始游戏
+    data['board'] = board = Board()
+    await session.send([board.SaveImg(0, data['vertical'][0])])
+    await session.send(f"玩家{data['names'][0]}先手，请选择操作：使用特权、填充宝石、拿宝石、买卡、预购卡。回复“帮助”查询如何使用指令。")
 
+@sp2.end(('play', 'splendor2', 'end'))
+async def sp2_end(session: CommandSession, data: dict[str, Any]):
+    await session.send('已删除')
+
+@sp2.process(only_short_message=True)
+async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Callable[[], Awaitable]):
+    command = session.msg_text.strip()
+    user_id: Literal[0] | Literal[1] = data['players'].index(session.ctx['user_id'])
+    if command.startswith("帮助"):
+        await session.send("例1：使用特权B2；使用卷轴B4 C1\n例2：填充宝石；填充\n例3：拿A1 B2 C3；拿宝石A4 B4\n例4：买j；买卡r\n例5：预购a；预购卡i")
+    elif command == "切换横向":
+        data['vertical'][user_id] = False
+        await session.send("已切换。")
+    elif command == "切换纵向":
+        data['vertical'][user_id] = True
+        await session.send("已切换。")
+    else:
+        board: Board = data['board']
+        if user_id != board.current_player_id:
+            return
+        player = board.current_player
+        if player.state == 0:
+            if command.startswith("使用特权") or command.startswith("使用卷轴"):
+                match = re.search(r"([A-E][1-5])\s*([A-E][1-5])?\s*([A-E][1-5])?", command[4:].strip())
+                if not match:
+                    await session.send("请正确输入宝石坐标！")
+                    return
+                l = [corr for i in (1, 2, 3) if (corr := GemCorr(match.group(i))) != (-1, -1)]
+                ret = player.UseScroll(l)
+                if ret == -1:
+                    await session.send("卷轴数量不够！")
+                elif ret == -2:
+                    await session.send("无法拿取空格子或金币！")
+                else:
+                    await session.send([board.SaveImg(player.id, data['vertical'][player.id])])
+                    await session.send("请继续您的动作。")
+            elif command.startswith("填充"):
+                ret = player.RefillToken()
+                if ret == -1:
+                    await session.send("没有剩余宝石，无法重填！")
+                else:
+                    await session.send([board.SaveImg(player.id, data['vertical'][player.id])])
+                    await session.send("请继续您的动作。")
+            elif command.startswith("拿"):
+                match = re.search(r"([A-E][1-5])\s*([A-E][1-5])?\s*([A-E][1-5])?", command[1:].strip())
+                if not match:
+                    await session.send("请正确输入宝石坐标！")
+                    return
+                l = [corr for i in (1, 2, 3) if (corr := GemCorr(match.group(i))) != (-1, -1)]
+                ret = player.GetLineToken(*l)
+                if ret == -1:
+                    await session.send("请拿在同一条直线上的三个宝石！")
+                elif ret == 2:
+                    await session.send("对手已拿取一个卷轴。")
+                    player.state = 1
+                else:
+                    player.state = 1
+            elif command.startswith("买"):
+                match = re.search(r"[a-ce-hj-np-r]", command[1:].strip())
+                if not match:
+                    await session.send("请正确输入卡牌编号！")
+                    return
+                pos = [(i, s.index(c)) for i, s in enumerate(("abc", "efgh", "jklmn", "pqr")) if (c := match.group(0)) in s][0]
+                buy = player.BuyCard(*pos)
+                try:
+                    ret = next(buy)
+                    player.buyCardState = buy
+                    player.state = ret
+                    if ret == 2:
+                        await session.send("请选择模仿卡所模仿的颜色。")
+                    elif ret == 3:
+                        await session.send("请选择偷取的宝石颜色。")
+                    elif ret == 4:
+                        await session.send("请选择拿取宝石的位置。")
+                    elif ret == 5:
+                        await session.send("请选择拿取的皇冠卡。")
+                except StopIteration as e:
+                    rete: Literal[-1, -3, -2, 1] = e.value
+                    if rete == -1:
+                        await session.send("购买失败！")
+                    elif rete == -2:
+                        await session.send("货币不足！")
+                    elif rete == -3:
+                        await session.send("不可先购买模仿卡！")
+                    else:
+                        player.state = 1
+            elif command.startswith("预购"):
+                match = re.search(r"[a-o]", command[2:].strip())
+                if not match:
+                    await session.send("请正确输入卡牌编号！")
+                    return
+            if player.state > 1:
+                await session.send([board.SaveImg(player.id, data['vertical'][player.id])])
+            elif player.state == 1:
+                if player.total_tokens >= 10:
+                    await session.send([board.SaveImg(player.id, data['vertical'][player.id])])
+                    await session.send("你需要将宝石弃至10枚，请选择要弃的宝石。")
+                elif player.CheckWin():
+                    await session.send([board.SaveImg(player.id, data['vertical'][player.id])])
+                    await session.send("恭喜你，你赢了！")
+                    await delete_func()
+                else:
+                    player.state = 0
+                    board.NextTurn()
+                    player = board.current_player
+                    await session.send([board.SaveImg(player.id, data['vertical'][player.id])])
+                    await session.send(f"轮到玩家{data['names'][player.id]}的回合，请选择操作：使用特权、填充宝石、拿宝石、买卡、预购卡。回复“帮助”查询如何使用指令。")
+        elif player.state == 1:
+            pass
+            
+            
 
