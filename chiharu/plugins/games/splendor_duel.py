@@ -319,6 +319,7 @@ class Player:
         if not c <= self.tokens:
             return -1
         self.tokens.subtract(c)
+        self.board.tokens.extend(c.elements())
         return 1
     def CheckWin(self):
         return max(n for i, n in self.points.items() if i != Color.gray) >= 10 or self.crown >= 10 or self.sum_points >= 20
