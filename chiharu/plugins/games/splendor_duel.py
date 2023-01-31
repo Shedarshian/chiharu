@@ -595,11 +595,11 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         begin_state = player.state
         if player.state == 0:
             if command.startswith("使用特权") or command.startswith("使用卷轴"):
-                match = re.search(r"([A-E][1-5])[^A-E1-5]*([A-E][1-5])?[^A-E1-5]*([A-E][1-5])?", command[4:].strip())
-                if not match:
+                lm = re.findall(r"([A-E][1-5])", command[4:].strip())
+                if len(lm) == 0:
                     await session.send("请正确输入宝石坐标！")
                     return
-                l = [corr for i in (1, 2, 3) if (corr := GemCorr(match.group(i))) != (-1, -1)]
+                l = [corr for x in lm if (corr := GemCorr(x)) != (-1, -1)]
                 ret = player.UseScroll(l)
                 if ret == -1:
                     await session.send("卷轴数量不够！")
@@ -616,11 +616,11 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     await session.send([board.SaveImg(player.id, data['vertical'][player.id])])
                     await session.send("请继续您的动作。")
             elif command.startswith("拿"):
-                match = re.search(r"([A-E][1-5])\s*([A-E][1-5])?\s*([A-E][1-5])?", command[1:].strip())
-                if not match:
-                    await session.send("请正确输入宝石坐标！")
+                lm = re.findall(r"([A-E][1-5])", command[1:].strip())
+                if len(lm) == 0 or len(lm) > 3:
+                    await session.send("请正确输入至多三个宝石坐标！")
                     return
-                l = [corr for i in (1, 2, 3) if (corr := GemCorr(match.group(i))) != (-1, -1)]
+                l = [corr for x in lm if (corr := GemCorr(x)) != (-1, -1)]
                 ret = player.GetLineToken(*l)
                 if ret == -1:
                     await session.send("请拿在同一条直线上的三个宝石！")
