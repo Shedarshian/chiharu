@@ -703,7 +703,7 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             if player.state > 1:
                 await session.send([board.SaveImg(player.id, data['vertical'][player.id])])
             elif player.state == 1:
-                if player.total_tokens >= 10:
+                if player.total_tokens > 10:
                     await session.send("你需要将宝石弃至10枚，请选择要弃的宝石。")
                     await session.send([board.SaveImg(player.id, data['vertical'][player.id])])
                 else:
