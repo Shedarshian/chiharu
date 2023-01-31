@@ -595,7 +595,7 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         begin_state = player.state
         if player.state == 0:
             if command.startswith("使用特权") or command.startswith("使用卷轴"):
-                match = re.search(r"([A-E][1-5])\s*([A-E][1-5])?\s*([A-E][1-5])?", command[4:].strip())
+                match = re.search(r"([A-E][1-5])[^A-E1-5]*([A-E][1-5])?[^A-E1-5]*([A-E][1-5])?", command[4:].strip())
                 if not match:
                     await session.send("请正确输入宝石坐标！")
                     return
