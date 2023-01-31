@@ -375,8 +375,8 @@ class Player:
             if i <= 4 and len(l) > 0:
                 dr.text(pos(i, 0, (-1, 21)), "FGHIJ"[i], "black", self.board.alpha_font, "rt")
         return img
-    def Img(self, active: bool):
-        color = "lightblue" if active else "lightpink"
+    def Img(self):
+        color = ["lightblue", "lightpink"][self.id]
         img = Image.new("RGBA", (810, 464), color)
         img.alpha_composite(self.CardImg(), (7, 0))
         img.alpha_composite(self.ReserveImg(), (0, 334))
@@ -506,16 +506,16 @@ class Board:
     def Img(self, player_id: int, vertical: bool):
         if vertical:
             img = Image.new("RGBA", (810, 1440), "antiquewhite")
-            img.alpha_composite(self.players[1 - player_id].Img(False).rotate(180), (0, 0))
+            img.alpha_composite(self.players[1 - player_id].Img().rotate(180), (0, 0))
             img.alpha_composite(self.MiddleImg(), (0, 466))
             img.alpha_composite(self.PyramidImg(), (0, 532))
             img.alpha_composite(self.BoardImg(), (464, 532))
-            img.alpha_composite(self.players[player_id].Img(True), (0, 974))
+            img.alpha_composite(self.players[player_id].Img(), (0, 974))
         else:
             img = Image.new("RGBA", (1274, 996), "antiquewhite")
-            img.alpha_composite(self.players[1 - player_id].Img(False).rotate(180), (472, 0))
+            img.alpha_composite(self.players[1 - player_id].Img().rotate(180), (472, 0))
             img.alpha_composite(self.MiddleImg(), (472, 466))
-            img.alpha_composite(self.players[player_id].Img(True), (472, 532))
+            img.alpha_composite(self.players[player_id].Img(), (472, 532))
             img.alpha_composite(self.PyramidImg(), (0, 12))
             img.alpha_composite(self.BoardImg(), (52, 544))
         return img
