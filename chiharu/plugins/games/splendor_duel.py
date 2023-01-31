@@ -36,7 +36,7 @@ class Color(Enum):
         return "#ffa2af" if self == Color.pink else "yellow" if self == Color.gold else self.name
     @classmethod
     def choose(cls, c: str):
-        return {"白": Color.white, "黑": Color.black, "红": Color.red, "绿": Color.green, "蓝": Color.blue, "金": Color.gold, "粉": Color.pink, "珍珠": Color.pink}[c]
+        return {"白": Color.white, "黑": Color.black, "红": Color.red, "绿": Color.green, "蓝": Color.blue, "金": Color.gold, "粉": Color.pink, "珍珠": Color.pink, "钻石": Color.white}[c]
 class Card:
     def __init__(self, c: dict[str, str]) -> None:
         self.id = int(c["id"])
@@ -595,11 +595,14 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         begin_state = player.state
         if player.state == 0:
             if command.startswith("使用特权") or command.startswith("使用卷轴"):
-                lm = re.findall(r"([A-E][1-5])", command[4:].strip())
+                lm = re.findall(r"([A-Z][0-9])", command[4:].strip())
                 if len(lm) == 0:
                     await session.send("请正确输入宝石坐标！")
                     return
-                l = [corr for x in lm if (corr := GemCorr(x)) != (-1, -1)]
+                l = [GemCorr(x) for x in lm]
+                if (-1, -1) in l:
+                    await session.send("请输入正确的宝石坐标！")
+                    return
                 ret = player.UseScroll(l)
                 if ret == -1:
                     await session.send("卷轴数量不够！")
@@ -616,11 +619,14 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     await session.send([board.SaveImg(player.id, data['vertical'][player.id])])
                     await session.send("请继续您的动作。")
             elif command.startswith("拿"):
-                lm = re.findall(r"([A-E][1-5])", command[1:].strip())
+                lm = re.findall(r"([A-Z][0-9])", command[4:].strip())
                 if len(lm) == 0 or len(lm) > 3:
                     await session.send("请正确输入至多三个宝石坐标！")
                     return
-                l = [corr for x in lm if (corr := GemCorr(x)) != (-1, -1)]
+                l = [GemCorr(x) for x in lm]
+                if (-1, -1) in l:
+                    await session.send("请输入正确的宝石坐标！")
+                    return
                 ret = player.GetLineToken(*l)
                 if ret == -1:
                     await session.send("请拿在同一条直线上的三个宝石！")
@@ -629,7 +635,7 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     player.state = 1
                 else:
                     player.state = 1
-            elif command.startswith("买"):
+            elif command.startswith("买") or command.startswith("购买"):
                 match = re.search(r"[a-ce-hj-np-r]", command[1:].strip())
                 if not match:
                     await session.send("请正确输入卡牌编号！")
@@ -660,7 +666,7 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 else:
                     player.state = 1
         elif player.state == 1:
-            lc: list[str] = re.findall(r"白|黑|红|绿|蓝|金|粉|珍珠", command)
+            lc: list[str] = re.findall(r"白|黑|红|绿|蓝|金|粉|珍珠|钻石", command)
             if player.total_tokens - len(lc) != 10:
                 await session.send("请弃至10个宝石，使用宝石颜色指定，如红绿蓝金粉。")
                 return
@@ -672,14 +678,14 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 player.state = 0
                 next_turn = True
         elif player.state == 2: # 2: 选择模仿颜色
-            match = re.search(r"白|黑|红|绿|蓝", command)
+            match = re.search(r"白|黑|红|绿|蓝|钻石", command)
             if not match:
                 await session.send("请正确选择模仿颜色，使用宝石颜色指定，如红。")
                 return
             color = Color.choose(match.group(0))
             await proceed_buy(lambda: player.buyCardState.send(color), this=2)
         elif player.state == 3: # 3: 选择偷取颜色
-            match = re.search(r"白|黑|红|绿|蓝|粉|珍珠", command)
+            match = re.search(r"白|黑|红|绿|蓝|粉|珍珠|钻石", command)
             if not match:
                 await session.send("请正确选择偷取宝石颜色，如红绿蓝金粉。")
                 return
