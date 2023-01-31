@@ -270,7 +270,7 @@ class Player:
                     self.opponent.tokens[c] -= 1
                     self.tokens[c] += 1
             elif sp == "gem":
-                if not all(x != card.color for x in self.board.board_tokens):
+                if any(any(y == card.color for y in x) for x in self.board.board_tokens):
                     while 1:
                         it, jt = yield 4
                         if not isinstance(it, int) or not isinstance(jt, int) or not (0 <= it < 5 and 0 <= jt < 5 and self.board.board_tokens[i][j] == card.color):
@@ -426,7 +426,7 @@ class Board:
         a = sorted([(i, j), (i2, j2), (i3, j3)])
         d1 = (a[2][0] - a[1][0], a[2][1] - a[1][1])
         d2 = d1 if (i3, j3) == (-1, -1) else (a[1][0] - a[0][0], a[1][1] - a[0][1])
-        if d1 == d2 and d1 in ((1, 0), (0, 1), (1, 1)):
+        if d1 == d2 and d1 in ((1, 0), (0, 1), (1, 1), (1, -1)):
             return True
         return False
 
