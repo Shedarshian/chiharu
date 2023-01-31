@@ -459,7 +459,7 @@ class Board:
                 dr.rounded_rectangle((pos(i, j, (4, 4)), pos(i + 1, j + 1, (-4, -4))), radius=8, fill="antiquewhite")
         curr = (2, 2)
         for n in (1, 2, 3, 3, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 0, 0, 0, 0, 1, 1, 1, 1):
-            dr.regular_polygon(pos(*curr, (32, 32)) + (8,), 3, 90 - 90 * n, "black")
+            dr.regular_polygon(pos(*curr, (32, 32)) + (8,), 3, 270 - 90 * n, "black")
             next = curr[0] + (a := [(1, 0), (0, 1), (-1, 0), (0, -1)][n])[0], curr[1] + a[1]
             dr.line(pos(*curr, (32, 32)) + pos(*next, (32, 32)), "black", 3)
             curr = next
