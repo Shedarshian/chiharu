@@ -352,7 +352,7 @@ class Player:
     def ScrollImg(self):
         img = Image.new("RGBA", (32, 128), "#00000000")
         # 32, 128
-        if self.scroll > 0:
+        if self.scroll == 0:
             return img
         dr = ImageDraw.Draw(img)
         font = ImageFont.truetype("msyhbd.ttc", 18)
