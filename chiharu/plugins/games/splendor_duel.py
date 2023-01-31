@@ -59,10 +59,10 @@ def GetCard(i: int) -> Card:
 def TokenImg(c: Color, num: int=1, isPrice: bool=False, outline: bool=True, size: int=1):
     img = Image.new("RGBA", (24 * size, 24 * size), "#00000000")
     dr = ImageDraw.Draw(img)
+    dr.ellipse((0, 0, 24 * size - 1, 24 * size - 1), fill="#f0cab2", outline=c.code, width=(5, 8)[size - 1])
     if c == Color.gray:
         for i, d in enumerate(Color.all_gems()):
             dr.pieslice((3 * size, 3 * size, 21 * size - 1, 21 * size - 1), start=72 * i, end=72 * (i + 1), fill=d.code)
-    dr.ellipse((0, 0, 24 * size - 1, 24 * size - 1), fill="#f0cab2", outline=c.code, width=(5, 8)[size - 1])
     if outline:
         dr.ellipse((0, 0, 24 * size - 1, 24 * size - 1), fill=None, outline="black", width=1)
     if num != 1 or isPrice:
@@ -70,7 +70,7 @@ def TokenImg(c: Color, num: int=1, isPrice: bool=False, outline: bool=True, size
         dr.text((12 * size, 12 * size), str(num), fill="black", font=font, anchor="mm")
     elif c == Color.pink:
         dr.ellipse((8 * size, 8 * size, 16 * size - 1, 16 * size - 1), fill=c.code, width=0)
-    else:
+    elif c != Color.gray:
         dr.regular_polygon((12 * size, 12 * size, 5 * size), 4 if c == Color.gold else 3, fill=c.code)
     return img
 CARDHEIGHT = 64
