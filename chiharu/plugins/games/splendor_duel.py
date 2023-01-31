@@ -133,7 +133,7 @@ def CardBack(lv: int):
 def GemCorr(s: str | None):
     if s is None or len(s) < 2 or s[0] not in 'ABCDE' or s[1] not in '12345':
         return (-1, -1)
-    return ('ABCDE'.index(s[0]), '12345'.index(s[1]))
+    return ('12345'.index(s[1]), 'ABCDE'.index(s[0]))
 
 class Player:
     def __init__(self, board: 'Board', id: int) -> None:
