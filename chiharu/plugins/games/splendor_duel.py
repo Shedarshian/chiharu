@@ -399,7 +399,7 @@ class Board:
         self.pyramid[3] = [c for c in self.cards[3]]
         self.players = (Player(self, 0), Player(self, 1))
         self.current_player_id = 0
-        self.next_player_id = 0
+        self.next_player_id = 1
         self.RefillToken()
         self.players[1].GetScroll()
         self.alpha_font = ImageFont.truetype("msyhbd.ttc", 16)
