@@ -184,7 +184,7 @@ class Player:
         return t
     
     def UseScroll(self, l: list[tuple[int, int]]):
-        """-1: 卷轴数量不够，-2: 无法拿取空格子或金币。"""
+        """-1: 卷轴数量不够，-2: 无法拿取空格子或金子。"""
         if len(l) > self.scroll:
             return -1
         for i, j in l:
@@ -237,7 +237,7 @@ class Player:
                 remain[Color.gold] += remain[cr]
                 remain[cr] = 0
         self.board.tokens.extend((self.tokens - remain).elements())
-        self.tokens = remain
+        self.tokens = self.tokens - (self.tokens - remain)
         if i < 3:
             if len(self.board.cards[i]) > 0:
                 self.board.pyramid[i][j] = self.board.cards[i].pop()
@@ -295,7 +295,7 @@ class Player:
             break
         return 1
     def ReserveCard(self, i: int, j: int, ic: int, jc: int):
-        """盲抽时jc为-1。-1: 下标越界或所选中的不是金币，-2: 栏位不足"""
+        """盲抽时jc为-1。-1: 下标越界或所选中的不是金子，-2: 栏位不足"""
         if not (0 <= i < 5 and 0 <= j < 5 and self.board.board_tokens[i][j] == Color.gold and 0 <= ic < 3 and -1 <= jc < len(self.board.pyramid[ic])):
             return -1
         if len(self.reserve_cards) == 3:
@@ -607,7 +607,7 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 if ret == -1:
                     await session.send("卷轴数量不够！")
                 elif ret == -2:
-                    await session.send("无法拿取空格子或金币！")
+                    await session.send("无法拿取空格子或金子！")
                 else:
                     await session.send([board.SaveImg(player.id, data['vertical'][player.id])])
                     await session.send("请继续您的动作。")
@@ -660,15 +660,15 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     return
                 ret = player.ReserveCard(*corr, *pos)
                 if ret == -1:
-                    await session.send("请选择正确的卡牌与金币！")
+                    await session.send("请选择正确的卡牌与金子！")
                 elif ret == -2:
                     await session.send("预购栏位不足！")
                 else:
                     player.state = 1
         elif player.state == 1:
             lc: list[str] = re.findall(r"白|黑|红|绿|蓝|金|粉|珍珠|钻石", command)
-            if player.total_tokens - len(lc) != 10:
-                await session.send("请弃至10个宝石，使用宝石颜色指定，如红绿蓝金粉。")
+            if player.total_tokens - len(lc) <= 10:
+                await session.send("请弃至恰好10个宝石，使用宝石颜色指定，如红绿蓝金粉。")
                 return
             colors = [Color.choose(i) for i in lc]
             ret = player.DiscardToken(colors)
