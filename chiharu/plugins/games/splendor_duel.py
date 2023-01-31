@@ -200,7 +200,7 @@ class Player:
             return -1
         self.opponent.GetScroll()
         return 1
-    def GetLineToken(self, pos1: tuple[int, int], pos2: tuple[int, int], pos3: tuple[int, int]=(-1, -1)):
+    def GetLineToken(self, pos1: tuple[int, int], pos2: tuple[int, int]=(-1, -1), pos3: tuple[int, int]=(-1, -1)):
         """-1: 下标越界或不在一条线上，2: 对手获得一个卷轴。"""
         i, j = pos1; i2, j2 = pos2; i3, j3 = pos3
         if i2 == j2 == i3 == j3 == -1:
@@ -551,6 +551,7 @@ async def sp2_end(session: CommandSession, data: dict[str, Any]):
     await session.send('已删除')
 
 @sp2.process(only_short_message=True)
+@config.ErrorHandle
 async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Callable[[], Awaitable]):
     command = session.msg_text.strip()
     user_id: Literal[0] | Literal[1] = data['players'].index(session.ctx['user_id'])
