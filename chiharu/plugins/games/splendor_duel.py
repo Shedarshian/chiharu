@@ -687,7 +687,7 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         elif player.state == 3: # 3: 选择偷取颜色
             match = re.search(r"白|黑|红|绿|蓝|粉|珍珠|钻石", command)
             if not match:
-                await session.send("请正确选择偷取宝石颜色，如红绿蓝金粉。")
+                await session.send("请正确选择偷取宝石颜色，如红绿蓝粉。")
                 return
             color = Color.choose(match.group(0))
             await proceed_buy(lambda: player.buyCardState.send(color), this=3)
