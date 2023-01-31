@@ -373,8 +373,6 @@ class Player:
         for i, (c, l) in enumerate(self.cards.items()):
             for j, card in enumerate(l):
                 img.alpha_composite(CardImg(card), pos(i, j))
-            if i <= 4 and len(l) > 0:
-                dr.text(pos(i, 0, (-1, 21)), "FGHIJ"[i], "black", self.board.alpha_font, "rt")
         return img
     def Img(self):
         color = ["lightblue", "lightpink"][self.id]
