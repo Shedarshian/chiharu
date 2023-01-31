@@ -352,7 +352,7 @@ class Player:
     def ScrollImg(self):
         img = Image.new("RGBA", (32, 128), "#00000000")
         # 32, 128
-        if self.scroll == 0:
+        if self.scroll > 0:
             return img
         dr = ImageDraw.Draw(img)
         font = ImageFont.truetype("msyhbd.ttc", 18)
@@ -465,7 +465,7 @@ class Board:
             curr = next
         for i in range(5):
             for j in range(5):
-                if self.board_tokens[j][i] is not None:
+                if self.board_tokens[j][i] is None:
                     continue
                 token = TokenImg(self.board_tokens[j][i], size=2) # type: ignore
                 img.alpha_composite(token, pos(i, j, (9, 9)))
@@ -517,7 +517,7 @@ class Board:
             img.alpha_composite(self.MiddleImg(), (472, 466))
             img.alpha_composite(self.players[player_id].Img(True), (472, 532))
             img.alpha_composite(self.PyramidImg(), (0, 12))
-            img.alpha_composite(self.BoardImg(), (76, 472))
+            img.alpha_composite(self.BoardImg(), (52, 544))
         return img
     def SaveImg(self, player_id: int, vertical: bool):
         self.Img(player_id, vertical).save(config.img('sp2.png'))
@@ -713,8 +713,6 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             if player.CheckWin():
                 await session.send("恭喜你，你赢了！")
                 await session.send([board.SaveImg(player.id, data['vertical'][player.id])])
-                # if achievement.splendor2.get(data["players"][player.id]):
-                #     await session.send(achievement.splendor2.get_str())
                 await delete_func()
                 return
             await session.send("你的回合已结束。")
