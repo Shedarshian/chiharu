@@ -4,7 +4,7 @@ import json
 from ..game import GameSameGroup
 from .. import config
 
-__all__ = {'achievement'}
+__all__ = ('achievement',)
 
 # from .games.achievement import achievement
 # @achievement.snakebird.progress
