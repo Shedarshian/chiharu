@@ -345,7 +345,7 @@ class Player:
         # 264, 128 无右侧空间
         dr = ImageDraw.Draw(img)
         for i, c in enumerate(self.reserve_cards):
-            t = CardImg(c).rotate(90, expand=1).crop((32, 0, 96, 128))
+            t = CardImg(c).rotate(90, expand=1).crop((0, 0, 64, 128))
             img.alpha_composite(t, (i * (CARDHEIGHT + dist) + dist, 0))
             dr.text((i * (CARDHEIGHT + dist) + dist - 1, 21), "pqr"[i], "black", self.board.alpha_font, "rt")
         return img
@@ -634,7 +634,7 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 if not match:
                     await session.send("请正确输入卡牌编号！")
                     return
-                pos = [(i, s.index(c)) for i, s in enumerate(("abc", "efgh", "jklmn", "pqr")) if (c := match.group(0)) in s][0]
+                pos = [(i, s.index(c)) for i, s in enumerate(("jklmn", "efgh", "abc", "pqr")) if (c := match.group(0)) in s][0]
                 buy = player.BuyCard(*pos)
                 player.buyCardState = buy
                 await proceed_buy(lambda: next(buy), this=0)
@@ -647,7 +647,7 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 if not match2:
                     await session.send("请正确输入宝石编号！")
                     return
-                pos = [(i, -1 if c in "dio" else s.index(c)) for i, s in enumerate(("abcd", "efghi", "jklmno")) if (c := match.group(0)) in s][0]
+                pos = [(i, -1 if c in "dio" else s.index(c)) for i, s in enumerate(("jklmno", "efghi", "abcd")) if (c := match.group(0)) in s][0]
                 corr = GemCorr(match2.group(0))
                 if corr == (-1, -1):
                     await session.send("请正确输入宝石编号！")
