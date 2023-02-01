@@ -443,8 +443,8 @@ class Board:
                 self.board_tokens[i][j] = self.tokens.pop()
         return 1
     def NextTurn(self):
-        pass#self.current_player_id = self.next_player_id
-        #self.next_player_id = 1 - self.current_player_id
+        self.current_player_id = self.next_player_id
+        self.next_player_id = 1 - self.current_player_id
 
     def BoardImg(self):
         def pos(w: int, h: int, offset: tuple[int, int]=(0, 0)):
