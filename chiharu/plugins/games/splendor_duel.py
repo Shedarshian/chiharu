@@ -619,7 +619,7 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     await session.send([board.SaveImg(player.id, data['vertical'][player.id])])
                     await session.send("请继续您的动作。")
             elif command.startswith("拿"):
-                lm = re.findall(r"([A-Z][0-9])", command[4:].strip())
+                lm = re.findall(r"([A-Z][0-9])", command[1:].strip())
                 if len(lm) == 0 or len(lm) > 3:
                     await session.send("请正确输入至多三个宝石坐标！")
                     return
