@@ -242,7 +242,7 @@ class Player:
             if len(self.board.cards[i]) > 0:
                 self.board.pyramid[i][j] = self.board.cards[i].pop()
             else:
-                self.reserve_cards.pop(j)
+                self.board.cards[i].pop(j)
         else:
             self.reserve_cards.pop(j)
         if card.color == "imitate":
@@ -270,13 +270,14 @@ class Player:
                     self.opponent.tokens[c] -= 1
                     self.tokens[c] += 1
             elif sp == "gem":
-                if any(any(y == card.color for y in x) for x in self.board.board_tokens):
+                cl = Color[card.color]
+                if any(any(y == cl for y in x) for x in self.board.board_tokens):
                     while 1:
                         it, jt = yield 4
-                        if not isinstance(it, int) or not isinstance(jt, int) or not (0 <= it < 5 and 0 <= jt < 5 and self.board.board_tokens[i][j] == card.color):
+                        if not isinstance(it, int) or not isinstance(jt, int) or not (0 <= it < 5 and 0 <= jt < 5 and self.board.board_tokens[it][jt] == card.color):
                             continue
                         break
-                    t = self.board.popToken(i, j)
+                    t = self.board.popToken(it, jt)
                     if t is not None:
                         self.tokens[t] += 1
             if num == 1:
@@ -322,7 +323,7 @@ class Player:
         self.board.tokens.extend(c.elements())
         return 1
     def CheckWin(self):
-        return max(n for i, n in self.points.items() if i != Color.gray) >= 10 or self.crown >= 10 or self.sum_points >= 20
+        return (1, p) if (p := max(n for i, n in self.points.items() if i != Color.gray)) >= 10 else (2, self.crown) if self.crown >= 10 else (3, self.sum_points) if self.sum_points >= 20 else (0, 0)
 
     def TokenImg(self):
         img = Image.new("RGBA", (8 * 64, 2 * 64), "#00000000")
@@ -563,6 +564,8 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
     elif command == "切换纵向":
         data['vertical'][user_id] = True
         await session.send("已切换。")
+    elif command == "查看版面":
+        await session.send([data['board'].SaveImg(user_id, data['vertical'][user_id])])
     else:
         board: Board = data['board']
         if user_id != board.current_player_id:
@@ -667,7 +670,7 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     player.state = 1
         elif player.state == 1:
             lc: list[str] = re.findall(r"白|黑|红|绿|蓝|金|粉|珍珠|钻石", command)
-            if player.total_tokens - len(lc) <= 10:
+            if player.total_tokens - len(lc) != 10:
                 await session.send("请弃至恰好10个宝石，使用宝石颜色指定，如红绿蓝金粉。")
                 return
             colors = [Color.choose(i) for i in lc]
@@ -716,8 +719,8 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     player.state = 0
                     next_turn = True
         if next_turn:
-            if player.CheckWin():
-                await session.send("恭喜你，你赢了！")
+            if (ret := player.CheckWin())[0] != 0:
+                await session.send(f"恭喜你，你因获得了{ret[1]}" + ["单色分", "皇冠", "总分"][ret[0] - 1] + "而赢了！")
                 await session.send([board.SaveImg(player.id, data['vertical'][player.id])])
                 await delete_func()
                 return
