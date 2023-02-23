@@ -6,7 +6,7 @@ from . import config
 from .config import 句尾
 from .inject import on_command
 
-config.CommandGroup('alarm', short_des='闹钟与备忘录。')
+config.CommandGroup(('misc', 'alarm'), short_des='闹钟与备忘录。')
 
 class TAlarm(TypedDict):
     name: str
@@ -23,7 +23,7 @@ def save_alarm():
     with open(config.rel("alarm.json"), 'w', encoding='utf-8') as f:
         f.write(json.dumps([{**a, "time": a["time"].isoformat()} for a in alarm], ensure_ascii=False, indent=4))
 
-@on_command(('alarm', 'set'), only_to_me=False, short_des="设置闹钟。")
+@on_command(('misc', 'alarm', 'set'), only_to_me=False, short_des="设置闹钟。")
 @config.ErrorHandle
 async def alarmset(session: CommandSession):
     """设置闹钟。
@@ -83,7 +83,7 @@ async def alarmset(session: CommandSession):
     save_alarm()
     await session.send("成功添加闹钟" + name + 句尾)
 
-@on_command(('alarm', 'check'), only_to_me=False, short_des="查询闹钟。")
+@on_command(('misc', 'alarm', 'check'), only_to_me=False, short_des="查询闹钟。")
 @config.ErrorHandle
 async def alarmcheck(session: CommandSession):
     try:
