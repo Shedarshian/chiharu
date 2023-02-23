@@ -280,7 +280,10 @@ class SnakeBird:
             s.update(dict([(id, []) for id in '123Z']))
             for id in k:
                 for i in self.support(self.dir[2], id):
-                    s[i].append(id)
+                    if i in s:
+                        s[i].append(id)
+                    else:
+                        s[i] = [id]
             has_support = set(itertools.chain(s['1'], s['2'])) | (
                 set(s['3']) & set('IJKLMN'))
             todo = copy(has_support)
