@@ -4,7 +4,7 @@ from nonebot import CommandSession, permission, get_bot
 from . import config
 from .inject import on_command
 
-config.CommandGroup('if', short_des='魔法禁书目录 幻想收束相关指令。', display_parents="game")
+config.CommandGroup('if', short_des='魔法禁书目录 幻想收束相关指令。', hide_in_parent=True, display_parents="game")
 
 with open(config.rel('if\\card.json'), encoding='utf-8') as f:
     metainfo, *premium_card = json.load(f)
