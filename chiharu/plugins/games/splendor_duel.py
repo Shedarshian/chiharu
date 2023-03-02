@@ -274,7 +274,7 @@ class Player:
                 if any(any(y == cl for y in x) for x in self.board.board_tokens):
                     while 1:
                         it, jt = yield 4
-                        if not isinstance(it, int) or not isinstance(jt, int) or not (0 <= it < 5 and 0 <= jt < 5 and self.board.board_tokens[it][jt] == card.color):
+                        if not isinstance(it, int) or not isinstance(jt, int) or not (0 <= it < 5 and 0 <= jt < 5 and self.board.board_tokens[it][jt] == cl):
                             continue
                         break
                     t = self.board.popToken(it, jt)
