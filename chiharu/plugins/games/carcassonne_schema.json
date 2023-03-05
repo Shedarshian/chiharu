@@ -61,10 +61,10 @@
                     "type": "integer",
                     "description": "How many this tiles goes in this pack."
                 },
-                "connections": {
+                "segments": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/$defs/ConnectionData"
+                        "$ref": "#/$defs/SegmentData"
                     }
                 },
                 "features": {
@@ -78,7 +78,7 @@
               "id",
               "sides",
               "num",
-              "connections"
+              "segments"
             ]
         },
         "TokenData": {
@@ -99,20 +99,20 @@
                 }
             }
         },
-        "ConnectionData": {
+        "SegmentData": {
             "oneOf": [
                 {
-                    "$ref": "#/$defs/CityConnectionData"
+                    "$ref": "#/$defs/CitySegmentData"
                 },
                 {
-                    "$ref": "#/$defs/FieldConnectionData"
+                    "$ref": "#/$defs/FieldSegmentData"
                 },
                 {
-                    "$ref": "#/$defs/RoadConnectionData"
+                    "$ref": "#/$defs/RoadSegmentData"
                 }
             ]
         },
-        "BaseConnectionData": {
+        "BaseSegmentData": {
             "type": "object",
             "properties": {
                 "to": {
@@ -133,12 +133,12 @@
               "to"
             ]
         },
-        "CityConnectionData": {
+        "CitySegmentData": {
             "description": "The connection between cities.",
             "type": "object",
             "allOf": [
               {
-                "$ref": "#/$defs/BaseConnectionData"
+                "$ref": "#/$defs/BaseSegmentData"
               }
             ],
             "properties": {
@@ -147,17 +147,17 @@
                     "const": "City"
                 },
                 "pennant": {
-                    "type": "boolean",
-                    "description": "Whether it has a pennant or not. default to false."
+                    "type": "integer",
+                    "description": "Number of pennant it has. default to zero."
                 }
             }
         },
-        "FieldConnectionData": {
+        "FieldSegmentData": {
             "description": "The connection between fields.",
             "type": "object",
             "allOf": [
               {
-                "$ref": "#/$defs/BaseConnectionData"
+                "$ref": "#/$defs/BaseSegmentData"
               }
             ],
             "properties": {
@@ -167,7 +167,7 @@
                 },
                 "adjacent_city": {
                     "type": "array",
-                    "description": "Which city this field is adjacent to. Count as index of the list of connections.",
+                    "description": "Which city this field is adjacent to. Count as index of the list of segments.",
                     "items": "integer"
                 }
             },
@@ -175,12 +175,12 @@
                 "adjacent_city"
             ]
         },
-        "RoadConnectionData": {
+        "RoadSegmentData": {
             "description": "The connection between roads.",
             "type": "object",
             "allOf": [
               {
-                "$ref": "#/$defs/BaseConnectionData"
+                "$ref": "#/$defs/BaseSegmentData"
               }
             ],
             "properties": {
