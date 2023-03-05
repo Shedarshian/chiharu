@@ -1,0 +1,1914 @@
+{
+    "$schema": "./carcassonne_schema.json",
+    "packs": [
+        {
+            "name": "Base Game",
+            "id": 0,
+            "tiles": [
+                {
+                    "id": 0,
+                    "sides": "CCCC",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1, 2, 3],
+                            "pennant": true
+                        }
+                    ]
+                },
+                {
+                    "id": 1,
+                    "sides": "CCCF",
+                    "num": 3,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1, 2]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 2,
+                    "sides": "CCCF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1, 2],
+                            "pennant": true
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 3,
+                    "sides": "CCCR",
+                    "num": 2,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1, 2],
+                            "pennant": true
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        }
+                    ]
+                },
+                {
+                    "id": 4,
+                    "sides": "CCCR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1, 2]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        }
+                    ]
+                },
+                {
+                    "id": 5,
+                    "sides": "CCFF",
+                    "num": 3,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 6,
+                    "sides": "CCFF",
+                    "num": 2,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "pennant": true
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 7,
+                    "sides": "CCFF",
+                    "num": 2,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "City",
+                            "to": [1]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [0, 1]
+                        }
+                    ]
+                },
+                {
+                    "id": 8,
+                    "sides": "CCRR",
+                    "num": 3,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 6],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2, 3]
+                        }
+                    ]
+                },
+                {
+                    "id": 9,
+                    "sides": "CCRR",
+                    "num": 2,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "pennant": true
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 6],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2, 3]
+                        }
+                    ]
+                },
+                {
+                    "id": 10,
+                    "sides": "CFCF",
+                    "num": 3,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "City",
+                            "to": [2]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 5, 6],
+                            "adjacent_city": [0, 1]
+                        }
+                    ]
+                },
+                {
+                    "id": 11,
+                    "sides": "CFCF",
+                    "num": 2,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "pennant": true
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 12,
+                    "sides": "CFCF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 2]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 13,
+                    "sides": "CFFF",
+                    "num": 5,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3, 4, 5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 14,
+                    "sides": "CFRR",
+                    "num": 3,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3, 6],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2, 3]
+                        }
+                    ]
+                },
+                {
+                    "id": 15,
+                    "sides": "CRFR",
+                    "num": 4,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 6],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 3]
+                        }
+                    ]
+                },
+                {
+                    "id": 16,
+                    "sides": "CRRF",
+                    "num": 3,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 4, 5, 6],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 2]
+                        }
+                    ]
+                },
+                {
+                    "id": 17,
+                    "sides": "CRRR",
+                    "num": 3,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 6],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Road",
+                            "to": [0],
+                            "bush": true
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1],
+                            "bush": true
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "bush": true
+                        }
+                    ]
+                },
+                {
+                    "id": 18,
+                    "sides": "FFFF",
+                    "num": 4,
+                    "connections": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 4, 5, 6, 7],
+                            "adjacent_city": []
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Cloister"
+                        }
+                    ]
+                },
+                {
+                    "id": 19,
+                    "sides": "FFFR",
+                    "num": 2,
+                    "connections": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 4, 5, 6, 7],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Cloister"
+                        }
+                    ]
+                },
+                {
+                    "id": 20,
+                    "sides": "FFRR",
+                    "num": 9,
+                    "connections": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 6, 7],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2, 3]
+                        }
+                    ]
+                },
+                {
+                    "id": 20,
+                    "sides": "FRFR",
+                    "num": 8,
+                    "connections": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 3]
+                        }
+                    ]
+                },
+                {
+                    "id": 21,
+                    "sides": "FRRR",
+                    "num": 4,
+                    "connections": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        }
+                    ]
+                },
+                {
+                    "id": 22,
+                    "sides": "RRRR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6, 7],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Road",
+                            "to": [0]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        }
+                    ]
+                }
+            ],
+            "tokens": [
+                {
+                    "name": "follower",
+                    "distribute": true,
+                    "num": 7
+                }
+            ]
+        },
+        {
+            "name": "Inns and Cathedrals",
+            "id": 1,
+            "tiles": [
+                {
+                    "id": 0,
+                    "sides": "CCCC",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "City",
+                            "to": [1]
+                        },
+                        {
+                            "type": "City",
+                            "to": [2]
+                        },
+                        {
+                            "type": "City",
+                            "to": [3]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [],
+                            "adjacent_city": [0, 1, 2, 3]
+                        }
+                    ]
+                },
+                {
+                    "id": 1,
+                    "sides": "CCCC",
+                    "num": 2,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1, 2, 3],
+                            "features": [
+                                {
+                                    "type": "Cathedral"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": 2,
+                    "sides": "CCCF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "City",
+                            "to": [1]
+                        },
+                        {
+                            "type": "City",
+                            "to": [2]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0, 1, 2]
+                        }
+                    ]
+                },
+                {
+                    "id": 3,
+                    "sides": "CCCF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "City",
+                            "to": [1, 2],
+                            "pennant": true
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0, 1]
+                        }
+                    ]
+                },
+                {
+                    "id": 4,
+                    "sides": "CCFR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "pennant": true
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "features": [
+                                {
+                                    "type": "Inn"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4, 5],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 5,
+                    "sides": "CCRF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 6,
+                    "sides": "CCRR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "pennant": true
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "features": [
+                                {
+                                    "type": "Inn"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 6],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": []
+                        }
+                    ]
+                },
+                {
+                    "id": 7,
+                    "sides": "CFFF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4, 5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 8,
+                    "sides": "CFRF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 9,
+                    "sides": "CFRR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "features": [
+                                {
+                                    "type": "Inn"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3, 6],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 10,
+                    "sides": "CRCR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "pennant": true
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 11,
+                    "sides": "FFRR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "features": [
+                                {
+                                    "type": "Inn"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 6, 7],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": []
+                        }
+                    ]
+                },
+                {
+                    "id": 12,
+                    "sides": "FRFR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "Road",
+                            "to": [1]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": []
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Cloister"
+                        }
+                    ]
+                },
+                {
+                    "id": 13,
+                    "sides": "FRFR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "features": [
+                                {
+                                    "type": "Inn"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": []
+                        }
+                    ]
+                },
+                {
+                    "id": 14,
+                    "sides": "FRFR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "features": [
+                                {
+                                    "type": "Inn"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": []
+                        }
+                    ]
+                },
+                {
+                    "id": 15,
+                    "sides": "FRRR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "Road",
+                            "to": [0],
+                            "bush": true,
+                            "features": [
+                                {
+                                    "type": "Inn"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1],
+                            "bush": true
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "bush": true
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": []
+                        }
+                    ]
+                },
+                {
+                    "id": 16,
+                    "sides": "RRRR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "Road",
+                            "to": [0, 3]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 2]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 4, 5],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6, 7],
+                            "adjacent_city": []
+                        }
+                    ]
+                },
+                {
+                    "id": 16,
+                    "sides": "CRCR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "City",
+                            "to": [2]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1],
+                            "bush": true
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "bush": true
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2],
+                            "adjacent_city": [1]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [1]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                }
+            ],
+            "tokens": [
+                {
+                    "name": "big follower",
+                    "distribute": true,
+                    "num": 1
+                }
+            ]
+        },
+        {
+            "name": "Traders and Builders",
+            "id": 2,
+            "tiles": [
+                {
+                    "id": 0,
+                    "sides": "CCCC",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 3],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Cloth"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "City",
+                            "to": [1]
+                        },
+                        {
+                            "type": "City",
+                            "to": [2]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [],
+                            "adjacent_city": [0, 1, 2]
+                        }
+                    ]
+                },
+                {
+                    "id": 1,
+                    "sides": "CCCC",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 3],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Wine"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "City",
+                            "to": [1, 2]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [],
+                            "adjacent_city": [0, 1]
+                        }
+                    ]
+                },
+                {
+                    "id": 2,
+                    "sides": "CCCF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Wine"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "City",
+                            "to": [1]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [],
+                            "adjacent_city": [0, 1]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 3,
+                    "sides": "CCCF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Cloth"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "City",
+                            "to": [1]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [],
+                            "adjacent_city": [0, 1]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 4,
+                    "sides": "CCCF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1, 2],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Grain"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 5,
+                    "sides": "CCCR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "City",
+                            "to": [1, 2],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Grain"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [1]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [1, 2]
+                        }
+                    ]
+                },
+                {
+                    "id": 6,
+                    "sides": "CCCR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "City",
+                            "to": [1, 2],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Cloth"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [1]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0, 1]
+                        }
+                    ]
+                },
+                {
+                    "id": 7,
+                    "sides": "CCCR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1, 2],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Wine"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 8,
+                    "sides": "CCFF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Wine"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4, 5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 9,
+                    "sides": "CCFF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Grain"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4, 5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 10,
+                    "sides": "CCFR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Grain"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 11,
+                    "sides": "CCFR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Grain"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4, 5],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 12,
+                    "sides": "CCRF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Cloth"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 13,
+                    "sides": "CCRF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Wine"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 14,
+                    "sides": "CCRR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Wine"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 15,
+                    "sides": "CCRR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Cloth"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 16,
+                    "sides": "CFCF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Wine"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 17,
+                    "sides": "CFCF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Grain"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 18,
+                    "sides": "CFCR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Wine"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 19,
+                    "sides": "CFRR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 20,
+                    "sides": "CRCR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "features": [
+                                {
+                                    "type": "TradeCounter",
+                                    "counter": "Wine"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 20,
+                    "sides": "CRFF",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "City",
+                            "to": [0]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 21,
+                    "sides": "FRRR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "Road",
+                            "to": [1]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": []
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Cloister"
+                        }
+                    ]
+                },
+                {
+                    "id": 22,
+                    "sides": "RRRR",
+                    "num": 1,
+                    "connections": [
+                        {
+                            "type": "Road",
+                            "to": [0, 2]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 3]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6, 7],
+                            "adjacent_city": []
+                        }
+                    ]
+                }
+            ],
+            "tokens": [
+                {
+                    "name": "builder",
+                    "distribute": true,
+                    "num": 1
+                },
+                {
+                    "name": "pig",
+                    "distribute": true,
+                    "num": 1
+                },
+                {
+                    "name": "wine trade counter",
+                    "distribute": false,
+                    "num": 9
+                },
+                {
+                    "name": "grain trade counter",
+                    "distribute": false,
+                    "num": 6
+                },
+                {
+                    "name": "cloth trade counter",
+                    "distribute": false,
+                    "num": 5
+                }
+            ]
+        }
+    ]
+}

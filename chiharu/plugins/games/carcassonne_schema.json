@@ -1,0 +1,245 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "./carcassonne_schema.json",
+    "title": "Carcassonne Data",
+    "description": "Carcassonne Data",
+    "type": "object",
+    "properties": {
+        "packs": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/PackData"
+            }
+        }
+    },
+    "$defs": {
+        "PackData": {
+            "description": "Data of a Pack.",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "descrption": "The name of this pack."
+                },
+                "id": {
+                    "type": "integer",
+                    "descrption": "The ID of this pack."
+                },
+                "tiles": {
+                    "type": "array",
+                    "description": "Tiles included by this pack.",
+                    "items": {
+                        "$ref": "#/$defs/TileData"
+                    }
+                },
+                "tokens": {
+                    "type": "array",
+                    "description": "Tokens included by this pack.",
+                    "items": {
+                        "$ref": "#/$defs/TokenData"
+                    }
+                }
+            },
+            "required": [
+                "name",
+                "id"
+            ]
+        },
+        "TileData": {
+            "description": "Data of a tile.",
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "description": "The ID of this tile."
+                },
+                "sides": {
+                    "type": "string",
+                    "description": "A 4-char long string standes for the sides of this tile, starting from the top and goes clockwise. C(City), R(Road), F(Field), S(Rivers)."
+                },
+                "num": {
+                    "type": "integer",
+                    "description": "How many this tiles goes in this pack."
+                },
+                "connections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/ConnectionData"
+                    }
+                },
+                "features": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/FeatureData"
+                    }
+                }
+            },
+            "required": [
+              "id",
+              "sides",
+              "num",
+              "connections"
+            ]
+        },
+        "TokenData": {
+            "description": "Data of a token.",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The name of this token."
+                },
+                "distribute": {
+                    "type": "boolean",
+                    "description": "Whether the token is given for everyone."
+                },
+                "num": {
+                    "type": "integer",
+                    "descrption": "The number of this token. If distribute, this number is the number everyone recieves."
+                }
+            }
+        },
+        "ConnectionData": {
+            "oneOf": [
+                {
+                    "$ref": "#/$defs/CityConnectionData"
+                },
+                {
+                    "$ref": "#/$defs/FieldConnectionData"
+                },
+                {
+                    "$ref": "#/$defs/RoadConnectionData"
+                }
+            ]
+        },
+        "BaseConnectionData": {
+            "type": "object",
+            "properties": {
+                "to": {
+                    "type": "array",
+                    "description": "To which sides does this object connects. For non-fields, 0123 refers to URDL. For fields, 0-7 starts from the right half of the upper side and increases clockwise.",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "features": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/FeatureData"
+                    }
+                }
+            },
+            "required": [
+              "to"
+            ]
+        },
+        "CityConnectionData": {
+            "description": "The connection between cities.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/$defs/BaseConnectionData"
+              }
+            ],
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "City"
+                },
+                "pennant": {
+                    "type": "boolean",
+                    "description": "Whether it has a pennant or not. default to false."
+                }
+            }
+        },
+        "FieldConnectionData": {
+            "description": "The connection between fields.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/$defs/BaseConnectionData"
+              }
+            ],
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "Field"
+                },
+                "adjacent_city": {
+                    "type": "array",
+                    "description": "Which city this field is adjacent to. Count as index of the list of connections.",
+                    "items": "integer"
+                }
+            },
+            "required": [
+                "adjacent_city"
+            ]
+        },
+        "RoadConnectionData": {
+            "description": "The connection between roads.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/$defs/BaseConnectionData"
+              }
+            ],
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "Road"
+                },
+                "bush": {
+                    "type": "boolean",
+                    "description": "Whether the road is covered by bush (not hotel)."
+                }
+            }
+        },
+        "FeatureData": {
+            "oneOf": [
+                {
+                    "$ref": "#/$defs/MiscFeatureData"
+                },
+                {
+                    "$ref": "#/$defs/TradeFeatureData"
+                }
+            ]
+        },
+        "MiscFeatureData": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "Cloister",
+                        "Cathedral",
+                        "Inn"
+                    ]
+                }
+            },
+            "required": [
+                "type"
+            ]
+        },
+        "TradeFeatureData": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "TradeCounter"
+                },
+                "counter": {
+                    "type": "string",
+                    "enum": [
+                        "Wine",
+                        "Grain",
+                        "Cloth"
+                    ]
+                }
+            },
+            "required": [
+                "type",
+                "counter"
+            ]
+        }
+    }
+}
