@@ -564,7 +564,8 @@
                     "distribute": true,
                     "num": 7
                 }
-            ]
+            ],
+            "starting_tile": 15
         },
         {
             "name": "Inns and Cathedrals",

@@ -38,6 +38,9 @@
                     "items": {
                         "$ref": "#/$defs/TokenData"
                     }
+                },
+                "starting_tile": {
+                    "type": "integer"
                 }
             },
             "required": [
