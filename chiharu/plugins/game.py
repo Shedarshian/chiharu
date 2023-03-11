@@ -40,12 +40,12 @@ config.CommandGroup('play', hide=True)
 
 class GameSameGroup:
     # group_id: [{'players': [qq], 'game': GameSameGroup instance, 'anything': anything}]
-    center: dict[int, list[dict[str, Any]]] = {}
     def __init__(self, name: str, can_private=False):
         # group_id: {'players': [qq], 'anything': anything}
         self.uncomplete: dict[int, dict[str, Any]] = {}
         self.name = name
         self.can_private = can_private
+        self.center: dict[int, list[dict[str, Any]]] = {}
     def begin_uncomplete(self, command: Iterable[str], player: Tuple[int, int]):
         self.begin_command = command
         self.begin_player = player
