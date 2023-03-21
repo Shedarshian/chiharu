@@ -37,6 +37,9 @@ async def CheckSeiyuu(session: CommandSession):
     for o, a in opts:
         if o in ('-m', '--max'):
             max_count = int(a)
+    if len(args) == 0:
+        await session.send("请输入想查找的声优")
+        return
     name, *els = args
     try:
         count = -1 if len(els) == 0 else int(els[0])
@@ -113,6 +116,9 @@ async def BirthToday(session: CommandSession):
     for o, a in opts:
         if o in ('-d', '--date'):
             date = (int(a[0:2]), int(a[2:4]))
+    if len(args) == 0:
+        await session.send("请输入想查找的范围")
+        return
     which = args[0]
     dictout = _GetBirth(which, date=date)
     if len(dictout[which]) != 0:

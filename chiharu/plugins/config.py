@@ -114,6 +114,7 @@ from .games.achievement import achievement
 def ErrorHandle(f):
     @functools.wraps(f)
     async def _f(*args, **kwargs):
+        import requests
         if len(args) >= 1 and isinstance(args[0], BaseSession):
             session = args[0]
         elif 'session' in kwargs and isinstance(kwargs['session'], BaseSession):
@@ -122,6 +123,9 @@ def ErrorHandle(f):
             session = None
         try:
             return await f(*args, **kwargs)
+        except requests.exceptions.SSLError as e:
+            if session is not None:
+                await session.send('网络无法连接，请联系开发者！')
         except getopt.GetoptError as e:
             if session is not None:
                 await session.send('参数错误！' + str(e.args))
