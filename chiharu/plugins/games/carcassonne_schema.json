@@ -136,12 +136,30 @@
               "to"
             ]
         },
+        "NonFieldSegmentData": {
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/$defs/BaseSegmentData"
+              }
+            ],
+            "properties": {
+                "adjacent_road": {
+                    "type": "array",
+                    "description": "Which road this field is adjacent to. Count as index of the list of segments.",
+                    "items": "integer"
+                }
+            },
+            "required": [
+              "adjacent_road"
+            ]
+        },
         "CitySegmentData": {
             "description": "The connection between cities.",
             "type": "object",
             "allOf": [
               {
-                "$ref": "#/$defs/BaseSegmentData"
+                "$ref": "#/$defs/NonFieldSegmentData"
               }
             ],
             "properties": {
@@ -183,7 +201,7 @@
             "type": "object",
             "allOf": [
               {
-                "$ref": "#/$defs/BaseSegmentData"
+                "$ref": "#/$defs/NonFieldSegmentData"
               }
             ],
             "properties": {
@@ -203,6 +221,9 @@
                     "$ref": "#/$defs/MiscFeatureData"
                 },
                 {
+                    "$ref": "#/$defs/CloisterFeatureData"
+                },
+                {
                     "$ref": "#/$defs/TradeFeatureData"
                 }
             ]
@@ -213,7 +234,6 @@
                 "type": {
                     "type": "string",
                     "enum": [
-                        "Cloister",
                         "Cathedral",
                         "Inn"
                     ]
@@ -221,6 +241,24 @@
             },
             "required": [
                 "type"
+            ]
+        },
+        "CloisterFeatureData": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "Cloister"
+                },
+                "adjacent_road": {
+                    "type": "array",
+                    "description": "Which road this field is adjacent to. Count as index of the list of segments.",
+                    "items": "integer"
+                }
+            },
+            "required": [
+                "type",
+                "adjacent_road"
             ]
         },
         "TradeFeatureData": {
