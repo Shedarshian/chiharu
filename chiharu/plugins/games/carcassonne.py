@@ -1,4 +1,4 @@
-from typing import Literal, Any, Callable, Generator
+from typing import Literal, Any, Generator, Type, Callable, Awaitable
 import random, itertools, more_itertools, json
 from enum import Enum, auto
 from abc import ABC, abstractmethod
@@ -37,20 +37,20 @@ def open_pack():
     with open("./carcassonne.json", encoding="utf-8") as f:
         return json.load(f)
 class Board:
-    def __init__(self, packs: list[dict[str, Any]], player_num: int) -> None:
+    def __init__(self, packs: list[dict[str, Any]], players: list[Callable[[dict[str, Any]], Awaitable]]) -> None:
         self.tiles: dict[tuple[int, int], Tile] = {}
         self.deck: list[Tile] = []
         self.tokens: list[Token] = []
-        self.players: list[Player] = [Player(self) for i in range(player_num)]
+        self.players: list[Player] = [Player(self, i, p2) for i, p2 in enumerate(players)]
         for pack in packs:
             for t in pack["tiles"]:
-                self.deck.extend(Tile(t) for i in range(t["num"]))
+                self.deck.extend(Tile(self, t) for i in range(t["num"]))
             for t in pack["tokens"]:
                 if t["distribute"]:
                     for p in self.players:
-                        p.tokens.extend(Token.make(t["name"])(p, t) for i in range(t["num"]))
+                        p.tokens.extend(Token.make(t["name"])(p, p, t) for i in range(t["num"]))
                 else:
-                    self.tokens.extend(Token.make(t["name"])(self, t) for i in range(t["num"]))
+                    self.tokens.extend(Token.make(t["name"])(self, None, t) for i in range(t["num"]))
         start_id = packs[0]["starting_tile"]
         start_tile = [t for t in self.deck if t.id == start_id][0]
         self.popTile(start_tile)
@@ -63,10 +63,11 @@ class Board:
         return tile
 
 class Tile:
-    def __init__(self, data: dict[str, Any]) -> None:
+    def __init__(self, board: Board, data: dict[str, Any]) -> None:
         self.id: int = data["id"]
+        self.board = board
         self.sides: tuple[Connectable,...] = tuple(Connectable.fromChar(s) for s in data["sides"])
-        self.segments: list[Segment] = [Segment.make(s["type"])(self, s) for s in data["segments"]]
+        self.segments: list[Segment] = [Segment.make(s["type"])(self, s) for s in data["segments"]] # type: ignore
         for seg in self.segments:
             if isinstance(seg, FieldSegment):
                 seg.makeAdjacentCity(self.segments)
@@ -172,7 +173,7 @@ class Segment(ABC):
         self.object = Object(self)
         self.tokens: list[Token] = []
     @classmethod
-    def make(cls, typ: str) -> Callable[[Tile, dict[str, Any]], 'Segment']:
+    def make(cls, typ: str) -> Type['Segment']:
         return {"City": CitySegment, "Field": FieldSegment, "Road": RoadSegment, "River": RiverSegment}[typ]
     @abstractmethod
     def turn(self, dir: Dir):
@@ -184,7 +185,7 @@ class Segment(ABC):
         return False
     def inSideF(self, dir: Dir, up: bool):
         return False
-    def closed(self):
+    def closed(self) -> bool:
         return False
 class NonFieldSegment(Segment):
     def __init__(self, typ: Connectable, tile: Tile, data: dict[str, Any]) -> None:
@@ -274,53 +275,134 @@ class Object:
         return self
     def closed(self):
         return all(seg.closed() for seg in self.segments)
+    def checkTile(self):
+        tiles: list[Tile] = []
+        for seg in self.segments:
+            if seg.tile not in tiles:
+                tiles.append(seg.tile)
+        return len(tiles)
+    def checkPlayer(self) -> 'list[Player]':
+        strengths: list[int] = [0 for i in range(len(self.segments[0].tile.board.players))]
+        for token in self.tokens:
+            if isinstance(token, Follower) and token.player is not None:
+                strengths[token.player.id] += token.strength
+        max_strength: tuple[list[int], int] = ([], 0)
+        for i, strength in enumerate(strengths):
+            if strength == max_strength[1]:
+                max_strength[0].append(i)
+            elif strength > max_strength[1]:
+                max_strength = [i], strength
+        if max_strength[1] == 0:
+            return []
+        return [self.segments[0].tile.board.players[i] for i in max_strength[0]]
+    async def score(self, mid_game: bool):
+        players = self.checkPlayer()
+        if len(players) == 0:
+            return
+        score: int = 0
+        match self.type:
+            case Connectable.City:
+                score = (2 if mid_game else 1) * self.checkTile()
+            case Connectable.Road:
+                score = self.checkTile()
+            case Connectable.Field:
+                complete_city: list[Object] = []
+                for seg in self.segments:
+                    if isinstance(seg, FieldSegment):
+                        for segc in seg.adjacentCity:
+                            if segc.object not in complete_city and segc.object.closed():
+                                complete_city.append(segc.object)
+                score = 3 * len(complete_city)
+            case Connectable.River:
+                pass
+        if score != 0:
+            for player in players:
+                await player.addScore(score)
 
 class Feature(ABC):
     def __init__(self, parent: Tile | Segment, data: dict[str, Any]) -> None:
         self.parent = parent
         self.tokens: list[Token] = []
     @classmethod
-    def make(cls, typ: str) -> Callable[[Tile | Segment, dict[str, Any]], 'Feature'] | None:
+    def make(cls, typ: str) -> Type["Feature"] | None:
         return {"Cloister": Cloister}.get(typ, None)
+    def canScore(self) -> bool:
+        return False
+    async def score(self, mid_game: bool):
+        pass
 class Cloister(Feature):
     def __init__(self, parent: Tile | Segment, data: dict[str, Any]) -> None:
         super().__init__(parent, data)
         assert isinstance(parent, Tile)
         self.adjacentRoad = [parent.segments[i] for i in data["adjacent_road"]]
+    def canScore(self) -> bool:
+        assert isinstance(self.parent, Tile)
+        pos = more_itertools.only(key for key, value in self.parent.board.tiles.items() if value is self)
+        if pos is None:
+            return False
+        return all((pos[0] + i, pos[0] + j) in self.parent.board.tiles for i in (-1, 0, 1) for j in (-1, 0, 1))
+    async def score(self, mid_game: bool):
+        assert isinstance(self.parent, Tile)
+        pos = more_itertools.only(key for key, value in self.parent.board.tiles.items() if value is self)
+        if pos is None:
+            return
+        token = more_itertools.only(self.tokens)
+        if token is None or token.player is None:
+            return
+        await token.player.addScore(sum(1 if (pos[0] + i, pos[0] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1)))
 
 class Token(ABC):
-    def __init__(self, parent: 'Tile | Segment | Object | Feature | Player | Board', data: dict[str, Any]) -> None:
+    def __init__(self, parent: 'Tile | Segment | Object | Feature | Player | Board', player: 'Player | None', data: dict[str, Any]) -> None:
         self.parent = parent
+        self.player = player
     @classmethod
-    def make(cls, typ: str) -> Callable[['Tile | Segment | Object | Feature | Player | Board', dict[str, Any]], 'Token']:
+    def make(cls, typ: str) -> Type['Token']:
         return {"follower": BaseFollower, "big follower": BigFollower, "builder": Builder, "pig": Pig}[typ]
+    def canPut(self, seg: Segment | Feature):
+        if isinstance(seg, Segment):
+            return all(len(s.tokens) == 0 for s in seg.object.segments) and len(seg.tokens) == 0
+        return len(seg.tokens) == 0
+    def putOn(self, seg: Segment | Feature) -> bool:
+        seg.tokens.append(self)
+        return False
 class Follower(Token):
-    def __init__(self, parent: 'Tile | Segment | Object | Feature | Player | Board', data: dict[str, Any]) -> None:
-        super().__init__(parent, data)
-        self.strength = 1
+    @property
+    def strength(self) -> int:
+        return 1
 class Figure(Token):
     pass
 class BaseFollower(Follower):
     pass
 class BigFollower(Follower):
-    def __init__(self, parent: 'Tile | Segment | Object | Feature | Player | Board', data: dict[str, Any]) -> None:
-        super().__init__(parent, data)
-        self.strength = 2
+    @property
+    def strength(self):
+        return 2
 class Builder(Figure):
-    pass
+    def canPut(self, seg: Segment | Feature):
+        if isinstance(seg, Segment):
+            return seg.type in (Connectable.City, Connectable.Road) and any(t.player is self.player for s in seg.object.segments for t in s.tokens)
+        return False
+    def putOn(self, seg: Segment | Feature):
+        seg.tokens.append(self)
+        return True
 class Pig(Figure):
     pass
 
 class Player:
-    def __init__(self, board: Board) -> None:
+    def __init__(self, board: Board, id: int, communication: Callable[[dict[str, Any]], Awaitable]) -> None:
         self.board = board
+        self.id = id
         self.tokens: list[Token] = []
+        self.score: int = 0
         self.handTile: Tile | None = None
+        self.communication = communication
+    async def addScore(self, score: int):
+        self.score += score
     def drawTile(self):
         self.handTile = self.board.drawTile()
         return self.handTile
-    def putTile(self, tile: Tile, pos: tuple[int, int], orient: Dir) -> Generator[Literal[2], Any, Literal[-1, -2, 1]]:
-        """-1：已有连接, -2：无法连接。2：放跟随者（-1不放），"""
+    async def putTile(self, tile: Tile, pos: tuple[int, int], orient: Dir) -> Literal[-1, -2, 1]:
+        """-1：已有连接, -2：无法连接。2：放跟随者（-1不放，片段号/feature，which：跟随者名称，返回-1：没有跟随者，-2：无法放置），"""
         if pos in self.board.tiles:
             return -1
         for dr in Dir:
@@ -333,14 +415,40 @@ class Player:
         self.board.tiles[pos] = tile
         for dr in Dir:
             self.board.tiles[pos + dr].addConnect(tile, -dr)
+        next_turn = False
         # put a follower
+        pass_err: Literal[0, -1, -2] = 0
         while 1:
-            ret_put: tuple[int, dict[str, Any]] = (yield 2)
+            ret_put: tuple[int, dict[str, Any]] = await self.communication({"id": 2, "last_err": pass_err})
             if ret_put[0] == -1:
                 break
-            pass
+            if 0 <= ret_put[0] < len(tile.segments):
+                seg: Segment | Feature = tile.segments[ret_put[0]]
+            elif len(tile.segments) <= ret_put[0] < len(tile.segments) + len(tile.features):
+                seg = tile.features[ret_put[0] - len(tile.segments)]
+            else:
+                pass_err = -2
+                continue
+            tokens = [token for token in self.tokens if isinstance(token, Token.make(ret_put[1].get("which", "follower")))]
+            if len(tokens) == 0:
+                pass_err = -1
+                continue
+            token = tokens[0]
+            if not token.canPut(seg):
+                pass_err = -2
+                continue
+            self.tokens.remove(token)
+            next_turn = token.putOn(seg)
+            break
+        # score
+        for seg in tile.segments:
+            if seg.object.closed():
+                await seg.object.score(True)
+        for feature in tile.features:
+            if feature.canScore():
+                await feature.score(True)
         return 1
 
 if __name__ == "__main__":
-    b = Board(open_pack()["packs"][0:2], 1)
+    b = Board(open_pack()["packs"][0:2], [])
     b.deck[2].debugImage().show()
