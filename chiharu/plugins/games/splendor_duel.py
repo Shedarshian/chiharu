@@ -520,8 +520,9 @@ class Board:
             img.alpha_composite(self.BoardImg(), (52, 544))
         return img
     def SaveImg(self, player_id: int, vertical: bool):
-        self.Img(player_id, vertical).save(config.img('sp2.png'))
-        return config.cq.img('sp2.png')
+        name = 'sp2' + str(random.randint(0, 9) + player_id * 10) + '.png'
+        self.Img(player_id, vertical).save(config.img(name))
+        return config.cq.img(name)
 
 sp2 = GameSameGroup('splendor2')
 config.CommandGroup(('play', 'splendor2'), hide=True)

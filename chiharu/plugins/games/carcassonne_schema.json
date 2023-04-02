@@ -99,8 +99,23 @@
                 "num": {
                     "type": "integer",
                     "descrption": "The number of this token. If distribute, this number is the number everyone recieves."
+                },
+                "image": {
+                    "type": "array",
+                    "description": "The bounding box of the image from assets.",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "minItems": 4,
+                    "maxItems": 4
                 }
-            }
+            },
+            "required": [
+                "name",
+                "distribute",
+                "num",
+                "image"
+            ]
         },
         "SegmentData": {
             "oneOf": [
@@ -125,6 +140,14 @@
                         "type": "integer"
                     }
                 },
+                "posx": {
+                    "type": "integer",
+                    "description": "The x position to put token."
+                },
+                "posy": {
+                    "type": "integer",
+                    "description": "The y position to put token."
+                },
                 "features": {
                     "type": "array",
                     "items": {
@@ -133,7 +156,9 @@
                 }
             },
             "required": [
-              "to"
+              "to",
+              "posx",
+              "posy"
             ]
         },
         "NonFieldSegmentData": {
@@ -254,11 +279,21 @@
                     "type": "array",
                     "description": "Which road this field is adjacent to. Count as index of the list of segments.",
                     "items": "integer"
+                },
+                "posx": {
+                    "type": "integer",
+                    "description": "The x position to put token."
+                },
+                "posy": {
+                    "type": "integer",
+                    "description": "The y position to put token."
                 }
             },
             "required": [
                 "type",
-                "adjacent_road"
+                "adjacent_road",
+                "posx",
+                "posy"
             ]
         },
         "TradeFeatureData": {
