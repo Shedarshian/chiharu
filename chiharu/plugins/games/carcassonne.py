@@ -180,8 +180,8 @@ class Board:
                     dr.text(pos(*choose_follower, tpos), chr(i), "black", font, "mm")
                 i += 1
         # grid
-        width = leftmost + rightmost
-        height = uppermost + lowermost
+        width = rightmost - leftmost
+        height = lowermost - uppermost
         dr.line(pos(0, 0, (-10, -10)) + pos(0, height + 1, (-10, 10)), "gray")
         dr.line(pos(0, 0, (-1, -10)) + pos(0, height + 1, (-1, 10)), "gray")
         for i in range(0, width + 1):
