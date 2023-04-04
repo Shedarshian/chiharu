@@ -95,7 +95,7 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             if command == "不放":
                 await advance({"id": -1})
             elif match := re.match(r"\s*([a-z])\s*(.*)?", command):
-                n = ord(match.group(1)) - ord('a') + 1
+                n = ord(match.group(1)) - ord('a')
                 name = match.group(2)
                 await advance({"id": n, "which": name or "follower"})
         case PlayerState.InturnScoring:
