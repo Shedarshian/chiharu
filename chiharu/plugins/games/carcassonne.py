@@ -170,7 +170,7 @@ class Board:
             tile = self.tiles[choose_follower]
             i = ord('a')
             for seg in tile.segments:
-                if not seg.closed():
+                if not seg.object.closed():
                     tpos = seg.token_pos
                     dr.ellipse((posshift(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), posshift(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
                     dr.text(posshift(*choose_follower, tpos), chr(i), "black", font, "mm")
