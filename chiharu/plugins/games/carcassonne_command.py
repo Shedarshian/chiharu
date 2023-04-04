@@ -86,10 +86,10 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 xs = match.group(1); ys = match.group(2); orients = match.group(3)
                 x = (ord(xs[0]) - ord('A') + 1) * 26 + ord(xs[1]) - ord('A') if len(xs) == 2 else ord(xs) - ord('A')
                 y = int(ys)
-                orient = {'U': Dir.UP, 'R': Dir.RIGHT, 'D': Dir.DOWN, 'L': Dir.LEFT}[orients]
+                orient = {'U': Dir.UP, 'R': Dir.LEFT, 'D': Dir.DOWN, 'L': Dir.RIGHT}[orients]
                 leftmost = min(i for i, j in board.tiles.keys())
                 uppermost = min(j for i, j in board.tiles.keys())
-                player.stateGen = player.putTile((x + leftmost, y + uppermost), orient)
+                player.stateGen = player.putTile((x + leftmost - 1, y + uppermost - 1), orient)
                 await advance()
         case PlayerState.PuttingFollower:
             if command == "不放":

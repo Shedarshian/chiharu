@@ -724,7 +724,8 @@ class Player:
         tile.turn(orient)
         self.board.tiles[pos] = tile
         for dr in Dir:
-            self.board.tiles[pos + dr].addConnect(tile, -dr)
+            if pos + dr in self.board.tiles:
+                self.board.tiles[pos + dr].addConnect(tile, -dr)
         self.handTile = None
         self.state = PlayerState.PuttingFollower
         next_turn = False
