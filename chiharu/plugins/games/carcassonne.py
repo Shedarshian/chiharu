@@ -4,6 +4,8 @@ from enum import Enum, auto
 from abc import ABC, abstractmethod
 from PIL import Image, ImageDraw, ImageFont
 
+class CantPutError(Exception):
+    pass
 class Connectable(Enum):
     City = auto()
     Field = auto()
@@ -107,7 +109,13 @@ class Board:
             self.current_player_id -= len(self.players)
         return 1
     def endGameScore(self):
-        pass
+        for tile in self.tiles.values():
+            for seg in tile.segments:
+                if len(seg.tokens) != 0:
+                    seg.object.scoreFinal()
+            for feature in tile.features:
+                if len(feature.tokens) != 0:
+                    feature.scoreFinal()
     def winner(self):
         maxScore: int = 0
         maxPlayer: list[Player] = []
@@ -118,6 +126,30 @@ class Board:
             elif player.score == maxScore:
                 maxPlayer.append(player)
         return maxScore, maxPlayer
+    def canPutTile(self, tile: 'Tile', pos: tuple[int, int], orient: Dir) -> Literal[-1, -2, -3, 1]:
+        """-1：已有连接, -2：无法连接，-3：没有挨着。"""
+        if pos in self.tiles:
+            return -1
+        if all(pos + dr not in self.tiles for dr in Dir):
+            return -3
+        for dr in Dir:
+            side = pos + dr
+            if side in self.tiles:
+                ret = self.tiles[side].checkConnect(tile, -dr, orient)
+                if ret < 0:
+                    return ret
+        return 1
+    def checkTilePosition(self, tile: 'Tile'):
+        leftmost = min(i for i, j in self.tiles.keys())
+        rightmost = max(i for i, j in self.tiles.keys())
+        uppermost = min(j for i, j in self.tiles.keys())
+        lowermost = max(j for i, j in self.tiles.keys())
+        for i in range(leftmost - 1, rightmost + 2):
+            for j in range(uppermost - 1, lowermost + 2):
+                for orient in Dir:
+                    if self.canPutTile(tile, (i, j), orient):
+                        return True
+        return False
 
     def tileImages(self, choose_follower: tuple[int, int] | None = None, debug: bool=False):
         leftmost = min(i for i, j in self.tiles.keys())
@@ -241,8 +273,19 @@ class Board:
         self.image(choose_follower, debug).save(config.img(name))
         return config.cq.img(name)
 
-class Tile:
+class CanToken(ABC):
+    def __init__(self) -> None:
+        self.tokens: list[Token] = []
+    def removeAllFollowers(self):
+        for token in self.tokens:
+            if token.player is not None:
+                token.player.tokens.append(token)
+                token.parent = token.player
+        self.tokens = [token for token in self.tokens if token.player is None]
+
+class Tile(CanToken):
     def __init__(self, board: Board, data: dict[str, Any], img: Image.Image) -> None:
+        super().__init__()
         self.id: int = data["id"]
         self.board = board
         self.sides: tuple[Connectable,...] = tuple(Connectable.fromChar(s) for s in data["sides"])
@@ -253,7 +296,6 @@ class Tile:
             elif isinstance(seg, NonFieldSegment):
                 seg.makeAdjacentRoad(self.segments)
         self.features: list[Feature] = [f(self, s) for s in data.get("features", []) if (f := Feature.make(s["type"])) is not None]
-        self.tokens: list[Token] = []
         self.connectTile: list[Tile | None] = [None] * 4
         self.orient: Dir = Dir.UP
         self.token_pos: tuple[int, int] = (data.get("posx", 32), data.get("posy", 32))
@@ -344,13 +386,13 @@ class Tile:
             return self.img
         return self.img.transpose(self.orient.transpose())
 
-class Segment(ABC):
+class Segment(CanToken):
     def __init__(self, typ: Connectable, tile: Tile, data: dict[str, Any]) -> None:
+        super().__init__()
         self.type = typ
         self.tile = tile
         self.features: list[Feature] = []
         self.object = Object(self)
-        self.tokens: list[Token] = []
         self.token_pos: tuple[int, int] = (data.get("posx", 32), data.get("posy", 32))
     @classmethod
     def make(cls, typ: str) -> Type['Segment']:
@@ -440,8 +482,9 @@ class FieldSegment(Segment):
     def color(self):
         return "green"
 
-class Object:
+class Object(CanToken):
     def __init__(self, seg: Segment) -> None:
+        super().__init__()
         self.type = seg.type
         self.segments: list[Segment] = [seg]
         self.tokens: list[Token] = []
@@ -475,10 +518,7 @@ class Object:
         if max_strength[1] == 0:
             return []
         return [self.segments[0].tile.board.players[i] for i in max_strength[0]]
-    def score(self, mid_game: bool) -> Generator[dict[str, Any], dict[str, Any], None]:
-        players = self.checkPlayer()
-        if len(players) == 0:
-            return
+    def checkScore(self, mid_game: bool):
         score: int = 0
         match self.type:
             case Connectable.City:
@@ -495,30 +535,41 @@ class Object:
                 score = 3 * len(complete_city)
             case Connectable.River:
                 pass
+        return score
+    def removeAllFollowers(self):
+        super().removeAllFollowers()
+        for seg in self.segments:
+            seg.removeAllFollowers()
+    def score(self) -> Generator[dict[str, Any], dict[str, Any], None]:
+        players = self.checkPlayer()
+        score = self.checkScore(True)
         if score != 0:
             for player in players:
                 yield from player.addScore(score)
-        for token in self.tokens:
-            if token.player is None:
-                self.segments[0].tile.board.tokens.append(token)
-                token.parent = self.segments[0].tile.board
-            else:
-                token.player.tokens.append(token)
-                token.parent = token.player
+        self.removeAllFollowers()
+    def scoreFinal(self):
+        players = self.checkPlayer()
+        score = self.checkScore(False)
+        if score != 0:
+            for player in players:
+                player.addScoreFinal(score)
+        self.removeAllFollowers()
 
-class Feature(ABC):
+class Feature(CanToken):
     def __init__(self, parent: Tile | Segment, data: dict[str, Any]) -> None:
+        super().__init__()
         self.parent = parent
-        self.tokens: list[Token] = []
         self.token_pos: tuple[int, int] = (data.get("posx", 32), data.get("posy", 32))
     @classmethod
     def make(cls, typ: str) -> Type["Feature"] | None:
         return {"Cloister": Cloister}.get(typ, None)
     def canScore(self) -> bool:
         return False
-    def score(self, mid_game: bool) -> Generator[dict[str, Any], dict[str, Any], None]:
+    def score(self) -> Generator[dict[str, Any], dict[str, Any], None]:
         return
         yield {}
+    def scoreFinal(self):
+        return
     def canPlace(self) -> bool:
         return False
 class Cloister(Feature):
@@ -532,7 +583,7 @@ class Cloister(Feature):
         if pos is None:
             return False
         return all((pos[0] + i, pos[0] + j) in self.parent.board.tiles for i in (-1, 0, 1) for j in (-1, 0, 1))
-    def score(self, mid_game: bool) -> Generator[dict[str, Any], dict[str, Any], None]:
+    def score(self) -> Generator[dict[str, Any], dict[str, Any], None]:
         assert isinstance(self.parent, Tile)
         pos = more_itertools.only(key for key, value in self.parent.board.tiles.items() if value is self)
         if pos is None:
@@ -541,6 +592,15 @@ class Cloister(Feature):
         if token is None or token.player is None:
             return
         yield from token.player.addScore(sum(1 if (pos[0] + i, pos[0] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1)))
+    def scoreFinal(self):
+        assert isinstance(self.parent, Tile)
+        pos = more_itertools.only(key for key, value in self.parent.board.tiles.items() if value is self)
+        if pos is None:
+            return
+        token = more_itertools.only(self.tokens)
+        if token is None or token.player is None:
+            return
+        token.player.addScoreFinal(sum(1 if (pos[0] + i, pos[0] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1)))
     def canPlace(self) -> bool:
         return True
 
@@ -622,9 +682,18 @@ class Player:
         self.score += score
         return
         yield {}
+    def addScoreFinal(self, score: int):
+        self.score += score
     def drawTile(self):
         self.handTile = self.board.drawTile()
         self.state = PlayerState.TileDrawn
+        checked: int = 0
+        while self.handTile is not None and not self.board.checkTilePosition(self.handTile):
+            checked += 1
+            self.board.deck.append(self.handTile)
+            self.handTile = self.board.drawTile()
+            if checked >= len(self.board.deck):
+                raise CantPutError
         return self.handTile
     @property
     def tokenColor(self):
@@ -687,10 +756,10 @@ class Player:
         # score
         for seg in tile.segments:
             if seg.object.closed():
-                yield from seg.object.score(True)
+                yield from seg.object.score()
         for feature in tile.features:
             if feature.canScore():
-                yield from feature.score(True)
+                yield from feature.score()
         self.state = PlayerState.End
         return 1
     def image(self):
