@@ -1,4 +1,4 @@
-from typing import Literal, Any, Generator, Type, Callable, Awaitable
+from typing import Literal, Any, Generator, Type, Callable, Awaitable, TypeVar
 import random, itertools, more_itertools, json
 from enum import Enum, auto
 from abc import ABC, abstractmethod
@@ -43,6 +43,8 @@ def turn(pos: tuple[int, int], dir: Dir):
         return 64 - pos[0], 64 - pos[1]
     return pos[1], 64 - pos[0]
 
+TToken = TypeVar("TToken", bound="Token")
+
 def open_pack():
     from pathlib import Path
     with open(Path(__file__).parent / "carcassonne.json", encoding="utf-8") as f:
@@ -51,13 +53,14 @@ def open_img(name: str):
     from pathlib import Path
     return Image.open(Path(__file__).parent / "carcassonne_asset" / (name + ".png")).convert("RGBA")
 class Board:
-    def __init__(self, packs: list[dict[str, Any]], player_num: int) -> None:
+    def __init__(self, packs: list[dict[str, Any]], player_names: list[str]) -> None:
         self.tiles: dict[tuple[int, int], Tile] = {}
         self.deck: list[Tile] = []
         self.tokens: list[Token] = []
-        self.players: list[Player] = [Player(self, i) for i in range(player_num)]
+        self.players: list[Player] = [Player(self, i, name) for i, name in enumerate(player_names)]
         self.tileimgs: dict[int, Image.Image] = {}
         self.tokenimgs: dict[int, Image.Image] = {}
+        current_pos: int = 0
         for pack in packs:
             self.tileimgs[pack["id"]] = open_img(str(pack["id"]))
             self.tokenimgs[pack["id"]] = open_img("token" + str(pack["id"]))
@@ -77,6 +80,18 @@ class Board:
         self.tiles[0, 0] = start_tile
         self.current_player_id = 0
         random.shuffle(self.deck)
+        self.players[0].tokens.sort(key=Token.key)
+        self.token_pos: dict[Type[Token], int] = {}
+        xpos = 0
+        last_key: tuple[int, int] = (-1, -2)
+        for t in self.players[0].tokens:
+            if t.key() != last_key:
+                self.token_pos[type(t)] = xpos
+                last_key = t.key()
+            xpos += t.image().size[0] + 4
+        self.token_length = xpos
+        self.font_name = ImageFont.truetype("msyhbd.ttc", 16)
+        self.font_score = ImageFont.truetype("msyhbd.ttc", 24)
     @property
     def current_player(self):
         return self.players[self.current_player_id]
@@ -90,20 +105,48 @@ class Board:
         self.current_player_id += 1
         if self.current_player_id >= len(self.players):
             self.current_player_id -= len(self.players)
-    def image(self):
-        img = Image.new("RGBA", (128, 128), "white")
-        return img
-    def tileImages(self):
+        return 1
+    def endGameScore(self):
+        pass
+    def winner(self):
+        maxScore: int = 0
+        maxPlayer: list[Player] = []
+        for player in self.players:
+            if player.score > maxScore:
+                maxScore = player.score
+                maxPlayer = [player]
+            elif player.score == maxScore:
+                maxPlayer.append(player)
+        return maxScore, maxPlayer
+
+    def tileImages(self, choose_follower: tuple[int, int] | None = None, debug: bool=False):
         leftmost = min(i for i, j in self.tiles.keys())
         rightmost = max(i for i, j in self.tiles.keys())
         uppermost = min(j for i, j in self.tiles.keys())
         lowermost = max(j for i, j in self.tiles.keys())
-        img = Image.new("RGBA", ((rightmost - leftmost + 1) * 64 + 46, (lowermost - uppermost + 1) * 64 + 46), "white")
+        img = Image.new("RGBA", ((rightmost - leftmost + 1) * 64 + 46, (lowermost - uppermost + 1) * 64 + 46))
         dr = ImageDraw.Draw(img)
         def pos(w: int, h: int, *offsets: tuple[int, int]):
             return w * 64 + sum(c[0] for c in offsets) + 32, h * 64 + sum(c[1] for c in offsets) + 32
         for (i, j), tile in self.tiles.items():
-            img.paste(tile.image(), pos(i, j))
+            img.paste(tile.image(debug), pos(i, j))
+        # choose follower
+        font = ImageFont.truetype("msyhbd.ttc", 10)
+        if choose_follower is not None:
+            tile = self.tiles[choose_follower]
+            i = ord('a')
+            for seg in tile.segments:
+                if not seg.closed():
+                    tpos = seg.token_pos
+                    dr.ellipse((pos(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), pos(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
+                    dr.text(pos(*choose_follower, tpos), chr(i), "black", font, "mm")
+                i += 1
+            for feature in tile.features:
+                if feature.canPlace():
+                    tpos = feature.token_pos
+                    dr.ellipse((pos(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), pos(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
+                    dr.text(pos(*choose_follower, tpos), chr(i), "black", font, "mm")
+                i += 1
         # grid
         width = leftmost + rightmost
         height = uppermost + lowermost
@@ -122,7 +165,6 @@ class Board:
         dr.line(pos(0, height + 1, (-10, 0)) + pos(width + 1, height + 1, (10, 0)), "gray")
         dr.line(pos(0, height + 1, (-10, 10)) + pos(width + 1, height + 1, (10, 10)), "gray")
         # text
-        font = ImageFont.truetype("msyhbd.ttc", 10)
         def alpha(n):
             if n <= 25: return chr(ord('A') + n)
             return chr(ord('A') + n % 26 - 1) + chr(ord('A') + n // 26)
@@ -153,12 +195,50 @@ class Board:
                     t = token.image()
                     img.alpha_composite(t, pos(i, j, turn(feature.token_pos, tile.orient), (-t.size[0] // 2, -t.size[1] // 2), (next * 4, next * 4)))
                     next += 1
-            # TODO object token
         return img
-    def saveImg(self):
+    def playerImage(self):
+        imgs = [p.image() for p in self.players]
+        img = Image.new("RGBA", (imgs[0].size[0], 24 * len(self.players)))
+        for i, pimg in enumerate(imgs):
+            img.alpha_composite(pimg, (0, i * 24))
+        return img
+    def handTileImage(self):
+        return self.current_player.handTileImage()
+
+    def image(self, choose_follower: tuple[int, int] | None = None, debug: bool=False):
+        player_img = self.playerImage()
+        handtile_img = self.handTileImage()
+        tile_img = self.tileImages(choose_follower, debug)
+        p1, p2 = player_img.size
+        h1, h2 = handtile_img.size
+        t1, t2 = tile_img.size
+        img = Image.new("RGBA", (max(p1 + h1, t1), max(p2, h2) + t2), "AntiqueWhite")
+        dr = ImageDraw.Draw(img)
+        px, py, hx, hy, tx, ty = (0,) * 6
+        if p2 > h2:
+            py = 0
+            hy = (p2 - h2) // 2
+        else:
+            py = (h2 - p2) // 2
+            hy = 0
+        ty = max(p2, h2)
+        if p1 + h1 > t1:
+            px = 0
+            hx = p1
+            tx = (p1 + h1 - t1) // 2
+        else:
+            px = (t1 - p1 - h1) // 2
+            hx = px + p1
+            tx = 0
+        dr.rectangle((0, max(p2, h2), max(p1 + h1, t1), max(p2, h2) + t2), "LightCyan")
+        img.alpha_composite(player_img, (px, py))
+        img.alpha_composite(handtile_img, (hx, hy))
+        img.alpha_composite(tile_img, (tx, ty))
+        return img
+    def saveImg(self, choose_follower: tuple[int, int] | None = None, debug: bool=False):
         from .. import config
         name = 'ccs' + str(random.randint(0, 9) + self.current_player_id * 10) + '.png'
-        self.image().save(config.img(name))
+        self.image(choose_follower, debug).save(config.img(name))
         return config.cq.img(name)
 
 class Tile:
@@ -205,67 +285,61 @@ class Tile:
             s1.combineF(s2)
         return 1
     def debugImage(self):
-        img = Image.new("RGBA", (128, 128), "white")
+        img = Image.new("RGBA", (64, 64), "white")
         dr = ImageDraw.Draw(img)
-        corr = (19, 19)
+        img.paste(self.img)
         ci = 1
         for i, c in zip(range(4), self.sides):
-            dr.rectangle([(0, 0, 128, 2), (126, 0, 128, 128), (0, 126, 128, 128), (0, 0, 2, 128)][i], {Connectable.City: "brown", Connectable.Field: "green", Connectable.Road: "black", Connectable.River: "blue"}[c])
+            dr.rectangle([(0, 0, 64, 2), (62, 0, 64, 64), (0, 62, 64, 64), (0, 0, 2, 64)][i], {Connectable.City: "brown", Connectable.Field: "green", Connectable.Road: "black", Connectable.River: "blue"}[c])
         citycorrs: list[tuple[int, int]] = []
         for seg in self.segments:
+            corr = seg.token_pos
             if isinstance(seg, NonFieldSegment):
                 for dir in seg.side.keys():
                     if dir == Dir.UP:
-                        dr.line((corr[0], 0, corr[0], corr[1]), seg.color, 3)
+                        dr.line((corr[0], 0, corr[0], corr[1]), seg.color, 2)
                     elif dir == Dir.RIGHT:
-                        dr.line((128, corr[1], corr[0], corr[1]), seg.color, 3)
+                        dr.line((64, corr[1], corr[0], corr[1]), seg.color, 2)
                     elif dir == Dir.DOWN:
-                        dr.line((corr[0], 128, corr[0], corr[1]), seg.color, 3)
+                        dr.line((corr[0], 64, corr[0], corr[1]), seg.color, 2)
                     elif dir == Dir.LEFT:
-                        dr.line((0, corr[1], corr[0], corr[1]), seg.color, 3)
+                        dr.line((0, corr[1], corr[0], corr[1]), seg.color, 2)
             elif isinstance(seg, FieldSegment):
                 for du in seg.side.keys():
-                    cr = {(Dir.UP, True): (32, 0), (Dir.UP, False): (96, 0), (Dir.RIGHT, True): (128, 32), (Dir.RIGHT, False): (128, 96), (Dir.DOWN, True): (96, 128), (Dir.DOWN, False): (32, 128), (Dir.LEFT, True): (0, 96), (Dir.LEFT, False): (0, 32)}[du]
-                    dr.line(cr + corr, seg.color, 3)
+                    cr = {(Dir.UP, True): (16, 0), (Dir.UP, False): (48, 0), (Dir.RIGHT, True): (64, 16), (Dir.RIGHT, False): (64, 48), (Dir.DOWN, True): (48, 64), (Dir.DOWN, False): (16, 64), (Dir.LEFT, True): (0, 48), (Dir.LEFT, False): (0, 16)}[du]
+                    dr.line(cr + corr, seg.color, 2)
                 for city in seg.adjacentCity:
-                    dr.line((citycorrs[self.segments.index(city)], corr), "gray", 3)
+                    dr.line((citycorrs[self.segments.index(city)], corr), "gray", 2)
             citycorrs.append(corr)
-            corr = (corr[0] + 10 * ci, corr[1] + 10)
             ci += 1
-            if corr[0] >= 110:
-                corr = (corr[0] - 110, corr[1])
-        corr = (19, 19)
         ci = 1
         for seg in self.segments:
+            corr = seg.token_pos
             if isinstance(seg, NonFieldSegment):
                 for road in seg.adjacentRoad:
-                    dr.line((citycorrs[self.segments.index(road)], corr), "gray", 3)
-            corr = (corr[0] + 10 * ci, corr[1] + 10)
+                    dr.line((citycorrs[self.segments.index(road)], corr), "gray", 2)
             ci += 1
-            if corr[0] >= 110:
-                corr = (corr[0] - 110, corr[1])
-        corr = (19, 19)
         ci = 1
         for seg in self.segments:
+            corr = seg.token_pos
             if isinstance(seg, CitySegment):
-                dr.ellipse((corr[0] - 5, corr[1] - 5, corr[0] + 5, corr[1] + 5), seg.color)
+                dr.ellipse((corr[0] - 3, corr[1] - 3, corr[0] + 3, corr[1] + 3), seg.color)
                 if seg.pennant != 0:
                     font = ImageFont.truetype("msyhbd.ttc", 10)
                     dr.text((corr[0] + 1, corr[1]), str(seg.pennant), "black", font, anchor="mm")
             elif isinstance(seg, RoadSegment):
-                dr.ellipse((corr[0] - 5, corr[1] - 5, corr[0] + 5, corr[1] + 5), "white", outline="black", width=2)
+                dr.ellipse((corr[0] - 3, corr[1] - 3, corr[0] + 3, corr[1] + 3), "white", outline="black", width=2)
             elif isinstance(seg, RiverSegment):
-                dr.ellipse((corr[0] - 5, corr[1] - 5, corr[0] + 5, corr[1] + 5), seg.color)
+                dr.ellipse((corr[0] - 3, corr[1] - 3, corr[0] + 3, corr[1] + 3), seg.color)
             elif isinstance(seg, FieldSegment):
-                dr.ellipse((corr[0] - 5, corr[1] - 5, corr[0] + 5, corr[1] + 5), seg.color)
+                dr.ellipse((corr[0] - 3, corr[1] - 3, corr[0] + 3, corr[1] + 3), seg.color)
                 for city in seg.adjacentCity:
                     citycorrs[self.segments.index(city)]
-            corr = (corr[0] + 10 * ci, corr[1] + 10)
             ci += 1
-            if corr[0] >= 110:
-                corr = (corr[0] - 110, corr[1])
         return img
-    def image(self):
+    def image(self, debug: bool=False):
+        if debug:
+            return self.debugImage()
         if self.orient == Dir.UP:
             return self.img
         return self.img.transpose(self.orient.transpose())
@@ -445,6 +519,8 @@ class Feature(ABC):
     def score(self, mid_game: bool) -> Generator[dict[str, Any], dict[str, Any], None]:
         return
         yield {}
+    def canPlace(self) -> bool:
+        return False
 class Cloister(Feature):
     def __init__(self, parent: Tile | Segment, data: dict[str, Any]) -> None:
         super().__init__(parent, data)
@@ -465,6 +541,8 @@ class Cloister(Feature):
         if token is None or token.player is None:
             return
         yield from token.player.addScore(sum(1 if (pos[0] + i, pos[0] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1)))
+    def canPlace(self) -> bool:
+        return True
 
 class Token(ABC):
     def __init__(self, parent: 'Tile | Segment | Object | Feature | Player | Board', player: 'Player | None', data: dict[str, Any], img: Image.Image) -> None:
@@ -483,14 +561,8 @@ class Token(ABC):
         self.parent = seg
         return False
     def image(self):
-        return self.img.copy()
-class Follower(Token):
-    @property
-    def strength(self) -> int:
-        return 1
-    def image(self):
         if self.player is None:
-            return super().image()
+            return self.img.copy()
         if isinstance(self.parent, FieldSegment):
             mask = open_img("token0").crop((16, 0, 32, 16))
         else:
@@ -498,16 +570,25 @@ class Follower(Token):
         x = Image.new("RGBA", (16, 16))
         x.paste(Image.new("RGBA", (16, 16), self.player.tokenColor), (0, 0, 16, 16), mask)
         return x
+    def key(self) -> tuple[int, int]:
+        return (-1, -1)
+class Follower(Token):
+    @property
+    def strength(self) -> int:
+        return 1
 class Figure(Token):
     pass
 class BaseFollower(Follower):
-    pass
+    def key(self) -> tuple[int, int]:
+        return (0, 0)
 class BigFollower(Follower):
     @property
     def strength(self):
         return 2
     def image(self):
         return super().image().resize((24, 24))
+    def key(self) -> tuple[int, int]:
+        return (1, 0)
 class Builder(Figure):
     def canPut(self, seg: Segment | Feature):
         if isinstance(seg, Segment):
@@ -516,30 +597,55 @@ class Builder(Figure):
     def putOn(self, seg: Segment | Feature):
         seg.tokens.append(self)
         return True
+    def key(self) -> tuple[int, int]:
+        return (2, 0)
 class Pig(Figure):
-    pass
+    def key(self) -> tuple[int, int]:
+        return (2, 1)
 
+class PlayerState(Enum):
+    End = auto()
+    TileDrawn = auto()
+    PuttingFollower = auto()
+    InturnScoring = auto()
 class Player:
-    def __init__(self, board: Board, id: int) -> None:
+    def __init__(self, board: Board, id: int, name: str) -> None:
         self.board = board
         self.id = id
+        self.name = name[:20]
         self.tokens: list[Token] = []
         self.score: int = 0
         self.handTile: Tile | None = None
+        self.state: PlayerState = PlayerState.End
+        self.stateGen: Generator[dict[str, Any], dict[str, Any], Literal[-1, -2, -3, 1]] | None = None
     def addScore(self, score: int) -> Generator[dict[str, Any], dict[str, Any], None]:
         self.score += score
         return
         yield {}
     def drawTile(self):
         self.handTile = self.board.drawTile()
+        self.state = PlayerState.TileDrawn
         return self.handTile
     @property
     def tokenColor(self):
         return ["red", "blue", "gray", "green", "yellow", "black"][self.id]
-    def putTile(self, tile: Tile, pos: tuple[int, int], orient: Dir) -> Generator[dict[str, Any], dict[str, Any], Literal[-1, -2, 1]]:
-        """-1：已有连接, -2：无法连接。2：放跟随者（-1不放，片段号/feature，which：跟随者名称，返回-1：没有跟随者，-2：无法放置），"""
+    @property
+    def show_name(self):
+        show_name = self.name
+        if self.board.font_name.getlength(self.name) > 80:
+            while self.board.font_name.getlength(show_name + "...") > 80:
+                show_name = show_name[:-1]
+            show_name += "..."
+        return show_name
+    def putTile(self, pos: tuple[int, int], orient: Dir) -> Generator[dict[str, Any], dict[str, Any], Literal[-1, -2, -3, 1]]:
+        """-1：已有连接, -2：无法连接，-3：没有挨着。2：放跟随者（-1不放，片段号/feature，which：跟随者名称，返回-1：没有跟随者，-2：无法放置），"""
+        tile = self.handTile
+        if tile is None:
+            return -3
         if pos in self.board.tiles:
             return -1
+        if all(pos + dr not in self.board.tiles for dr in Dir):
+            return -3
         for dr in Dir:
             side = pos + dr
             if side in self.board.tiles:
@@ -550,11 +656,13 @@ class Player:
         self.board.tiles[pos] = tile
         for dr in Dir:
             self.board.tiles[pos + dr].addConnect(tile, -dr)
+        self.handTile = None
+        self.state = PlayerState.PuttingFollower
         next_turn = False
         # put a follower
         pass_err: Literal[0, -1, -2] = 0
         while 1:
-            ret_put = yield {"id": 2, "last_err": pass_err}
+            ret_put = yield {"id": 2, "last_err": pass_err, "last_put": pos}
             if ret_put["id"] == -1:
                 break
             if 0 <= ret_put["id"] < len(tile.segments):
@@ -575,6 +683,7 @@ class Player:
             self.tokens.remove(token)
             next_turn = token.putOn(seg_put)
             break
+        self.state = PlayerState.InturnScoring
         # score
         for seg in tile.segments:
             if seg.object.closed():
@@ -582,24 +691,57 @@ class Player:
         for feature in tile.features:
             if feature.canScore():
                 yield from feature.score(True)
+        self.state = PlayerState.End
         return 1
+    def image(self):
+        img = Image.new("RGBA", (125 + self.board.token_length, 24))
+        dr = ImageDraw.Draw(img)
+        dr.text((0, 12), self.show_name, "black", self.board.font_name, "lm")
+        dr.text((102, 12), str(self.score), "black", self.board.font_score, "mm")
+        # tokens
+        self.tokens.sort(key=Token.key)
+        token_xpos = {key: value for key, value in self.board.token_pos.items()}
+        for token in self.tokens:
+            timg = token.image()
+            img.alpha_composite(timg, (token_xpos[type(token)] + 125, 12 - timg.size[1] // 2))
+            token_xpos[type(token)] += timg.size[0] + 4
+        return img
+    def handTileImage(self):
+        img = Image.new("RGBA", (176, 96))
+        dr = ImageDraw.Draw(img)
+        if self.handTile is None:
+            dr.text((0, 48), self.show_name + "  请选择", "black", self.board.font_name, "lm")
+        else:
+            dr.text((0, 48), self.show_name, "black", self.board.font_name, "lm")
+            dr.rectangle((92, 12, 164, 84), self.tokenColor, None)
+            img.paste(self.handTile.image(), (96, 16))
+            # text
+            font = ImageFont.truetype("msyhbd.ttc", 10)
+            dr.text((128, 10), "U", "black", font, "mb")
+            dr.text((128, 86), "D", "black", font, "mt")
+            dr.text((90, 48), "L", "black", font, "rm")
+            dr.text((166, 48), "R", "black", font, "lm")
+        return img
+
 
 if __name__ == "__main__":
-    b = Board(open_pack()["packs"][0:1], 5)
+    b = Board(open_pack()["packs"][0:1], ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔"])
     d = {
             "name": "follower",
             "distribute": True,
             "num": 7,
             "image": [0, 0, 16, 16]
         }
+    b.players[0].tokens.pop(0)
     for i in range(1, 25):
         t = b.tiles[i % 5, i // 5] = [s for s in b.deck if s.id == i - 1][0]
-        t.turn(Dir.RIGHT)
-        for seg in t.segments:
-            b.players[0].tokens.append(Follower(b.players[0], b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-            b.players[0].tokens[-1].putOn(seg)
-        for feature in t.features:
-            if isinstance(feature, Cloister):
-                b.players[0].tokens.append(Follower(b.players[0], b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-                b.players[0].tokens[-1].putOn(feature)
-    b.tileImages().show()
+        # t.turn(Dir.RIGHT)
+        # for seg in t.segments:
+        #     b.players[0].tokens.append(Follower(b.players[0], b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+        #     b.players[0].tokens[-1].putOn(seg)
+        # for feature in t.features:
+        #     if isinstance(feature, Cloister):
+        #         b.players[0].tokens.append(Follower(b.players[0], b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+        #         b.players[0].tokens[-1].putOn(feature)
+    b.players[0].drawTile()
+    b.image(debug=True).show()
