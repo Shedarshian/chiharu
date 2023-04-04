@@ -160,8 +160,10 @@ class Board:
         dr = ImageDraw.Draw(img)
         def pos(w: int, h: int, *offsets: tuple[int, int]):
             return w * 64 + sum(c[0] for c in offsets) + 32, h * 64 + sum(c[1] for c in offsets) + 32
+        def posshift(w: int, h: int, *offsets: tuple[int, int]):
+            return (w - leftmost) * 64 + sum(c[0] for c in offsets) + 32, (h - uppermost) * 64 + sum(c[1] for c in offsets) + 32
         for (i, j), tile in self.tiles.items():
-            img.paste(tile.image(debug), pos(i, j))
+            img.paste(tile.image(debug), posshift(i, j))
         # choose follower
         font = ImageFont.truetype("msyhbd.ttc", 10)
         if choose_follower is not None:
@@ -170,14 +172,14 @@ class Board:
             for seg in tile.segments:
                 if not seg.closed():
                     tpos = seg.token_pos
-                    dr.ellipse((pos(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), pos(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
-                    dr.text(pos(*choose_follower, tpos), chr(i), "black", font, "mm")
+                    dr.ellipse((posshift(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), posshift(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
+                    dr.text(posshift(*choose_follower, tpos), chr(i), "black", font, "mm")
                 i += 1
             for feature in tile.features:
                 if feature.canPlace():
                     tpos = feature.token_pos
-                    dr.ellipse((pos(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), pos(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
-                    dr.text(pos(*choose_follower, tpos), chr(i), "black", font, "mm")
+                    dr.ellipse((posshift(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), posshift(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
+                    dr.text(posshift(*choose_follower, tpos), chr(i), "black", font, "mm")
                 i += 1
         # grid
         width = rightmost - leftmost
@@ -214,18 +216,18 @@ class Board:
                 next = 0
                 for token in seg.tokens:
                     t = token.image()
-                    img.alpha_composite(t, pos(i, j, turn(seg.token_pos, tile.orient), (-t.size[0] // 2, -t.size[1] // 2), (next * 4, next * 4)))
+                    img.alpha_composite(t, posshift(i, j, turn(seg.token_pos, tile.orient), (-t.size[0] // 2, -t.size[1] // 2), (next * 4, next * 4)))
                     next += 1
             next = 0
             for token in tile.tokens:
                 t = token.image()
-                img.alpha_composite(t, pos(i, j, turn(tile.token_pos, tile.orient), (-t.size[0] // 2, -t.size[1] // 2), (next * 4, next * 4)))
+                img.alpha_composite(t, posshift(i, j, turn(tile.token_pos, tile.orient), (-t.size[0] // 2, -t.size[1] // 2), (next * 4, next * 4)))
                 next += 1
             for feature in tile.features:
                 next = 0
                 for token in feature.tokens:
                     t = token.image()
-                    img.alpha_composite(t, pos(i, j, turn(feature.token_pos, tile.orient), (-t.size[0] // 2, -t.size[1] // 2), (next * 4, next * 4)))
+                    img.alpha_composite(t, posshift(i, j, turn(feature.token_pos, tile.orient), (-t.size[0] // 2, -t.size[1] // 2), (next * 4, next * 4)))
                     next += 1
         return img
     def playerImage(self):
