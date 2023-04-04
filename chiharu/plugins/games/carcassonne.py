@@ -320,11 +320,11 @@ class Tile(CanToken):
         return 1
     def addConnect(self, tile: 'Tile', dir: Dir):
         if (s1 := self.sidesToSegment(dir)) is not None and (s2 := tile.sidesToSegment(-dir)) is not None:
-            s1.combine(s2)
+            s1.combine(s2, dir)
         if (s1 := self.sidesToSegmentF(dir, False)) is not None and (s2 := tile.sidesToSegmentF(-dir, True)) is not None:
-            s1.combineF(s2)
+            s1.combineF(s2, dir, False)
         if (s1 := self.sidesToSegmentF(dir, True)) is not None and (s2 := tile.sidesToSegmentF(-dir, False)) is not None:
-            s1.combineF(s2)
+            s1.combineF(s2, dir, True)
         return 1
     def debugImage(self):
         img = Image.new("RGBA", (64, 64), "white")
