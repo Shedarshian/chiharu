@@ -54,6 +54,7 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
     player = board.current_player
     next_turn = False
     async def advance(to_send: dict[str, Any] | None=None):
+        nonlocal next_turn
         try:
             if to_send is None:
                 ret = next(player.stateGen)
