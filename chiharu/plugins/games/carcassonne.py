@@ -505,6 +505,8 @@ class Object(CanToken):
             if seg.tile not in tiles:
                 tiles.append(seg.tile)
         return len(tiles)
+    def checkPennant(self):
+        return sum(seg.pennant for seg in self.segments if isinstance(seg, CitySegment))
     def checkPlayer(self) -> 'list[Player]':
         strengths: list[int] = [0 for i in range(len(self.segments[0].tile.board.players))]
         for seg in self.segments:
@@ -524,7 +526,7 @@ class Object(CanToken):
         score: int = 0
         match self.type:
             case Connectable.City:
-                score = (2 if mid_game else 1) * self.checkTile()
+                score = (2 if mid_game else 1) * (self.checkTile() + self.checkPennant())
             case Connectable.Road:
                 score = self.checkTile()
             case Connectable.Field:
@@ -760,9 +762,13 @@ class Player:
         for seg in tile.segments:
             if seg.object.closed():
                 yield from seg.object.score()
-        for feature in tile.features:
-            if feature.canScore():
-                yield from feature.score()
+        for i in (-1, 0, 1):
+            for j in (-1, 0, 1):
+                npos = (pos[0] + i, pos[1] + j)
+                if npos in self.board.tiles:
+                    for feature in self.board.tiles[npos].features:
+                        if feature.canScore():
+                            yield from feature.score()
         self.state = PlayerState.End
         return 1
     def image(self):
