@@ -170,10 +170,9 @@ class Board:
             tile = self.tiles[choose_follower]
             i = ord('a')
             for seg in tile.segments:
-                if not seg.object.closed():
-                    tpos = turn(seg.token_pos, tile.orient)
-                    dr.ellipse((posshift(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), posshift(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
-                    dr.text(posshift(*choose_follower, tpos), chr(i), "black", font, "mm")
+                tpos = turn(seg.token_pos, tile.orient)
+                dr.ellipse((posshift(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), posshift(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
+                dr.text(posshift(*choose_follower, tpos), chr(i), "black", font, "mm")
                 i += 1
             for feature in tile.features:
                 if feature.canPlace():
@@ -508,9 +507,10 @@ class Object(CanToken):
         return len(tiles)
     def checkPlayer(self) -> 'list[Player]':
         strengths: list[int] = [0 for i in range(len(self.segments[0].tile.board.players))]
-        for token in self.tokens:
-            if isinstance(token, Follower) and token.player is not None:
-                strengths[token.player.id] += token.strength
+        for seg in self.segments:
+            for token in seg.tokens:
+                if isinstance(token, Follower) and token.player is not None:
+                    strengths[token.player.id] += token.strength
         max_strength: tuple[list[int], int] = ([], 0)
         for i, strength in enumerate(strengths):
             if strength == max_strength[1]:
