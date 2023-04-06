@@ -583,28 +583,30 @@ class Cloister(Feature):
         self.adjacentRoad = [parent.segments[i] for i in data["adjacent_road"]]
     def canScore(self) -> bool:
         assert isinstance(self.parent, Tile)
-        pos = more_itertools.only(key for key, value in self.parent.board.tiles.items() if value is self)
+        pos = more_itertools.only(key for key, value in self.parent.board.tiles.items() if value is self.parent)
         if pos is None:
             return False
         return all((pos[0] + i, pos[0] + j) in self.parent.board.tiles for i in (-1, 0, 1) for j in (-1, 0, 1))
     def score(self) -> Generator[dict[str, Any], dict[str, Any], None]:
         assert isinstance(self.parent, Tile)
-        pos = more_itertools.only(key for key, value in self.parent.board.tiles.items() if value is self)
+        pos = more_itertools.only(key for key, value in self.parent.board.tiles.items() if value is self.parent)
         if pos is None:
             return
         token = more_itertools.only(self.tokens)
         if token is None or token.player is None:
             return
-        yield from token.player.addScore(sum(1 if (pos[0] + i, pos[0] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1)))
+        yield from token.player.addScore(sum(1 if (pos[0] + i, pos[1] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1)))
+        self.removeAllFollowers()
     def scoreFinal(self):
         assert isinstance(self.parent, Tile)
-        pos = more_itertools.only(key for key, value in self.parent.board.tiles.items() if value is self)
+        pos = more_itertools.only(key for key, value in self.parent.board.tiles.items() if value is self.parent)
         if pos is None:
             return
         token = more_itertools.only(self.tokens)
         if token is None or token.player is None:
             return
-        token.player.addScoreFinal(sum(1 if (pos[0] + i, pos[0] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1)))
+        token.player.addScoreFinal(sum(1 if (pos[0] + i, pos[1] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1)))
+        self.removeAllFollowers()
     def canPlace(self) -> bool:
         return True
 
