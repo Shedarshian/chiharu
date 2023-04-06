@@ -147,7 +147,7 @@ class Board:
         for i in range(leftmost - 1, rightmost + 2):
             for j in range(uppermost - 1, lowermost + 2):
                 for orient in Dir:
-                    if self.canPutTile(tile, (i, j), orient):
+                    if self.canPutTile(tile, (i, j), orient) == 1:
                         return True
         return False
 
