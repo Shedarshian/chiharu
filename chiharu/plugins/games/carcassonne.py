@@ -586,7 +586,7 @@ class Cloister(Feature):
         pos = more_itertools.only(key for key, value in self.parent.board.tiles.items() if value is self.parent)
         if pos is None:
             return False
-        return all((pos[0] + i, pos[0] + j) in self.parent.board.tiles for i in (-1, 0, 1) for j in (-1, 0, 1))
+        return all((pos[0] + i, pos[1] + j) in self.parent.board.tiles for i in (-1, 0, 1) for j in (-1, 0, 1))
     def score(self) -> Generator[dict[str, Any], dict[str, Any], None]:
         assert isinstance(self.parent, Tile)
         pos = more_itertools.only(key for key, value in self.parent.board.tiles.items() if value is self.parent)
