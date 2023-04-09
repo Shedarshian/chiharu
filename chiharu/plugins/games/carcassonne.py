@@ -244,10 +244,10 @@ class Board:
     def handTileImage(self):
         return self.current_player.handTileImage()
     def remainTileImages(self):
-        img = Image.new("RGBA", pos(5, sum((len(dct) - 1) // 5 + 1 for packid, dct in self.allTileimgs.items())), "LightCyan")
-        dr = ImageDraw.Draw(img)
         def pos(w: int, h: int, *offsets: tuple[int, int]):
             return w * (64 + 8) + sum(c[0] for c in offsets) + 8, h * (64 + 20) + sum(c[1] for c in offsets) + 20
+        img = Image.new("RGBA", pos(5, sum((len(dct) - 1) // 5 + 1 for packid, dct in self.allTileimgs.items())), "LightCyan")
+        dr = ImageDraw.Draw(img)
         y: int = 0
         for packid, dct in self.allTileimgs.items():
             for tileid, timg in dct.items():
