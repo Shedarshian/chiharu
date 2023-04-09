@@ -231,7 +231,7 @@ class Board:
                     img.alpha_composite(t, posshift(i, j, turn(feature.token_pos, tile.orient), (-t.size[0] // 2, -t.size[1] // 2), (next * 4, next * 4)))
                     next += 1
         # remain tiles
-        dr.text((0, 0), str(len(self.deck)), "black", self.font_name, "lu")
+        dr.text((0, 0), str(len(self.deck)), "black", self.font_name, "lt")
         return img
     def playerImage(self):
         imgs = [p.image() for p in self.players]
