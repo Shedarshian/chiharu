@@ -49,6 +49,8 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
     command = session.msg_text.strip()
     user_id: int = data['players'].index(session.ctx['user_id'])
     board: Board = data['board']
+    if command.startswith("查询剩余"):
+        await session.send([board.saveRemainTileImg()])
     if board.current_player_id != user_id:
         return
     player = board.current_player

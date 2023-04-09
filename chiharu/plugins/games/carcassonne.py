@@ -62,13 +62,15 @@ class Board:
         self.players: list[Player] = [Player(self, i, name) for i, name in enumerate(player_names)]
         self.tileimgs: dict[int, Image.Image] = {}
         self.tokenimgs: dict[int, Image.Image] = {}
-        current_pos: int = 0
+        self.allTileimgs: dict[int, dict[int, Image.Image]] = {}
         for pack in packs:
             self.tileimgs[pack["id"]] = open_img(str(pack["id"]))
             self.tokenimgs[pack["id"]] = open_img("token" + str(pack["id"]))
+            self.allTileimgs[pack["id"]] = {}
             for t in pack["tiles"]:
                 img = self.tileimgs[pack["id"]].crop(((t["id"] % 5) * 64, (t["id"] // 5) * 64, (t["id"] % 5 + 1) * 64, (t["id"] // 5 + 1) * 64))
-                self.deck.extend(Tile(self, t, img) for i in range(t["num"]))
+                self.allTileimgs[pack["id"]][t["id"]] = img
+                self.deck.extend(Tile(self, t, img, pack["id"]) for i in range(t["num"]))
             for t in pack["tokens"]:
                 img = self.tokenimgs[pack["id"]].crop(tuple(t["image"]))
                 if t["distribute"]:
@@ -241,6 +243,18 @@ class Board:
         return img
     def handTileImage(self):
         return self.current_player.handTileImage()
+    def remainTileImages(self):
+        img = Image.new("RGBA", pos(5, sum((len(dct) - 1) // 5 + 1 for packid, dct in self.allTileimgs.items())), "LightCyan")
+        dr = ImageDraw.Draw(img)
+        def pos(w: int, h: int, *offsets: tuple[int, int]):
+            return w * (64 + 8) + sum(c[0] for c in offsets) + 8, h * (64 + 20) + sum(c[1] for c in offsets) + 20
+        y: int = 0
+        for packid, dct in self.allTileimgs.items():
+            for tileid, timg in dct.items():
+                img.paste(timg, pos(tileid % 5, y + tileid // 5))
+                num = sum(1 for tile in self.deck if tile.packid == packid and tile.id == tileid)
+                dr.text(pos(tileid % 5, y + tileid // 5, (32, 65)), str(num), "black", self.font_name, "mt")
+        return img
 
     def image(self, choose_follower: tuple[int, int] | None = None, debug: bool=False):
         player_img = self.playerImage()
@@ -277,6 +291,11 @@ class Board:
         name = 'ccs' + str(random.randint(0, 9) + self.current_player_id * 10) + '.png'
         self.image(choose_follower, debug).save(config.img(name))
         return config.cq.img(name)
+    def saveRemainTileImg(self):
+        from .. import config
+        name = 'ccsr' + str(random.randint(0, 9) + self.current_player_id * 10) + '.png'
+        self.remainTileImages().save(config.img(name))
+        return config.cq.img(name)
 
 class CanToken(ABC):
     def __init__(self) -> None:
@@ -289,9 +308,10 @@ class CanToken(ABC):
         self.tokens = [token for token in self.tokens if token.player is None]
 
 class Tile(CanToken):
-    def __init__(self, board: Board, data: dict[str, Any], img: Image.Image) -> None:
+    def __init__(self, board: Board, data: dict[str, Any], img: Image.Image, packid: int) -> None:
         super().__init__()
         self.id: int = data["id"]
+        self.packid = packid
         self.board = board
         self.sides: tuple[Connectable,...] = tuple(Connectable.fromChar(s) for s in data["sides"])
         self.segments: list[Segment] = [Segment.make(s["type"])(self, s) for s in data["segments"]] # type: ignore
