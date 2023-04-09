@@ -799,16 +799,16 @@ class Player:
         self.state = PlayerState.End
         return 1
     def image(self):
-        img = Image.new("RGBA", (150 + self.board.token_length, 24))
+        img = Image.new("RGBA", (171 + self.board.token_length, 24))
         dr = ImageDraw.Draw(img)
         dr.text((0, 12), self.show_name, "black", self.board.font_name, "lm")
-        dr.text((102, 12), str(self.score) + "(" + str(self.checkScoreCurrent()) + ")", "black", self.board.font_score, "mm")
+        dr.text((125, 12), str(self.score) + " (" + str(self.checkScoreCurrent()) + ")", "black", self.board.font_score, "mm")
         # tokens
         self.tokens.sort(key=Token.key)
         token_xpos = {key: value for key, value in self.board.token_pos.items()}
         for token in self.tokens:
             timg = token.image()
-            img.alpha_composite(timg, (token_xpos[type(token)] + 150, 12 - timg.size[1] // 2))
+            img.alpha_composite(timg, (token_xpos[type(token)] + 171, 12 - timg.size[1] // 2))
             token_xpos[type(token)] += timg.size[0] + 4
         return img
     def handTileImage(self):
