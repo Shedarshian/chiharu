@@ -254,6 +254,7 @@ class Board:
                 img.paste(timg, pos(tileid % 5, y + tileid // 5))
                 num = sum(1 for tile in self.deck if tile.packid == packid and tile.id == tileid)
                 dr.text(pos(tileid % 5, y + tileid // 5, (32, 65)), str(num), "black", self.font_name, "mt")
+            y += (len(dct) - 1) // 5 + 1
         return img
 
     def image(self, choose_follower: tuple[int, int] | None = None, debug: bool=False):
