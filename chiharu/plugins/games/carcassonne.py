@@ -76,6 +76,8 @@ class Board:
                         p.tokens.extend(Token.make(t["name"])(p, p, t, img) for i in range(t["num"]))
                 else:
                     self.tokens.extend(Token.make(t["name"])(self, None, t, img) for i in range(t["num"]))
+        for player in self.players:
+            player.allTokens = [t for t in player.tokens]
         start_id = packs[0]["starting_tile"]
         start_tile = [t for t in self.deck if t.id == start_id][0]
         self.popTile(start_tile)
@@ -587,25 +589,30 @@ class Cloister(Feature):
         if pos is None:
             return False
         return all((pos[0] + i, pos[1] + j) in self.parent.board.tiles for i in (-1, 0, 1) for j in (-1, 0, 1))
-    def score(self) -> Generator[dict[str, Any], dict[str, Any], None]:
+    def checkScore(self, mid_game: bool):
         assert isinstance(self.parent, Tile)
+        score: int = 0
         pos = more_itertools.only(key for key, value in self.parent.board.tiles.items() if value is self.parent)
         if pos is None:
-            return
+            return 0
+        token = more_itertools.only(self.tokens)
+        if token is None or token.player is None:
+            return 0
+        score = sum(1 if (pos[0] + i, pos[1] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1))
+        return score
+    def score(self) -> Generator[dict[str, Any], dict[str, Any], None]:
+        score = self.checkScore(False)
         token = more_itertools.only(self.tokens)
         if token is None or token.player is None:
             return
-        yield from token.player.addScore(sum(1 if (pos[0] + i, pos[1] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1)))
+        yield from token.player.addScore(score)
         self.removeAllFollowers()
     def scoreFinal(self):
-        assert isinstance(self.parent, Tile)
-        pos = more_itertools.only(key for key, value in self.parent.board.tiles.items() if value is self.parent)
-        if pos is None:
-            return
+        score = self.checkScore(True)
         token = more_itertools.only(self.tokens)
         if token is None or token.player is None:
             return
-        token.player.addScoreFinal(sum(1 if (pos[0] + i, pos[1] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1)))
+        token.player.addScoreFinal(score)
         self.removeAllFollowers()
     def canPlace(self) -> bool:
         return True
@@ -680,6 +687,7 @@ class Player:
         self.id = id
         self.name = name[:20]
         self.tokens: list[Token] = []
+        self.allTokens: list[Token] = []
         self.score: int = 0
         self.handTile: Tile | None = None
         self.state: PlayerState = PlayerState.End
@@ -690,6 +698,17 @@ class Player:
         yield {}
     def addScoreFinal(self, score: int):
         self.score += score
+    def checkScoreCurrent(self):
+        all_objects: list[Object | Cloister] = []
+        score: int = 0
+        for token in self.allTokens:
+            if isinstance(token.parent, Segment) and token.parent.object not in all_objects:
+                all_objects.append(token.parent.object)
+            elif isinstance(token.parent, Cloister) and token.parent not in all_objects:
+                all_objects.append(token.parent)
+        for obj in all_objects:
+            score += obj.checkScore(False)
+        return self.score + score
     def drawTile(self):
         self.handTile = self.board.drawTile()
         self.state = PlayerState.TileDrawn
@@ -774,16 +793,16 @@ class Player:
         self.state = PlayerState.End
         return 1
     def image(self):
-        img = Image.new("RGBA", (125 + self.board.token_length, 24))
+        img = Image.new("RGBA", (150 + self.board.token_length, 24))
         dr = ImageDraw.Draw(img)
         dr.text((0, 12), self.show_name, "black", self.board.font_name, "lm")
-        dr.text((102, 12), str(self.score), "black", self.board.font_score, "mm")
+        dr.text((102, 12), str(self.score) + "(" + str(self.checkScoreCurrent()) + ")", "black", self.board.font_score, "mm")
         # tokens
         self.tokens.sort(key=Token.key)
         token_xpos = {key: value for key, value in self.board.token_pos.items()}
         for token in self.tokens:
             timg = token.image()
-            img.alpha_composite(timg, (token_xpos[type(token)] + 125, 12 - timg.size[1] // 2))
+            img.alpha_composite(timg, (token_xpos[type(token)] + 150, 12 - timg.size[1] // 2))
             token_xpos[type(token)] += timg.size[0] + 4
         return img
     def handTileImage(self):
