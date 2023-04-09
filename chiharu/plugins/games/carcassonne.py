@@ -614,6 +614,11 @@ class Cloister(Feature):
             return
         token.player.addScoreFinal(score)
         self.removeAllFollowers()
+    def checkPlayer(self) -> 'list[Player]':
+        token = more_itertools.only(self.tokens)
+        if token is None or token.player is None:
+            return []
+        return [token.player]
     def canPlace(self) -> bool:
         return True
 
@@ -707,7 +712,8 @@ class Player:
             elif isinstance(token.parent, Cloister) and token.parent not in all_objects:
                 all_objects.append(token.parent)
         for obj in all_objects:
-            score += obj.checkScore(False)
+            if self in obj.checkPlayer():
+                score += obj.checkScore(False)
         return self.score + score
     def drawTile(self):
         self.handTile = self.board.drawTile()
