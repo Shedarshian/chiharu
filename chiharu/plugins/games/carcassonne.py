@@ -36,6 +36,8 @@ class TraderCounter(Enum):
     Wine = auto()
     Grain = auto()
     Cloth = auto()
+all_extensions = {1: 'abcd'}
+
 def turn(pos: tuple[int, int], dir: Dir):
     if dir == Dir.UP:
         return pos
@@ -55,7 +57,10 @@ def open_img(name: str):
     from pathlib import Path
     return Image.open(Path(__file__).parent / "carcassonne_asset" / (name + ".png")).convert("RGBA")
 class Board:
-    def __init__(self, packs: list[dict[str, Any]], player_names: list[str]) -> None:
+    def __init__(self, packs_options: dict[int, str], player_names: list[str]) -> None:
+        all_packs = open_pack()["packs"]
+        packs: list[dict[str, Any]] = [all_packs[0]] + [all_packs[i] for i, item in packs_options.items() if item != ""]
+        self.packs_options = packs_options
         self.tiles: dict[tuple[int, int], Tile] = {}
         self.deck: list[Tile] = []
         self.tokens: list[Token] = []
@@ -64,15 +69,21 @@ class Board:
         self.tokenimgs: dict[int, Image.Image] = {}
         self.allTileimgs: dict[int, dict[int, Image.Image]] = {}
         for pack in packs:
-            self.tileimgs[pack["id"]] = open_img(str(pack["id"]))
-            self.tokenimgs[pack["id"]] = open_img("token" + str(pack["id"]))
-            self.allTileimgs[pack["id"]] = {}
+            pack_id = pack["id"]
+            self.tileimgs[pack_id] = open_img(str(pack_id))
+            self.tokenimgs[pack_id] = open_img("token" + str(pack_id))
+            self.allTileimgs[pack_id] = {}
             for t in pack["tiles"]:
-                img = self.tileimgs[pack["id"]].crop(((t["id"] % 5) * 64, (t["id"] // 5) * 64, (t["id"] % 5 + 1) * 64, (t["id"] // 5 + 1) * 64))
-                self.allTileimgs[pack["id"]][t["id"]] = img
-                self.deck.extend(Tile(self, t, img, pack["id"]) for i in range(t["num"]))
+                # HARD CODE HERE
+                if pack_id in (1, 2, 3, 4, 5) and "a" not in packs_options[pack_id]:
+                    continue
+                img = self.tileimgs[pack_id].crop(((t["id"] % 5) * 64, (t["id"] // 5) * 64, (t["id"] % 5 + 1) * 64, (t["id"] // 5 + 1) * 64))
+                self.allTileimgs[pack_id][t["id"]] = img
+                self.deck.extend(Tile(self, t, img, pack_id) for i in range(t["num"]))
             for t in pack["tokens"]:
-                img = self.tokenimgs[pack["id"]].crop(tuple(t["image"]))
+                if "thing_id" in t and t["thing_id"] not in packs_options[pack_id]:
+                    continue
+                img = self.tokenimgs[pack_id].crop(tuple(t["image"]))
                 if t["distribute"]:
                     for p in self.players:
                         p.tokens.extend(Token.make(t["name"])(p, p, t, img) for i in range(t["num"]))
@@ -98,6 +109,8 @@ class Board:
         self.token_length = xpos
         self.font_name = ImageFont.truetype("msyhbd.ttc", 16)
         self.font_score = ImageFont.truetype("msyhbd.ttc", 24)
+    def checkPack(self, packid: int, thingid: str):
+        return packid in self.packs_options and thingid in self.packs_options[packid]
     @property
     def current_player(self):
         return self.players[self.current_player_id]

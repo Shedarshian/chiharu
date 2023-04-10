@@ -108,6 +108,10 @@
                     },
                     "minItems": 4,
                     "maxItems": 4
+                },
+                "thing_id": {
+                    "type": "string",
+                    "description": "The small item id of this follower."
                 }
             },
             "required": [

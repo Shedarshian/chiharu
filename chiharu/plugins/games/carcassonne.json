@@ -1315,7 +1315,9 @@
                 {
                     "name": "big follower",
                     "distribute": true,
-                    "num": 1
+                    "num": 1,
+                    "image": [0, 0, 16, 16],
+                    "thing_id": "b"
                 }
             ]
         },

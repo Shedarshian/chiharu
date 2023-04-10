@@ -1,6 +1,6 @@
 from typing import Dict, Any, Callable, Awaitable, Literal
 import re, random
-from .carcassonne import Connectable, Dir, TraderCounter, open_pack, PlayerState, CantPutError
+from .carcassonne import Connectable, Dir, TraderCounter, open_pack, PlayerState, CantPutError, all_extensions
 from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Player
 from ..inject import CommandGroup, on_command
 from .. import config, game
@@ -18,6 +18,7 @@ async def ccs_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):
         data['names'].append(name)
     else:
         data['names'] = [name]
+    data['extensions'] = {}
     await session.send(f'玩家{name}已参与匹配，人数足够可使用-play.cacason.confirm开始比赛。')
 
 @cacason.begin_complete(('play', 'cacason', 'confirm'))
@@ -26,6 +27,7 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
     qq = session.ctx['user_id']
     name = await game.GameSameGroup.get_name(session)
     if qq not in data['players']:
+        data['players'].append(qq)
         if 'names' in data:
             data['names'].append(name)
         else:
@@ -33,11 +35,61 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
         await session.send(f'玩家{name}已参与匹配，游戏开始')
     else:
         await session.send('游戏开始')
-    #开始游戏
-    board = data['board'] = Board(open_pack()["packs"][0:1], data['names'])
+    # 开始游戏
+    board = data['board'] = Board(data['extensions'], data['names'])
     board.current_player.drawTile()
     await session.send([board.saveImg()])
     await session.send(f'玩家{data["names"][board.current_player_id]}开始行动，请选择放图块的坐标，以及用URDL将指定方向旋转至向上。')
+
+@on_command(('play', 'cacason', 'extension'), only_to_me=False, hide=True, display_parents=("cacason"), args=('[open/close]', 'ex??'))
+@config.ErrorHandle
+async def ccs_extension(session: CommandSession):
+    """修改卡卡颂对局使用的扩展。
+    可开关的扩展与小项有：
+1. Inns and Cathedrals
+    (a) 图块；(b) 大米宝；(c) 旅馆与主教教堂机制。
+
+使用例：-play.cacason.extension open ex1：开启所有扩展包1的内容。
+-play.cacason.extension open ex1b：开启扩展包1，但只开启1中b小项的内容。
+-play.cacason.extension close ex1a：关闭扩展包1中a小项的内容。"""
+    try:
+        group_id = int(session.ctx['group_id'])
+    except KeyError:
+        await session.send("请在群里玩")
+        return
+    qq = int(session.ctx['user_id'])
+    pas: bool = False
+    if group_id in cacason.center:
+        for dct in cacason.center[group_id]:
+            if qq in dct['players']:
+                data = dct
+                pas = True
+    if group_id in cacason.uncomplete:
+        if qq in cacason.uncomplete[group_id]['players']:
+            data = cacason.uncomplete[group_id]
+            pas = True
+    if pas:
+        if match := re.match(r'(open|close) ex(\d+)([a-z]?)', session.current_arg_text):
+            command, exas, exbs = match.groups()
+            exa = int(exas)
+            if exa not in all_extensions:
+                session.finish("不存在扩展" + exas + "！")
+            exb = exbs or all_extensions[exa]
+            if exb not in all_extensions[exa]:
+                session.finish("扩展" + exas + "不存在" + exb + "小项！")
+            if command == "open":
+                if exa not in data['extensions']:
+                    data['extensions'][exa] = exb
+                elif exb not in data['extensions'][exa]:
+                    data['extensions'][exa] = ''.join(sorted(data['extensions'][exa] + exb))
+                else:
+                    session.finish("此扩展已被添加过！")
+            elif exa not in data['extensions'] or exb not in data['extensions'][exa]:
+                session.finish("此扩展未被添加过！")
+            else:
+                data['extensions'][exa] = data['extensions'][exa].replace(exb, "")
+            session.finish("已添加。")
+        session.finish(ccs_extension.__doc__)
 
 @cacason.end(('play', 'cacason', 'end'))
 async def ccs_end(session: CommandSession, data: dict[str, Any]):
