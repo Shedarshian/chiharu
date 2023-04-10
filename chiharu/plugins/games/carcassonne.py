@@ -204,7 +204,7 @@ class Board:
         # text
         def alpha(n):
             if n <= 25: return chr(ord('A') + n)
-            return chr(ord('A') + n % 26 - 1) + chr(ord('A') + n // 26)
+            return chr(ord('A') + n // 26 - 1) + chr(ord('A') + n % 26)
         dr.text(pos(0, 0, (-5, -15)), 'A', "black", font, "mb")
         for i in range(0, width + 1):
             dr.text(pos(i, 0, (32, -15)), alpha(i + 1), "black", font, "mb")
