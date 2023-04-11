@@ -871,7 +871,6 @@ class Player:
         # tokens
         self.tokens.sort(key=Token.key)
         token_xpos = {key: value for key, value in self.board.token_pos.items()}
-        print(self.tokens)
         for token in self.tokens:
             timg = token.image()
             img.alpha_composite(timg, (token_xpos[type(token)] + 171, 12 - timg.size[1] // 2))
