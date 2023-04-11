@@ -432,7 +432,7 @@ class Segment(CanToken):
         super().__init__()
         self.type = typ
         self.tile = tile
-        self.features: list[Feature] = []
+        self.features: list[Feature] = [f(self, s) for s in data.get("features", []) if (f := Feature.make(s["type"])) is not None]
         self.object = Object(self)
         self.token_pos: tuple[int, int] = (data.get("posx", 32), data.get("posy", 32))
     @classmethod
@@ -690,7 +690,7 @@ class Token(ABC):
         self.img = img
     @classmethod
     def make(cls, typ: str) -> Type['Token']:
-        return {"follower": Follower, "big follower": BigFollower, "大跟随者": BigFollower, "builder": Builder, "建筑师": Builder, "pig": Pig, "猪": Pig}[typ.lower()]
+        return {"follower": BaseFollower, "big follower": BigFollower, "大跟随者": BigFollower, "builder": Builder, "建筑师": Builder, "pig": Pig, "猪": Pig}[typ.lower()]
     def canPut(self, seg: Segment | Feature):
         if isinstance(seg, Segment):
             return all(len(s.tokens) == 0 for s in seg.object.segments) and len(seg.tokens) == 0
@@ -834,7 +834,11 @@ class Player:
             else:
                 pass_err = -2
                 continue
-            tokens = [token for token in self.tokens if isinstance(token, Token.make(ret_put.get("which", "follower")))]
+            try:
+                tokens = [token for token in self.tokens if isinstance(token, Token.make(ret_put.get("which", "follower")))]
+            except KeyError:
+                pass_err = -1
+                continue
             if len(tokens) == 0:
                 pass_err = -1
                 continue
@@ -867,6 +871,7 @@ class Player:
         # tokens
         self.tokens.sort(key=Token.key)
         token_xpos = {key: value for key, value in self.board.token_pos.items()}
+        print(self.tokens)
         for token in self.tokens:
             timg = token.image()
             img.alpha_composite(timg, (token_xpos[type(token)] + 171, 12 - timg.size[1] // 2))
@@ -903,20 +908,20 @@ if __name__ == "__main__":
         t = b.tiles[i % 5, i // 5] = [s for s in b.deck if s.id == i - 1 and s.packid == 0][0]
         # t.turn(Dir.RIGHT)
         for seg in t.segments:
-            b.players[0].tokens.append(Follower(b.players[0], b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+            b.players[0].tokens.append(BaseFollower(b.players[0], b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
             b.players[0].tokens[-1].putOn(seg)
         for feature in t.features:
             if isinstance(feature, Cloister):
-                b.players[0].tokens.append(Follower(b.players[0], b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+                b.players[0].tokens.append(BaseFollower(b.players[0], b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
                 b.players[0].tokens[-1].putOn(feature)
     for i in range(17):
         t = b.tiles[i % 5, i // 5 + 5] = [s for s in b.deck if s.id == i and s.packid == 1][0]
         for seg in t.segments:
-            b.players[0].tokens.append(Follower(b.players[0], b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+            b.players[0].tokens.append(BaseFollower(b.players[0], b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
             b.players[0].tokens[-1].putOn(seg)
         for feature in t.features:
             if isinstance(feature, Cloister):
-                b.players[0].tokens.append(Follower(b.players[0], b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+                b.players[0].tokens.append(BaseFollower(b.players[0], b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
                 b.players[0].tokens[-1].putOn(feature)
     b.players[0].drawTile()
     b.image(debug=True).show()
