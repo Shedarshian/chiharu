@@ -690,7 +690,7 @@ class Token(ABC):
         self.img = img
     @classmethod
     def make(cls, typ: str) -> Type['Token']:
-        return {"follower": BaseFollower, "big follower": BigFollower, "builder": Builder, "pig": Pig}[typ]
+        return {"follower": BaseFollower, "big follower": BigFollower, "大跟随者": BigFollower, "builder": Builder, "建筑师": Builder, "pig": Pig, "猪": Pig}[typ.lower()]
     def canPut(self, seg: Segment | Feature):
         if isinstance(seg, Segment):
             return all(len(s.tokens) == 0 for s in seg.object.segments) and len(seg.tokens) == 0
