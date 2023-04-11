@@ -41,15 +41,16 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
     await session.send([board.saveImg()])
     await session.send(f'玩家{data["names"][board.current_player_id]}开始行动，请选择放图块的坐标，以及用URDL将指定方向旋转至向上。')
 
-@on_command(('play', 'cacason', 'extension'), only_to_me=False, hide=True, display_parents=("cacason"), args=('[open/close]', 'ex??'))
+@on_command(('play', 'cacason', 'extension'), only_to_me=False, hide=True, display_parents=("cacason"), args=('[check/open/close]', '[ex??]'))
 @config.ErrorHandle
 async def ccs_extension(session: CommandSession):
     """修改卡卡颂对局使用的扩展。
     可开关的扩展与小项有：
 1. Inns and Cathedrals
-    (a) 图块；(b) 大米宝；(c) 旅馆与主教教堂机制。
+    (a) 图块；(b) 大米宝；(c) 旅馆机制；(d) 主教教堂机制。
 
-使用例：-play.cacason.extension open ex1：开启所有扩展包1的内容。
+使用例：-play.cacason.extension check：查询目前开启了哪些扩展包。
+-play.cacason.extension open ex1：开启所有扩展包1的内容。
 -play.cacason.extension open ex1b：开启扩展包1，但只开启1中b小项的内容。
 -play.cacason.extension close ex1a：关闭扩展包1中a小项的内容。"""
     try:
@@ -69,6 +70,12 @@ async def ccs_extension(session: CommandSession):
             data = cacason.uncomplete[group_id]
             pas = True
     if pas:
+        if session.current_arg_text.startswith("check"):
+            if len(data['extensions']) == 0:
+                session.finish("目前未开启任何扩展包。")
+            pack_names = ["Inns and Cathedrals"]
+            thing_names = [["图块", "大米宝", "旅馆机制", "主教教堂机制"]]
+            await session.send("目前开启的扩展包有：\n" + '\n'.join(pack_names[packid - 1] + "\n\t" + "，".join(thing_names[packid - 1][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items()))
         if match := re.match(r'(open|close) ex(\d+)([a-z]?)', session.current_arg_text):
             command, exas, exbs = match.groups()
             exa = int(exas)

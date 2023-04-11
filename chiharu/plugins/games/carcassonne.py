@@ -6,6 +6,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 class CantPutError(Exception):
     pass
+class HelpError(Exception):
+    pass
 class Connectable(Enum):
     City = auto()
     Field = auto()
@@ -527,6 +529,7 @@ class Object(CanToken):
         self.type = seg.type
         self.segments: list[Segment] = [seg]
         self.tokens: list[Token] = []
+        self.board = seg.tile.board
     def eat(self, other: 'Object'):
         if other is self:
             return self
@@ -537,6 +540,12 @@ class Object(CanToken):
         return self
     def closed(self):
         return all(seg.closed() for seg in self.segments)
+    def checkFeature(self, cls: type | tuple[type, ...]):
+        for seg in self.segments:
+            for feature in seg.features:
+                if isinstance(feature, cls):
+                    return True
+        return False
     def checkTile(self):
         tiles: list[Tile] = []
         for seg in self.segments:
@@ -546,7 +555,7 @@ class Object(CanToken):
     def checkPennant(self):
         return sum(seg.pennant for seg in self.segments if isinstance(seg, CitySegment))
     def checkPlayer(self) -> 'list[Player]':
-        strengths: list[int] = [0 for i in range(len(self.segments[0].tile.board.players))]
+        strengths: list[int] = [0 for i in range(len(self.board.players))]
         for seg in self.segments:
             for token in seg.tokens:
                 if isinstance(token, Follower) and token.player is not None:
@@ -559,14 +568,26 @@ class Object(CanToken):
                 max_strength = [i], strength
         if max_strength[1] == 0:
             return []
-        return [self.segments[0].tile.board.players[i] for i in max_strength[0]]
+        return [self.board.players[i] for i in max_strength[0]]
     def checkScore(self, mid_game: bool):
         score: int = 0
         match self.type:
             case Connectable.City:
-                score = (2 if mid_game else 1) * (self.checkTile() + self.checkPennant())
+                base = 2 if mid_game else 1
+                if self.board.checkPack(1, "d") and self.checkFeature(Cathedral):
+                    if mid_game:
+                        base += 1
+                    else:
+                        base = 0
+                score = base * (self.checkTile() + self.checkPennant())
             case Connectable.Road:
-                score = self.checkTile()
+                base = 1
+                if self.board.checkPack(1, "c") and self.checkFeature(Inn):
+                    if mid_game:
+                        base += 1
+                    else:
+                        base = 0
+                score = base * self.checkTile()
             case Connectable.Field:
                 complete_city: list[Object] = []
                 for seg in self.segments:
@@ -604,7 +625,7 @@ class Feature(CanToken):
         self.token_pos: tuple[int, int] = (data.get("posx", 32), data.get("posy", 32))
     @classmethod
     def make(cls, typ: str) -> Type["Feature"] | None:
-        return {"Cloister": Cloister}.get(typ, None)
+        return {"Cloister": Cloister, "Inn": Inn, "Cathedral": Cathedral}.get(typ, None)
     def canScore(self) -> bool:
         return False
     def score(self) -> Generator[dict[str, Any], dict[str, Any], None]:
@@ -657,6 +678,10 @@ class Cloister(Feature):
         return [token.player]
     def canPlace(self) -> bool:
         return True
+class Inn(Feature):
+    pass
+class Cathedral(Feature):
+    pass
 
 class Token(ABC):
     def __init__(self, parent: 'Tile | Segment | Object | Feature | Player | Board', player: 'Player | None', data: dict[str, Any], img: Image.Image) -> None:
