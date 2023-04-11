@@ -19,7 +19,8 @@ async def ccs_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):
         data['names'].append(name)
     else:
         data['names'] = [name]
-    data['extensions'] = {}
+    if 'extensions' not in data:
+        data['extensions'] = {}
     await session.send(f'玩家{name}已参与匹配，人数足够可使用-play.cacason.confirm开始比赛。')
 
 @cacason.begin_complete(('play', 'cacason', 'confirm'))
