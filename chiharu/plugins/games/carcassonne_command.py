@@ -77,6 +77,7 @@ async def ccs_extension(session: CommandSession):
             pack_names = ["Inns and Cathedrals"]
             thing_names = [["图块", "大米宝", "旅馆机制", "主教教堂机制"]]
             await session.send("目前开启的扩展包有：\n" + '\n'.join(pack_names[packid - 1] + "\n\t" + "，".join(thing_names[packid - 1][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items()))
+            return
         if match := re.match(r'(open|close) ex(\d+)([a-z]?)', session.current_arg_text):
             command, exas, exbs = match.groups()
             exa = int(exas)
