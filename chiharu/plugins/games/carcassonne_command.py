@@ -107,7 +107,7 @@ async def ccs_end(session: CommandSession, data: dict[str, Any]):
 
 @cacason.process(only_short_message=True)
 @config.ErrorHandle
-async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Callable[[], Awaitable]):
+async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Callable[[], Awaitable]):
     command = session.msg_text.strip()
     user_id: int = data['players'].index(session.ctx['user_id'])
     board: Board = data['board']
@@ -184,3 +184,4 @@ async def sp2_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             await session.send(f'玩家{players[0].name}以{score}分获胜！')
         else:
             await session.send('玩家' + '，'.join(p.name for p in players) + f'以{score}分获胜！')
+        await delete_func()
