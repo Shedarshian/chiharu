@@ -2310,27 +2310,14 @@
                 {
                     "name": "builder",
                     "distribute": true,
-                    "num": 1
+                    "num": 1,
+                    "thing_id": "b"
                 },
                 {
                     "name": "pig",
                     "distribute": true,
-                    "num": 1
-                },
-                {
-                    "name": "wine trade counter",
-                    "distribute": false,
-                    "num": 9
-                },
-                {
-                    "name": "grain trade counter",
-                    "distribute": false,
-                    "num": 6
-                },
-                {
-                    "name": "cloth trade counter",
-                    "distribute": false,
-                    "num": 5
+                    "num": 1,
+                    "thing_id": "c"
                 }
             ]
         }

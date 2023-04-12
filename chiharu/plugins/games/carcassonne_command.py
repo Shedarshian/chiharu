@@ -1,6 +1,6 @@
 from typing import Dict, Any, Callable, Awaitable, Literal
 import re, random
-from .carcassonne import Connectable, Dir, TraderCounter, open_pack, PlayerState, CantPutError, all_extensions
+from .carcassonne import Connectable, Dir, TradeCounter, open_pack, PlayerState, CantPutError, all_extensions
 from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Player
 from ..inject import CommandGroup, on_command
 from .. import config, game
@@ -125,16 +125,19 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             else:
                 ret = player.stateGen.send(to_send)
         except StopIteration as e:
-            rete: Literal[-1, -2, -3, 1] = e.value
+            rete: Literal[-1, -2, -3, 1, 3] = e.value
             if rete == -1:
                 await session.send("已有连接！")
             elif rete == -2:
                 await session.send("无法连接！")
             elif rete == -3:
                 await session.send("没有挨着！")
-            else:
+            elif ret == 1:
                 await session.send("玩家回合结束")
                 next_turn = True
+            elif ret == 3:
+                await session.send("玩家继续第二回合")
+                data['second_turn'] = True
             player.stateGen = None
             return
         if ret["id"] == 2:
@@ -154,7 +157,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 orient = {'U': Dir.UP, 'R': Dir.LEFT, 'D': Dir.DOWN, 'L': Dir.RIGHT}[orients]
                 leftmost = min(i for i, j in board.tiles.keys())
                 uppermost = min(j for i, j in board.tiles.keys())
-                player.stateGen = player.putTile((x + leftmost - 1, y + uppermost - 1), orient)
+                player.stateGen = player.putTile((x + leftmost - 1, y + uppermost - 1), orient, data['second_turn'])
                 await advance()
         case PlayerState.PuttingFollower:
             if command == "不放":
@@ -169,6 +172,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             pass
     if next_turn:
         board.nextPlayer()
+        data['second_turn'] = False
+    if next_turn or data['second_turn']:
         if len(board.deck) != 0:
             try:
                 board.current_player.drawTile()
