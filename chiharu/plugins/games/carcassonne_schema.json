@@ -264,7 +264,11 @@
                     "type": "string",
                     "enum": [
                         "Cathedral",
-                        "Inn"
+                        "Inn",
+                        "Princess",
+                        "Portal",
+                        "Dragon",
+                        "Volcano"
                     ]
                 }
             },

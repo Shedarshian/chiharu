@@ -2311,13 +2311,1042 @@
                     "name": "builder",
                     "distribute": true,
                     "num": 1,
-                    "thing_id": "b"
+                    "thing_id": "b",
+                    "image": [0, 0, 16, 16]
                 },
                 {
                     "name": "pig",
                     "distribute": true,
                     "num": 1,
-                    "thing_id": "c"
+                    "thing_id": "c",
+                    "image": [16, 0, 32, 16]
+                }
+            ]
+        },
+        {
+            "name": "The Princess and The Dragon",
+            "id": 3,
+            "tiles": [
+                {
+                    "id": 0,
+                    "sides": "CCCF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "adjacent_road": [],
+                            "features": [
+                                {
+                                    "type": "Princess"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "City",
+                            "to": [1, 2],
+                            "adjacent_road": [],
+                            "pennant": 1
+                        },
+                        {
+                            "type": "Field",
+                            "to": [],
+                            "adjacent_city": [0, 1]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 1,
+                    "sides": "CCCF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1, 2],
+                            "adjacent_road": [],
+                            "features": [
+                                {
+                                    "type": "Princess"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 2,
+                    "sides": "CCCF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1, 2],
+                            "adjacent_road": [],
+                            "pennant": 1
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Portal"
+                        }
+                    ]
+                },
+                {
+                    "id": 3,
+                    "sides": "CCCF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1, 2],
+                            "adjacent_road": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Cloister",
+                            "adjacent_road": []
+                        },
+                        {
+                            "type": "Dragon"
+                        }
+                    ]
+                },
+                {
+                    "id": 4,
+                    "sides": "CCFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "adjacent_road": [],
+                            "features": [
+                                {
+                                    "type": "Princess"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4],
+                            "adjacent_city": [0]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 5,
+                    "sides": "CCFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "adjacent_road": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4, 5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Dragon"
+                        }
+                    ]
+                },
+                {
+                    "id": 6,
+                    "sides": "CCFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "adjacent_road": [],
+                            "features": [
+                                {
+                                    "type": "Princess"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4, 5, 6],
+                            "adjacent_city": [0]
+                        }
+                    ]
+                },
+                {
+                    "id": 7,
+                    "sides": "CCFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "adjacent_road": []
+                        },
+                        {
+                            "type": "City",
+                            "to": [1],
+                            "adjacent_road": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4, 5, 6],
+                            "adjacent_city": [0, 1]
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Volcano"
+                        }
+                    ]
+                },
+                {
+                    "id": 8,
+                    "sides": "CCRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "adjacent_road": [],
+                            "features": [
+                                {
+                                    "type": "Princess"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "adjacent_road": [],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 6],
+                            "adjacent_city": [0],
+                            "posx": 36,
+                            "posy": 28
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ]
+                },
+                {
+                    "id": 9,
+                    "sides": "CCRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "adjacent_road": []
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "adjacent_road": [],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 6],
+                            "adjacent_city": [0],
+                            "posx": 36,
+                            "posy": 28
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Portal"
+                        }
+                    ]
+                },
+                {
+                    "id": 10,
+                    "sides": "CFCF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "adjacent_road": [],
+                            "pennant": 1,
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2],
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 32
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Dragon"
+                        }
+                    ]
+                },
+                {
+                    "id": 11,
+                    "sides": "CFFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3, 4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 32,
+                            "posy": 40
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Dragon"
+                        }
+                    ]
+                },
+                {
+                    "id": 12,
+                    "sides": "CFFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3, 4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 32,
+                            "posy": 40
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Volcano"
+                        }
+                    ]
+                },
+                {
+                    "id": 13,
+                    "sides": "CFRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "adjacent_road": [],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3, 6],
+                            "adjacent_city": [0],
+                            "posx": 48,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Dragon"
+                        }
+                    ]
+                },
+                {
+                    "id": 14,
+                    "sides": "CFRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "adjacent_road": [],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3, 6],
+                            "adjacent_city": [0],
+                            "posx": 48,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Volcano"
+                        }
+                    ]
+                },
+                {
+                    "id": 15,
+                    "sides": "CRCR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "adjacent_road": [],
+                            "posx": 56,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2],
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 48  
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Dragon"
+                        }
+                    ]
+                },
+                {
+                    "id": 16,
+                    "sides": "CRRF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 2],
+                            "adjacent_road": [],
+                            "posx": 40,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 16,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Dragon"
+                        }
+                    ]
+                },
+                {
+                    "id": 17,
+                    "sides": "CRRF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 2],
+                            "adjacent_road": [],
+                            "posx": 40,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 16,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Portal"
+                        }
+                    ]
+                },
+                {
+                    "id": 18,
+                    "sides": "CRRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 8,
+                            "features": [
+                                {
+                                    "type": "Princess"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1],
+                            "adjacent_road": [2, 3],
+                            "bush": true,
+                            "posx": 48,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "adjacent_road": [1, 3],
+                            "bush": true,
+                            "posx": 32,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "adjacent_road": [1, 2],
+                            "bush": true,
+                            "posx": 16,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 6],
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 20
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ]
+                },
+                {
+                    "id": 19,
+                    "sides": "FFFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 4, 5, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 52,
+                            "posy": 32
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Volcano"
+                        }
+                    ]
+                },
+                {
+                    "id": 20,
+                    "sides": "FFFR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "adjacent_road": [],
+                            "posx": 12,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 4, 5, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 52
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Volcano"
+                        }
+                    ]
+                },
+                {
+                    "id": 21,
+                    "sides": "FFRR",
+                    "num": 2,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "adjacent_road": [],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Dragon"
+                        }
+                    ]
+                },
+                {
+                    "id": 22,
+                    "sides": "FFRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "adjacent_road": [],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Volcano"
+                        }
+                    ]
+                },
+                {
+                    "id": 23,
+                    "sides": "FRFR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 48
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Dragon"
+                        }
+                    ]
+                },
+                {
+                    "id": 24,
+                    "sides": "FRFR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 48
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Volcano"
+                        }
+                    ]
+                },
+                {
+                    "id": 25,
+                    "sides": "FRRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [1],
+                            "adjacent_road": []
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "adjacent_road": []
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "adjacent_road": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": []
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": []
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Cloister",
+                            "adjacent_road": [0, 1, 2]
+                        },
+                        {
+                            "type": "Dragon"
+                        }
+                    ]
+                },
+                {
+                    "id": 26,
+                    "sides": "FRRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [1],
+                            "adjacent_road": [1, 2],
+                            "posx": 48,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "adjacent_road": [0, 2],
+                            "posx": 32,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "adjacent_road": [0, 1],
+                            "posx": 16,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Dragon"
+                        }
+                    ]
+                },
+                {
+                    "id": 27,
+                    "sides": "FRRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [1],
+                            "adjacent_road": [1, 2],
+                            "bush": true,
+                            "posx": 48,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "adjacent_road": [0, 2],
+                            "bush": true,
+                            "posx": 32,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "adjacent_road": [0, 1],
+                            "bush": true,
+                            "posx": 16,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Portal"
+                        }
+                    ]
+                },
+                {
+                    "id": 28,
+                    "sides": "RRRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [0, 3],
+                            "adjacent_road": [],
+                            "posx": 24,
+                            "posy": 24
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 2],
+                            "adjacent_road": [],
+                            "posx": 40,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 4, 5],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6, 7],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 8
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Portal"
+                        }
+                    ]
+                }
+            ],
+            "tokens": [
+                {
+                    "name": "dragon",
+                    "distribute": false,
+                    "num": 1
+                },
+                {
+                    "name": "fairy",
+                    "distribute": false,
+                    "num": 1
                 }
             ]
         }
