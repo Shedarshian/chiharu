@@ -876,10 +876,11 @@ class Player:
             return 3
         return 1
     def image(self):
-        img = Image.new("RGBA", (171 + self.board.token_length, 24))
+        score_str = str(self.score) + " (" + str(self.checkScoreCurrent()) + ")"
+        img = Image.new("RGBA", (200 + self.board.token_length, 24))
         dr = ImageDraw.Draw(img)
         dr.text((0, 12), self.show_name, "black", self.board.font_name, "lm")
-        dr.text((125, 12), str(self.score) + " (" + str(self.checkScoreCurrent()) + ")", "black", self.board.font_score, "mm")
+        dr.text((140, 12), score_str, "black", self.board.font_score, "mm")
         # tokens
         self.tokens.sort(key=Token.key)
         token_xpos = {key: value for key, value in self.board.token_pos.items()}
