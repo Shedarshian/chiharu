@@ -259,17 +259,21 @@ class Board:
     def handTileImage(self):
         return self.current_player.handTileImage()
     def remainTileImages(self):
+        remove_zero = len(self.deck) <= len(self.tiles)
         def pos(w: int, h: int, *offsets: tuple[int, int]):
             return w * (64 + 8) + sum(c[0] for c in offsets) + 8, h * (64 + 20) + sum(c[1] for c in offsets) + 20
         img = Image.new("RGBA", pos(5, sum((len(dct) - 1) // 5 + 1 for packid, dct in self.allTileimgs.items())), "LightCyan")
         dr = ImageDraw.Draw(img)
         y: int = 0
         for packid, dct in self.allTileimgs.items():
+            x: int = 0
             for tileid, timg in dct.items():
-                img.paste(timg, pos(tileid % 5, y + tileid // 5))
+                img.paste(timg, pos(x % 5, y + x // 5))
                 num = sum(1 for tile in self.deck if tile.packid == packid and tile.id == tileid)
-                dr.text(pos(tileid % 5, y + tileid // 5, (32, 65)), str(num), "black", self.font_name, "mt")
-            y += (len(dct) - 1) // 5 + 1
+                if num != 0 or not remove_zero:
+                    x += 1
+                    dr.text(pos(x % 5, y + x // 5, (32, 65)), str(num), "black", self.font_name, "mt")
+            y += (x - 1) // 5 + 1
         return img
 
     def image(self, choose_follower: tuple[int, int] | None = None, debug: bool=False):
