@@ -38,7 +38,7 @@ class TradeCounter(Enum):
     Wine = auto()
     Grain = auto()
     Cloth = auto()
-all_extensions = {1: 'abcd'}
+all_extensions = {1: 'abcd', 2: 'abcd'}
 
 def turn(pos: tuple[int, int], dir: Dir):
     if dir == Dir.UP:
@@ -135,6 +135,18 @@ class Board:
             for feature in tile.features:
                 if len(feature.tokens) != 0:
                     feature.scoreFinal()
+        if self.checkPack(2, "d"):
+            for i in range(3):
+                max_token: int = 0
+                max_players: list[Player] = []
+                for player in self.players:
+                    if player.tradeCounter[i] > max_token:
+                        max_token = player.tradeCounter[i]
+                        max_players = [player]
+                    elif player.tradeCounter[i] == max_token:
+                        max_players.append(player)
+                for player in max_players:
+                    player.addScoreFinal(10)
     def winner(self):
         maxScore: int = 0
         maxPlayer: list[Player] = []
@@ -881,7 +893,11 @@ class Player:
         return 1
     def image(self):
         score_str = str(self.score) + " (" + str(self.checkScoreCurrent()) + ")"
-        img = Image.new("RGBA", (200 + self.board.token_length, 24))
+        length = 80 + 120 + self.board.token_length
+        if self.board.checkPack(2, "d"):
+            length += 120
+            trade_counter_xpos = length
+        img = Image.new("RGBA", (length, 24))
         dr = ImageDraw.Draw(img)
         dr.text((0, 12), self.show_name, "black", self.board.font_name, "lm")
         dr.text((140, 12), score_str, "black", self.board.font_score, "mm")
@@ -892,6 +908,11 @@ class Player:
             timg = token.image()
             img.alpha_composite(timg, (token_xpos[type(token)] + 171, 12 - timg.size[1] // 2))
             token_xpos[type(token)] += timg.size[0] + 4
+        # trade counter count
+        if self.board.checkPack(2, "d"):
+            dr.text((trade_counter_xpos, 12), f"酒{self.tradeCounter[0]}", "black", self.board.font_name, "lm")
+            dr.text((trade_counter_xpos + 40, 12), f"麦{self.tradeCounter[1]}", "black", self.board.font_name, "lm")
+            dr.text((trade_counter_xpos + 80, 12), f"布{self.tradeCounter[2]}", "black", self.board.font_name, "lm")
         return img
     def handTileImage(self):
         img = Image.new("RGBA", (176, 96))
