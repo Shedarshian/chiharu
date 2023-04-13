@@ -906,7 +906,7 @@ class Player:
         token_xpos = {key: value for key, value in self.board.token_pos.items()}
         for token in self.tokens:
             timg = token.image()
-            img.alpha_composite(timg, (token_xpos[type(token)] + 171, 12 - timg.size[1] // 2))
+            img.alpha_composite(timg, (token_xpos[type(token)] + 200, 12 - timg.size[1] // 2))
             token_xpos[type(token)] += timg.size[0] + 4
         # trade counter count
         if self.board.checkPack(2, "d"):
