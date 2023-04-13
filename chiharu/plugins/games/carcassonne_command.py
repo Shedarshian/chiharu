@@ -38,6 +38,7 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
         await session.send(f'玩家{name}已参与匹配，游戏开始')
     else:
         await session.send('游戏开始')
+    data["second_turn"] = False
     # 开始游戏
     board = data['board'] = Board(data['extensions'], data['names'])
     board.current_player.drawTile()
