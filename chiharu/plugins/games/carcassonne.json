@@ -2243,7 +2243,7 @@
                         },
                         {
                             "type": "Road",
-                            "to": [2],
+                            "to": [3],
                             "adjacent_road": [],
                             "posx": 8,
                             "posy": 32
