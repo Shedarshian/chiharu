@@ -200,16 +200,16 @@ class Board:
         if choose_follower is not None:
             tile = self.tiles[choose_follower]
             i = ord('a')
-            for seg in tile.segments:
-                tpos = turn(seg.token_pos, tile.orient)
-                dr.ellipse((posshift(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), posshift(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
-                dr.text(posshift(*choose_follower, tpos), chr(i), "black", font, "mm")
-                i += 1
             for feature in tile.features:
                 if feature.canPlace():
                     tpos = turn(feature.token_pos, tile.orient)
                     dr.ellipse((posshift(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), posshift(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
                     dr.text(posshift(*choose_follower, tpos), chr(i), "black", font, "mm")
+                i += 1
+            for seg in tile.segments:
+                tpos = turn(seg.token_pos, tile.orient)
+                dr.ellipse((posshift(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), posshift(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
+                dr.text(posshift(*choose_follower, tpos), chr(i), "black", font, "mm")
                 i += 1
         # grid
         width = rightmost - leftmost
@@ -817,7 +817,7 @@ class Player:
             show_name += "..."
         return show_name
     def putTile(self, pos: tuple[int, int], orient: Dir, second_turn: bool) -> Generator[dict[str, Any], dict[str, Any], Literal[-1, -2, -3, 1, 3]]:
-        """-1：已有连接, -2：无法连接，-3：没有挨着。2：放跟随者（-1不放，片段号/feature，which：跟随者名称，返回-1：没有跟随者，-2：无法放置），3：第二回合"""
+        """-1：已有连接, -2：无法连接，-3：没有挨着。2：放跟随者（-1不放，feature/片段号，which：跟随者名称，返回-1：没有跟随者，-2：无法放置），3：第二回合"""
         tile = self.handTile
         if tile is None:
             return -3
@@ -845,10 +845,10 @@ class Player:
             ret_put = yield {"id": 2, "last_err": pass_err, "last_put": pos}
             if ret_put["id"] == -1:
                 break
-            if 0 <= ret_put["id"] < len(tile.segments):
-                seg_put: Segment | Feature = tile.segments[ret_put["id"]]
-            elif len(tile.segments) <= ret_put["id"] < len(tile.segments) + len(tile.features):
-                seg_put = tile.features[ret_put["id"] - len(tile.segments)]
+            if 0 <= ret_put["id"] < len(tile.features):
+                seg_put: Segment | Feature = tile.features[ret_put["id"]]
+            elif len(tile.features) <= ret_put["id"] < len(tile.segments) + len(tile.features):
+                seg_put = tile.segments[ret_put["id"] - len(tile.features)]
             else:
                 pass_err = -2
                 continue
