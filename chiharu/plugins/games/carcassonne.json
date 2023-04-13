@@ -1485,22 +1485,30 @@
                                     "type": "TradeCounter",
                                     "counter": "Cloth"
                                 }
-                            ]
+                            ],
+                            "posx": 8,
+                            "posy": 32
                         },
                         {
                             "type": "City",
                             "to": [1],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 56,
+                            "posy": 32
                         },
                         {
                             "type": "City",
                             "to": [2],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 56
                         },
                         {
                             "type": "Field",
                             "to": [],
-                            "adjacent_city": [0, 1, 2]
+                            "adjacent_city": [0, 1, 2],
+                            "posx": 32,
+                            "posy": 32
                         }
                     ]
                 },
@@ -1518,17 +1526,23 @@
                                     "type": "TradeCounter",
                                     "counter": "Wine"
                                 }
-                            ]
+                            ],
+                            "posx": 8,
+                            "posy": 32
                         },
                         {
                             "type": "City",
                             "to": [1, 2],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 56,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [],
-                            "adjacent_city": [0, 1]
+                            "adjacent_city": [0, 1],
+                            "posx": 32,
+                            "posy": 32
                         }
                     ]
                 },
@@ -1546,22 +1560,30 @@
                                     "type": "TradeCounter",
                                     "counter": "Wine"
                                 }
-                            ]
+                            ],
+                            "posx": 20,
+                            "posy": 32
                         },
                         {
                             "type": "City",
                             "to": [1],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 56,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [],
-                            "adjacent_city": [0, 1]
+                            "adjacent_city": [0, 1],
+                            "posx": 44,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
-                            "to": [3],
-                            "adjacent_city": [0]
+                            "to": [5, 6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 32
                         }
                     ]
                 },
@@ -1579,22 +1601,30 @@
                                     "type": "TradeCounter",
                                     "counter": "Cloth"
                                 }
-                            ]
+                            ],
+                            "posx": 20,
+                            "posy": 32
                         },
                         {
                             "type": "City",
                             "to": [1],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 56,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [],
-                            "adjacent_city": [0, 1]
+                            "adjacent_city": [0, 1],
+                            "posx": 44,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
-                            "to": [3],
-                            "adjacent_city": [0]
+                            "to": [5, 6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 32
                         }
                     ]
                 },
@@ -1612,12 +1642,16 @@
                                     "type": "TradeCounter",
                                     "counter": "Grain"
                                 }
-                            ]
+                            ],
+                            "posx": 40,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [5, 6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 32
                         }
                     ]
                 },
@@ -1629,7 +1663,9 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 8
                         },
                         {
                             "type": "City",
@@ -1640,22 +1676,30 @@
                                     "type": "TradeCounter",
                                     "counter": "Grain"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 56
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 16,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [5],
-                            "adjacent_city": [1]
+                            "adjacent_city": [1],
+                            "posx": 8,
+                            "posy": 48
                         },
                         {
                             "type": "Field",
                             "to": [6],
-                            "adjacent_city": [1, 2]
+                            "adjacent_city": [1, 2],
+                            "posx": 8,
+                            "posy": 16
                         }
                     ]
                 },
@@ -1667,7 +1711,9 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 8
                         },
                         {
                             "type": "City",
@@ -1678,22 +1724,30 @@
                                     "type": "TradeCounter",
                                     "counter": "Cloth"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 56
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 16,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [5],
-                            "adjacent_city": [1]
+                            "adjacent_city": [1],
+                            "posx": 8,
+                            "posy": 48
                         },
                         {
                             "type": "Field",
                             "to": [6],
-                            "adjacent_city": [0, 1]
+                            "adjacent_city": [1, 2],
+                            "posx": 8,
+                            "posy": 16
                         }
                     ]
                 },
@@ -1711,22 +1765,30 @@
                                     "type": "TradeCounter",
                                     "counter": "Wine"
                                 }
-                            ]
+                            ],
+                            "posx": 40,
+                            "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 12,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [5],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 48
                         },
                         {
                             "type": "Field",
                             "to": [6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
                         }
                     ]
                 },
@@ -1744,12 +1806,16 @@
                                     "type": "TradeCounter",
                                     "counter": "Wine"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 8
                         },
                         {
                             "type": "Field",
                             "to": [3, 4, 5, 6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 24,
+                            "posy": 40
                         }
                     ]
                 },
@@ -1765,14 +1831,18 @@
                             "features": [
                                 {
                                     "type": "TradeCounter",
-                                    "counter": "Grain"
+                                    "counter": "Wine"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 8
                         },
                         {
                             "type": "Field",
                             "to": [3, 4, 5, 6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 24,
+                            "posy": 40
                         }
                     ]
                 },
@@ -1790,27 +1860,37 @@
                                     "type": "TradeCounter",
                                     "counter": "Grain"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 8,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [3, 4],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 32,
+                            "posy": 56
                         },
                         {
                             "type": "Field",
                             "to": [5],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 48
                         },
                         {
                             "type": "Field",
                             "to": [6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
                         }
                     ]
                 },
@@ -1828,22 +1908,30 @@
                                     "type": "TradeCounter",
                                     "counter": "Grain"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 24,
+                            "posy": 24
                         },
                         {
                             "type": "Field",
                             "to": [3, 4, 5],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 32,
+                            "posy": 48
                         },
                         {
                             "type": "Field",
                             "to": [6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 20
                         }
                     ]
                 },
@@ -1861,22 +1949,30 @@
                                     "type": "TradeCounter",
                                     "counter": "Cloth"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 48
                         },
                         {
                             "type": "Field",
                             "to": [3],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 40,
+                            "posy": 40
                         },
                         {
                             "type": "Field",
                             "to": [4, 5, 6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 16,
+                            "posy": 32
                         }
                     ]
                 },
@@ -1894,27 +1990,37 @@
                                     "type": "TradeCounter",
                                     "counter": "Wine"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 56
                         },
                         {
                             "type": "Field",
                             "to": [3],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 40,
+                            "posy": 56
                         },
                         {
                             "type": "Field",
                             "to": [4],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 16,
+                            "posy": 56
                         },
                         {
                             "type": "Field",
                             "to": [5, 6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 48
                         }
                     ]
                 },
@@ -1932,32 +2038,44 @@
                                     "type": "TradeCounter",
                                     "counter": "Wine"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 56
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 24,
+                            "posy": 24
                         },
                         {
                             "type": "Field",
                             "to": [3],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 40,
+                            "posy": 48
                         },
                         {
                             "type": "Field",
                             "to": [4, 5],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 24,
+                            "posy": 40
                         },
                         {
                             "type": "Field",
                             "to": [6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
                         }
                     ]
                 },
@@ -1975,37 +2093,51 @@
                                     "type": "TradeCounter",
                                     "counter": "Cloth"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 56
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 8,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [3],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 48,
+                            "posy": 56
                         },
                         {
                             "type": "Field",
                             "to": [4],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 16,
+                            "posy": 56
                         },
                         {
                             "type": "Field",
                             "to": [5],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 48
                         },
                         {
                             "type": "Field",
                             "to": [6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
                         }
                     ]
                 },
@@ -2023,17 +2155,23 @@
                                     "type": "TradeCounter",
                                     "counter": "Wine"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [1, 2],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [5, 6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 32
                         }
                     ]
                 },
@@ -2051,27 +2189,37 @@
                                     "type": "TradeCounter",
                                     "counter": "Grain"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 8,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [1, 2],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [5],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 48
                         },
                         {
                             "type": "Field",
                             "to": [6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
                         }
                     ]
                 },
@@ -2089,27 +2237,37 @@
                                     "type": "TradeCounter",
                                     "counter": "Wine"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 32
                         },
                         {
                             "type": "Road",
-                            "to": [3],
-                            "adjacent_road": []
+                            "to": [2],
+                            "adjacent_road": [],
+                            "posx": 8,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [1, 2],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [5],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 48
                         },
                         {
                             "type": "Field",
                             "to": [6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
                         }
                     ]
                 },
@@ -2121,32 +2279,44 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [1]
+                            "adjacent_road": [1],
+                            "posx": 32,
+                            "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 48
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 16,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [1, 2, 3],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 48,
+                            "posy": 48
                         },
                         {
                             "type": "Field",
                             "to": [4, 5],
-                            "adjacent_city": []
+                            "adjacent_city": [],
+                            "posx": 16,
+                            "posy": 48
                         },
                         {
                             "type": "Field",
                             "to": [6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
                         }
                     ]
                 },
@@ -2159,6 +2329,8 @@
                             "type": "City",
                             "to": [0, 2],
                             "adjacent_road": [1, 2],
+                            "posx": 32,
+                            "posy": 32,
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -2169,139 +2341,185 @@
                         {
                             "type": "Road",
                             "to": [1],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 56,
+                            "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 8,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [1],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 16
                         },
                         {
                             "type": "Field",
                             "to": [2],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 48
                         },
                         {
                             "type": "Field",
                             "to": [5],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 48
                         },
                         {
                             "type": "Field",
                             "to": [6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
                         }
                     ]
                 },
                 {
-                    "id": 20,
+                    "id": 21,
                     "sides": "CRFF",
                     "num": 1,
                     "segments": [
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [1]
+                            "adjacent_road": [1],
+                            "posx": 32,
+                            "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [1],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 48,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [1],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 16
                         },
                         {
                             "type": "Field",
                             "to": [2, 3, 4, 5, 6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 16,
+                            "posy": 48
                         }
                     ]
                 },
                 {
-                    "id": 21,
+                    "id": 22,
                     "sides": "FRRR",
                     "num": 1,
                     "segments": [
                         {
                             "type": "Road",
                             "to": [1],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 48,
+                            "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 48
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 16,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [0, 1, 6, 7],
-                            "adjacent_city": []
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 12
                         },
                         {
                             "type": "Field",
                             "to": [2, 3],
-                            "adjacent_city": []
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
                         },
                         {
                             "type": "Field",
                             "to": [4, 5],
-                            "adjacent_city": []
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
                         }
                     ],
                     "features": [
                         {
                             "type": "Cloister",
-                            "adjacent_road": [0, 1, 2]
+                            "adjacent_road": [0, 1, 2],
+                            "posx": 32,
+                            "posy": 36
                         }
                     ]
                 },
                 {
-                    "id": 22,
+                    "id": 23,
                     "sides": "RRRR",
                     "num": 1,
                     "segments": [
                         {
                             "type": "Road",
                             "to": [0, 2],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 32,
+                            "posy": 48
                         },
                         {
                             "type": "Road",
                             "to": [1, 3],
-                            "adjacent_road": []
+                            "adjacent_road": [],
+                            "posx": 16,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [0, 1],
-                            "adjacent_city": []
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 8
                         },
                         {
                             "type": "Field",
                             "to": [2, 3],
-                            "adjacent_city": []
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
                         },
                         {
                             "type": "Field",
                             "to": [4, 5],
-                            "adjacent_city": []
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
                         },
                         {
                             "type": "Field",
                             "to": [6, 7],
-                            "adjacent_city": []
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 8
                         }
                     ]
                 }

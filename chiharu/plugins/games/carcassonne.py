@@ -870,7 +870,7 @@ class Player:
         self.state = PlayerState.InturnScoring
         # score
         for seg in tile.segments:
-            if seg.object.closed():
+            if seg.type != Connectable.Field and seg.object.closed():
                 if self.board.checkPack(2, 'd') and seg.type == Connectable.City:
                     for seg2 in seg.object.segments:
                         if seg2.tradeCounter == TradeCounter.Wine:
@@ -933,7 +933,7 @@ class Player:
 
 
 if __name__ == "__main__":
-    b = Board({1: "abcd"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔"])
+    b = Board({1: "abcd", 2: "abcd"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔"])
     d = {
             "name": "follower",
             "distribute": True,
@@ -953,6 +953,15 @@ if __name__ == "__main__":
                 b.players[0].tokens[-1].putOn(feature)
     for i in range(17):
         t = b.tiles[i % 5, i // 5 + 5] = [s for s in b.deck if s.id == i and s.packid == 1][0]
+        for seg in t.segments:
+            b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+            b.players[0].tokens[-1].putOn(seg)
+        for feature in t.features:
+            if isinstance(feature, Cloister):
+                b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+                b.players[0].tokens[-1].putOn(feature)
+    for i in range(24):
+        t = b.tiles[i % 5, i // 5 + 9] = [s for s in b.deck if s.id == i and s.packid == 2][0]
         for seg in t.segments:
             b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
             b.players[0].tokens[-1].putOn(seg)
