@@ -836,6 +836,7 @@ class Player:
         for dr in Dir:
             if pos + dr in self.board.tiles:
                 self.board.tiles[pos + dr].addConnect(tile, -dr)
+        next_turn = False
         if self.board.checkPack(2, 'b'):
             def check_builder(tile: Tile):
                 for seg in tile.segments:
@@ -848,7 +849,6 @@ class Player:
                 next_turn = True
         self.handTile = None
         self.state = PlayerState.PuttingFollower
-        next_turn = False
         # put a follower
         pass_err: Literal[0, -1, -2] = 0
         while 1:
