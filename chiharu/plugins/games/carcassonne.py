@@ -714,12 +714,12 @@ class Token(ABC):
     def image(self):
         if isinstance(self.player, Board):
             return self.img.copy()
-        if isinstance(self.parent, FieldSegment):
+        if isinstance(self, (BaseFollower, BigFollower)) and isinstance(self.parent, FieldSegment):
             mask = open_img("token0").crop((16, 0, 32, 16))
         else:
             mask = self.img
-        x = Image.new("RGBA", (16, 16))
-        x.paste(Image.new("RGBA", (16, 16), self.player.tokenColor), (0, 0, 16, 16), mask)
+        x = Image.new("RGBA", self.img.size)
+        x.paste(Image.new("RGBA", self.img.size, self.player.tokenColor), (0, 0), mask)
         return x
     def key(self) -> tuple[int, int]:
         return (-1, -1)
