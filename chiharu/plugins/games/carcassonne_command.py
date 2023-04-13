@@ -160,6 +160,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 leftmost = min(i for i, j in board.tiles.keys())
                 uppermost = min(j for i, j in board.tiles.keys())
                 player.stateGen = player.putTile((x + leftmost - 1, y + uppermost - 1), orient, data['second_turn'])
+                data['second_turn'] = False
                 await advance()
         case PlayerState.PuttingFollower:
             if command == "不放":
@@ -173,9 +174,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         case _:
             pass
     if next_turn:
-        board.nextPlayer()
-        data['second_turn'] = False
-    if next_turn or data['second_turn']:
+        if not data['second_turn']:
+            board.nextPlayer()
         if len(board.deck) != 0:
             try:
                 board.current_player.drawTile()
