@@ -274,7 +274,18 @@ class Board:
         remove_zero = len(self.deck) <= len(self.tiles)
         def pos(w: int, h: int, *offsets: tuple[int, int]):
             return w * (64 + 8) + sum(c[0] for c in offsets) + 8, h * (64 + 20) + sum(c[1] for c in offsets) + 20
-        img = Image.new("RGBA", pos(5, sum((len(dct) - 1) // 5 + 1 for packid, dct in self.allTileimgs.items())), "LightCyan")
+        if remove_zero:
+            height: int = 0
+            for packid, dct in self.allTileimgs.items():
+                x2: int = 0
+                for tileid, timg in dct.items():
+                    num = sum(1 for tile in self.deck if tile.packid == packid and tile.id == tileid)
+                    if num != 0:
+                        x2 += 1
+                height += (x2 - 1) // 5 + 1
+        else:
+            height = sum((len(dct) - 1) // 5 + 1 for packid, dct in self.allTileimgs.items())
+        img = Image.new("RGBA", pos(5, height), "LightCyan")
         dr = ImageDraw.Draw(img)
         y: int = 0
         for packid, dct in self.allTileimgs.items():
