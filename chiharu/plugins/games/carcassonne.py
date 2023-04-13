@@ -107,7 +107,7 @@ class Board:
             if t.key() != last_key:
                 self.token_pos[type(t)] = xpos
                 last_key = t.key()
-            xpos += t.img.size[0] + 4
+            xpos += t.image().size[0] + 4
         self.token_length = xpos
         self.font_name = ImageFont.truetype("msyhbd.ttc", 16)
         self.font_score = ImageFont.truetype("msyhbd.ttc", 24)
@@ -337,7 +337,7 @@ class CanToken(ABC):
             if isinstance(token.player, Player):
                 token.player.tokens.append(token)
                 token.parent = token.player
-        self.tokens = [token for token in self.tokens if isinstance(token.player, Player)]
+        self.tokens = [token for token in self.tokens if not isinstance(token.player, Player)]
 
 class Tile(CanToken):
     def __init__(self, board: Board, data: dict[str, Any], img: Image.Image, packid: int) -> None:
@@ -604,7 +604,7 @@ class Object(CanToken):
                         for segc in seg.adjacentCity:
                             if segc.object not in complete_city and segc.object.closed():
                                 complete_city.append(segc.object)
-                if self.board.checkPack(1, "c"):
+                if self.board.checkPack(2, "c"):
                     players = []
                     for i in max_strength[0]:
                         base = 3
