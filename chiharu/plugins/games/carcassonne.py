@@ -895,8 +895,8 @@ class Player:
         score_str = str(self.score) + " (" + str(self.checkScoreCurrent()) + ")"
         length = 80 + 120 + self.board.token_length
         if self.board.checkPack(2, "d"):
-            length += 120
             trade_counter_xpos = length
+            length += 120
         img = Image.new("RGBA", (length, 24))
         dr = ImageDraw.Draw(img)
         dr.text((0, 12), self.show_name, "black", self.board.font_name, "lm")
