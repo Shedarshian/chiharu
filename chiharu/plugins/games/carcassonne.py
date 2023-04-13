@@ -702,15 +702,15 @@ class Token(ABC):
         if isinstance(seg, Segment):
             return all(len(s.tokens) == 0 for s in seg.object.segments) and len(seg.tokens) == 0
         return len(seg.tokens) == 0
-    def putOn(self, seg: Segment | Feature) -> bool:
+    def putOn(self, seg: Segment | Feature):
         seg.tokens.append(self)
         self.parent = seg
-        if self.checkPack(2, 'b') and isinstance(seg, Segment):
-            for seg2 in seg.object.segments:
-                for token in seg2.tokens:
-                    if token.player is self and isinstance(token, Builder):
-                        return True
-        return False
+        # if self.checkPack(2, 'b') and isinstance(seg, Segment) and isinstance(self, Follower):
+        #     for seg2 in seg.object.segments:
+        #         for token in seg2.tokens:
+        #             if token.player is self.player and isinstance(token, Builder):
+        #                 return True
+        # return False
     def image(self):
         if isinstance(self.player, Board):
             return self.img.copy()
@@ -836,6 +836,16 @@ class Player:
         for dr in Dir:
             if pos + dr in self.board.tiles:
                 self.board.tiles[pos + dr].addConnect(tile, -dr)
+        if self.board.checkPack(2, 'b'):
+            def check_builder(tile: Tile):
+                for seg in tile.segments:
+                    for seg2 in seg.object.segments:
+                        for token in seg2.tokens:
+                            if token.player is self and isinstance(token, Builder):
+                                return True
+                return False
+            if check_builder(tile):
+                next_turn = True
         self.handTile = None
         self.state = PlayerState.PuttingFollower
         next_turn = False
@@ -865,7 +875,7 @@ class Player:
                 pass_err = -2
                 continue
             self.tokens.remove(token)
-            next_turn = token.putOn(seg_put)
+            token.putOn(seg_put)
             break
         self.state = PlayerState.InturnScoring
         # score
@@ -941,33 +951,33 @@ if __name__ == "__main__":
             "image": [0, 0, 16, 16]
         }
     b.players[0].tokens.pop(0)
-    for i in range(1, 25):
-        t = b.tiles[i % 5, i // 5] = [s for s in b.deck if s.id == i - 1 and s.packid == 0][0]
-        # t.turn(Dir.RIGHT)
-        for seg in t.segments:
-            b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-            b.players[0].tokens[-1].putOn(seg)
-        for feature in t.features:
-            if isinstance(feature, Cloister):
-                b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-                b.players[0].tokens[-1].putOn(feature)
-    for i in range(17):
-        t = b.tiles[i % 5, i // 5 + 5] = [s for s in b.deck if s.id == i and s.packid == 1][0]
-        for seg in t.segments:
-            b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-            b.players[0].tokens[-1].putOn(seg)
-        for feature in t.features:
-            if isinstance(feature, Cloister):
-                b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-                b.players[0].tokens[-1].putOn(feature)
-    for i in range(24):
-        t = b.tiles[i % 5, i // 5 + 9] = [s for s in b.deck if s.id == i and s.packid == 2][0]
-        for seg in t.segments:
-            b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-            b.players[0].tokens[-1].putOn(seg)
-        for feature in t.features:
-            if isinstance(feature, Cloister):
-                b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-                b.players[0].tokens[-1].putOn(feature)
+    # for i in range(1, 25):
+    #     t = b.tiles[i % 5, i // 5] = [s for s in b.deck if s.id == i - 1 and s.packid == 0][0]
+    #     # t.turn(Dir.RIGHT)
+    #     for seg in t.segments:
+    #         b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+    #         b.players[0].tokens[-1].putOn(seg)
+    #     for feature in t.features:
+    #         if isinstance(feature, Cloister):
+    #             b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+    #             b.players[0].tokens[-1].putOn(feature)
+    # for i in range(17):
+    #     t = b.tiles[i % 5, i // 5 + 5] = [s for s in b.deck if s.id == i and s.packid == 1][0]
+    #     for seg in t.segments:
+    #         b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+    #         b.players[0].tokens[-1].putOn(seg)
+    #     for feature in t.features:
+    #         if isinstance(feature, Cloister):
+    #             b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+    #             b.players[0].tokens[-1].putOn(feature)
+    # for i in range(24):
+    #     t = b.tiles[i % 5, i // 5 + 9] = [s for s in b.deck if s.id == i and s.packid == 2][0]
+    #     for seg in t.segments:
+    #         b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+    #         b.players[0].tokens[-1].putOn(seg)
+    #     for feature in t.features:
+    #         if isinstance(feature, Cloister):
+    #             b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+    #             b.players[0].tokens[-1].putOn(feature)
     b.players[0].drawTile()
-    b.image(debug=True).show()
+    # b.image(debug=True).show()
