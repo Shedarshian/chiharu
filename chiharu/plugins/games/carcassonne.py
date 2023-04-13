@@ -107,7 +107,7 @@ class Board:
             if t.key() != last_key:
                 self.token_pos[type(t)] = xpos
                 last_key = t.key()
-            xpos += t.image().size[0] + 4
+            xpos += t.img.size[0] + 4
         self.token_length = xpos
         self.font_name = ImageFont.truetype("msyhbd.ttc", 16)
         self.font_score = ImageFont.truetype("msyhbd.ttc", 24)

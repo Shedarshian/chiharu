@@ -134,10 +134,10 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await session.send("无法连接！")
             elif rete == -3:
                 await session.send("没有挨着！")
-            elif ret == 1:
+            elif rete == 1:
                 await session.send("玩家回合结束")
                 next_turn = True
-            elif ret == 3:
+            elif rete == 3:
                 await session.send("玩家继续第二回合")
                 data['second_turn'] = True
             player.stateGen = None
