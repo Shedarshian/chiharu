@@ -172,16 +172,8 @@
                 "$ref": "#/$defs/BaseSegmentData"
               }
             ],
-            "properties": {
-                "adjacent_road": {
-                    "type": "array",
-                    "description": "Which road this field is adjacent to. Count as index of the list of segments.",
-                    "items": "integer"
-                }
-            },
-            "required": [
-              "adjacent_road"
-            ]
+            "properties": {},
+            "required": []
         },
         "CitySegmentData": {
             "description": "The connection between cities.",
@@ -283,11 +275,6 @@
                     "type": "string",
                     "const": "Cloister"
                 },
-                "adjacent_road": {
-                    "type": "array",
-                    "description": "Which road this field is adjacent to. Count as index of the list of segments.",
-                    "items": "integer"
-                },
                 "posx": {
                     "type": "integer",
                     "description": "The x position to put token."
@@ -299,7 +286,6 @@
             },
             "required": [
                 "type",
-                "adjacent_road",
                 "posx",
                 "posy"
             ]

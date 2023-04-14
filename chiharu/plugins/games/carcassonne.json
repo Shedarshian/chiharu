@@ -13,7 +13,6 @@
                         {
                             "type": "City",
                             "to": [0, 1, 2, 3],
-                            "adjacent_road": [],
                             "pennant": 1,
                             "posx": 32,
                             "posy": 32
@@ -28,7 +27,6 @@
                         {
                             "type": "City",
                             "to": [0, 1, 2],
-                            "adjacent_road": [],
                             "posx": 40,
                             "posy": 32
                         },
@@ -49,7 +47,6 @@
                         {
                             "type": "City",
                             "to": [0, 1, 2],
-                            "adjacent_road": [],
                             "pennant": 1,
                             "posx": 40,
                             "posy": 32
@@ -71,7 +68,6 @@
                         {
                             "type": "City",
                             "to": [0, 1, 2],
-                            "adjacent_road": [1],
                             "pennant": 1,
                             "posx": 40,
                             "posy": 32
@@ -79,7 +75,6 @@
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 12,
                             "posy": 32
                         },
@@ -107,21 +102,18 @@
                         {
                             "type": "City",
                             "to": [0, 1, 2],
-                            "adjacent_road": [1],
                             "posx": 40,
                             "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 12,
                             "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [5],
-                            "adjacent_road": [],
                             "adjacent_city": [0],
                             "posx": 8,
                             "posy": 48
@@ -143,7 +135,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
@@ -164,7 +155,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [],
                             "pennant": 1,
                             "posx": 32,
                             "posy": 8
@@ -186,14 +176,12 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "City",
                             "to": [1],
-                            "adjacent_road": [],
                             "posx": 56,
                             "posy": 32
                         },
@@ -214,14 +202,12 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [2, 3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 40
                         },
@@ -249,7 +235,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [],
                             "pennant": 1,
                             "posx": 32,
                             "posy": 8
@@ -257,7 +242,6 @@
                         {
                             "type": "Road",
                             "to": [2, 3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 40
                         },
@@ -285,14 +269,12 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "City",
                             "to": [2],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 56
                         },
@@ -313,7 +295,6 @@
                         {
                             "type": "City",
                             "to": [0, 2],
-                            "adjacent_road": [],
                             "pennant": 1,
                             "posx": 32,
                             "posy": 32
@@ -342,7 +323,6 @@
                         {
                             "type": "City",
                             "to": [0, 2],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 32
                         },
@@ -370,7 +350,6 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
@@ -391,14 +370,12 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [2, 3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 40
                         },
@@ -426,14 +403,12 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [1, 3],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 32
                         },
@@ -461,14 +436,12 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [1, 2],
-                            "adjacent_road": [],
                             "posx": 40,
                             "posy": 40
                         },
@@ -496,14 +469,12 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [1],
-                            "adjacent_road": [2, 3],
                             "bush": true,
                             "posx": 48,
                             "posy": 32
@@ -511,7 +482,6 @@
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": [1, 3],
                             "bush": true,
                             "posx": 32,
                             "posy": 48
@@ -519,7 +489,6 @@
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [1, 2],
                             "bush": true,
                             "posx": 16,
                             "posy": 32
@@ -563,7 +532,6 @@
                     "features": [
                         {
                             "type": "Cloister",
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 36
                         }
@@ -577,7 +545,6 @@
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 12,
                             "posy": 32
                         },
@@ -592,7 +559,6 @@
                     "features": [
                         {
                             "type": "Cloister",
-                            "adjacent_road": [0],
                             "posx": 28,
                             "posy": 32
                         }
@@ -606,7 +572,6 @@
                         {
                             "type": "Road",
                             "to": [2, 3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 40
                         },
@@ -634,7 +599,6 @@
                         {
                             "type": "Road",
                             "to": [1, 3],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 32
                         },
@@ -662,21 +626,18 @@
                         {
                             "type": "Road",
                             "to": [1],
-                            "adjacent_road": [1, 2],
                             "posx": 48,
                             "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": [0, 2],
                             "posx": 32,
                             "posy": 48
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [0, 1],
                             "posx": 16,
                             "posy": 32
                         },
@@ -711,28 +672,24 @@
                         {
                             "type": "Road",
                             "to": [0],
-                            "adjacent_road": [1, 2, 3],
                             "posx": 32,
                             "posy": 16
                         },
                         {
                             "type": "Road",
                             "to": [1],
-                            "adjacent_road": [0, 2, 3],
                             "posx": 48,
                             "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": [0, 1, 2],
                             "posx": 32,
                             "posy": 48
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [0, 1, 2],
                             "posx": 16,
                             "posy": 32
                         },
@@ -789,28 +746,24 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "City",
                             "to": [1],
-                            "adjacent_road": [],
                             "posx": 56,
                             "posy": 32
                         },
                         {
                             "type": "City",
                             "to": [2],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 56
                         },
                         {
                             "type": "City",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 8,
                             "posy": 32
                         },
@@ -831,7 +784,6 @@
                         {
                             "type": "City",
                             "to": [0, 1, 2, 3],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 32,
                             "features": [
@@ -850,21 +802,18 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "City",
                             "to": [1],
-                            "adjacent_road": [],
                             "posx": 56,
                             "posy": 32
                         },
                         {
                             "type": "City",
                             "to": [2],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 56
                         },
@@ -885,14 +834,12 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "City",
                             "to": [1, 2],
-                            "adjacent_road": [],
                             "pennant": 1,
                             "posx": 32,
                             "posy": 56
@@ -914,7 +861,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [1],
                             "pennant": 1,
                             "posx": 32,
                             "posy": 8
@@ -922,7 +868,6 @@
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 24,
                             "features": [
@@ -955,14 +900,12 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [1],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 48
                         },
@@ -990,7 +933,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8,
                             "pennant": 1
@@ -998,7 +940,6 @@
                         {
                             "type": "Road",
                             "to": [2, 3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 40,
                             "features": [
@@ -1031,7 +972,6 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 16
                         },
@@ -1059,14 +999,12 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [1],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 48
                         },
@@ -1094,14 +1032,12 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [2, 3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 40,
                             "features": [
@@ -1134,7 +1070,6 @@
                         {
                             "type": "City",
                             "to": [0, 2],
-                            "adjacent_road": [1, 2],
                             "posx": 32,
                             "posy": 32,
                             "pennant": 1
@@ -1142,14 +1077,12 @@
                         {
                             "type": "Road",
                             "to": [1],
-                            "adjacent_road": [],
                             "posx": 56,
                             "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 8,
                             "posy": 32
                         },
@@ -1191,7 +1124,6 @@
                         {
                             "type": "Road",
                             "to": [2, 3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 40,
                             "features": [
@@ -1224,14 +1156,12 @@
                         {
                             "type": "Road",
                             "to": [1],
-                            "adjacent_road": [],
                             "posx": 56,
                             "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 8,
                             "posy": 32
                         },
@@ -1253,7 +1183,6 @@
                     "features": [
                         {
                             "type": "Cloister",
-                            "adjacent_road": [0, 1],
                             "posx": 32,
                             "posy": 36
                         }
@@ -1267,7 +1196,6 @@
                         {
                             "type": "Road",
                             "to": [1, 3],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 32,
                             "features": [
@@ -1300,7 +1228,6 @@
                         {
                             "type": "Road",
                             "to": [1],
-                            "adjacent_road": [1, 2],
                             "bush": true,
                             "posx": 48,
                             "posy": 32,
@@ -1313,7 +1240,6 @@
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": [0, 2],
                             "bush": true,
                             "posx": 32,
                             "posy": 48
@@ -1321,7 +1247,6 @@
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [0, 1],
                             "bush": true,
                             "posx": 16,
                             "posy": 32
@@ -1357,14 +1282,12 @@
                         {
                             "type": "Road",
                             "to": [0, 3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 24
                         },
                         {
                             "type": "Road",
                             "to": [1, 2],
-                            "adjacent_road": [],
                             "posx": 40,
                             "posy": 40
                         },
@@ -1399,21 +1322,18 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "City",
                             "to": [2],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 56
                         },
                         {
                             "type": "Road",
                             "to": [1],
-                            "adjacent_road": [3],
                             "bush": true,
                             "posx": 48,
                             "posy": 32
@@ -1421,7 +1341,6 @@
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [2],
                             "bush": true,
                             "posx": 16,
                             "posy": 32
@@ -1479,7 +1398,6 @@
                         {
                             "type": "City",
                             "to": [0, 3],
-                            "adjacent_road": [],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -1492,14 +1410,12 @@
                         {
                             "type": "City",
                             "to": [1],
-                            "adjacent_road": [],
                             "posx": 56,
                             "posy": 32
                         },
                         {
                             "type": "City",
                             "to": [2],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 56
                         },
@@ -1520,7 +1436,6 @@
                         {
                             "type": "City",
                             "to": [0, 3],
-                            "adjacent_road": [],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -1533,7 +1448,6 @@
                         {
                             "type": "City",
                             "to": [1, 2],
-                            "adjacent_road": [],
                             "posx": 56,
                             "posy": 32
                         },
@@ -1554,20 +1468,18 @@
                         {
                             "type": "City",
                             "to": [0, 2],
-                            "adjacent_road": [],
                             "features": [
                                 {
                                     "type": "TradeCounter",
                                     "counter": "Wine"
                                 }
                             ],
-                            "posx": 20,
+                            "posx": 24,
                             "posy": 32
                         },
                         {
                             "type": "City",
                             "to": [1],
-                            "adjacent_road": [],
                             "posx": 56,
                             "posy": 32
                         },
@@ -1575,8 +1487,8 @@
                             "type": "Field",
                             "to": [],
                             "adjacent_city": [0, 1],
-                            "posx": 44,
-                            "posy": 32
+                            "posx": 48,
+                            "posy": 16
                         },
                         {
                             "type": "Field",
@@ -1595,7 +1507,6 @@
                         {
                             "type": "City",
                             "to": [0, 2],
-                            "adjacent_road": [],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -1608,7 +1519,6 @@
                         {
                             "type": "City",
                             "to": [1],
-                            "adjacent_road": [],
                             "posx": 56,
                             "posy": 32
                         },
@@ -1616,8 +1526,8 @@
                             "type": "Field",
                             "to": [],
                             "adjacent_city": [0, 1],
-                            "posx": 44,
-                            "posy": 32
+                            "posx": 48,
+                            "posy": 16
                         },
                         {
                             "type": "Field",
@@ -1636,7 +1546,6 @@
                         {
                             "type": "City",
                             "to": [0, 1, 2],
-                            "adjacent_road": [],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -1663,14 +1572,12 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "City",
                             "to": [1, 2],
-                            "adjacent_road": [2],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -1683,7 +1590,6 @@
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 16,
                             "posy": 32
                         },
@@ -1711,14 +1617,12 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "City",
                             "to": [1, 2],
-                            "adjacent_road": [2],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -1731,7 +1635,6 @@
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 16,
                             "posy": 32
                         },
@@ -1759,7 +1662,6 @@
                         {
                             "type": "City",
                             "to": [0, 1, 2],
-                            "adjacent_road": [1],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -1772,7 +1674,6 @@
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 12,
                             "posy": 32
                         },
@@ -1800,7 +1701,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -1827,7 +1727,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -1854,7 +1753,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [1],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -1867,7 +1765,6 @@
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 8,
                             "posy": 32
                         },
@@ -1902,7 +1799,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [1],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -1915,7 +1811,6 @@
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 24
                         },
@@ -1943,7 +1838,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [1],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -1956,7 +1850,6 @@
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 48
                         },
@@ -1984,7 +1877,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [1],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -1997,7 +1889,6 @@
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 56
                         },
@@ -2020,7 +1911,7 @@
                             "to": [5, 6],
                             "adjacent_city": [0],
                             "posx": 8,
-                            "posy": 48
+                            "posy": 56
                         }
                     ]
                 },
@@ -2032,7 +1923,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [1, 2],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -2045,16 +1935,14 @@
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 56
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
-                            "posx": 24,
-                            "posy": 24
+                            "posx": 8,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
@@ -2087,7 +1975,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [1, 2],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -2100,14 +1987,12 @@
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 56
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 8,
                             "posy": 32
                         },
@@ -2149,7 +2034,6 @@
                         {
                             "type": "City",
                             "to": [0, 2],
-                            "adjacent_road": [],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -2183,7 +2067,6 @@
                         {
                             "type": "City",
                             "to": [0, 2],
-                            "adjacent_road": [1],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -2196,7 +2079,6 @@
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": [],
                             "posx": 8,
                             "posy": 32
                         },
@@ -2231,7 +2113,6 @@
                         {
                             "type": "City",
                             "to": [0, 2],
-                            "adjacent_road": [1],
                             "features": [
                                 {
                                     "type": "TradeCounter",
@@ -2244,7 +2125,6 @@
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 8,
                             "posy": 32
                         },
@@ -2279,21 +2159,18 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [1],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 48
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 16,
                             "posy": 32
                         },
@@ -2328,7 +2205,6 @@
                         {
                             "type": "City",
                             "to": [0, 2],
-                            "adjacent_road": [1, 2],
                             "posx": 32,
                             "posy": 32,
                             "features": [
@@ -2341,14 +2217,12 @@
                         {
                             "type": "Road",
                             "to": [1],
-                            "adjacent_road": [],
                             "posx": 56,
                             "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 8,
                             "posy": 32
                         },
@@ -2390,14 +2264,12 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [1],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [1],
-                            "adjacent_road": [],
                             "posx": 48,
                             "posy": 32
                         },
@@ -2425,21 +2297,18 @@
                         {
                             "type": "Road",
                             "to": [1],
-                            "adjacent_road": [],
                             "posx": 48,
                             "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 48
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 16,
                             "posy": 32
                         },
@@ -2468,7 +2337,6 @@
                     "features": [
                         {
                             "type": "Cloister",
-                            "adjacent_road": [0, 1, 2],
                             "posx": 32,
                             "posy": 36
                         }
@@ -2482,14 +2350,12 @@
                         {
                             "type": "Road",
                             "to": [0, 2],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 48
                         },
                         {
                             "type": "Road",
                             "to": [1, 3],
-                            "adjacent_road": [],
                             "posx": 16,
                             "posy": 32
                         },
@@ -2553,7 +2419,6 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "features": [
                                 {
                                     "type": "Princess"
@@ -2563,7 +2428,6 @@
                         {
                             "type": "City",
                             "to": [1, 2],
-                            "adjacent_road": [],
                             "pennant": 1
                         },
                         {
@@ -2586,7 +2450,6 @@
                         {
                             "type": "City",
                             "to": [0, 1, 2],
-                            "adjacent_road": [],
                             "features": [
                                 {
                                     "type": "Princess"
@@ -2608,7 +2471,6 @@
                         {
                             "type": "City",
                             "to": [0, 1, 2],
-                            "adjacent_road": [],
                             "pennant": 1
                         },
                         {
@@ -2630,8 +2492,7 @@
                     "segments": [
                         {
                             "type": "City",
-                            "to": [0, 1, 2],
-                            "adjacent_road": []
+                            "to": [0, 1, 2]
                         },
                         {
                             "type": "Field",
@@ -2641,8 +2502,7 @@
                     ],
                     "features": [
                         {
-                            "type": "Cloister",
-                            "adjacent_road": []
+                            "type": "Cloister"
                         },
                         {
                             "type": "Dragon"
@@ -2657,7 +2517,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [],
                             "features": [
                                 {
                                     "type": "Princess"
@@ -2683,8 +2542,7 @@
                     "segments": [
                         {
                             "type": "City",
-                            "to": [0, 1],
-                            "adjacent_road": []
+                            "to": [0, 1]
                         },
                         {
                             "type": "Field",
@@ -2706,7 +2564,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [],
                             "features": [
                                 {
                                     "type": "Princess"
@@ -2727,13 +2584,11 @@
                     "segments": [
                         {
                             "type": "City",
-                            "to": [0],
-                            "adjacent_road": []
+                            "to": [0]
                         },
                         {
                             "type": "City",
-                            "to": [1],
-                            "adjacent_road": []
+                            "to": [1]
                         },
                         {
                             "type": "Field",
@@ -2755,7 +2610,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "adjacent_road": [],
                             "features": [
                                 {
                                     "type": "Princess"
@@ -2765,7 +2619,6 @@
                         {
                             "type": "Road",
                             "to": [2, 3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 40
                         },
@@ -2792,13 +2645,11 @@
                     "segments": [
                         {
                             "type": "City",
-                            "to": [0, 1],
-                            "adjacent_road": []
+                            "to": [0, 1]
                         },
                         {
                             "type": "Road",
                             "to": [2, 3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 40
                         },
@@ -2831,7 +2682,6 @@
                         {
                             "type": "City",
                             "to": [0, 2],
-                            "adjacent_road": [],
                             "pennant": 1,
                             "posx": 32,
                             "posy": 32
@@ -2865,7 +2715,6 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
@@ -2891,7 +2740,6 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
@@ -2917,14 +2765,12 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [2, 3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 40
                         },
@@ -2957,14 +2803,12 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [2, 3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 40
                         },
@@ -2997,14 +2841,12 @@
                         {
                             "type": "City",
                             "to": [0, 2],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [1, 3],
-                            "adjacent_road": [],
                             "posx": 56,
                             "posy": 32
                         },
@@ -3037,14 +2879,12 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [1, 2],
-                            "adjacent_road": [],
                             "posx": 40,
                             "posy": 40
                         },
@@ -3077,14 +2917,12 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8
                         },
                         {
                             "type": "Road",
                             "to": [1, 2],
-                            "adjacent_road": [],
                             "posx": 40,
                             "posy": 40
                         },
@@ -3117,7 +2955,6 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 8,
                             "features": [
@@ -3129,7 +2966,6 @@
                         {
                             "type": "Road",
                             "to": [1],
-                            "adjacent_road": [2, 3],
                             "bush": true,
                             "posx": 48,
                             "posy": 32
@@ -3137,7 +2973,6 @@
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": [1, 3],
                             "bush": true,
                             "posx": 32,
                             "posy": 48
@@ -3145,7 +2980,6 @@
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [1, 2],
                             "bush": true,
                             "posx": 16,
                             "posy": 32
@@ -3200,7 +3034,6 @@
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [],
                             "posx": 12,
                             "posy": 32
                         },
@@ -3226,7 +3059,6 @@
                         {
                             "type": "Road",
                             "to": [2, 3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 40
                         },
@@ -3259,7 +3091,6 @@
                         {
                             "type": "Road",
                             "to": [2, 3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 40
                         },
@@ -3292,7 +3123,6 @@
                         {
                             "type": "Road",
                             "to": [1, 3],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 32
                         },
@@ -3325,7 +3155,6 @@
                         {
                             "type": "Road",
                             "to": [1, 3],
-                            "adjacent_road": [],
                             "posx": 32,
                             "posy": 32
                         },
@@ -3357,18 +3186,15 @@
                     "segments": [
                         {
                             "type": "Road",
-                            "to": [1],
-                            "adjacent_road": []
+                            "to": [1]
                         },
                         {
                             "type": "Road",
-                            "to": [2],
-                            "adjacent_road": []
+                            "to": [2]
                         },
                         {
                             "type": "Road",
-                            "to": [3],
-                            "adjacent_road": []
+                            "to": [3]
                         },
                         {
                             "type": "Field",
@@ -3388,8 +3214,7 @@
                     ],
                     "features": [
                         {
-                            "type": "Cloister",
-                            "adjacent_road": [0, 1, 2]
+                            "type": "Cloister"
                         },
                         {
                             "type": "Dragon"
@@ -3404,21 +3229,18 @@
                         {
                             "type": "Road",
                             "to": [1],
-                            "adjacent_road": [1, 2],
                             "posx": 48,
                             "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": [0, 2],
                             "posx": 32,
                             "posy": 48
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [0, 1],
                             "posx": 16,
                             "posy": 32
                         },
@@ -3458,7 +3280,6 @@
                         {
                             "type": "Road",
                             "to": [1],
-                            "adjacent_road": [1, 2],
                             "bush": true,
                             "posx": 48,
                             "posy": 32
@@ -3466,7 +3287,6 @@
                         {
                             "type": "Road",
                             "to": [2],
-                            "adjacent_road": [0, 2],
                             "bush": true,
                             "posx": 32,
                             "posy": 48
@@ -3474,7 +3294,6 @@
                         {
                             "type": "Road",
                             "to": [3],
-                            "adjacent_road": [0, 1],
                             "bush": true,
                             "posx": 16,
                             "posy": 32
@@ -3515,14 +3334,12 @@
                         {
                             "type": "Road",
                             "to": [0, 3],
-                            "adjacent_road": [],
                             "posx": 24,
                             "posy": 24
                         },
                         {
                             "type": "Road",
                             "to": [1, 2],
-                            "adjacent_road": [],
                             "posx": 40,
                             "posy": 40
                         },
@@ -3564,6 +3381,478 @@
                 {
                     "name": "fairy",
                     "distribute": false,
+                    "num": 1
+                }
+            ]
+        },
+        {
+            "name": "Abbey and Mayor",
+            "id": 5,
+            "tiles": [
+                {
+                    "id": 0,
+                    "sides": "CCCC",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1, 2, 3],
+                            "pennant": 2,
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 1,
+                    "sides": "CCCC",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "posx": 32,
+                            "posy": 56
+                        },
+                        {
+                            "type": "City",
+                            "to": [1, 3],
+                            "posx": 8,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [],
+                            "adjacent_city": [0, 1],
+                            "posx": 48,
+                            "posy": 24
+                        },
+                        {
+                            "type": "Field",
+                            "to": [],
+                            "adjacent_city": [0, 1],
+                            "posx": 48,
+                            "posy": 40
+                        }
+                    ]
+                },
+                {
+                    "id": 2,
+                    "sides": "CCCF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "posx": 32,
+                            "posy": 56
+                        },
+                        {
+                            "type": "City",
+                            "to": [1],
+                            "posx": 56,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [],
+                            "adjacent_city": [0, 1],
+                            "posx": 48,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0, 1],
+                            "posx": 8,
+                            "posy": 48
+                        }
+                    ]
+                },
+                {
+                    "id": 3,
+                    "sides": "CCRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "City",
+                            "to": [1],
+                            "posx": 56,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 8,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3],
+                            "adjacent_city": [1],
+                            "posx": 56,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [0, 1],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 8
+                        }
+                    ]
+                },
+                {
+                    "id": 4,
+                    "sides": "CFFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 24
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2],
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4],
+                            "adjacent_city": [0],
+                            "posx": 32,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 5,
+                    "sides": "CRFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 16,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3, 4, 5],
+                            "adjacent_city": [0],
+                            "posx": 48,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
+                        }
+                    ]
+                },
+                {
+                    "id": 6,
+                    "sides": "CFRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "posx": 32,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3],
+                            "adjacent_city": [0],
+                            "posx": 48,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 8
+                        }
+                    ]
+                },
+                {
+                    "id": 7,
+                    "sides": "CRCR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "posx": 32,
+                            "posy": 16,
+                            "pennant": 1
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "posx": 48,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1],
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2],
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
+                        }
+                    ]
+                },
+                {
+                    "id": 8,
+                    "sides": "CRRF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 2],
+                            "posx": 32,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1],
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 16,
+                            "posy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 9,
+                    "sides": "FFFR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 12,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 4, 5, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 52
+                        }
+                    ]
+                },
+                {
+                    "id": 10,
+                    "sides": "FRRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [1, 2, 3],
+                            "posx": 16,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ]
+                },
+                {
+                    "id": 11,
+                    "sides": "RRRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 12
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1],
+                            "posx": 52,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 52
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 12,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6, 7],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 8
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Cloister",
+                            "posx": 32,
+                            "posy": 36
+                        }
+                    ]
+                }
+            ],
+            "tokens": [
+                {
+                    "name": "abbey tile",
+                    "distribute": true,
+                    "thing_id": "b",
+                    "num": 1
+                },
+                {
+                    "name": "mayor",
+                    "distribute": true,
+                    "thing_id": "c",
+                    "num": 1
+                },
+                {
+                    "name": "wagon",
+                    "distribute": true,
+                    "thing_id": "d",
+                    "num": 1
+                },
+                {
+                    "name": "barn",
+                    "distribute": true,
+                    "thing_id": "e",
                     "num": 1
                 }
             ]

@@ -38,7 +38,7 @@ class TradeCounter(Enum):
     Wine = auto()
     Grain = auto()
     Cloth = auto()
-all_extensions = {1: 'abcd', 2: 'abcd'}
+all_extensions = {1: 'abcd', 2: 'abcd', 5: 'abcde'}
 
 def turn(pos: tuple[int, int], dir: Dir):
     if dir == Dir.UP:
@@ -361,8 +361,6 @@ class Tile(CanToken):
         for seg in self.segments:
             if isinstance(seg, FieldSegment):
                 seg.makeAdjacentCity(self.segments)
-            elif isinstance(seg, NonFieldSegment):
-                seg.makeAdjacentRoad(self.segments)
         self.features: list[Feature] = [f(self, s) for s in data.get("features", []) if (f := Feature.make(s["type"])) is not None]
         self.connectTile: list[Tile | None] = [None] * 4
         self.orient: Dir = Dir.UP
@@ -425,13 +423,6 @@ class Tile(CanToken):
         ci = 1
         for seg in self.segments:
             corr = seg.token_pos
-            if isinstance(seg, NonFieldSegment):
-                for road in seg.adjacentRoad:
-                    dr.line((citycorrs[self.segments.index(road)], corr), "gray", 2)
-            ci += 1
-        ci = 1
-        for seg in self.segments:
-            corr = seg.token_pos
             if isinstance(seg, CitySegment):
                 dr.ellipse((corr[0] - 3, corr[1] - 3, corr[0] + 3, corr[1] + 3), seg.color)
                 if seg.pennant != 0:
@@ -484,11 +475,6 @@ class NonFieldSegment(Segment):
     def __init__(self, typ: Connectable, tile: Tile, data: dict[str, Any]) -> None:
         super().__init__(typ, tile, data)
         self.side: dict[Dir, Segment | None] = {Dir(i): None for i in data["to"]}
-        self.adjacentRoad: list[Segment] = []
-        self.adjacentRoadTemp: list[int] = data["adjacent_road"]
-    def makeAdjacentRoad(self, segs: list[Segment]):
-        self.adjacentRoad = [segs[i] for i in self.adjacentRoadTemp]
-        del self.adjacentRoadTemp
     def turn(self, dir: Dir):
         self.side = {d + dir: value for d, value in self.side.items()}
     def inSide(self, dir: Dir):
@@ -662,10 +648,6 @@ class Feature(CanToken):
     def canPlace(self) -> bool:
         return False
 class Cloister(Feature):
-    def __init__(self, parent: Tile | Segment, data: dict[str, Any]) -> None:
-        super().__init__(parent, data)
-        assert isinstance(parent, Tile)
-        self.adjacentRoad = [parent.segments[i] for i in data["adjacent_road"]]
     def canScore(self) -> bool:
         assert isinstance(self.parent, Tile)
         pos = more_itertools.only(key for key, value in self.parent.board.tiles.items() if value is self.parent)
@@ -962,33 +944,33 @@ if __name__ == "__main__":
             "image": [0, 0, 16, 16]
         }
     b.players[0].tokens.pop(0)
-    # for i in range(1, 25):
-    #     t = b.tiles[i % 5, i // 5] = [s for s in b.deck if s.id == i - 1 and s.packid == 0][0]
-    #     # t.turn(Dir.RIGHT)
-    #     for seg in t.segments:
-    #         b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-    #         b.players[0].tokens[-1].putOn(seg)
-    #     for feature in t.features:
-    #         if isinstance(feature, Cloister):
-    #             b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-    #             b.players[0].tokens[-1].putOn(feature)
-    # for i in range(17):
-    #     t = b.tiles[i % 5, i // 5 + 5] = [s for s in b.deck if s.id == i and s.packid == 1][0]
-    #     for seg in t.segments:
-    #         b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-    #         b.players[0].tokens[-1].putOn(seg)
-    #     for feature in t.features:
-    #         if isinstance(feature, Cloister):
-    #             b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-    #             b.players[0].tokens[-1].putOn(feature)
-    # for i in range(24):
-    #     t = b.tiles[i % 5, i // 5 + 9] = [s for s in b.deck if s.id == i and s.packid == 2][0]
-    #     for seg in t.segments:
-    #         b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-    #         b.players[0].tokens[-1].putOn(seg)
-    #     for feature in t.features:
-    #         if isinstance(feature, Cloister):
-    #             b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-    #             b.players[0].tokens[-1].putOn(feature)
+    for i in range(1, 25):
+        t = b.tiles[i % 5, i // 5] = [s for s in b.deck if s.id == i - 1 and s.packid == 0][0]
+        # t.turn(Dir.RIGHT)
+        for seg in t.segments:
+            b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+            b.players[0].tokens[-1].putOn(seg)
+        for feature in t.features:
+            if isinstance(feature, Cloister):
+                b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+                b.players[0].tokens[-1].putOn(feature)
+    for i in range(17):
+        t = b.tiles[i % 5, i // 5 + 5] = [s for s in b.deck if s.id == i and s.packid == 1][0]
+        for seg in t.segments:
+            b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+            b.players[0].tokens[-1].putOn(seg)
+        for feature in t.features:
+            if isinstance(feature, Cloister):
+                b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+                b.players[0].tokens[-1].putOn(feature)
+    for i in range(24):
+        t = b.tiles[i % 5, i // 5 + 9] = [s for s in b.deck if s.id == i and s.packid == 2][0]
+        for seg in t.segments:
+            b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+            b.players[0].tokens[-1].putOn(seg)
+        for feature in t.features:
+            if isinstance(feature, Cloister):
+                b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+                b.players[0].tokens[-1].putOn(feature)
     b.players[0].drawTile()
-    # b.image(debug=True).show()
+    b.image(debug=True).show()
