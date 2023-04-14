@@ -147,7 +147,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             board.current_player.drawTile()
             await session.send([board.saveImg()])
             await session.send(f'玩家{data["names"][board.current_player_id]}开始行动，请选择放图块的坐标，以及用URDL将指定方向旋转至向上。')
-        data['adding_extensions'] = False
+            data['adding_extensions'] = False
         return
     user_id: int = data['players'].index(session.ctx['user_id'])
     board = data['board']
