@@ -141,7 +141,7 @@ async def ccs_end(session: CommandSession, data: dict[str, Any]):
 async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Callable[[], Awaitable]):
     command = session.msg_text.strip()
     if data['adding_extensions']:
-        if command == "开始游戏":
+        if command in ("开始游戏", "游戏开始"):
             # 开始游戏
             board = data['board'] = Board(data['extensions'], data['names'])
             board.current_player.drawTile()

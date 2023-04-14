@@ -108,7 +108,7 @@ class Board:
                 self.token_pos[type(t)] = xpos
                 last_key = t.key()
                 if len([1 for tk in self.players[0].tokens if tk.key() == last_key]) >= 3:
-                    xpos += 2 * t.image().size[0] + 4
+                    xpos += t.image().size[0] + 24 + 4
                 else:
                     xpos += t.image().size[0] + 4
         self.token_length = xpos
@@ -940,7 +940,7 @@ class Player:
                 xbegin = self.board.token_pos[type(token)] + 80 + score_length
                 if this_num >= 3:
                     img.alpha_composite(timg, (xbegin, 12 - timg.size[1] // 2))
-                    dr.text((xbegin + timg.size[0], 12), " x " + str(this_num), "black", self.board.font_score, "lm")
+                    dr.text((xbegin + timg.size[0], 12), " x " + str(this_num), "black", self.board.font_name, "lm")
                 elif this_num == 2:
                     img.alpha_composite(timg, (xbegin, 12 - timg.size[1] // 2))
                     img.alpha_composite(timg, (xbegin + timg.size[0] + 4, 12 - timg.size[1] // 2))
