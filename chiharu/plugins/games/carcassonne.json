@@ -3386,6 +3386,10 @@
             ]
         },
         {
+            "name": "The Tower",
+            "id": 4
+        },
+        {
             "name": "Abbey and Mayor",
             "id": 5,
             "tiles": [
