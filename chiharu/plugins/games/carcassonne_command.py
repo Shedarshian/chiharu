@@ -68,7 +68,7 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
     data['players'] = [data['players'][i] for i in order]
     data['names'] = [data['names'][i] for i in order]
     data["second_turn"] = False
-    data['adding_extension'] = True
+    data['adding_extensions'] = True
     # 选择扩展
     await session.send("请选择想开启或是关闭的扩展，使用指令如-play.cacason.extension open ex1，选择完毕后发送开始游戏即可开始。")
 
@@ -149,7 +149,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         data['adding_extensions'] = False
         return
     user_id: int = data['players'].index(session.ctx['user_id'])
-    board: Board = data['board']
+    board = data['board']
     if command.startswith("查询剩余"):
         await session.send([board.saveRemainTileImg()])
     if board.current_player_id != user_id:
