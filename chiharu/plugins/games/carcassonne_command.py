@@ -68,11 +68,9 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
     data['players'] = [data['players'][i] for i in order]
     data['names'] = [data['names'][i] for i in order]
     data["second_turn"] = False
-    # 开始游戏
-    board = data['board'] = Board(data['extensions'], data['names'])
-    board.current_player.drawTile()
-    await session.send([board.saveImg()])
-    await session.send(f'玩家{data["names"][board.current_player_id]}开始行动，请选择放图块的坐标，以及用URDL将指定方向旋转至向上。')
+    data['adding_extension'] = True
+    # 选择扩展
+    await session.send("请选择想开启或是关闭的扩展，使用指令如-play.cacason.extension open ex1，选择完毕后发送开始游戏即可开始。")
 
 @on_command(('play', 'cacason', 'extension'), only_to_me=False, hide=True, display_parents=("cacason",), args=('[check/open/close]', '[ex??]'), short_des="修改卡卡颂对局使用的扩展。")
 @config.ErrorHandle
@@ -81,6 +79,7 @@ async def ccs_extension(session: CommandSession):
     可开关的扩展与小项有：
 1. Inns and Cathedrals
     (a) 图块；(b) 大跟随者；(c) 旅馆机制；(d) 主教教堂机制。
+2.
 
 使用例：-play.cacason.extension check：查询目前开启了哪些扩展包。
 -play.cacason.extension open ex1：开启所有扩展包1的内容。
@@ -140,6 +139,15 @@ async def ccs_end(session: CommandSession, data: dict[str, Any]):
 @config.ErrorHandle
 async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Callable[[], Awaitable]):
     command = session.msg_text.strip()
+    if data['adding_extensions']:
+        if command == "开始游戏":
+            # 开始游戏
+            board = data['board'] = Board(data['extensions'], data['names'])
+            board.current_player.drawTile()
+            await session.send([board.saveImg()])
+            await session.send(f'玩家{data["names"][board.current_player_id]}开始行动，请选择放图块的坐标，以及用URDL将指定方向旋转至向上。')
+        data['adding_extensions'] = False
+        return
     user_id: int = data['players'].index(session.ctx['user_id'])
     board: Board = data['board']
     if command.startswith("查询剩余"):

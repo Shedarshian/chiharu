@@ -774,7 +774,7 @@ class Player:
         yield {}
     def addScoreFinal(self, score: int):
         self.score += score
-    def checkScoreCurrent(self):
+    def checkMeepleScoreCurrent(self):
         all_objects: list[Object | Cloister] = []
         score: int = 0
         for token in self.allTokens:
@@ -895,7 +895,7 @@ class Player:
             return 3
         return 1
     def image(self):
-        score_str = str(self.score) + " (" + str(self.checkScoreCurrent()) + ")"
+        score_str = str(self.score) + " (" + str(self.checkMeepleScoreCurrent()) + ")"
         if self.board.checkPack(2, 'd'):
             trade_score = 0
             for i in range(3):
