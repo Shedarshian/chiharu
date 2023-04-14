@@ -107,7 +107,10 @@ class Board:
             if t.key() != last_key:
                 self.token_pos[type(t)] = xpos
                 last_key = t.key()
-            xpos += t.image().size[0] + 4
+                if len([1 for tk in self.players[0].tokens if tk.key() == last_key]) >= 3:
+                    xpos += 2 * t.image().size[0] + 4
+                else:
+                    xpos += t.image().size[0] + 4
         self.token_length = xpos
         self.font_name = ImageFont.truetype("msyhbd.ttc", 16)
         self.font_score = ImageFont.truetype("msyhbd.ttc", 24)
@@ -750,6 +753,21 @@ class Pig(Figure):
         return False
     def key(self) -> tuple[int, int]:
         return (2, 1)
+class Mayor(Follower):
+    def canPut(self, seg: Segment | Feature):
+        return isinstance(seg, CitySegment) and super().canPut(seg)
+    @property
+    def strength(self) -> int:
+        if not isinstance(self.parent, Segment):
+            return 0
+        return self.parent.object.checkPennant()
+    def key(self) -> tuple[int, int]:
+        return (3, 0)
+class Wagon(Follower):
+    def canPut(self, seg: Segment | Feature):
+        return isinstance(seg, (CitySegment, RoadSegment, Cloister)) and super().canPut(seg)
+    def key(self) -> tuple[int, int]:
+        return (3, 1)
 
 class PlayerState(Enum):
     End = auto()
@@ -913,11 +931,21 @@ class Player:
         dr.text((80 + score_length // 2, 12), score_str, "black", self.board.font_score, "mm")
         # tokens
         self.tokens.sort(key=Token.key)
-        token_xpos = {key: value for key, value in self.board.token_pos.items()}
+        last_key: tuple[int, int] = (-1, -2)
         for token in self.tokens:
-            timg = token.image()
-            img.alpha_composite(timg, (token_xpos[type(token)] + 80 + score_length, 12 - timg.size[1] // 2))
-            token_xpos[type(token)] += timg.size[0] + 4
+            if token.key() != last_key:
+                last_key = token.key()
+                timg = token.image()
+                this_num = len([1 for tk in self.tokens if tk.key() == last_key])
+                xbegin = self.board.token_pos[type(token)] + 80 + score_length
+                if this_num >= 3:
+                    img.alpha_composite(timg, (xbegin, 12 - timg.size[1] // 2))
+                    dr.text((xbegin + timg.size[0], 12), " x " + str(this_num), "black", self.board.font_score, "lm")
+                elif this_num == 2:
+                    img.alpha_composite(timg, (xbegin, 12 - timg.size[1] // 2))
+                    img.alpha_composite(timg, (xbegin + timg.size[0] + 4, 12 - timg.size[1] // 2))
+                elif this_num == 1:
+                    img.alpha_composite(timg, (xbegin, 12 - timg.size[1] // 2))
         # trade counter count
         if self.board.checkPack(2, "d"):
             dr.text((trade_counter_xpos, 12), f"酒{self.tradeCounter[0]}", "black", self.board.font_name, "lm")
