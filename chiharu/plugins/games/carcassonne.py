@@ -896,20 +896,27 @@ class Player:
         return 1
     def image(self):
         score_str = str(self.score) + " (" + str(self.checkScoreCurrent()) + ")"
-        length = 80 + 120 + self.board.token_length
+        if self.board.checkPack(2, 'd'):
+            trade_score = 0
+            for i in range(3):
+                if all(self.tradeCounter[i] >= player.tradeCounter[i] for player in self.board.players):
+                    trade_score += 10
+            score_str = score_str[:-1] + "+" + str(trade_score) + score_str[-1]
+        score_length = 120 + (45 if self.board.checkPack(2, 'd') else 0)
+        length = 80 + score_length + self.board.token_length
         if self.board.checkPack(2, "d"):
             trade_counter_xpos = length
             length += 120
         img = Image.new("RGBA", (length, 24))
         dr = ImageDraw.Draw(img)
         dr.text((0, 12), self.show_name, "black", self.board.font_name, "lm")
-        dr.text((140, 12), score_str, "black", self.board.font_score, "mm")
+        dr.text((80 + score_length // 2, 12), score_str, "black", self.board.font_score, "mm")
         # tokens
         self.tokens.sort(key=Token.key)
         token_xpos = {key: value for key, value in self.board.token_pos.items()}
         for token in self.tokens:
             timg = token.image()
-            img.alpha_composite(timg, (token_xpos[type(token)] + 200, 12 - timg.size[1] // 2))
+            img.alpha_composite(timg, (token_xpos[type(token)] + 80 + score_length, 12 - timg.size[1] // 2))
             token_xpos[type(token)] += timg.size[0] + 4
         # trade counter count
         if self.board.checkPack(2, "d"):
