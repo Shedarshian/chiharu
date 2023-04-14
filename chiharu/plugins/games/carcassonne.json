@@ -3832,28 +3832,25 @@
             ],
             "tokens": [
                 {
-                    "name": "abbey tile",
-                    "distribute": true,
-                    "thing_id": "b",
-                    "num": 1
-                },
-                {
                     "name": "mayor",
                     "distribute": true,
                     "thing_id": "c",
-                    "num": 1
+                    "num": 1,
+                    "image": [0, 0, 16, 16]
                 },
                 {
                     "name": "wagon",
                     "distribute": true,
                     "thing_id": "d",
-                    "num": 1
+                    "num": 1,
+                    "image": [16, 0, 40, 16]
                 },
                 {
                     "name": "barn",
                     "distribute": true,
                     "thing_id": "e",
-                    "num": 1
+                    "num": 1,
+                    "image": [40, 0, 56, 16]
                 }
             ]
         }

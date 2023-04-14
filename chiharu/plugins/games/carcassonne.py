@@ -717,6 +717,7 @@ class Token(ABC):
         x = Image.new("RGBA", self.img.size)
         x.paste(Image.new("RGBA", self.img.size, self.player.tokenColor), (0, 0), mask)
         return x
+    @abstractmethod
     def key(self) -> tuple[int, int]:
         return (-1, -1)
 class Follower(Token):
@@ -741,9 +742,6 @@ class Builder(Figure):
         if isinstance(seg, Segment):
             return seg.type in (Connectable.City, Connectable.Road) and any(t.player is self.player for s in seg.object.segments for t in s.tokens if isinstance(t, Follower))
         return False
-    def putOn(self, seg: Segment | Feature):
-        seg.tokens.append(self)
-        return True
     def key(self) -> tuple[int, int]:
         return (2, 0)
 class Pig(Figure):
@@ -768,6 +766,14 @@ class Wagon(Follower):
         return isinstance(seg, (CitySegment, RoadSegment, Cloister)) and super().canPut(seg)
     def key(self) -> tuple[int, int]:
         return (3, 1)
+class Barn(Figure):
+    def canPut(self, seg: Segment | Feature):
+        return False
+    def putOn(self, seg: Segment | Feature):
+        assert isinstance(seg, FieldSegment)
+        return super().putOn(seg) # TODO
+    def key(self) -> tuple[int, int]:
+        return (3, 2)
 
 class PlayerState(Enum):
     End = auto()
@@ -786,6 +792,7 @@ class Player:
         self.state: PlayerState = PlayerState.End
         self.stateGen: Generator[dict[str, Any], dict[str, Any], Literal[-1, -2, -3, 1]] | None = None
         self.tradeCounter = [0, 0, 0]
+        self.hasAbbeyTile = self.board.checkPack(5, 'b')
     def addScore(self, score: int) -> Generator[dict[str, Any], dict[str, Any], None]:
         self.score += score
         return
