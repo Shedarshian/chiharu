@@ -39,6 +39,10 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
         await session.send(f'玩家{name}已参与匹配，游戏开始')
     else:
         await session.send('游戏开始')
+    order = list(range(len(data['players'])))
+    random.shuffle(order)
+    data['players'] = [data['players'][i] for i in order]
+    data['names'] = [data['names'][i] for i in order]
     data["second_turn"] = False
     # 开始游戏
     board = data['board'] = Board(data['extensions'], data['names'])
