@@ -77,9 +77,10 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
 async def ccs_extension(session: CommandSession):
     """修改卡卡颂对局使用的扩展。
     可开关的扩展与小项有：
-1. Inns and Cathedrals
+1. 旅馆与主教教堂（Inns and Cathedrals）
     (a) 图块；(b) 大跟随者；(c) 旅馆机制；(d) 主教教堂机制。
-2.
+2. 商人与建筑师（Traders and Builders）
+    (a) 图块；(b) 建筑师；(c) 猪；(d) 交易标记。
 
 使用例：-play.cacason.extension check：查询目前开启了哪些扩展包。
 -play.cacason.extension open ex1：开启所有扩展包1的内容。
