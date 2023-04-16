@@ -61,7 +61,7 @@ def open_img(name: str):
 class Board:
     def __init__(self, packs_options: dict[int, str], player_names: list[str]) -> None:
         all_packs = open_pack()["packs"]
-        packs: list[dict[str, Any]] = [all_packs[0]] + [all_packs[i] for i, item in packs_options.items() if item != ""]
+        packs: list[dict[str, Any]] = [all_packs[0]] + [all_packs[i] for i, item in sorted(packs_options.items()) if item != ""]
         self.packs_options = packs_options
         self.tiles: dict[tuple[int, int], Tile] = {}
         self.deck: list[Tile] = []
