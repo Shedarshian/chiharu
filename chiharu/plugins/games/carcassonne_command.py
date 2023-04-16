@@ -123,7 +123,7 @@ async def ccs_extension(session: CommandSession):
                 if exa not in data['extensions']:
                     data['extensions'][exa] = exb
                 elif exb not in data['extensions'][exa]:
-                    data['extensions'][exa] = ''.join(sorted(data['extensions'][exa] + exb))
+                    data['extensions'][exa] = ''.join(sorted(set(data['extensions'][exa] + exb)))
                 else:
                     session.finish("此扩展已被添加过！")
             elif exa not in data['extensions'] or exb not in data['extensions'][exa]:
