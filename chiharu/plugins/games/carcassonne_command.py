@@ -126,11 +126,12 @@ async def ccs_extension(session: CommandSession):
                     data['extensions'][exa] = ''.join(sorted(set(data['extensions'][exa] + exb)))
                 else:
                     session.finish("此扩展已被添加过！")
+                session.finish("已添加。")
             elif exa not in data['extensions'] or exb not in data['extensions'][exa]:
                 session.finish("此扩展未被添加过！")
             else:
                 data['extensions'][exa] = data['extensions'][exa].replace(exb, "")
-            session.finish("已添加。")
+                session.finish("已关闭。")
         session.finish(ccs_extension.__doc__)
 
 @cacason.end(('play', 'cacason', 'end'))
