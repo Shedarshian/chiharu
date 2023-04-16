@@ -183,7 +183,9 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 next_turn = True
                 data['second_turn'] = True
             player.stateGen = None
-            return
+            if rete > 0:
+                return 1
+            return 0
         if ret["id"] == 2:
             if ret["last_err"] == -1:
                 await session.send("没有找到跟随者！")
@@ -192,6 +194,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             else:
                 await session.send([board.saveImg(ret["last_put"])])
                 await session.send("请选择放置跟随者的位置（小写字母）以及放置的特殊跟随者名称（如有需要），回复“不放”跳过。")
+                return 1
+            return 0
     match player.state:
         case PlayerState.TileDrawn:
             if match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([URDL])", command):
@@ -202,8 +206,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 leftmost = min(i for i, j in board.tiles.keys())
                 uppermost = min(j for i, j in board.tiles.keys())
                 player.stateGen = player.putTile((x + leftmost - 1, y + uppermost - 1), orient, data['second_turn'])
-                data['second_turn'] = False
-                await advance()
+                if await advance():
+                    data['second_turn'] = False
         case PlayerState.PuttingFollower:
             if command == "不放":
                 await advance({"id": -1})
