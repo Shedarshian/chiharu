@@ -6,6 +6,16 @@ from ..inject import CommandGroup, on_command
 from .. import config, game
 from nonebot import CommandSession, NLPSession
 
+version = (1, 1, 0)
+changelog = """2023-04-17 12:05 v1.1.0
+· 添加版本号记录
+· 微调五扩米宝位置
+· 终局图片关闭括号内显示
+· 添加游戏记录功能（不知道干什么用），之前的对局下个版本手动录
+· 更换2扩交叉路的贴图
+v1.1.1
+· 马车完成"""
+
 cacason = game.GameSameGroup('cacason', can_private=True)
 config.CommandGroup(('play', 'cacason'), hide=True)
 config.CommandGroup('cacason', des="""卡卡颂是一款多人对战桌游，玩家轮流放置图块，建造城市、道路、草地，最后拥有分数最多的人获胜。
@@ -37,6 +47,16 @@ config.CommandGroup(('cacason', 'ex5'), des="""扩展5：僧院板块与市长�
 (c) 市长（mayor）：游戏开始时每人分发一个市长。市长作为跟随者，只能放在城市中。在判断城市归属时，普通跟随者的强度算作1，大跟随者（扩展1）的强度算作2，市长的强度为该城市内盾徽的个数。
 (d) 马车（wagon）：游戏开始时每人分发一个马车。马车作为跟随者，只能放在草地以外的位置。在马车被计分后，玩家可以选择将马车挪到所在板块或相邻8个板块中任何一个未被占据且未完成的城市、道路、修道院内。
 (e) 谷仓（barn）：游戏开始时每人分发一个谷仓。谷仓不算作跟随者，只能放在四面都是草地的四个板块的交界处，并且该片草地不能有其他谷仓。谷仓放下的一刻，将该片草地上所有的跟随者按照正常的分数（每座城3分）计分并收回。谷仓所在的草地不能有跟随者，此后若有新的有跟随者的草地被连接进来，则立即将该草地计分，但是只按照每座城1分的分数计分并收回。游戏结束时，谷仓所在的草地上每有一座相邻的城，谷仓的所有者计4分。若草地上有多个谷仓则都计分。""", short_des="扩展5：僧院与市长（Abbey and Mayor）")
+
+@on_command(("cacason", "version"), hide=True, only_to_me=False)
+@config.ErrorHandle
+async def ccs_version(session: CommandSession):
+    await session.send("千春桌游大厅：卡卡颂 version" + ".".join(version) + "。")
+
+@on_command(("cacason", "changelog"), hide=True, only_to_me=False)
+@config.ErrorHandle
+async def ccs_changelog(session: CommandSession):
+    await session.send("千春桌游大厅：卡卡颂 changelog\n" + changelog)
 
 @cacason.begin_uncomplete(('play', 'cacason', 'begin'), (1, 6))
 async def ccs_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):
@@ -73,7 +93,7 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
     # 选择扩展
     await session.send("请选择想开启或是关闭的扩展，使用指令如-play.cacason.extension open ex1，选择完毕后发送开始游戏即可开始。")
 
-@on_command(('play', 'cacason', 'extension'), only_to_me=False, hide=True, display_parents=("cacason",), args=('[check/open/close]', '[ex??]'), short_des="修改卡卡颂对局使用的扩展。")
+@on_command(('play', 'cacason', 'extension'), only_to_me=False, hide_in_parent=True, display_parents=("cacason",), args=('[check/open/close]', '[ex??]'), short_des="修改卡卡颂对局使用的扩展。")
 @config.ErrorHandle
 async def ccs_extension(session: CommandSession):
     """修改卡卡颂对局使用的扩展。
