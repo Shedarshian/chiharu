@@ -138,11 +138,6 @@ async def ccs_extension(session: CommandSession):
 async def ccs_end(session: CommandSession, data: dict[str, Any]):
     await session.send('已删除')
 
-def tileNameToPos(xs: str, ys: str):
-    x = (ord(xs[0]) - ord('A') + 1) * 26 + ord(xs[1]) - ord('A') if len(xs) == 2 else ord(xs) - ord('A')
-    y = int(ys)
-    return x, y
-
 @cacason.process(only_short_message=True)
 @config.ErrorHandle
 async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Callable[[], Awaitable]):
@@ -216,11 +211,9 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         case PlayerState.TileDrawn:
             if match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([URDL])", command):
                 xs = match.group(1); ys = match.group(2); orients = match.group(3)
-                x, y = tileNameToPos(xs, ys)
+                pos = board.tileNameToPos(xs, ys)
                 orient = {'U': Dir.UP, 'R': Dir.LEFT, 'D': Dir.DOWN, 'L': Dir.RIGHT}[orients]
-                leftmost = min(i for i, j in board.tiles.keys())
-                uppermost = min(j for i, j in board.tiles.keys())
-                player.stateGen = player.putTile((x + leftmost - 1, y + uppermost - 1), orient, data['second_turn'])
+                player.stateGen = player.putTile(pos, orient, data['second_turn'])
                 if await advance():
                     data['second_turn'] = False
         case PlayerState.PuttingFollower:
@@ -237,7 +230,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await advance({"pos": None})
             elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([a-z])", command):
                 xs = match.group(1); ys = match.group(2); n = ord(match.group(3)) - ord('a')
-                pos = tileNameToPos(xs, ys)
+                pos = board.tileNameToPos(xs, ys)
                 await advance({"pos": pos, "seg": n})
         case _:
             pass

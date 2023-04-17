@@ -199,6 +199,12 @@ class Board:
     def findTilePos(self, tile: 'Tile'):
         l = [pos for pos, t in self.tiles.items() if t is tile]
         return l[0] if len(l) != 0 else None
+    def tileNameToPos(self, xs: str, ys: str):
+        x = (ord(xs[0]) - ord('A') + 1) * 26 + ord(xs[1]) - ord('A') if len(xs) == 2 else ord(xs) - ord('A')
+        y = int(ys)
+        leftmost = min(i for i, j in self.tiles.keys())
+        uppermost = min(j for i, j in self.tiles.keys())
+        return (x + leftmost - 1, y + uppermost - 1)
 
     def tileImages(self, choose_follower: tuple[int, int] | list[tuple[int, int]] | None = None, debug: bool=False):
         leftmost = min(i for i, j in self.tiles.keys())
@@ -681,7 +687,7 @@ class Object(CanToken):
                         else:
                             pass_err = -3
                             continue
-                        if not wagon.canPut(seg_put):
+                        if seg_put.object.closed() or not wagon.canPut(seg_put):
                             pass_err = -3
                             continue
                         wagon.parent.tokens.remove(wagon)
