@@ -226,14 +226,14 @@ class Board:
                 for feature in tile.features:
                     if feature.staticCanPlace():
                         tpos = turn(feature.token_pos, tile.orient)
-                        dr.ellipse((posshift(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), posshift(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
-                        dr.text(posshift(*choose_follower, tpos), chr(i), "black", font, "mm")
+                        dr.ellipse((posshift(*c, (tpos[0] - 6, tpos[1] - 6)), posshift(*c, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
+                        dr.text(posshift(*c, tpos), chr(i), "black", font, "mm")
                     i += 1
                 for seg in tile.segments:
                     if len(seg.tokens) == 0:
                         tpos = turn(seg.token_pos, tile.orient)
-                        dr.ellipse((posshift(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), posshift(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
-                        dr.text(posshift(*choose_follower, tpos), chr(i), "black", font, "mm")
+                        dr.ellipse((posshift(*c, (tpos[0] - 6, tpos[1] - 6)), posshift(*c, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
+                        dr.text(posshift(*c, tpos), chr(i), "black", font, "mm")
                     i += 1
         # grid
         width = rightmost - leftmost
