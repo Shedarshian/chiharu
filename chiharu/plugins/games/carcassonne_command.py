@@ -51,7 +51,7 @@ config.CommandGroup(('cacason', 'ex5'), des="""扩展5：僧院板块与市长�
 @on_command(("cacason", "version"), hide=True, only_to_me=False)
 @config.ErrorHandle
 async def ccs_version(session: CommandSession):
-    await session.send("千春桌游大厅：卡卡颂 version" + ".".join(version) + "。")
+    await session.send("千春桌游大厅：卡卡颂 version" + ".".join(str(c) for c in version) + "。")
 
 @on_command(("cacason", "changelog"), hide=True, only_to_me=False)
 @config.ErrorHandle
