@@ -1,8 +1,18 @@
-from typing import Literal, Any, Generator, Type, Callable, Awaitable, TypeVar
+from typing import Literal, Any, Generator, Type, TypeVar
 import random, itertools, more_itertools, json
 from enum import Enum, auto
 from abc import ABC, abstractmethod
 from PIL import Image, ImageDraw, ImageFont
+
+version = (1, 1, 0)
+changelog = """2023-04-17 12:05 v1.1.0
+· 添加版本号记录
+· 微调五扩米宝位置
+· 终局图片关闭括号内显示
+· 添加游戏记录功能（不知道干什么用），之前的对局下个版本手动录
+· 更换2扩交叉路的贴图
+v1.1.1
+"""
 
 class CantPutError(Exception):
     pass
@@ -186,8 +196,11 @@ class Board:
                     if self.canPutTile(tile, (i, j), orient) == 1:
                         return True
         return False
+    def findTilePos(self, tile: 'Tile'):
+        l = [pos for pos, t in self.tiles.items() if t is tile]
+        return l[0] if len(l) != 0 else None
 
-    def tileImages(self, choose_follower: tuple[int, int] | None = None, debug: bool=False):
+    def tileImages(self, choose_follower: tuple[int, int] | list[tuple[int, int]] | None = None, debug: bool=False):
         leftmost = min(i for i, j in self.tiles.keys())
         rightmost = max(i for i, j in self.tiles.keys())
         uppermost = min(j for i, j in self.tiles.keys())
@@ -203,19 +216,25 @@ class Board:
         # choose follower
         font = ImageFont.truetype("msyhbd.ttc", 10)
         if choose_follower is not None:
-            tile = self.tiles[choose_follower]
-            i = ord('a')
-            for feature in tile.features:
-                if feature.canPlace():
-                    tpos = turn(feature.token_pos, tile.orient)
-                    dr.ellipse((posshift(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), posshift(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
-                    dr.text(posshift(*choose_follower, tpos), chr(i), "black", font, "mm")
-                i += 1
-            for seg in tile.segments:
-                tpos = turn(seg.token_pos, tile.orient)
-                dr.ellipse((posshift(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), posshift(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
-                dr.text(posshift(*choose_follower, tpos), chr(i), "black", font, "mm")
-                i += 1
+            if isinstance(choose_follower, tuple):
+                choose_follower2 = [choose_follower]
+            else:
+                choose_follower2 = choose_follower
+            for c in choose_follower2:
+                tile = self.tiles[c]
+                i = ord('a')
+                for feature in tile.features:
+                    if feature.staticCanPlace():
+                        tpos = turn(feature.token_pos, tile.orient)
+                        dr.ellipse((posshift(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), posshift(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
+                        dr.text(posshift(*choose_follower, tpos), chr(i), "black", font, "mm")
+                    i += 1
+                for seg in tile.segments:
+                    if len(seg.tokens) == 0:
+                        tpos = turn(seg.token_pos, tile.orient)
+                        dr.ellipse((posshift(*choose_follower, (tpos[0] - 6, tpos[1] - 6)), posshift(*choose_follower, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
+                        dr.text(posshift(*choose_follower, tpos), chr(i), "black", font, "mm")
+                    i += 1
         # grid
         width = rightmost - leftmost
         height = lowermost - uppermost
@@ -304,7 +323,7 @@ class Board:
             y += (x - 1) // 5 + 1
         return img
 
-    def image(self, choose_follower: tuple[int, int] | None = None, debug: bool=False, final: bool=False):
+    def image(self, choose_follower: tuple[int, int] | list[tuple[int, int]] | None = None, debug: bool=False, final: bool=False):
         player_img = self.playerImage(final=final)
         handtile_img = self.handTileImage()
         tile_img = self.tileImages(choose_follower, debug)
@@ -334,7 +353,7 @@ class Board:
         img.alpha_composite(handtile_img, (hx, hy))
         img.alpha_composite(tile_img, (tx, ty))
         return img
-    def saveImg(self, choose_follower: tuple[int, int] | None = None, debug: bool=False, final: bool=False):
+    def saveImg(self, choose_follower: tuple[int, int] | list[tuple[int, int]] | None = None, debug: bool=False, final: bool=False):
         from .. import config
         name = 'ccs' + str(random.randint(0, 9) + self.current_player_id * 10) + '.png'
         self.image(choose_follower, debug).save(config.img(name))
@@ -627,6 +646,47 @@ class Object(CanToken):
         for player, score in players:
             if score != 0:
                 yield from player.addScore(score)
+        # move wagon
+        if self.board.checkPack(5, "d"):
+            self.board.current_player.state = PlayerState.WagonAsking
+            to_remove: list[Wagon] = [token for seg in self.segments for token in seg.tokens if isinstance(token, Wagon)]
+            to_remove.sort(key=lambda token: ((0, token.player.id) if token.player.id >= self.board.current_player_id else (1, token.player.id)) if isinstance(token.player, Player) else (-1, -1))
+            if len(to_remove) > 0:
+                current_player_id = self.board.current_player_id
+                for wagon in to_remove:
+                    if not isinstance(wagon.parent, Segment) or (pos := self.board.findTilePos(wagon.parent.tile)) is None:
+                        continue
+                    assert isinstance(wagon.player, Player)
+                    self.board.current_player_id = wagon.player.id
+                    pass_err: Literal[0, -1, -2, -3] = 0
+                    while 1:
+                        ret = yield {"id": 4, "pos": pos, "player_id": wagon.player.id, "last_err": pass_err}
+                        if "pos" not in ret or ret["pos"] is None:
+                            break
+                        pos_put: tuple[int, int] = ret["pos"]
+                        seg_id: int = ret["seg"]
+                        if pos_put not in self.board.tiles:
+                            pass_err = -1
+                            continue
+                        if pos_put[0] - pos[0] not in (-1, 0, 1) or pos_put[1] - pos[1] not in (-1, 0, 1):
+                            pass_err = -2
+                            continue
+                        tile = self.board.tiles[pos_put]
+                        if 0 <= ret["seg"] < len(tile.features):
+                            seg_put: Segment | Feature = tile.features[ret["seg"]]
+                        elif len(tile.features) <= ret["seg"] < len(tile.segments) + len(tile.features):
+                            seg_put = tile.segments[ret["seg"] - len(tile.features)]
+                        else:
+                            pass_err = -3
+                            continue
+                        if not wagon.canPut(seg_put):
+                            pass_err = -3
+                            continue
+                        wagon.parent.tokens.remove(wagon)
+                        wagon.putOn(seg_put)
+                        break
+                self.board.current_player_id = current_player_id
+            self.board.current_player.state = PlayerState.InturnScoring
         self.removeAllFollowers()
     def scoreFinal(self):
         players = self.checkPlayerAndScore(False)
@@ -650,7 +710,8 @@ class Feature(CanToken):
         yield {}
     def scoreFinal(self):
         return
-    def canPlace(self) -> bool:
+    def staticCanPlace(self) -> bool:
+        """是不是一个可以放跟随者的feature。必须是静态的。"""
         return False
 class Cloister(Feature):
     def canScore(self) -> bool:
@@ -681,13 +742,14 @@ class Cloister(Feature):
             return []
         score = sum(1 if (pos[0] + i, pos[1] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1))
         return [(token.player, score)]
-    def canPlace(self) -> bool:
+    def staticCanPlace(self) -> bool:
         return True
 
 class Token(ABC):
     def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
         self.parent: Tile | Segment | Object | Feature | Player | Board = parent
         self.player = parent
+        self.board = parent if isinstance(parent, Board) else parent.board
         self.img = img
     def checkPack(self, packid: int, thingid: str):
         if isinstance(self.player, Player):
@@ -703,14 +765,6 @@ class Token(ABC):
     def putOn(self, seg: Segment | Feature):
         seg.tokens.append(self)
         self.parent = seg
-        # if self.checkPack(2, 'b') and isinstance(seg, Segment) and isinstance(self, Follower):
-        #     for seg2 in seg.object.segments:
-        #         for token in seg2.tokens:
-        #             if token.player is self.player and isinstance(token, Builder):
-        #                 return True
-        # return False
-    def afterScore(self, seg: Segment):
-        pass
     def image(self):
         if isinstance(self.player, Board):
             return self.img.copy()
@@ -721,6 +775,9 @@ class Token(ABC):
         x = Image.new("RGBA", self.img.size)
         x.paste(Image.new("RGBA", self.img.size, self.player.tokenColor), (0, 0), mask)
         return x
+    def beforeRemoval(self) -> TAsync[None]:
+        return
+        yield {}
     @abstractmethod
     def key(self) -> tuple[int, int]:
         return (-1, -1)
@@ -784,6 +841,7 @@ class PlayerState(Enum):
     TileDrawn = auto()
     PuttingFollower = auto()
     InturnScoring = auto()
+    WagonAsking = auto()
 class Player:
     def __init__(self, board: Board, id: int, name: str) -> None:
         self.board = board
@@ -839,7 +897,7 @@ class Player:
             show_name += "..."
         return show_name
     def putTile(self, pos: tuple[int, int], orient: Dir, second_turn: bool) -> TAsync[Literal[-1, -2, -3, 1, 3]]:
-        """-1：已有连接, -2：无法连接，-3：没有挨着。2：放跟随者（-1不放，feature/片段号，which：跟随者名称，返回-1：没有跟随者，-2：无法放置），3：第二回合"""
+        """-1：已有连接, -2：无法连接，-3：没有挨着，3：第二回合。id2：放跟随者（-1不放，feature/片段号，which：跟随者名称，返回-1：没有跟随者，-2：无法放置），4：选马车（-1：没有图块，-2：图块过远，-3：无法放置）"""
         tile = self.handTile
         if tile is None:
             return -3

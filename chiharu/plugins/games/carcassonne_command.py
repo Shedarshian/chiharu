@@ -138,6 +138,11 @@ async def ccs_extension(session: CommandSession):
 async def ccs_end(session: CommandSession, data: dict[str, Any]):
     await session.send('已删除')
 
+def tileNameToPos(xs: str, ys: str):
+    x = (ord(xs[0]) - ord('A') + 1) * 26 + ord(xs[1]) - ord('A') if len(xs) == 2 else ord(xs) - ord('A')
+    y = int(ys)
+    return x, y
+
 @cacason.process(only_short_message=True)
 @config.ErrorHandle
 async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Callable[[], Awaitable]):
@@ -196,12 +201,22 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await session.send("请选择放置跟随者的位置（小写字母）以及放置的特殊跟随者名称（如有需要），回复“不放”跳过。")
                 return 1
             return 0
+        if ret["id"] == 4:
+            if ret["last_err"] == -1:
+                await session.send("没有该图块！")
+            elif ret["last_err"] == -2:
+                await session.send("图块过远，只能放在本图块或是相邻的8块上！")
+            elif ret["last_err"] == -3:
+                await session.send("无法放置！")
+            else:
+                pos = ret["pos"]
+                await session.send([board.saveImg([(pos[0] + i, pos[1] + j) for i in (-1, 0, 1) for j in (-1, 0, 1)])])
+                await session.send("请选择马车要移动到的图块，以及该图块上的位置（小写字母），回复“不放”收回马车。")
     match player.state:
         case PlayerState.TileDrawn:
             if match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([URDL])", command):
                 xs = match.group(1); ys = match.group(2); orients = match.group(3)
-                x = (ord(xs[0]) - ord('A') + 1) * 26 + ord(xs[1]) - ord('A') if len(xs) == 2 else ord(xs) - ord('A')
-                y = int(ys)
+                x, y = tileNameToPos(xs, ys)
                 orient = {'U': Dir.UP, 'R': Dir.LEFT, 'D': Dir.DOWN, 'L': Dir.RIGHT}[orients]
                 leftmost = min(i for i, j in board.tiles.keys())
                 uppermost = min(j for i, j in board.tiles.keys())
@@ -217,6 +232,13 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await advance({"id": n, "which": name or "follower"})
         case PlayerState.InturnScoring:
             pass
+        case PlayerState.WagonAsking:
+            if command == "不放":
+                await advance({"pos": None})
+            elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([a-z])", command):
+                xs = match.group(1); ys = match.group(2); n = ord(match.group(3)) - ord('a')
+                pos = tileNameToPos(xs, ys)
+                await advance({"pos": pos, "seg": n})
         case _:
             pass
     if next_turn:
