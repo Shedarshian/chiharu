@@ -39,6 +39,8 @@ class TradeCounter(Enum):
     Grain = auto()
     Cloth = auto()
 all_extensions = {1: 'abcd', 2: 'abcd', 5: 'abcde'}
+T = TypeVar('T')
+TAsync = Generator[dict[str, Any], dict[str, Any], T]
 
 def turn(pos: tuple[int, int], dir: Dir):
     if dir == Dir.UP:
@@ -620,7 +622,7 @@ class Object(CanToken):
         super().removeAllFollowers()
         for seg in self.segments:
             seg.removeAllFollowers()
-    def score(self) -> Generator[dict[str, Any], dict[str, Any], None]:
+    def score(self) -> TAsync[None]:
         players = self.checkPlayerAndScore(True)
         for player, score in players:
             if score != 0:
@@ -643,7 +645,7 @@ class Feature(CanToken):
         return {"Cloister": Cloister}.get(typ, None)
     def canScore(self) -> bool:
         return False
-    def score(self) -> Generator[dict[str, Any], dict[str, Any], None]:
+    def score(self) -> TAsync[None]:
         return
         yield {}
     def scoreFinal(self):
@@ -657,7 +659,7 @@ class Cloister(Feature):
         if pos is None:
             return False
         return all((pos[0] + i, pos[1] + j) in self.parent.board.tiles for i in (-1, 0, 1) for j in (-1, 0, 1))
-    def score(self) -> Generator[dict[str, Any], dict[str, Any], None]:
+    def score(self) -> TAsync[None]:
         for player, score in self.checkPlayerAndScore(False):
             yield from player.addScore(score)
         self.removeAllFollowers()
@@ -707,6 +709,8 @@ class Token(ABC):
         #             if token.player is self.player and isinstance(token, Builder):
         #                 return True
         # return False
+    def afterScore(self, seg: Segment):
+        pass
     def image(self):
         if isinstance(self.player, Board):
             return self.img.copy()
@@ -790,10 +794,10 @@ class Player:
         self.score: int = 0
         self.handTile: Tile | None = None
         self.state: PlayerState = PlayerState.End
-        self.stateGen: Generator[dict[str, Any], dict[str, Any], Literal[-1, -2, -3, 1]] | None = None
+        self.stateGen: TAsync[Literal[-1, -2, -3, 1]] | None = None
         self.tradeCounter = [0, 0, 0]
         self.hasAbbeyTile = self.board.checkPack(5, 'b')
-    def addScore(self, score: int) -> Generator[dict[str, Any], dict[str, Any], None]:
+    def addScore(self, score: int) -> TAsync[None]:
         self.score += score
         return
         yield {}
@@ -834,7 +838,7 @@ class Player:
                 show_name = show_name[:-1]
             show_name += "..."
         return show_name
-    def putTile(self, pos: tuple[int, int], orient: Dir, second_turn: bool) -> Generator[dict[str, Any], dict[str, Any], Literal[-1, -2, -3, 1, 3]]:
+    def putTile(self, pos: tuple[int, int], orient: Dir, second_turn: bool) -> TAsync[Literal[-1, -2, -3, 1, 3]]:
         """-1：已有连接, -2：无法连接，-3：没有挨着。2：放跟随者（-1不放，feature/片段号，which：跟随者名称，返回-1：没有跟随者，-2：无法放置），3：第二回合"""
         tile = self.handTile
         if tile is None:
