@@ -267,8 +267,8 @@ class Board:
         # remain tiles
         dr.text((0, 0), str(len(self.deck)), "black", self.font_name, "lt")
         return img
-    def playerImage(self):
-        imgs = [p.image() for p in self.players]
+    def playerImage(self, final: bool=False):
+        imgs = [p.image(final=final) for p in self.players]
         img = Image.new("RGBA", (imgs[0].size[0], 24 * len(self.players)))
         for i, pimg in enumerate(imgs):
             img.alpha_composite(pimg, (0, i * 24))
@@ -304,8 +304,8 @@ class Board:
             y += (x - 1) // 5 + 1
         return img
 
-    def image(self, choose_follower: tuple[int, int] | None = None, debug: bool=False):
-        player_img = self.playerImage()
+    def image(self, choose_follower: tuple[int, int] | None = None, debug: bool=False, final: bool=False):
+        player_img = self.playerImage(final=final)
         handtile_img = self.handTileImage()
         tile_img = self.tileImages(choose_follower, debug)
         p1, p2 = player_img.size
@@ -334,7 +334,7 @@ class Board:
         img.alpha_composite(handtile_img, (hx, hy))
         img.alpha_composite(tile_img, (tx, ty))
         return img
-    def saveImg(self, choose_follower: tuple[int, int] | None = None, debug: bool=False):
+    def saveImg(self, choose_follower: tuple[int, int] | None = None, debug: bool=False, final: bool=False):
         from .. import config
         name = 'ccs' + str(random.randint(0, 9) + self.current_player_id * 10) + '.png'
         self.image(choose_follower, debug).save(config.img(name))
@@ -923,9 +923,11 @@ class Player:
         if not second_turn and next_turn:
             return 3
         return 1
-    def image(self):
-        score_str = str(self.score) + " (" + str(self.checkMeepleScoreCurrent()) + ")"
-        if self.board.checkPack(2, 'd'):
+    def image(self, final: bool=False):
+        score_str = str(self.score)
+        if not final:
+            score_str += " (" + str(self.checkMeepleScoreCurrent()) + ")"
+        if self.board.checkPack(2, 'd') and not final:
             trade_score = 0
             for i in range(3):
                 if all(self.tradeCounter[i] >= player.tradeCounter[i] for player in self.board.players):

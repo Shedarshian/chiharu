@@ -1,5 +1,5 @@
 from typing import Dict, Any, Callable, Awaitable, Literal
-import re, random
+import re, random, json, datetime
 from .carcassonne import Connectable, Dir, TradeCounter, open_pack, PlayerState, CantPutError, all_extensions
 from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Player
 from ..inject import CommandGroup, on_command
@@ -231,10 +231,12 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             except CantPutError:
                 await session.send("所有剩余图块均无法放置，提前结束游戏！")
         board.endGameScore()
-        await session.send([board.saveImg()])
-        score, players = board.winner()
-        if len(players) == 1:
-            await session.send(f'玩家{players[0].name}以{score}分获胜！')
+        await session.send([board.saveImg(final=True)])
+        score_win, players_win = board.winner()
+        if len(players_win) == 1:
+            await session.send(f'玩家{players_win[0].name}以{score_win}分获胜！')
         else:
-            await session.send('玩家' + '，'.join(p.name for p in players) + f'以{score}分获胜！')
+            await session.send('玩家' + '，'.join(p.name for p in players_win) + f'以{score_win}分获胜！')
+        # game log
+        config.userdata.execute("insert into cacason_gamelog value (group_id, users, extensions, time, score, winner, winner_score) values (?, ?, ?, ?, ?, ?, ?)", (session.ctx['group_id'], ','.join(str(q) for q in data['players']), json.dumps(data['extensions']), datetime.datetime.now().isoformat(), ','.join(str(p.score) for p in board.players), ','.join(str(q) for q in players_win), score_win))
         await delete_func()
