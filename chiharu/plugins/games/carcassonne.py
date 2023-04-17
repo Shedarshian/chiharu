@@ -221,6 +221,8 @@ class Board:
             else:
                 choose_follower2 = choose_follower
             for c in choose_follower2:
+                if c not in self.tiles:
+                    continue
                 tile = self.tiles[c]
                 i = ord('a')
                 for feature in tile.features:
