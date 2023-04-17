@@ -8,13 +8,14 @@ from nonebot import CommandSession, NLPSession
 
 version = (1, 1, 0)
 changelog = """2023-04-17 12:05 v1.1.0
-· 添加版本号记录
-· 微调五扩米宝位置
-· 终局图片关闭括号内显示
-· 添加游戏记录功能（不知道干什么用），之前的对局下个版本手动录
-· 更换2扩交叉路的贴图
-v1.1.1
-· 马车完成"""
+· 添加版本号记录。
+· 微调五扩米宝位置。
+· 终局图片关闭括号内显示。
+· 添加游戏记录功能（不知道干什么用），之前的对局下个版本手动录。
+· 更换2扩交叉路的贴图。
+2023-04-17 22:38 v1.1.1
+· 马车完成。
+· 增加版本号和changelog的指令。"""
 
 cacason = game.GameSameGroup('cacason', can_private=True)
 config.CommandGroup(('play', 'cacason'), hide=True)
