@@ -984,7 +984,7 @@ class Player:
 
 
 if __name__ == "__main__":
-    b = Board({1: "abcd", 2: "abcd"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔"])
+    b = Board({1: "abcd", 2: "abcd", 5: "abcde"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔"])
     d = {
             "name": "follower",
             "distribute": True,
@@ -992,33 +992,22 @@ if __name__ == "__main__":
             "image": [0, 0, 16, 16]
         }
     b.players[0].tokens.pop(0)
+    def _(i: int, packid: int, yshift: int):
+        t = b.tiles[i % 5, i // 5 + yshift] = [s for s in b.deck if s.id == i and s.packid == packid][0]
+        for seg in t.segments:
+            b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+            b.players[0].tokens[-1].putOn(seg)
+        for feature in t.features:
+            if isinstance(feature, Cloister):
+                b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+                b.players[0].tokens[-1].putOn(feature)
     for i in range(1, 25):
-        t = b.tiles[i % 5, i // 5] = [s for s in b.deck if s.id == i - 1 and s.packid == 0][0]
-        # t.turn(Dir.RIGHT)
-        for seg in t.segments:
-            b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-            b.players[0].tokens[-1].putOn(seg)
-        for feature in t.features:
-            if isinstance(feature, Cloister):
-                b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-                b.players[0].tokens[-1].putOn(feature)
+        _(i - 1, 0, 0)
     for i in range(17):
-        t = b.tiles[i % 5, i // 5 + 5] = [s for s in b.deck if s.id == i and s.packid == 1][0]
-        for seg in t.segments:
-            b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-            b.players[0].tokens[-1].putOn(seg)
-        for feature in t.features:
-            if isinstance(feature, Cloister):
-                b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-                b.players[0].tokens[-1].putOn(feature)
+        _(i, 1, 5)
     for i in range(24):
-        t = b.tiles[i % 5, i // 5 + 9] = [s for s in b.deck if s.id == i and s.packid == 2][0]
-        for seg in t.segments:
-            b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-            b.players[0].tokens[-1].putOn(seg)
-        for feature in t.features:
-            if isinstance(feature, Cloister):
-                b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-                b.players[0].tokens[-1].putOn(feature)
+        _(i, 2, 9)
+    for i in range(12):
+        _(i, 5, 14)
     b.players[0].drawTile()
     b.image(debug=True).show()
