@@ -687,7 +687,7 @@ class Object(CanToken):
                         else:
                             pass_err = -3
                             continue
-                        if seg_put.object.closed() or not wagon.canPut(seg_put):
+                        if (isinstance(seg_put, Segment) and seg_put.object.closed()) or not wagon.canPut(seg_put):
                             pass_err = -3
                             continue
                         wagon.parent.tokens.remove(wagon)
