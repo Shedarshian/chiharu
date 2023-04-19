@@ -957,17 +957,20 @@ class Player:
             break
         self.state = PlayerState.InturnScoring
         # score
+        objects: list[Object] = []
         for seg in tile.segments:
-            if seg.type != Connectable.Field and seg.object.closed():
-                if self.board.checkPack(2, 'd') and seg.type == Connectable.City:
-                    for seg2 in seg.object.segments:
-                        if seg2.tradeCounter == TradeCounter.Wine:
-                            self.tradeCounter[0] += 1
-                        elif seg2.tradeCounter == TradeCounter.Grain:
-                            self.tradeCounter[1] += 1
-                        elif seg2.tradeCounter == TradeCounter.Cloth:
-                            self.tradeCounter[2] += 1
-                yield from seg.object.score()
+            if seg.type != Connectable.Field and seg.object.closed() and seg.object not in objects:
+                objects.append(seg.object)
+        for obj in objects:
+            if self.board.checkPack(2, 'd') and obj.type == Connectable.City:
+                for seg2 in obj.segments:
+                    if seg2.tradeCounter == TradeCounter.Wine:
+                        self.tradeCounter[0] += 1
+                    elif seg2.tradeCounter == TradeCounter.Grain:
+                        self.tradeCounter[1] += 1
+                    elif seg2.tradeCounter == TradeCounter.Cloth:
+                        self.tradeCounter[2] += 1
+            yield from obj.score()
         for i in (-1, 0, 1):
             for j in (-1, 0, 1):
                 npos = (pos[0] + i, pos[1] + j)
