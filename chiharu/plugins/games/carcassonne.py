@@ -896,6 +896,7 @@ class Barn(Figure):
         if isinstance(seg, Tile):
             if s := seg.getBarnSeg():
                 s.tokens.append(self)
+                self.parent = s
                 yield from s.object.score(putBarn=True)
     def key(self) -> tuple[int, int]:
         return (3, 2)
