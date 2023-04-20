@@ -673,7 +673,7 @@ class Object(CanToken):
         players = [(p, base * len(complete_city)) for p in ps]
         return players
     def checkBarn(self):
-        return self.board.checkPack(5, 'd') and self.type == Connectable.Field and any(isinstance(token, Barn) for seg in self.segments for token in seg.tokens)
+        return self.board.checkPack(5, 'e') and self.type == Connectable.Field and any(isinstance(token, Barn) for seg in self.segments for token in seg.tokens)
     def removeAllFollowers(self):
         super().removeAllFollowers()
         for seg in self.segments:
@@ -932,7 +932,7 @@ class Player:
         score: int = 0
         for token in self.allTokens:
             if isinstance(token, Barn) and isinstance(token.parent, Segment):
-                all_objects.append(token.parent.object)
+                all_barns.append(token.parent.object)
             elif isinstance(token.parent, Segment) and token.parent.object not in all_objects:
                 all_objects.append(token.parent.object)
             elif isinstance(token.parent, Cloister) and token.parent not in all_objects:
