@@ -209,8 +209,37 @@ class Board:
             return (w - leftmost) * 64 + sum(c[0] for c in offsets) + 32, (h - uppermost) * 64 + sum(c[1] for c in offsets) + 32
         for (i, j), tile in self.tiles.items():
             img.paste(tile.image(debug), posshift(i, j))
-        # choose follower
+        # grid
+        width = rightmost - leftmost
+        height = lowermost - uppermost
+        dr.line(pos(0, 0, (-10, -10)) + pos(0, height + 1, (-10, 10)), "gray")
+        dr.line(pos(0, 0, (-1, -10)) + pos(0, height + 1, (-1, 10)), "gray")
+        for i in range(0, width + 1):
+            dr.line(pos(i, 0, (0, -10)) + pos(i, height + 1, (0, 10)), "gray")
+            dr.line(pos(i, 0, (63, -10)) + pos(i, height + 1, (63, 10)), "gray")
+        dr.line(pos(width + 1, 0, (0, -10)) + pos(width + 1, height + 1, (0, 10)), "gray")
+        dr.line(pos(width + 1, 0, (10, -10)) + pos(width + 1, height + 1, (10, 10)), "gray")
+        dr.line(pos(0, 0, (-10, -10)) + pos(width + 1, 0, (10, -10)), "gray")
+        dr.line(pos(0, 0, (-10, -1)) + pos(width + 1, 0, (10, -1)), "gray")
+        for j in range(0, height + 1):
+            dr.line(pos(0, j, (-10, 0)) + pos(width + 1, j, (10, 0)), "gray")
+            dr.line(pos(0, j, (-10, 63)) + pos(width + 1, j, (10, 63)), "gray")
+        dr.line(pos(0, height + 1, (-10, 0)) + pos(width + 1, height + 1, (10, 0)), "gray")
+        dr.line(pos(0, height + 1, (-10, 10)) + pos(width + 1, height + 1, (10, 10)), "gray")
+        # text
         font = ImageFont.truetype("msyhbd.ttc", 10)
+        def alpha(n):
+            if n <= 25: return chr(ord('A') + n)
+            return chr(ord('A') + n // 26 - 1) + chr(ord('A') + n % 26)
+        dr.text(pos(0, 0, (-5, -15)), 'A', "black", font, "mb")
+        for i in range(0, width + 1):
+            dr.text(pos(i, 0, (32, -15)), alpha(i + 1), "black", font, "mb")
+        dr.text(pos(width + 1, 0, (5, -15)), alpha(width + 2), "black", font, "mb")
+        dr.text(pos(0, 0, (-15, -5)), '0', "black", font, "rm")
+        for j in range(0, height + 1):
+            dr.text(pos(0, j, (-15, 32)), str(j + 1), "black", font, "rm")
+        dr.text(pos(0, height + 1, (-15, 5)), str(height + 2), "black", font, "rm")
+        # choose follower
         if choose_follower is not None:
             if isinstance(choose_follower, tuple):
                 choose_follower2 = [choose_follower]
@@ -235,38 +264,9 @@ class Board:
                         draw(c, tpos, i)
                     i += 1
                 if self.checkPack(5, "e") and len(choose_follower2) == 1:
-                    for tpos in ((0, 0), (0, 64), (64, 0), (64, 64)):
+                    for tpos in ((0, 0), (64, 0), (0, 64), (64, 64)):
                         draw(c, tpos, i)
                         i += 1
-        # grid
-        width = rightmost - leftmost
-        height = lowermost - uppermost
-        dr.line(pos(0, 0, (-10, -10)) + pos(0, height + 1, (-10, 10)), "gray")
-        dr.line(pos(0, 0, (-1, -10)) + pos(0, height + 1, (-1, 10)), "gray")
-        for i in range(0, width + 1):
-            dr.line(pos(i, 0, (0, -10)) + pos(i, height + 1, (0, 10)), "gray")
-            dr.line(pos(i, 0, (63, -10)) + pos(i, height + 1, (63, 10)), "gray")
-        dr.line(pos(width + 1, 0, (0, -10)) + pos(width + 1, height + 1, (0, 10)), "gray")
-        dr.line(pos(width + 1, 0, (10, -10)) + pos(width + 1, height + 1, (10, 10)), "gray")
-        dr.line(pos(0, 0, (-10, -10)) + pos(width + 1, 0, (10, -10)), "gray")
-        dr.line(pos(0, 0, (-10, -1)) + pos(width + 1, 0, (10, -1)), "gray")
-        for j in range(0, height + 1):
-            dr.line(pos(0, j, (-10, 0)) + pos(width + 1, j, (10, 0)), "gray")
-            dr.line(pos(0, j, (-10, 63)) + pos(width + 1, j, (10, 63)), "gray")
-        dr.line(pos(0, height + 1, (-10, 0)) + pos(width + 1, height + 1, (10, 0)), "gray")
-        dr.line(pos(0, height + 1, (-10, 10)) + pos(width + 1, height + 1, (10, 10)), "gray")
-        # text
-        def alpha(n):
-            if n <= 25: return chr(ord('A') + n)
-            return chr(ord('A') + n // 26 - 1) + chr(ord('A') + n % 26)
-        dr.text(pos(0, 0, (-5, -15)), 'A', "black", font, "mb")
-        for i in range(0, width + 1):
-            dr.text(pos(i, 0, (32, -15)), alpha(i + 1), "black", font, "mb")
-        dr.text(pos(width + 1, 0, (5, -15)), alpha(width + 2), "black", font, "mb")
-        dr.text(pos(0, 0, (-15, -5)), '0', "black", font, "rm")
-        for j in range(0, height + 1):
-            dr.text(pos(0, j, (-15, 32)), str(j + 1), "black", font, "rm")
-        dr.text(pos(0, height + 1, (-15, 5)), str(height + 2), "black", font, "rm")
         # token
         for (i, j), tile in self.tiles.items():
             for seg in tile.segments:

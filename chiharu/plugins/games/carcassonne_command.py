@@ -18,7 +18,8 @@ changelog = """2023-04-17 12:05 v1.1.0
 · 马车完成。
 · 增加版本号和changelog的指令。
 2023-04-20 20:34 v1.1.2
-· 谷仓完成。"""
+· 谷仓完成。
+· 开始游戏后添加扩展不需要输入指令。"""
 
 cacason = game.GameSameGroup('cacason', can_private=True)
 config.CommandGroup(('play', 'cacason'), hide=True)
@@ -94,7 +95,7 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
     data['names'] = [data['names'][i] for i in order]
     data['adding_extensions'] = True
     # 选择扩展
-    await session.send("请选择想开启或是关闭的扩展，使用指令如-play.cacason.extension open ex1，选择完毕后发送开始游戏即可开始。")
+    await session.send("请选择想开启或是关闭的扩展，发送如open ex1开启扩展，close ex1关闭，check查询，选择完毕后发送开始游戏即可开始。")
 
 @on_command(('play', 'cacason', 'extension'), only_to_me=False, hide_in_parent=True, display_parents=("cacason",), args=('[check/open/close]', '[ex??]'), short_des="修改卡卡颂对局使用的扩展。")
 @config.ErrorHandle
@@ -167,11 +168,10 @@ async def ccs_end(session: CommandSession, data: dict[str, Any]):
 @config.ErrorHandle
 async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Callable[[], Awaitable]):
     next_turn = False
-    second_turn = False
     async def advance(to_send: dict[str, Any] | None=None):
         board: Board = data['board']
         player = board.current_player
-        nonlocal next_turn, second_turn
+        nonlocal next_turn
         try:
             if to_send is None:
                 ret = next(player.stateGen)
@@ -192,8 +192,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 return 1
             return 0
         if ret["id"] == 0:
-            second_turn = ret["second_turn"]
-            await session.send("玩家继续第二回合")
+            if ret["second_turn"]:
+                await session.send("玩家继续第二回合")
             await session.send([board.saveImg()])
             await session.send(f'玩家{data["names"][board.current_player_id]}开始行动，请选择放图块的坐标，以及用URDL将指定方向旋转至向上。')
             return 1
