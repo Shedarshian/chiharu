@@ -165,6 +165,60 @@ async def ccs_end(session: CommandSession, data: dict[str, Any]):
 @cacason.process(only_short_message=True)
 @config.ErrorHandle
 async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Callable[[], Awaitable]):
+    next_turn = False
+    second_turn = False
+    async def advance(to_send: dict[str, Any] | None=None):
+        board: Board = data['board']
+        player = board.current_player
+        nonlocal next_turn, second_turn
+        try:
+            if to_send is None:
+                ret = next(player.stateGen)
+            else:
+                ret = player.stateGen.send(to_send)
+        except StopIteration as e:
+            rete: Literal[-1, -2, -3, 1, 3] = e.value
+            if rete == -1:
+                await session.send("已有连接！")
+            elif rete == -2:
+                await session.send("无法连接！")
+            elif rete == -3:
+                await session.send("没有挨着！")
+            elif rete == 1:
+                await session.send("玩家回合结束")
+                next_turn = True
+            if rete > 0:
+                return 1
+            return 0
+        if ret["id"] == 0:
+            second_turn = ret["second_turn"]
+            await session.send("玩家继续第二回合")
+            await session.send([board.saveImg()])
+            await session.send(f'玩家{data["names"][board.current_player_id]}开始行动，请选择放图块的坐标，以及用URDL将指定方向旋转至向上。')
+            return 1
+        if ret["id"] == 2:
+            if ret["last_err"] == -1:
+                await session.send("没有找到跟随者！")
+            elif ret["last_err"] == -2:
+                await session.send("无法放置！")
+            else:
+                await session.send([board.saveImg(ret["last_put"])])
+                await session.send("请选择放置跟随者的位置（小写字母）以及放置的特殊跟随者名称（如有需要），回复“不放”跳过。")
+                return 1
+        elif ret["id"] == 4:
+            if ret["last_err"] == -1:
+                await session.send("没有该图块！")
+            elif ret["last_err"] == -2:
+                await session.send("图块过远，只能放在本图块或是相邻的8块上！")
+            elif ret["last_err"] == -3:
+                await session.send("无法放置！")
+            else:
+                pos = ret["pos"]
+                await session.send([board.saveImg([(pos[0] + i, pos[1] + j) for i in (-1, 0, 1) for j in (-1, 0, 1)])])
+                await session.send("请选择马车要移动到的图块，以及该图块上的位置（小写字母），回复“不放”收回马车。")
+                return 1
+        return 0
+    
     try:
         command = session.msg_text.strip()
         if data['adding_extensions']:
@@ -178,63 +232,11 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             return
         user_id: int = data['players'].index(session.ctx['user_id'])
         board = data['board']
+        player = board.current_player
         if command.startswith("查询剩余"):
             await session.send([board.saveRemainTileImg()])
         if board.current_player_id != user_id:
             return
-        
-        next_turn = False
-        second_turn = False
-        player = board.current_player
-        async def advance(to_send: dict[str, Any] | None=None):
-            nonlocal next_turn, second_turn
-            try:
-                if to_send is None:
-                    ret = next(player.stateGen)
-                else:
-                    ret = player.stateGen.send(to_send)
-            except StopIteration as e:
-                rete: Literal[-1, -2, -3, 1, 3] = e.value
-                if rete == -1:
-                    await session.send("已有连接！")
-                elif rete == -2:
-                    await session.send("无法连接！")
-                elif rete == -3:
-                    await session.send("没有挨着！")
-                elif rete == 1:
-                    await session.send("玩家回合结束")
-                    next_turn = True
-                if rete > 0:
-                    return 1
-                return 0
-            if ret["id"] == 0:
-                second_turn = ret["second_turn"]
-                await session.send("玩家继续第二回合")
-                await session.send([board.saveImg()])
-                await session.send(f'玩家{data["names"][board.current_player_id]}开始行动，请选择放图块的坐标，以及用URDL将指定方向旋转至向上。')
-                return 1
-            if ret["id"] == 2:
-                if ret["last_err"] == -1:
-                    await session.send("没有找到跟随者！")
-                elif ret["last_err"] == -2:
-                    await session.send("无法放置！")
-                else:
-                    await session.send([board.saveImg(ret["last_put"])])
-                    await session.send("请选择放置跟随者的位置（小写字母）以及放置的特殊跟随者名称（如有需要），回复“不放”跳过。")
-                    return 1
-            elif ret["id"] == 4:
-                if ret["last_err"] == -1:
-                    await session.send("没有该图块！")
-                elif ret["last_err"] == -2:
-                    await session.send("图块过远，只能放在本图块或是相邻的8块上！")
-                elif ret["last_err"] == -3:
-                    await session.send("无法放置！")
-                else:
-                    pos = ret["pos"]
-                    await session.send([board.saveImg([(pos[0] + i, pos[1] + j) for i in (-1, 0, 1) for j in (-1, 0, 1)])])
-                    await session.send("请选择马车要移动到的图块，以及该图块上的位置（小写字母），回复“不放”收回马车。")
-                    return 1
-            return 0
         
         match player.state:
             case PlayerState.TileDrawn:
