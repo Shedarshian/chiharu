@@ -178,25 +178,25 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             else:
                 ret = player.stateGen.send(to_send)
         except StopIteration as e:
-            rete: Literal[-1, -2, -3, 1, 3] = e.value
+            rete: Literal[1] = e.value
+            if rete == 1:
+                await session.send("玩家回合结束")
+                next_turn = True
+            return 1
+        if ret["id"] == 0:
+            rete = ret["last_err"]
             if rete == -1:
                 await session.send("已有连接！")
             elif rete == -2:
                 await session.send("无法连接！")
             elif rete == -3:
                 await session.send("没有挨着！")
-            elif rete == 1:
-                await session.send("玩家回合结束")
-                next_turn = True
-            if rete > 0:
+            else:
+                if ret["second_turn"]:
+                    await session.send("玩家继续第二回合")
+                await session.send([board.saveImg()])
+                await session.send(f'玩家{data["names"][board.current_player_id]}开始行动，请选择放图块的坐标，以及用URDL将指定方向旋转至向上。')
                 return 1
-            return 0
-        if ret["id"] == 0:
-            if ret["second_turn"]:
-                await session.send("玩家继续第二回合")
-            await session.send([board.saveImg()])
-            await session.send(f'玩家{data["names"][board.current_player_id]}开始行动，请选择放图块的坐标，以及用URDL将指定方向旋转至向上。')
-            return 1
         if ret["id"] == 2:
             if ret["last_err"] == -1:
                 await session.send("没有找到跟随者！")

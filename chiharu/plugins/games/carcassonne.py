@@ -917,7 +917,7 @@ class Player:
         self.score: int = 0
         self.handTile: Tile | None = None
         self.state: PlayerState = PlayerState.End
-        self.stateGen: TAsync[Literal[-1, -2, -3, 1]] | None = None
+        self.stateGen: TAsync[Literal[1]] | None = None
         self.tradeCounter = [0, 0, 0]
         self.hasAbbeyTile = self.board.checkPack(5, 'b')
     def addScore(self, score: int) -> TAsync[None]:
@@ -960,35 +960,44 @@ class Player:
                 show_name = show_name[:-1]
             show_name += "..."
         return show_name
-    def turn(self) -> TAsync[Literal[-1, -2, -3, 1]]:
+    def turn(self) -> TAsync[Literal[1]]:
         """id0：放图块（-1：已有连接, -2：无法连接，-3：没有挨着，3：第二回合），2：放跟随者（-1不放，feature/片段号，which：跟随者名称，返回-1：没有跟随者，-2：无法放置），4：选马车（-1：没有图块，-2：图块过远，-3：无法放置）"""
-        self.handTile = self.board.drawTile()
-        self.state = PlayerState.TileDrawn
-        checked: int = 0
-        while self.handTile is not None and not self.board.checkTilePosition(self.handTile):
-            checked += 1
-            self.board.deck.append(self.handTile)
-            self.handTile = self.board.drawTile()
-            if checked >= len(self.board.deck):
-                raise CantPutError
-        
         for turn in range(2):
-            ret = yield {"id": 0, "second_turn": turn == 1}
-            pos: tuple[int, int] = ret["pos"]
-            orient: Dir = ret["orient"]
-            tile = self.handTile
-            if tile is None:
-                return -3
-            if pos in self.board.tiles:
-                return -1
-            if all(pos + dr not in self.board.tiles for dr in Dir):
-                return -3
-            for dr in Dir:
-                side = pos + dr
-                if side in self.board.tiles:
-                    ret0 = self.board.tiles[side].checkConnect(tile, -dr, orient)
-                    if ret0 < 0:
-                        return ret0
+            self.handTile = self.board.drawTile()
+            self.state = PlayerState.TileDrawn
+            checked: int = 0
+            while self.handTile is not None and not self.board.checkTilePosition(self.handTile):
+                checked += 1
+                self.board.deck.append(self.handTile)
+                self.handTile = self.board.drawTile()
+                if checked >= len(self.board.deck):
+                    raise CantPutError
+        
+            pass_err0: Literal[0, -1, -2, -3] = 0
+            tile: Tile | None = None
+            while 1:
+                ret = yield {"id": 0, "second_turn": turn == 1, "last_err": pass_err0}
+                pos: tuple[int, int] = ret["pos"]
+                orient: Dir = ret["orient"]
+                tile = self.handTile
+                if tile is None:
+                    pass_err0 = -3
+                    continue
+                if pos in self.board.tiles:
+                    pass_err0 = -1
+                    continue
+                if all(pos + dr not in self.board.tiles for dr in Dir):
+                    pass_err0 = -3
+                    continue
+                for dr in Dir:
+                    side = pos + dr
+                    if side in self.board.tiles:
+                        ret0 = self.board.tiles[side].checkConnect(tile, -dr, orient)
+                        if ret0 < 0:
+                            pass_err0 = ret0
+                            if pass_err0 < 0:
+                                continue
+                break
             tile.turn(orient)
             self.board.tiles[pos] = tile
             for dr in Dir:
