@@ -604,7 +604,7 @@ class Object(CanToken):
         return len(tiles)
     def checkPennant(self):
         return sum(seg.pennant for seg in self.segments if isinstance(seg, CitySegment))
-    def checkPlayerAndScore(self, mid_game: bool, isBarn: bool=False) -> 'list[tuple[Player, int]]':
+    def checkPlayerAndScore(self, mid_game: bool, putBarn: bool=True) -> 'list[tuple[Player, int]]':
         strengths: list[int] = [0 for i in range(len(self.board.players))]
         for seg in self.segments:
             for token in seg.tokens:
@@ -647,12 +647,12 @@ class Object(CanToken):
                 if self.board.checkPack(2, "c"):
                     players = []
                     for i in max_strength[0]:
-                        base = 1 if isBarn else 3
+                        base = 3 if putBarn else 1
                         if any(isinstance(token, Pig) and token.player is self.board.players[i] for seg in self.segments for token in seg.tokens):
                             base += 1
                         players.append((self.board.players[i], base * len(complete_city)))
                 else:
-                    base = 1 if isBarn else 3
+                    base = 3 if putBarn else 1
                     players = [(self.board.players[i], base * len(complete_city)) for i in max_strength[0]]
             case _:
                 players = [(self.board.players[i], 0) for i in max_strength[0]]
@@ -682,10 +682,10 @@ class Object(CanToken):
         super().removeAllBarns()
         for seg in self.segments:
             seg.removeAllBarns()
-    def score(self, putBarn: bool=False) -> TAsync[None]:
+    def score(self, putBarn: bool) -> TAsync[None]:
         if self.type == Connectable.Field:
             if self.checkBarn():
-                players = self.checkPlayerAndScore(True, isBarn=not putBarn)
+                players = self.checkPlayerAndScore(True, putBarn=putBarn)
                 for player, score in players:
                     if score != 0:
                         yield from player.addScore(score)
@@ -1069,7 +1069,7 @@ class Player:
                             self.tradeCounter[1] += 1
                         elif seg2.tradeCounter == TradeCounter.Cloth:
                             self.tradeCounter[2] += 1
-                yield from obj.score()
+                yield from obj.score(putBarn=False)
             for i in (-1, 0, 1):
                 for j in (-1, 0, 1):
                     npos = (pos[0] + i, pos[1] + j)
