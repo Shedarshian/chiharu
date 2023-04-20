@@ -380,6 +380,13 @@ class CanToken(ABC):
                 token.player.tokens.append(token)
                 token.parent = token.player
         self.tokens = [token for token in self.tokens if not isinstance(token.player, Player) or isinstance(token, Barn)]
+    def removeAllBarns(self):
+        """Remove all barns belongs to any player."""
+        for token in self.tokens:
+            if isinstance(token.player, Player) and isinstance(token, Barn):
+                token.player.tokens.append(token)
+                token.parent = token.player
+        self.tokens = [token for token in self.tokens if not isinstance(token, Barn) or not isinstance(token.player, Player)]
 
 class Tile(CanToken):
     def __init__(self, board: Board, data: dict[str, Any], img: Image.Image, packid: int, isAbbey: bool=False) -> None:
@@ -650,12 +657,31 @@ class Object(CanToken):
             case _:
                 players = [(self.board.players[i], 0) for i in max_strength[0]]
         return players
+    def checkBarnAndScore(self) -> 'list[tuple[Player, int]]':
+        ps: list[Player] = []
+        for seg in self.segments:
+            for token in seg.tokens:
+                if isinstance(token, Barn) and isinstance(token.player, Player):
+                    ps.append(token.player)
+                complete_city: list[Object] = []
+        for seg in self.segments:
+            if isinstance(seg, FieldSegment):
+                for segc in seg.adjacentCity:
+                    if segc.object not in complete_city and segc.object.closed():
+                        complete_city.append(segc.object)
+        base = 4
+        players = [(p, base * len(complete_city)) for p in ps]
+        return players
     def checkBarn(self):
         return self.board.checkPack(5, 'd') and self.type == Connectable.Field and any(isinstance(token, Barn) for seg in self.segments for token in seg.tokens)
     def removeAllFollowers(self):
         super().removeAllFollowers()
         for seg in self.segments:
             seg.removeAllFollowers()
+    def removeAllBarns(self):
+        super().removeAllBarns()
+        for seg in self.segments:
+            seg.removeAllBarns()
     def score(self) -> TAsync[None]:
         if self.type == Connectable.Field:
             if self.checkBarn():
@@ -717,6 +743,13 @@ class Object(CanToken):
             if score != 0:
                 player.addScoreFinal(score)
         self.removeAllFollowers()
+        # barn
+        if any(isinstance(token, Barn) for seg in self.segments for token in seg.tokens):
+            players = self.checkBarnAndScore()
+            for player, score in players:
+                if score != 0:
+                    player.addScoreFinal(score)
+            self.removeAllBarns()
 
 class Feature(CanToken):
     def __init__(self, parent: Tile | Segment, data: dict[str, Any]) -> None:
@@ -895,14 +928,21 @@ class Player:
         self.score += score
     def checkMeepleScoreCurrent(self):
         all_objects: list[Object | Cloister] = []
+        all_barns: list[Object] = []
         score: int = 0
         for token in self.allTokens:
-            if isinstance(token.parent, Segment) and token.parent.object not in all_objects:
+            if isinstance(token, Barn) and isinstance(token.parent, Segment):
+                all_objects.append(token.parent.object)
+            elif isinstance(token.parent, Segment) and token.parent.object not in all_objects:
                 all_objects.append(token.parent.object)
             elif isinstance(token.parent, Cloister) and token.parent not in all_objects:
                 all_objects.append(token.parent)
         for obj in all_objects:
             for player, scorec in obj.checkPlayerAndScore(False):
+                if self is player:
+                    score += scorec
+        for barn in all_barns:
+            for player, scorec in barn.checkBarnAndScore():
                 if self is player:
                     score += scorec
         return self.score + score
