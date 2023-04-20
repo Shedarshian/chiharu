@@ -682,10 +682,10 @@ class Object(CanToken):
         super().removeAllBarns()
         for seg in self.segments:
             seg.removeAllBarns()
-    def score(self) -> TAsync[None]:
+    def score(self, putBarn: bool=False) -> TAsync[None]:
         if self.type == Connectable.Field:
             if self.checkBarn():
-                players = self.checkPlayerAndScore(True, isBarn=True)
+                players = self.checkPlayerAndScore(True, isBarn=not putBarn)
                 for player, score in players:
                     if score != 0:
                         yield from player.addScore(score)
@@ -896,7 +896,7 @@ class Barn(Figure):
         if isinstance(seg, Tile):
             if s := seg.getBarnSeg():
                 s.tokens.append(self)
-                yield from s.object.score()
+                yield from s.object.score(putBarn=True)
     def key(self) -> tuple[int, int]:
         return (3, 2)
 
