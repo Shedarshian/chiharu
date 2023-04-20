@@ -4,7 +4,8 @@ from .carcassonne import Connectable, Dir, TradeCounter, open_pack, PlayerState,
 from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Player
 from ..inject import CommandGroup, on_command
 from .. import config, game
-from nonebot import CommandSession, NLPSession
+from nonebot import CommandSession, NLPSession, get_bot
+from nonebot.command import call_command
 
 version = (1, 1, 2)
 changelog = """2023-04-17 12:05 v1.1.0
@@ -229,6 +230,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 board.current_player.beginTurn()
                 await advance()
                 data['adding_extensions'] = False
+            elif match := re.match(r'(open|close) ex(\d+)([a-z]?)|check', command):
+                await call_command(get_bot(), session.ctx, ('play', 'cacason', 'extension'), current_arg=command)
             return
         user_id: int = data['players'].index(session.ctx['user_id'])
         board = data['board']
