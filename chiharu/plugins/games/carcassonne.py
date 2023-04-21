@@ -1029,6 +1029,7 @@ class Player:
     def turnAskAbbey(self, isBegin: bool, endGame: bool) -> TAsync[tuple[bool, bool, tuple[int, int]]]:
         isAbbey: bool = False
         tile: Tile | None = None
+        pos: tuple[int, int] = (-1, -1)
         if self.hasAbbey and self.board.checkHole():
             pass_err: Literal[0, -1] = 0
             self.board.state = PlayerState.FinalAbbeyAsking if endGame else PlayerState.AbbeyAsking
@@ -1039,7 +1040,7 @@ class Player:
                     break
                 isAbbey = True
                 self.hasAbbey = False
-                pos: tuple[int, int] = ret["pos"]
+                pos = ret["pos"]
                 if pos in self.board.tiles or any(pos + dr not in self.board.tiles for dr in Dir):
                     pass_err = -1
                     continue
