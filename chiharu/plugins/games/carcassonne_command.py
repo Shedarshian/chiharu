@@ -19,7 +19,11 @@ changelog = """2023-04-17 12:05 v1.1.0
 · 增加版本号和changelog的指令。
 2023-04-20 21:27 v1.1.2
 · 谷仓完成。
-· 开始游戏后添加扩展不需要输入指令。"""
+· 开始游戏后添加扩展不需要输入指令。
+2023-04-21 23:41 v1.1.3
+· 彻底重构回合记录方法。
+· 僧院板块完成。
+· BUG明天再修。"""
 
 cacason = game.GameSameGroup('cacason', can_private=True)
 config.CommandGroup(('play', 'cacason'), hide=True)
@@ -168,21 +172,25 @@ async def ccs_end(session: CommandSession, data: dict[str, Any]):
 @config.ErrorHandle
 async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Callable[[], Awaitable]):
     next_turn = False
-    async def advance(to_send: dict[str, Any] | None=None):
-        board: Board = data['board']
-        player = board.current_player
+    async def advance(board: Board, to_send: dict[str, Any] | None=None):
         nonlocal next_turn
         try:
             if to_send is None:
-                ret = next(player.stateGen)
+                ret = next(board.stateGen)
             else:
-                ret = player.stateGen.send(to_send)
+                ret = board.stateGen.send(to_send)
         except StopIteration as e:
-            rete: Literal[1] = e.value
-            if rete == 1:
-                await session.send("玩家回合结束")
-                next_turn = True
-            return 1
+            if e.value:
+                await session.send("所有剩余图块均无法放置，提前结束游戏！")
+            await session.send([board.saveImg(no_final_score=True)])
+            score_win, players_win = board.winner()
+            if len(players_win) == 1:
+                await session.send(f'玩家{players_win[0].name}以{score_win}分获胜！')
+            else:
+                await session.send('玩家' + '，'.join(p.name for p in players_win) + f'以{score_win}分获胜！')
+            # game log
+            config.userdata.execute("insert into cacason_gamelog (group_id, users, extensions, time, score, winner, winner_score) values (?, ?, ?, ?, ?, ?, ?)", (session.ctx['group_id'], ','.join(str(q) for q in data['players']), json.dumps(data['extensions']), datetime.datetime.now().isoformat(), ','.join(str(p.score) for p in board.players), ','.join(str(q) for q in players_win), score_win))
+            await delete_func()
         if ret["id"] == 0:
             rete = ret["last_err"]
             if rete == -1:
@@ -195,9 +203,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 if ret["second_turn"]:
                     await session.send("玩家继续第二回合")
                 await session.send([board.saveImg()])
-                await session.send(f'玩家{data["names"][board.current_player_id]}开始行动，请选择放图块的坐标，以及用URDL将指定方向旋转至向上。')
-                return 1
-        if ret["id"] == 2:
+                await session.send((f'玩家{data["names"][board.current_turn_player_id]}开始行动，' if ret["begin"] else "") + '请选择放图块的坐标，以及用URDL将指定方向旋转至向上。')
+        elif ret["id"] == 2:
             if ret["last_err"] == -1:
                 await session.send("没有找到跟随者！")
             elif ret["last_err"] == -2:
@@ -205,7 +212,6 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             else:
                 await session.send([board.saveImg(ret["last_put"])])
                 await session.send("请选择放置跟随者的位置（小写字母）以及放置的特殊跟随者名称（如有需要），回复“不放”跳过。")
-                return 1
         elif ret["id"] == 4:
             if ret["last_err"] == -1:
                 await session.send("没有该图块！")
@@ -217,71 +223,61 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 pos = ret["pos"]
                 await session.send([board.saveImg([(pos[0] + i, pos[1] + j) for i in (-1, 0, 1) for j in (-1, 0, 1)])])
                 await session.send("请选择马车要移动到的图块，以及该图块上的位置（小写字母），回复“不放”收回马车。")
-                return 1
-        return 0
+        elif ret["id"] == 5:
+            if ret["last_err"] == -1:
+                await session.send("无法放置！")
+            else:
+                if ret["begin"]:
+                    await session.send([board.saveImg()])
+                await session.send((f'玩家{data["names"][board.current_turn_player_id]}' if ret["begin"] or ret["endGame"] else "") + ("开始行动，选择" if ret["begin"] else "选择最后" if ret["endGame"] else "请选择") + "是否放置僧院板块，回复“不放”跳过。")
     
-    try:
-        command = session.msg_text.strip()
-        if data['adding_extensions']:
-            if command in ("开始游戏", "游戏开始"):
-                # 开始游戏
-                board: Board = Board(data['extensions'], data['names'])
-                data['board'] = board
-                board.current_player.beginTurn()
-                await advance()
-                data['adding_extensions'] = False
-            elif match := re.match(r'(open|close) ex(\d+)([a-z]?)|check', command):
-                await call_command(get_bot(), session.ctx, ('play', 'cacason', 'extension'), current_arg=command)
-            return
-        user_id: int = data['players'].index(session.ctx['user_id'])
-        board = data['board']
-        player = board.current_player
-        if command.startswith("查询剩余"):
-            await session.send([board.saveRemainTileImg()])
-        if board.current_player_id != user_id:
-            return
-        
-        match player.state:
-            case PlayerState.TileDrawn:
-                if match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([URDL])", command):
-                    xs = match.group(1); ys = match.group(2); orients = match.group(3)
-                    pos = board.tileNameToPos(xs, ys)
-                    orient = {'U': Dir.UP, 'R': Dir.LEFT, 'D': Dir.DOWN, 'L': Dir.RIGHT}[orients]
-                    await advance({"pos": pos, "orient": orient})
-            case PlayerState.PuttingFollower:
-                if command == "不放":
-                    await advance({"id": -1})
-                elif match := re.match(r"\s*([a-z])\s*(.*)?$", command):
-                    n = ord(match.group(1)) - ord('a')
-                    name = match.group(2)
-                    await advance({"id": n, "which": name or "follower"})
-            case PlayerState.InturnScoring:
-                pass
-            case PlayerState.WagonAsking:
-                if command == "不放":
-                    await advance({"pos": None})
-                elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([a-z])", command):
-                    xs = match.group(1); ys = match.group(2); n = ord(match.group(3)) - ord('a')
-                    pos = board.tileNameToPos(xs, ys)
-                    await advance({"pos": pos, "seg": n})
-            case _:
-                pass
-        if not next_turn:
-            return
-        board.nextPlayer()
-        if len(board.deck) != 0:
-            board.current_player.beginTurn()
-            await advance()
-            return
-    except CantPutError:
-        await session.send("所有剩余图块均无法放置，提前结束游戏！")
-    board.endGameScore()
-    await session.send([board.saveImg(no_final_score=True)])
-    score_win, players_win = board.winner()
-    if len(players_win) == 1:
-        await session.send(f'玩家{players_win[0].name}以{score_win}分获胜！')
-    else:
-        await session.send('玩家' + '，'.join(p.name for p in players_win) + f'以{score_win}分获胜！')
-    # game log
-    config.userdata.execute("insert into cacason_gamelog (group_id, users, extensions, time, score, winner, winner_score) values (?, ?, ?, ?, ?, ?, ?)", (session.ctx['group_id'], ','.join(str(q) for q in data['players']), json.dumps(data['extensions']), datetime.datetime.now().isoformat(), ','.join(str(p.score) for p in board.players), ','.join(str(q) for q in players_win), score_win))
-    await delete_func()
+    command = session.msg_text.strip()
+    if data['adding_extensions']:
+        if command in ("开始游戏", "游戏开始"):
+            # 开始游戏
+            board: Board = Board(data['extensions'], data['names'])
+            data['board'] = board
+            await advance(board)
+            data['adding_extensions'] = False
+        elif match := re.match(r'(open|close) ex(\d+)([a-z]?)|check', command):
+            await call_command(get_bot(), session.ctx, ('play', 'cacason', 'extension'), current_arg=command)
+        return
+    user_id: int = data['players'].index(session.ctx['user_id'])
+    board = data['board']
+    if command.startswith("查询剩余"):
+        await session.send([board.saveRemainTileImg()])
+    if board.current_player_id != user_id:
+        return
+    
+    match board.state:
+        case PlayerState.TileDrawn:
+            if match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([URDL])", command):
+                xs = match.group(1); ys = match.group(2); orients = match.group(3)
+                pos = board.tileNameToPos(xs, ys)
+                orient = {'U': Dir.UP, 'R': Dir.LEFT, 'D': Dir.DOWN, 'L': Dir.RIGHT}[orients]
+                await advance(board, {"pos": pos, "orient": orient})
+        case PlayerState.PuttingFollower:
+            if command == "不放":
+                await advance(board, {"id": -1})
+            elif match := re.match(r"\s*([a-z])\s*(.*)?$", command):
+                n = ord(match.group(1)) - ord('a')
+                name = match.group(2)
+                await advance(board, {"id": n, "which": name or "follower"})
+        case PlayerState.InturnScoring:
+            pass
+        case PlayerState.WagonAsking:
+            if command == "不放":
+                await advance(board, {"pos": None})
+            elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([a-z])", command):
+                xs = match.group(1); ys = match.group(2); n = ord(match.group(3)) - ord('a')
+                pos = board.tileNameToPos(xs, ys)
+                await advance(board, {"pos": pos, "seg": n})
+        case PlayerState.AbbeyAsking:
+            if command == "不放":
+                await advance(board, {"put": False})
+            elif match := re.match(r"\s*([A-Z]+)([0-9]+)", command):
+                xs = match.group(1); ys = match.group(2)
+                pos = board.tileNameToPos(xs, ys)
+                await advance(board, {"put": True, "pos": pos})
+        case _:
+            pass
