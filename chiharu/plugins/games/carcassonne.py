@@ -209,7 +209,8 @@ class Board:
     def tileNameToPos(self, xs: str, ys: str):
         x = (ord(xs[0]) - ord('A') + 1) * 26 + ord(xs[1]) - ord('A') if len(xs) == 2 else ord(xs) - ord('A')
         y = int(ys)
-        leftmost, uppermost = self.lrborder
+        leftmost, rightmost = self.lrborder
+        uppermost, lowermost = self.udborder
         return (x + leftmost - 1, y + uppermost - 1)
     def checkHole(self):
         leftmost, rightmost = self.lrborder
