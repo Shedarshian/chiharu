@@ -3436,12 +3436,14 @@
                 {
                     "name": "dragon",
                     "distribute": false,
-                    "num": 1
+                    "num": 1,
+                    "thing_id": "b"
                 },
                 {
                     "name": "fairy",
                     "distribute": false,
-                    "num": 1
+                    "num": 1,
+                    "thing_id": "c"
                 }
             ]
         },

@@ -1,6 +1,6 @@
 from typing import Dict, Any, Callable, Awaitable, Literal
 import re, random, json, datetime
-from .carcassonne import Connectable, Dir, TradeCounter, open_pack, PlayerState, CantPutError, all_extensions
+from .carcassonne import Connectable, Dir, TradeCounter, open_pack, State, CantPutError, all_extensions
 from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Player
 from ..inject import CommandGroup, on_command
 from .. import config, game
@@ -23,7 +23,9 @@ changelog = """2023-04-17 12:05 v1.1.0
 2023-04-21 23:41 v1.1.3
 · 彻底重构回合记录方法。
 · 僧院板块完成。
-· BUG明天再修。"""
+· BUG明天再修。
+2023-04-21 23:41 v1.1.4
+· 龙写完啦。"""
 
 cacason = game.GameSameGroup('cacason', can_private=True)
 config.CommandGroup(('play', 'cacason'), hide=True)
@@ -50,6 +52,12 @@ config.CommandGroup(('cacason', 'ex2'), des="""扩展2：商人与建筑师（Tr
 (b) 建筑师（builder）：游戏开始时每人分发一个建筑师。建筑师不算做跟随者，不参与争夺板块，无法放在草地上。玩家可以不放置跟随者，而是在一个已包含自己跟随者的城市或是道路上放置建筑师。此后，若玩家延伸此城市或是道路，则玩家获得一个额外的行动回合。此额外回合不可叠加。
 (c) 猪（pig）：游戏开始时每人分发一个猪。猪不算做跟随者，不参与争夺板块，只能放在草地上。玩家可以不放置跟随者，而是在一个已包含自己跟随者的草地上放置猪。此后猪不可收回。游戏结束时，若玩家在有自己的猪的草地上得分，则每座城市额外获得1分（3分变成4分）。
 (d) 交易标记：有些城市板块上包含交易标记。包含交易标记的城市完成时，完成该城市的玩家获得城市板块上所有对应的交易标记。注意是完成城市的玩家获得，不是得分的玩家获得。游戏结束时，对于每种交易标记（酒，小麦，布），获得该标记最多的玩家获得10分。若有多名玩家同时最多则均获得10分。""", short_des="扩展2：商人与建筑师（Traders and Builders）")
+config.CommandGroup(('cacason', 'ex5'), des="""扩展3：公主与龙（The Princess and The Dragon）
+(a) 扩展包含29种30个图块，其中6块含火山，11块含龙，6块含传送门，6块含公主，2块含修道院。
+(b) 龙：游戏开始时，将龙放在一旁。当玩家抽到含火山的板块时，立即将龙移至该板块上。龙所在的格子不可以放置任何跟随者、建筑师、猪。但是该回合玩家仍然可以放置谷仓或是移动仙子。当玩家抽到含龙图标的板块时，在放置跟随者阶段后，所有玩家立即进入龙的移动阶段。龙总共移动六格，从当前玩家开始依序，每名玩家选择将龙在上下左右四个方向上移动一格。龙不能移动到含仙子的格子，不能移动到此阶段先前走过的格子。若龙无处可动则移动提前结束。龙会吃掉所有经过格子上的肉质米宝。特殊地，若建筑师或猪所在的城市、道路、草地失去了玩家的最后一个跟随者，则建筑师与猪回到原玩家的手里。
+(c) 仙子：游戏开始时，将仙子放在一旁。若玩家在放置跟随者阶段未进行任何其他操作，则可选择将仙子移动到自己的一名跟随者旁。每个回合开始阶段，仙子在谁的跟随者旁，谁就可以获得1分。仙子旁边的跟随者在被计分时，会为该跟随者所属的玩家加3分。跟随者计分后，仙子仍留在该格子上。
+(d) 传送门：若玩家抽到包含传送门的板块，玩家可以将一名跟随者通过传送门，放置在整个地图上任何一个未被占据、未完成的图块上。注意仍应遵守该跟随者放置的规则。
+(e) 公主：若玩家将一个包含公主图标的城市板块连接到已有的城市上时，玩家可选择不放置跟随者，而是将公主所在的城市板块内的任何一个跟随者移除。""", short_des="扩展3：公主与龙（The Princess and The Dragon）")
 config.CommandGroup(('cacason', 'ex5'), des="""扩展5：僧院板块与市长（Abbey and Mayor）
 (a) 扩展包含12种12个图块，其中有1块含修道院。
 (b) 僧院（abbey）：游戏开始时每人分发一个僧院板块。在抽取卡牌之前，玩家可以选择将自己的僧院板块放置在四面都有板块的位置，将四面都完成。此后，玩家可以选择在该板块内的修道院上是否放置跟随者。
@@ -110,6 +118,8 @@ async def ccs_extension(session: CommandSession):
     (a) 图块；(b) 大跟随者；(c) 旅馆机制；(d) 主教教堂机制。
 2. 商人与建筑师（Traders and Builders）
     (a) 图块；(b) 建筑师；(c) 猪；(d) 交易标记。
+3. 公主与龙（The Princess and The Dragon）
+    (a) 图块；(b) 龙；(c) 仙子；(d) 传送门；(e) 公主。
 5. 僧院板块与市长（Abbey and Mayor）
     (a) 图块；(b) 僧院板块；(c) 市长；(d) 马车；(e) 谷仓。
 
@@ -137,8 +147,8 @@ async def ccs_extension(session: CommandSession):
         if session.current_arg_text.startswith("check"):
             if len(data['extensions']) == 0:
                 session.finish("目前未开启任何扩展包。")
-            pack_names = ["Inns and Cathedrals", "Traders and Builders", "", "", "Abbey and Mayor"]
-            thing_names = [["图块", "跟随者", "旅馆机制", "主教教堂机制"], ["图块", "建筑师", "猪", "交易标记"], [], [], ["图块", "僧院板块", "市长", "马车", "谷仓"]]
+            pack_names = ["Inns and Cathedrals", "Traders and Builders", "The Princess and The Dragon", "", "Abbey and Mayor"]
+            thing_names = [["图块", "跟随者", "旅馆机制", "主教教堂机制"], ["图块", "建筑师", "猪", "交易标记"], ["图块", "龙", "仙子", "传送门", "公主"], [], ["图块", "僧院板块", "市长", "马车", "谷仓"]]
             await session.send("目前开启的扩展包有：\n" + '\n'.join(pack_names[packid - 1] + "\n\t" + "，".join(thing_names[packid - 1][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items()))
             return
         if match := re.match(r'(open|close) ex(\d+)([a-z]?)', session.current_arg_text):
@@ -229,7 +239,12 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             else:
                 if ret["begin"]:
                     await session.send([board.saveImg()])
-                await session.send((f'玩家{data["names"][board.current_turn_player_id]}' if ret["begin"] or ret["endGame"] else "") + ("开始行动，选择" if ret["begin"] else "选择最后" if ret["endGame"] else "请选择") + "是否放置僧院板块，回复“不放”跳过。")
+                await session.send((f'玩家{data["names"][board.current_player_id]}' if ret["begin"] or ret["endGame"] else "") + ("开始行动，选择" if ret["begin"] else "选择最后" if ret["endGame"] else "请选择") + "是否放置僧院板块，回复“不放”跳过。")
+        elif ret["id"] == 6:
+            if ret["last_err"] == -1:
+                await session.send("无法移动！")
+            else:
+                await session.send(f'玩家{data["names"][board.current_player_id]}第{ret["moved_num"]}次移动龙，请输入URDL移动。')
     
     command = session.msg_text.strip()
     if data['adding_extensions']:
@@ -250,29 +265,33 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         return
     
     match board.state:
-        case PlayerState.TileDrawn:
+        case State.TileDrawn:
             if match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([URDL])", command):
                 xs = match.group(1); ys = match.group(2); orients = match.group(3)
                 pos = board.tileNameToPos(xs, ys)
                 orient = {'U': Dir.UP, 'R': Dir.LEFT, 'D': Dir.DOWN, 'L': Dir.RIGHT}[orients]
                 await advance(board, {"pos": pos, "orient": orient})
-        case PlayerState.PuttingFollower:
+        case State.PuttingFollower:
             if command == "不放":
                 await advance(board, {"id": -1})
             elif match := re.match(r"\s*([a-z])\s*(.*)?$", command):
                 n = ord(match.group(1)) - ord('a')
                 name = match.group(2)
                 await advance(board, {"id": n, "which": name or "follower"})
-        case PlayerState.InturnScoring:
+        case State.MovingDragon:
+            if command in "URDL":
+                dr = {"U": Dir.UP, "R": Dir.RIGHT, "D": Dir.DOWN, "L": Dir.LEFT}[command]
+                await advance(board, {"direction": dr})
+        case State.InturnScoring:
             pass
-        case PlayerState.WagonAsking:
+        case State.WagonAsking:
             if command == "不放":
                 await advance(board, {"pos": None})
             elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([a-z])", command):
                 xs = match.group(1); ys = match.group(2); n = ord(match.group(3)) - ord('a')
                 pos = board.tileNameToPos(xs, ys)
                 await advance(board, {"pos": pos, "seg": n})
-        case PlayerState.AbbeyAsking:
+        case State.AbbeyAsking:
             if command == "不放":
                 await advance(board, {"put": False})
             elif match := re.match(r"\s*([A-Z]+)([0-9]+)", command):
