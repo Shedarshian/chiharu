@@ -485,9 +485,9 @@ class Tile(CanToken):
         if (s1 := self.sidesToSegment(dir)) is not None:
             s1.closeAbbey(dir)
         if (s1 := self.sidesToSegmentF(dir, False)) is not None:
-            s1.closeAbbeyF(dir)
+            s1.closeAbbeyF(dir, False)
         if (s1 := self.sidesToSegmentF(dir, True)) is not None:
-            s1.closeAbbeyF(dir)
+            s1.closeAbbeyF(dir, True)
     def getSideSeg(self, dir: Dir):
         segs: list[Segment] = []
         if (s1 := self.sidesToSegment(dir)) is not None:
@@ -1219,7 +1219,7 @@ class Player:
         length = 80 + score_length + self.board.token_length
         if self.board.checkPack(5, "b"):
             abbey_xpos = length
-            length += 52
+            length += 28
         if self.board.checkPack(2, "d"):
             trade_counter_xpos = length
             length += 120
@@ -1238,7 +1238,7 @@ class Player:
                 xbegin = self.board.token_pos[type(token)] + 80 + score_length
                 if this_num >= 3:
                     img.alpha_composite(timg, (xbegin, 12 - timg.size[1] // 2))
-                    dr.text((xbegin + timg.size[0], 12), " x " + str(this_num), "black", self.board.font_name, "lm")
+                    dr.text((xbegin + timg.size[0], 12), "x " + str(this_num), "black", self.board.font_name, "lm")
                 elif this_num == 2:
                     img.alpha_composite(timg, (xbegin, 12 - timg.size[1] // 2))
                     img.alpha_composite(timg, (xbegin + timg.size[0] + 4, 12 - timg.size[1] // 2))
@@ -1247,7 +1247,7 @@ class Player:
         # abbey
         if self.board.checkPack(5, "b"):
             if self.hasAbbey:
-                dr.rectangle((abbey_xpos + 8, 8, abbey_xpos + 40, 40), "red")
+                dr.rectangle((abbey_xpos + 4, 4, abbey_xpos + 20, 20), "red")
         # trade counter count
         if self.board.checkPack(2, "d"):
             dr.text((trade_counter_xpos, 12), f"酒{self.tradeCounter[0]}", "black", self.board.font_name, "lm")
