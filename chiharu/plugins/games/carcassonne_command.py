@@ -7,7 +7,7 @@ from .. import config, game
 from nonebot import CommandSession, NLPSession, get_bot
 from nonebot.command import call_command
 
-version = (1, 1, 2)
+version = (1, 1, 4)
 changelog = """2023-04-17 12:05 v1.1.0
 · 添加版本号记录。
 · 微调五扩米宝位置。
@@ -52,10 +52,10 @@ config.CommandGroup(('cacason', 'ex2'), des="""扩展2：商人与建筑师（Tr
 (b) 建筑师（builder）：游戏开始时每人分发一个建筑师。建筑师不算做跟随者，不参与争夺板块，无法放在草地上。玩家可以不放置跟随者，而是在一个已包含自己跟随者的城市或是道路上放置建筑师。此后，若玩家延伸此城市或是道路，则玩家获得一个额外的行动回合。此额外回合不可叠加。
 (c) 猪（pig）：游戏开始时每人分发一个猪。猪不算做跟随者，不参与争夺板块，只能放在草地上。玩家可以不放置跟随者，而是在一个已包含自己跟随者的草地上放置猪。此后猪不可收回。游戏结束时，若玩家在有自己的猪的草地上得分，则每座城市额外获得1分（3分变成4分）。
 (d) 交易标记：有些城市板块上包含交易标记。包含交易标记的城市完成时，完成该城市的玩家获得城市板块上所有对应的交易标记。注意是完成城市的玩家获得，不是得分的玩家获得。游戏结束时，对于每种交易标记（酒，小麦，布），获得该标记最多的玩家获得10分。若有多名玩家同时最多则均获得10分。""", short_des="扩展2：商人与建筑师（Traders and Builders）")
-config.CommandGroup(('cacason', 'ex5'), des="""扩展3：公主与龙（The Princess and The Dragon）
+config.CommandGroup(('cacason', 'ex3'), des="""扩展3：公主与龙（The Princess and The Dragon）
 (a) 扩展包含29种30个图块，其中6块含火山，11块含龙，6块含传送门，6块含公主，2块含修道院。
 (b) 龙：游戏开始时，将龙放在一旁。当玩家抽到含火山的板块时，立即将龙移至该板块上。龙所在的格子不可以放置任何跟随者、建筑师、猪。但是该回合玩家仍然可以放置谷仓或是移动仙子。当玩家抽到含龙图标的板块时，在放置跟随者阶段后，所有玩家立即进入龙的移动阶段。龙总共移动六格，从当前玩家开始依序，每名玩家选择将龙在上下左右四个方向上移动一格。龙不能移动到含仙子的格子，不能移动到此阶段先前走过的格子。若龙无处可动则移动提前结束。龙会吃掉所有经过格子上的肉质米宝。特殊地，若建筑师或猪所在的城市、道路、草地失去了玩家的最后一个跟随者，则建筑师与猪回到原玩家的手里。
-(c) 仙子：游戏开始时，将仙子放在一旁。若玩家在放置跟随者阶段未进行任何其他操作，则可选择将仙子移动到自己的一名跟随者旁。每个回合开始阶段，仙子在谁的跟随者旁，谁就可以获得1分。仙子旁边的跟随者在被计分时，会为该跟随者所属的玩家加3分。跟随者计分后，仙子仍留在该格子上。
+(c) 仙子：游戏开始时，将仙子放在一旁。若玩家在放置跟随者阶段未进行任何其他操作，则可选择将仙子移动到自己的一名跟随者旁。玩家的回合开始阶段，如果仙子在该玩家的跟随者旁，玩家就可以获得1分。仙子旁边的跟随者在被计分时，会为该跟随者所属的玩家加3分。跟随者计分后，仙子仍留在该格子上。
 (d) 传送门：若玩家抽到包含传送门的板块，玩家可以将一名跟随者通过传送门，放置在整个地图上任何一个未被占据、未完成的图块上。注意仍应遵守该跟随者放置的规则。
 (e) 公主：若玩家将一个包含公主图标的城市板块连接到已有的城市上时，玩家可选择不放置跟随者，而是将公主所在的城市板块内的任何一个跟随者移除。""", short_des="扩展3：公主与龙（The Princess and The Dragon）")
 config.CommandGroup(('cacason', 'ex5'), des="""扩展5：僧院板块与市长（Abbey and Mayor）
@@ -221,7 +221,11 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await session.send("无法放置！")
             else:
                 await session.send([board.saveImg(ret["last_put"])])
-                await session.send("请选择放置跟随者的位置（小写字母）以及放置的特殊跟随者名称（如有需要），回复“不放”跳过。")
+                prompt = "请选择放置跟随者的位置（小写字母）以及放置的特殊跟随者名称（如有需要），回复“不放”跳过"
+                if board.checkPack(3, "c"):
+                    prompt += "，回复板块位置以及“仙子”移动仙子"
+                prompt += "。"
+                await session.send(prompt)
         elif ret["id"] == 4:
             if ret["last_err"] == -1:
                 await session.send("没有该图块！")
@@ -245,6 +249,12 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await session.send("无法移动！")
             else:
                 await session.send(f'玩家{data["names"][board.current_player_id]}第{ret["moved_num"]}次移动龙，请输入URDL移动。')
+        elif ret["id"] == 7:
+            if ret["last_err"] == -1:
+                await session.send("无法移动！")
+            else:
+                await session.send([board.saveImg(draw_fairy_follower=ret["last_put"])])
+                await session.send('请额外指定要放置在哪个跟随者旁。')
     
     command = session.msg_text.strip()
     if data['adding_extensions']:
@@ -278,6 +288,13 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 n = ord(match.group(1)) - ord('a')
                 name = match.group(2)
                 await advance(board, {"id": n, "which": name or "follower"})
+            elif board.checkPack(3, "c") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(仙子|fairy)$", command)):
+                xs = match.group(1); ys = match.group(2)
+                await advance(board, {"pos": pos, "special": "fairy"})
+        case State.ChoosingFairy:
+            if match := re.match(r"\s*([a-z])", command):
+                n = ord(match.group(1)) - ord('a')
+                await advance(board, {"id": n})
         case State.MovingDragon:
             if command in "URDL":
                 dr = {"U": Dir.UP, "R": Dir.RIGHT, "D": Dir.DOWN, "L": Dir.LEFT}[command]
