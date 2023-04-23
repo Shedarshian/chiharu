@@ -536,7 +536,6 @@ class CanScore(ABC):
                         if "pos" not in ret or ret["pos"] is None:
                             break
                         pos_put: tuple[int, int] = ret["pos"]
-                        seg_id: int = ret["seg"]
                         if pos_put not in self.board.tiles:
                             pass_err = -1
                             continue
@@ -551,7 +550,7 @@ class CanScore(ABC):
                         else:
                             pass_err = -3
                             continue
-                        if (isinstance(seg_put, Segment) and seg_put.object.closed()) or not wagon.canPut(seg_put):
+                        if (isinstance(seg_put, Segment) and seg_put.object.closed() or isinstance(seg_put, CanScore) and seg_put.closed()) or not wagon.canPut(seg_put):
                             pass_err = -3
                             continue
                         wagon.parent.tokens.remove(wagon)
