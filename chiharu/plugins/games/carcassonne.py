@@ -94,12 +94,17 @@ class Board:
             for t in pack["tokens"]:
                 if "thing_id" in t and t["thing_id"] not in packs_options[pack_id]:
                     continue
-                img = self.tokenimgs[pack_id].crop(tuple(t["image"]))
-                if t["distribute"]:
+                num = t["num"] if "num" in t else t["numOfPlayers"][str(len(self.players))]
+                if t["name"] == "tower":
                     for p in self.players:
-                        p.tokens.extend(Token.make(t["name"])(p, t, img) for i in range(t["num"]))
+                        p.towerPieces = num
                 else:
-                    self.tokens.extend(Token.make(t["name"])(self, t, img) for i in range(t["num"]))
+                    img = self.tokenimgs[pack_id].crop(tuple(t["image"]))
+                    if t["distribute"]:
+                        for p in self.players:
+                            p.tokens.extend(Token.make(t["name"])(p, t, img) for i in range(num))
+                    else:
+                        self.tokens.extend(Token.make(t["name"])(self, t, img) for i in range(num))
         for player in self.players:
             player.allTokens = [t for t in player.tokens]
         self.allTokens = [t for t in self.tokens]
@@ -957,7 +962,7 @@ class Token(ABC):
         return self.player.checkPack(packid, thingid)
     @classmethod
     def make(cls, typ: str) -> Type['Token']:
-        return {"follower": BaseFollower, "big follower": BigFollower, "大跟随者": BigFollower, "builder": Builder, "建筑师": Builder, "pig": Pig, "猪": Pig, "mayor": Mayor, "市长": Mayor, "wagon": Wagon, "马车": Wagon, "barn": Barn, "谷仓": Barn}[typ.lower()]
+        return {"follower": BaseFollower, "big follower": BigFollower, "大跟随者": BigFollower, "builder": Builder, "建筑师": Builder, "pig": Pig, "猪": Pig, "mayor": Mayor, "市长": Mayor, "wagon": Wagon, "马车": Wagon, "barn": Barn, "谷仓": Barn, "dragon": Dragon, "龙": Dragon, "fairy": Fairy, "仙子": Fairy}[typ.lower()]
     def canPut(self, seg: Segment | Feature | Tile):
         if isinstance(seg, Tile):
             return False
@@ -1091,7 +1096,7 @@ class Fairy(Figure):
         self.drawpos: tuple[int, int] = 32, 32
         self.canEatByDragon = False
     def canMove(self, follower: Follower):
-        return not isinstance(follower.parent, Tower)
+        return True
     def moveTo(self, follower: Follower, tile: Tile):
         self.tile = tile
         self.follower = follower
@@ -1121,6 +1126,8 @@ class Player:
         self.handTile: Tile | None = None
         self.tradeCounter = [0, 0, 0]
         self.hasAbbey = self.board.checkPack(5, 'b')
+        self.towerPieces: int = 0
+        self.prisoners: list[Follower] = []
     def addScore(self, score: int) -> TAsync[None]:
         self.score += score
         return

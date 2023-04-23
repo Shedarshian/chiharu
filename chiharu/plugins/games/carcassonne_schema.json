@@ -87,6 +87,14 @@
         "TokenData": {
             "description": "Data of a token.",
             "type": "object",
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TokenFixedNumData"
+              },
+              {
+                "$ref": "#/$defs/TokenPlayerNumData"
+              }
+            ],
             "properties": {
                 "name": {
                     "type": "string",
@@ -95,10 +103,6 @@
                 "distribute": {
                     "type": "boolean",
                     "description": "Whether the token is given for everyone."
-                },
-                "num": {
-                    "type": "integer",
-                    "descrption": "The number of this token. If distribute, this number is the number everyone recieves."
                 },
                 "image": {
                     "type": "array",
@@ -117,8 +121,39 @@
             "required": [
                 "name",
                 "distribute",
-                "num",
                 "image"
+            ]
+        },
+        "TokenFixedNumData": {
+            "type": "object",
+            "properties": {
+                "num": {
+                    "type": "integer",
+                    "descrption": "The number of this token. If distribute, this number is the number everyone recieves."
+                }
+            },
+            "required": [
+                "num"
+            ]
+        },
+        "TokenPlayerNumData": {
+            "type": "object",
+            "properties": {
+                "numOfPlayers": {
+                    "type": "object",
+                    "descrption": "The number of this token according to player numbers. If distribute, this number is the number everyone recieves.",
+                    "properties": {
+                        "1": {"type": "integer"},
+                        "2": {"type": "integer"},
+                        "3": {"type": "integer"},
+                        "4": {"type": "integer"},
+                        "5": {"type": "integer"},
+                        "6": {"type": "integer"}
+                    }
+                }
+            },
+            "required": [
+                "numOfPlayers"
             ]
         },
         "SegmentData": {
@@ -246,6 +281,9 @@
                 },
                 {
                     "$ref": "#/$defs/TradeFeatureData"
+                },
+                {
+                    "$ref": "#/$defs/TowerFeatureData"
                 }
             ]
         },
@@ -309,6 +347,28 @@
             "required": [
                 "type",
                 "counter"
+            ]
+        },
+        "TowerFeatureData": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "Tower"
+                },
+                "posx": {
+                    "type": "integer",
+                    "description": "The x position to put token."
+                },
+                "posy": {
+                    "type": "integer",
+                    "description": "The y position to put token."
+                }
+            },
+            "required": [
+                "type",
+                "posx",
+                "posy"
             ]
         }
     }
