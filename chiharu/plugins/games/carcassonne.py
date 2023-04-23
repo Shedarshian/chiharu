@@ -915,8 +915,6 @@ class Feature:
     @classmethod
     def make(cls, typ: str) -> Type["Feature"] | None:
         return {"Cloister": Cloister}.get(typ, None)
-    def closed(self) -> bool:
-        return False
 class Cloister(Feature, CanScore):
     def iterTokens(self) -> 'Iterable[Token]':
         yield from self.tokens
@@ -954,7 +952,7 @@ class Token(ABC):
         if isinstance(seg, Segment):
             if any(isinstance(token, Dragon) for token in seg.tile.tokens):
                 return False
-            return all(len(s.tokens) == 0 for s in seg.object.segments) and len(seg.tokens) == 0
+            return all(len(s.tokens) == 0 for s in seg.object.segments)
         return len(seg.tokens) == 0
     def putOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
         seg.tokens.append(self)
@@ -1294,7 +1292,7 @@ class Player:
                 pass_err = -1
                 continue
             token = tokens[0]
-            if not token.canPut(seg_put):
+            if not token.canPut(seg_put) or if_portal and (isinstance(seg_put, Segment) and seg_put.object.closed() or isinstance(seg_put, CanScore) and seg_put.closed()):
                 pass_err = -2
                 continue
             self.tokens.remove(token)
