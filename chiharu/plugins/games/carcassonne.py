@@ -1238,6 +1238,7 @@ class Player:
                     if id >= 0 and id < len(followers):
                         followers[id].putBackToHand()
                         seg.object.checkRemoveBuilderAndPig()
+                        princessed = True
                         break
                     elif id != -1:
                         pass_err = -1
