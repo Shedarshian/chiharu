@@ -319,6 +319,11 @@ class Board:
                     draw(c, tile.findTokenDrawPos(follower), i)
                     i += 1
         # token
+        def checkFairy(token: Token, p1: tuple[int, int], next: int):
+            tf = self.fairy.image()
+            self.fairy.drawpos = p1
+            self.fairy.drawpos = self.fairy.drawpos[0] + next * 4, self.fairy.drawpos[1] + next * 4 + 8
+            img.alpha_composite(t, posshift(i, j, self.fairy.drawpos, (-tf.size[0] // 2, -tf.size[1] // 2)))
         for (i, j), tile in self.tiles.items():
             for seg in tile.segments:
                 next = 0
@@ -329,17 +334,23 @@ class Board:
                     else:
                         img.alpha_composite(t, posshift(i, j, turn(seg.token_pos, tile.orient), (-t.size[0] // 2, -t.size[1] // 2), (next * 4, next * 4)))
                         next += 1
+                        if self.checkPack(3, "c") and self.fairy.follower is token:
+                            checkFairy(token, turn(seg.token_pos, tile.orient), next)
             next = 0
             for token in tile.tokens:
                 t = token.image()
                 img.alpha_composite(t, posshift(i, j, turn(tile.token_pos, tile.orient), (-t.size[0] // 2, -t.size[1] // 2), (next * 4, next * 4)))
                 next += 1
+                if self.checkPack(3, "c") and self.fairy.follower is token:
+                    checkFairy(token, turn(tile.token_pos, tile.orient), next)
             for feature in tile.features:
                 next = 0
                 for token in feature.tokens:
                     t = token.image()
                     img.alpha_composite(t, posshift(i, j, turn(feature.token_pos, tile.orient), (-t.size[0] // 2, -t.size[1] // 2), (next * 4, next * 4)))
                     next += 1
+                    if self.checkPack(3, "c") and self.fairy.follower is token:
+                        checkFairy(token, turn(feature.token_pos, tile.orient), next)
         # tiles dragon has moved
         for tile in self.dragonMoved:
             p = self.findTilePos(tile)
@@ -965,6 +976,8 @@ class Token(ABC):
             self.parent.tokens.remove(self)
             self.player.tokens.append(self)
             self.parent = self.player
+        if self.board.checkPack(3, 'c') and self.board.fairy.follower is self:
+            self.board.fairy.follower = None
     @abstractmethod
     def key(self) -> tuple[int, int]:
         return (-1, -1)
@@ -1060,6 +1073,7 @@ class Fairy(Figure):
         super().__init__(parent, data, img)
         self.follower: Follower | None = None
         self.tile: Tile | None = None
+        self.drawpos: tuple[int, int] = 32, 32
         self.canEatByDragon = False
     def canMove(self, follower: Follower):
         return not isinstance(follower.parent, Tower)
