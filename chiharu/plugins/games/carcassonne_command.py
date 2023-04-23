@@ -8,7 +8,7 @@ from .. import config, game
 from nonebot import CommandSession, NLPSession, get_bot
 from nonebot.command import call_command
 
-version = (1, 1, 7)
+version = (1, 1, 8)
 changelog = """2023-04-17 12:05 v1.1.0
 · 添加版本号记录。
 · 微调五扩米宝位置。
@@ -33,7 +33,9 @@ changelog = """2023-04-22 23:41 v1.1.4
 2023-04-23 14:46 v1.1.6
 · 传送门写完啦。
 2023-04-23 15:45 v1.1.7
-· 公主写完啦。"""
+· 公主写完啦。
+2023-04-23 22:09 v1.1.8
+· 高塔写完啦。"""
 
 cacason = game.GameSameGroup('cacason', can_private=True)
 config.CommandGroup(('play', 'cacason'), hide=True)
@@ -66,9 +68,12 @@ config.CommandGroup(('cacason', 'ex3'), des="""扩展3：公主与龙（The Prin
 (c) 仙子：游戏开始时，将仙子放在一旁。若玩家在放置跟随者阶段未进行任何其他操作，则可选择将仙子移动到自己的一名跟随者旁。玩家的回合开始阶段，如果仙子在该玩家的跟随者旁，玩家就可以获得1分。仙子旁边的跟随者在被计分时，会为该跟随者所属的玩家加3分。跟随者计分后，仙子仍留在该格子上。
 (d) 传送门：若玩家抽到包含传送门的板块，玩家可以将一名跟随者通过传送门，放置在整个地图上任何一个未被占据、未完成的图块上。注意仍应遵守该跟随者放置的规则。
 (e) 公主：若玩家将一个包含公主图标的城市板块连接到已有的城市上时，玩家可选择不放置跟随者，而是将公主所在的城市板块内的任何一个跟随者移除。""", short_des="扩展3：公主与龙（The Princess and The Dragon）")
-config.CommandGroup(('cacason', 'ex5'), des="""扩展4：高塔（The Tower）
+config.CommandGroup(('cacason', 'ex4'), des="""扩展4：高塔（The Tower）
 (a) 扩展包含18种19个图块，其中19块含高塔塔基，1块含修道院。
-(b) 高塔：游戏开始时每人分发一些高塔部分（2人时10个，3人时9个，4人时7个，5人时6个，6人时5个）。""")
+(b) 高塔：游戏开始时每人分发一些高塔部分（2人时10个，3人时9个，4人时7个，5人时6个，6人时5个）。在放置跟随者阶段，玩家可以选择不放置跟随者，而是：
+  (1) 将自己手里的一个高塔部分放置在一个高塔地基或是一个未完成的高塔上。若如此做，玩家可以将该高塔格子上下左右距离n格内（n为高塔高度）的一名跟随者变为囚犯；
+  (2) 将一个普通跟随者或是大跟随者放置在一个未完成的高塔上将其完成，之后除非跟随者被龙吃掉或是被其他高塔捕获则无法收回。高塔上有跟随者时高塔无法继续建造。
+若玩家将自己的跟随者变为囚犯，则立即收回手中；若两名玩家互相拥有对方的囚犯，则囚犯立即自动交换。如果有其中一人有多名跟随者在另一人手中，则另一人可以自由选择交还哪名跟随者。另外，在放置板块之前，玩家可选择向对方支付3分购买回对方手中自己的囚犯。""")
 config.CommandGroup(('cacason', 'ex5'), des="""扩展5：僧院板块与市长（Abbey and Mayor）
 (a) 扩展包含12种12个图块，其中有1块含修道院。
 (b) 僧院（abbey）：游戏开始时每人分发一个僧院板块。在抽取卡牌之前，玩家可以选择将自己的僧院板块放置在四面都有板块的位置，将四面都完成。此后，玩家可以选择在该板块内的修道院上是否放置跟随者。
@@ -158,8 +163,8 @@ async def ccs_extension(session: CommandSession):
         if session.current_arg_text.startswith("check"):
             if len(data['extensions']) == 0:
                 session.finish("目前未开启任何扩展包。")
-            pack_names = ["Inns and Cathedrals", "Traders and Builders", "The Princess and The Dragon", "", "Abbey and Mayor"]
-            thing_names = [["图块", "跟随者", "旅馆机制", "主教教堂机制"], ["图块", "建筑师", "猪", "交易标记"], ["图块", "龙", "仙子", "传送门", "公主"], [], ["图块", "僧院板块", "市长", "马车", "谷仓"]]
+            pack_names = ["Inns and Cathedrals", "Traders and Builders", "The Princess and The Dragon", "The Tower", "Abbey and Mayor"]
+            thing_names = [["图块", "跟随者", "旅馆机制", "主教教堂机制"], ["图块", "建筑师", "猪", "交易标记"], ["图块", "龙", "仙子", "传送门", "公主"], ["图块", "高塔"], ["图块", "僧院板块", "市长", "马车", "谷仓"]]
             await session.send("目前开启的扩展包有：\n" + '\n'.join(pack_names[packid - 1] + "\n\t" + "，".join(thing_names[packid - 1][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items()))
             return
         if match := re.match(r'(open|close) ex(\d+)([a-z]?)', session.current_arg_text):
@@ -220,11 +225,15 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await session.send("无法连接！")
             elif rete == -3:
                 await session.send("没有挨着！")
+            elif rete == -4:
+                await session.send("未找到可赎回的囚犯！")
+            elif rete == -5:
+                await session.send("余分不足以赎回！")
             else:
                 if ret["second_turn"]:
                     await session.send("玩家继续第二回合")
                 await session.send([board.saveImg()])
-                await session.send((f'玩家{data["names"][board.current_turn_player_id]}开始行动，' if ret["begin"] else "") + '请选择放图块的坐标，以及用URDL将指定方向旋转至向上。')
+                await session.send((f'玩家{data["names"][board.current_turn_player_id]}开始行动，' if ret["begin"] else "") + '请选择放图块的坐标，以及用URDL将指定方向旋转至向上。' + ("此时可发送“赎回玩家nxxx”花3分赎回囚犯。" if board.checkPack(4, "b") else ""))
         elif ret["id"] == 2:
             if ret["last_err"] == -1:
                 await session.send("没有找到跟随者！")
@@ -281,7 +290,19 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await session.send("未找到跟随者！")
             else:
                 await session.send([board.saveImg(princess=ret["object"])])
-                await session.send('你放置了公主，可以指定公主要移走哪名跟随者，回复“不放"跳过。')
+                await session.send('你放置了公主，可以指定公主要移走哪名跟随者，回复“返回”跳过。')
+        elif ret["id"] == 9:
+            if ret["last_err"] == -1:
+                await session.send("未找到跟随者！")
+            else:
+                await session.send([board.saveImg(tower_pos=ret["pos"])])
+                await session.send('请选择要抓的跟随者，回复“不抓"跳过。')
+        elif ret["id"] == 10:
+            if ret["last_err"] == -1:
+                await session.send("未找到跟随者！")
+            else:
+                await session.send([board.saveImg()])
+                await session.send(f'请选择玩家{data["names"][board.current_player_id]}选择换回的对方的跟随者。')
     
     command = session.msg_text.strip()
     if data['adding_extensions']:
@@ -302,14 +323,20 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         return
     
     match board.state:
-        case State.TileDrawn:
+        case State.PuttingTile:
             if match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([URDL])", command):
                 xs = match.group(1); ys = match.group(2); orients = match.group(3)
                 pos = board.tileNameToPos(xs, ys)
                 orient = {'U': Dir.UP, 'R': Dir.LEFT, 'D': Dir.DOWN, 'L': Dir.RIGHT}[orients]
                 await advance(board, {"pos": pos, "orient": orient})
+            elif match := re.match(r"\s*赎回玩家(\d+)(.*)?", command):
+                player_id = int(match.group(1))
+                name = match.group(2)
+                await advance(board, {"player_id": player_id, "which": name or "follower"})
         case State.PrincessAsking:
-            if match := re.match(r"\s*([a-z]+)", command):
+            if command in ("不放", "返回"):
+                await advance(board, {"id": -1})
+            elif match := re.match(r"\s*([a-z]+)", command):
                 xs = match.group(1)
                 n = (ord(xs[0]) - ord('a') + 1) * 26 + ord(xs[1]) - ord('a') if len(xs) == 2 else ord(xs) - ord('a')
                 await advance(board, {"id": n})
@@ -326,6 +353,16 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             elif board.checkPack(3, "d") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(传送门|portal)$", command)):
                 xs = match.group(1); ys = match.group(2)
                 await advance(board, {"id": -2, "pos": pos, "special": "portal"})
+        case State.CaptureTower:
+            if command in ("不放", "不抓"):
+                await advance(board, {"id": -1})
+            elif match := re.match(r"\s*([a-z]+)", command):
+                xs = match.group(1)
+                n = (ord(xs[0]) - ord('a') + 1) * 26 + ord(xs[1]) - ord('a') if len(xs) == 2 else ord(xs) - ord('a')
+                await advance(board, {"id": n})
+        case State.ExchangingPrisoner:
+            if match := re.match(r"\s*(.*)", command):
+                await advance(board, {"which": match.group(1)})
         case State.ChoosingFairy:
             if match := re.match(r"\s*([a-z])", command):
                 n = ord(match.group(1)) - ord('a')

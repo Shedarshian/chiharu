@@ -21,11 +21,11 @@ class Dir(Enum):
     RIGHT = 1
     DOWN = 2
     LEFT = 3
-    def corr(self):
+    def corr(self) -> tuple[int, int]:
         return ((0, -1), (1, 0), (0, 1), (-1, 0))[self.value]
     @classmethod
     def fromCorr(cls, corr: tuple[int, int]):
-        return ((0, -1), (1, 0), (0, 1), (-1, 0)).index(corr)
+        return Dir(((0, -1), (1, 0), (0, 1), (-1, 0)).index(corr))
     def __add__(self, other: 'Dir'):
         return Dir((self.value + other.value) % 4)
     def __radd__(self, other: tuple[int, int]):
@@ -43,7 +43,7 @@ class TradeCounter(Enum):
     Wine = auto()
     Grain = auto()
     Cloth = auto()
-all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 5: 'abcde'}
+all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde'}
 T = TypeVar('T')
 TAsync = Generator[dict[str, Any], dict[str, Any], T]
 
@@ -248,7 +248,8 @@ class Board:
     def tileImages(self, draw_tile_seg: tuple[int, int] | list[tuple[int, int]] | None=None, /,
                    debug: bool=False,
                    draw_fairy_follower: tuple[int, int] | None=None,
-                   princess: 'Object | None'=None):
+                   princess: 'Object | None'=None,
+                   tower_pos: tuple[int, int] | None=None):
         leftmost, rightmost = self.lrborder
         uppermost, lowermost = self.udborder
         img = Image.new("RGBA", ((rightmost - leftmost + 1) * 64 + 46, (lowermost - uppermost + 1) * 64 + 46))
@@ -329,6 +330,14 @@ class Board:
             i = ord('a')
             for follower in princess.iterTokens():
                 if isinstance(follower, Follower) and isinstance(follower.parent, Segment):
+                    draw(c, follower.parent.tile.findTokenDrawPos(follower), i)
+                    i += 1
+        if tower_pos is not None:
+            tower = [feature for feature in self.tiles[tower_pos].features if isinstance(feature, Tower)][0]
+            followers = [token for token in self.tiles[tower_pos].iterAllTokens() if isinstance(token, Follower)] + [token for dr in Dir for i in range(tower.height) for token in self.tiles[tower_pos[0] + dr.corr()[0], tower_pos[1] + dr.corr()[1]].iterAllTokens() if isinstance(token, Follower)]
+            i = ord('a')
+            for follower in followers:
+                if isinstance(follower.parent, Segment):
                     draw(c, follower.parent.tile.findTokenDrawPos(follower), i)
                     i += 1
         # token
@@ -414,10 +423,11 @@ class Board:
     def image(self, /, draw_tile_seg: tuple[int, int] | list[tuple[int, int]] | None=None,
               debug: bool=False, no_final_score: bool=False,
               draw_fairy_follower: tuple[int, int] | None=None,
-                princess: 'Object | None'=None):
+              princess: 'Object | None'=None,
+              tower_pos: tuple[int, int] | None=None):
         player_img = self.playerImage(no_final_score=no_final_score)
         handtile_img = self.handTileImage()
-        tile_img = self.tileImages(draw_tile_seg, debug=debug, draw_fairy_follower=draw_fairy_follower, princess=princess)
+        tile_img = self.tileImages(draw_tile_seg, debug=debug, draw_fairy_follower=draw_fairy_follower, princess=princess, tower_pos=tower_pos)
         p1, p2 = player_img.size
         h1, h2 = handtile_img.size
         t1, t2 = tile_img.size
@@ -447,10 +457,11 @@ class Board:
     def saveImg(self, /, draw_tile_seg: tuple[int, int] | list[tuple[int, int]] | None=None,
                 debug: bool=False, no_final_score: bool=False,
                 draw_fairy_follower: tuple[int, int] | None=None,
-                princess: 'Object | None'=None):
+                princess: 'Object | None'=None,
+                tower_pos: tuple[int, int] | None=None):
         from .. import config
         name = 'ccs' + str(random.randint(0, 9) + self.current_player_id * 10) + '.png'
-        self.image(draw_tile_seg, debug=debug, no_final_score=no_final_score, draw_fairy_follower=draw_fairy_follower, princess=princess).save(config.img(name))
+        self.image(draw_tile_seg, debug=debug, no_final_score=no_final_score, draw_fairy_follower=draw_fairy_follower, princess=princess, tower_pos=tower_pos).save(config.img(name))
         return config.cq.img(name)
     def saveRemainTileImg(self):
         from .. import config
@@ -947,7 +958,9 @@ class Cloister(Feature, CanScore):
         score = sum(1 if (pos[0] + i, pos[1] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1))
         return [(player, score) for player in players]
 class Tower(Feature):
-    pass
+    def __init__(self, parent: Tile | Segment, data: dict[str, Any]) -> None:
+        super().__init__(parent, data)
+        self.height: int = 0
 
 class Token(ABC):
     def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
@@ -1107,9 +1120,11 @@ AbbeyData = {"id": -1, "sides": "FFFF", "segments": [], "features": [{"type": "C
 class State(Enum):
     End = auto()
     AbbeyAsking = auto()
-    TileDrawn = auto()
+    PuttingTile = auto()
     PrincessAsking = auto()
     PuttingFollower = auto()
+    CaptureTower = auto()
+    ExchangingPrisoner = auto()
     ChoosingFairy = auto()
     MovingDragon = auto()
     InturnScoring = auto()
@@ -1128,6 +1143,17 @@ class Player:
         self.hasAbbey = self.board.checkPack(5, 'b')
         self.towerPieces: int = 0
         self.prisoners: list[Follower] = []
+    @property
+    def tokenColor(self):
+        return ["green", "yellow", "gray", "purple", "blue", "black"][self.id]
+    @property
+    def show_name(self):
+        show_name = self.name
+        if self.board.font_name.getlength(self.name) > 80:
+            while self.board.font_name.getlength(show_name + "...") > 80:
+                show_name = show_name[:-1]
+            show_name += "..."
+        return show_name
     def addScore(self, score: int) -> TAsync[None]:
         self.score += score
         return
@@ -1154,17 +1180,7 @@ class Player:
                 if self is player:
                     score += scorec
         return self.score + score
-    @property
-    def tokenColor(self):
-        return ["green", "yellow", "gray", "purple", "blue", "black"][self.id]
-    @property
-    def show_name(self):
-        show_name = self.name
-        if self.board.font_name.getlength(self.name) > 80:
-            while self.board.font_name.getlength(show_name + "...") > 80:
-                show_name = show_name[:-1]
-            show_name += "..."
-        return show_name
+    
     def turnAskAbbey(self, isBegin: bool, endGame: bool) -> TAsync[tuple[bool, bool, tuple[int, int]]]:
         isAbbey: bool = False
         tile: Tile | None = None
@@ -1192,7 +1208,6 @@ class Player:
         return isBegin, isAbbey, pos
     def turnDrawTile(self, isBegin: bool) -> TAsync[bool]:
         self.handTile = self.board.drawTile()
-        self.board.state = State.TileDrawn
         checked: int = 0
         while self.handTile is not None and not self.board.checkTileCanPut(self.handTile):
             checked += 1
@@ -1205,10 +1220,33 @@ class Player:
         return isBegin
         yield {}
     def turnPutTile(self, turn: int, isBegin: bool) -> TAsync[tuple[bool, tuple[int, int], bool]]:
-        pass_err: Literal[0, -1, -2, -3] = 0
+        self.board.state = State.PuttingTile
+        pass_err: Literal[0, -1, -2, -3, -4, -5] = 0
         while 1:
             ret = yield {"id": 0, "second_turn": turn == 1, "last_err": pass_err, "begin": isBegin}
             isBegin = False
+            if ret.get("special") == "prisoner":
+                if self.score < 3:
+                    pass_err = -5
+                    continue
+                player_id: int = ret["player_id"]
+                if player_id < 0 or player_id >= len(self.board.players):
+                    pass_err = -4
+                    continue
+                player = self.board.players[player_id]
+                try:
+                    tokens = [token for token in player.prisoners if isinstance(token, Token.make(ret.get("which", "follower")))]
+                except KeyError:
+                    pass_err = -4
+                    continue
+                if len(tokens) == 0:
+                    pass_err = -4
+                    continue
+                token = tokens[0]
+                yield from self.addScore(-3)
+                player.prisoners.remove(token)
+                self.tokens.append(token)
+                continue
             pos: tuple[int, int] = ret["pos"]
             orient: Dir = ret["orient"]
             tile = self.handTile
@@ -1265,14 +1303,14 @@ class Player:
         return False
         yield {}
     def turnPutFollower(self, tile: Tile, pos: tuple[int, int]) -> TAsync[None]:
-        pass_err: Literal[0, -1, -2, -3] = 0
+        pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7] = 0
         if_portal: bool = False
         pos_put = pos
         tile_put = tile
         while 1:
             self.board.state = State.PuttingFollower
             ret = yield {"id": 2, "last_err": pass_err, "last_put": pos_put, "if_portal": if_portal}
-            if self.board.checkPack(3, "c") and "special" in ret and ret["special"] == "fairy":
+            if self.board.checkPack(3, "c") and ret.get("special") == "fairy":
                 pos_fairy: tuple[int, int] = ret["pos"]
                 if pos_fairy not in self.board.tiles:
                     pass_err = -3
@@ -1295,10 +1333,10 @@ class Player:
                         follower = followers[ret["id"]]
                 self.board.fairy.moveTo(follower, tile_fairy)
                 break
-            if self.board.checkPack(3, "d") and not if_portal and "special" in ret and ret["special"] == "portal":
+            if self.board.checkPack(3, "d") and not if_portal and ret.get("special") == "portal":
                 pos_portal: tuple[int, int] = ret["pos"]
                 if pos_portal not in self.board.tiles or tile.dragon != DragonType.Portal:
-                    pass_err = -3
+                    pass_err = -4
                     continue
                 pos_put = pos_portal
                 tile_put = self.board.tiles[pos_portal]
@@ -1309,6 +1347,40 @@ class Player:
                 tile_put = tile
                 if_portal = False
                 continue
+            if self.board.checkPack(4, "b") and ret.get("special") == "tower":
+                pos_tower: tuple[int, int] = ret["pos"]
+                if pos_tower not in self.board.tiles:
+                    pass_err = -5
+                    continue
+                tile_tower = self.board.tiles[pos_tower]
+                tower = more_itertools.only(feature for feature in tile_tower.features if isinstance(feature, Tower))
+                if tower is None:
+                    pass_err = -5
+                    continue
+                if len(tower.tokens) != 0:
+                    pass_err = -6
+                    continue
+                if not ret.get("which"):
+                    if self.towerPieces == 0:
+                        pass_err = -7
+                        continue
+                    yield from self.turnCaptureTower(tower, pos_tower)
+                    break
+                try:
+                    tokens = [token for token in self.tokens if isinstance(token, Token.make(ret["which"]))]
+                except KeyError:
+                    pass_err = -1
+                    continue
+                if len(tokens) == 0:
+                    pass_err = -1
+                    continue
+                token = tokens[0]
+                if not isinstance(token, (Follower, BigFollower)):
+                    pass_err = -2
+                    continue
+                self.tokens.remove(token)
+                yield from token.putOn(tower)
+                break
             if ret["id"] == -1:
                 break
             if 0 <= ret["id"] < len(tile_put.features):
@@ -1341,6 +1413,61 @@ class Player:
             self.tokens.remove(token)
             yield from token.putOn(seg_put)
             break
+    def turnCaptureTower(self, tower: Tower, pos: tuple[int, int]) -> TAsync[None]:
+        followers = [token for token in self.board.tiles[pos].iterAllTokens() if isinstance(token, Follower)] + [token for dr in Dir for i in range(tower.height) for token in self.board.tiles[pos[0] + dr.corr()[0], pos[1] + dr.corr()[1]].iterAllTokens() if isinstance(token, Follower)]
+        if len(followers) == 0:
+            return
+        self.board.state = State.CaptureTower
+        pass_err: Literal[0, -1] = 0
+        while 1:
+            ret = yield {"id": 9, "pos": pos, "last_err": pass_err}
+            id: int = ret["id"]
+            if id == -1:
+                break
+            if id < 0 or id >= len(followers):
+                pass_err = -1
+                continue
+            follower = followers[id]
+            if follower.player is self:
+                follower.putBackToHand()
+            else:
+                follower.remove()
+                self.prisoners.append(follower)
+                yield from self.checkReturnPrisoner()
+            break
+    def checkReturnPrisoner(self) -> TAsync[None]:
+        for player in self.board.players:
+            if player is self:
+                continue
+            p = [[token for token in self.prisoners if token.player is player], [token for token in player.prisoners if token.player is self]]
+            if len(p[0]) == 0 or len(p[1]) == 0:
+                continue
+            t = [p[0][0], p[1][0]]
+            self.board.state = State.ExchangingPrisoner
+            pass_err: Literal[0, -1] = 0
+            for i in range(2):
+                if len(set(c.key() for c in p[i])) == 1:
+                    continue
+                if i == 1:
+                    self.board.current_player_id = player.id
+                while 1:
+                    ret = yield {"id": 10, "last_err": pass_err}
+                    try:
+                        tokens = [token for token in p[i] if isinstance(token, Token.make(ret["which"]))]
+                    except KeyError:
+                        pass_err = -1
+                        continue
+                    if len(tokens) == 0:
+                        pass_err = -1
+                        continue
+                    t[i] = tokens[0]
+                    break
+                if i == 1:
+                    self.board.current_player_id = self.board.current_turn_player_id
+            self.prisoners.remove(t[0])
+            player.tokens.append(t[0])
+            player.prisoners.remove(t[1])
+            self.tokens.append(t[1])
     def turnMoveDragon(self) -> TAsync[None]:
         self.board.state = State.MovingDragon
         dragon = self.board.dragon
@@ -1391,11 +1518,11 @@ class Player:
                         if isinstance(feature, CanScore) and feature.closed():
                             yield from feature.score(False)
     def turn(self) -> TAsync[None]:
-        """id0：放图块（-1：已有连接, -2：无法连接，-3：没有挨着，3：第二回合）
-        2：放跟随者（-1不放，返回-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门）
-        4：选马车（-1：没有图块，-2：图块过远，-3：无法放置）
+        """id0：放图块（-1：已有连接, -2：无法连接，-3：没有挨着，-4：未找到可赎回的囚犯，-5：余分不足）
+        2：放跟随者（-1不放，返回-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门，-5：找不到高塔
+        -6：高塔有人，-7：手里没有高塔片段），4：选马车（-1：没有图块，-2：图块过远，-3：无法放置）
         5：询问僧院板块（-1：无法放置），6：询问龙（-1：无法移动），7：询问仙子细化（-1：无法移动）
-        8：询问公主（-1：未找到跟随者）"""
+        8：询问公主（-1：未找到跟随者），9：询问高塔抓人（-1：未找到跟随者），10：询问交换俘虏（-1：未找到跟随者）"""
         isBegin: bool = True
         nextTurn = False
         # check fairy
