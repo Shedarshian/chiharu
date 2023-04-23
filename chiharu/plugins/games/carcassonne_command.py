@@ -2,12 +2,13 @@ from typing import Dict, Any, Callable, Awaitable, Literal
 import re, random, json, datetime
 from .carcassonne import Connectable, Dir, TradeCounter, open_pack, State, CantPutError, all_extensions
 from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Player
+from .carcassonne import DragonType
 from ..inject import CommandGroup, on_command
 from .. import config, game
 from nonebot import CommandSession, NLPSession, get_bot
 from nonebot.command import call_command
 
-version = (1, 1, 5)
+version = (1, 1, 6)
 changelog = """2023-04-17 12:05 v1.1.0
 · 添加版本号记录。
 · 微调五扩米宝位置。
@@ -24,11 +25,13 @@ changelog = """2023-04-17 12:05 v1.1.0
 · 彻底重构回合记录方法。
 · 僧院板块完成。
 · BUG明天再修。
-2023-04-21 23:41 v1.1.4
+2023-04-22 23:41 v1.1.4
 · 龙写完啦。
 2023-04-23 12:00 v1.1.5
 · 重构了计分法。
-· 仙子写完啦。"""
+· 仙子写完啦。
+2023-04-23 14:46 v1.1.6
+· 传送门写完啦。"""
 
 cacason = game.GameSameGroup('cacason', can_private=True)
 config.CommandGroup(('play', 'cacason'), hide=True)
@@ -222,11 +225,21 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await session.send("没有找到跟随者！")
             elif ret["last_err"] == -2:
                 await session.send("无法放置！")
+            elif ret["last_err"] == -3:
+                await session.send("无法移动仙子！")
+            elif ret["last_err"] == -4:
+                await session.send("无法使用传送门！")
             else:
                 await session.send([board.saveImg(ret["last_put"])])
-                prompt = "请选择放置跟随者的位置（小写字母）以及放置的特殊跟随者名称（如有需要），回复“不放”跳过"
+                prompt = "请选择放置跟随者的位置（小写字母）以及放置的特殊跟随者名称（如有需要）"
                 if board.checkPack(3, "c"):
-                    prompt += "，回复板块位置以及“仙子”移动仙子"
+                    prompt += "，回复跟随者所在板块位置以及“仙子”移动仙子"
+                if not ret["if_portal"] and board.checkPack(3, "d") and board.tiles[ret["last_put"]].dragon == DragonType.Portal:
+                    prompt += "，回复板块位置以及“传送门”使用传送门"
+                if ret["if_portal"]:
+                    prompt += "，回复“返回”返回"
+                else:
+                    prompt += "，回复“不放”跳过"
                 prompt += "。"
                 await session.send(prompt)
         elif ret["id"] == 4:
@@ -285,7 +298,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 orient = {'U': Dir.UP, 'R': Dir.LEFT, 'D': Dir.DOWN, 'L': Dir.RIGHT}[orients]
                 await advance(board, {"pos": pos, "orient": orient})
         case State.PuttingFollower:
-            if command == "不放":
+            if command in ("不放", "返回"):
                 await advance(board, {"id": -1})
             elif match := re.match(r"\s*([a-z])\s*(.*)?$", command):
                 n = ord(match.group(1)) - ord('a')
@@ -293,7 +306,10 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await advance(board, {"id": n, "which": name or "follower"})
             elif board.checkPack(3, "c") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(仙子|fairy)$", command)):
                 xs = match.group(1); ys = match.group(2)
-                await advance(board, {"pos": pos, "special": "fairy"})
+                await advance(board, {"id": -2, "pos": pos, "special": "fairy"})
+            elif board.checkPack(3, "d") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(传送门|portal)$", command)):
+                xs = match.group(1); ys = match.group(2)
+                await advance(board, {"id": -2, "pos": pos, "special": "portal"})
         case State.ChoosingFairy:
             if match := re.match(r"\s*([a-z])", command):
                 n = ord(match.group(1)) - ord('a')

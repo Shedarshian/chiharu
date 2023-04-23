@@ -3437,13 +3437,15 @@
                     "name": "dragon",
                     "distribute": false,
                     "num": 1,
-                    "thing_id": "b"
+                    "thing_id": "b",
+                    "image": [0, 0, 64, 48]
                 },
                 {
                     "name": "fairy",
                     "distribute": false,
                     "num": 1,
-                    "thing_id": "c"
+                    "thing_id": "c",
+                    "image": [0, 48, 16, 64]
                 }
             ]
         },

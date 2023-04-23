@@ -1225,9 +1225,12 @@ class Player:
         yield {}
     def turnPutFollower(self, tile: Tile, pos: tuple[int, int]) -> TAsync[None]:
         pass_err: Literal[0, -1, -2, -3] = 0
+        if_portal: bool = False
+        pos_put = pos
+        tile_put = tile
         while 1:
             self.board.state = State.PuttingFollower
-            ret = yield {"id": 2, "last_err": pass_err, "last_put": pos}
+            ret = yield {"id": 2, "last_err": pass_err, "last_put": pos_put, "if_portal": if_portal}
             if "special" in ret and ret["special"] == "fairy":
                 pos_fairy: tuple[int, int] = ret["pos"]
                 if pos_fairy not in self.board.tiles:
@@ -1251,16 +1254,30 @@ class Player:
                         follower = followers[ret["id"]]
                 self.board.fairy.moveTo(follower, tile_fairy)
                 break
+            if not if_portal and "special" in ret and ret["special"] == "portal":
+                pos_portal: tuple[int, int] = ret["pos"]
+                if pos_portal not in self.board.tiles or tile.dragon != DragonType.Portal:
+                    pass_err = -3
+                    continue
+                pos_put = pos_portal
+                tile_put = self.board.tiles[pos_portal]
+                if_portal = True
+                continue
+            if if_portal and ret["id"] == -1:
+                pos_put = pos
+                tile_put = tile
+                if_portal = False
+                continue
             if ret["id"] == -1:
                 break
-            if 0 <= ret["id"] < len(tile.features):
-                seg_put: Segment | Feature | Tile = tile.features[ret["id"]]
-            elif len(tile.features) <= ret["id"] < (ll := len(tile.segments) + len(tile.features)):
-                seg_put = tile.segments[ret["id"] - len(tile.features)]
-            elif self.board.checkPack(5, "e") and not tile.isAbbey and ll <= ret["id"] < ll + 4 and (pos := self.board.findTilePos(tile)):
+            if 0 <= ret["id"] < len(tile_put.features):
+                seg_put: Segment | Feature | Tile = tile_put.features[ret["id"]]
+            elif len(tile_put.features) <= ret["id"] < (ll := len(tile_put.segments) + len(tile_put.features)):
+                seg_put = tile_put.segments[ret["id"] - len(tile_put.features)]
+            elif self.board.checkPack(5, "e") and not tile_put.isAbbey and ll <= ret["id"] < ll + 4 and (pos := self.board.findTilePos(tile_put)):
                 # for barn
                 offset = [(-1, -1), (0, -1), (-1, 0), (0, 0)][ret["id"] - ll]
-                if (tile2 := self.board.tiles.get((pos[0] + offset[0], pos[1] + offset[1]))) is not None:
+                if (tile2 := self.board.tiles.get((pos_put[0] + offset[0], pos_put[1] + offset[1]))) is not None:
                     seg_put = tile2
                 else:
                     pass_err = -2
@@ -1333,7 +1350,10 @@ class Player:
                         if isinstance(feature, CanScore) and feature.closed():
                             yield from feature.score(False)
     def turn(self) -> TAsync[None]:
-        """id0：放图块（-1：已有连接, -2：无法连接，-3：没有挨着，3：第二回合），2：放跟随者（-1不放，返回-1：没有跟随者，-2：无法放置，-3：无法移动仙子），4：选马车（-1：没有图块，-2：图块过远，-3：无法放置），5：询问僧院板块（-1：无法放置），6：询问龙（-1：无法移动），7：询问仙子细化（-1：无法移动）"""
+        """id0：放图块（-1：已有连接, -2：无法连接，-3：没有挨着，3：第二回合）
+        2：放跟随者（-1不放，返回-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门）
+        4：选马车（-1：没有图块，-2：图块过远，-3：无法放置）
+        5：询问僧院板块（-1：无法放置），6：询问龙（-1：无法移动），7：询问仙子细化（-1：无法移动）"""
         isBegin: bool = True
         nextTurn = False
         # check fairy
