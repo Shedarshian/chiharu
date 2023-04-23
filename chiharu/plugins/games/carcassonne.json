@@ -2423,22 +2423,30 @@
                                 {
                                     "type": "Princess"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 8
                         },
                         {
                             "type": "City",
                             "to": [1, 2],
-                            "pennant": 1
+                            "pennant": 1,
+                            "posx": 56,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [],
-                            "adjacent_city": [0, 1]
+                            "adjacent_city": [0, 1],
+                            "posx": 32,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [5, 6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 32
                         }
                     ]
                 },
@@ -2454,12 +2462,16 @@
                                 {
                                     "type": "Princess"
                                 }
-                            ]
+                            ],
+                            "posx": 40,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [5, 6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 32
                         }
                     ]
                 },
@@ -2471,12 +2483,16 @@
                         {
                             "type": "City",
                             "to": [0, 1, 2],
-                            "pennant": 1
+                            "pennant": 1,
+                            "posx": 40,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [5, 6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 32
                         }
                     ],
                     "features": [
@@ -2492,17 +2508,23 @@
                     "segments": [
                         {
                             "type": "City",
-                            "to": [0, 1, 2]
+                            "to": [0, 1, 2],
+                            "posx": 40,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [5, 6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 32
                         }
                     ],
                     "features": [
                         {
-                            "type": "Cloister"
+                            "type": "Cloister",
+                            "posx": 28,
+                            "posy": 24
                         },
                         {
                             "type": "Dragon"
@@ -2521,17 +2543,23 @@
                                 {
                                     "type": "Princess"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [3, 4],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 32,
+                            "posy": 56
                         },
                         {
                             "type": "Field",
                             "to": [5, 6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 32
                         }
                     ]
                 },
@@ -2542,12 +2570,16 @@
                     "segments": [
                         {
                             "type": "City",
-                            "to": [0, 1]
+                            "to": [0, 1],
+                            "posx": 32,
+                            "posy": 8
                         },
                         {
                             "type": "Field",
                             "to": [3, 4, 5, 6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 24,
+                            "posy": 40
                         }
                     ],
                     "features": [
@@ -2568,12 +2600,16 @@
                                 {
                                     "type": "Princess"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 8
                         },
                         {
                             "type": "Field",
                             "to": [3, 4, 5, 6],
-                            "adjacent_city": [0]
+                            "adjacent_city": [0],
+                            "posx": 24,
+                            "posy": 40
                         }
                     ]
                 },
@@ -2584,16 +2620,22 @@
                     "segments": [
                         {
                             "type": "City",
-                            "to": [0]
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
                         },
                         {
                             "type": "City",
-                            "to": [1]
+                            "to": [1],
+                            "posx": 56,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [3, 4, 5, 6],
-                            "adjacent_city": [0, 1]
+                            "adjacent_city": [0, 1],
+                            "posx": 24,
+                            "posy": 40
                         }
                     ],
                     "features": [
@@ -2614,7 +2656,9 @@
                                 {
                                     "type": "Princess"
                                 }
-                            ]
+                            ],
+                            "posx": 32,
+                            "posy": 8
                         },
                         {
                             "type": "Road",
@@ -2645,7 +2689,9 @@
                     "segments": [
                         {
                             "type": "City",
-                            "to": [0, 1]
+                            "to": [0, 1],
+                            "posx": 32,
+                            "posy": 8
                         },
                         {
                             "type": "Road",
@@ -3186,35 +3232,49 @@
                     "segments": [
                         {
                             "type": "Road",
-                            "to": [1]
+                            "to": [1],
+                            "posx": 48,
+                            "posy": 32
                         },
                         {
                             "type": "Road",
-                            "to": [2]
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 48
                         },
                         {
                             "type": "Road",
-                            "to": [3]
+                            "to": [3],
+                            "posx": 16,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [0, 1, 6, 7],
-                            "adjacent_city": []
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 16
                         },
                         {
                             "type": "Field",
                             "to": [2, 3],
-                            "adjacent_city": []
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
                         },
                         {
                             "type": "Field",
                             "to": [4, 5],
-                            "adjacent_city": []
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
                         }
                     ],
                     "features": [
                         {
-                            "type": "Cloister"
+                            "type": "Cloister",
+                            "posx": 32,
+                            "posy": 36
                         },
                         {
                             "type": "Dragon"
@@ -3376,12 +3436,16 @@
                 {
                     "name": "dragon",
                     "distribute": false,
-                    "num": 1
+                    "num": 1,
+                    "thing_id": "b",
+                    "image": [0, 0, 64, 48]
                 },
                 {
                     "name": "fairy",
                     "distribute": false,
-                    "num": 1
+                    "num": 1,
+                    "thing_id": "c",
+                    "image": [0, 48, 16, 64]
                 }
             ]
         },
