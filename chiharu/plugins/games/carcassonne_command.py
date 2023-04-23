@@ -8,7 +8,7 @@ from .. import config, game
 from nonebot import CommandSession, NLPSession, get_bot
 from nonebot.command import call_command
 
-version = (1, 1, 6)
+version = (1, 1, 7)
 changelog = """2023-04-17 12:05 v1.1.0
 · 添加版本号记录。
 · 微调五扩米宝位置。
@@ -31,7 +31,9 @@ changelog = """2023-04-22 23:41 v1.1.4
 · 重构了计分法。
 · 仙子写完啦。
 2023-04-23 14:46 v1.1.6
-· 传送门写完啦。"""
+· 传送门写完啦。
+2023-04-23 15:45 v1.1.7
+· 公主写完啦。"""
 
 cacason = game.GameSameGroup('cacason', can_private=True)
 config.CommandGroup(('play', 'cacason'), hide=True)
@@ -271,6 +273,12 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             else:
                 await session.send([board.saveImg(draw_fairy_follower=ret["last_put"])])
                 await session.send('请额外指定要放置在哪个跟随者旁。')
+        elif ret["id"] == 8:
+            if ret["last_err"] == -1:
+                await session.send("未找到跟随者！")
+            else:
+                await session.send([board.saveImg(princess=ret["object"])])
+                await session.send('你放置了公主，可以指定公主要移走哪名跟随者，回复“不放"跳过。')
     
     command = session.msg_text.strip()
     if data['adding_extensions']:
@@ -297,6 +305,11 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 pos = board.tileNameToPos(xs, ys)
                 orient = {'U': Dir.UP, 'R': Dir.LEFT, 'D': Dir.DOWN, 'L': Dir.RIGHT}[orients]
                 await advance(board, {"pos": pos, "orient": orient})
+        case State.PrincessAsking:
+            if match := re.match(r"\s*([a-z]+)", command):
+                xs = match.group(1)
+                n = (ord(xs[0]) - ord('a') + 1) * 26 + ord(xs[1]) - ord('a') if len(xs) == 2 else ord(xs) - ord('a')
+                await advance(board, {"id": n})
         case State.PuttingFollower:
             if command in ("不放", "返回"):
                 await advance(board, {"id": -1})

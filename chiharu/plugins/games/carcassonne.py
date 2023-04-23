@@ -242,7 +242,8 @@ class Board:
 
     def tileImages(self, draw_tile_seg: tuple[int, int] | list[tuple[int, int]] | None=None, /,
                    debug: bool=False,
-                   draw_fairy_follower: tuple[int, int] | None=None):
+                   draw_fairy_follower: tuple[int, int] | None=None,
+                   princess: 'Object | None'=None):
         leftmost, rightmost = self.lrborder
         uppermost, lowermost = self.udborder
         img = Image.new("RGBA", ((rightmost - leftmost + 1) * 64 + 46, (lowermost - uppermost + 1) * 64 + 46))
@@ -286,7 +287,8 @@ class Board:
         # choose follower
         def draw(c: tuple[int, int], tpos: tuple[int, int], i: int):
             dr.ellipse((posshift(*c, (tpos[0] - 6, tpos[1] - 6)), posshift(*c, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
-            dr.text(posshift(*c, tpos), chr(i), "black", font, "mm")
+            text = chr(i) if i <= ord('a') + 25 else chr((i - ord('a')) // 26) + chr((i - ord('a')) % 26)
+            dr.text(posshift(*c, tpos), text, "black", font, "mm")
         if draw_tile_seg is not None:
             if isinstance(draw_tile_seg, tuple):
                 choose_follower2 = [draw_tile_seg]
@@ -317,6 +319,12 @@ class Board:
             for follower in tile.iterAllTokens():
                 if isinstance(follower, Follower) and follower.parent is self.current_turn_player and self.fairy.canMove(follower):
                     draw(c, tile.findTokenDrawPos(follower), i)
+                    i += 1
+        if princess is not None:
+            i = ord('a')
+            for follower in princess.iterTokens():
+                if isinstance(follower, Follower) and isinstance(follower.parent, Segment):
+                    draw(c, follower.parent.tile.findTokenDrawPos(follower), i)
                     i += 1
         # token
         def checkFairy(token: Token, p1: tuple[int, int], next: int):
@@ -400,10 +408,11 @@ class Board:
 
     def image(self, /, draw_tile_seg: tuple[int, int] | list[tuple[int, int]] | None=None,
               debug: bool=False, no_final_score: bool=False,
-              draw_fairy_follower: tuple[int, int] | None=None):
+              draw_fairy_follower: tuple[int, int] | None=None,
+                princess: 'Object | None'=None):
         player_img = self.playerImage(no_final_score=no_final_score)
         handtile_img = self.handTileImage()
-        tile_img = self.tileImages(draw_tile_seg, debug=debug, draw_fairy_follower=draw_fairy_follower)
+        tile_img = self.tileImages(draw_tile_seg, debug=debug, draw_fairy_follower=draw_fairy_follower, princess=princess)
         p1, p2 = player_img.size
         h1, h2 = handtile_img.size
         t1, t2 = tile_img.size
@@ -432,10 +441,11 @@ class Board:
         return img
     def saveImg(self, /, draw_tile_seg: tuple[int, int] | list[tuple[int, int]] | None=None,
                 debug: bool=False, no_final_score: bool=False,
-                draw_fairy_follower: tuple[int, int] | None=None):
+                draw_fairy_follower: tuple[int, int] | None=None,
+                princess: 'Object | None'=None):
         from .. import config
         name = 'ccs' + str(random.randint(0, 9) + self.current_player_id * 10) + '.png'
-        self.image(draw_tile_seg, debug=debug, no_final_score=no_final_score, draw_fairy_follower=draw_fairy_follower).save(config.img(name))
+        self.image(draw_tile_seg, debug=debug, no_final_score=no_final_score, draw_fairy_follower=draw_fairy_follower, princess=princess).save(config.img(name))
         return config.cq.img(name)
     def saveRemainTileImg(self):
         from .. import config
@@ -713,6 +723,7 @@ class Segment:
         self.isCathedral: bool = False
         self.isInn: bool = False
         self.tradeCounter: TradeCounter | None = None
+        self.princess: bool = False
     @classmethod
     def make(cls, typ: str) -> Type['Segment']:
         return {"City": CitySegment, "Field": FieldSegment, "Road": RoadSegment, "River": RiverSegment}[typ]
@@ -753,6 +764,8 @@ class CitySegment(NonFieldSegment):
                 self.isCathedral = True
             if feature["type"] == "TradeCounter":
                 self.tradeCounter = TradeCounter[feature["counter"]]
+            if feature["type"] == "Princess":
+                self.princess = True
     @property
     def color(self):
         return "brown"
@@ -968,6 +981,11 @@ class Token(ABC):
         x = Image.new("RGBA", self.img.size)
         x.paste(Image.new("RGBA", self.img.size, self.player.tokenColor), (0, 0), mask)
         return x
+    def remove(self):
+        if isinstance(self.parent, (Tile, Segment, Feature, Object)):
+            self.parent.tokens.remove(self)
+        if self.board.checkPack(3, 'c') and self.board.fairy.follower is self:
+            self.board.fairy.follower = None
     def putBackToHand(self):
         if isinstance(self.parent, (Tile, Segment, Feature, Object)):
             self.parent.tokens.remove(self)
@@ -1085,6 +1103,7 @@ class State(Enum):
     End = auto()
     AbbeyAsking = auto()
     TileDrawn = auto()
+    PrincessAsking = auto()
     PuttingFollower = auto()
     ChoosingFairy = auto()
     MovingDragon = auto()
@@ -1178,7 +1197,7 @@ class Player:
             random.shuffle(self.board.deck)
         return isBegin
         yield {}
-    def turnPutTile(self, turn: int, isBegin: bool) -> TAsync[tuple[bool, tuple[int, int]]]:
+    def turnPutTile(self, turn: int, isBegin: bool) -> TAsync[tuple[bool, tuple[int, int], bool]]:
         pass_err: Literal[0, -1, -2, -3] = 0
         while 1:
             ret = yield {"id": 0, "second_turn": turn == 1, "last_err": pass_err, "begin": isBegin}
@@ -1207,7 +1226,24 @@ class Player:
         for dr in Dir:
             if pos + dr in self.board.tiles:
                 self.board.tiles[pos + dr].addConnect(tile, -dr)
-        return isBegin, pos
+        princessed: bool = False
+        if self.board.checkPack(3, "e") and (seg := more_itertools.only(seg for seg in tile.segments if seg.princess)):
+            followers = [token for token in seg.object.iterTokens() if isinstance(token, Follower) and isinstance(token.parent, Segment)]
+            if len(followers) != 0:
+                pass_err = 0
+                self.board.state = State.PrincessAsking
+                while 1:
+                    ret = yield {"id": 8, "object": seg.object}
+                    id: int = ret["id"]
+                    if id >= 0 and id < len(followers):
+                        followers[id].putBackToHand()
+                        seg.object.checkRemoveBuilderAndPig()
+                        break
+                    elif id != -1:
+                        pass_err = -1
+                        continue
+                    break
+        return isBegin, pos, princessed
     def turnCheckBuilder(self) -> TAsync[bool]:
         assert self.handTile is not None
         next_turn = False
@@ -1228,7 +1264,7 @@ class Player:
         while 1:
             self.board.state = State.PuttingFollower
             ret = yield {"id": 2, "last_err": pass_err, "last_put": pos_put, "if_portal": if_portal}
-            if "special" in ret and ret["special"] == "fairy":
+            if self.board.checkPack(3, "c") and "special" in ret and ret["special"] == "fairy":
                 pos_fairy: tuple[int, int] = ret["pos"]
                 if pos_fairy not in self.board.tiles:
                     pass_err = -3
@@ -1251,7 +1287,7 @@ class Player:
                         follower = followers[ret["id"]]
                 self.board.fairy.moveTo(follower, tile_fairy)
                 break
-            if not if_portal and "special" in ret and ret["special"] == "portal":
+            if self.board.checkPack(3, "d") and not if_portal and "special" in ret and ret["special"] == "portal":
                 pos_portal: tuple[int, int] = ret["pos"]
                 if pos_portal not in self.board.tiles or tile.dragon != DragonType.Portal:
                     pass_err = -3
@@ -1350,7 +1386,8 @@ class Player:
         """id0：放图块（-1：已有连接, -2：无法连接，-3：没有挨着，3：第二回合）
         2：放跟随者（-1不放，返回-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门）
         4：选马车（-1：没有图块，-2：图块过远，-3：无法放置）
-        5：询问僧院板块（-1：无法放置），6：询问龙（-1：无法移动），7：询问仙子细化（-1：无法移动）"""
+        5：询问僧院板块（-1：无法放置），6：询问龙（-1：无法移动），7：询问仙子细化（-1：无法移动）
+        8：询问公主（-1：未找到跟随者）"""
         isBegin: bool = True
         nextTurn = False
         # check fairy
@@ -1366,7 +1403,7 @@ class Player:
                 isBegin = yield from self.turnDrawTile(isBegin)
 
                 # put tile
-                isBegin, pos = yield from self.turnPutTile(turn, isBegin)
+                isBegin, pos, princessed = yield from self.turnPutTile(turn, isBegin)
 
                 # builder generate a second turn
                 if turn == 0:
@@ -1379,8 +1416,9 @@ class Player:
             if self.board.checkPack(3, "b") and tile.dragon == DragonType.Volcano:
                 self.board.dragon.moveTo(tile)
 
-            # put a follower
-            yield from self.turnPutFollower(tile, pos)
+            if not princessed:
+                # put a follower
+                yield from self.turnPutFollower(tile, pos)
 
             # move a dragon
             if self.board.checkPack(3, "b") and tile.dragon == DragonType.Dragon:
