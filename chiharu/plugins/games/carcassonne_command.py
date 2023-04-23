@@ -7,7 +7,7 @@ from .. import config, game
 from nonebot import CommandSession, NLPSession, get_bot
 from nonebot.command import call_command
 
-version = (1, 1, 4)
+version = (1, 1, 5)
 changelog = """2023-04-17 12:05 v1.1.0
 · 添加版本号记录。
 · 微调五扩米宝位置。
@@ -25,7 +25,10 @@ changelog = """2023-04-17 12:05 v1.1.0
 · 僧院板块完成。
 · BUG明天再修。
 2023-04-21 23:41 v1.1.4
-· 龙写完啦。"""
+· 龙写完啦。
+2023-04-23 12:00 v1.1.5
+· 重构了计分法。
+· 仙子写完啦。"""
 
 cacason = game.GameSameGroup('cacason', can_private=True)
 config.CommandGroup(('play', 'cacason'), hide=True)
