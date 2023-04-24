@@ -184,8 +184,8 @@ async def ccs_extension(session: CommandSession):
                     session.finish("扩展" + exas + "不存在" + exb + "小项！")
                 exabs.append((exa, exb))
                 if command == "open" and exa in data['extensions'] and exb in data['extensions'][exa]:
-                        session.finish("此扩展已被添加过！")
-                elif command == "close" and exa not in data['extensions'] or exb not in data['extensions'][exa]:
+                    session.finish("此扩展已被添加过！")
+                elif command == "close" and (exa not in data['extensions'] or exb not in data['extensions'][exa]):
                     session.finish("此扩展未被添加过！")
             for exa, exb in exabs:
                 if command == "open":
