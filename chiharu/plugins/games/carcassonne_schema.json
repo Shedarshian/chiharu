@@ -26,10 +26,45 @@
                     "descrption": "The ID of this pack."
                 },
                 "tiles": {
-                    "type": "array",
+                    "type": "object",
                     "description": "Tiles included by this pack.",
-                    "items": {
-                        "$ref": "#/$defs/TileData"
+                    "properties": {
+                        "a": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/$defs/TileData"
+                            }
+                        },
+                        "b": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/$defs/TileData"
+                            }
+                        },
+                        "c": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/$defs/TileData"
+                            }
+                        },
+                        "d": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/$defs/TileData"
+                            }
+                        },
+                        "e": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/$defs/TileData"
+                            }
+                        },
+                        "f": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/$defs/TileData"
+                            }
+                        }
                     }
                 },
                 "tokens": {
@@ -166,6 +201,9 @@
                 },
                 {
                     "$ref": "#/$defs/RoadSegmentData"
+                },
+                {
+                    "$ref": "#/$defs/RiverSegmentData"
                 }
             ]
         },
@@ -195,7 +233,27 @@
                 }
             },
             "required": [
-              "to",
+              "to"
+            ]
+        },
+        "SegmentPosData": {
+            "type": "object",
+            "properties": {
+                "to": {
+                    "type": "array",
+                    "description": "To which sides does this object connects. For non-fields, 0123 refers to URDL. For fields, 0-7 starts from the right half of the upper side and increases clockwise.",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "features": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/FeatureData"
+                    }
+                }
+            },
+            "required": [
               "posx",
               "posy"
             ]
@@ -205,6 +263,9 @@
             "allOf": [
               {
                 "$ref": "#/$defs/BaseSegmentData"
+              },
+              {
+                "$ref": "#/$defs/SegmentPosData"
               }
             ],
             "properties": {},
@@ -268,6 +329,21 @@
                 "bush": {
                     "type": "boolean",
                     "description": "Whether the road is covered by bush (not hotel)."
+                }
+            }
+        },
+        "RiverSegmentData": {
+            "description": "The connection between rivers.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/$defs/BaseSegmentData"
+              }
+            ],
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "River"
                 }
             }
         },

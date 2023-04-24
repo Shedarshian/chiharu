@@ -84,13 +84,13 @@ class Board:
             self.allTileimgs[pack_id] = {}
             if pack_id == 5 and self.checkPack(5, "b"):
                 self.abbeyImg = self.tileimgs[pack_id].crop((2 * 64, 2 * 64, 3 * 64, 3 * 64))
-            for t in pack["tiles"]:
-                # HARD CODE HERE
-                if pack_id in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10) and "a" not in packs_options[pack_id]:
+            for key, lt in pack["tiles"]:
+                if pack_id != 0 and key not in packs_options[pack_id]:
                     continue
-                img = self.tileimgs[pack_id].crop(((t["id"] % 5) * 64, (t["id"] // 5) * 64, (t["id"] % 5 + 1) * 64, (t["id"] // 5 + 1) * 64))
-                self.allTileimgs[pack_id][t["id"]] = img
-                self.deck.extend(Tile(self, t, img, pack_id) for i in range(t["num"]))
+                for t in lt:
+                    img = self.tileimgs[pack_id].crop(((t["id"] % 5) * 64, (t["id"] // 5) * 64, (t["id"] % 5 + 1) * 64, (t["id"] // 5 + 1) * 64))
+                    self.allTileimgs[pack_id][t["id"]] = img
+                    self.deck.extend(Tile(self, t, img, pack_id) for i in range(t["num"]))
             for t in pack["tokens"]:
                 if "thing_id" in t and t["thing_id"] not in packs_options[pack_id]:
                     continue
@@ -584,7 +584,7 @@ class CanScore(ABC):
                             pass_err = -3
                             continue
                         wagon.parent.tokens.remove(wagon)
-                        wagon.putOn(seg_put)
+                        yield from wagon.putOn(seg_put)
                         break
                 self.board.current_player_id = self.board.current_turn_player_id
             self.board.state = State.InturnScoring
@@ -1129,6 +1129,7 @@ class Fairy(Figure):
 AbbeyData = {"id": -1, "sides": "FFFF", "segments": [], "features": [{"type": "Cloister", "posx": 32, "posy": 36}]}
 class State(Enum):
     End = auto()
+    PuttingRiver = auto()
     AbbeyAsking = auto()
     PuttingTile = auto()
     PrincessAsking = auto()
@@ -1164,7 +1165,7 @@ class Player:
                 show_name = show_name[:-1]
             show_name += "..."
         return show_name
-    def addScore(self, score: int) -> TAsync[None]:
+    def addScore(self, score: int, canMessage: bool=True) -> TAsync[None]:
         self.score += score
         return
         yield {}
@@ -1190,7 +1191,7 @@ class Player:
                 if self is player:
                     score += scorec
         return self.score + score
-    
+
     def turnAskAbbey(self, isBegin: bool, endGame: bool) -> TAsync[tuple[bool, bool, tuple[int, int]]]:
         isAbbey: bool = False
         tile: Tile | None = None
@@ -1255,7 +1256,7 @@ class Player:
                     pass_err = -4
                     continue
                 token = tokens[0]
-                yield from self.addScore(-3)
+                yield from self.addScore(-3, False)
                 player.prisoners.remove(token)
                 self.tokens.append(token)
                 prisonered = True
