@@ -66,11 +66,12 @@ def open_img(name: str):
     from pathlib import Path
     return Image.open(Path(__file__).parent / "carcassonne_asset" / (name + ".png")).convert("RGBA")
 class Board:
-    def __init__(self, packs_options: dict[int, str], player_names: list[str]) -> None:
+    def __init__(self, packs_options: dict[int, str], player_names: list[str], start_tile_pack: int=0) -> None:
         all_packs = open_pack()["packs"]
         packs: list[dict[str, Any]] = [all_packs[0]] + [all_packs[i] for i, item in sorted(packs_options.items()) if item != ""]
         self.packs_options = packs_options
         self.tiles: dict[tuple[int, int], Tile] = {}
+        self.riverDeck: list[Tile] = []
         self.deck: list[Tile] = []
         self.tokens: list[Token] = []
         self.players: list[Player] = [Player(self, i, name) for i, name in enumerate(player_names)]
@@ -90,7 +91,10 @@ class Board:
                 for t in lt:
                     img = self.tileimgs[pack_id].crop(((t["id"] % 5) * 64, (t["id"] // 5) * 64, (t["id"] % 5 + 1) * 64, (t["id"] // 5 + 1) * 64))
                     self.allTileimgs[pack_id][t["id"]] = img
-                    self.deck.extend(Tile(self, t, img, pack_id) for i in range(t["num"]))
+                    if pack_id == 7 and key == "a":
+                        self.riverDeck.extend(Tile(self, t, img, pack_id) for i in range(t["num"]))
+                    else:
+                        self.deck.extend(Tile(self, t, img, pack_id) for i in range(t["num"]))
             for t in pack["tokens"]:
                 if "thing_id" in t and t["thing_id"] not in packs_options[pack_id]:
                     continue
@@ -108,13 +112,24 @@ class Board:
         for player in self.players:
             player.allTokens = [t for t in player.tokens]
         self.allTokens = [t for t in self.tokens]
-        start_id = packs[0]["starting_tile"]
-        start_tile = [t for t in self.deck if t.id == start_id][0]
-        self.popTile(start_tile)
+        start_id = packs[start_tile_pack]["starting_tile"]
+        start_tile = [t for t in self.deck if t.packid == start_tile_pack and t.id == start_id][0]
+        if start_tile_pack == 7:
+            self.popTile(start_tile)
+        else:
+            self.popRiverTile(start_tile)
         self.tiles[0, 0] = start_tile
         self.current_player_id = 0
         self.current_turn_player_id = 0
         random.shuffle(self.deck)
+        if self.checkPack(7, "a"):
+            random.shuffle(self.riverDeck)
+            fork = [tile for tile in self.riverDeck if tile.id == 1][0]
+            self.riverDeck.remove(fork)
+            self.riverDeck = [fork] + self.riverDeck
+            end = [tile for tile in self.riverDeck if tile.id == 3][0]
+            self.riverDeck.remove(end)
+            self.riverDeck.append(end)
         self.players[0].tokens.sort(key=Token.key)
         self.token_pos: dict[Type[Token], int] = {}
         xpos = 0
@@ -161,9 +176,15 @@ class Board:
 
     def popTile(self, tile: 'Tile'):
         self.deck.remove(tile)
+    def popRiverTile(self, tile: 'Tile'):
+        self.riverDeck.remove(tile)
     def drawTile(self):
         tile = self.deck[0]
         self.popTile(tile)
+        return tile
+    def drawRiverTile(self):
+        tile = self.riverDeck[0]
+        self.popRiverTile(tile)
         return tile
     def nextPlayer(self):
         self.current_turn_player_id += 1
@@ -745,6 +766,7 @@ class Segment:
         self.isInn: bool = False
         self.tradeCounter: TradeCounter | None = None
         self.princess: bool = False
+        self.pigherd: bool = False
     @classmethod
     def make(cls, typ: str) -> Type['Segment']:
         return {"City": CitySegment, "Field": FieldSegment, "Road": RoadSegment, "River": RiverSegment}[typ]
@@ -812,6 +834,9 @@ class FieldSegment(Segment):
             {(Dir(((i + 1) % 8) // 2), i % 2 == 1): None for i in data["to"]}
         self.adjacentCity: list[Segment] = []
         self.adjacentCityTemp: list[int] = data["adjacent_city"]
+        for feature in data.get("features", []):
+            if feature["type"] == "Pigherd":
+                self.pigherd = True
     def makeAdjacentCity(self, segs: list[Segment]):
         self.adjacentCity = [segs[i] for i in self.adjacentCityTemp]
         del self.adjacentCityTemp
@@ -1192,6 +1217,10 @@ class Player:
                     score += scorec
         return self.score + score
 
+    def turnDrawRiver(self, isBegin: bool) -> TAsync[bool]:
+        self.handTile = self.board.drawRiverTile()
+        return isBegin
+        yield {}
     def turnAskAbbey(self, isBegin: bool, endGame: bool) -> TAsync[tuple[bool, bool, tuple[int, int]]]:
         isAbbey: bool = False
         tile: Tile | None = None
@@ -1279,6 +1308,7 @@ class Player:
                         pass_err = ret0
                         if pass_err < 0:
                             continue
+            # TODO check river
             break
         tile.turn(orient)
         self.board.tiles[pos] = tile
@@ -1548,26 +1578,34 @@ class Player:
         8：询问公主（-1：未找到跟随者），9：询问高塔抓人（-1：未找到跟随者），10：询问交换俘虏（-1：未找到跟随者）"""
         isBegin: bool = True
         nextTurn: bool = False
+        princessed: bool = False
         # check fairy
         if self.board.checkPack(3, "c") and self.board.fairy.follower is not None and self.board.fairy.follower.player is self:
             self.board.addLog(id="score", player=self, num=1, source="fairy")
             yield from self.addScore(1)
 
         for turn in range(2):
-            # ask abbey
-            isBegin, isAbbey, pos = yield from self.turnAskAbbey(isBegin, False)
-
-            princessed: bool = False
-            if not isAbbey:
-                # draw tile normally
-                isBegin = yield from self.turnDrawTile(isBegin)
+            # draw river
+            if len(self.board.riverDeck) != 0:
+                isBegin = yield from self.turnDrawRiver(isBegin)
+                nextTurn = len(self.board.riverDeck) == 0
 
                 # put tile
                 isBegin, pos, princessed = yield from self.turnPutTile(turn, isBegin)
+            else:
+                # ask abbey
+                isBegin, isAbbey, pos = yield from self.turnAskAbbey(isBegin, False)
 
-                # builder generate a second turn
-                if turn == 0:
-                    nextTurn = yield from self.turnCheckBuilder()
+                if not isAbbey:
+                    # draw tile normally
+                    isBegin = yield from self.turnDrawTile(isBegin)
+
+                    # put tile
+                    isBegin, pos, princessed = yield from self.turnPutTile(turn, isBegin)
+
+                    # builder generate a second turn
+                    if turn == 0:
+                        nextTurn = yield from self.turnCheckBuilder()
             tile = self.handTile
             assert tile is not None
             self.handTile = None
