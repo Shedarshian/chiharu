@@ -241,7 +241,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     case "exchangePrisoner":
                         outputs.append(f"玩家{data['names'][d['p2'].player.id]}和玩家{data['names'][d['p1'].player.id]}的囚犯自动互换了。")
                     case "tradeCounter":
-                        outputs.append("你获得了" + '，'.join(f"{num}个" + ["酒", "小麦", "布"][i] for i, num in d["tradeCounter"].items() if num != 0) + '。')
+                        outputs.append("你获得了" + '，'.join(f"{num}个" + ["酒", "小麦", "布"][i] for i, num in enumerate(d["tradeCounter"]) if num != 0) + '。')
             await session.send("\n".join(outputs))
         if ret["id"] == 0:
             rete = ret["last_err"]
