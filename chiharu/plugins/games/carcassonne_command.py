@@ -228,6 +228,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             # game log
             config.userdata.execute("insert into cacason_gamelog (group_id, users, extensions, time, score, winner, winner_score) values (?, ?, ?, ?, ?, ?, ?)", (session.ctx['group_id'], ','.join(str(q) for q in data['players']), json.dumps(data['extensions']), datetime.datetime.now().isoformat(), ','.join(str(p.score) for p in board.players), ','.join(str(q) for q in players_win), score_win))
             await delete_func()
+            return
         if len(board.log) != 0:
             outputs = []
             for d in board.log:
