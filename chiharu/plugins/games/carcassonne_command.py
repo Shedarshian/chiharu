@@ -2,7 +2,7 @@ from typing import Dict, Any, Callable, Awaitable, Literal
 import re, random, json, datetime
 from .carcassonne import Connectable, Dir, TradeCounter, open_pack, State, CantPutError, all_extensions
 from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Player
-from .carcassonne import DragonType
+from .carcassonne import DragonType, Builder
 from ..inject import CommandGroup, on_command
 from .. import config, game
 from nonebot import CommandSession, NLPSession, get_bot
@@ -217,6 +217,21 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             # game log
             config.userdata.execute("insert into cacason_gamelog (group_id, users, extensions, time, score, winner, winner_score) values (?, ?, ?, ?, ?, ?, ?)", (session.ctx['group_id'], ','.join(str(q) for q in data['players']), json.dumps(data['extensions']), datetime.datetime.now().isoformat(), ','.join(str(p.score) for p in board.players), ','.join(str(q) for q in players_win), score_win))
             await delete_func()
+        if len(board.log) != 0:
+            outputs = []
+            for d in board.log:
+                match d["id"]:
+                    case "score":
+                        outputs.append(f"玩家{data['names'][d['player'].id]}因" + {"fairy": "仙子", "complete": "完成建筑", "final": "未完成建筑"}[d["source"]] + f"获得{d['num']}分。")
+                    case "redraw":
+                        outputs.append("牌堆顶卡无法放置，故重抽一张。")
+                    case "putbackBuilder":
+                        outputs.append(f"玩家{data['names'][d['builder'].player.id]}的{'建筑师' if isinstance(d['builder'], Builder) else '猪'}因所在区域没人而返回。")
+                    case "exchangePrisoner":
+                        outputs.append(f"玩家{data['names'][d['p2'].player.id]}和玩家{data['names'][d['p1'].player.id]}的囚犯自动互换了。")
+                    case "tradeCounter":
+                        outputs.append("你获得了" + '，'.join(f"{num}个" + ["酒", "小麦", "布"][i] for i, num in d["tradeCounter"].items() if num != 0) + '。')
+            await session.send("\n".join(outputs))
         if ret["id"] == 0:
             rete = ret["last_err"]
             if rete == -1:

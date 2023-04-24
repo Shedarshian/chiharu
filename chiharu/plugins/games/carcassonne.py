@@ -133,6 +133,7 @@ class Board:
         self.font_score = ImageFont.truetype("msyhbd.ttc", 24)
         self.state: State = State.End
         self.stateGen = self.process()
+        self.log: list[dict[str, Any]] = []
     def checkPack(self, packid: int, thingid: str):
         return packid in self.packs_options and thingid in self.packs_options[packid]
     @property
@@ -244,6 +245,8 @@ class Board:
                 if (i, j) not in self.tiles and all((i, j) + dir in self.tiles for dir in Dir):
                     return True
         return False
+    def addLog(self, /, **log):
+        self.log.append(log)
 
     def tileImages(self, draw_tile_seg: tuple[int, int] | list[tuple[int, int]] | None=None, /,
                    debug: bool=False,
@@ -544,6 +547,7 @@ class CanScore(ABC):
         players = self.checkPlayerAndScore(True, putBarn=putBarn)
         for player, score in players:
             if score != 0:
+                self.board.addLog(id="score", player=player, source="complete", num=score)
                 yield from player.addScore(score)
         # move wagon
         if self.board.checkPack(5, "d"):
@@ -589,6 +593,7 @@ class CanScore(ABC):
         players = self.checkPlayerAndScore(False)
         for player, score in players:
             if score != 0:
+                self.board.addLog(id="score", player=player, source="final", num=score)
                 player.addScoreFinal(score)
         self.removeAllFollowers()
 
@@ -918,6 +923,7 @@ class Object(CanScore):
         ts = [token for seg in self.segments for token in seg.tokens if isinstance(token, (Builder, Pig))]
         for t in ts:
             if not any(token.player is t.player for seg in self.segments for token in seg.tokens):
+                self.board.addLog(id="putbackBuilder", builder=t)
                 t.putBackToHand()
     def score(self, putBarn: bool) -> TAsync[None]:
         if self.type == Connectable.Field:
@@ -1210,6 +1216,7 @@ class Player:
         self.handTile = self.board.drawTile()
         checked: int = 0
         while self.handTile is not None and not self.board.checkTileCanPut(self.handTile):
+            self.board.addLog(id="redraw", tile=self.handTile)
             checked += 1
             self.board.deck.append(self.handTile)
             self.handTile = self.board.drawTile()
@@ -1234,7 +1241,7 @@ class Player:
                 if player_id < 0 or player_id >= len(self.board.players):
                     pass_err = -4
                     continue
-                player = self.board.players[player_id]
+                player: Player = self.board.players[player_id]
                 try:
                     tokens = [token for token in player.prisoners if isinstance(token, Token.make(ret.get("which", "follower")))]
                 except KeyError:
@@ -1294,7 +1301,6 @@ class Player:
         return isBegin, pos, princessed
     def turnCheckBuilder(self) -> TAsync[bool]:
         assert self.handTile is not None
-        next_turn = False
         if not self.board.checkPack(2, 'b'):
             return False
         for seg in self.handTile.segments:
@@ -1448,8 +1454,10 @@ class Player:
             t = [p[0][0], p[1][0]]
             self.board.state = State.ExchangingPrisoner
             pass_err: Literal[0, -1] = 0
+            c = [False, False]
             for i in range(2):
                 if len(set(c.key() for c in p[i])) == 1:
+                    c[i] = True
                     continue
                 if i == 1:
                     self.board.current_player_id = player.id
@@ -1467,6 +1475,8 @@ class Player:
                     break
                 if i == 1:
                     self.board.current_player_id = self.board.current_turn_player_id
+            if c[0] and c[1]:
+                self.board.addLog(id="exchangePrisoner", p1=t[0], p2=t[1])
             self.prisoners.remove(t[0])
             player.tokens.append(t[0])
             player.prisoners.remove(t[1])
@@ -1504,14 +1514,18 @@ class Player:
                     if seg.object.closed() and seg.object not in objects:
                         objects.append(seg.object)
         for obj in objects:
+            tc: list[int] = [0, 0, 0]
             if self.board.checkPack(2, 'd') and obj.type == Connectable.City:
                 for seg2 in obj.segments:
                     if seg2.tradeCounter == TradeCounter.Wine:
-                        self.tradeCounter[0] += 1
+                        tc[0] += 1
                     elif seg2.tradeCounter == TradeCounter.Grain:
-                        self.tradeCounter[1] += 1
+                        tc[1] += 1
                     elif seg2.tradeCounter == TradeCounter.Cloth:
-                        self.tradeCounter[2] += 1
+                        tc[2] += 1
+                for i in range(3):
+                    self.tradeCounter[i] += tc[i]
+                self.board.addLog(id="tradeCounter", tradeCounter=tc)
             yield from obj.score(putBarn=False)
         for i in (-1, 0, 1):
             for j in (-1, 0, 1):
@@ -1530,6 +1544,7 @@ class Player:
         nextTurn = False
         # check fairy
         if self.board.checkPack(3, "c") and self.board.fairy.follower is not None and self.board.fairy.follower.player is self:
+            self.board.addLog(id="score", player=self, num=1, source="fairy")
             yield from self.addScore(1)
 
         for turn in range(2):
