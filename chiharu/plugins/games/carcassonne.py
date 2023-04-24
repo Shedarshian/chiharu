@@ -1526,9 +1526,10 @@ class Player:
                         tc[1] += 1
                     elif seg2.tradeCounter == TradeCounter.Cloth:
                         tc[2] += 1
-                for i in range(3):
-                    self.tradeCounter[i] += tc[i]
-                self.board.addLog(id="tradeCounter", tradeCounter=tc)
+                if tc != [0, 0, 0]:
+                    for i in range(3):
+                        self.tradeCounter[i] += tc[i]
+                    self.board.addLog(id="tradeCounter", tradeCounter=tc)
             yield from obj.score(putBarn=False)
         for i in (-1, 0, 1):
             for j in (-1, 0, 1):
