@@ -218,7 +218,7 @@ class Board:
                     return ret
         return 1
     def checkTileCanPut(self, tile: 'Tile'):
-        if self.checkPack(2, "b") and self.dragon.tile is None and tile.dragon == DragonType.Dragon:
+        if self.checkPack(3, "b") and self.dragon.tile is None and tile.dragon == DragonType.Dragon:
             return False
         leftmost, rightmost = self.lrborder
         uppermost, lowermost = self.udborder
