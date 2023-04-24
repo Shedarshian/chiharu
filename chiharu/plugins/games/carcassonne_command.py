@@ -233,7 +233,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 if ret["second_turn"]:
                     await session.send("玩家继续第二回合")
                 await session.send([board.saveImg()])
-                await session.send((f'玩家{data["names"][board.current_turn_player_id]}开始行动，' if ret["begin"] else "") + '请选择放图块的坐标，以及用URDL将指定方向旋转至向上。' + ("此时可发送“赎回玩家nxxx”花3分赎回囚犯。" if board.checkPack(4, "b") else ""))
+                await session.send((f'玩家{data["names"][board.current_turn_player_id]}开始行动，' if ret["begin"] else "") + '请选择放图块的坐标，以及用URDL将指定方向旋转至向上。' + ("此时可发送“赎回玩家nxxx”花3分赎回囚犯。" if not ret["second_turn"] and board.checkPack(4, "b") else ""))
         elif ret["id"] == 2:
             if ret["last_err"] == -1:
                 await session.send("没有找到跟随者！")

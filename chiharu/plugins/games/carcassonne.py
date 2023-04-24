@@ -334,7 +334,7 @@ class Board:
                     i += 1
         if tower_pos is not None:
             tower = [feature for feature in self.tiles[tower_pos].features if isinstance(feature, Tower)][0]
-            followers = [token for token in self.tiles[tower_pos].iterAllTokens() if isinstance(token, Follower)] + [token for dr in Dir for i in range(tower.height) for token in self.tiles[tower_pos[0] + dr.corr()[0], tower_pos[1] + dr.corr()[1]].iterAllTokens() if isinstance(token, Follower)]
+            followers = [token for token in self.tiles[tower_pos].iterAllTokens() if isinstance(token, Follower)] + [token for dr in Dir for i in range(tower.height) if (tower_pos[0] + dr.corr()[0] * (i + 1), tower_pos[1] + dr.corr()[1] * (i + 1)) in self.tiles for token in self.tiles[tower_pos[0] + dr.corr()[0] * (i + 1), tower_pos[1] + dr.corr()[1] * (i + 1)].iterAllTokens() if isinstance(token, Follower)]
             i = ord('a')
             for follower in followers:
                 if isinstance(follower.parent, Segment):
@@ -1222,10 +1222,11 @@ class Player:
     def turnPutTile(self, turn: int, isBegin: bool) -> TAsync[tuple[bool, tuple[int, int], bool]]:
         self.board.state = State.PuttingTile
         pass_err: Literal[0, -1, -2, -3, -4, -5] = 0
+        prisonered: bool = False
         while 1:
             ret = yield {"id": 0, "second_turn": turn == 1, "last_err": pass_err, "begin": isBegin}
             isBegin = False
-            if ret.get("special") == "prisoner":
+            if turn == 0 and not prisonered and ret.get("special") == "prisoner":
                 if self.score < 3:
                     pass_err = -5
                     continue
@@ -1246,6 +1247,7 @@ class Player:
                 yield from self.addScore(-3)
                 player.prisoners.remove(token)
                 self.tokens.append(token)
+                prisonered = True
                 continue
             pos: tuple[int, int] = ret["pos"]
             orient: Dir = ret["orient"]
@@ -1302,7 +1304,7 @@ class Player:
                         return True
         return False
         yield {}
-    def turnPutFollower(self, tile: Tile, pos: tuple[int, int]) -> TAsync[None]:
+    def turnPutFollower(self, tile: Tile, pos: tuple[int, int]) -> TAsync[bool]:
         pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7] = 0
         if_portal: bool = False
         pos_put = pos
@@ -1413,8 +1415,9 @@ class Player:
             self.tokens.remove(token)
             yield from token.putOn(seg_put)
             break
+        return if_portal
     def turnCaptureTower(self, tower: Tower, pos: tuple[int, int]) -> TAsync[None]:
-        followers = [token for token in self.board.tiles[pos].iterAllTokens() if isinstance(token, Follower)] + [token for dr in Dir for i in range(tower.height) for token in self.board.tiles[pos[0] + dr.corr()[0], pos[1] + dr.corr()[1]].iterAllTokens() if isinstance(token, Follower)]
+        followers = [token for token in self.board.tiles[pos].iterAllTokens() if isinstance(token, Follower)] + [token for dr in Dir for i in range(tower.height) if (pos[0] + dr.corr()[0] * (i + 1), pos[1] + dr.corr()[1] * (i + 1)) in self.board.tiles for token in self.board.tiles[pos[0] + dr.corr()[0] * (i + 1), pos[1] + dr.corr()[1] * (i + 1)].iterAllTokens() if isinstance(token, Follower)]
         if len(followers) == 0:
             return
         self.board.state = State.CaptureTower
@@ -1551,9 +1554,10 @@ class Player:
             if self.board.checkPack(3, "b") and tile.dragon == DragonType.Volcano:
                 self.board.dragon.moveTo(tile)
 
+            if_portal: bool = False
             if not princessed:
                 # put a follower
-                yield from self.turnPutFollower(tile, pos)
+                if_portal = yield from self.turnPutFollower(tile, pos)
 
             # move a dragon
             if self.board.checkPack(3, "b") and tile.dragon == DragonType.Dragon:
