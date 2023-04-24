@@ -931,6 +931,7 @@ class Object(CanScore):
                 yield from super().score(putBarn)
             else:
                 return
+        yield from super().score(putBarn)
     def scoreFinal(self):
         super().scoreFinal()
         # barn
