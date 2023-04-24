@@ -951,8 +951,8 @@ class Feature:
         return {"Cloister": Cloister}.get(typ, None)
 class Cloister(Feature, CanScore):
     def __init__(self, parent: Tile | Segment, data: dict[str, Any]) -> None:
-        super(self, Feature).__init__(parent, data)
-        super(self, CanScore).__init__(parent.board if isinstance(parent, Tile) else parent.tile.board)
+        Feature.__init__(self, parent, data)
+        CanScore.__init__(self, parent.board if isinstance(parent, Tile) else parent.tile.board)
     def iterTokens(self) -> 'Iterable[Token]':
         yield from self.tokens
     def closed(self) -> bool:

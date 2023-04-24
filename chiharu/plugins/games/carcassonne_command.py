@@ -167,26 +167,37 @@ async def ccs_extension(session: CommandSession):
             thing_names = [["图块", "跟随者", "旅馆机制", "主教教堂机制"], ["图块", "建筑师", "猪", "交易标记"], ["图块", "龙", "仙子", "传送门", "公主"], ["图块", "高塔"], ["图块", "僧院板块", "市长", "马车", "谷仓"]]
             await session.send("目前开启的扩展包有：\n" + '\n'.join(pack_names[packid - 1] + "\n\t" + "，".join(thing_names[packid - 1][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items()))
             return
-        if match := re.match(r'(open|close) ex(\d+)([a-z]?)', session.current_arg_text):
-            command, exas, exbs = match.groups()
-            exa = int(exas)
-            if exa not in all_extensions:
-                session.finish("不存在扩展" + exas + "！")
-            exb = exbs or all_extensions[exa]
-            if exb not in all_extensions[exa]:
-                session.finish("扩展" + exas + "不存在" + exb + "小项！")
-            if command == "open":
-                if exa not in data['extensions']:
-                    data['extensions'][exa] = exb
-                elif exb not in data['extensions'][exa]:
-                    data['extensions'][exa] = ''.join(sorted(set(data['extensions'][exa] + exb)))
+        if match := re.match(r'(open|close)(( ex\d+[a-z]?)+)', session.current_arg_text):
+            command = match.group(1)
+            exs = [ex[2:] for ex in match.group(2)[1:].split(' ')]
+            exabs: list[tuple[int, str]] = []
+            for ex in exs:
+                match2 = re.match(r'(\d+)([a-z]?)', ex)
+                if not match2:
+                    continue
+                exas, exbs = match2.groups()
+                exa = int(exas)
+                if exa not in all_extensions:
+                    session.finish("不存在扩展" + exas + "！")
+                exb = exbs or all_extensions[exa]
+                if exb not in all_extensions[exa]:
+                    session.finish("扩展" + exas + "不存在" + exb + "小项！")
+                exabs.append((exa, exb))
+                if command == "open" and exa in data['extensions'] and exb in data['extensions'][exa]:
+                        session.finish("此扩展已被添加过！")
+                elif command == "close" and exa not in data['extensions'] or exb not in data['extensions'][exa]:
+                    session.finish("此扩展未被添加过！")
+            for exa, exb in exabs:
+                if command == "open":
+                    if exa not in data['extensions']:
+                        data['extensions'][exa] = exb
+                    elif exb not in data['extensions'][exa]:
+                        data['extensions'][exa] = ''.join(sorted(set(data['extensions'][exa] + exb)))
                 else:
-                    session.finish("此扩展已被添加过！")
-                session.finish("已添加。")
-            elif exa not in data['extensions'] or exb not in data['extensions'][exa]:
-                session.finish("此扩展未被添加过！")
+                    data['extensions'][exa] = data['extensions'][exa].replace(exb, "")
+            if command == "open":
+                session.finish("已开启。")
             else:
-                data['extensions'][exa] = data['extensions'][exa].replace(exb, "")
                 session.finish("已关闭。")
         session.finish(ccs_extension.__doc__)
 
@@ -327,7 +338,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             data['board'] = board
             await advance(board)
             data['adding_extensions'] = False
-        elif match := re.match(r'(open|close) ex(\d+)([a-z]?)|check', command):
+        elif match := re.match(r'(open|close)( ex\d+[a-z]?)+|check', command):
             await call_command(get_bot(), session.ctx, ('play', 'cacason', 'extension'), current_arg=command)
         return
     user_id: int = data['players'].index(session.ctx['user_id'])
