@@ -1547,7 +1547,7 @@ class Player:
         5：询问僧院板块（-1：无法放置），6：询问龙（-1：无法移动），7：询问仙子细化（-1：无法移动）
         8：询问公主（-1：未找到跟随者），9：询问高塔抓人（-1：未找到跟随者），10：询问交换俘虏（-1：未找到跟随者）"""
         isBegin: bool = True
-        nextTurn = False
+        nextTurn: bool = False
         # check fairy
         if self.board.checkPack(3, "c") and self.board.fairy.follower is not None and self.board.fairy.follower.player is self:
             self.board.addLog(id="score", player=self, num=1, source="fairy")
@@ -1557,6 +1557,7 @@ class Player:
             # ask abbey
             isBegin, isAbbey, pos = yield from self.turnAskAbbey(isBegin, False)
 
+            princessed: bool = False
             if not isAbbey:
                 # draw tile normally
                 isBegin = yield from self.turnDrawTile(isBegin)

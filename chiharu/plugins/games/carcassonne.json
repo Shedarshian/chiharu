@@ -4788,24 +4788,61 @@
                             "posy": 48
                         },
                         {
-                            "type": "Road",
-                            "to": [2],
-                            "posx": 32,
-                            "posy": 48
+                            "type": "River",
+                            "to": [1, 3]
                         },
                         {
                             "type": "Field",
-                            "to": [1, 2, 3],
+                            "to": [1],
                             "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
                             "posx": 48,
                             "posy": 48
                         },
                         {
                             "type": "Field",
-                            "to": [4, 5, 6],
-                            "adjacent_city": [0],
+                            "to": [4, 5],
+                            "adjacent_city": [],
                             "posx": 16,
                             "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
+                        }
+                    ]
+                },
+                {
+                    "id": 6,
+                    "sides": "FFSS",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "River",
+                            "to": [2, 3]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
                         }
                     ]
                 }
