@@ -4181,6 +4181,7 @@
                         {
                             "type": "City",
                             "to": [0, 2],
+                            "pennant": 1,
                             "posx": 32,
                             "posy": 56
                         },
@@ -4220,6 +4221,7 @@
                         {
                             "type": "City",
                             "to": [1],
+                            "pennant": 1,
                             "posx": 48,
                             "posy": 32
                         },
@@ -4299,6 +4301,7 @@
                         {
                             "type": "City",
                             "to": [0],
+                            "pennant": 1,
                             "posx": 32,
                             "posy": 24
                         },
