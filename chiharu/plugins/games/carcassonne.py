@@ -515,6 +515,9 @@ class Board:
             midEnd = True
         except NoDeckEnd:
             midEnd = False
+        except Exception:
+            self.state = State.Error
+            raise
         yield from self.endGameAskAbbey()
         self.state = State.End
         self.endGameScore()
@@ -1166,6 +1169,7 @@ class State(Enum):
     InturnScoring = auto()
     WagonAsking = auto()
     FinalAbbeyAsking = auto()
+    Error = auto()
 class Player:
     def __init__(self, board: Board, id: int, name: str) -> None:
         self.board = board
