@@ -1317,7 +1317,9 @@ class Player:
                     if ret0 < 0:
                         pass_err = ret0
                         if pass_err < 0:
-                            continue
+                            break
+            if pass_err < 0:
+                break
             # TODO check river
             break
         tile.turn(orient)
