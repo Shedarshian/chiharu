@@ -115,9 +115,9 @@ class Board:
         start_id = packs[start_tile_pack]["starting_tile"]
         start_tile = [t for t in self.deck if t.packid == start_tile_pack and t.id == start_id][0]
         if start_tile_pack == 7:
-            self.popTile(start_tile)
-        else:
             self.popRiverTile(start_tile)
+        else:
+            self.popTile(start_tile)
         self.tiles[0, 0] = start_tile
         self.current_player_id = 0
         self.current_turn_player_id = 0
