@@ -875,7 +875,7 @@ class Object(CanScore):
             seg.object = self
         return self
     def closed(self):
-        return self.type != Connectable.Field and all(seg.closed() for seg in self.segments)
+        return self.type != Connectable.Field and all(seg.closed() for seg in self.segments) or self.type == Connectable.Field and self.checkBarn()
     def iterTokens(self) -> 'Iterable[Token]':
         for seg in self.segments:
             yield from seg.tokens
@@ -953,13 +953,6 @@ class Object(CanScore):
             if not any(token.player is t.player for seg in self.segments for token in seg.tokens):
                 self.board.addLog(id="putbackBuilder", builder=t)
                 t.putBackToHand()
-    def score(self, putBarn: bool) -> TAsync[None]:
-        if self.type == Connectable.Field:
-            if self.checkBarn():
-                yield from super().score(putBarn)
-            else:
-                return
-        yield from super().score(putBarn)
     def scoreFinal(self):
         super().scoreFinal()
         # barn
