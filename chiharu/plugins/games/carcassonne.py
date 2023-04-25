@@ -1276,6 +1276,7 @@ class Player:
         prisonered: bool = False
         while 1:
             ret = yield {"id": 0, "second_turn": turn == 1, "last_err": pass_err, "begin": isBegin}
+            pass_err = 0
             isBegin = False
             if turn == 0 and not prisonered and ret.get("special") == "prisoner":
                 if self.score < 3:
