@@ -1110,11 +1110,11 @@ class Barn(Figure):
             all((pos[0] + i, pos[1] + j) in self.board.tiles and not self.board.tiles[pos[0] + i, pos[1] + j].isAbbey for i in (0, 1) for j in (0, 1)) and \
             seg.getBarnSeg() is not None
     def putOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
-        if isinstance(seg, Tile):
-            if s := seg.getBarnSeg():
-                s.tokens.append(self)
-                self.parent = s
-                yield from s.object.score(putBarn=True)
+        if isinstance(seg, Tile) and (s := seg.getBarnSeg()):
+            s.tokens.append(self)
+            self.parent = s
+        return
+        yield {}
     def key(self) -> tuple[int, int]:
         return (5, 2)
 class Dragon(Figure):
@@ -1364,9 +1364,10 @@ class Player:
                         return True
         return False
         yield {}
-    def turnPutFollower(self, tile: Tile, pos: tuple[int, int]) -> TAsync[bool]:
+    def turnPutFollower(self, tile: Tile, pos: tuple[int, int]) -> TAsync[tuple[bool, bool]]:
         pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7] = 0
         if_portal: bool = False
+        put_barn: bool = False
         pos_put = pos
         tile_put = tile
         while 1:
@@ -1474,8 +1475,9 @@ class Player:
                 continue
             self.tokens.remove(token)
             yield from token.putOn(seg_put)
+            put_barn = isinstance(token, Barn)
             break
-        return if_portal
+        return if_portal, put_barn
     def turnCaptureTower(self, tower: Tower, pos: tuple[int, int]) -> TAsync[None]:
         followers = [token for token in self.board.tiles[pos].iterAllTokens() if isinstance(token, Follower)] + [token for dr in Dir for i in range(tower.height) if (pos[0] + dr.corr()[0] * (i + 1), pos[1] + dr.corr()[1] * (i + 1)) in self.board.tiles for token in self.board.tiles[pos[0] + dr.corr()[0] * (i + 1), pos[1] + dr.corr()[1] * (i + 1)].iterAllTokens() if isinstance(token, Follower)]
         if len(followers) == 0:
@@ -1556,7 +1558,7 @@ class Player:
             self.board.nextAskingPlayer()
         self.board.current_player_id = self.board.current_turn_player_id
         self.board.dragonMoved = []
-    def turnScoring(self, tile: Tile, pos: tuple[int, int]) -> TAsync[None]:
+    def turnScoring(self, tile: Tile, pos: tuple[int, int], ifBarn: bool) -> TAsync[None]:
         self.board.state = State.InturnScoring
         objects: list[Object] = []
         for seg in tile.segments:
@@ -1581,14 +1583,14 @@ class Player:
                     for i in range(3):
                         self.tradeCounter[i] += tc[i]
                     self.board.addLog(id="tradeCounter", tradeCounter=tc)
-            yield from obj.score(putBarn=False)
+            yield from obj.score(ifBarn)
         for i in (-1, 0, 1):
             for j in (-1, 0, 1):
                 npos = (pos[0] + i, pos[1] + j)
                 if npos in self.board.tiles:
                     for feature in self.board.tiles[npos].features:
                         if isinstance(feature, CanScore) and feature.closed():
-                            yield from feature.score(False)
+                            yield from feature.score(ifBarn)
     def turn(self) -> TAsync[None]:
         """id0：放图块（-1：已有连接, -2：无法连接，-3：没有挨着，-4：未找到可赎回的囚犯，-5：余分不足，-6：河流不能回环，-7：河流不能180度）
         2：放跟随者（-1不放，返回-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门，-5：找不到高塔
@@ -1598,6 +1600,8 @@ class Player:
         isBegin: bool = True
         nextTurn: bool = False
         princessed: bool = False
+        ifPortal: bool = False
+        ifBarn: bool = False
         # check fairy
         if self.board.checkPack(3, "c") and self.board.fairy.follower is not None and self.board.fairy.follower.player is self:
             self.board.addLog(id="score", player=self, num=1, source="fairy")
@@ -1633,17 +1637,16 @@ class Player:
             if self.board.checkPack(3, "b") and tile.dragon == DragonType.Volcano:
                 self.board.dragon.moveTo(tile)
 
-            if_portal: bool = False
             if not princessed:
                 # put a follower
-                if_portal = yield from self.turnPutFollower(tile, pos)
+                ifPortal, ifBarn = yield from self.turnPutFollower(tile, pos)
 
             # move a dragon
             if self.board.checkPack(3, "b") and tile.dragon == DragonType.Dragon:
                 yield from self.turnMoveDragon()
 
             # score
-            yield from self.turnScoring(tile, pos)
+            yield from self.turnScoring(tile, pos, ifBarn)
 
             self.board.state = State.End
             if nextTurn:
