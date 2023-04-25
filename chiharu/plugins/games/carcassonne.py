@@ -904,7 +904,7 @@ class Object(CanScore):
         players = [(p, base * len(complete_city)) for p in ps]
         return players
     def checkBarn(self):
-        return self.board.checkPack(5, 'e') and self.type == Connectable.Field and any(isinstance(token, Barn) for seg in self.segments for token in seg.tokens)
+        return self.board.checkPack(5, 'e') and self.type == Connectable.Field and any(isinstance(token, Barn) for token in self.iterTokens())
     def checkScore(self, players: 'list[Player]', mid_game: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
         match self.type:
             case Connectable.City:
