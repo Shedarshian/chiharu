@@ -504,7 +504,7 @@ class Board:
             _, isAbbey, pos = yield from player.turnAskAbbey(True, True)
             if isAbbey:
                 assert player.handTile is not None
-                yield from player.turnScoring(player.handTile, pos)
+                yield from player.turnScoring(player.handTile, pos, False)
                 player.handTile = None
     def process(self) -> TAsync[bool]:
         try:

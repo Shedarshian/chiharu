@@ -36,7 +36,7 @@ changelog = """2023-04-22 23:41 v1.1.4
 · 公主写完啦。
 2023-04-23 22:09 v1.1.8
 · 高塔写完啦。
-2023-04-25 11:52 v1.1.9
+2023-04-25 12:06 v1.1.9
 · 河流2写完啦。"""
 
 cacason = game.GameSameGroup('cacason', can_private=True)
