@@ -4980,6 +4980,14 @@
                     ]
                 }
             ]},
+            "tokens": [
+                {
+                    "name": "abbot",
+                    "distribute": true,
+                    "thing_id": "c",
+                    "num": 1
+                }
+            ],
             "starting_tile": 0
         }
     ]

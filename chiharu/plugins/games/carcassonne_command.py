@@ -8,7 +8,7 @@ from .. import config, game
 from nonebot import CommandSession, NLPSession, get_bot
 from nonebot.command import call_command
 
-version = (1, 1, 9)
+version = (1, 1, 10)
 changelog = """2023-04-17 12:05 v1.1.0
 · 添加版本号记录。
 · 微调五扩米宝位置。
@@ -37,7 +37,9 @@ changelog = """2023-04-22 23:41 v1.1.4
 2023-04-23 22:09 v1.1.8
 · 高塔写完啦。
 2023-04-25 12:06 v1.1.9
-· 河流2写完啦。"""
+· 河流2写完啦。
+2023-04-25 17:15 v1.1.10
+· 修道院长写完啦。"""
 
 cacason = game.GameSameGroup('cacason', can_private=True)
 config.CommandGroup(('play', 'cacason'), hide=True)
@@ -82,6 +84,19 @@ config.CommandGroup(('cacason', 'ex5'), des="""扩展5：僧院板块与市长�
 (c) 市长（mayor）：游戏开始时每人分发一个市长。市长作为跟随者，只能放在城市中。在判断城市归属时，普通跟随者的强度算作1，大跟随者（扩展1）的强度算作2，市长的强度为该城市内盾徽的个数。
 (d) 马车（wagon）：游戏开始时每人分发一个马车。马车作为跟随者，只能放在草地以外的位置。在马车被计分后，玩家可以选择将马车挪到所在板块或相邻8个板块中任何一个未被占据且未完成的城市、道路、修道院内。
 (e) 谷仓（barn）：游戏开始时每人分发一个谷仓。谷仓不算作跟随者，只能放在四面都是草地的四个板块的交界处，并且该片草地不能有其他谷仓。谷仓放下的一刻，将该片草地上所有的跟随者按照正常的分数（每座城3分）计分并收回。谷仓所在的草地不能有跟随者，此后若有新的有跟随者的草地被连接进来，则立即将该草地计分，但是只按照每座城1分的分数计分并收回。游戏结束时，谷仓所在的草地上每有一座相邻的城，谷仓的所有者计4分。若草地上有多个谷仓则都计分。""", short_des="扩展5：僧院与市长（Abbey and Mayor）")
+config.CommandGroup(('cacason', 'ex6'), des="""
+(a) 图块
+(b) 国王
+(c) 小偷
+(d) 卡卡颂城起始
+(e) 卡卡颂城
+(f) The Count
+(g) 神龛图块
+(h) 神龛""")
+config.CommandGroup(('cacason', 'ex7'), des="""一些小扩展合集
+(a) 河流2
+(b) 花园：花园只能放置修道院长。除此之外花园与修道院相同。
+(c) 修道院长（abbot）：游戏开始时，每人分发一个修道院长。修道院长作为跟随者，只能放置在修道院或是花园中。在放置跟随者阶段，若玩家选择不放置跟随者，则可以将自己的修道院长按照当前获得的分数计分，然后收回。""")
 
 @on_command(("cacason", "version"), hide=True, only_to_me=False)
 @config.ErrorHandle
@@ -280,6 +295,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     prompt += "，回复跟随者所在板块位置以及“仙子”移动仙子"
                 if not ret["if_portal"] and board.checkPack(3, "d") and board.tiles[ret["last_put"]].dragon == DragonType.Portal:
                     prompt += "，回复板块位置以及“传送门”使用传送门"
+                if board.checkPack(7, "c"):
+                    prompt += "，回复板块位置以及“修道院长”回收修道院长"
                 if ret["if_portal"]:
                     prompt += "，回复“返回”返回"
                 else:
@@ -332,7 +349,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await session.send("未找到跟随者！")
             else:
                 await session.send([board.saveImg()])
-                await session.send(f'请选择玩家{data["names"][board.current_player_id]}选择换回的对方的跟随者。')
+                await session.send(f'请玩家{data["names"][board.current_player_id]}选择换回的对方的跟随者。')
     
     command = session.msg_text.strip()
     if data['adding_extensions']:
@@ -383,6 +400,9 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             elif board.checkPack(3, "d") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(传送门|portal)$", command)):
                 xs = match.group(1); ys = match.group(2)
                 await advance(board, {"id": -2, "pos": pos, "special": "portal"})
+            elif board.checkPack(7, "c") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(修道院长|abbot)$", command)):
+                xs = match.group(1); ys = match.group(2)
+                await advance(board, {"id": -2, "pos": pos, "special": "abbot"})
         case State.CaptureTower:
             if command in ("不放", "不抓"):
                 await advance(board, {"id": -1})

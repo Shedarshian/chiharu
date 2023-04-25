@@ -634,7 +634,7 @@ class Tile:
         for seg in self.segments:
             if isinstance(seg, FieldSegment):
                 seg.makeAdjacentCity(self.segments)
-        self.features: list[Feature] = [f(self, s) for s in data.get("features", []) if (f := Feature.make(s["type"])) is not None]
+        self.features: list[Feature] = [f(self, s) for s in data.get("features", []) if (f := Feature.make(s["type"])) is not None and not (self.board.checkPack(7, "b") and f is Garden or self.board.checkPack(6, "h") and f is Shrine)]
         self.connectTile: list[Tile | None] = [None] * 4
         self.orient: Dir = Dir.UP
         self.token_pos: tuple[int, int] = (data.get("posx", 32), data.get("posy", 32))
@@ -1020,7 +1020,7 @@ class Token(ABC):
             if any(isinstance(token, Dragon) for token in seg.tile.tokens):
                 return False
             return all(len(s.tokens) == 0 for s in seg.object.segments)
-        return len(seg.tokens) == 0 and not isinstance(seg, Garden)
+        return len(seg.tokens) == 0
     def putOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
         seg.tokens.append(self)
         self.parent = seg
@@ -1058,9 +1058,13 @@ class Follower(Token):
 class Figure(Token):
     pass
 class BaseFollower(Follower):
+    def canPut(self, seg: Segment | Feature | Tile):
+        return super().canPut(seg) and not isinstance(seg, Garden)
     def key(self) -> tuple[int, int]:
         return (0, 0)
 class BigFollower(Follower):
+    def canPut(self, seg: Segment | Feature | Tile):
+        return super().canPut(seg) and not isinstance(seg, Garden)
     @property
     def strength(self):
         return 2
@@ -1088,7 +1092,7 @@ class Pig(Figure):
         return (2, 1)
 class Mayor(Follower):
     def canPut(self, seg: Segment | Feature | Tile):
-        return isinstance(seg, CitySegment) and super().canPut(seg)
+        return isinstance(seg, CitySegment) and super().canPut(seg) and not isinstance(seg, Garden)
     @property
     def strength(self) -> int:
         if not isinstance(self.parent, Segment):
@@ -1152,6 +1156,11 @@ class Fairy(Figure):
         self.follower = follower
     def key(self) -> tuple[int, int]:
         return (3, 1)
+class Abbot(Follower):
+    def canPut(self, seg: Segment | Feature | Tile):
+        return isinstance(seg, BaseCloister) and super().canPut(seg)
+    def key(self) -> tuple[int, int]:
+        return (7, 0)
 
 AbbeyData = {"id": -1, "sides": "FFFF", "segments": [], "features": [{"type": "Cloister", "posx": 32, "posy": 36}]}
 class State(Enum):
@@ -1444,6 +1453,22 @@ class Player:
                 self.tokens.remove(token)
                 yield from token.putOn(tower)
                 break
+            if self.board.checkPack(7, "c") and ret.get("special") == "abbot":
+                pos_abbot: tuple[int, int] = ret["pos"]
+                if pos_abbot not in self.board.tiles:
+                    pass_err = -8
+                    continue
+                tile_abbot = self.board.tiles[pos_abbot]
+                abbots = [token for feature in tile_abbot.features for token in feature.tokens if isinstance(token, Abbot) and token.player is self]
+                if len(abbots) == 0:
+                    pass_err = -8
+                    continue
+                abbot = abbots[0]
+                assert isinstance(abbot.parent, BaseCloister)
+                score = abbot.parent.checkScore([self], True, False)[0][1]
+                yield from self.addScore(score)
+                abbot.putBackToHand()
+                break
             if ret["id"] == -1:
                 break
             if 0 <= ret["id"] < len(tile_put.features):
@@ -1596,7 +1621,8 @@ class Player:
         2：放跟随者（-1不放，返回-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门，-5：找不到高塔
         -6：高塔有人，-7：手里没有高塔片段），4：选马车（-1：没有图块，-2：图块过远，-3：无法放置）
         5：询问僧院板块（-1：无法放置），6：询问龙（-1：无法移动），7：询问仙子细化（-1：无法移动）
-        8：询问公主（-1：未找到跟随者），9：询问高塔抓人（-1：未找到跟随者），10：询问交换俘虏（-1：未找到跟随者）"""
+        8：询问公主（-1：未找到跟随者），9：询问高塔抓人（-1：未找到跟随者），10：询问交换俘虏（-1：未找到跟随者）
+        11：询问修道院长细化（-1：未找到跟随者）"""
         isBegin: bool = True
         nextTurn: bool = False
         princessed: bool = False
