@@ -85,7 +85,7 @@ class Board:
             self.allTileimgs[pack_id] = {}
             if pack_id == 5 and self.checkPack(5, "b"):
                 self.abbeyImg = self.tileimgs[pack_id].crop((2 * 64, 2 * 64, 3 * 64, 3 * 64))
-            for key, lt in pack["tiles"]:
+            for key, lt in pack["tiles"].items():
                 if pack_id != 0 and key not in packs_options[pack_id]:
                     continue
                 for t in lt:
@@ -977,8 +977,8 @@ class Feature:
         self.token_pos: tuple[int, int] = (data.get("posx", 32), data.get("posy", 32))
     @classmethod
     def make(cls, typ: str) -> Type["Feature"] | None:
-        return {"Cloister": Cloister}.get(typ, None)
-class Cloister(Feature, CanScore):
+        return {"cloister": Cloister, "garden": Garden, "shrine": Shrine}.get(typ.lower(), None)
+class BaseCloister(Feature, CanScore):
     def __init__(self, parent: Tile | Segment, data: dict[str, Any]) -> None:
         Feature.__init__(self, parent, data)
         CanScore.__init__(self, parent.board if isinstance(parent, Tile) else parent.tile.board)
@@ -995,6 +995,12 @@ class Cloister(Feature, CanScore):
         pos = self.parent.board.findTilePos(self.parent)
         score = sum(1 if (pos[0] + i, pos[1] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1))
         return [(player, score) for player in players]
+class Cloister(BaseCloister):
+    pass
+class Garden(BaseCloister):
+    pass
+class Shrine(BaseCloister):
+    pass
 class Tower(Feature):
     def __init__(self, parent: Tile | Segment, data: dict[str, Any]) -> None:
         super().__init__(parent, data)
@@ -1021,7 +1027,7 @@ class Token(ABC):
             if any(isinstance(token, Dragon) for token in seg.tile.tokens):
                 return False
             return all(len(s.tokens) == 0 for s in seg.object.segments)
-        return len(seg.tokens) == 0
+        return len(seg.tokens) == 0 and not isinstance(seg, Garden)
     def putOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
         seg.tokens.append(self)
         self.parent = seg
@@ -1099,7 +1105,7 @@ class Mayor(Follower):
         return (5, 0)
 class Wagon(Follower):
     def canPut(self, seg: Segment | Feature | Tile):
-        return isinstance(seg, (CitySegment, RoadSegment, Cloister)) and super().canPut(seg)
+        return isinstance(seg, (CitySegment, RoadSegment, Cloister, Shrine)) and super().canPut(seg)
     def key(self) -> tuple[int, int]:
         return (3, 1)
 class Barn(Figure):
@@ -1201,7 +1207,7 @@ class Player:
     def addScoreFinal(self, score: int):
         self.score += score
     def checkMeepleScoreCurrent(self):
-        all_objects: list[Object | Cloister] = []
+        all_objects: list[Object | BaseCloister] = []
         all_barns: list[Object] = []
         score: int = 0
         for token in self.allTokens:
@@ -1209,7 +1215,7 @@ class Player:
                 all_barns.append(token.parent.object)
             elif isinstance(token.parent, Segment) and token.parent.object not in all_objects:
                 all_objects.append(token.parent.object)
-            elif isinstance(token.parent, Cloister) and token.parent not in all_objects:
+            elif isinstance(token.parent, BaseCloister) and token.parent not in all_objects:
                 all_objects.append(token.parent)
         for obj in all_objects:
             for player, scorec in obj.checkPlayerAndScore(False):
@@ -1718,7 +1724,7 @@ if __name__ == "__main__":
             for _ in b.players[0].tokens[-1].putOn(seg):
                 pass
         for feature in t.features:
-            if isinstance(feature, Cloister):
+            if isinstance(feature, BaseCloister):
                 b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
                 for _ in b.players[0].tokens[-1].putOn(feature):
                     pass
