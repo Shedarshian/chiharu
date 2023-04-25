@@ -1272,7 +1272,7 @@ class Player:
         yield {}
     def turnPutTile(self, turn: int, isBegin: bool) -> TAsync[tuple[bool, tuple[int, int], bool]]:
         self.board.state = State.PuttingTile
-        pass_err: Literal[0, -1, -2, -3, -4, -5] = 0
+        pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7] = 0
         prisonered: bool = False
         while 1:
             ret = yield {"id": 0, "second_turn": turn == 1, "last_err": pass_err, "begin": isBegin}
@@ -1319,8 +1319,21 @@ class Player:
                         if pass_err < 0:
                             break
             if pass_err < 0:
-                break
-            # TODO check river
+                continue
+            if tile.packid == 7:
+                drs = [dr for dr in Dir if pos + dr in self.board.tiles]
+                if len(drs) != 1:
+                    pass_err = -6
+                    continue
+                sides = tile.sides[4 - orient.value:] + tile.sides[:4 - orient.value]
+                rdrs = [i for i, s in enumerate(sides[drs[0].value]) if s == Connectable.River]
+                rdrs.remove(drs[0].value)
+                if len(rdrs) == 1:
+                    pos_target = pos + Dir(rdrs[0])
+                    tiles2 = [self.board.tiles[pos_target + dr] for dr in Dir if pos_target + dr in self.board.tiles]
+                    if len(tiles2) != 0:
+                        pass_err = -7
+                        continue
             break
         tile.turn(orient)
         self.board.tiles[pos] = tile
@@ -1583,7 +1596,7 @@ class Player:
                         if isinstance(feature, CanScore) and feature.closed():
                             yield from feature.score(False)
     def turn(self) -> TAsync[None]:
-        """id0：放图块（-1：已有连接, -2：无法连接，-3：没有挨着，-4：未找到可赎回的囚犯，-5：余分不足）
+        """id0：放图块（-1：已有连接, -2：无法连接，-3：没有挨着，-4：未找到可赎回的囚犯，-5：余分不足，-6：河流不能回环，-7：河流不能180度）
         2：放跟随者（-1不放，返回-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门，-5：找不到高塔
         -6：高塔有人，-7：手里没有高塔片段），4：选马车（-1：没有图块，-2：图块过远，-3：无法放置）
         5：询问僧院板块（-1：无法放置），6：询问龙（-1：无法移动），7：询问仙子细化（-1：无法移动）
