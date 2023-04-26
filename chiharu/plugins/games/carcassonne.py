@@ -1303,6 +1303,7 @@ class Player:
                     continue
                 token = tokens[0]
                 yield from self.addScore(-3, False)
+                yield from player.addScore(3, False)
                 player.prisoners.remove(token)
                 self.tokens.append(token)
                 prisonered = True
