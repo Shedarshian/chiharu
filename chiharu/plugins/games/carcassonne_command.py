@@ -402,7 +402,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             elif board.checkPack(3, "d") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(传送门|portal)$", command)):
                 xs = match.group(1); ys = match.group(2)
                 await advance(board, {"id": -2, "pos": pos, "special": "portal"})
-            elif board.checkPack(3, "d") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(高塔|tower)$", command)):
+            elif board.checkPack(4, "b") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(高塔|tower)$", command)):
                 xs = match.group(1); ys = match.group(2)
                 await advance(board, {"id": -2, "pos": pos, "special": "tower"})
             elif board.checkPack(7, "c") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(修道院长|abbot)$", command)):

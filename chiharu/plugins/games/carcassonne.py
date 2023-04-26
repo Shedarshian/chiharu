@@ -1701,6 +1701,9 @@ class Player:
         if self.board.checkPack(2, "d"):
             trade_counter_xpos = length
             length += 120
+        if self.board.checkPack(4, "b"):
+            trade_counter_xpos = length
+            length += 120
         img = Image.new("RGBA", (length, 24))
         dr = ImageDraw.Draw(img)
         dr.text((0, 12), self.show_name, "black", self.board.font_name, "lm")
