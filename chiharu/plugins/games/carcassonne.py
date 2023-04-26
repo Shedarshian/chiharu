@@ -225,18 +225,19 @@ class Board:
             elif player.score == maxScore:
                 maxPlayer.append(player)
         return maxScore, maxPlayer
-    def canPutTile(self, tile: 'Tile', pos: tuple[int, int], orient: Dir) -> Literal[-1, -2, -3, -8, 1]:
+    def canPutTile(self, tile: 'Tile', pos: tuple[int, int], orient: Dir) -> Literal[-1, -2, -3, -8, 0]:
         """-1：已有连接, -2：无法连接，-3：没有挨着。"""
         if pos in self.tiles:
             return -1
         if all(pos + dr not in self.tiles for dr in Dir):
             return -3
-        for dr in Dir:
-            side = pos + dr
-            if side in self.tiles:
-                ret = self.tiles[side].checkConnect(tile, -dr, orient)
-                if ret < 0:
-                    return ret
+        if not tile.isAbbey:
+            for dr in Dir:
+                side = pos + dr
+                if side in self.tiles:
+                    ret = self.tiles[side].checkConnect(tile, -dr, orient)
+                    if ret < 0:
+                        return ret
         if self.checkPack(6, "h"):
             cl = more_itertools.only(0 if isinstance(feature, Cloister) else 1 if isinstance(feature, Shrine) else -1 for feature in tile.features if isinstance(feature, BaseCloister))
             if cl is not None and cl >= 0:
@@ -246,10 +247,10 @@ class Board:
                     return -8
                 if len(l) == 1:
                     pos_new = l[0]
-                    around = [feature for i in (-1, 0, 1) for j in (-1, 0, 1) if (pos_new[0] + i, pos_new[1] + j) in self.tiles for feature in self.tiles[pos_new[0] + i, pos_new[1] + j].features if isinstance(feature, (Cloister, Shrine)[cl])]
-                    if len(around) >= 2:
+                    around = [(i, j) for i in (-1, 0, 1) for j in (-1, 0, 1) if (pos_new[0] + i, pos_new[1] + j) in self.tiles for feature in self.tiles[pos_new[0] + i, pos_new[1] + j].features if isinstance(feature, (Cloister, Shrine)[cl])]
+                    if len(around) >= 1:
                         return -8
-        return 1
+        return 0
     def checkTileCanPut(self, tile: 'Tile'):
         if self.checkPack(3, "b") and self.dragon.tile is None and tile.dragon == DragonType.Dragon:
             return False
@@ -258,7 +259,7 @@ class Board:
         for i in range(leftmost - 1, rightmost + 2):
             for j in range(uppermost - 1, lowermost + 2):
                 for orient in Dir:
-                    if self.canPutTile(tile, (i, j), orient) == 1:
+                    if self.canPutTile(tile, (i, j), orient) == 0:
                         return True
         return False
     def findTilePos(self, tile: 'Tile'):
@@ -1256,9 +1257,9 @@ class Player:
         tile: Tile | None = None
         pos: tuple[int, int] = (-1, -1)
         if self.hasAbbey and self.board.checkHole():
-            pass_err: Literal[0, -1] = 0
             self.board.state = State.FinalAbbeyAsking if endGame else State.AbbeyAsking
             while 1:
+                pass_err: Literal[0, -1, -8] = 0
                 ret = yield {"id": 5, "last_err": pass_err, "begin": isBegin, "endGame": endGame}
                 isBegin = False
                 if not ret.get("put"):
@@ -1266,10 +1267,11 @@ class Player:
                 isAbbey = True
                 self.hasAbbey = False
                 pos = ret["pos"]
-                if pos in self.board.tiles or any(pos + dr not in self.board.tiles for dr in Dir):
-                    pass_err = -1
-                    continue
                 tile = Tile(self.board, AbbeyData, self.board.abbeyImg, 5, True)
+                r = self.board.canPutTile(tile, pos, Dir.UP)
+                if r < 0:
+                    pass_err = -8 if r == -8 else -1
+                    continue
                 self.handTile = tile
                 self.board.tiles[pos] = tile
                 for dr in Dir:
@@ -1326,20 +1328,7 @@ class Player:
             orient: Dir = ret["orient"]
             tile = self.handTile
             assert tile is not None
-            if pos in self.board.tiles:
-                pass_err = -1
-                continue
-            if all(pos + dr not in self.board.tiles for dr in Dir):
-                pass_err = -3
-                continue
-            for dr in Dir:
-                side = pos + dr
-                if side in self.board.tiles:
-                    ret0 = self.board.tiles[side].checkConnect(tile, -dr, orient)
-                    if ret0 < 0:
-                        pass_err = ret0
-                        if pass_err < 0:
-                            break
+            pass_err = self.board.canPutTile(tile, pos, orient)
             if pass_err < 0:
                 continue
             if tile.packid == 7:
@@ -1642,7 +1631,7 @@ class Player:
         -7：河流不能180度，-8：修道院和神龛不能有多个相邻）
         2：放跟随者（-1不放，返回-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门，-5：找不到高塔
         -6：高塔有人，-7：手里没有高塔片段，-8：找不到修道院长），4：选马车（-1：没有图块，-2：图块过远，-3：无法放置）
-        5：询问僧院板块（-1：无法放置），6：询问龙（-1：无法移动），7：询问仙子细化（-1：无法移动）
+        5：询问僧院板块（-1：无法放置，-8：修道院和神龛不能有多个相邻），6：询问龙（-1：无法移动），7：询问仙子细化（-1：无法移动）
         8：询问公主（-1：未找到跟随者），9：询问高塔抓人（-1：未找到跟随者），10：询问交换俘虏（-1：未找到跟随者）
         11：询问修道院长细化（-1：未找到跟随者）"""
         isBegin: bool = True
@@ -1717,6 +1706,8 @@ class Player:
             abbey_xpos = length
             length += 28
         if self.board.checkPack(4, "b"):
+            tower_piece_xpos = length
+            length += 40
             prisoner_xpos = length
             length += max(20 * len(player.prisoners) + sum(8 for token in player.prisoners if isinstance(token, BigFollower)) for player in self.board.players)
         if self.board.checkPack(2, "d"):
@@ -1747,6 +1738,9 @@ class Player:
         if self.board.checkPack(5, "b"):
             if self.hasAbbey:
                 dr.rectangle((abbey_xpos + 4, 4, abbey_xpos + 20, 20), "red")
+        # tower piece
+        if self.board.checkPack(4, "b"):
+            dr.text((tower_piece_xpos, 12), f"塔{self.tradeCounter[0]}", "black", self.board.font_name, "lm")
         # prisoner
         if self.board.checkPack(4, "b"):
             for token in self.prisoners:

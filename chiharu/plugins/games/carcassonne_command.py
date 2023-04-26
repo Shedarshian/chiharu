@@ -277,6 +277,12 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await session.send("未找到可赎回的囚犯！")
             elif rete == -5:
                 await session.send("余分不足以赎回！")
+            elif rete == -6:
+                await session.send("河流不能回环！")
+            elif rete == -7:
+                await session.send("河流不能拐弯180度！")
+            elif rete == -8:
+                await session.send("修道院不能和多个神龛相连，反之亦然！")
             else:
                 if ret["second_turn"]:
                     await session.send("玩家继续第二回合")
@@ -291,6 +297,14 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await session.send("无法移动仙子！")
             elif ret["last_err"] == -4:
                 await session.send("无法使用传送门！")
+            elif ret["last_err"] == -5:
+                await session.send("找不到高塔！")
+            elif ret["last_err"] == -6:
+                await session.send("高塔有人！")
+            elif ret["last_err"] == -7:
+                await session.send("手里没有高塔片段！")
+            elif ret["last_err"] == -8:
+                await session.send("找不到修道院长！")
             else:
                 await session.send([board.saveImg(ret["last_put"])])
                 prompt = "请选择放置跟随者的位置（小写字母）以及放置的特殊跟随者名称（如有需要）"
@@ -322,6 +336,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         elif ret["id"] == 5:
             if ret["last_err"] == -1:
                 await session.send("无法放置！")
+            elif ret["last_err"] == -8:
+                await session.send("修道院不能和多个神龛相连！")
             else:
                 if ret["begin"]:
                     await session.send([board.saveImg()])
