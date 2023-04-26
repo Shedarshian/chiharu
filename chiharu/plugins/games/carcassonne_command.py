@@ -398,15 +398,19 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await advance(board, {"id": n, "which": name or "follower"})
             elif board.checkPack(3, "c") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(仙子|fairy)$", command)):
                 xs = match.group(1); ys = match.group(2)
+                pos = board.tileNameToPos(xs, ys)
                 await advance(board, {"id": -2, "pos": pos, "special": "fairy"})
             elif board.checkPack(3, "d") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(传送门|portal)$", command)):
                 xs = match.group(1); ys = match.group(2)
+                pos = board.tileNameToPos(xs, ys)
                 await advance(board, {"id": -2, "pos": pos, "special": "portal"})
             elif board.checkPack(4, "b") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(高塔|tower)$", command)):
                 xs = match.group(1); ys = match.group(2)
+                pos = board.tileNameToPos(xs, ys)
                 await advance(board, {"id": -2, "pos": pos, "special": "tower"})
             elif board.checkPack(7, "c") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(修道院长|abbot)$", command)):
                 xs = match.group(1); ys = match.group(2)
+                pos = board.tileNameToPos(xs, ys)
                 await advance(board, {"id": -2, "pos": pos, "special": "abbot"})
         case State.CaptureTower:
             if command in ("不放", "不抓"):
