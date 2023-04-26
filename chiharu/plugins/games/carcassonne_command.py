@@ -345,7 +345,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await session.send("未找到跟随者！")
             else:
                 await session.send([board.saveImg(tower_pos=ret["pos"])])
-                await session.send('请选择要抓的跟随者，回复“不抓"跳过。')
+                await session.send('请选择要抓的跟随者，回复“不抓”跳过。')
         elif ret["id"] == 10:
             if ret["last_err"] == -1:
                 await session.send("未找到跟随者！")

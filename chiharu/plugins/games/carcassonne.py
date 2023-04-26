@@ -315,56 +315,6 @@ class Board:
         for j in range(0, height + 1):
             dr.text(pos(0, j, (-15, 32)), str(j + 1), "black", font, "rm")
         dr.text(pos(0, height + 1, (-15, 5)), str(height + 2), "black", font, "rm")
-        # choose follower
-        def draw(c: tuple[int, int], tpos: tuple[int, int], i: int):
-            dr.ellipse((posshift(*c, (tpos[0] - 6, tpos[1] - 6)), posshift(*c, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
-            text = chr(i) if i <= ord('a') + 25 else chr((i - ord('a')) // 26) + chr((i - ord('a')) % 26)
-            dr.text(posshift(*c, tpos), text, "black", font, "mm")
-        if draw_tile_seg is not None:
-            if isinstance(draw_tile_seg, tuple):
-                choose_follower2 = [draw_tile_seg]
-            else:
-                choose_follower2 = draw_tile_seg
-            for c in choose_follower2:
-                if c not in self.tiles:
-                    continue
-                tile = self.tiles[c]
-                i = ord('a')
-                for feature in tile.features:
-                    if isinstance(feature, CanScore):
-                        tpos = turn(feature.token_pos, tile.orient)
-                        draw(c, tpos, i)
-                    i += 1
-                for seg in tile.segments:
-                    if len(seg.tokens) == 0:
-                        tpos = turn(seg.token_pos, tile.orient)
-                        draw(c, tpos, i)
-                    i += 1
-                if self.checkPack(5, "e") and len(choose_follower2) == 1:
-                    for tpos in ((0, 0), (64, 0), (0, 64), (64, 64)):
-                        draw(c, tpos, i)
-                        i += 1
-        if draw_fairy_follower is not None and draw_fairy_follower in self.tiles and self.checkPack(3, 'c'):
-            tile = self.tiles[draw_fairy_follower]
-            i = ord('a')
-            for follower in tile.iterAllTokens():
-                if isinstance(follower, Follower) and follower.parent is self.current_turn_player and self.fairy.canMove(follower):
-                    draw(self.findTilePos(tile), tile.findTokenDrawPos(follower), i)
-                    i += 1
-        if princess is not None:
-            i = ord('a')
-            for follower in princess.iterTokens():
-                if isinstance(follower, Follower) and isinstance(follower.parent, Segment):
-                    draw(self.findTilePos(follower.parent.tile), follower.parent.tile.findTokenDrawPos(follower), i)
-                    i += 1
-        if tower_pos is not None:
-            tower = [feature for feature in self.tiles[tower_pos].features if isinstance(feature, Tower)][0]
-            followers = [token for token in self.tiles[tower_pos].iterAllTokens() if isinstance(token, Follower)] + [token for dr in Dir for i in range(tower.height) if (tower_pos[0] + dr.corr()[0] * (i + 1), tower_pos[1] + dr.corr()[1] * (i + 1)) in self.tiles for token in self.tiles[tower_pos[0] + dr.corr()[0] * (i + 1), tower_pos[1] + dr.corr()[1] * (i + 1)].iterAllTokens() if isinstance(token, Follower)]
-            i = ord('a')
-            for follower in followers:
-                if isinstance(follower.parent, Segment):
-                    draw(self.findTilePos(follower.parent.tile), follower.parent.tile.findTokenDrawPos(follower), i)
-                    i += 1
         # token
         def checkFairy(token: Token, p1: tuple[int, int], next: int):
             tf = self.fairy.image()
@@ -400,6 +350,55 @@ class Board:
                         checkFairy(token, turn(feature.token_pos, tile.orient), next)
                 if isinstance(feature, Tower):
                     dr.text(posshift(i, j, turn(feature.num_pos, tile.orient)), str(feature.height), "black", font_tower, "mm")
+        # choose follower
+        def draw(c: tuple[int, int], tpos: tuple[int, int], i: int):
+            dr.ellipse((posshift(*c, (tpos[0] - 6, tpos[1] - 6)), posshift(*c, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
+            text = chr(i) if i <= ord('a') + 25 else chr((i - ord('a')) // 26) + chr((i - ord('a')) % 26)
+            dr.text(posshift(*c, tpos), text, "black", font, "mm")
+        if draw_tile_seg is not None:
+            if isinstance(draw_tile_seg, tuple):
+                choose_follower2 = [draw_tile_seg]
+            else:
+                choose_follower2 = draw_tile_seg
+            for c in choose_follower2:
+                if c not in self.tiles:
+                    continue
+                tile = self.tiles[c]
+                i = ord('a')
+                for feature in tile.features:
+                    if isinstance(feature, CanScore):
+                        tpos = turn(feature.token_pos, tile.orient)
+                        draw(c, tpos, i)
+                    i += 1
+                for seg in tile.segments:
+                    tpos = turn(seg.token_pos, tile.orient)
+                    draw(c, tpos, i)
+                    i += 1
+                if self.checkPack(5, "e") and len(choose_follower2) == 1:
+                    for tpos in ((0, 0), (64, 0), (0, 64), (64, 64)):
+                        draw(c, tpos, i)
+                        i += 1
+        if draw_fairy_follower is not None and draw_fairy_follower in self.tiles and self.checkPack(3, 'c'):
+            tile = self.tiles[draw_fairy_follower]
+            i = ord('a')
+            for follower in tile.iterAllTokens():
+                if isinstance(follower, Follower) and follower.parent is self.current_turn_player and self.fairy.canMove(follower):
+                    draw(self.findTilePos(tile), tile.findTokenDrawPos(follower), i)
+                    i += 1
+        if princess is not None:
+            i = ord('a')
+            for follower in princess.iterTokens():
+                if isinstance(follower, Follower) and isinstance(follower.parent, Segment):
+                    draw(self.findTilePos(follower.parent.tile), follower.parent.tile.findTokenDrawPos(follower), i)
+                    i += 1
+        if tower_pos is not None:
+            tower = [feature for feature in self.tiles[tower_pos].features if isinstance(feature, Tower)][0]
+            followers = [token for token in self.tiles[tower_pos].iterAllTokens() if isinstance(token, Follower)] + [token for dr in Dir for i in range(tower.height) if (tower_pos[0] + dr.corr()[0] * (i + 1), tower_pos[1] + dr.corr()[1] * (i + 1)) in self.tiles for token in self.tiles[tower_pos[0] + dr.corr()[0] * (i + 1), tower_pos[1] + dr.corr()[1] * (i + 1)].iterAllTokens() if isinstance(token, Follower)]
+            i = ord('a')
+            for follower in followers:
+                if isinstance(follower.parent, Segment):
+                    draw(self.findTilePos(follower.parent.tile), follower.parent.tile.findTokenDrawPos(follower), i)
+                    i += 1
         # tiles dragon has moved
         for tile in self.dragonMoved:
             p = self.findTilePos(tile)
@@ -694,18 +693,19 @@ class Tile:
         seg = more_itertools.only(s for s in self.segments if s.inSideF(Dir.RIGHT, False) and s.inSideF(Dir.DOWN, True))
         return seg
     def findTokenDrawPos(self, token: 'Token'):
+        """turned"""
         for seg in self.segments:
             if token in seg.tokens:
                 id = seg.tokens.index(token)
-                return seg.token_pos[0] + 4 * id, seg.token_pos[1] + 4 * id
+                return turn((seg.token_pos[0] + 4 * id, seg.token_pos[1] + 4 * id), self.orient)
         for feature in self.features:
             if token in feature.tokens:
                 id = feature.tokens.index(token)
-                return feature.token_pos[0] + 4 * id, feature.token_pos[1] + 4 * id
+                return turn((feature.token_pos[0] + 4 * id, feature.token_pos[1] + 4 * id), self.orient)
         if token in self.tokens:
             id = self.tokens.index(token)
-            return self.token_pos[0] + 4 * id, self.token_pos[1] + 4 * id
-        return self.token_pos
+            return turn((self.token_pos[0] + 4 * id, self.token_pos[1] + 4 * id), self.orient)
+        return turn(self.token_pos, self.orient)
 
     def debugImage(self):
         img = Image.new("RGBA", (64, 64), "white")
@@ -1700,10 +1700,10 @@ class Player:
         if self.board.checkPack(5, "b"):
             abbey_xpos = length
             length += 28
-        if self.board.checkPack(2, "d"):
-            trade_counter_xpos = length
-            length += 120
         if self.board.checkPack(4, "b"):
+            prisoner_xpos = length
+            length += max(20 * len(player.prisoners) + sum(8 for token in player.prisoners if isinstance(token, BigFollower)) for player in self.board.players)
+        if self.board.checkPack(2, "d"):
             trade_counter_xpos = length
             length += 120
         img = Image.new("RGBA", (length, 24))
@@ -1731,6 +1731,12 @@ class Player:
         if self.board.checkPack(5, "b"):
             if self.hasAbbey:
                 dr.rectangle((abbey_xpos + 4, 4, abbey_xpos + 20, 20), "red")
+        # prisoner
+        if self.board.checkPack(4, "b"):
+            for token in self.prisoners:
+                timg = token.image()
+                img.alpha_composite(timg, (prisoner_xpos, 12 - timg.size[1] // 2))
+                prisoner_xpos += timg.size[0] + 4
         # trade counter count
         if self.board.checkPack(2, "d"):
             dr.text((trade_counter_xpos, 12), f"酒{self.tradeCounter[0]}", "black", self.board.font_name, "lm")
