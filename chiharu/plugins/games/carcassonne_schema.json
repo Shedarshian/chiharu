@@ -440,12 +440,22 @@
                 "posy": {
                     "type": "integer",
                     "description": "The y position to put token."
+                },
+                "numposx": {
+                    "type": "integer",
+                    "description": "The x position to put number."
+                },
+                "numposy": {
+                    "type": "integer",
+                    "description": "The y position to put number."
                 }
             },
             "required": [
                 "type",
                 "posx",
-                "posy"
+                "posy",
+                "numposx",
+                "numposy"
             ]
         }
     }

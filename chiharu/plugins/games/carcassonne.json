@@ -3462,7 +3462,7 @@
                             "type": "City",
                             "to": [0, 1, 3],
                             "pennant": 1,
-                            "posx": 32,
+                            "posx": 48,
                             "posy": 16
                         },
                         {
@@ -3476,15 +3476,17 @@
                             "type": "Field",
                             "to": [],
                             "adjacent_city": [0, 1],
-                            "posx": 32,
+                            "posx": 48,
                             "posy": 48
                         }
                     ],
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 16,
-                            "posy": 16
+                            "posx": 22,
+                            "posy": 14,
+                            "numposx": 11,
+                            "numposy": 14
                         }
                     ]
                 },
@@ -3497,7 +3499,7 @@
                             "type": "City",
                             "to": [0, 1, 2],
                             "posx": 40,
-                            "posy": 32
+                            "posy": 24
                         },
                         {
                             "type": "Road",
@@ -3523,8 +3525,10 @@
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 48,
-                            "posy": 48
+                            "posx": 50,
+                            "posy": 50,
+                            "numposx": 50,
+                            "numposy": 39
                         }
                     ]
                 },
@@ -3543,15 +3547,17 @@
                             "type": "Field",
                             "to": [3, 4, 5, 6],
                             "adjacent_city": [0],
-                            "posx": 48,
-                            "posy": 56
+                            "posx": 36,
+                            "posy": 48
                         }
                     ],
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 24,
-                            "posy": 40
+                            "posx": 14,
+                            "posy": 50,
+                            "numposx": 14,
+                            "numposy": 39
                         }
                     ]
                 },
@@ -3576,15 +3582,17 @@
                             "type": "Field",
                             "to": [3, 4, 5, 6],
                             "adjacent_city": [0, 1],
-                            "posx": 48,
-                            "posy": 56
+                            "posx": 36,
+                            "posy": 48
                         }
                     ],
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 24,
-                            "posy": 40
+                            "posx": 14,
+                            "posy": 50,
+                            "numposx": 14,
+                            "numposy": 39
                         }
                     ]
                 },
@@ -3596,8 +3604,8 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "posx": 32,
-                            "posy": 32
+                            "posx": 28,
+                            "posy": 36
                         },
                         {
                             "type": "Road",
@@ -3630,8 +3638,10 @@
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 48,
-                            "posy": 16
+                            "posx": 42,
+                            "posy": 22,
+                            "numposx": 42,
+                            "numposy": 11
                         }
                     ]
                 },
@@ -3650,15 +3660,17 @@
                             "type": "Field",
                             "to": [1, 2, 3, 4, 5, 6],
                             "adjacent_city": [0],
-                            "posx": 24,
+                            "posx": 20,
                             "posy": 40
                         }
                     ],
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 48,
-                            "posy": 48
+                            "posx": 47,
+                            "posy": 46,
+                            "numposx": 36,
+                            "numposy": 46
                         }
                     ]
                 },
@@ -3670,7 +3682,7 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "posx": 32,
+                            "posx": 44,
                             "posy": 8
                         },
                         {
@@ -3697,8 +3709,10 @@
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 32,
-                            "posy": 16
+                            "posx": 29,
+                            "posy": 17,
+                            "numposx": 18,
+                            "numposy": 17
                         }
                     ]
                 },
@@ -3724,7 +3738,7 @@
                             "to": [1, 2, 3, 6],
                             "adjacent_city": [0],
                             "posx": 48,
-                            "posy": 32
+                            "posy": 48
                         },
                         {
                             "type": "Field",
@@ -3737,8 +3751,10 @@
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 48,
-                            "posy": 32
+                            "posx": 49,
+                            "posy": 31,
+                            "numposx": 38,
+                            "numposy": 31
                         }
                     ]
                 },
@@ -3763,7 +3779,7 @@
                             "type": "Field",
                             "to": [1],
                             "adjacent_city": [0],
-                            "posx": 56,
+                            "posx": 58,
                             "posy": 16
                         },
                         {
@@ -3791,8 +3807,10 @@
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 48,
-                            "posy": 16
+                            "posx": 43,
+                            "posy": 20,
+                            "numposx": 43,
+                            "numposy": 9
                         }
                     ]
                 },
@@ -3804,7 +3822,7 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "posx": 32,
+                            "posx": 24,
                             "posy": 8
                         },
                         {
@@ -3837,8 +3855,10 @@
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 48,
-                            "posy": 8
+                            "posx": 47,
+                            "posy": 14,
+                            "numposx": 36,
+                            "numposy": 14
                         }
                     ]
                 },
@@ -3856,8 +3876,8 @@
                         {
                             "type": "Road",
                             "to": [1, 3],
-                            "posx": 32,
-                            "posy": 24
+                            "posx": 16,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
@@ -3884,8 +3904,10 @@
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 32,
-                            "posy": 48
+                            "posx": 31,
+                            "posy": 49,
+                            "numposx": 20,
+                            "numposy": 49
                         }
                     ]
                 },
@@ -3898,15 +3920,17 @@
                             "type": "Field",
                             "to": [0, 1, 2, 3, 4, 5, 6, 7],
                             "adjacent_city": [],
-                            "posx": 52,
+                            "posx": 56,
                             "posy": 32
                         }
                     ],
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 32,
-                            "posy": 32
+                            "posx": 36,
+                            "posy": 32,
+                            "numposx": 25,
+                            "numposy": 32
                         }
                     ]
                 },
@@ -3926,13 +3950,15 @@
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 48,
-                            "posy": 16
+                            "posx": 44,
+                            "posy": 21,
+                            "numposx": 33,
+                            "numposy": 21
                         },
                         {
                             "type": "Cloister",
-                            "posx": 16,
-                            "posy": 52
+                            "posx": 18,
+                            "posy": 48
                         }
                     ]
                 },
@@ -3945,12 +3971,12 @@
                             "type": "Road",
                             "to": [2],
                             "posx": 32,
-                            "posy": 48
+                            "posy": 52
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "posx": 16,
+                            "posx": 12,
                             "posy": 32
                         },
                         {
@@ -3971,8 +3997,10 @@
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 32,
-                            "posy": 32
+                            "posx": 36,
+                            "posy": 32,
+                            "numposx": 25,
+                            "numposy": 32
                         }
                     ]
                 },
@@ -3985,18 +4013,18 @@
                             "type": "Road",
                             "to": [0],
                             "posx": 32,
-                            "posy": 16
+                            "posy": 12
                         },
                         {
                             "type": "Road",
                             "to": [1],
-                            "posx": 48,
+                            "posx": 52,
                             "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "posx": 16,
+                            "posx": 12,
                             "posy": 32
                         },
                         {
@@ -4024,8 +4052,10 @@
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 32,
-                            "posy": 32
+                            "posx": 36,
+                            "posy": 32,
+                            "numposx": 25,
+                            "numposy": 32
                         }
                     ]
                 },
@@ -4071,8 +4101,10 @@
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 48,
-                            "posy": 16
+                            "posx": 52,
+                            "posy": 16,
+                            "numposx": 41,
+                            "numposy": 16
                         }
                     ]
                 },
@@ -4085,24 +4117,24 @@
                             "type": "Road",
                             "to": [0],
                             "posx": 32,
-                            "posy": 16
+                            "posy": 12
                         },
                         {
                             "type": "Road",
                             "to": [1],
-                            "posx": 48,
+                            "posx": 52,
                             "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [2],
                             "posx": 32,
-                            "posy": 48
+                            "posy": 52
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "posx": 16,
+                            "posx": 12,
                             "posy": 32
                         },
                         {
@@ -4137,8 +4169,10 @@
                     "features": [
                         {
                             "type": "Tower",
-                            "posx": 32,
-                            "posy": 32
+                            "posx": 36,
+                            "posy": 32,
+                            "numposx": 25,
+                            "numposy": 32
                         }
                     ]
                 }

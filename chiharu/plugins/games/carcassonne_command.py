@@ -90,7 +90,7 @@ config.CommandGroup(('cacason', 'ex6'), des="""
 (c) 小偷
 (d) 卡卡颂城起始
 (e) 卡卡颂城
-(f) The Count
+(f) 伯爵
 (g) 神龛图块
 (h) 神龛""")
 config.CommandGroup(('cacason', 'ex7'), des="""一些小扩展合集

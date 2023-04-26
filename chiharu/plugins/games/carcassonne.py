@@ -397,6 +397,8 @@ class Board:
                     next += 1
                     if self.checkPack(3, "c") and self.fairy.follower is token:
                         checkFairy(token, turn(feature.token_pos, tile.orient), next)
+                if isinstance(feature, Tower):
+                    dr.text(posshift(i, j, turn(feature.num_pos, tile.orient)), str(feature.height), "black", font, "mm")
         # tiles dragon has moved
         for tile in self.dragonMoved:
             p = self.findTilePos(tile)
@@ -970,7 +972,7 @@ class Feature:
         self.token_pos: tuple[int, int] = (data.get("posx", 32), data.get("posy", 32))
     @classmethod
     def make(cls, typ: str) -> Type["Feature"] | None:
-        return {"cloister": Cloister, "garden": Garden, "shrine": Shrine}.get(typ.lower(), None)
+        return {"cloister": Cloister, "garden": Garden, "shrine": Shrine, "tower": Tower}.get(typ.lower(), None)
 class BaseCloister(Feature, CanScore):
     def __init__(self, parent: Tile | Segment, data: dict[str, Any]) -> None:
         Feature.__init__(self, parent, data)
@@ -998,6 +1000,7 @@ class Tower(Feature):
     def __init__(self, parent: Tile | Segment, data: dict[str, Any]) -> None:
         super().__init__(parent, data)
         self.height: int = 0
+        self.num_pos: tuple[int, int] = (data.get("numposx", 32), data.get("numposy", 32))
 
 class Token(ABC):
     def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
@@ -1193,7 +1196,7 @@ class Player:
         self.prisoners: list[Follower] = []
     @property
     def tokenColor(self):
-        return ["green", "yellow", "gray", "purple", "blue", "black"][self.id]
+        return ["green", "blue", "gray", "purple", "black", "yellow"][self.id]
     @property
     def show_name(self):
         show_name = self.name
@@ -1747,7 +1750,7 @@ class Player:
 
 
 if __name__ == "__main__":
-    b = Board({1: "abcd", 2: "abcd", 5: "abcde"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔"])
+    b = Board({1: "abcd", 2: "abcd", 4: "ab", 5: "abcde"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔"])
     d = {
             "name": "follower",
             "distribute": True,
@@ -1757,6 +1760,7 @@ if __name__ == "__main__":
     b.players[0].tokens.pop(0)
     def _(i: int, packid: int, yshift: int):
         t = b.tiles[i % 5, i // 5 + yshift] = [s for s in b.deck if s.id == i and s.packid == packid][0]
+        # t.turn(Dir.RIGHT)
         for seg in t.segments:
             b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
             for _ in b.players[0].tokens[-1].putOn(seg):
@@ -1766,13 +1770,20 @@ if __name__ == "__main__":
                 b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
                 for _ in b.players[0].tokens[-1].putOn(feature):
                     pass
+            if isinstance(feature, Tower):
+                b.players[1].tokens.append(BaseFollower(b.players[1], d, open_img("token0").crop((0, 0, 16, 16))))
+                for _ in b.players[1].tokens[-1].putOn(feature):
+                    pass
+                feature.height = random.randint(0, 9)
     for i in range(1, 25):
         _(i - 1, 0, 0)
     for i in range(17):
         _(i, 1, 5)
     for i in range(24):
         _(i, 2, 9)
-    for i in range(12):
-        _(i, 5, 14)
+    for i in range(17):
+        _(i, 4, 14)
+    # for i in range(12):
+    #     _(i, 5, 14)
     b.dragonMoved.extend([b.tiles[0, 0], b.tiles[1, 0], b.tiles[2, 0], b.tiles[2, 1]])
     b.image().show()
