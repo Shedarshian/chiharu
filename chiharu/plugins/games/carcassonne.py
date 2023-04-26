@@ -939,7 +939,9 @@ class Object(CanScore):
                     new_players = []
                     for player in players:
                         base = 3 if putBarn else 1
-                        if any(isinstance(token, Pig) and token.player is player for seg in self.segments for token in seg.tokens):
+                        if any(isinstance(token, Pig) and token.player is player for token in self.iterTokens()):
+                            base += 1
+                        if any(seg.pigherd for seg in self.segments):
                             base += 1
                         new_players.append((player, base * len(complete_city)))
                 else:
