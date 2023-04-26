@@ -302,7 +302,7 @@ class Board:
         dr.line(pos(0, height + 1, (-10, 0)) + pos(width + 1, height + 1, (10, 0)), "gray")
         dr.line(pos(0, height + 1, (-10, 10)) + pos(width + 1, height + 1, (10, 10)), "gray")
         # text
-        font = ImageFont.truetype("msyhbd.ttc", 10)
+        font = ImageFont.truetype("calibrib.ttf", 10)
         def alpha(n):
             if n <= 25: return chr(ord('A') + n)
             return chr(ord('A') + n // 26 - 1) + chr(ord('A') + n % 26)
