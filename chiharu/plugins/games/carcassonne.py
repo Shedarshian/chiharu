@@ -302,7 +302,8 @@ class Board:
         dr.line(pos(0, height + 1, (-10, 0)) + pos(width + 1, height + 1, (10, 0)), "gray")
         dr.line(pos(0, height + 1, (-10, 10)) + pos(width + 1, height + 1, (10, 10)), "gray")
         # text
-        font = ImageFont.truetype("calibrib.ttf", 10)
+        font = ImageFont.truetype("msyhbd.ttc", 10)
+        font_tower = ImageFont.truetype("calibrib.ttf", 10)
         def alpha(n):
             if n <= 25: return chr(ord('A') + n)
             return chr(ord('A') + n // 26 - 1) + chr(ord('A') + n % 26)
@@ -398,7 +399,7 @@ class Board:
                     if self.checkPack(3, "c") and self.fairy.follower is token:
                         checkFairy(token, turn(feature.token_pos, tile.orient), next)
                 if isinstance(feature, Tower):
-                    dr.text(posshift(i, j, turn(feature.num_pos, tile.orient)), str(feature.height), "black", font, "mm")
+                    dr.text(posshift(i, j, turn(feature.num_pos, tile.orient)), str(feature.height), "black", font_tower, "mm")
         # tiles dragon has moved
         for tile in self.dragonMoved:
             p = self.findTilePos(tile)
