@@ -246,7 +246,7 @@ class Board:
                     return -8
                 if len(l) == 1:
                     pos_new = l[0]
-                    around = [feature for i in (-1, 0, 1) for j in (-1, 0, 1) if (pos_new[0] + i, pos_new[1] + j) in self.tiles for feature in self.tiles[pos_new[0] + i, pos_new[1] + j] if isinstance(feature, (Cloister, Shrine)[cl])]
+                    around = [feature for i in (-1, 0, 1) for j in (-1, 0, 1) if (pos_new[0] + i, pos_new[1] + j) in self.tiles for feature in self.tiles[pos_new[0] + i, pos_new[1] + j].features if isinstance(feature, (Cloister, Shrine)[cl])]
                     if len(around) >= 2:
                         return -8
         return 1
