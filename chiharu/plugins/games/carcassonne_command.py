@@ -296,7 +296,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 if not ret["if_portal"] and board.checkPack(3, "d") and board.tiles[ret["last_put"]].dragon == DragonType.Portal:
                     prompt += "，回复板块位置以及“传送门”使用传送门"
                 if board.checkPack(4, "b"):
-                    prompt += "，回复板块位置以及“高塔”放置高塔片段"
+                    prompt += "，回复板块位置以及“高塔”以及跟随者名称（可选）放置高塔片段或跟随者"
                 if board.checkPack(7, "c"):
                     prompt += "，回复板块位置以及“修道院长”回收修道院长"
                 if ret["if_portal"]:
@@ -404,10 +404,10 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 xs = match.group(1); ys = match.group(2)
                 pos = board.tileNameToPos(xs, ys)
                 await advance(board, {"id": -2, "pos": pos, "special": "portal"})
-            elif board.checkPack(4, "b") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(高塔|tower)$", command)):
-                xs = match.group(1); ys = match.group(2)
+            elif board.checkPack(4, "b") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(高塔|tower)\s*(.*)?$", command)):
+                xs = match.group(1); ys = match.group(2); which = match.group(3)
                 pos = board.tileNameToPos(xs, ys)
-                await advance(board, {"id": -2, "pos": pos, "special": "tower"})
+                await advance(board, {"id": -2, "pos": pos, "special": "tower", "which": match.group(3)})
             elif board.checkPack(7, "c") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(修道院长|abbot)$", command)):
                 xs = match.group(1); ys = match.group(2)
                 pos = board.tileNameToPos(xs, ys)
