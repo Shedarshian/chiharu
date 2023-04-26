@@ -225,7 +225,7 @@ class Board:
             elif player.score == maxScore:
                 maxPlayer.append(player)
         return maxScore, maxPlayer
-    def canPutTile(self, tile: 'Tile', pos: tuple[int, int], orient: Dir) -> Literal[-1, -2, -3, 1]:
+    def canPutTile(self, tile: 'Tile', pos: tuple[int, int], orient: Dir) -> Literal[-1, -2, -3, -8, 1]:
         """-1：已有连接, -2：无法连接，-3：没有挨着。"""
         if pos in self.tiles:
             return -1
@@ -237,6 +237,18 @@ class Board:
                 ret = self.tiles[side].checkConnect(tile, -dr, orient)
                 if ret < 0:
                     return ret
+        if self.checkPack(6, "h"):
+            cl = more_itertools.only(0 if isinstance(feature, Cloister) else 1 if isinstance(feature, Shrine) else -1 for feature in tile.features if isinstance(feature, BaseCloister))
+            if cl is not None and cl >= 0:
+                around = [(pos[0] + i, pos[1] + j) for i in (-1, 0, 1) for j in (-1, 0, 1) if (pos[0] + i, pos[1] + j) in self.tiles]
+                l = [pos for pos in around for feature in self.tiles[pos].features if isinstance(feature, (Shrine, Cloister)[cl])]
+                if len(l) >= 2:
+                    return -8
+                if len(l) == 1:
+                    pos_new = l[0]
+                    around = [feature for i in (-1, 0, 1) for j in (-1, 0, 1) if (pos_new[0] + i, pos_new[1] + j) in self.tiles for feature in self.tiles[pos_new[0] + i, pos_new[1] + j] if isinstance(feature, (Cloister, Shrine)[cl])]
+                    if len(around) >= 2:
+                        return -8
         return 1
     def checkTileCanPut(self, tile: 'Tile'):
         if self.checkPack(3, "b") and self.dragon.tile is None and tile.dragon == DragonType.Dragon:
@@ -636,7 +648,7 @@ class Tile:
         for seg in self.segments:
             if isinstance(seg, FieldSegment):
                 seg.makeAdjacentCity(self.segments)
-        self.features: list[Feature] = [f(self, s) for s in data.get("features", []) if (f := Feature.make(s["type"])) is not None and not (self.board.checkPack(7, "b") and f is Garden or self.board.checkPack(6, "h") and f is Shrine)]
+        self.features: list[Feature] = [f(self, s) for s in data.get("features", []) if (f := Feature.make(s["type"])) is not None and not (self.board.checkPack(7, "b") and f is Garden)]
         self.connectTile: list[Tile | None] = [None] * 4
         self.orient: Dir = Dir.UP
         self.token_pos: tuple[int, int] = (data.get("posx", 32), data.get("posy", 32))
@@ -1280,7 +1292,7 @@ class Player:
         yield {}
     def turnPutTile(self, turn: int, isBegin: bool) -> TAsync[tuple[bool, tuple[int, int], bool]]:
         self.board.state = State.PuttingTile
-        pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7] = 0
+        pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7, -8] = 0
         prisonered: bool = False
         while 1:
             ret = yield {"id": 0, "second_turn": turn == 1, "last_err": pass_err, "begin": isBegin}
@@ -1626,7 +1638,8 @@ class Player:
                         if isinstance(feature, CanScore) and feature.closed():
                             yield from feature.score(ifBarn)
     def turn(self) -> TAsync[None]:
-        """id0：放图块（-1：已有连接, -2：无法连接，-3：没有挨着，-4：未找到可赎回的囚犯，-5：余分不足，-6：河流不能回环，-7：河流不能180度）
+        """id0：放图块（-1：已有连接, -2：无法连接，-3：没有挨着，-4：未找到可赎回的囚犯，-5：余分不足，-6：河流不能回环
+        -7：河流不能180度，-8：修道院和神龛不能有多个相邻）
         2：放跟随者（-1不放，返回-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门，-5：找不到高塔
         -6：高塔有人，-7：手里没有高塔片段，-8：找不到修道院长），4：选马车（-1：没有图块，-2：图块过远，-3：无法放置）
         5：询问僧院板块（-1：无法放置），6：询问龙（-1：无法移动），7：询问仙子细化（-1：无法移动）
