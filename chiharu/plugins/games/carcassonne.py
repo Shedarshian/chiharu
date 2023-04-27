@@ -558,6 +558,9 @@ class CanScore(ABC):
     @abstractmethod
     def checkScore(self, players: 'list[Player]', mid_game: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
         pass
+    @abstractmethod
+    def getTile(self) -> 'list[Tile]':
+        pass
     def removeAllFollowers(self, criteria: 'Callable[[Token], bool] | None'=None):
         if criteria is None:
             criteria = lambda token: isinstance(token.player, Player) and not isinstance(token, Barn)
@@ -900,12 +903,14 @@ class Object(CanScore):
         for seg in self.segments:
             yield from seg.tokens
         yield from self.tokens
-    def checkTile(self):
+    def getTile(self):
         tiles: list[Tile] = []
         for seg in self.segments:
             if seg.tile not in tiles:
                 tiles.append(seg.tile)
-        return len(tiles)
+        return tiles
+    def checkTile(self):
+        return len(self.getTile())
     def checkPennant(self):
         return sum(seg.pennant for seg in self.segments if isinstance(seg, CitySegment))
     def checkBarnAndScore(self) -> 'list[tuple[Player, int]]':
@@ -1006,10 +1011,13 @@ class BaseCloister(Feature, CanScore):
         if pos is None:
             return False
         return all((pos[0] + i, pos[1] + j) in self.parent.board.tiles for i in (-1, 0, 1) for j in (-1, 0, 1))
-    def checkScore(self, players: 'list[Player]', mid_game: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
+    def getTile(self):
         assert isinstance(self.parent, Tile)
         pos = self.parent.board.findTilePos(self.parent)
-        score = sum(1 if (pos[0] + i, pos[1] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1))
+        return [self.parent.board.tiles[pos[0] + i, pos[1] + j] if (pos[0] + i, pos[1] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1)]
+    def checkScore(self, players: 'list[Player]', mid_game: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
+        assert isinstance(self.parent, Tile)
+        score = len(self.getTile())
         return [(player, score) for player in players]
     def getCloister(self, typ: Type[TCloister]) -> TCloister | None:
         assert isinstance(self.parent, Tile)
