@@ -91,7 +91,7 @@ class Board:
                 for t in lt:
                     img = self.tileimgs[pack_id].crop(((t["id"] % 5) * 64, (t["id"] // 5) * 64, (t["id"] % 5 + 1) * 64, (t["id"] // 5 + 1) * 64))
                     self.allTileimgs[pack_id][t["id"]] = img
-                    if pack_id == 7 and key == "a":
+                    if pack_id == 7 and (key == "a" or t["id"] == 23):
                         self.riverDeck.extend(Tile(self, t, img, pack_id) for i in range(t["num"]))
                     else:
                         self.deck.extend(Tile(self, t, img, pack_id) for i in range(t["num"]))
@@ -112,11 +112,17 @@ class Board:
         for player in self.players:
             player.allTokens = [t for t in player.tokens]
         self.allTokens = [t for t in self.tokens]
-        start_id = packs[start_tile_pack]["starting_tile"]
-        start_tile = [t for t in self.deck if t.packid == start_tile_pack and t.id == start_id][0]
         if start_tile_pack == 7:
+            if 'd' in packs_options[7]:
+                start_id = 22
+                self.popRiverTile([t for t in self.deck if t.packid == 7 and t.id == 0][0])
+            else:
+                start_id = 0
+            start_tile = [t for t in self.deck if t.packid == start_tile_pack and t.id == start_id][0]
             self.popRiverTile(start_tile)
         else:
+            start_id = packs[start_tile_pack]["starting_tile"]
+            start_tile = [t for t in self.deck if t.packid == start_tile_pack and t.id == start_id][0]
             self.popTile(start_tile)
         self.tiles[0, 0] = start_tile
         self.current_player_id = 0
@@ -263,8 +269,7 @@ class Board:
                         return True
         return False
     def findTilePos(self, tile: 'Tile'):
-        l = [pos for pos, t in self.tiles.items() if t is tile]
-        return l[0] if len(l) != 0 else None
+        return more_itertools.only(pos for pos, t in self.tiles.items() if t is tile)
     def tileNameToPos(self, xs: str, ys: str):
         x = (ord(xs[0]) - ord('A') + 1) * 26 + ord(xs[1]) - ord('A') if len(xs) == 2 else ord(xs) - ord('A')
         y = int(ys)
@@ -582,51 +587,54 @@ class CanScore(ABC):
             else:
                 players.append((fairy_player, 3))
         return players
+    def moveWagon(self) -> TAsync[None]:
+        # move wagon
+        if not self.board.checkPack(5, "d"):
+            return
+        self.board.state = State.WagonAsking
+        to_remove: list[Wagon] = [token for token in self.iterTokens() if isinstance(token, Wagon)]
+        to_remove.sort(key=lambda token: ((0, token.player.id) if token.player.id >= self.board.current_player_id else (1, token.player.id)) if isinstance(token.player, Player) else (-1, -1))
+        if len(to_remove) > 0:
+            for wagon in to_remove:
+                if not isinstance(wagon.parent, Segment) or (pos := self.board.findTilePos(wagon.parent.tile)) is None:
+                    continue
+                assert isinstance(wagon.player, Player)
+                self.board.current_player_id = wagon.player.id
+                pass_err: Literal[0, -1, -2, -3] = 0
+                while 1:
+                    ret = yield {"id": 4, "pos": pos, "player_id": wagon.player.id, "last_err": pass_err}
+                    if "pos" not in ret or ret["pos"] is None:
+                        break
+                    pos_put: tuple[int, int] = ret["pos"]
+                    if pos_put not in self.board.tiles:
+                        pass_err = -1
+                        continue
+                    if pos_put[0] - pos[0] not in (-1, 0, 1) or pos_put[1] - pos[1] not in (-1, 0, 1):
+                        pass_err = -2
+                        continue
+                    tile = self.board.tiles[pos_put]
+                    if 0 <= ret["seg"] < len(tile.features):
+                        seg_put: Segment | Feature = tile.features[ret["seg"]]
+                    elif len(tile.features) <= ret["seg"] < len(tile.segments) + len(tile.features):
+                        seg_put = tile.segments[ret["seg"] - len(tile.features)]
+                    else:
+                        pass_err = -3
+                        continue
+                    if (isinstance(seg_put, Segment) and seg_put.object.closed() or isinstance(seg_put, CanScore) and seg_put.closed()) or not wagon.canPut(seg_put):
+                        pass_err = -3
+                        continue
+                    wagon.parent.tokens.remove(wagon)
+                    yield from wagon.putOn(seg_put)
+                    break
+            self.board.current_player_id = self.board.current_turn_player_id
+        self.board.state = State.InturnScoring
     def score(self, putBarn: bool) -> TAsync[None]:
         players = self.checkPlayerAndScore(True, putBarn=putBarn)
         for player, score in players:
             if score != 0:
                 self.board.addLog(id="score", player=player, source="complete", num=score)
                 yield from player.addScore(score)
-        # move wagon
-        if self.board.checkPack(5, "d"):
-            self.board.state = State.WagonAsking
-            to_remove: list[Wagon] = [token for token in self.iterTokens() if isinstance(token, Wagon)]
-            to_remove.sort(key=lambda token: ((0, token.player.id) if token.player.id >= self.board.current_player_id else (1, token.player.id)) if isinstance(token.player, Player) else (-1, -1))
-            if len(to_remove) > 0:
-                for wagon in to_remove:
-                    if not isinstance(wagon.parent, Segment) or (pos := self.board.findTilePos(wagon.parent.tile)) is None:
-                        continue
-                    assert isinstance(wagon.player, Player)
-                    self.board.current_player_id = wagon.player.id
-                    pass_err: Literal[0, -1, -2, -3] = 0
-                    while 1:
-                        ret = yield {"id": 4, "pos": pos, "player_id": wagon.player.id, "last_err": pass_err}
-                        if "pos" not in ret or ret["pos"] is None:
-                            break
-                        pos_put: tuple[int, int] = ret["pos"]
-                        if pos_put not in self.board.tiles:
-                            pass_err = -1
-                            continue
-                        if pos_put[0] - pos[0] not in (-1, 0, 1) or pos_put[1] - pos[1] not in (-1, 0, 1):
-                            pass_err = -2
-                            continue
-                        tile = self.board.tiles[pos_put]
-                        if 0 <= ret["seg"] < len(tile.features):
-                            seg_put: Segment | Feature = tile.features[ret["seg"]]
-                        elif len(tile.features) <= ret["seg"] < len(tile.segments) + len(tile.features):
-                            seg_put = tile.segments[ret["seg"] - len(tile.features)]
-                        else:
-                            pass_err = -3
-                            continue
-                        if (isinstance(seg_put, Segment) and seg_put.object.closed() or isinstance(seg_put, CanScore) and seg_put.closed()) or not wagon.canPut(seg_put):
-                            pass_err = -3
-                            continue
-                        wagon.parent.tokens.remove(wagon)
-                        yield from wagon.putOn(seg_put)
-                        break
-                self.board.current_player_id = self.board.current_turn_player_id
-            self.board.state = State.InturnScoring
+        yield from self.moveWagon()
         self.removeAllFollowers()
     def scoreFinal(self):
         players = self.checkPlayerAndScore(False)
@@ -981,6 +989,7 @@ class Object(CanScore):
                     player.addScoreFinal(score)
             self.removeAllFollowers(lambda token: isinstance(token, Barn))
 
+TCloister = TypeVar('TCloister', bound='BaseCloister')
 class Feature:
     def __init__(self, parent: Tile | Segment, data: dict[str, Any]) -> None:
         self.parent = parent
@@ -1006,12 +1015,33 @@ class BaseCloister(Feature, CanScore):
         pos = self.parent.board.findTilePos(self.parent)
         score = sum(1 if (pos[0] + i, pos[1] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1))
         return [(player, score) for player in players]
+    def getCloister(self, typ: Type[TCloister]) -> TCloister | None:
+        assert isinstance(self.parent, Tile)
+        pos = self.board.findTilePos(self.parent)
+        if pos is None:
+            return None
+        return more_itertools.only(feature for i in (-1, 0, 1) for j in (-1, 0, 1)
+                    if (pos[0] + i, pos[1] + j) in self.board.tiles
+                    for feature in self.board.tiles[pos[0] + i, pos[1] + j].features
+                    if isinstance(feature, typ))
 class Cloister(BaseCloister):
-    pass
+    def getChallenge(self):
+        return self.getCloister(Shrine)
+    def score(self, putBarn: bool) -> TAsync[None]:
+        yield from super().score(putBarn)
+        if self.board.checkPack(6, 'h') and (cloister := self.getChallenge()) and not cloister.closed() and len(cloister.tokens) != 0:
+            self.board.addLog(id="challengeFailed", type="shrine")
+            cloister.removeAllFollowers()
 class Garden(BaseCloister):
     pass
 class Shrine(BaseCloister):
-    pass
+    def getChallenge(self):
+        return self.getCloister(Cloister)
+    def score(self, putBarn: bool) -> TAsync[None]:
+        yield from super().score(putBarn)
+        if self.board.checkPack(6, 'h') and (cloister := self.getChallenge()) and not cloister.closed() and len(cloister.tokens) != 0:
+            self.board.addLog(id="challengeFailed", type="cloister")
+            cloister.removeAllFollowers()
 class Tower(Feature):
     def __init__(self, parent: Tile | Segment, data: dict[str, Any]) -> None:
         super().__init__(parent, data)
