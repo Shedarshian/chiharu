@@ -388,7 +388,11 @@
             "properties": {
                 "type": {
                     "type": "string",
-                    "const": "Cloister"
+                    "enum": [
+                        "Cloister",
+                        "Garden",
+                        "Shrine"
+                    ]
                 },
                 "posx": {
                     "type": "integer",
