@@ -540,7 +540,7 @@ class Board:
         except Exception:
             self.state = State.Error
             raise
-        yield from self.endGameAskAbbey()
+        # yield from self.endGameAskAbbey()
         self.state = State.End
         self.endGameScore()
         return midEnd
@@ -566,12 +566,9 @@ class CanScore(ABC):
             token.putBackToHand()
     def checkPlayerAndScore(self, mid_game: bool, putBarn: bool=True) -> 'list[tuple[Player, int]]':
         strengths: list[int] = [0 for i in range(len(self.board.players))]
-        fairy_player: Player | None = None
         for token in self.iterTokens():
             if isinstance(token, Follower) and isinstance(token.player, Player):
                 strengths[token.player.id] += token.strength
-            if self.board.checkPack(3, "c") and self.board.fairy.follower is token and isinstance(token.player, Player):
-                fairy_player = token.player
         max_strength: tuple[list[int], int] = ([], 0)
         for i, strength in enumerate(strengths):
             if strength == max_strength[1]:
@@ -581,13 +578,6 @@ class CanScore(ABC):
         if max_strength[1] == 0:
             return []
         players = self.checkScore([self.board.players[i] for i in max_strength[0]], mid_game, putBarn)
-        if fairy_player is not None:
-            for i, (player, score) in enumerate(players):
-                if player is fairy_player:
-                    players[i] = (player, score + 3)
-                    break
-            else:
-                players.append((fairy_player, 3))
         return players
     def moveWagon(self) -> TAsync[None]:
         # move wagon
@@ -636,6 +626,10 @@ class CanScore(ABC):
             if score != 0:
                 self.board.addLog(id="score", player=player, source="complete", num=score)
                 yield from player.addScore(score)
+        if self.board.checkPack(3, "c") and self.board.fairy.follower is not None:
+            for token in self.iterTokens():
+                if self.board.fairy.follower is token and isinstance(token.player, Player):
+                    yield from token.player.addScore(3)
         yield from self.moveWagon()
         self.removeAllFollowers()
     def scoreFinal(self):
@@ -1073,7 +1067,7 @@ class Token(ABC):
             if any(isinstance(token, Dragon) for token in seg.tile.tokens):
                 return False
             return all(len(s.tokens) == 0 for s in seg.object.segments)
-        return len(seg.tokens) == 0
+        return len(seg.tokens) == 0 and (isinstance(seg, Tower) and seg.height != 0 and isinstance(self, (Follower, BigFollower)) or not isinstance(seg, Tower))
     def putOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
         seg.tokens.append(self)
         self.parent = seg
@@ -1246,7 +1240,7 @@ class Player:
         self.prisoners: list[Follower] = []
     @property
     def tokenColor(self):
-        return ["green", "blue", "gray", "purple", "black", "yellow"][self.id]
+        return ["green", "blue", "gray", "pink", "black", "yellow"][self.id]
     @property
     def show_name(self):
         show_name = self.name
@@ -1491,7 +1485,7 @@ class Player:
                     pass_err = -1
                     continue
                 token = tokens[0]
-                if not isinstance(token, (Follower, BigFollower)):
+                if not token.canPut(tower):
                     pass_err = -2
                     continue
                 self.tokens.remove(token)
