@@ -185,6 +185,8 @@ class Board:
     def popRiverTile(self, tile: 'Tile'):
         self.riverDeck.remove(tile)
     def drawTile(self):
+        if len(self.deck) == 0:
+            raise NoDeckEnd
         tile = self.deck[0]
         self.popTile(tile)
         return tile
