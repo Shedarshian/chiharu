@@ -1028,8 +1028,9 @@ class Cloister(BaseCloister):
     def getChallenge(self):
         return self.getCloister(Shrine)
     def score(self, putBarn: bool) -> TAsync[None]:
+        hasmeeple: bool = len(self.tokens) != 0
         yield from super().score(putBarn)
-        if self.board.checkPack(6, 'h') and (cloister := self.getChallenge()) and not cloister.closed() and len(cloister.tokens) != 0:
+        if self.board.checkPack(6, 'h') and (cloister := self.getChallenge()) and not cloister.closed() and hasmeeple and len(cloister.tokens) != 0:
             self.board.addLog(id="challengeFailed", type="shrine")
             cloister.removeAllFollowers()
 class Garden(BaseCloister):
@@ -1038,8 +1039,9 @@ class Shrine(BaseCloister):
     def getChallenge(self):
         return self.getCloister(Cloister)
     def score(self, putBarn: bool) -> TAsync[None]:
+        hasmeeple: bool = len(self.tokens) != 0
         yield from super().score(putBarn)
-        if self.board.checkPack(6, 'h') and (cloister := self.getChallenge()) and not cloister.closed() and len(cloister.tokens) != 0:
+        if self.board.checkPack(6, 'h') and (cloister := self.getChallenge()) and not cloister.closed() and hasmeeple and len(cloister.tokens) != 0:
             self.board.addLog(id="challengeFailed", type="cloister")
             cloister.removeAllFollowers()
 class Tower(Feature):
