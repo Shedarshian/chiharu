@@ -217,13 +217,14 @@
                         "type": "integer"
                     }
                 },
-                "posx": {
-                    "type": "integer",
-                    "description": "The x position to put token."
-                },
-                "posy": {
-                    "type": "integer",
-                    "description": "The y position to put token."
+                "pic_type": {
+                    "type": "string",
+                    "description": "Picture type. all; else; oneside",
+                    "enum": [
+                        "all",
+                        "else",
+                        "oneside"
+                    ]
                 },
                 "features": {
                     "type": "array",
@@ -236,36 +237,11 @@
               "to"
             ]
         },
-        "SegmentPosData": {
-            "type": "object",
-            "properties": {
-                "to": {
-                    "type": "array",
-                    "description": "To which sides does this object connects. For non-fields, 0123 refers to URDL. For fields, 0-7 starts from the right half of the upper side and increases clockwise.",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "features": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/$defs/FeatureData"
-                    }
-                }
-            },
-            "required": [
-              "posx",
-              "posy"
-            ]
-        },
         "NonFieldSegmentData": {
             "type": "object",
             "allOf": [
               {
                 "$ref": "#/$defs/BaseSegmentData"
-              },
-              {
-                "$ref": "#/$defs/SegmentPosData"
               }
             ],
             "properties": {},
@@ -287,6 +263,15 @@
                 "pennant": {
                     "type": "integer",
                     "description": "Number of pennant it has. default to zero."
+                },
+                "pennant_pos": {
+                    "type": "array",
+                    "description": "pos of pennant.",
+                    "items": [
+                        {
+                            "type": "integer"
+                        }
+                    ]
                 }
             }
         },

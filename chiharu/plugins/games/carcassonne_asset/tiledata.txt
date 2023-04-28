@@ -1,0 +1,139 @@
+Picture C4
+0 CCCC
+    City all pennant 9,9
+        *1 0a
+1 CCCC
+    City up 16
+    City right 16
+    City down 16
+    City left 16
+        *1 1a Garden 32,32
+Picture C3
+0 CCCF
+    Field left 16
+    City else
+        *2 0a
+        *1 0a City 0 pennant 55,9
+        *1 0a Garden 11,34 where Field 0 left 24
+1 CCCR
+    Road left 16
+    City else
+        *1 0a
+        *2 0a City 0 pennant 55,9
+Picture C2
+0 CCFF
+    City up-right 16
+        *2 0a
+        *1 0a City 0 pennant 55,9
+        *1 0a Garden 25,39
+        *1 0a City 0 pennant 55,9; Garden 25,39
+1 CCFF
+    City up 16
+    City right 16
+        *1 0a
+        *1 0a Garden 22,46
+2 CCRR 3
+    City up-right 16
+    Road left-down 16
+        *3 0a
+        *2 0a City 0 pennant 55,9
+3 CFCF
+    City up 16
+    City down 16
+        *2 0a
+        *1 0a Garden 32,32
+4 CFCF
+    Field left 16
+    Field right 16
+    City else
+        *1 0a
+        *2 0a City 0 pennant 32,55
+5 CCRF
+    City up-right 16
+    Road down-32,16 16
+        *1 1a
+6 CRCR
+    City up 16
+    City down 16
+    Junction 32,32
+    Road left-junction0
+    Road right-junction0
+    Cut junction0-32,16
+    Cut junction0-32,48
+        *1 1a
+Picture C1
+0 CFFF
+    City up 16
+        *4 0a
+        *1 0a Garden 32,44
+1 CFRR
+    City up 16
+    Road left-down 16
+        *3 0a
+2 CRFR
+    City up 16
+    Road left-right 16
+        *3 0a
+        *1 0a start
+3 CRRF
+    City up 16
+    Road right-down 16
+        *3 0a
+4 CRRR
+    City up 16
+    Junction 32,32
+    Road left-junction0
+    Road down-junction0
+    Road right-junction0
+        *3 0a
+5 CFFF
+    Field left-down 16
+    Field right 16
+    City else
+        *1 1a
+6 CFRF
+    City up 16
+    Road down-32,16
+        *1 1a
+Picture R1
+0 FFRR
+    Road left-down 16
+        *8 0a
+        *1 0a Garden 43,20
+        *1 1a Road 0 Inn
+1 FRFR
+    Road left-right 16
+        *7 0a
+        *1 0a Garden 32,48
+        *1 1a Road 0 Inn
+2 FRRR
+    Junction 32,32
+    Road left-junction0
+    Road down-junction0
+    Road right-junction0
+        *4 0a
+        *1 1a Road 0 Inn; Road 2 Inn
+2 RRRR
+    Junction 32,32
+    Road left-junction0
+    Road down-junction0
+    Road right-junction0
+    Road up-junction0
+        *1 0a
+3 RRRR
+    Road left-up
+    Road right-down
+        *1 1a
+Picture R0
+0 FFFF
+    Cloister 32,32
+        *4 0a
+1 FFFR
+    Cloister 32,32
+    Road left-cloister0
+        *2 0a
+2 FRFR
+    Cloister 32,32
+    Road left-cloister0
+    Road right-cloister0
+        *1 1a
