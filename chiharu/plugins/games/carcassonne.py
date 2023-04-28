@@ -1818,7 +1818,7 @@ if __name__ == "__main__":
     b.players[0].tokens.pop(0)
     def _(i: int, packid: int, yshift: int):
         t = b.tiles[i % 5, i // 5 + yshift] = [s for s in b.deck if s.id == i and s.packid == packid][0]
-        # t.turn(Dir.RIGHT)
+        # t.turn(Dir.LEFT)
         for seg in t.segments:
             b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
             for _ in b.players[0].tokens[-1].putOn(seg):
@@ -1833,15 +1833,15 @@ if __name__ == "__main__":
                 for _ in b.players[1].tokens[-1].putOn(feature):
                     pass
                 feature.height = random.randint(0, 9)
-    for i in range(1, 25):
-        _(i - 1, 0, 0)
+    for i in range(32):
+        _(i, 0, 0)
     for i in range(17):
-        _(i, 1, 5)
+        _(i, 1, 7)
     for i in range(24):
-        _(i, 2, 9)
+        _(i, 2, 11)
     for i in range(17):
-        _(i, 4, 14)
-    # for i in range(12):
-    #     _(i, 5, 14)
+        _(i, 4, 16)
+    for i in range(12):
+        _(i, 5, 21)
     b.dragonMoved.extend([b.tiles[0, 0], b.tiles[1, 0], b.tiles[2, 0], b.tiles[2, 1]])
     b.image().show()
