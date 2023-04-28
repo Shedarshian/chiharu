@@ -109,7 +109,7 @@ config.CommandGroup(('cacason', 'ex7'), des="""一些小扩展合集
 (h) 法师与女巫图块
 (i) 法师与女巫
 (j) 圣旨""")
-config.CommandGroup(('cacason', 'ex11'), des="""另一些小扩展合集
+config.CommandGroup(('cacason', 'ex12'), des="""另一些小扩展合集
 (a) 河流
 (b) 强盗图块
 (c) 强盗
