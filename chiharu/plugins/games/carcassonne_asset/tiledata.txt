@@ -1,8 +1,9 @@
 Picture C4
 0 CCCC
-    City all pennant 9,9
-        *1 0a
-        *2 1a Cathedral
+    City all
+        *1 0a City 0 pennant 9,9
+        *2 1a City 0 Cathedral
+        *1 5a City 0 pennant 20,8 pennant 8,13
 1 CCCC
     City up 16
     City right 16
