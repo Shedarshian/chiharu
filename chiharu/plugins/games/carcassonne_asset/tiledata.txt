@@ -85,11 +85,12 @@ Picture C2
     City else
         *1 0a
         *2 0a City 0 pennant 32,55
+        *1 2a City 0 Wine
 5 CCRF
     City up-right 16
     Road down-32,16 16
         *1 1a
-        *1 2a City 0 Cloth; Garden 
+        *1 2a City 0 Cloth; Garden 17,41
 6 CCFR
     City up-right 16
     Road left-32,16 16
@@ -100,6 +101,7 @@ Picture C2
     Road right 16
     City else
         *1 1a
+        *1 2a City 0 Wine
 8 CRCR
     City up 16
     City down 16
@@ -113,7 +115,28 @@ Picture C2
     Road left 16
     Field down 16
     City else
-        *2 2a City 0 Grain
+        *1 2a City 0 Grain
+10 CCRF
+    Road down 16
+    Field left 16
+    City else
+        *1 2a City 0 Wine
+11 CCRR
+    City up-right 16
+    Road left-32,16 16
+    Road down-48,32 16
+        *1 2a City 0 Wine
+12 CCRR
+    Road left 16
+    Road down 16
+    City else
+        *1 2a City 0 Cloth
+13 CFCR
+    Road left 16
+    Field right 16
+    City else
+        *1 2a City 0 Grain
+        *1 2a City 0 Wine
 Picture C1
 0 CFFF
     City up 16
@@ -149,6 +172,34 @@ Picture C1
     City up 16
     Road down-32,16
         *1 1a
+7 CFRR
+    City up 16
+    Road down-32,16 16
+    Road left-32,32 16
+        *1 2a
+8 CRFF
+    City up 16
+    Road right-32,16 16
+        *1 2a
+Picture M1
+0 FFFF
+    Cloister 32,32
+        *4 0a
+1 FFFR
+    Cloister 32,32
+    Road left-cloister0
+        *2 0a
+2 FRFR
+    Cloister 32,32
+    Road left-cloister0
+    Road right-cloister0
+        *1 1a
+3 FRRR
+    Cloister 32,32
+    Road left-cloister0
+    Road down-cloister0
+    Road right-cloister0
+        *1 2a
 Picture R1
 0 FFRR
     Road left-down 16
@@ -178,16 +229,7 @@ Picture R1
     Road left-up
     Road right-down
         *1 1a
-Picture R0
-0 FFFF
-    Cloister 32,32
-        *4 0a
-1 FFFR
-    Cloister 32,32
-    Road left-cloister0
-        *2 0a
-2 FRFR
-    Cloister 32,32
-    Road left-cloister0
-    Road right-cloister0
-        *1 1a
+4 RRRR
+    Road left-right
+    Road up-down
+        *1 2a
