@@ -2,6 +2,7 @@ Picture C4
 0 CCCC
     City all pennant 9,9
         *1 0a
+        *2 1a Cathedral
 1 CCCC
     City up 16
     City right 16
@@ -20,6 +21,15 @@ Picture C3
     City else
         *1 0a
         *2 0a City 0 pennant 55,9
+2 CCCF
+    City up 16
+    City right 16
+    City down 16
+        *1 1a
+2 CCCF
+    City up 16
+    City right-down 16
+        *1 1a City 1 pennant 55,55
 Picture C2
 0 CCFF
     City up-right 16
@@ -36,7 +46,8 @@ Picture C2
     City up-right 16
     Road left-down 16
         *3 0a
-        *2 0a City 0 pennant 55,9
+        *2 0a City 0 pennant 55,32
+        *1 1a City 0 pennant 55,32; Road 0 Inn
 3 CFCF
     City up 16
     City down 16
@@ -52,7 +63,16 @@ Picture C2
     City up-right 16
     Road down-32,16 16
         *1 1a
-6 CRCR
+6 CCRF
+    City up-right 16
+    Road left-32,16 16
+        *1 1a
+7 CRCR
+    Road left 16
+    Road right 16
+    City else
+        *1 1a
+8 CRCR
     City up 16
     City down 16
     Junction 32,32
@@ -70,6 +90,7 @@ Picture C1
     City up 16
     Road left-down 16
         *3 0a
+        *1 1a Road 0 Inn
 2 CRFR
     City up 16
     Road left-right 16
