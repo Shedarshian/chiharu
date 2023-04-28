@@ -4,7 +4,7 @@
         {
             "name": "Base Game",
             "id": 0,
-            "tiles": [
+            "tiles": {"a": [
                 {
                     "id": 0,
                     "sides": "CCCC",
@@ -22,7 +22,7 @@
                 {
                     "id": 1,
                     "sides": "CCCF",
-                    "num": 3,
+                    "num": 2,
                     "segments": [
                         {
                             "type": "City",
@@ -130,7 +130,7 @@
                 {
                     "id": 5,
                     "sides": "CCFF",
-                    "num": 3,
+                    "num": 2,
                     "segments": [
                         {
                             "type": "City",
@@ -150,7 +150,7 @@
                 {
                     "id": 6,
                     "sides": "CCFF",
-                    "num": 2,
+                    "num": 1,
                     "segments": [
                         {
                             "type": "City",
@@ -171,7 +171,7 @@
                 {
                     "id": 7,
                     "sides": "CCFF",
-                    "num": 2,
+                    "num": 1,
                     "segments": [
                         {
                             "type": "City",
@@ -264,7 +264,7 @@
                 {
                     "id": 10,
                     "sides": "CFCF",
-                    "num": 3,
+                    "num": 2,
                     "segments": [
                         {
                             "type": "City",
@@ -345,7 +345,7 @@
                 {
                     "id": 13,
                     "sides": "CFFF",
-                    "num": 5,
+                    "num": 4,
                     "segments": [
                         {
                             "type": "City",
@@ -567,7 +567,7 @@
                 {
                     "id": 20,
                     "sides": "FFRR",
-                    "num": 9,
+                    "num": 8,
                     "segments": [
                         {
                             "type": "Road",
@@ -594,7 +594,7 @@
                 {
                     "id": 21,
                     "sides": "FRFR",
-                    "num": 8,
+                    "num": 7,
                     "segments": [
                         {
                             "type": "Road",
@@ -722,8 +722,251 @@
                             "posy": 8
                         }
                     ]
+                },
+                {
+                    "id": 24,
+                    "sides": "CCCF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1, 2],
+                            "posx": 40,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 32
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 25,
+                    "sides": "CCFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 24,
+                            "posy": 40
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 26,
+                    "sides": "CCFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "pennant": 1,
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 24,
+                            "posy": 40
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 27,
+                    "sides": "CCFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "City",
+                            "to": [1],
+                            "posx": 56,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4, 5, 6],
+                            "adjacent_city": [0, 1],
+                            "posx": 24,
+                            "posy": 40
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 28,
+                    "sides": "CFCF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "City",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 5, 6],
+                            "adjacent_city": [0, 1],
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 29,
+                    "sides": "CFFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3, 4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 32,
+                            "posy": 40
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 30,
+                    "sides": "FFRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 31,
+                    "sides": "FRFR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 48
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ]
                 }
-            ],
+            ]},
             "tokens": [
                 {
                     "name": "follower",
@@ -737,7 +980,7 @@
         {
             "name": "Inns and Cathedrals",
             "id": 1,
-            "tiles": [
+            "tiles": {"a": [
                 {
                     "id": 0,
                     "sides": "CCCC",
@@ -771,6 +1014,13 @@
                             "type": "Field",
                             "to": [],
                             "adjacent_city": [0, 1, 2, 3],
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
                             "posx": 32,
                             "posy": 32
                         }
@@ -1218,6 +1468,13 @@
                             "posx": 32,
                             "posy": 48
                         }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
+                        }
                     ]
                 },
                 {
@@ -1375,7 +1632,7 @@
                         }
                     ]
                 }
-            ],
+            ]},
             "tokens": [
                 {
                     "name": "big follower",
@@ -1389,7 +1646,7 @@
         {
             "name": "Traders and Builders",
             "id": 2,
-            "tiles": [
+            "tiles": {"a": [
                 {
                     "id": 0,
                     "sides": "CCCC",
@@ -1867,6 +2124,13 @@
                             "posx": 16,
                             "posy": 32
                         }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
+                        }
                     ]
                 },
                 {
@@ -1964,6 +2228,13 @@
                             "adjacent_city": [0],
                             "posx": 8,
                             "posy": 16
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
                         }
                     ]
                 },
@@ -2389,7 +2660,7 @@
                         }
                     ]
                 }
-            ],
+            ]},
             "tokens": [
                 {
                     "name": "builder",
@@ -2410,7 +2681,7 @@
         {
             "name": "The Princess and The Dragon",
             "id": 3,
-            "tiles": [
+            "tiles": {"a": [
                 {
                     "id": 0,
                     "sides": "CCCF",
@@ -2611,6 +2882,13 @@
                             "posx": 24,
                             "posy": 40
                         }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
+                        }
                     ]
                 },
                 {
@@ -2775,6 +3053,11 @@
                     "features": [
                         {
                             "type": "Dragon"
+                        },
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
                         }
                     ]
                 },
@@ -3431,7 +3714,7 @@
                         }
                     ]
                 }
-            ],
+            ]},
             "tokens": [
                 {
                     "name": "dragon",
@@ -3451,12 +3734,758 @@
         },
         {
             "name": "The Tower",
-            "id": 4
+            "id": 4,
+            "tiles": {"a": [
+                {
+                    "id": 0,
+                    "sides": "CCCC",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1, 3],
+                            "pennant": 1,
+                            "posx": 48,
+                            "posy": 16
+                        },
+                        {
+                            "type": "City",
+                            "to": [2],
+                            "pennant": 1,
+                            "posx": 32,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [],
+                            "adjacent_city": [0, 1],
+                            "posx": 48,
+                            "posy": 48
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 22,
+                            "posy": 14,
+                            "numposx": 11,
+                            "numposy": 14
+                        }
+                    ]
+                },
+                {
+                    "id": 1,
+                    "sides": "CCCR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1, 2],
+                            "posx": 40,
+                            "posy": 24
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 12,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 50,
+                            "posy": 50,
+                            "numposx": 50,
+                            "numposy": 39
+                        }
+                    ]
+                },
+                {
+                    "id": 2,
+                    "sides": "CCFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 36,
+                            "posy": 48
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 14,
+                            "posy": 50,
+                            "numposx": 14,
+                            "numposy": 39
+                        }
+                    ]
+                },
+                {
+                    "id": 3,
+                    "sides": "CCFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "City",
+                            "to": [1],
+                            "posx": 56,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4, 5, 6],
+                            "adjacent_city": [0, 1],
+                            "posx": 36,
+                            "posy": 48
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 14,
+                            "posy": 50,
+                            "numposx": 14,
+                            "numposy": 39
+                        }
+                    ]
+                },
+                {
+                    "id": 4,
+                    "sides": "CCRF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "posx": 28,
+                            "posy": 36
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3],
+                            "adjacent_city": [0],
+                            "posx": 48,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4],
+                            "adjacent_city": [0],
+                            "posx": 16,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 32
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 42,
+                            "posy": 22,
+                            "numposx": 42,
+                            "numposy": 11
+                        }
+                    ]
+                },
+                {
+                    "id": 5,
+                    "sides": "CFFF",
+                    "num": 2,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3, 4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 20,
+                            "posy": 40
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 47,
+                            "posy": 46,
+                            "numposx": 36,
+                            "numposy": 46
+                        }
+                    ]
+                },
+                {
+                    "id": 6,
+                    "sides": "CFRF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 44,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3],
+                            "adjacent_city": [0],
+                            "posx": 48,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 16,
+                            "posy": 48
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 29,
+                            "posy": 17,
+                            "numposx": 18,
+                            "numposy": 17
+                        }
+                    ]
+                },
+                {
+                    "id": 7,
+                    "sides": "CFRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3, 6],
+                            "adjacent_city": [0],
+                            "posx": 48,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 49,
+                            "posy": 31,
+                            "numposx": 38,
+                            "numposy": 31
+                        }
+                    ]
+                },
+                {
+                    "id": 8,
+                    "sides": "CRCR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "posx": 32,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1],
+                            "adjacent_city": [0],
+                            "posx": 58,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2],
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16  
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 43,
+                            "posy": 20,
+                            "numposx": 43,
+                            "numposy": 9
+                        }
+                    ]
+                },
+                {
+                    "id": 9,
+                    "sides": "CRCR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 24,
+                            "posy": 8
+                        },
+                        {
+                            "type": "City",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 5],
+                            "adjacent_city": [1],
+                            "posx": 8,
+                            "posy": 48
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 47,
+                            "posy": 14,
+                            "numposx": 36,
+                            "numposy": 14
+                        }
+                    ]
+                },
+                {
+                    "id": 10,
+                    "sides": "CRFR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "posx": 16,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1],
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 20
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 20
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 48
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 31,
+                            "posy": 49,
+                            "numposx": 20,
+                            "numposy": 49
+                        }
+                    ]
+                },
+                {
+                    "id": 11,
+                    "sides": "FFFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 4, 5, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 32
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 36,
+                            "posy": 32,
+                            "numposx": 25,
+                            "numposy": 32
+                        },
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 12,
+                    "sides": "FFFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 4, 5, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 48
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 44,
+                            "posy": 21,
+                            "numposx": 33,
+                            "numposy": 21
+                        },
+                        {
+                            "type": "Cloister",
+                            "posx": 18,
+                            "posy": 48
+                        }
+                    ]
+                },
+                {
+                    "id": 13,
+                    "sides": "FFRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 52
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 12,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 36,
+                            "posy": 32,
+                            "numposx": 25,
+                            "numposy": 32
+                        },
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 14,
+                    "sides": "RRFR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 12
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1],
+                            "posx": 52,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 12,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6, 7],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 8
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 36,
+                            "posy": 32,
+                            "numposx": 25,
+                            "numposy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 15,
+                    "sides": "RRRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [0, 3],
+                            "posx": 24,
+                            "posy": 24
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 2],
+                            "posx": 40,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 4, 5],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6, 7],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 8
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 52,
+                            "posy": 16,
+                            "numposx": 41,
+                            "numposy": 16
+                        }
+                    ]
+                },
+                {
+                    "id": 16,
+                    "sides": "RRRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 12
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1],
+                            "posx": 52,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 52
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 12,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6, 7],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 8
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Tower",
+                            "posx": 36,
+                            "posy": 32,
+                            "numposx": 25,
+                            "numposy": 32
+                        }
+                    ]
+                }
+            ]},
+            "tokens": [
+                {
+                    "name": "tower",
+                    "distribute": false,
+                    "numOfPlayers": {
+                        "1": 10, "2": 10, "3": 9, "4": 7, "5": 6, "6": 5
+                    },
+                    "thing_id": "b",
+                    "image": [0, 0, 16, 16]
+                }
+            ]
         },
         {
             "name": "Abbey and Mayor",
             "id": 5,
-            "tiles": [
+            "tiles": {"a": [
                 {
                     "id": 0,
                     "sides": "CCCC",
@@ -3479,6 +4508,7 @@
                         {
                             "type": "City",
                             "to": [0, 2],
+                            "pennant": 1,
                             "posx": 32,
                             "posy": 56
                         },
@@ -3518,6 +4548,7 @@
                         {
                             "type": "City",
                             "to": [1],
+                            "pennant": 1,
                             "posx": 48,
                             "posy": 32
                         },
@@ -3597,6 +4628,7 @@
                         {
                             "type": "City",
                             "to": [0],
+                            "pennant": 1,
                             "posx": 32,
                             "posy": 24
                         },
@@ -3625,7 +4657,7 @@
                 },
                 {
                     "id": 5,
-                    "sides": "CRFF",
+                    "sides": "CFFR",
                     "num": 1,
                     "segments": [
                         {
@@ -3795,6 +4827,13 @@
                             "posx": 32,
                             "posy": 52
                         }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
+                        }
                     ]
                 },
                 {
@@ -3897,7 +4936,7 @@
                         }
                     ]
                 }
-            ],
+            ]},
             "tokens": [
                 {
                     "name": "mayor",
@@ -3921,6 +4960,1192 @@
                     "image": [40, 0, 56, 16]
                 }
             ]
+        },
+        {
+            "name": "Count, King, and Robber",
+            "id": 6,
+            "tiles": {"a":[
+                {
+                    "id": 0,
+                    "sides": "CCCC",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "posx": 32,
+                            "posy": 56
+                        },
+                        {
+                            "type": "City",
+                            "to": [1, 3],
+                            "posx": 8,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [],
+                            "adjacent_city": [0, 1],
+                            "posx": 48,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [],
+                            "adjacent_city": [0, 1],
+                            "posx": 16,
+                            "posy": 16
+                        }
+                    ]
+                },
+                {
+                    "id": 1,
+                    "sides": "CCRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 8,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3],
+                            "adjacent_city": [0],
+                            "posx": 48,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4],
+                            "adjacent_city": [0],
+                            "posx": 16,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
+                        }
+                    ]
+                },
+                {
+                    "id": 2,
+                    "sides": "CFFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3, 4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 52,
+                            "posy": 32
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Cloister",
+                            "posx": 32,
+                            "posy": 40
+                        }
+                    ]
+                },
+                {
+                    "id": 3,
+                    "sides": "CFFR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 16,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3, 4, 5],
+                            "adjacent_city": [0],
+                            "posx": 48,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 4,
+                    "sides": "CRRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 24,
+                            "posy": 24
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 2],
+                            "posx": 40,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 4, 5],
+                            "adjacent_city": [0],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
+                        }
+                    ]
+                }
+            ],
+            "g":[
+                {
+                    "id": 5,
+                    "sides": "CFFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3, 4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 52,
+                            "posy": 32
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Shrine",
+                            "posx": 32,
+                            "posy": 40
+                        }
+                    ]
+                },
+                {
+                    "id": 6,
+                    "sides": "CFRF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 52
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3, 4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 52,
+                            "posy": 32
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Shrine",
+                            "posx": 32,
+                            "posy": 40
+                        }
+                    ]
+                },
+                {
+                    "id": 7,
+                    "sides": "FFFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 4, 5, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 52,
+                            "posy": 32
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Shrine",
+                            "posx": 32,
+                            "posy": 36
+                        }
+                    ]
+                },
+                {
+                    "id": 8,
+                    "sides": "FFRF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 52
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 4, 5, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 52,
+                            "posy": 32
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Shrine",
+                            "posx": 32,
+                            "posy": 36
+                        }
+                    ]
+                },
+                {
+                    "id": 9,
+                    "sides": "FFRF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 12
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 52
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3],
+                            "adjacent_city": [],
+                            "posx": 52,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 12,
+                            "posy": 32
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Shrine",
+                            "posx": 32,
+                            "posy": 36
+                        }
+                    ]
+                }
+            ]}
+        },
+        {
+            "name": "Multiple Small Extensions",
+            "id": 7,
+            "tiles": {"a": [
+                {
+                    "id": 0,
+                    "sides": "FFFS",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 4, 5, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 52
+                        }
+                    ]
+                },
+                {
+                    "id": 1,
+                    "sides": "FSSS",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ]
+                },
+                {
+                    "id": 2,
+                    "sides": "CFSF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2, 3],
+                            "adjacent_city": [0],
+                            "posx": 48,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 16,
+                            "posy": 48
+                        }
+                    ]
+                },
+                {
+                    "id": 3,
+                    "sides": "FFFS",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 4, 5, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 52
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Volcano"
+                        }
+                    ]
+                },
+                {
+                    "id": 4,
+                    "sides": "CCSS",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 6],
+                            "adjacent_city": [0],
+                            "posx": 36,
+                            "posy": 28
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ]
+                },
+                {
+                    "id": 5,
+                    "sides": "CSRS",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1],
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 16,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
+                        }
+                    ]
+                },
+                {
+                    "id": 6,
+                    "sides": "FFSS",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 7,
+                    "sides": "CSCS",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 6],
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 5],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 48
+                        }
+                    ]
+                },
+                {
+                    "id": 8,
+                    "sides": "FFSS",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 16,
+                            "features": [
+                                {
+                                    "type": "Pigherd"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ]
+                },
+                {
+                    "id": 9,
+                    "sides": "FSFS",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Cloister",
+                            "posx": 32,
+                            "posy": 36
+                        }
+                    ]
+                },
+                {
+                    "id": 10,
+                    "sides": "RRSS",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [0, 3],
+                            "posx": 24,
+                            "posy": 24
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 4, 5],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6, 7],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 8
+                        }
+                    ]
+                },
+                {
+                    "id": 11,
+                    "sides": "RSRS",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [0, 2],
+                            "posx": 32,
+                            "posy": 48,
+                            "features": [
+                                {
+                                    "type": "Inn"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6, 7],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 8
+                        }
+                    ]
+                }
+            ],
+            "d": [
+                {
+                    "id": 12,
+                    "sides": "CCCR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "City",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 12,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0, 1],
+                            "posx": 8,
+                            "posy": 16
+                        }
+                    ]
+                },
+                {
+                    "id": 13,
+                    "sides": "CCFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4],
+                            "adjacent_city": [0],
+                            "posx": 32,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 14,
+                    "sides": "CCFR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 24,
+                            "posy": 24
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4, 5],
+                            "adjacent_city": [0],
+                            "posx": 32,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 20
+                        }
+                    ]
+                },
+                {
+                    "id": 15,
+                    "sides": "CCRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 8,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3],
+                            "adjacent_city": [0],
+                            "posx": 48,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [0],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
+                        }
+                    ]
+                },
+                {
+                    "id": 16,
+                    "sides": "CFCR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 8,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 2],
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
+                        }
+                    ]
+                },
+                {
+                    "id": 17,
+                    "sides": "CRCR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 2],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1],
+                            "posx": 56,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 8,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1],
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2],
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16  
+                        }
+                    ]
+                },
+                {
+                    "id": 18,
+                    "sides": "CRCR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 24,
+                            "posy": 8
+                        },
+                        {
+                            "type": "City",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 5],
+                            "adjacent_city": [1],
+                            "posx": 8,
+                            "posy": 48
+                        }
+                    ]
+                },
+                {
+                    "id": 19,
+                    "sides": "CRRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1],
+                            "posx": 48,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1],
+                            "adjacent_city": [0],
+                            "posx": 56,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 6],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ]
+                },
+                {
+                    "id": 20,
+                    "sides": "FFFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 4, 5, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 52,
+                            "posy": 32
+                        }
+                    ]
+                },
+                {
+                    "id": 21,
+                    "sides": "RRRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [0],
+                            "posx": 32,
+                            "posy": 12
+                        },
+                        {
+                            "type": "Road",
+                            "to": [1],
+                            "posx": 52,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Road",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 52
+                        },
+                        {
+                            "type": "Road",
+                            "to": [3],
+                            "posx": 12,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [6, 7],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 8
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Cloister",
+                            "posx": 32,
+                            "posy": 36
+                        }
+                    ]
+                },
+                {
+                    "id": 22,
+                    "sides": "FRFS",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [1],
+                            "posx": 52,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 12
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 52
+                        }
+                    ]
+                },
+                {
+                    "id": 23,
+                    "sides": "CSCS",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0],
+                            "posx": 24,
+                            "posy": 8
+                        },
+                        {
+                            "type": "City",
+                            "to": [2],
+                            "posx": 32,
+                            "posy": 56
+                        },
+                        {
+                            "type": "Field",
+                            "to": [1, 6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 5],
+                            "adjacent_city": [1],
+                            "posx": 8,
+                            "posy": 48
+                        }
+                    ]
+                }
+            ]},
+            "tokens": [
+                {
+                    "name": "abbot",
+                    "distribute": true,
+                    "thing_id": "c",
+                    "num": 1
+                }
+            ],
+            "starting_tile": 0
         }
     ]
 }
