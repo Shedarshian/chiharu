@@ -656,7 +656,7 @@ class Tile:
         for seg in self.segments:
             if isinstance(seg, FieldSegment):
                 seg.makeAdjacentCity(self.segments)
-        self.features: list[Feature] = [f(self, s) for s in data.get("features", []) if (f := Feature.make(s["type"])) is not None and not (self.board.checkPack(7, "b") and f is Garden)]
+        self.features: list[Feature] = [f(self, s) for s in data.get("features", []) if (f := Feature.make(s["type"])) is not None and not (not self.board.checkPack(7, "b") and f is Garden)]
         self.connectTile: list[Tile | None] = [None] * 4
         self.orient: Dir = Dir.UP
         self.token_pos: tuple[int, int] = (data.get("posx", 32), data.get("posy", 32))
