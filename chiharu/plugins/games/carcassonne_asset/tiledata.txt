@@ -1,6 +1,6 @@
 Picture C4
 0 CCCC
-    City all
+    City else
         *1 0a City 0 pennant 9,9
         *2 1a City 0 Cathedral
         *1 5a City 0 pennant 20,8 pennant 8,13

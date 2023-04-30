@@ -3,6 +3,7 @@ import random, itertools, more_itertools, json
 from enum import Enum, auto
 from abc import ABC, abstractmethod
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
+from .carcassonne_tile import Dir
 
 class CantPutError(Exception):
     pass
@@ -16,24 +17,6 @@ class Connectable(Enum):
     @classmethod
     def fromChar(cls, char: str):
         return {"C": Connectable.City, "F": Connectable.Field, "R": Connectable.Road, "S": Connectable.River}[char]
-class Dir(Enum):
-    UP = 0
-    RIGHT = 1
-    DOWN = 2
-    LEFT = 3
-    def corr(self) -> tuple[int, int]:
-        return ((0, -1), (1, 0), (0, 1), (-1, 0))[self.value]
-    @classmethod
-    def fromCorr(cls, corr: tuple[int, int]):
-        return Dir(((0, -1), (1, 0), (0, 1), (-1, 0)).index(corr))
-    def __add__(self, other: 'Dir'):
-        return Dir((self.value + other.value) % 4)
-    def __radd__(self, other: tuple[int, int]):
-        return other[0] + self.corr()[0], other[1] + self.corr()[1]
-    def __neg__(self):
-        return Dir((self.value + 2) % 4)
-    def transpose(self):
-        return (None, Image.ROTATE_270, Image.ROTATE_180, Image.ROTATE_90)[self.value]
 class DragonType(Enum):
     No = auto()
     Volcano = auto()
