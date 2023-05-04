@@ -6142,7 +6142,8 @@
                     "name": "abbot",
                     "distribute": true,
                     "thing_id": "c",
-                    "num": 1
+                    "num": 1,
+                    "image": [0, 0, 16, 20]
                 }
             ],
             "starting_tile": 0
