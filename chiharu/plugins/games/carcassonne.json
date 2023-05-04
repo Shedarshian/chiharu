@@ -725,89 +725,7 @@
                 },
                 {
                     "id": 24,
-                    "sides": "CCCF",
-                    "num": 1,
-                    "segments": [
-                        {
-                            "type": "City",
-                            "to": [0, 1, 2],
-                            "posx": 40,
-                            "posy": 32
-                        },
-                        {
-                            "type": "Field",
-                            "to": [5, 6],
-                            "adjacent_city": [0],
-                            "posx": 8,
-                            "posy": 32
-                        }
-                    ],
-                    "features": [
-                        {
-                            "type": "Garden",
-                            "posx": 32,
-                            "posy": 32
-                        }
-                    ]
-                },
-                {
-                    "id": 25,
-                    "sides": "CCFF",
-                    "num": 1,
-                    "segments": [
-                        {
-                            "type": "City",
-                            "to": [0, 1],
-                            "posx": 32,
-                            "posy": 8
-                        },
-                        {
-                            "type": "Field",
-                            "to": [3, 4, 5, 6],
-                            "adjacent_city": [0],
-                            "posx": 24,
-                            "posy": 40
-                        }
-                    ],
-                    "features": [
-                        {
-                            "type": "Garden",
-                            "posx": 32,
-                            "posy": 32
-                        }
-                    ]
-                },
-                {
-                    "id": 26,
-                    "sides": "CCFF",
-                    "num": 1,
-                    "segments": [
-                        {
-                            "type": "City",
-                            "to": [0, 1],
-                            "pennant": 1,
-                            "posx": 32,
-                            "posy": 8
-                        },
-                        {
-                            "type": "Field",
-                            "to": [3, 4, 5, 6],
-                            "adjacent_city": [0],
-                            "posx": 24,
-                            "posy": 40
-                        }
-                    ],
-                    "features": [
-                        {
-                            "type": "Garden",
-                            "posx": 32,
-                            "posy": 32
-                        }
-                    ]
-                },
-                {
-                    "id": 27,
-                    "sides": "CCFF",
+                    "sides": "CFFF",
                     "num": 1,
                     "segments": [
                         {
@@ -817,16 +735,10 @@
                             "posy": 8
                         },
                         {
-                            "type": "City",
-                            "to": [1],
-                            "posx": 56,
-                            "posy": 32
-                        },
-                        {
                             "type": "Field",
-                            "to": [3, 4, 5, 6],
-                            "adjacent_city": [0, 1],
-                            "posx": 24,
+                            "to": [1, 2, 3, 4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 48,
                             "posy": 40
                         }
                     ],
@@ -834,12 +746,12 @@
                         {
                             "type": "Garden",
                             "posx": 32,
-                            "posy": 32
+                            "posy": 44
                         }
                     ]
                 },
                 {
-                    "id": 28,
+                    "id": 25,
                     "sides": "CFCF",
                     "num": 1,
                     "segments": [
@@ -859,7 +771,7 @@
                             "type": "Field",
                             "to": [1, 2, 5, 6],
                             "adjacent_city": [0, 1],
-                            "posx": 32,
+                            "posx": 48,
                             "posy": 32
                         }
                     ],
@@ -872,8 +784,8 @@
                     ]
                 },
                 {
-                    "id": 29,
-                    "sides": "CFFF",
+                    "id": 26,
+                    "sides": "CCFF",
                     "num": 1,
                     "segments": [
                         {
@@ -883,57 +795,111 @@
                             "posy": 8
                         },
                         {
+                            "type": "City",
+                            "to": [1],
+                            "posx": 56,
+                            "posy": 32
+                        },
+                        {
                             "type": "Field",
-                            "to": [1, 2, 3, 4, 5, 6],
-                            "adjacent_city": [0],
+                            "to": [3, 4, 5, 6],
+                            "adjacent_city": [0, 1],
                             "posx": 32,
-                            "posy": 40
+                            "posy": 32
                         }
                     ],
                     "features": [
                         {
                             "type": "Garden",
+                            "posx": 22,
+                            "posy": 46
+                        }
+                    ]
+                },
+                {
+                    "id": 27,
+                    "sides": "CCFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "pennant": 1,
                             "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 36,
+                            "posy": 28
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 25,
+                            "posy": 39
+                        }
+                    ]
+                },
+                {
+                    "id": 28,
+                    "sides": "CCFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1],
+                            "posx": 32,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [3, 4, 5, 6],
+                            "adjacent_city": [0],
+                            "posx": 36,
+                            "posy": 28
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 25,
+                            "posy": 39
+                        }
+                    ]
+                },
+                {
+                    "id": 29,
+                    "sides": "CCCF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "City",
+                            "to": [0, 1, 2],
+                            "posx": 40,
                             "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [5, 6],
+                            "adjacent_city": [0],
+                            "posx": 8,
+                            "posy": 16
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 11,
+                            "posy": 34
                         }
                     ]
                 },
                 {
                     "id": 30,
-                    "sides": "FFRR",
-                    "num": 1,
-                    "segments": [
-                        {
-                            "type": "Road",
-                            "to": [2, 3],
-                            "posx": 24,
-                            "posy": 40
-                        },
-                        {
-                            "type": "Field",
-                            "to": [0, 1, 2, 3, 6, 7],
-                            "adjacent_city": [],
-                            "posx": 48,
-                            "posy": 16
-                        },
-                        {
-                            "type": "Field",
-                            "to": [4, 5],
-                            "adjacent_city": [],
-                            "posx": 8,
-                            "posy": 56
-                        }
-                    ],
-                    "features": [
-                        {
-                            "type": "Garden",
-                            "posx": 32,
-                            "posy": 32
-                        }
-                    ]
-                },
-                {
-                    "id": 31,
                     "sides": "FRFR",
                     "num": 1,
                     "segments": [
@@ -954,7 +920,7 @@
                             "type": "Field",
                             "to": [2, 3, 4, 5],
                             "adjacent_city": [],
-                            "posx": 32,
+                            "posx": 48,
                             "posy": 48
                         }
                     ],
@@ -962,7 +928,41 @@
                         {
                             "type": "Garden",
                             "posx": 32,
-                            "posy": 32
+                            "posy": 48
+                        }
+                    ]
+                },
+                {
+                    "id": 31,
+                    "sides": "FFRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 52,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 43,
+                            "posy": 20
                         }
                     ]
                 }
@@ -1014,8 +1014,8 @@
                             "type": "Field",
                             "to": [],
                             "adjacent_city": [0, 1, 2, 3],
-                            "posx": 32,
-                            "posy": 32
+                            "posx": 20,
+                            "posy": 20
                         }
                     ],
                     "features": [
@@ -1465,7 +1465,7 @@
                             "type": "Field",
                             "to": [2, 3, 4, 5],
                             "adjacent_city": [],
-                            "posx": 32,
+                            "posx": 48,
                             "posy": 48
                         }
                     ],
@@ -1473,7 +1473,7 @@
                         {
                             "type": "Garden",
                             "posx": 32,
-                            "posy": 32
+                            "posy": 48
                         }
                     ]
                 },
@@ -2122,14 +2122,14 @@
                             "to": [4, 5, 6],
                             "adjacent_city": [0],
                             "posx": 16,
-                            "posy": 32
+                            "posy": 16
                         }
                     ],
                     "features": [
                         {
                             "type": "Garden",
-                            "posx": 32,
-                            "posy": 32
+                            "posx": 17,
+                            "posy": 41
                         }
                     ]
                 },
@@ -2219,8 +2219,8 @@
                             "type": "Field",
                             "to": [4, 5],
                             "adjacent_city": [0],
-                            "posx": 24,
-                            "posy": 40
+                            "posx": 32,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
@@ -2233,8 +2233,8 @@
                     "features": [
                         {
                             "type": "Garden",
-                            "posx": 32,
-                            "posy": 32
+                            "posx": 17,
+                            "posy": 48
                         }
                     ]
                 },
@@ -4217,8 +4217,8 @@
                         },
                         {
                             "type": "Garden",
-                            "posx": 32,
-                            "posy": 32
+                            "posx": 24,
+                            "posy": 12
                         }
                     ]
                 },
@@ -4271,8 +4271,8 @@
                             "type": "Field",
                             "to": [0, 1, 2, 3, 6, 7],
                             "adjacent_city": [],
-                            "posx": 48,
-                            "posy": 16
+                            "posx": 52,
+                            "posy": 32
                         },
                         {
                             "type": "Field",
@@ -4292,8 +4292,8 @@
                         },
                         {
                             "type": "Garden",
-                            "posx": 32,
-                            "posy": 32
+                            "posx": 43,
+                            "posy": 12
                         }
                     ]
                 },
@@ -4831,8 +4831,8 @@
                     "features": [
                         {
                             "type": "Garden",
-                            "posx": 32,
-                            "posy": 32
+                            "posx": 43,
+                            "posy": 15
                         }
                     ]
                 },
@@ -6142,7 +6142,8 @@
                     "name": "abbot",
                     "distribute": true,
                     "thing_id": "c",
-                    "num": 1
+                    "num": 1,
+                    "image": [0, 0, 16, 20]
                 }
             ],
             "starting_tile": 0

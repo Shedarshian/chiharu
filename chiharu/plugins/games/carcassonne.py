@@ -43,7 +43,7 @@ class TradeCounter(Enum):
     Wine = auto()
     Grain = auto()
     Cloth = auto()
-all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde'}
+all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 7: 'bc'}
 T = TypeVar('T')
 TAsync = Generator[dict[str, Any], dict[str, Any], T]
 
@@ -656,7 +656,7 @@ class Tile:
         for seg in self.segments:
             if isinstance(seg, FieldSegment):
                 seg.makeAdjacentCity(self.segments)
-        self.features: list[Feature] = [f(self, s) for s in data.get("features", []) if (f := Feature.make(s["type"])) is not None and not (self.board.checkPack(7, "b") and f is Garden)]
+        self.features: list[Feature] = [f(self, s) for s in data.get("features", []) if (f := Feature.make(s["type"])) is not None and not (not self.board.checkPack(7, "b") and f is Garden)]
         self.connectTile: list[Tile | None] = [None] * 4
         self.orient: Dir = Dir.UP
         self.token_pos: tuple[int, int] = (data.get("posx", 32), data.get("posy", 32))
@@ -1014,7 +1014,7 @@ class BaseCloister(Feature, CanScore):
     def getTile(self):
         assert isinstance(self.parent, Tile)
         pos = self.parent.board.findTilePos(self.parent)
-        return [self.parent.board.tiles[pos[0] + i, pos[1] + j] if (pos[0] + i, pos[1] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1)]
+        return [self.parent.board.tiles[pos[0] + i, pos[1] + j] for i in (-1, 0, 1) for j in (-1, 0, 1) if (pos[0] + i, pos[1] + j) in self.parent.board.tiles]
     def checkScore(self, players: 'list[Player]', mid_game: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
         assert isinstance(self.parent, Tile)
         score = len(self.getTile())
@@ -1067,7 +1067,7 @@ class Token(ABC):
         return self.player.checkPack(packid, thingid)
     @classmethod
     def make(cls, typ: str) -> Type['Token']:
-        return {"follower": BaseFollower, "big follower": BigFollower, "大跟随者": BigFollower, "builder": Builder, "建筑师": Builder, "pig": Pig, "猪": Pig, "mayor": Mayor, "市长": Mayor, "wagon": Wagon, "马车": Wagon, "barn": Barn, "谷仓": Barn, "dragon": Dragon, "龙": Dragon, "fairy": Fairy, "仙子": Fairy}[typ.lower()]
+        return {"follower": BaseFollower, "big follower": BigFollower, "大跟随者": BigFollower, "builder": Builder, "建筑师": Builder, "pig": Pig, "猪": Pig, "mayor": Mayor, "市长": Mayor, "wagon": Wagon, "马车": Wagon, "barn": Barn, "谷仓": Barn, "dragon": Dragon, "龙": Dragon, "fairy": Fairy, "仙子": Fairy, "abbot": Abbot, "修道院长": Abbot}[typ.lower()]
     def canPut(self, seg: Segment | Feature | Tile):
         if isinstance(seg, Tile):
             return False
@@ -1818,7 +1818,7 @@ if __name__ == "__main__":
     b.players[0].tokens.pop(0)
     def _(i: int, packid: int, yshift: int):
         t = b.tiles[i % 5, i // 5 + yshift] = [s for s in b.deck if s.id == i and s.packid == packid][0]
-        # t.turn(Dir.RIGHT)
+        # t.turn(Dir.LEFT)
         for seg in t.segments:
             b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
             for _ in b.players[0].tokens[-1].putOn(seg):
@@ -1833,15 +1833,15 @@ if __name__ == "__main__":
                 for _ in b.players[1].tokens[-1].putOn(feature):
                     pass
                 feature.height = random.randint(0, 9)
-    for i in range(1, 25):
-        _(i - 1, 0, 0)
+    for i in range(32):
+        _(i, 0, 0)
     for i in range(17):
-        _(i, 1, 5)
+        _(i, 1, 7)
     for i in range(24):
-        _(i, 2, 9)
+        _(i, 2, 11)
     for i in range(17):
-        _(i, 4, 14)
-    # for i in range(12):
-    #     _(i, 5, 14)
+        _(i, 4, 16)
+    for i in range(12):
+        _(i, 5, 21)
     b.dragonMoved.extend([b.tiles[0, 0], b.tiles[1, 0], b.tiles[2, 0], b.tiles[2, 1]])
     b.image().show()
