@@ -1067,7 +1067,7 @@ class Token(ABC):
         return self.player.checkPack(packid, thingid)
     @classmethod
     def make(cls, typ: str) -> Type['Token']:
-        return {"follower": BaseFollower, "big follower": BigFollower, "大跟随者": BigFollower, "builder": Builder, "建筑师": Builder, "pig": Pig, "猪": Pig, "mayor": Mayor, "市长": Mayor, "wagon": Wagon, "马车": Wagon, "barn": Barn, "谷仓": Barn, "dragon": Dragon, "龙": Dragon, "fairy": Fairy, "仙子": Fairy}[typ.lower()]
+        return {"follower": BaseFollower, "big follower": BigFollower, "大跟随者": BigFollower, "builder": Builder, "建筑师": Builder, "pig": Pig, "猪": Pig, "mayor": Mayor, "市长": Mayor, "wagon": Wagon, "马车": Wagon, "barn": Barn, "谷仓": Barn, "dragon": Dragon, "龙": Dragon, "fairy": Fairy, "仙子": Fairy, "abbot": Abbot, "修道院长": Abbot}[typ.lower()]
     def canPut(self, seg: Segment | Feature | Tile):
         if isinstance(seg, Tile):
             return False
