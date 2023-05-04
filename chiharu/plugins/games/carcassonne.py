@@ -1014,7 +1014,7 @@ class BaseCloister(Feature, CanScore):
     def getTile(self):
         assert isinstance(self.parent, Tile)
         pos = self.parent.board.findTilePos(self.parent)
-        return [self.parent.board.tiles[pos[0] + i, pos[1] + j] if (pos[0] + i, pos[1] + j) in self.parent.board.tiles else 0 for i in (-1, 0, 1) for j in (-1, 0, 1)]
+        return [self.parent.board.tiles[pos[0] + i, pos[1] + j] for i in (-1, 0, 1) for j in (-1, 0, 1) if (pos[0] + i, pos[1] + j) in self.parent.board.tiles]
     def checkScore(self, players: 'list[Player]', mid_game: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
         assert isinstance(self.parent, Tile)
         score = len(self.getTile())
