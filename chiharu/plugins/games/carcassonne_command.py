@@ -422,7 +422,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 orient = {'U': Dir.UP, 'R': Dir.LEFT, 'D': Dir.DOWN, 'L': Dir.RIGHT}[orients]
                 await advance(board, {"pos": pos, "orient": orient})
             elif match := re.match(r"\s*赎回玩家(\d+)(.*)?", command):
-                player_id = int(match.group(1))
+                player_id = int(match.group(1)) - 1
                 name = match.group(2)
                 await advance(board, {"player_id": player_id, "which": name or "follower"})
         case State.PrincessAsking:

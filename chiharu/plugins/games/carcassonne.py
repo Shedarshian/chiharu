@@ -1067,7 +1067,7 @@ class Token(ABC):
         return self.player.checkPack(packid, thingid)
     @classmethod
     def make(cls, typ: str) -> Type['Token']:
-        return {"follower": BaseFollower, "big follower": BigFollower, "大跟随者": BigFollower, "builder": Builder, "建筑师": Builder, "pig": Pig, "猪": Pig, "mayor": Mayor, "市长": Mayor, "wagon": Wagon, "马车": Wagon, "barn": Barn, "谷仓": Barn, "dragon": Dragon, "龙": Dragon, "fairy": Fairy, "仙子": Fairy, "abbot": Abbot, "修道院长": Abbot}[typ.lower()]
+        return {"follower": BaseFollower, "跟随者": BaseFollower, "big follower": BigFollower, "大跟随者": BigFollower, "builder": Builder, "建筑师": Builder, "pig": Pig, "猪": Pig, "mayor": Mayor, "市长": Mayor, "wagon": Wagon, "马车": Wagon, "barn": Barn, "谷仓": Barn, "dragon": Dragon, "龙": Dragon, "fairy": Fairy, "仙子": Fairy, "abbot": Abbot, "修道院长": Abbot}[typ.lower()]
     def canPut(self, seg: Segment | Feature | Tile):
         if isinstance(seg, Tile):
             return False
@@ -1094,13 +1094,14 @@ class Token(ABC):
     def remove(self):
         if isinstance(self.parent, (Tile, Segment, Feature, Object)):
             self.parent.tokens.remove(self)
+            self.parent = self.player
         if self.board.checkPack(3, 'c') and self.board.fairy.follower is self:
             self.board.fairy.follower = None
     def putBackToHand(self):
         if isinstance(self.parent, (Tile, Segment, Feature, Object)):
             self.parent.tokens.remove(self)
-            self.player.tokens.append(self)
-            self.parent = self.player
+        self.player.tokens.append(self)
+        self.parent = self.player
         if self.board.checkPack(3, 'c') and self.board.fairy.follower is self:
             self.board.fairy.follower = None
     @abstractmethod
@@ -1251,9 +1252,9 @@ class Player:
         return ["green", "blue", "gray", "pink", "black", "yellow"][self.id]
     @property
     def show_name(self):
-        show_name = self.name
-        if self.board.font_name.getlength(self.name) > 80:
-            while self.board.font_name.getlength(show_name + "...") > 80:
+        show_name = str(self.id) + "." + self.name
+        if self.board.font_name.getlength(self.name) > 100:
+            while self.board.font_name.getlength(show_name + "...") > 100:
                 show_name = show_name[:-1]
             show_name += "..."
         return show_name
@@ -1568,6 +1569,7 @@ class Player:
                 follower.putBackToHand()
             else:
                 follower.remove()
+                follower.parent = self
                 self.prisoners.append(follower)
                 yield from self.checkReturnPrisoner()
             break
@@ -1604,10 +1606,8 @@ class Player:
                     self.board.current_player_id = self.board.current_turn_player_id
             if c[0] and c[1]:
                 self.board.addLog(id="exchangePrisoner", p1=t[0], p2=t[1])
-            self.prisoners.remove(t[0])
-            player.tokens.append(t[0])
-            player.prisoners.remove(t[1])
-            self.tokens.append(t[1])
+            t[0].putBackToHand()
+            t[1].putBackToHand()
     def turnMoveDragon(self) -> TAsync[None]:
         self.board.state = State.MovingDragon
         dragon = self.board.dragon
@@ -1737,7 +1737,7 @@ class Player:
                     trade_score += 10
             score_str = score_str[:-1] + "+" + str(trade_score) + score_str[-1]
         score_length = 120 + (45 if self.board.checkPack(2, 'd') else 0)
-        length = 80 + score_length + self.board.token_length
+        length = 100 + score_length + self.board.token_length
         if self.board.checkPack(5, "b"):
             abbey_xpos = length
             length += 28
