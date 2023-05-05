@@ -336,11 +336,13 @@ class Board:
             dr.text(pos(0, j, (-15, 32)), str(j + 1), "black", font, "rm")
         dr.text(pos(0, height + 1, (-15, 5)), str(height + 2), "black", font, "rm")
         # token
+        fairy_drawn: bool = False
         def checkFairy(token: Token, p1: tuple[int, int], next: int):
+            nonlocal fairy_drawn
+            fairy_drawn = True
             tf = self.fairy.image()
-            self.fairy.drawpos = p1
-            self.fairy.drawpos = self.fairy.drawpos[0] + next * 4, self.fairy.drawpos[1] + next * 4 + 8
-            img.alpha_composite(t, posshift(i, j, self.fairy.drawpos, (-tf.size[0] // 2, -tf.size[1] // 2)))
+            self.fairy.drawpos = p1[0] + next * 4, p1[1] + next * 4 + 8
+            img.alpha_composite(tf, posshift(i, j, self.fairy.drawpos, (-tf.size[0] // 2, -tf.size[1] // 2)))
         for (i, j), tile in self.tiles.items():
             for seg in tile.segments:
                 next = 0
@@ -370,6 +372,9 @@ class Board:
                         checkFairy(token, turn(feature.token_pos, tile.orient), next)
                 if isinstance(feature, Tower):
                     dr.text(posshift(i, j, turn(feature.num_pos, tile.orient)), str(feature.height), "black", font_tower, "mm")
+        if not fairy_drawn:
+            tf = self.fairy.image()
+            img.alpha_composite(t, posshift(i, j, self.fairy.drawpos, (-tf.size[0] // 2, -tf.size[1] // 2)))
         # choose follower
         def draw(c: tuple[int, int], tpos: tuple[int, int], i: int):
             dr.ellipse((posshift(*c, (tpos[0] - 6, tpos[1] - 6)), posshift(*c, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
@@ -632,6 +637,7 @@ class CanScore(ABC):
         if self.board.checkPack(3, "c") and self.board.fairy.follower is not None:
             for token in self.iterTokens():
                 if self.board.fairy.follower is token and isinstance(token.player, Player):
+                    self.board.addLog(id="score", player=token.player, source="fairy_complete", num=3)
                     yield from token.player.addScore(3)
         yield from self.moveWagon()
         self.removeAllFollowers()
@@ -1252,9 +1258,9 @@ class Player:
         return ["green", "blue", "gray", "pink", "black", "yellow"][self.id]
     @property
     def show_name(self):
-        show_name = str(self.id) + "." + self.name
-        if self.board.font_name.getlength(self.name) > 100:
-            while self.board.font_name.getlength(show_name + "...") > 100:
+        show_name = self.name
+        if self.board.font_name.getlength(self.name) > 80:
+            while self.board.font_name.getlength(show_name + "...") > 80:
                 show_name = show_name[:-1]
             show_name += "..."
         return show_name
@@ -1395,7 +1401,7 @@ class Player:
                 pass_err = 0
                 self.board.state = State.PrincessAsking
                 while 1:
-                    ret = yield {"id": 8, "object": seg.object}
+                    ret = yield {"id": 8, "object": seg.object, "last_err": pass_err}
                     id: int = ret["id"]
                     if id >= 0 and id < len(followers):
                         followers[id].putBackToHand()
@@ -1751,8 +1757,8 @@ class Player:
             length += 120
         img = Image.new("RGBA", (length, 24))
         dr = ImageDraw.Draw(img)
-        dr.text((0, 12), self.show_name, "black", self.board.font_name, "lm")
-        dr.text((80 + score_length // 2, 12), score_str, "black", self.board.font_score, "mm")
+        dr.text((0, 12), str(self.id) + "." + self.show_name, "black", self.board.font_name, "lm")
+        dr.text((100 + score_length // 2, 12), score_str, "black", self.board.font_score, "mm")
         # tokens
         self.tokens.sort(key=Token.key)
         last_key: tuple[int, int] = (-1, -2)
@@ -1761,7 +1767,7 @@ class Player:
                 last_key = token.key()
                 timg = token.image()
                 this_num = len([1 for tk in self.tokens if tk.key() == last_key])
-                xbegin = self.board.token_pos[type(token)] + 80 + score_length
+                xbegin = self.board.token_pos[type(token)] + 100 + score_length
                 if this_num >= 3:
                     img.alpha_composite(timg, (xbegin, 12 - timg.size[1] // 2))
                     dr.text((xbegin + timg.size[0], 12), "x " + str(this_num), "black", self.board.font_name, "lm")
