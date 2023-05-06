@@ -1187,6 +1187,7 @@ class Dragon(Figure):
     def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
         super().__init__(parent, data, img)
         self.tile: Tile | None = None
+        self.canEatByDragon: bool = False
     def canMove(self, tile: Tile):
         if self.board.checkPack(3, "c") and self.board.fairy.tile is tile:
             return False
@@ -1202,6 +1203,9 @@ class Dragon(Figure):
                 token.putBackToHand()
         for seg in tile.segments:
             seg.object.checkRemoveBuilderAndPig()
+    def putBackToHand(self):
+        self.tile = None
+        return super().putBackToHand()
     def key(self) -> tuple[int, int]:
         return (3, 0)
 class Fairy(Figure):
@@ -1216,6 +1220,10 @@ class Fairy(Figure):
     def moveTo(self, follower: Follower, tile: Tile):
         self.tile = tile
         self.follower = follower
+    def putBackToHand(self):
+        self.follower = None
+        self.tile = None
+        return super().putBackToHand()
     def key(self) -> tuple[int, int]:
         return (3, 1)
 class Abbot(Follower):
