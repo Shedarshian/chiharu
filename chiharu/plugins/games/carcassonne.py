@@ -1790,7 +1790,7 @@ class Player:
                 dr.rectangle((abbey_xpos + 4, 4, abbey_xpos + 20, 20), "red")
         # tower piece
         if self.board.checkPack(4, "b"):
-            dr.text((tower_piece_xpos, 12), f"塔{self.tradeCounter[0]}", "black", self.board.font_name, "lm")
+            dr.text((tower_piece_xpos, 12), f"塔{self.towerPieces}", "black", self.board.font_name, "lm")
         # prisoner
         if self.board.checkPack(4, "b"):
             for token in self.prisoners:
