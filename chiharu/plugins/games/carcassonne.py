@@ -336,13 +336,13 @@ class Board:
             dr.text(pos(0, j, (-15, 32)), str(j + 1), "black", font, "rm")
         dr.text(pos(0, height + 1, (-15, 5)), str(height + 2), "black", font, "rm")
         # token
-        fairy_drawn: bool = False
-        def checkFairy(token: Token, p1: tuple[int, int], next: int):
-            nonlocal fairy_drawn
-            fairy_drawn = True
-            tf = self.fairy.image()
-            self.fairy.drawpos = p1[0] + next * 4, p1[1] + next * 4 + 8
-            img.alpha_composite(tf, posshift(i, j, self.fairy.drawpos, (-tf.size[0] // 2, -tf.size[1] // 2)))
+        # fairy_drawn: bool = False
+        # def checkFairy(token: Token, p1: tuple[int, int], next: int):
+        #     nonlocal fairy_drawn
+        #     fairy_drawn = True
+        #     tf = self.fairy.image()
+        #     self.fairy.drawpos = p1[0] + next * 4, p1[1] + next * 4 + 8
+        #     img.alpha_composite(tf, posshift(i, j, self.fairy.drawpos, (-tf.size[0] // 2, -tf.size[1] // 2)))
         for (i, j), tile in self.tiles.items():
             for seg in tile.segments:
                 next = 0
@@ -353,26 +353,26 @@ class Board:
                     else:
                         img.alpha_composite(t, posshift(i, j, turn(seg.token_pos, tile.orient), (-t.size[0] // 2, -t.size[1] // 2), (next * 4, next * 4)))
                         next += 1
-                        if self.checkPack(3, "c") and self.fairy.follower is token:
-                            checkFairy(token, turn(seg.token_pos, tile.orient), next)
+                        # if self.checkPack(3, "c") and self.fairy.follower is token:
+                        #     checkFairy(token, turn(seg.token_pos, tile.orient), next)
             next = 0
             for token in tile.tokens:
                 t = token.image()
                 img.alpha_composite(t, posshift(i, j, turn(tile.token_pos, tile.orient), (-t.size[0] // 2, -t.size[1] // 2), (next * 4, next * 4)))
                 next += 1
-                if self.checkPack(3, "c") and self.fairy.follower is token:
-                    checkFairy(token, turn(tile.token_pos, tile.orient), next)
+                # if self.checkPack(3, "c") and self.fairy.follower is token:
+                #     checkFairy(token, turn(tile.token_pos, tile.orient), next)
             for feature in tile.features:
                 next = 0
                 for token in feature.tokens:
                     t = token.image()
                     img.alpha_composite(t, posshift(i, j, turn(feature.token_pos, tile.orient), (-t.size[0] // 2, -t.size[1] // 2), (next * 4, next * 4)))
                     next += 1
-                    if self.checkPack(3, "c") and self.fairy.follower is token:
-                        checkFairy(token, turn(feature.token_pos, tile.orient), next)
+                    # if self.checkPack(3, "c") and self.fairy.follower is token:
+                    #     checkFairy(token, turn(feature.token_pos, tile.orient), next)
                 if isinstance(feature, Tower):
                     dr.text(posshift(i, j, turn(feature.num_pos, tile.orient)), str(feature.height), "black", font_tower, "mm")
-        if self.checkPack(3, "c") and not fairy_drawn and self.fairy.tile is not None and (p := self.findTilePos(self.fairy.tile)) is not None:
+        if self.checkPack(3, "c") and self.fairy.tile is not None and (p := self.findTilePos(self.fairy.tile)) is not None:
             tf = self.fairy.image()
             img.alpha_composite(tf, posshift(*p, self.fairy.drawpos, (-tf.size[0] // 2, -tf.size[1] // 2)))
         # choose follower
@@ -1220,6 +1220,8 @@ class Fairy(Figure):
     def moveTo(self, follower: Follower, tile: Tile):
         self.tile = tile
         self.follower = follower
+        pos = tile.findTokenDrawPos(follower)
+        self.drawpos = pos[0], pos[1] + 8
     def putBackToHand(self):
         self.follower = None
         self.tile = None
@@ -1627,6 +1629,7 @@ class Player:
         dragon = self.board.dragon
         assert dragon.tile is not None
         pass_err: Literal[0, -1] = 0
+        self.board.dragonMoved.append(dragon.tile)
         for i in range(6):
             pos = self.board.findTilePos(dragon.tile)
             if not any(pos + dr in self.board.tiles and dragon.canMove(self.board.tiles[pos + dr]) for dr in Dir):
