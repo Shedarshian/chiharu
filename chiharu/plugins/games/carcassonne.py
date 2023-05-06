@@ -428,9 +428,9 @@ class Board:
         for tile in self.dragonMoved:
             p = self.findTilePos(tile)
             if p is not None:
-                tileimg = img.crop(pos(*p) + pos(*p, (64, 64)))
+                tileimg = img.crop(posshift(*p) + posshift(*p, (64, 64)))
                 enhancer = ImageEnhance.Brightness(tileimg)
-                img.paste(enhancer.enhance(0.7), pos(*p))
+                img.paste(enhancer.enhance(0.7), posshift(*p))
         # remain tiles
         dr.text((0, 0), str(len(self.deck)), "black", self.font_name, "lt")
         return img

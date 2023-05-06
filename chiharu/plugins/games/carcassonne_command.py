@@ -370,6 +370,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             if ret["last_err"] == -1:
                 await session.send("无法移动！")
             else:
+                await session.send([board.saveImg()])
                 await session.send(f'玩家{data["names"][board.current_player_id]}第{ret["moved_num"]}次移动龙，请输入URDL移动。')
         elif ret["id"] == 7:
             if ret["last_err"] == -1:
