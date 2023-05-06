@@ -206,14 +206,14 @@ class RiverSegmentData(LineSegmentData):
                     self.side.append(dir)
                     break
 class RoadSegmentData(LineSegmentData):
-    def __init__(self, type: list[RoadSegmentPic] | AreaSegmentPic) -> None:
+    def __init__(self, type: list[RoadSegmentPic] | OneSideSegmentPic) -> None:
         super().__init__()
         self.type = type
     def inDirArea(self, dir: Dir) -> bool:
-        return self.type.inDirArea(dir) if isinstance(self.type, AreaSegmentPic) else False
+        return self.type.inDirArea(dir) if isinstance(self.type, OneSideSegmentPic) else False
     def makeSide(self):
-        if isinstance(self.type, AreaSegmentPic):
-            pass
+        if isinstance(self.type, OneSideSegmentPic):
+            self.side = [self.type.dir]
         else:
             for dir in Dir:
                 for seg in self.type:
