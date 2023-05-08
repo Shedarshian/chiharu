@@ -155,6 +155,9 @@ class Board:
         self.state: State = State.End
         self.stateGen = self.process()
         self.log: list[dict[str, Any]] = []
+        if self.checkPack(13, 'a'):
+            self.giftDeck = [Gift(i) for i in range(5) for _ in range(5)]
+            random.shuffle(self.giftDeck)
     def checkPack(self, packid: int, thingid: str):
         return packid in self.packs_options and thingid in self.packs_options[packid]
     @property
@@ -983,7 +986,7 @@ class Object(CanScore):
             return
         ts = [token for seg in self.segments for token in seg.tokens if isinstance(token, (Builder, Pig))]
         for t in ts:
-            if not any(token.player is t.player for seg in self.segments for token in seg.tokens):
+            if not any(token.player is t.player for seg in self.segments for token in seg.tokens if isinstance(token, Follower)):
                 self.board.addLog(id="putbackBuilder", builder=t)
                 t.putBackToHand()
     def scoreFinal(self):
@@ -1265,7 +1268,7 @@ class Player:
         self.prisoners: list[Follower] = []
     @property
     def tokenColor(self):
-        return ["green", "blue", "gray", "pink", "black", "yellow"][self.id]
+        return ["green", "blue", "gray", "violet", "black", "yellow"][self.id]
     @property
     def show_name(self):
         show_name = self.name
@@ -1680,13 +1683,16 @@ class Player:
                         if isinstance(feature, CanScore) and feature.closed():
                             yield from feature.score(ifBarn)
     def turn(self) -> TAsync[None]:
-        """id0：放图块（-1：已有连接, -2：无法连接，-3：没有挨着，-4：未找到可赎回的囚犯，-5：余分不足，-6：河流不能回环
+        """id0：坐标+方向【放图块】（-1：已有连接, -2：无法连接，-3：没有挨着，-4：未找到可赎回的囚犯，-5：余分不足，-6：河流不能回环
         -7：河流不能180度，-8：修道院和神龛不能有多个相邻）
-        2：放跟随者（-1不放，返回-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门，-5：找不到高塔
-        -6：高塔有人，-7：手里没有高塔片段，-8：找不到修道院长），4：选马车（-1：没有图块，-2：图块过远，-3：无法放置）
-        5：询问僧院板块（-1：无法放置，-8：修道院和神龛不能有多个相邻），6：询问龙（-1：无法移动），7：询问仙子细化（-1：无法移动）
-        8：询问公主（-1：未找到跟随者），9：询问高塔抓人（-1：未找到跟随者），10：询问交换俘虏（-1：未找到跟随者）
-        11：询问修道院长细化（-1：未找到跟随者）"""
+        1：选择坐标
+        2：单个板块feature【放跟随者】（-1不放，返回-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门，-5：找不到高塔
+        -6：高塔有人，-7：手里没有高塔片段，-8：找不到修道院长）
+        4：选马车（-1：没有图块，-2：图块过远，-3：无法放置）
+        5：询问僧院板块（-1：无法放置，-8：修道院和神龛不能有多个相邻）
+        6：询问龙（-1：无法移动），7：同一格的自己的follower【询问仙子细化】（-1：无法移动）
+        8：单个object上的follower【询问公主】（-1：未找到跟随者）
+        9：询问高塔抓人（-1：未找到跟随者），10：询问交换俘虏（-1：未找到跟随者）"""
         isBegin: bool = True
         nextTurn: bool = False
         princessed: bool = False
@@ -1823,6 +1829,24 @@ class Player:
             dr.text((166, 48), "R", "black", font, "lm")
         return img
 
+class Gift:
+    def __init__(self, id: int) -> None:
+        self.id = id
+    def use(self) -> TAsync[None]:
+        if self.id == 0:
+            pass
+        elif self.id == 1:
+            pass
+        elif self.id == 2:
+            pass
+        elif self.id == 3:
+            pass
+        else:
+            pass
+        return
+        yield {}
+    def name(self):
+        return ["教会会议", "马路清扫者", "兑现", "切换形态", "再来一张"][self.id]
 
 if __name__ == "__main__":
     b = Board({1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔"])
