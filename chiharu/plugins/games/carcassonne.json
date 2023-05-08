@@ -2695,7 +2695,7 @@
                                     "type": "Princess"
                                 }
                             ],
-                            "posx": 32,
+                            "posx": 40,
                             "posy": 8
                         },
                         {
@@ -2709,8 +2709,8 @@
                             "type": "Field",
                             "to": [],
                             "adjacent_city": [0, 1],
-                            "posx": 32,
-                            "posy": 32
+                            "posx": 36,
+                            "posy": 36
                         },
                         {
                             "type": "Field",
@@ -2763,7 +2763,7 @@
                             "to": [5, 6],
                             "adjacent_city": [0],
                             "posx": 8,
-                            "posy": 32
+                            "posy": 16
                         }
                     ],
                     "features": [
@@ -2781,7 +2781,7 @@
                             "type": "City",
                             "to": [0, 1, 2],
                             "posx": 40,
-                            "posy": 32
+                            "posy": 40
                         },
                         {
                             "type": "Field",
@@ -2794,8 +2794,8 @@
                     "features": [
                         {
                             "type": "Cloister",
-                            "posx": 28,
-                            "posy": 24
+                            "posx": 32,
+                            "posy": 20
                         },
                         {
                             "type": "Dragon"
@@ -2850,7 +2850,7 @@
                             "to": [3, 4, 5, 6],
                             "adjacent_city": [0],
                             "posx": 24,
-                            "posy": 40
+                            "posy": 32
                         }
                     ],
                     "features": [
@@ -2913,7 +2913,7 @@
                             "to": [3, 4, 5, 6],
                             "adjacent_city": [0, 1],
                             "posx": 24,
-                            "posy": 40
+                            "posy": 28
                         }
                     ],
                     "features": [
@@ -3077,7 +3077,7 @@
                             "to": [1, 2, 3, 4, 5, 6],
                             "adjacent_city": [0],
                             "posx": 32,
-                            "posy": 40
+                            "posy": 28  
                         }
                     ],
                     "features": [
@@ -3108,7 +3108,7 @@
                             "to": [1, 2, 3, 6],
                             "adjacent_city": [0],
                             "posx": 48,
-                            "posy": 32
+                            "posy": 48
                         },
                         {
                             "type": "Field",
@@ -3146,7 +3146,7 @@
                             "to": [1, 2, 3, 6],
                             "adjacent_city": [0],
                             "posx": 48,
-                            "posy": 32
+                            "posy": 48
                         },
                         {
                             "type": "Field",
@@ -3184,7 +3184,7 @@
                             "to": [1, 2],
                             "adjacent_city": [0],
                             "posx": 56,
-                            "posy": 8
+                            "posy": 16
                         },
                         {
                             "type": "Field",
@@ -3222,7 +3222,7 @@
                             "to": [1, 4, 5, 6],
                             "adjacent_city": [0],
                             "posx": 16,
-                            "posy": 32
+                            "posy": 48
                         },
                         {
                             "type": "Field",
@@ -3260,7 +3260,7 @@
                             "to": [1, 4, 5, 6],
                             "adjacent_city": [0],
                             "posx": 16,
-                            "posy": 32
+                            "posy": 48
                         },
                         {
                             "type": "Field",
@@ -3396,7 +3396,7 @@
                             "to": [0, 1, 2, 3, 6, 7],
                             "adjacent_city": [],
                             "posx": 48,
-                            "posy": 16
+                            "posy": 48
                         },
                         {
                             "type": "Field",
@@ -3428,7 +3428,7 @@
                             "to": [0, 1, 2, 3, 6, 7],
                             "adjacent_city": [],
                             "posx": 48,
-                            "posy": 16
+                            "posy": 48
                         },
                         {
                             "type": "Field",
@@ -3459,7 +3459,7 @@
                             "type": "Field",
                             "to": [0, 1, 6, 7],
                             "adjacent_city": [],
-                            "posx": 32,
+                            "posx": 48,
                             "posy": 16
                         },
                         {
@@ -3491,7 +3491,7 @@
                             "type": "Field",
                             "to": [0, 1, 6, 7],
                             "adjacent_city": [],
-                            "posx": 32,
+                            "posx": 56,
                             "posy": 16
                         },
                         {
@@ -3516,26 +3516,26 @@
                         {
                             "type": "Road",
                             "to": [1],
-                            "posx": 48,
+                            "posx": 52,
                             "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [2],
                             "posx": 32,
-                            "posy": 48
+                            "posy": 52
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "posx": 16,
+                            "posx": 12,
                             "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [0, 1, 6, 7],
                             "adjacent_city": [],
-                            "posx": 32,
+                            "posx": 24,
                             "posy": 16
                         },
                         {
@@ -3591,7 +3591,7 @@
                             "type": "Field",
                             "to": [0, 1, 6, 7],
                             "adjacent_city": [],
-                            "posx": 32,
+                            "posx": 48,
                             "posy": 16
                         },
                         {

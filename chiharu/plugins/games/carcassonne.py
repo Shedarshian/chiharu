@@ -1825,7 +1825,7 @@ class Player:
 
 
 if __name__ == "__main__":
-    b = Board({1: "abcd", 2: "abcd", 4: "ab", 5: "abcde"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔"])
+    b = Board({1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔"])
     d = {
             "name": "follower",
             "distribute": True,
@@ -1856,9 +1856,11 @@ if __name__ == "__main__":
         _(i, 1, 7)
     for i in range(24):
         _(i, 2, 11)
+    for i in range(29):
+        _(i, 3, 16)
     for i in range(17):
-        _(i, 4, 16)
+        _(i, 4, 22)
     for i in range(12):
-        _(i, 5, 21)
+        _(i, 5, 27)
     b.dragonMoved.extend([b.tiles[0, 0], b.tiles[1, 0], b.tiles[2, 0], b.tiles[2, 1]])
     b.image().show()
