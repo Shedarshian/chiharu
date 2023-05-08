@@ -1634,6 +1634,7 @@ class Player:
         pass_err: Literal[0, -1] = 0
         self.board.dragonMoved.append(dragon.tile)
         for i in range(6):
+            pass_err = 0
             pos = self.board.findTilePos(dragon.tile)
             if not any(pos + dr in self.board.tiles and dragon.canMove(self.board.tiles[pos + dr]) for dr in Dir):
                 break

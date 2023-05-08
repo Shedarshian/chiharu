@@ -419,19 +419,19 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
     
     match board.state:
         case State.PuttingTile:
-            if match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([URDL])", command):
+            if match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([URDL])$", command):
                 xs = match.group(1); ys = match.group(2); orients = match.group(3)
                 pos = board.tileNameToPos(xs, ys)
                 orient = {'U': Dir.UP, 'R': Dir.LEFT, 'D': Dir.DOWN, 'L': Dir.RIGHT}[orients]
                 await advance(board, {"pos": pos, "orient": orient})
-            elif match := re.match(r"\s*赎回玩家(\d+)(.*)?", command):
+            elif match := re.match(r"\s*赎回玩家(\d+)(.*)?$", command):
                 player_id = int(match.group(1)) - 1
                 name = match.group(2)
                 await advance(board, {"player_id": player_id, "which": name or "follower"})
         case State.PrincessAsking:
             if command in ("不放", "返回"):
                 await advance(board, {"id": -1})
-            elif match := re.match(r"\s*([a-z]+)", command):
+            elif match := re.match(r"\s*([a-z]+)$", command):
                 xs = match.group(1)
                 n = (ord(xs[0]) - ord('a') + 1) * 26 + ord(xs[1]) - ord('a') if len(xs) == 2 else ord(xs) - ord('a')
                 await advance(board, {"id": n})
@@ -461,15 +461,15 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         case State.CaptureTower:
             if command in ("不放", "不抓"):
                 await advance(board, {"id": -1})
-            elif match := re.match(r"\s*([a-z]+)", command):
+            elif match := re.match(r"\s*([a-z]+)$", command):
                 xs = match.group(1)
                 n = (ord(xs[0]) - ord('a') + 1) * 26 + ord(xs[1]) - ord('a') if len(xs) == 2 else ord(xs) - ord('a')
                 await advance(board, {"id": n})
         case State.ExchangingPrisoner:
-            if match := re.match(r"\s*(.*)", command):
+            if match := re.match(r"\s*(.*)$", command):
                 await advance(board, {"which": match.group(1)})
         case State.ChoosingFairy:
-            if match := re.match(r"\s*([a-z])", command):
+            if match := re.match(r"\s*([a-z])$", command):
                 n = ord(match.group(1)) - ord('a')
                 await advance(board, {"id": n})
         case State.MovingDragon:
@@ -481,14 +481,14 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         case State.WagonAsking:
             if command == "不放":
                 await advance(board, {"pos": None})
-            elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([a-z])", command):
+            elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([a-z])$", command):
                 xs = match.group(1); ys = match.group(2); n = ord(match.group(3)) - ord('a')
                 pos = board.tileNameToPos(xs, ys)
                 await advance(board, {"pos": pos, "seg": n})
         case State.AbbeyAsking:
             if command == "不放":
                 await advance(board, {"put": False})
-            elif match := re.match(r"\s*([A-Z]+)([0-9]+)", command):
+            elif match := re.match(r"\s*([A-Z]+)([0-9]+)$", command):
                 xs = match.group(1); ys = match.group(2)
                 pos = board.tileNameToPos(xs, ys)
                 await advance(board, {"put": True, "pos": pos})
