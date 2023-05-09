@@ -32,7 +32,7 @@ config.CommandGroup('solver', hide=True)
 @on_command(('solver', 'guess'), only_to_me=False, permission=permission.SUPERUSER, shell_like=True, hide=True)
 @config.ErrorHandle
 async def guess_solver(session: CommandSession):
-    opts, args = getopt.gnu_getopt(session.args['argv'], 'b:d:s', ['base=', 'digits=', 'strategy=', 'space'])
+    opts, args = getopt.gnu_getopt(session.state['argv'], 'b:d:s', ['base=', 'digits=', 'strategy=', 'space'])
     base, digit, strategy, space = 10, 4, 0, False
     for o, a in opts:
         try:
