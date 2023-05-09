@@ -22,7 +22,7 @@ async def AscCheck(session: CommandSession):
     '''转换输入字符串的所有字符到unicode码。
     可用选项：
         -h/--hex，转换至U+xxxxx十六进制输出'''
-    opts, args = getopt.gnu_getopt(session.ctx['argv'], 'h', ['hex'])
+    opts, args = getopt.gnu_getopt(session.state['argv'], 'h', ['hex'])
     h = False
     for o, a in opts:
         if o in ('-h', '--hex'):
@@ -162,7 +162,7 @@ async def maj_train(session: CommandSession):
     except:
         group_id = session.ctx['user_id']
     p, a = False, False
-    opts, args = getopt.gnu_getopt(session.ctx['argv'], 'pa', [])
+    opts, args = getopt.gnu_getopt(session.state['argv'], 'pa', [])
     for o, a in opts:
         if o == '-p':
             p = True

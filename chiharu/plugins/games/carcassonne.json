@@ -1111,7 +1111,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "pennant": 1,
                             "posx": 32,
                             "posy": 8
                         },
