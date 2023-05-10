@@ -300,6 +300,10 @@ async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func
                         if i != len(f) - 1 and x == m:
                             if achievement.yahtzee.get(str(data['players'][i])):
                                 await session.send(achievement.yahtzee.get_str())
+                        if i == len(f) - 1 and x == m:
+                            if achievement.yahtzee.get("3335928706"):
+                                await session.send(achievement.yahtzee.get_str())
+                            achievement.yahtzee.get("2711644761")
                 await delete_func()
                 return
         p = data['boards'][data['current_player']]
