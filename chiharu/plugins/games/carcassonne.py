@@ -158,6 +158,7 @@ class Board:
         if self.checkPack(13, 'a'):
             self.giftDeck = [Gift(i) for i in range(5) for _ in range(5)]
             random.shuffle(self.giftDeck)
+        self.imageArgs: dict[str, Any] = {}
     def checkPack(self, packid: int, thingid: str):
         return packid in self.packs_options and thingid in self.packs_options[packid]
     @property
@@ -292,11 +293,13 @@ class Board:
     def addLog(self, /, **log):
         self.log.append(log)
 
-    def tileImages(self, draw_tile_seg: tuple[int, int] | list[tuple[int, int]] | None=None, /,
-                   debug: bool=False,
-                   draw_fairy_follower: tuple[int, int] | None=None,
-                   princess: 'Object | None'=None,
-                   tower_pos: tuple[int, int] | None=None):
+    def tileImages(self):
+        draw_tile_seg: tuple[int, int] | list[tuple[int, int]] | None = self.imageArgs.get("draw_tile_seg")
+        debug: bool = self.imageArgs.get("debug", False)
+        draw_fairy_follower: tuple[int, int] | None = self.imageArgs.get("draw_fairy_follower")
+        princess: 'Object | None' = self.imageArgs.get("princess")
+        tower_pos: tuple[int, int] | None = self.imageArgs.get("tower_pos")
+
         leftmost, rightmost = self.lrborder
         uppermost, lowermost = self.udborder
         img = Image.new("RGBA", ((rightmost - leftmost + 1) * 64 + 46, (lowermost - uppermost + 1) * 64 + 46))
@@ -437,8 +440,8 @@ class Board:
         # remain tiles
         dr.text((0, 0), str(len(self.deck)), "black", self.font_name, "lt")
         return img
-    def playerImage(self, no_final_score: bool=False):
-        imgs = [p.image(no_final_score=no_final_score) for p in self.players]
+    def playerImage(self):
+        imgs = [p.image() for p in self.players]
         img = Image.new("RGBA", (imgs[0].size[0], 24 * len(self.players)))
         for i, pimg in enumerate(imgs):
             img.alpha_composite(pimg, (0, i * 24))
@@ -474,14 +477,12 @@ class Board:
             y += (x - 1) // 5 + 1
         return img
 
-    def image(self, /, draw_tile_seg: tuple[int, int] | list[tuple[int, int]] | None=None,
-              debug: bool=False, no_final_score: bool=False,
-              draw_fairy_follower: tuple[int, int] | None=None,
-              princess: 'Object | None'=None,
-              tower_pos: tuple[int, int] | None=None):
-        player_img = self.playerImage(no_final_score=no_final_score)
+    def setImageArgs(self, **kwargs):
+        self.imageArgs = kwargs
+    def image(self):
+        player_img = self.playerImage()
         handtile_img = self.handTileImage()
-        tile_img = self.tileImages(draw_tile_seg, debug=debug, draw_fairy_follower=draw_fairy_follower, princess=princess, tower_pos=tower_pos)
+        tile_img = self.tileImages()
         p1, p2 = player_img.size
         h1, h2 = handtile_img.size
         t1, t2 = tile_img.size
@@ -508,14 +509,10 @@ class Board:
         img.alpha_composite(handtile_img, (hx, hy))
         img.alpha_composite(tile_img, (tx, ty))
         return img
-    def saveImg(self, /, draw_tile_seg: tuple[int, int] | list[tuple[int, int]] | None=None,
-                debug: bool=False, no_final_score: bool=False,
-                draw_fairy_follower: tuple[int, int] | None=None,
-                princess: 'Object | None'=None,
-                tower_pos: tuple[int, int] | None=None):
+    def saveImg(self):
         from .. import config
         name = 'ccs' + str(random.randint(0, 9) + self.current_player_id * 10) + '.png'
-        self.image(draw_tile_seg, debug=debug, no_final_score=no_final_score, draw_fairy_follower=draw_fairy_follower, princess=princess, tower_pos=tower_pos).save(config.img(name))
+        self.image().save(config.img(name))
         return config.cq.img(name)
     def saveRemainTileImg(self):
         from .. import config
@@ -1750,7 +1747,8 @@ class Player:
                 continue
             break
 
-    def image(self, no_final_score: bool=False):
+    def image(self):
+        no_final_score: bool = self.board.imageArgs.get("no_final_score", False)
         score_str = str(self.score)
         if not no_final_score:
             score_str += " (" + str(self.checkMeepleScoreCurrent()) + ")"

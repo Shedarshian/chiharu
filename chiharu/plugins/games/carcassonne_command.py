@@ -263,7 +263,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         except StopIteration as e:
             if e.value:
                 await session.send("所有剩余图块均无法放置，提前结束游戏！")
-            await session.send([board.saveImg(no_final_score=True)])
+            board.setImageArgs(no_final_score=True)
+            await session.send([board.saveImg()])
             score_win, players_win = board.winner()
             if len(players_win) == 1:
                 await session.send(f'玩家{players_win[0].name}以{score_win}分获胜！')
@@ -332,7 +333,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             elif ret["last_err"] == -8:
                 await session.send("找不到修道院长！")
             else:
-                await session.send([board.saveImg(ret["last_put"])])
+                board.setImageArgs(draw_tile_seg=ret["last_put"])
+                await session.send([board.saveImg()])
                 prompt = "请选择放置跟随者的位置（小写字母）以及放置的特殊跟随者名称（如有需要）"
                 if board.checkPack(3, "c"):
                     prompt += "，回复跟随者所在板块位置以及“仙子”移动仙子"
@@ -357,7 +359,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await session.send("无法放置！")
             else:
                 pos = ret["pos"]
-                await session.send([board.saveImg([(pos[0] + i, pos[1] + j) for i in (-1, 0, 1) for j in (-1, 0, 1)])])
+                board.setImageArgs(draw_tile_seg=[(pos[0] + i, pos[1] + j) for i in (-1, 0, 1) for j in (-1, 0, 1)])
+                await session.send([board.saveImg()])
                 await session.send("请选择马车要移动到的图块，以及该图块上的位置（小写字母），回复“不放”收回马车。")
         elif ret["id"] == 5:
             if ret["last_err"] == -1:
@@ -378,19 +381,22 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             if ret["last_err"] == -1:
                 await session.send("无法移动！")
             else:
-                await session.send([board.saveImg(draw_fairy_follower=ret["last_put"])])
+                board.setImageArgs(draw_fairy_follower=ret["last_put"])
+                await session.send([board.saveImg()])
                 await session.send('请额外指定要放置在哪个跟随者旁。')
         elif ret["id"] == 8:
             if ret["last_err"] == -1:
                 await session.send("未找到跟随者！")
             else:
-                await session.send([board.saveImg(princess=ret["object"])])
+                board.setImageArgs(princess=ret["object"])
+                await session.send([board.saveImg()])
                 await session.send('你放置了公主，可以指定公主要移走哪名跟随者，回复“返回”跳过。')
         elif ret["id"] == 9:
             if ret["last_err"] == -1:
                 await session.send("未找到跟随者！")
             else:
-                await session.send([board.saveImg(tower_pos=ret["pos"])])
+                board.setImageArgs(tower_pos=ret["pos"])
+                await session.send([board.saveImg()])
                 await session.send('请选择要抓的跟随者，回复“不抓”跳过。')
         elif ret["id"] == 10:
             if ret["last_err"] == -1:
@@ -414,6 +420,10 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
     board = data['board']
     if command.startswith("查询剩余"):
         await session.send([board.saveRemainTileImg()])
+        return
+    elif command == "重新查询":
+        await session.send([board.saveImg()])
+        return
     if board.current_player_id != user_id:
         return
     
