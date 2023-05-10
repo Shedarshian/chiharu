@@ -421,10 +421,10 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
     if command.startswith("查询剩余"):
         await session.send([board.saveRemainTileImg()])
         return
-    elif command == "重新查询":
-        await session.send([board.saveImg()])
-        return
     if board.current_player_id != user_id:
+        return
+    if command == "重新查询":
+        await session.send([board.saveImg()])
         return
     
     match board.state:
