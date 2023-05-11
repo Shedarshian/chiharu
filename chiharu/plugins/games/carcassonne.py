@@ -149,7 +149,8 @@ class Board:
                 else:
                     xpos += t.image().size[0] + 4
         self.token_length = xpos
-        self.dragonMoved: list[Tile] = []
+        if self.checkPack(3, "b"):
+            self.dragonMoved: list[Tile] = []
         self.font_name = ImageFont.truetype("msyhbd.ttc", 16)
         self.font_score = ImageFont.truetype("msyhbd.ttc", 24)
         self.state: State = State.End
@@ -297,7 +298,7 @@ class Board:
         draw_tile_seg: tuple[int, int] | list[tuple[int, int]] | None = self.imageArgs.get("draw_tile_seg")
         debug: bool = self.imageArgs.get("debug", False)
         draw_fairy_follower: tuple[int, int] | None = self.imageArgs.get("draw_fairy_follower")
-        princess: 'Object | None' = self.imageArgs.get("princess")
+        princess: Object | None = self.imageArgs.get("princess")
         tower_pos: tuple[int, int] | None = self.imageArgs.get("tower_pos")
 
         leftmost, rightmost = self.lrborder
@@ -431,12 +432,13 @@ class Board:
                     draw(self.findTilePos(follower.parent.tile), follower.parent.tile.findTokenDrawPos(follower), i)
                     i += 1
         # tiles dragon has moved
-        for tile in self.dragonMoved:
-            p = self.findTilePos(tile)
-            if p is not None:
-                tileimg = img.crop(posshift(*p) + posshift(*p, (64, 64)))
-                enhancer = ImageEnhance.Brightness(tileimg)
-                img.paste(enhancer.enhance(0.7), posshift(*p))
+        if self.checkPack(3, "b"):
+            for tile in self.dragonMoved:
+                p = self.findTilePos(tile)
+                if p is not None:
+                    tileimg = img.crop(posshift(*p) + posshift(*p, (64, 64)))
+                    enhancer = ImageEnhance.Brightness(tileimg)
+                    img.paste(enhancer.enhance(0.7), posshift(*p))
         # remain tiles
         dr.text((0, 0), str(len(self.deck)), "black", self.font_name, "lt")
         return img
@@ -794,11 +796,16 @@ class Segment:
         self.features: list[Feature] = [f(self, s) for s in data.get("features", []) if (f := Feature.make(s["type"])) is not None]
         self.object = Object(self)
         self.token_pos: tuple[int, int] = (data.get("posx", 32), data.get("posy", 32))
-        self.isCathedral: bool = False
-        self.isInn: bool = False
-        self.tradeCounter: TradeCounter | None = None
-        self.princess: bool = False
-        self.pigherd: bool = False
+        if tile.board.checkPack(1, "d"):
+            self.isCathedral: bool = False
+        if tile.board.checkPack(1, "c"):
+            self.isInn: bool = False
+        if tile.board.checkPack(2, "c"):
+            self.pigherd: bool = False
+        if tile.board.checkPack(2, "d"):
+            self.tradeCounter: TradeCounter | None = None
+        if tile.board.checkPack(3, "e"):
+            self.princess: bool = False
     @classmethod
     def make(cls, typ: str) -> Type['Segment']:
         return {"City": CitySegment, "Field": FieldSegment, "Road": RoadSegment, "River": RiverSegment}[typ]
@@ -835,11 +842,11 @@ class CitySegment(NonFieldSegment):
         super().__init__(Connectable.City, tile, data)
         self.pennant: int = data.get("pennant", 0)
         for feature in data.get("features", []):
-            if feature["type"] == "Cathedral":
+            if tile.board.checkPack(1, "d") and feature["type"] == "Cathedral":
                 self.isCathedral = True
-            if feature["type"] == "TradeCounter":
+            if tile.board.checkPack(2, "d") and feature["type"] == "TradeCounter":
                 self.tradeCounter = TradeCounter[feature["counter"]]
-            if feature["type"] == "Princess":
+            if tile.board.checkPack(3, "e") and feature["type"] == "Princess":
                 self.princess = True
     @property
     def color(self):
@@ -848,7 +855,7 @@ class RoadSegment(NonFieldSegment):
     def __init__(self, tile: Tile, data: dict[str, Any]) -> None:
         super().__init__(Connectable.Road, tile, data)
         for feature in data.get("features", []):
-            if feature["type"] == "Inn":
+            if tile.board.checkPack(1, "c") and feature["type"] == "Inn":
                 self.isInn = True
     @property
     def color(self):
@@ -867,7 +874,7 @@ class FieldSegment(Segment):
         self.adjacentCity: list[Segment] = []
         self.adjacentCityTemp: list[int] = data["adjacent_city"]
         for feature in data.get("features", []):
-            if feature["type"] == "Pigherd":
+            if tile.board.checkPack(2, "c") and feature["type"] == "Pigherd":
                 self.pigherd = True
     def makeAdjacentCity(self, segs: list[Segment]):
         self.adjacentCity = [segs[i] for i in self.adjacentCityTemp]
@@ -1259,10 +1266,13 @@ class Player:
         self.allTokens: list[Token] = []
         self.score: int = 0
         self.handTile: Tile | None = None
-        self.tradeCounter = [0, 0, 0]
-        self.hasAbbey = self.board.checkPack(5, 'b')
-        self.towerPieces: int = 0
-        self.prisoners: list[Follower] = []
+        if self.board.checkPack(2, 'd'):
+            self.tradeCounter = [0, 0, 0]
+        if self.board.checkPack(5, 'b'):
+            self.hasAbbey = True
+        if self.board.checkPack(4, 'b'):
+            self.towerPieces: int = 0
+            self.prisoners: list[Follower] = []
     @property
     def tokenColor(self):
         return ["green", "blue", "gray", "violet", "black", "yellow"][self.id]
@@ -1353,7 +1363,7 @@ class Player:
             ret = yield {"id": 0, "second_turn": turn == 1, "last_err": pass_err, "begin": isBegin}
             pass_err = 0
             isBegin = False
-            if turn == 0 and not prisonered and ret.get("special") == "prisoner":
+            if self.board.checkPack(4, 'b') and turn == 0 and not prisonered and ret.get("special") == "prisoner":
                 if self.score < 3:
                     pass_err = -5
                     continue
@@ -1696,6 +1706,7 @@ class Player:
         princessed: bool = False
         ifPortal: bool = False
         ifBarn: bool = False
+        isAbbey: bool = False
         # check fairy
         if self.board.checkPack(3, "c") and self.board.fairy.follower is not None and self.board.fairy.follower.player is self:
             self.board.addLog(id="score", player=self, num=1, source="fairy")
@@ -1711,7 +1722,8 @@ class Player:
                 isBegin, pos, princessed = yield from self.turnPutTile(turn, isBegin)
             else:
                 # ask abbey
-                isBegin, isAbbey, pos = yield from self.turnAskAbbey(isBegin, False)
+                if self.board.checkPack(5, 'b'):
+                    isBegin, isAbbey, pos = yield from self.turnAskAbbey(isBegin, False)
 
                 if not isAbbey:
                     # draw tile normally

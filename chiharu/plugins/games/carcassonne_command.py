@@ -437,7 +437,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             elif match := re.match(r"\s*赎回玩家(\d+)(.*)?$", command):
                 player_id = int(match.group(1)) - 1
                 name = match.group(2)
-                await advance(board, {"player_id": player_id, "which": name or "follower"})
+                await advance(board, {"player_id": player_id, "which": name or "follower", "speical": "prisoner"})
         case State.PrincessAsking:
             if command in ("不放", "返回"):
                 await advance(board, {"id": -1})

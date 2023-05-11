@@ -1505,7 +1505,12 @@
                             "to": [3],
                             "bush": true,
                             "posx": 16,
-                            "posy": 32
+                            "posy": 32,
+                            "features": [
+                                {
+                                    "type": "Inn"
+                                }
+                            ]
                         },
                         {
                             "type": "Field",
