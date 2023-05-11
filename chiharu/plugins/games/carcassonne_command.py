@@ -207,8 +207,8 @@ async def ccs_extension(session: CommandSession):
         if session.current_arg_text.startswith("check"):
             if len(data['extensions']) == 0:
                 session.finish("目前未开启任何扩展包。")
-            pack_names = ["Inns and Cathedrals", "Traders and Builders", "The Princess and The Dragon", "The Tower", "Abbey and Mayor"]
-            thing_names = [["图块", "跟随者", "旅馆机制", "主教教堂机制"], ["图块", "建筑师", "猪", "交易标记"], ["图块", "龙", "仙子", "传送门", "公主"], ["图块", "高塔"], ["图块", "僧院板块", "市长", "马车", "谷仓"]]
+            pack_names = ["Inns and Cathedrals", "Traders and Builders", "The Princess and The Dragon", "The Tower", "Abbey and Mayor", "", "小扩合集"]
+            thing_names = [["图块", "跟随者", "旅馆机制", "主教教堂机制"], ["图块", "建筑师", "猪", "交易标记"], ["图块", "龙", "仙子", "传送门", "公主"], ["图块", "高塔"], ["图块", "僧院板块", "市长", "马车", "谷仓"], [], ["河流2", "花园", "修道院长", "GQ11图块"]]
             await session.send("目前开启的扩展包有：\n" + '\n'.join(pack_names[packid - 1] + "\n\t" + "，".join(thing_names[packid - 1][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items()))
             return
         if match := re.match(r'(open|close)(( ex\d+[a-z]?)+)', session.current_arg_text):
@@ -290,6 +290,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                         outputs.append("你获得了" + '，'.join(f"{num}个" + ["酒", "小麦", "布"][i] for i, num in enumerate(d["tradeCounter"]) if num != 0) + '。')
                     case "challengeFailed":
                         outputs.append({"shrine": "神龛", "cloister": "修道院"}[d['type']] + "的挑战失败！")
+                    case "drawGift":
+                        pass # TODO 私聊发送礼物
             await session.send("\n".join(outputs))
             board.log = []
         if ret["id"] == 0:
@@ -311,7 +313,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             elif rete == -8:
                 await session.send("修道院不能和多个神龛相连，反之亦然！")
             else:
-                if ret["second_turn"]:
+                if ret["begin"] and ret["second_turn"]:
                     await session.send("玩家继续第二回合")
                 await session.send([board.saveImg()])
                 await session.send((f'玩家{data["names"][board.current_turn_player_id]}开始行动，' if ret["begin"] else "") + '请选择放图块的坐标，以及用URDL将指定方向旋转至向上。' + ("此时可发送“赎回玩家nxxx”花3分赎回囚犯。" if not ret["second_turn"] and board.checkPack(4, "b") else ""))
@@ -368,6 +370,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             elif ret["last_err"] == -8:
                 await session.send("修道院不能和多个神龛相连！")
             else:
+                if ret["begin"] and ret["second_turn"]:
+                    await session.send("玩家继续第二回合")
                 if ret["begin"]:
                     await session.send([board.saveImg()])
                 await session.send((f'玩家{data["names"][board.current_player_id]}' if ret["begin"] or ret["endGame"] else "") + ("开始行动，选择" if ret["begin"] else "选择最后" if ret["endGame"] else "请选择") + "是否放置僧院板块，回复“不放”跳过。")

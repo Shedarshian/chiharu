@@ -43,7 +43,7 @@ class TradeCounter(Enum):
     Wine = auto()
     Grain = auto()
     Cloth = auto()
-all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 7: 'bc'}
+all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 7: 'abcd'}
 T = TypeVar('T')
 TAsync = Generator[dict[str, Any], dict[str, Any], T]
 
@@ -159,6 +159,7 @@ class Board:
         if self.checkPack(13, 'a'):
             self.giftDeck = [Gift(i) for i in range(5) for _ in range(5)]
             random.shuffle(self.giftDeck)
+            self.giftDiscard: list[Gift] = []
         self.imageArgs: dict[str, Any] = {}
     def checkPack(self, packid: int, thingid: str):
         return packid in self.packs_options and thingid in self.packs_options[packid]
@@ -199,6 +200,15 @@ class Board:
         tile = self.riverDeck[0]
         self.popRiverTile(tile)
         return tile
+    def drawGift(self):
+        if not self.checkPack(13, 'a'):
+            return None
+        if len(self.giftDeck) == 0:
+            if len(self.giftDiscard) == 0:
+                return None
+            self.giftDeck = self.giftDiscard
+            random.shuffle(self.giftDeck)
+        return self.giftDeck.pop(0)
     def nextPlayer(self):
         self.current_turn_player_id += 1
         if self.current_turn_player_id >= len(self.players):
@@ -530,7 +540,7 @@ class Board:
         for player in players:
             if not self.checkHole():
                 return
-            _, isAbbey, pos = yield from player.turnAskAbbey(True, True)
+            _, isAbbey, pos = yield from player.turnAskAbbey(0, True, True)
             if isAbbey:
                 assert player.handTile is not None
                 yield from player.turnScoring(player.handTile, pos, False)
@@ -574,7 +584,7 @@ class CanScore(ABC):
         to_remove: list[Token] = [token for token in self.iterTokens() if criteria(token)]
         for token in to_remove:
             token.putBackToHand()
-    def checkPlayerAndScore(self, mid_game: bool, putBarn: bool=True) -> 'list[tuple[Player, int]]':
+    def checkPlayer(self) -> 'list[Player]':
         strengths: list[int] = [0 for i in range(len(self.board.players))]
         for token in self.iterTokens():
             if isinstance(token, Follower) and isinstance(token.player, Player):
@@ -587,7 +597,9 @@ class CanScore(ABC):
                 max_strength = [i], strength
         if max_strength[1] == 0:
             return []
-        players = self.checkScore([self.board.players[i] for i in max_strength[0]], mid_game, putBarn)
+        return [self.board.players[i] for i in max_strength[0]]
+    def checkPlayerAndScore(self, mid_game: bool, putBarn: bool=True) -> 'list[tuple[Player, int]]':
+        players = self.checkScore(self.checkPlayer(), mid_game, putBarn)
         return players
     def moveWagon(self) -> TAsync[None]:
         # move wagon
@@ -1273,6 +1285,8 @@ class Player:
         if self.board.checkPack(4, 'b'):
             self.towerPieces: int = 0
             self.prisoners: list[Follower] = []
+        if self.board.checkPack(13, 'a'):
+            self.gifts: list[Gift] = []
     @property
     def tokenColor(self):
         return ["green", "blue", "gray", "violet", "black", "yellow"][self.id]
@@ -1315,7 +1329,7 @@ class Player:
         self.handTile = self.board.drawRiverTile()
         return isBegin
         yield {}
-    def turnAskAbbey(self, isBegin: bool, endGame: bool) -> TAsync[tuple[bool, bool, tuple[int, int]]]:
+    def turnAskAbbey(self, turn: int, isBegin: bool, endGame: bool) -> TAsync[tuple[bool, bool, tuple[int, int]]]:
         isAbbey: bool = False
         tile: Tile | None = None
         pos: tuple[int, int] = (-1, -1)
@@ -1323,7 +1337,7 @@ class Player:
             self.board.state = State.FinalAbbeyAsking if endGame else State.AbbeyAsking
             while 1:
                 pass_err: Literal[0, -1, -8] = 0
-                ret = yield {"id": 5, "last_err": pass_err, "begin": isBegin, "endGame": endGame}
+                ret = yield {"id": 5, "second_turn": turn == 1, "last_err": pass_err, "begin": isBegin, "endGame": endGame}
                 isBegin = False
                 if not ret.get("put"):
                     break
@@ -1341,7 +1355,7 @@ class Player:
                     self.board.tiles[pos + dr].closeSideAbbey(-dr)
                 break
         return isBegin, isAbbey, pos
-    def turnDrawTile(self, isBegin: bool) -> TAsync[bool]:
+    def turnDrawTile(self, turn: int, isBegin: bool) -> TAsync[bool]:
         self.handTile = self.board.drawTile()
         checked: int = 0
         while self.handTile is not None and not self.board.checkTileCanPut(self.handTile):
@@ -1353,6 +1367,11 @@ class Player:
                 raise CantPutError
         if checked >= 1:
             random.shuffle(self.board.deck)
+        return isBegin
+        yield {}
+    def turnOpenGift(self, turn: int, isBegin: bool) -> TAsync[bool]:
+        if len(self.gifts) == 0:
+            return isBegin
         return isBegin
         yield {}
     def turnPutTile(self, turn: int, isBegin: bool) -> TAsync[tuple[bool, tuple[int, int], bool]]:
@@ -1432,6 +1451,15 @@ class Player:
                         pass_err = -1
                         continue
                     break
+        if self.board.checkPack(13, "a"):
+            gifted: bool = False
+            for segment in tile.segments:
+                if self not in segment.object.checkPlayer():
+                    gifted = True
+                    break
+            if gifted and (gift := self.board.drawGift()):
+                self.board.addLog(type="drawGift", gift=gift)
+                self.gifts.append(gift)
         return isBegin, pos, princessed
     def turnCheckBuilder(self) -> TAsync[bool]:
         assert self.handTile is not None
@@ -1723,11 +1751,15 @@ class Player:
             else:
                 # ask abbey
                 if self.board.checkPack(5, 'b'):
-                    isBegin, isAbbey, pos = yield from self.turnAskAbbey(isBegin, False)
+                    isBegin, isAbbey, pos = yield from self.turnAskAbbey(turn, isBegin, False)
 
                 if not isAbbey:
                     # draw tile normally
-                    isBegin = yield from self.turnDrawTile(isBegin)
+                    isBegin = yield from self.turnDrawTile(turn, isBegin)
+
+                    if self.board.checkPack(13, 'a'):
+                        # open a gift
+                        isBegin = yield from self.turnOpenGift(turn, isBegin)
 
                     # put tile
                     isBegin, pos, princessed = yield from self.turnPutTile(turn, isBegin)
