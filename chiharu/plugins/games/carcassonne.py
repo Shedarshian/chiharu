@@ -155,7 +155,7 @@ class Board:
         xpos = 0
         last_key: tuple[int, int] = (-1, -2)
         for t in self.players[0].tokens:
-            if t.key() != last_key:
+            if t.key != last_key:
                 self.token_pos[type(t)] = xpos
                 last_key = t.key
                 if len([1 for tk in self.players[0].tokens if tk.key == last_key]) >= 3:
