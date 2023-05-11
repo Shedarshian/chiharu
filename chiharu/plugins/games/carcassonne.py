@@ -1374,7 +1374,7 @@ class Player:
                 if self.score < 3:
                     pass_err = -5
                     continue
-                player_id: int = ret["player_id"] - 1
+                player_id: int = ret["player_id"]
                 if player_id < 0 or player_id >= len(self.board.players):
                     pass_err = -4
                     continue
@@ -1646,7 +1646,7 @@ class Player:
             if not any(pos + dr in self.board.tiles and dragon.canMove(self.board.tiles[pos + dr]) for dr in Dir):
                 break
             while 1:
-                ret = yield {"id": 6, "last_err": pass_err, "moved_num": i + 1}
+                ret = yield {"id": 6, "last_err": pass_err, "moved_num": i}
                 dr: Dir = ret["direction"]
                 if pos + dr not in self.board.tiles or not dragon.canMove(self.board.tiles[pos + dr]):
                     pass_err = -1

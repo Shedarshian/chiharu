@@ -178,7 +178,7 @@ async def ccs_extension(session: CommandSession):
     (a) 图块；(b) 建筑师；(c) 猪；(d) 交易标记。
 3. 公主与龙（The Princess and The Dragon）
     (a) 图块；(b) 龙；(c) 仙子；(d) 传送门；(e) 公主。
-3. 高塔（The Tower）
+4. 高塔（The Tower）
     (a) 图块；(b) 高塔。
 5. 僧院板块与市长（Abbey and Mayor）
     (a) 图块；(b) 僧院板块；(c) 市长；(d) 马车；(e) 谷仓。
@@ -380,7 +380,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await session.send("无法移动！")
             else:
                 await session.send([board.saveImg()])
-                await session.send(f'玩家{data["names"][board.current_player_id]}第{ret["moved_num"]}次移动龙，请输入URDL移动。')
+                await session.send(f'玩家{data["names"][board.current_player_id]}第{ret["moved_num"] + 1}次移动龙，请输入URDL移动。')
         elif ret["id"] == 7:
             if ret["last_err"] == -1:
                 await session.send("无法移动！")
