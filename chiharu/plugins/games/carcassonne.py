@@ -238,6 +238,10 @@ class Board:
                         max_players.append(player)
                 for player in max_players:
                     player.addScoreFinal(10)
+        if self.checkPack(13, 'a'):
+            for player in self.players:
+                if len(player.gifts) >= 0:
+                    player.addScoreFinal(2 * len(player.gifts))
     def winner(self):
         maxScore: int = 0
         maxPlayer: list[Player] = []
@@ -1372,8 +1376,19 @@ class Player:
     def turnOpenGift(self, turn: int, isBegin: bool) -> TAsync[bool]:
         if len(self.gifts) == 0:
             return isBegin
+        pass_err: Literal[0, -1] = 0
+        while 1:
+            ret = yield {"id": 11, "second_turn": turn == 1, "last_err": pass_err, "begin": isBegin}
+            isBegin = False
+            if ret["id"] == -1:
+                return isBegin
+            if ret["id"] >= len(self.gifts):
+                pass_err = -1
+                continue
+            gift: Gift = self.gifts.pop(ret["id"])
+            yield from gift.use(self)
+            break
         return isBegin
-        yield {}
     def turnPutTile(self, turn: int, isBegin: bool) -> TAsync[tuple[bool, tuple[int, int], bool]]:
         self.board.state = State.PuttingTile
         pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7, -8] = 0
@@ -1728,7 +1743,8 @@ class Player:
         5：询问僧院板块（-1：无法放置，-8：修道院和神龛不能有多个相邻）
         6：询问龙（-1：无法移动），7：同一格的自己的follower【询问仙子细化】（-1：无法移动）
         8：单个object上的follower【询问公主】（-1：未找到跟随者）
-        9：询问高塔抓人（-1：未找到跟随者），10：询问交换俘虏（-1：未找到跟随者）"""
+        9：询问高塔抓人（-1：未找到跟随者），10：询问交换俘虏（-1：未找到跟随者）
+        11：使用礼物卡（-1：未找到礼物卡）"""
         isBegin: bool = True
         nextTurn: bool = False
         princessed: bool = False
@@ -1802,7 +1818,9 @@ class Player:
                 if all(self.tradeCounter[i] >= player.tradeCounter[i] for player in self.board.players):
                     trade_score += 10
             score_str = score_str[:-1] + "+" + str(trade_score) + score_str[-1]
-        score_length = 120 + (45 if self.board.checkPack(2, 'd') else 0)
+        if self.board.checkPack(13, 'a') and not no_final_score:
+            score_str = score_str[:-1] + "+" + str(2 * len(self.gifts)) + score_str[-1]
+        score_length = 120 + (45 if self.board.checkPack(2, 'd') else 0) + (30 if self.board.checkPack(13, 'a') else 0)
         length = 100 + score_length + self.board.token_length
         if self.board.checkPack(5, "b"):
             abbey_xpos = length
@@ -1875,7 +1893,7 @@ class Player:
 class Gift:
     def __init__(self, id: int) -> None:
         self.id = id
-    def use(self) -> TAsync[None]:
+    def use(self, user: Player) -> TAsync[None]:
         if self.id == 0:
             pass
         elif self.id == 1:
