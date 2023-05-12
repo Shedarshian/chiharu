@@ -1416,7 +1416,7 @@ class Player:
                     pass_err = -10
                     continue
                 if len(rdrs) == 1:
-                    if pos[0] < 0 and rdrs[0] not in (Dir.LEFT, Dir.DOWN) or pos[0] > 0 and rdrs[0] not in (Dir.RIGHT, Dir.DOWN):
+                    if pos[0] < 0 and rdrs[0] not in (Dir.LEFT.value, Dir.DOWN.value) or pos[0] > 0 and rdrs[0] not in (Dir.RIGHT.value, Dir.DOWN.value):
                         pass_err = -7
                         continue
             break
