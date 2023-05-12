@@ -130,10 +130,10 @@ class Board:
             if self.checkPack(7, "b"):
                 if self.checkPack(7, "c"):
                     start_id = 22
-                    self.popRiverTile([t for t in self.deck if t.packid == 7 and t.id == 0][0])
+                    self.popRiverTile([t for t in self.riverDeck if t.packid == 7 and t.id == 0][0])
                 else:
                     start_id = 0
-                start_tile = [t for t in self.deck if t.packid == start_tile_pack and t.id == start_id][0]
+                start_tile = [t for t in self.riverDeck if t.packid == start_tile_pack and t.id == start_id][0]
                 self.popRiverTile(start_tile)
         else:
             start_id = packs[start_tile_pack]["starting_tile"]
