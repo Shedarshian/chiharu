@@ -262,7 +262,7 @@ async def ccs_extension(session: CommandSession):
                     data['extensions'][exa] = data['extensions'][exa].replace(c, "")
             if start_to_change >= 0:
                 data['starting_tile'] = start_to_change
-                ret = "起始板块已修改为" + start_names[start_to_change] + "。"
+                ret = "起始板块已修改为" + start_names[start_to_change] + "。" # TODO open ex7a open ex7b close ex7a 会让起始变成0
             if command == "open":
                 session.finish("已开启。" + ret)
             else:

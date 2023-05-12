@@ -101,7 +101,7 @@ class Board:
                 for t in lt:
                     img = self.tileimgs[pack_id].crop(((t["id"] % 5) * 64, (t["id"] // 5) * 64, (t["id"] % 5 + 1) * 64, (t["id"] // 5 + 1) * 64))
                     self.allTileimgs[pack_id][t["id"]] = img
-                    if pack_id == 7 and (key == "a" or t["id"] == 23):
+                    if pack_id == 7 and (key != "c" or t["id"] in (22, 23)): # id TODO
                         self.riverDeck.extend(Tile(self, t, img, pack_id) for i in range(t["num"]))
                     else:
                         self.deck.extend(Tile(self, t, img, pack_id) for i in range(t["num"]))
@@ -128,7 +128,7 @@ class Board:
             self.fairy = [token for token in self.tokens if isinstance(token, Fairy)][0]
         if start_tile_pack == 7:
             if self.checkPack(7, "b"):
-                if 'c' in packs_options[7]:
+                if self.checkPack(7, "c"):
                     start_id = 22
                     self.popRiverTile([t for t in self.deck if t.packid == 7 and t.id == 0][0])
                 else:
@@ -143,6 +143,8 @@ class Board:
         self.current_player_id = 0
         self.current_turn_player_id = 0
         random.shuffle(self.deck)
+        if not (self.checkPack(7, "a") or self.checkPack(7, "b") or self.checkPack(7, "d")):
+            self.riverDeck = []
         if len(self.riverDeck) > 0:
             random.shuffle(self.riverDeck)
         if self.checkPack(7, "b"):
@@ -1896,7 +1898,7 @@ class Gift:
         return ["教会会议", "马路清扫者", "兑现", "切换形态", "再来一张"][self.id]
 
 if __name__ == "__main__":
-    b = Board({1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔"])
+    b = Board({1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 7: "bc", 12: "ab"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔"])
     d = {
             "name": "follower",
             "distribute": True,
@@ -1905,7 +1907,7 @@ if __name__ == "__main__":
         }
     b.players[0].tokens.pop(0)
     def _(i: int, packid: int, yshift: int):
-        t = b.tiles[i % 5, i // 5 + yshift] = [s for s in b.deck if s.id == i and s.packid == packid][0]
+        t = b.tiles[i % 5, i // 5 + yshift] = [s for s in b.deck + b.riverDeck if s.id == i and s.packid == packid][0]
         # t.turn(Dir.LEFT)
         for seg in t.segments:
             b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
@@ -1923,15 +1925,7 @@ if __name__ == "__main__":
                 feature.height = random.randint(0, 9)
     for i in range(32):
         _(i, 0, 0)
-    for i in range(17):
-        _(i, 1, 7)
     for i in range(24):
-        _(i, 2, 11)
-    for i in range(29):
-        _(i, 3, 16)
-    for i in range(17):
-        _(i, 4, 22)
-    for i in range(12):
-        _(i, 5, 27)
+        _(i, 7, 7)
     b.dragonMoved.extend([b.tiles[0, 0], b.tiles[1, 0], b.tiles[2, 0], b.tiles[2, 1]])
     b.image().show()
