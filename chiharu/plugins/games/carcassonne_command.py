@@ -121,7 +121,12 @@ config.CommandGroup(('cacason', 'ex12'), des="""另一些小扩展合集
 (i) 节日
 (j) 幽灵""")
 config.CommandGroup(('cacason', 'ex13'), des="""又新又好的精选小扩展合集
-(a) 礼物卡牌""")
+(a) 礼物卡牌
+(b) 姜饼人图块
+(c) 姜饼人
+(d) 20周年图块
+(e) 20周年
+(f) 城市大门""")
 
 @on_command(("cacason", "version"), hide=True, only_to_me=False)
 @config.ErrorHandle
@@ -211,12 +216,12 @@ async def ccs_extension(session: CommandSession):
             thing_names = [["图块", "跟随者", "旅馆机制", "主教教堂机制"], ["图块", "建筑师", "猪", "交易标记"], ["图块", "龙", "仙子", "传送门", "公主"], ["图块", "高塔"], ["图块", "僧院板块", "市长", "马车", "谷仓"], [], ["河流2", "花园", "修道院长", "GQ11图块"]]
             await session.send("目前开启的扩展包有：\n" + '\n'.join(pack_names[packid - 1] + "\n\t" + "，".join(thing_names[packid - 1][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items()))
             return
-        if match := re.match(r'(open|close)(( ex\d+[a-z]?)+)', session.current_arg_text):
+        if match := re.match(r'(open|close)(( ex\d+[a-z]*)+)', session.current_arg_text):
             command = match.group(1)
             exs = [ex[2:] for ex in match.group(2)[1:].split(' ')]
             exabs: list[tuple[int, str]] = []
             for ex in exs:
-                match2 = re.match(r'(\d+)([a-z]?)', ex)
+                match2 = re.match(r'(\d+)([a-z]*)', ex)
                 if not match2:
                     continue
                 exas, exbs = match2.groups()
@@ -224,21 +229,25 @@ async def ccs_extension(session: CommandSession):
                 if exa not in all_extensions:
                     session.finish("不存在扩展" + exas + "！")
                 exb = exbs or all_extensions[exa]
-                if exb not in all_extensions[exa]:
+                if len(exb) > 1 and any((exc := c) not in all_extensions[exa] for c in exb):
+                    session.finish("扩展" + exas + "不存在" + exc + "小项！")
+                if len(exb) == 1 and exb not in all_extensions[exa]:
                     session.finish("扩展" + exas + "不存在" + exb + "小项！")
                 exabs.append((exa, exb))
-                if command == "open" and exa in data['extensions'] and exb in data['extensions'][exa]:
+                if command == "open" and exa in data['extensions'] and (len(exb) > 1 and any((exc := c) in data['extensions'][exa] for c in exb) or len(exb) == 1 and exb in data['extensions'][exa]):
                     session.finish("此扩展已被添加过！")
-                elif command == "close" and (exa not in data['extensions'] or exb not in data['extensions'][exa]):
-                    session.finish("此扩展未被添加过！")
             for exa, exb in exabs:
                 if command == "open":
                     if exa not in data['extensions']:
                         data['extensions'][exa] = exb
-                    elif exb not in data['extensions'][exa]:
+                    else:
                         data['extensions'][exa] = ''.join(sorted(set(data['extensions'][exa] + exb)))
                 else:
-                    data['extensions'][exa] = data['extensions'][exa].replace(exb, "")
+                    if len(exb) == 1:
+                        data['extensions'][exa] = data['extensions'][exa].replace(exb, "")
+                    else:
+                        for c in exb:
+                            data['extensions'][exa] = data['extensions'][exa].replace(c, "")
             if command == "open":
                 session.finish("已开启。")
             else:
