@@ -1406,7 +1406,7 @@ class Player:
                     pass_err = -6
                     continue
                 sides = tile.sides[4 - orient.value:] + tile.sides[:4 - orient.value]
-                rdrs = [i for i, s in enumerate(sides[drs[0].value]) if s == Connectable.River]
+                rdrs = [i for i, s in enumerate(sides) if s == Connectable.River]
                 rdrs.remove(drs[0].value)
                 if len(rdrs) == 1:
                     pos_target = pos + Dir(rdrs[0])
