@@ -559,7 +559,7 @@ class CanScore(ABC):
     def closed(self) -> bool:
         pass
     def occupied(self):
-        return all(False for t in self.iterTokens())
+        return any(True for t in self.iterTokens())
     @abstractmethod
     def iterTokens(self) -> 'Iterable[Token]':
         pass
@@ -1012,7 +1012,7 @@ class Feature:
         self.tokens: list[Token] = []
         self.token_pos: tuple[int, int] = (data.get("posx", 32), data.get("posy", 32))
     def occupied(self):
-        return len(self.tokens) == 0
+        return len(self.tokens) != 0
     @classmethod
     def make(cls, typ: str) -> Type["Feature"] | None:
         return {"cloister": Cloister, "garden": Garden, "shrine": Shrine, "tower": Tower}.get(typ.lower(), None)
