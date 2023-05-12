@@ -135,6 +135,7 @@ class Board:
                     start_id = 0
                 start_tile = [t for t in self.riverDeck if t.packid == start_tile_pack and t.id == start_id][0]
                 self.popRiverTile(start_tile)
+                start_tile.turn(Dir.LEFT)
         else:
             start_id = packs[start_tile_pack]["starting_tile"]
             start_tile = [t for t in self.deck if t.packid == start_tile_pack and t.id == start_id][0]
@@ -1410,7 +1411,7 @@ class Player:
                 if drs[0].value not in rdrs:
                     pass_err = -9
                     continue
-                if len(rdrs) == 3 and sides[Dir.LEFT.value] == Connectable.River:
+                if len(rdrs) == 3 and sides[Dir.DOWN.value] == Connectable.River:
                     pass_err = -10
                     continue
                 rdrs.remove(drs[0].value)
