@@ -148,6 +148,7 @@ async def ccs_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):
         data['names'] = [name]
     if 'extensions' not in data:
         data['extensions'] = {}
+        data['starting_tile'] = (0, 'a')
     await session.send(f'玩家{name}已参与匹配，人数足够可使用-play.cacason.confirm开始比赛。')
 
 @cacason.begin_complete(('play', 'cacason', 'confirm'))
@@ -176,7 +177,7 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
 @config.ErrorHandle
 async def ccs_extension(session: CommandSession):
     """修改卡卡颂对局使用的扩展。
-    可开关的扩展与小项有：
+    可开关的扩展与小项有（*为包含起始板块）：
 1. 旅馆与主教教堂（Inns and Cathedrals）
     (a) 图块；(b) 大跟随者；(c) 旅馆机制；(d) 主教教堂机制。
 2. 商人与建筑师（Traders and Builders）
@@ -187,6 +188,8 @@ async def ccs_extension(session: CommandSession):
     (a) 图块；(b) 高塔。
 5. 僧院板块与市长（Abbey and Mayor）
     (a) 图块；(b) 僧院板块；(c) 市长；(d) 马车；(e) 谷仓。
+7. 一些小扩展合集
+    (a) 河流2*；(b) 花园；(c) 修道院长；(d) GQ11图块*。
 
 使用例：-play.cacason.extension check：查询目前开启了哪些扩展包。
 -play.cacason.extension open ex1：开启所有扩展包1的内容。
@@ -208,13 +211,14 @@ async def ccs_extension(session: CommandSession):
         if qq in cacason.uncomplete[group_id]['players']:
             data = cacason.uncomplete[group_id]
             pas = True
+    pack_names = ["Inns and Cathedrals", "Traders and Builders", "The Princess and The Dragon", "The Tower", "Abbey and Mayor", "", "小扩合集"]
+    thing_names = [["图块", "跟随者", "旅馆机制", "主教教堂机制"], ["图块", "建筑师", "猪", "交易标记"], ["图块", "龙", "仙子", "传送门", "公主"], ["图块", "高塔"], ["图块", "僧院板块", "市长", "马车", "谷仓"], [], ["河流2", "花园", "修道院长", "GQ11图块"]]
+    start_names = {(0, 'a'): "默认", (7, 'a'): "河流2", (7, 'd'): "GQ11图块的河流2"}
     if pas:
         if session.current_arg_text.startswith("check"):
             if len(data['extensions']) == 0:
                 session.finish("目前未开启任何扩展包。")
-            pack_names = ["Inns and Cathedrals", "Traders and Builders", "The Princess and The Dragon", "The Tower", "Abbey and Mayor", "", "小扩合集"]
-            thing_names = [["图块", "跟随者", "旅馆机制", "主教教堂机制"], ["图块", "建筑师", "猪", "交易标记"], ["图块", "龙", "仙子", "传送门", "公主"], ["图块", "高塔"], ["图块", "僧院板块", "市长", "马车", "谷仓"], [], ["河流2", "花园", "修道院长", "GQ11图块"]]
-            await session.send("目前开启的扩展包有：\n" + '\n'.join(pack_names[packid - 1] + "\n\t" + "，".join(thing_names[packid - 1][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items()))
+            await session.send("目前开启的扩展包有：\n" + '\n'.join(pack_names[packid - 1] + "\n\t" + "，".join(thing_names[packid - 1][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items()) + "\n目前的起始板块是：\n" + start_names[data['starting_tile']])
             return
         if match := re.match(r'(open|close)(( ex\d+[a-z]*)+)', session.current_arg_text):
             command = match.group(1)
@@ -229,29 +233,35 @@ async def ccs_extension(session: CommandSession):
                 if exa not in all_extensions:
                     session.finish("不存在扩展" + exas + "！")
                 exb = exbs or all_extensions[exa]
-                if len(exb) > 1 and any((exc := c) not in all_extensions[exa] for c in exb):
-                    session.finish("扩展" + exas + "不存在" + exc + "小项！")
-                if len(exb) == 1 and exb not in all_extensions[exa]:
-                    session.finish("扩展" + exas + "不存在" + exb + "小项！")
-                exabs.append((exa, exb))
-                if command == "open" and exa in data['extensions'] and (len(exb) > 1 and any((exc := c) in data['extensions'][exa] for c in exb) or len(exb) == 1 and exb in data['extensions'][exa]):
-                    session.finish("此扩展已被添加过！")
-            for exa, exb in exabs:
+                for c in exbs:
+                    if c not in all_extensions[exa]:
+                        session.finish("扩展" + exas + "不存在" + c + "小项！")
+                    exabs.append((exa, c))
+                    if command == "open" and exa in data['extensions'] and c in data['extensions'][exa]:
+                        session.finish("扩展" + exas + "的" + c + "小项已被添加过！")
+                    if command == "close" and not (exa in data['extensions'] and c in data['extensions'][exa]):
+                        session.finish("扩展" + exas + "的" + c + "小项未被添加过！")
+                    if command == "open" and data['starting_tiles'] != (0, 'a') and (exa, c) in start_names and not (data['starting_tiles'] == (7, 'a') and (exa, c) == (7, 'd')):
+                        session.finish("起始板块冲突！")
+            ret = ""
+            for exa, c in exabs:
                 if command == "open":
                     if exa not in data['extensions']:
-                        data['extensions'][exa] = exb
+                        data['extensions'][exa] = c
                     else:
-                        data['extensions'][exa] = ''.join(sorted(set(data['extensions'][exa] + exb)))
+                        data['extensions'][exa] = ''.join(sorted(set(data['extensions'][exa] + c)))
+                    if (exa, c) in start_names:
+                        data['starting_tiles'] = exa, c
+                        ret = "起始板块已修改为" + start_names[exa, c] + "。"
                 else:
-                    if len(exb) == 1:
-                        data['extensions'][exa] = data['extensions'][exa].replace(exb, "")
-                    else:
-                        for c in exb:
-                            data['extensions'][exa] = data['extensions'][exa].replace(c, "")
+                    data['extensions'][exa] = data['extensions'][exa].replace(c, "")
+                    if (exa, c) in start_names:
+                        data['starting_tiles'] = 0, 'a'
+                        ret = "起始板块已修改为默认。"
             if command == "open":
-                session.finish("已开启。")
+                session.finish("已开启。" + ret)
             else:
-                session.finish("已关闭。")
+                session.finish("已关闭。" + ret)
         session.finish(ccs_extension.__doc__)
 
 @cacason.end(('play', 'cacason', 'end'))
@@ -422,7 +432,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
     if data['adding_extensions']:
         if command in ("开始游戏", "游戏开始"):
             # 开始游戏
-            board: Board = Board(data['extensions'], data['names'])
+            board: Board = Board(data['extensions'], data['names'], data['starting_tile'])
             data['board'] = board
             await advance(board)
             data['adding_extensions'] = False

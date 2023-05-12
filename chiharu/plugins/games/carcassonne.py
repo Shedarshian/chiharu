@@ -76,7 +76,7 @@ def open_img(name: str):
     from pathlib import Path
     return Image.open(Path(__file__).parent / "carcassonne_asset" / (name + ".png")).convert("RGBA")
 class Board:
-    def __init__(self, packs_options: dict[int, str], player_names: list[str], start_tile_pack: int=0) -> None:
+    def __init__(self, packs_options: dict[int, str], player_names: list[str], start_tile_pack: tuple[int, str]=(0, 'a')) -> None:
         all_packs = open_pack()["packs"]
         packs: list[dict[str, Any]] = [all_packs[0]] + [all_packs[i] for i, item in sorted(packs_options.items()) if item != ""]
         self.packs_options = packs_options
@@ -126,17 +126,17 @@ class Board:
             self.dragon = [token for token in self.tokens if isinstance(token, Dragon)][0]
         if self.checkPack(3, "c"):
             self.fairy = [token for token in self.tokens if isinstance(token, Fairy)][0]
-        if start_tile_pack == 7:
+        if start_tile_pack[0] == 7:
             if 'd' in packs_options[7]:
                 start_id = 22
                 self.popRiverTile([t for t in self.deck if t.packid == 7 and t.id == 0][0])
             else:
                 start_id = 0
-            start_tile = [t for t in self.deck if t.packid == start_tile_pack and t.id == start_id][0]
+            start_tile = [t for t in self.deck if t.packid == start_tile_pack[0] and t.id == start_id][0]
             self.popRiverTile(start_tile)
         else:
-            start_id = packs[start_tile_pack]["starting_tile"]
-            start_tile = [t for t in self.deck if t.packid == start_tile_pack and t.id == start_id][0]
+            start_id = packs[start_tile_pack[0]]["starting_tile"]
+            start_tile = [t for t in self.deck if t.packid == start_tile_pack[0] and t.id == start_id][0]
             self.popTile(start_tile)
         self.tiles[0, 0] = start_tile
         self.current_player_id = 0
