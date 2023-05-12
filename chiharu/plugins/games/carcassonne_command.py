@@ -241,7 +241,7 @@ async def ccs_extension(session: CommandSession):
                         session.finish("扩展" + exas + "的" + c + "小项已被添加过！")
                     if command == "close" and not (exa in data['extensions'] and c in data['extensions'][exa]):
                         session.finish("扩展" + exas + "的" + c + "小项未被添加过！")
-                    if command == "open" and data['starting_tiles'] != (0, 'a') and (exa, c) in start_names and not (data['starting_tiles'] == (7, 'a') and (exa, c) == (7, 'd')):
+                    if command == "open" and data['starting_tile'] != (0, 'a') and (exa, c) in start_names and not (data['starting_tile'] == (7, 'a') and (exa, c) == (7, 'd')):
                         session.finish("起始板块冲突！")
             ret = ""
             for exa, c in exabs:
@@ -251,12 +251,12 @@ async def ccs_extension(session: CommandSession):
                     else:
                         data['extensions'][exa] = ''.join(sorted(set(data['extensions'][exa] + c)))
                     if (exa, c) in start_names:
-                        data['starting_tiles'] = exa, c
+                        data['starting_tile'] = exa, c
                         ret = "起始板块已修改为" + start_names[exa, c] + "。"
                 else:
                     data['extensions'][exa] = data['extensions'][exa].replace(c, "")
                     if (exa, c) in start_names:
-                        data['starting_tiles'] = 0, 'a'
+                        data['starting_tile'] = 0, 'a'
                         ret = "起始板块已修改为默认。"
             if command == "open":
                 session.finish("已开启。" + ret)
