@@ -1401,7 +1401,7 @@ class Player:
             pass_err = self.board.canPutTile(tile, pos, orient)
             if pass_err < 0:
                 continue
-            if tile.packid == 7:
+            if tile.packid == 7 and Connectable.River in tile.sides:
                 drs = [dr for dr in Dir if pos + dr in self.board.tiles]
                 if len(drs) != 1:
                     pass_err = -6
@@ -1411,14 +1411,12 @@ class Player:
                 if drs[0].value not in rdrs:
                     pass_err = -9
                     continue
-                if len(rdrs) == 3 and sides[Dir.DOWN.value] == Connectable.River:
+                rdrs.remove(drs[0].value)
+                if len(rdrs) == 2 and sides[Dir.DOWN.value] == Connectable.River:
                     pass_err = -10
                     continue
-                rdrs.remove(drs[0].value)
                 if len(rdrs) == 1:
-                    pos_target = pos + Dir(rdrs[0])
-                    tiles2 = [self.board.tiles[pos_target + dr] for dr in Dir if pos_target + dr in self.board.tiles]
-                    if len(tiles2) != 0:
+                    if pos[0] < 0 and rdrs[0] not in (Dir.LEFT, Dir.DOWN) or pos[0] > 0 and rdrs[0] not in (Dir.RIGHT, Dir.DOWN):
                         pass_err = -7
                         continue
             break
