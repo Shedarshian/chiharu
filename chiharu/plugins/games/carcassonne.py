@@ -95,7 +95,7 @@ class Board:
             self.allTileimgs[pack_id] = {}
             if pack_id == 5 and self.checkPack(5, "b"):
                 self.abbeyImg = self.tileimgs[pack_id].crop((2 * 64, 2 * 64, 3 * 64, 3 * 64))
-            for key, lt in pack["tiles"].items():
+            for key, lt in pack.get("tiles", {}).items():
                 if pack_id != 0 and key not in packs_options[pack_id]:
                     continue
                 for t in lt:
@@ -105,7 +105,7 @@ class Board:
                         self.riverDeck.extend(Tile(self, t, img, pack_id) for i in range(t["num"]))
                     else:
                         self.deck.extend(Tile(self, t, img, pack_id) for i in range(t["num"]))
-            for t in pack["tokens"]:
+            for t in pack.get("tokens", []):
                 if "thing_id" in t and t["thing_id"] not in packs_options[pack_id]:
                     continue
                 num = t["num"] if "num" in t else t["numOfPlayers"][str(len(self.players))]

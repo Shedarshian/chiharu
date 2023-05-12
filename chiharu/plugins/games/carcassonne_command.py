@@ -247,7 +247,7 @@ async def ccs_extension(session: CommandSession):
                         session.finish("扩展" + exas + "的" + c + "小项已被添加过！")
                     if command == "close" and not (exa in data['extensions'] and c in data['extensions'][exa]):
                         session.finish("扩展" + exas + "的" + c + "小项未被添加过！")
-                    if command == "open" and (data['starting_tile'] != 0 or start_to_change != -1) and exa in start_names and (exa, c) not in start_no_start:
+                    if command == "open" and (data['starting_tile'] not in (0, exa) or start_to_change not in (-1, exa)) and exa in start_names and (exa, c) not in start_no_start:
                         session.finish("起始板块冲突！")
                     if exa in start_names and (exa, c) not in start_no_start:
                         start_to_change = exa if command == "open" else 0
