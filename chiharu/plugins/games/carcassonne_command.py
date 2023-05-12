@@ -338,6 +338,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await session.send("修道院不能和多个神龛相连，反之亦然！")
             elif rete == -9:
                 await session.send("必须扩张河流！")
+            elif rete == -9:
+                await session.send("河流分叉必须岔开！")
             else:
                 if ret["begin"] and ret["second_turn"]:
                     await session.send("玩家继续第二回合")

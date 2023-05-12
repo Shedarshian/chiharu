@@ -1368,7 +1368,7 @@ class Player:
         return isBegin
     def turnPutTile(self, turn: int, isBegin: bool) -> TAsync[tuple[bool, tuple[int, int], bool]]:
         self.board.state = State.PuttingTile
-        pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7, -8, -9] = 0
+        pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10] = 0
         prisonered: bool = False
         while 1:
             ret = yield {"id": 0, "second_turn": turn == 1, "last_err": pass_err, "begin": isBegin}
@@ -1409,6 +1409,9 @@ class Player:
                 rdrs = [i for i, s in enumerate(sides) if s == Connectable.River]
                 if drs[0].value not in rdrs:
                     pass_err = -9
+                    continue
+                if len(rdrs) == 3 and sides[Dir.LEFT.value] == Connectable.River:
+                    pass_err = -10
                     continue
                 rdrs.remove(drs[0].value)
                 if len(rdrs) == 1:
@@ -1699,7 +1702,7 @@ class Player:
                             yield from feature.score(ifBarn)
     def turn(self) -> TAsync[None]:
         """id0：坐标+方向【放图块】（-1：已有连接, -2：无法连接，-3：没有挨着，-4：未找到可赎回的囚犯，-5：余分不足，-6：河流不能回环
-        -7：河流不能180度，-8：修道院和神龛不能有多个相邻，-9：必须扩张河流）
+        -7：河流不能180度，-8：修道院和神龛不能有多个相邻，-9：必须扩张河流，-10：河流分叉必须岔开）
         # 1：选择坐标（-1：板块不存在，-2：不符合要求）
         2：单个板块feature+跟随者【放跟随者】（-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门，-5：找不到高塔
         -6：高塔有人，-7：手里没有高塔片段，-8：找不到修道院长）
