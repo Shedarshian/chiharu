@@ -43,7 +43,7 @@ class TradeCounter(Enum):
     Wine = auto()
     Grain = auto()
     Cloth = auto()
-all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 7: 'abcd'}
+all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 7: 'abc', 12: 'ab'}
 T = TypeVar('T')
 TAsync = Generator[dict[str, Any], dict[str, Any], T]
 def findAllMax(items: Sequence[T], key: Callable[[T], int]) -> tuple[int, list[T]]:
@@ -76,7 +76,7 @@ def open_img(name: str):
     from pathlib import Path
     return Image.open(Path(__file__).parent / "carcassonne_asset" / (name + ".png")).convert("RGBA")
 class Board:
-    def __init__(self, packs_options: dict[int, str], player_names: list[str], start_tile_pack: tuple[int, str]=(0, 'a')) -> None:
+    def __init__(self, packs_options: dict[int, str], player_names: list[str], start_tile_pack: int=0) -> None:
         all_packs = open_pack()["packs"]
         packs: list[dict[str, Any]] = [all_packs[0]] + [all_packs[i] for i, item in sorted(packs_options.items()) if item != ""]
         self.packs_options = packs_options
@@ -126,24 +126,26 @@ class Board:
             self.dragon = [token for token in self.tokens if isinstance(token, Dragon)][0]
         if self.checkPack(3, "c"):
             self.fairy = [token for token in self.tokens if isinstance(token, Fairy)][0]
-        if start_tile_pack[0] == 7:
-            if 'd' in packs_options[7]:
-                start_id = 22
-                self.popRiverTile([t for t in self.deck if t.packid == 7 and t.id == 0][0])
-            else:
-                start_id = 0
-            start_tile = [t for t in self.deck if t.packid == start_tile_pack[0] and t.id == start_id][0]
-            self.popRiverTile(start_tile)
+        if start_tile_pack == 7:
+            if self.checkPack(7, "b"):
+                if 'c' in packs_options[7]:
+                    start_id = 22
+                    self.popRiverTile([t for t in self.deck if t.packid == 7 and t.id == 0][0])
+                else:
+                    start_id = 0
+                start_tile = [t for t in self.deck if t.packid == start_tile_pack and t.id == start_id][0]
+                self.popRiverTile(start_tile)
         else:
-            start_id = packs[start_tile_pack[0]]["starting_tile"]
-            start_tile = [t for t in self.deck if t.packid == start_tile_pack[0] and t.id == start_id][0]
+            start_id = packs[start_tile_pack]["starting_tile"]
+            start_tile = [t for t in self.deck if t.packid == start_tile_pack and t.id == start_id][0]
             self.popTile(start_tile)
         self.tiles[0, 0] = start_tile
         self.current_player_id = 0
         self.current_turn_player_id = 0
         random.shuffle(self.deck)
-        if self.checkPack(7, "a"):
+        if len(self.riverDeck) > 0:
             random.shuffle(self.riverDeck)
+        if self.checkPack(7, "b"):
             fork = [tile for tile in self.riverDeck if tile.id == 1][0]
             self.riverDeck.remove(fork)
             self.riverDeck = [fork] + self.riverDeck
@@ -170,7 +172,7 @@ class Board:
         self.state: State = State.End
         self.stateGen = self.process()
         self.log: list[dict[str, Any]] = []
-        if self.checkPack(13, 'a'):
+        if self.checkPack(14, 'a'):
             self.giftDeck = [Gift(i) for i in range(5) for _ in range(5)]
             random.shuffle(self.giftDeck)
             self.giftDiscard: list[Gift] = []
@@ -209,7 +211,7 @@ class Board:
         self.popRiverTile(tile)
         return tile
     def drawGift(self):
-        if not self.checkPack(13, 'a'):
+        if not self.checkPack(14, 'a'):
             return None
         if len(self.giftDeck) == 0:
             if len(self.giftDiscard) == 0:
@@ -239,7 +241,7 @@ class Board:
                 max_token, max_players = findAllMax(self.players, lambda player, i=i: player.tradeCounter[i]) # type: ignore
                 for player in max_players:
                     player.addScoreFinal(10)
-        if self.checkPack(13, 'a'):
+        if self.checkPack(14, 'a'):
             for player in self.players:
                 if len(player.gifts) >= 0:
                     player.addScoreFinal(2 * len(player.gifts))
@@ -658,7 +660,7 @@ class Tile:
         for seg in self.segments:
             if isinstance(seg, FieldSegment):
                 seg.makeAdjacentCity(self.segments)
-        self.features: list[Feature] = [f(self, s) for s in data.get("features", []) if (f := Feature.make(s["type"])) is not None and not (not self.board.checkPack(7, "b") and f is Garden)]
+        self.features: list[Feature] = [f(self, s) for s in data.get("features", []) if (f := Feature.make(s["type"])) is not None and not (not self.board.checkPack(12, "a") and f is Garden)]
         self.connectTile: list[Tile | None] = [None] * 4
         self.orient: Dir = Dir.UP
         self.token_pos: tuple[int, int] = (data.get("posx", 32), data.get("posy", 32))
@@ -1253,7 +1255,7 @@ class Player:
         if self.board.checkPack(4, 'b'):
             self.towerPieces: int = 0
             self.prisoners: list[Follower] = []
-        if self.board.checkPack(13, 'a'):
+        if self.board.checkPack(14, 'a'):
             self.gifts: list[Gift] = []
     @property
     def tokenColor(self):
@@ -1434,7 +1436,7 @@ class Player:
                         pass_err = -1
                         continue
                     break
-        if self.board.checkPack(13, "a"):
+        if self.board.checkPack(14, "a"):
             gifted: bool = False
             for segment in tile.segments:
                 if self not in segment.object.checkPlayer():
@@ -1531,7 +1533,7 @@ class Player:
                 self.tokens.remove(token)
                 yield from token.putOn(tower)
                 break
-            if self.board.checkPack(7, "c") and ret.get("special") == "abbot":
+            if self.board.checkPack(12, "b") and ret.get("special") == "abbot":
                 pos_abbot: tuple[int, int] = ret["pos"]
                 if pos_abbot not in self.board.tiles:
                     pass_err = -8
@@ -1731,7 +1733,7 @@ class Player:
                     # draw tile normally
                     isBegin = yield from self.turnDrawTile(turn, isBegin)
 
-                    if self.board.checkPack(13, 'a'):
+                    if self.board.checkPack(14, 'a'):
                         # open a gift
                         isBegin = yield from self.turnOpenGift(turn, isBegin)
 
@@ -1776,9 +1778,9 @@ class Player:
                 if all(self.tradeCounter[i] >= player.tradeCounter[i] for player in self.board.players):
                     trade_score += 10
             score_str = score_str[:-1] + "+" + str(trade_score) + score_str[-1]
-        if self.board.checkPack(13, 'a') and not no_final_score:
+        if self.board.checkPack(14, 'a') and not no_final_score:
             score_str = score_str[:-1] + "+" + str(2 * len(self.gifts)) + score_str[-1]
-        score_length = 120 + (45 if self.board.checkPack(2, 'd') else 0) + (30 if self.board.checkPack(13, 'a') else 0)
+        score_length = 120 + (45 if self.board.checkPack(2, 'd') else 0) + (30 if self.board.checkPack(14, 'a') else 0)
         length = 100 + score_length + self.board.token_length
         if self.board.checkPack(5, "b"):
             abbey_xpos = length

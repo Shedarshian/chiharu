@@ -5323,7 +5323,7 @@
         {
             "name": "Multiple Small Extensions",
             "id": 7,
-            "tiles": {"a": [
+            "tiles": {"b": [
                 {
                     "id": 0,
                     "sides": "FFFS",
@@ -5676,7 +5676,7 @@
                     ]
                 }
             ],
-            "d": [
+            "c": [
                 {
                     "id": 12,
                     "sides": "CCCR",
@@ -6146,16 +6146,36 @@
                     ]
                 }
             ]},
+            "starting_tile": 0
+        },
+        {
+            "name": "",
+            "id": 8
+        },
+        {
+            "name": "",
+            "id": 9
+        },
+        {
+            "name": "",
+            "id": 10
+        },
+        {
+            "name": "",
+            "id": 11
+        },
+        {
+            "name": "小扩展合集",
+            "id": 12,
             "tokens": [
                 {
                     "name": "abbot",
                     "distribute": true,
-                    "thing_id": "c",
+                    "thing_id": "b",
                     "num": 1,
                     "image": [0, 0, 16, 20]
                 }
-            ],
-            "starting_tile": 0
+            ]
         }
     ]
 }

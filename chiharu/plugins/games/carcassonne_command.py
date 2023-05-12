@@ -98,29 +98,31 @@ config.CommandGroup(('cacason', 'ex6'), des="""
 (f) 伯爵
 (g) 神龛图块：扩展包含5个含神龛的图块，神龛与修道院作用相同。
 (h) 神龛：任何时候神龛不能与多于1个修道院相邻（包含对角相邻），反之亦然。当1个有跟随者的神龛与1个有跟随者的修道院相邻时，即为挑战开始，即使两个跟随者是同一个玩家的也是这样。两个中哪一个先被完成，则视为挑战成功，挑战失败的跟随者获得0分，并同时收回手中。游戏结束时，若挑战未完成，则两者均按1块1分的分数计分。""")
-config.CommandGroup(('cacason', 'ex7'), des="""一些小扩展合集
-(a) 河流2：河流2包含12种12个图块，其中1块为河流源头，1块为河流分叉，2块为河流终点（其中1块含火山（扩展3）），另8块为普通河流（其中1块含修道院，1块含猪圈（扩展2），1块含旅馆（扩展1））。河流源头为起始板块。游戏开始时，河流分叉和含火山的河流终点放在一旁，剩余的河流板块洗混。第一名玩家先放置河流分叉，此后每名玩家依次抽取一张河流板块放置，延长河流。河流不得回环，也不得出现临近的180度转弯。当河流板块放完后，下一名玩家放置含火山的河流终点，然后该玩家立即抽取一张普通板块继续游戏。
-(b) 花园：花园只能放置修道院长。除此之外花园与修道院相同。
-(c) 修道院长（abbot）：游戏开始时，每人分发一个修道院长。修道院长作为跟随者，只能放置在修道院或是花园中。在放置跟随者阶段，若玩家选择不放置跟随者，则可以将自己的修道院长按照当前获得的分数计分，然后收回。
-(d) GQ11图块：GQ11扩展包含12种12个图块，其中1块为河流源头的替代，另1块含河流，1块含修道院。
-(e) 金子图块
-(f) 金子
-(g) 摆渡人
-(h) 法师与女巫图块
-(i) 法师与女巫
-(j) 圣旨""")
-config.CommandGroup(('cacason', 'ex12'), des="""另一些小扩展合集
+config.CommandGroup(('cacason', 'ex7'), des="""河流合集
 (a) 河流
-(b) 强盗图块
-(c) 强盗
-(d) 飞行器图块
-(e) 飞行器
-(f) 麦田怪圈图块
-(g) 麦田怪圈
-(h) 节日图块
-(i) 节日
-(j) 幽灵""")
-config.CommandGroup(('cacason', 'ex13'), des="""又新又好的精选小扩展合集
+(b) 河流2：河流2包含12种12个图块，其中1块为河流源头，1块为河流分叉，2块为河流终点（其中1块含火山（扩展3）），另8块为普通河流（其中1块含修道院，1块含猪圈（扩展2），1块含旅馆（扩展1））。河流源头为起始板块。游戏开始时，河流分叉和含火山的河流终点放在一旁，剩余的河流板块洗混。第一名玩家先放置河流分叉，此后每名玩家依次抽取一张河流板块放置，延长河流。河流不得回环，也不得出现临近的180度转弯。当河流板块放完后，下一名玩家放置含火山的河流终点，然后该玩家立即抽取一张普通板块继续游戏。
+(c) GQ11图块：GQ11扩展包含12种12个图块，其中1块为河流2源头的替代，另1块含河流，1块含修道院。
+(d) 20周年河流""")
+config.CommandGroup(('cacason', 'ex12'), des="""小扩展合集
+(a) 花园：花园只能放置修道院长。除此之外花园与修道院相同。
+(b) 修道院长（abbot）：游戏开始时，每人分发一个修道院长。修道院长作为跟随者，只能放置在修道院或是花园中。在放置跟随者阶段，若玩家选择不放置跟随者，则可以将自己的修道院长按照当前获得的分数计分，然后收回。
+(c) 金子图块
+(d) 金子
+(e) 摆渡人
+(f) 法师与女巫图块
+(g) 法师与女巫
+(h) 圣旨""")
+config.CommandGroup(('cacason', 'ex13'), des="""另一些小扩展合集
+(a) 强盗图块
+(b) 强盗
+(c) 飞行器图块
+(d) 飞行器
+(e) 麦田怪圈图块
+(f) 麦田怪圈
+(g) 节日图块
+(h) 节日
+(i) 幽灵""")
+config.CommandGroup(('cacason', 'ex14'), des="""又新又好的精选小扩展合集
 (a) 礼物卡牌
 (b) 姜饼人图块
 (c) 姜饼人
@@ -148,7 +150,7 @@ async def ccs_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):
         data['names'] = [name]
     if 'extensions' not in data:
         data['extensions'] = {}
-        data['starting_tile'] = (0, 'a')
+        data['starting_tile'] = 0
     await session.send(f'玩家{name}已参与匹配，人数足够可使用-play.cacason.confirm开始比赛。')
 
 @cacason.begin_complete(('play', 'cacason', 'confirm'))
@@ -188,8 +190,10 @@ async def ccs_extension(session: CommandSession):
     (a) 图块；(b) 高塔。
 5. 僧院板块与市长（Abbey and Mayor）
     (a) 图块；(b) 僧院板块；(c) 市长；(d) 马车；(e) 谷仓。
-7. 一些小扩展合集
-    (a) 河流2*；(b) 花园；(c) 修道院长；(d) GQ11图块*。
+7. 河流合集
+    (a) 河流*；(b) 河流2*；(c) GQ11图块*；(d) 20周年河流*。
+12. 一些小扩展合集
+    (a) 花园；(b) 修道院长。
 
 使用例：-play.cacason.extension check：查询目前开启了哪些扩展包。
 -play.cacason.extension open ex1：开启所有扩展包1的内容。
@@ -211,9 +215,10 @@ async def ccs_extension(session: CommandSession):
         if qq in cacason.uncomplete[group_id]['players']:
             data = cacason.uncomplete[group_id]
             pas = True
-    pack_names = ["Inns and Cathedrals", "Traders and Builders", "The Princess and The Dragon", "The Tower", "Abbey and Mayor", "", "小扩合集"]
-    thing_names = [["图块", "跟随者", "旅馆机制", "主教教堂机制"], ["图块", "建筑师", "猪", "交易标记"], ["图块", "龙", "仙子", "传送门", "公主"], ["图块", "高塔"], ["图块", "僧院板块", "市长", "马车", "谷仓"], [], ["河流2", "花园", "修道院长", "GQ11图块"]]
-    start_names = {(0, 'a'): "默认", (7, 'a'): "河流2", (7, 'd'): "GQ11图块的河流2"}
+    pack_names = ["Inns and Cathedrals", "Traders and Builders", "The Princess and The Dragon", "The Tower", "Abbey and Mayor", "", "河流合集", "", "", "", "", "小扩展合集"]
+    thing_names = [["图块", "跟随者", "旅馆机制", "主教教堂机制"], ["图块", "建筑师", "猪", "交易标记"], ["图块", "龙", "仙子", "传送门", "公主"], ["图块", "高塔"], ["图块", "僧院板块", "市长", "马车", "谷仓"], [], ["河流", "河流2", "GQ11图块", "20周年河流"], [], [], [], [], ["花园", "修道院长"]]
+    start_names = {0: "默认", 7: "河流"}
+    start_no_start = ((7, "c"),)
     if pas:
         if session.current_arg_text.startswith("check"):
             if len(data['extensions']) == 0:
@@ -224,6 +229,7 @@ async def ccs_extension(session: CommandSession):
             command = match.group(1)
             exs = [ex[2:] for ex in match.group(2)[1:].split(' ')]
             exabs: list[tuple[int, str]] = []
+            start_to_change: int = -1
             for ex in exs:
                 match2 = re.match(r'(\d+)([a-z]*)', ex)
                 if not match2:
@@ -241,8 +247,10 @@ async def ccs_extension(session: CommandSession):
                         session.finish("扩展" + exas + "的" + c + "小项已被添加过！")
                     if command == "close" and not (exa in data['extensions'] and c in data['extensions'][exa]):
                         session.finish("扩展" + exas + "的" + c + "小项未被添加过！")
-                    if command == "open" and data['starting_tile'] != (0, 'a') and (exa, c) in start_names and not (data['starting_tile'] == (7, 'a') and (exa, c) == (7, 'd')):
+                    if command == "open" and (data['starting_tile'] != 0 or start_to_change != -1) and exa in start_names and (exa, c) not in start_no_start:
                         session.finish("起始板块冲突！")
+                    if exa in start_names and (exa, c) not in start_no_start:
+                        start_to_change = exa if command == "open" else 0
             ret = ""
             for exa, c in exabs:
                 if command == "open":
@@ -250,14 +258,11 @@ async def ccs_extension(session: CommandSession):
                         data['extensions'][exa] = c
                     else:
                         data['extensions'][exa] = ''.join(sorted(set(data['extensions'][exa] + c)))
-                    if (exa, c) in start_names:
-                        data['starting_tile'] = exa, c
-                        ret = "起始板块已修改为" + start_names[exa, c] + "。"
                 else:
                     data['extensions'][exa] = data['extensions'][exa].replace(c, "")
-                    if (exa, c) in start_names:
-                        data['starting_tile'] = 0, 'a'
-                        ret = "起始板块已修改为默认。"
+            if start_to_change >= 0:
+                data['starting_tile'] = start_to_change
+                ret = "起始板块已修改为" + start_names[start_to_change] + "。"
             if command == "open":
                 session.finish("已开启。" + ret)
             else:
