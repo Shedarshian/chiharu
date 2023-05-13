@@ -395,6 +395,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                         prompt += "，回复板块位置以及“高塔”以及跟随者名称（可选）放置高塔片段或跟随者"
                     if board.checkPack(7, "c"):
                         prompt += "，回复板块位置以及“修道院长”回收修道院长"
+                    if board.checkPack(14, "b"):
+                        prompt += "，回复板块位置以及“护林员”移动护林员"
                     if ret["if_portal"]:
                         prompt += "，回复“返回”返回"
                     else:
@@ -540,11 +542,12 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 n = ord(match.group(1)) - ord('a')
                 name = match.group(2)
                 await advance(board, {"id": n, "which": name or "follower"})
-            elif board.checkPack(3, "c") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(仙子|fairy|传送门|portal|修道院长|abbot|护林员|ranger)$", command)):
+            elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(仙子|fairy|传送门|portal|修道院长|abbot|护林员|ranger)$", command):
                 xs = match.group(1); ys = match.group(2)
                 pos = board.tileNameToPos(xs, ys)
                 special = {"仙子": "fairy", "传送门": "portal", "修道院长": "abbot", "护林员": "ranger"}.get(match.group(3), match.group(3))
-                await advance(board, {"id": -2, "pos": pos, "special": special})
+                if board.checkPack(3, "c") and special == "fairy" or board.checkPack(3, "d") and special == "portal" or board.checkPack(12, "b") and special == "ranger" or board.checkPack(14, "b") and special == "ranger":
+                    await advance(board, {"id": -2, "pos": pos, "special": special})
             elif board.checkPack(4, "b") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(高塔|tower)\s*(.*)?$", command)):
                 xs = match.group(1); ys = match.group(2); which = match.group(4)
                 pos = board.tileNameToPos(xs, ys)
