@@ -393,7 +393,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                         prompt += "，回复板块位置以及“传送门”使用传送门"
                     if board.checkPack(4, "b"):
                         prompt += "，回复板块位置以及“高塔”以及跟随者名称（可选）放置高塔片段或跟随者"
-                    if board.checkPack(7, "c"):
+                    if board.checkPack(12, "b"):
                         prompt += "，回复板块位置以及“修道院长”回收修道院长"
                     if board.checkPack(14, "b") and not ret["rangered"]:
                         prompt += "，回复板块位置以及“护林员”移动护林员"

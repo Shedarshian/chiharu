@@ -851,7 +851,7 @@ class NonFieldSegment(Segment):
         other.side[-dir] = self
     def closeAbbey(self, dir: Dir):
         self.side[dir] = self
-    def closed(self):
+    def selfClosed(self):
         return all(value is not None for value in self.side.values())
 class CitySegment(NonFieldSegment):
     def __init__(self, tile: Tile, data: dict[str, Any]) -> None:
@@ -905,7 +905,7 @@ class FieldSegment(Segment):
         other.side[-dir, not up] = self
     def closeAbbeyF(self, dir: Dir, up: bool):
         self.side[dir, up] = self
-    def closed(self):
+    def selfClosed(self):
         return all(value is not None for value in self.side.values())
     @property
     def color(self):
