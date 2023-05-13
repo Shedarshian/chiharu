@@ -6176,6 +6176,23 @@
                     "image": [0, 0, 16, 20]
                 }
             ]
+        },
+        {
+            "name": "",
+            "id": 13
+        },
+        {
+            "name": "又新又好的精选小扩展合集",
+            "id": 14,
+            "tokens": [
+                {
+                    "name": "ranger",
+                    "distribute": false,
+                    "thing_id": "b",
+                    "num": 1,
+                    "image": [0, 0, 24, 24]
+                }
+            ]
         }
     ]
 }

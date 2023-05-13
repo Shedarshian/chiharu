@@ -124,11 +124,12 @@ config.CommandGroup(('cacason', 'ex13'), des="""另一些小扩展合集
 (i) 幽灵""")
 config.CommandGroup(('cacason', 'ex14'), des="""又新又好的精选小扩展合集
 (a) 礼物卡牌
-(b) 姜饼人图块
-(c) 姜饼人
-(d) 20周年图块
-(e) 20周年
-(f) 城市大门""")
+(b) 护林员
+(c) 姜饼人图块
+(d) 姜饼人
+(e) 20周年图块
+(f) 20周年
+(g) 城市大门""")
 
 @on_command(("cacason", "version"), hide=True, only_to_me=False)
 @config.ErrorHandle
@@ -339,7 +340,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     await session.send("修道院不能和多个神龛相连，反之亦然！")
                 elif rete == -9:
                     await session.send("必须扩张河流！")
-                elif rete == -9:
+                elif rete == -10:
                     await session.send("河流分叉必须岔开！")
                 else:
                     if ret["begin"] and ret["second_turn"]:
@@ -378,6 +379,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     await session.send("手里没有高塔片段！")
                 elif ret["last_err"] == -8:
                     await session.send("找不到修道院长！")
+                elif ret["last_err"] == -9:
+                    await session.send("无法移动护林员！")
                 else:
                     board.setImageArgs(draw_tile_seg=ret["last_put"])
                     await session.send([board.saveImg()])

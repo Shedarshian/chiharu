@@ -126,6 +126,8 @@ class Board:
             self.dragon = [token for token in self.tokens if isinstance(token, Dragon)][0]
         if self.checkPack(3, "c"):
             self.fairy = [token for token in self.tokens if isinstance(token, Fairy)][0]
+        if self.checkPack(14, "b"):
+            self.ranger = [token for token in self.tokens if isinstance(token, Ranger)][0]
         if start_tile_pack == 7:
             if self.checkPack(7, "b"):
                 if self.checkPack(7, "c"):
@@ -1084,7 +1086,7 @@ class Token(ABC):
         return self.player.checkPack(packid, thingid)
     @classmethod
     def make(cls, typ: str) -> Type['Token']:
-        return {"follower": BaseFollower, "跟随者": BaseFollower, "big follower": BigFollower, "大跟随者": BigFollower, "builder": Builder, "建筑师": Builder, "pig": Pig, "猪": Pig, "mayor": Mayor, "市长": Mayor, "wagon": Wagon, "马车": Wagon, "barn": Barn, "谷仓": Barn, "dragon": Dragon, "龙": Dragon, "fairy": Fairy, "仙子": Fairy, "abbot": Abbot, "修道院长": Abbot}[typ.lower()]
+        return {"follower": BaseFollower, "跟随者": BaseFollower, "big follower": BigFollower, "大跟随者": BigFollower, "builder": Builder, "建筑师": Builder, "pig": Pig, "猪": Pig, "mayor": Mayor, "市长": Mayor, "wagon": Wagon, "马车": Wagon, "barn": Barn, "谷仓": Barn, "dragon": Dragon, "龙": Dragon, "fairy": Fairy, "仙子": Fairy, "abbot": Abbot, "修道院长": Abbot, "ranger": Ranger, "护林员": Ranger}[typ.lower()]
     def canPut(self, seg: Segment | Feature | Tile):
         if isinstance(seg, Segment):
             return not any(isinstance(token, Dragon) for token in seg.tile.tokens)
@@ -1224,6 +1226,14 @@ class Fairy(Figure):
 class Abbot(Follower):
     canPutTypes = (BaseCloister,)
     key = (7, 0)
+class Ranger(Figure):
+    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
+        super().__init__(parent, data, img)
+        self.pos: tuple[int, int] | None = None
+    def canMove(self, pos: tuple[int, int]):
+        return pos not in self.board.tiles and any(pos + dr in self.board.tiles for dr in Dir)
+    def moveTo(self, pos: tuple[int, int]):
+        self.pos = pos
 
 AbbeyData = {"id": -1, "sides": "FFFF", "segments": [], "features": [{"type": "Cloister", "posx": 32, "posy": 36}]}
 class State(Enum):
@@ -1466,7 +1476,7 @@ class Player:
         return False
         yield {}
     def turnPutFollower(self, tile: Tile, pos: tuple[int, int]) -> TAsync[tuple[bool, bool]]:
-        pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7, -8] = 0
+        pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7, -8, -9] = 0
         if_portal: bool = False
         put_barn: bool = False
         pos_put = pos
@@ -1557,6 +1567,13 @@ class Player:
                 score = abbot.parent.checkScore([self], True, False)[0][1]
                 yield from self.addScore(score)
                 abbot.putBackToHand()
+                break
+            if self.board.checkPack(14, "b") and ret.get("special") == "ranger":
+                pos_ranger: tuple[int, int] = ret["pos"]
+                if not self.board.ranger.canMove(pos_ranger):
+                    pass_err = -9
+                    continue
+                self.board.ranger.moveTo(pos_ranger)
                 break
             if ret["id"] == -1:
                 break
