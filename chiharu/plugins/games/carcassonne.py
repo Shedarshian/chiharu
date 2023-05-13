@@ -1496,7 +1496,7 @@ class Player:
         tile_put = tile
         while 1:
             self.board.state = State.PuttingFollower
-            ret = yield {"last_err": pass_err, "last_put": pos_put, "if_portal": if_portal}
+            ret = yield {"last_err": pass_err, "last_put": pos_put, "if_portal": if_portal, "rangered": rangered}
             if self.board.checkPack(3, "c") and ret.get("special") == "fairy":
                 pos_fairy: tuple[int, int] = ret["pos"]
                 if pos_fairy not in self.board.tiles:
