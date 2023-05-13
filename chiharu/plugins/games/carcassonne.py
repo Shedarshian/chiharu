@@ -452,7 +452,7 @@ class Board:
                 offset_edge = (offset_edge[0], 59)
             if pos_ranger[1] == lowermost + 1:
                 offset_edge = (offset_edge[0], 5)
-            img.alpha_composite(self.ranger.image(), posshift(*pos_ranger, offset_edge, (-12, -7)))
+            img.alpha_composite(self.ranger.image(), posshift(*pos_ranger, offset_edge, (-13, -8)))
         # remain tiles
         dr.text((0, 0), str(len(self.riverDeck) if len(self.riverDeck) != 0 else len(self.deck)), "black", self.font_name, "lt")
         return img
