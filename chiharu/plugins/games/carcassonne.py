@@ -43,7 +43,7 @@ class TradeCounter(Enum):
     Wine = auto()
     Grain = auto()
     Cloth = auto()
-all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 7: 'abc', 12: 'ab'}
+all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 7: 'abc', 12: 'ab', 14: 'ab'}
 T = TypeVar('T')
 TAsync = Generator[dict[str, Any], dict[str, Any], T]
 def findAllMax(items: Sequence[T], key: Callable[[T], int]) -> tuple[int, list[T]]:
@@ -443,7 +443,7 @@ class Board:
                     img.paste(enhancer.enhance(0.7), posshift(*p))
         # ranger
         if self.checkPack(14, "b") and (pos_ranger := self.ranger.pos) is not None and pos_ranger not in self.tiles:
-            offset_edge = (20, 20)
+            offset_edge = (32, 32)
             if pos_ranger[0] == leftmost:
                 offset_edge = (59, offset_edge[1])
             if pos_ranger[0] == rightmost:
@@ -452,7 +452,7 @@ class Board:
                 offset_edge = (offset_edge[0], 59)
             if pos_ranger[1] == lowermost:
                 offset_edge = (offset_edge[0], 5)
-            img.paste(self.ranger.image(), posshift(*pos_ranger, offset_edge))
+            img.paste(self.ranger.image(), posshift(*pos_ranger, offset_edge, (-12, -7)))
         # remain tiles
         dr.text((0, 0), str(len(self.riverDeck) if len(self.riverDeck) != 0 else len(self.deck)), "black", self.font_name, "lt")
         return img
