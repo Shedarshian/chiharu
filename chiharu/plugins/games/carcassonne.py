@@ -442,7 +442,7 @@ class Board:
                     enhancer = ImageEnhance.Brightness(tileimg)
                     img.paste(enhancer.enhance(0.7), posshift(*p))
         # ranger
-        if self.checkPack(14, "b") and (pos_ranger := self.ranger.pos) is not None:
+        if self.checkPack(14, "b") and (pos_ranger := self.ranger.pos) is not None and pos_ranger not in self.tiles:
             offset_edge = (20, 20)
             if pos_ranger[0] == leftmost:
                 offset_edge = (59, offset_edge[1])
@@ -1731,6 +1731,7 @@ class Player:
                         if isinstance(feature, CanScore) and feature.closed():
                             yield from feature.score(ifBarn)
         if rangered:
+            self.board.addLog(id="score", player=self, source="ranger", num=3)
             yield from self.addScore(3)
             pass_err: Literal[0, -2] = 0
             while 1:

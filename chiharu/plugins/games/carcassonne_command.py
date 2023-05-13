@@ -304,7 +304,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             for d in board.log:
                 match d["id"]:
                     case "score":
-                        outputs.append(f"玩家{data['names'][d['player'].id]}因" + {"fairy": "仙子", "complete": "已完成建筑", "final": "未完成建筑", "fairy_complete": "已完成建筑中的仙子"}[d["source"]] + f"获得{d['num']}分。")
+                        outputs.append(f"玩家{data['names'][d['player'].id]}因" + {"fairy": "仙子", "complete": "已完成建筑", "final": "未完成建筑", "fairy_complete": "已完成建筑中的仙子", "ranger": "护林员"}[d["source"]] + f"获得{d['num']}分。")
                     case "redraw":
                         outputs.append("牌堆顶卡无法放置，故重抽一张。")
                     case "putbackBuilder":
