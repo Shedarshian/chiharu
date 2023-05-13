@@ -444,13 +444,13 @@ class Board:
         # ranger
         if self.checkPack(14, "b") and (pos_ranger := self.ranger.pos) is not None and pos_ranger not in self.tiles:
             offset_edge = (32, 32)
-            if pos_ranger[0] == leftmost:
+            if pos_ranger[0] == leftmost - 1:
                 offset_edge = (59, offset_edge[1])
-            if pos_ranger[0] == rightmost:
+            if pos_ranger[0] == rightmost + 1:
                 offset_edge = (-5, offset_edge[1])
-            if pos_ranger[1] == uppermost:
+            if pos_ranger[1] == uppermost - 1:
                 offset_edge = (offset_edge[0], 59)
-            if pos_ranger[1] == lowermost:
+            if pos_ranger[1] == lowermost + 1:
                 offset_edge = (offset_edge[0], 5)
             img.paste(self.ranger.image(), posshift(*pos_ranger, offset_edge, (-12, -7)))
         # remain tiles
