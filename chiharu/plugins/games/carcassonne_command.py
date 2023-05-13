@@ -263,7 +263,7 @@ async def ccs_extension(session: CommandSession):
                     data['extensions'][exa] = data['extensions'][exa].replace(c, "")
             if start_to_change >= 0:
                 data['starting_tile'] = start_to_change
-                ret = "起始板块已修改为" + start_names[start_to_change] + "。" # TODO open ex7a open ex7b close ex7a 会让起始变成0
+                ret = "起始板块已修改为" + start_names[start_to_change] + "。"
             if command == "open":
                 session.finish("已开启。" + ret)
             else:
@@ -362,6 +362,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                         await session.send("请选择未完成道路，输入图块坐标。")
                     elif ret["special"] == "cash_out":
                         await session.send("请选择跟随者，输入图块坐标。")
+                    elif ret["special"] == "ranger":
+                        await session.send("请选择要将护林员移动到的图块坐标。")
             case State.PuttingFollower:
                 if ret["last_err"] == -1:
                     await session.send("没有找到跟随者！")
@@ -538,22 +540,15 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 n = ord(match.group(1)) - ord('a')
                 name = match.group(2)
                 await advance(board, {"id": n, "which": name or "follower"})
-            elif board.checkPack(3, "c") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(仙子|fairy)$", command)):
+            elif board.checkPack(3, "c") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(仙子|fairy|传送门|portal|修道院长|abbot|护林员|ranger)$", command)):
                 xs = match.group(1); ys = match.group(2)
                 pos = board.tileNameToPos(xs, ys)
-                await advance(board, {"id": -2, "pos": pos, "special": "fairy"})
-            elif board.checkPack(3, "d") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(传送门|portal)$", command)):
-                xs = match.group(1); ys = match.group(2)
-                pos = board.tileNameToPos(xs, ys)
-                await advance(board, {"id": -2, "pos": pos, "special": "portal"})
+                special = {"仙子": "fairy", "传送门": "portal", "修道院长": "abbot", "护林员": "ranger"}.get(match.group(3), match.group(3))
+                await advance(board, {"id": -2, "pos": pos, "special": special})
             elif board.checkPack(4, "b") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(高塔|tower)\s*(.*)?$", command)):
                 xs = match.group(1); ys = match.group(2); which = match.group(4)
                 pos = board.tileNameToPos(xs, ys)
                 await advance(board, {"id": -2, "pos": pos, "special": "tower", "which": which})
-            elif board.checkPack(7, "c") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(修道院长|abbot)$", command)):
-                xs = match.group(1); ys = match.group(2)
-                pos = board.tileNameToPos(xs, ys)
-                await advance(board, {"id": -2, "pos": pos, "special": "abbot"})
         case State.AskingSynod:
             if match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(.*)?$", command):
                 xs = match.group(1); ys = match.group(2)

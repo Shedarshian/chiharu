@@ -441,8 +441,20 @@ class Board:
                     tileimg = img.crop(posshift(*p) + posshift(*p, (64, 64)))
                     enhancer = ImageEnhance.Brightness(tileimg)
                     img.paste(enhancer.enhance(0.7), posshift(*p))
+        # ranger
+        if self.checkPack(14, "b") and (pos_ranger := self.ranger.pos) is not None:
+            offset_edge = (20, 20)
+            if pos_ranger[0] == leftmost:
+                offset_edge = (59, offset_edge[1])
+            if pos_ranger[0] == rightmost:
+                offset_edge = (-5, offset_edge[1])
+            if pos_ranger[1] == uppermost:
+                offset_edge = (offset_edge[0], 59)
+            if pos_ranger[1] == lowermost:
+                offset_edge = (offset_edge[0], 5)
+            img.paste(self.ranger.image(), posshift(*pos_ranger, offset_edge))
         # remain tiles
-        dr.text((0, 0), str(len(self.deck)), "black", self.font_name, "lt")
+        dr.text((0, 0), str(len(self.riverDeck) if len(self.riverDeck) != 0 else len(self.deck)), "black", self.font_name, "lt")
         return img
     def playerImage(self):
         imgs = [p.image() for p in self.players]
@@ -535,7 +547,7 @@ class Board:
             _, isAbbey, pos = yield from player.turnAskAbbey(0, True, True)
             if isAbbey:
                 assert player.handTile is not None
-                yield from player.turnScoring(player.handTile, pos, False)
+                yield from player.turnScoring(player.handTile, pos, False, False)
                 player.handTile = None
     def process(self) -> TAsync[bool]:
         try:
@@ -1379,7 +1391,7 @@ class Player:
             ret2 = yield from gift.use(self)
             break
         return isBegin
-    def turnPutTile(self, turn: int, isBegin: bool) -> TAsync[tuple[bool, tuple[int, int], bool]]:
+    def turnPutTile(self, turn: int, isBegin: bool) -> TAsync[tuple[bool, tuple[int, int], bool, bool]]:
         pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10] = 0
         prisonered: bool = False
         while 1:
@@ -1437,6 +1449,7 @@ class Player:
         for dr in Dir:
             if pos + dr in self.board.tiles:
                 self.board.tiles[pos + dr].addConnect(tile, -dr)
+        rangered: bool = self.board.checkPack(14, "b") and self.board.ranger.pos == pos
         princessed: bool = False
         if self.board.checkPack(3, "e") and (seg := more_itertools.only(seg for seg in tile.segments if seg.princess)):
             followers = [token for token in seg.object.iterTokens() if isinstance(token, Follower) and isinstance(token.parent, Segment)]
@@ -1464,7 +1477,7 @@ class Player:
             if gifted and (gift := self.board.drawGift()):
                 self.board.addLog(type="drawGift", gift=gift)
                 self.gifts.append(gift)
-        return isBegin, pos, princessed
+        return isBegin, pos, princessed, rangered
     def turnCheckBuilder(self) -> TAsync[bool]:
         assert self.handTile is not None
         if not self.board.checkPack(2, 'b'):
@@ -1475,7 +1488,7 @@ class Player:
                     return True
         return False
         yield {}
-    def turnPutFollower(self, tile: Tile, pos: tuple[int, int]) -> TAsync[tuple[bool, bool]]:
+    def turnPutFollower(self, tile: Tile, pos: tuple[int, int], rangered: bool) -> TAsync[tuple[bool, bool]]:
         pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7, -8, -9] = 0
         if_portal: bool = False
         put_barn: bool = False
@@ -1568,7 +1581,7 @@ class Player:
                 yield from self.addScore(score)
                 abbot.putBackToHand()
                 break
-            if self.board.checkPack(14, "b") and ret.get("special") == "ranger":
+            if self.board.checkPack(14, "b") and not rangered and ret.get("special") == "ranger":
                 pos_ranger: tuple[int, int] = ret["pos"]
                 if not self.board.ranger.canMove(pos_ranger):
                     pass_err = -9
@@ -1685,7 +1698,7 @@ class Player:
             self.board.nextAskingPlayer()
         self.board.current_player_id = self.board.current_turn_player_id
         self.board.dragonMoved = []
-    def turnScoring(self, tile: Tile, pos: tuple[int, int], ifBarn: bool) -> TAsync[None]:
+    def turnScoring(self, tile: Tile, pos: tuple[int, int], ifBarn: bool, rangered: bool) -> TAsync[None]:
         objects: list[Object] = []
         for seg in tile.segments:
             if seg.closed() and seg.object not in objects:
@@ -1717,6 +1730,18 @@ class Player:
                     for feature in self.board.tiles[npos].features:
                         if isinstance(feature, CanScore) and feature.closed():
                             yield from feature.score(ifBarn)
+        if rangered:
+            yield from self.addScore(3)
+            pass_err: Literal[0, -2] = 0
+            while 1:
+                self.board.state = State.ChoosingPos
+                ret = yield {"last_err": pass_err, "special": "ranger"}
+                pos_ranger: tuple[int, int] = ret["pos"]
+                if not self.board.ranger.canMove(pos_ranger):
+                    pass_err = -2
+                    continue
+                self.board.ranger.moveTo(pos_ranger)
+                break
     def turn(self) -> TAsync[None]:
         """PuttingTile：坐标+方向（-1：已有连接, -2：无法连接，-3：没有挨着，-4：未找到可赎回的囚犯，-5：余分不足，-6：河流不能回环
         -7：河流不能180度，-8：修道院和神龛不能有多个相邻，-9：必须扩张河流，-10：河流分叉必须岔开）
@@ -1735,6 +1760,7 @@ class Player:
         isBegin: bool = True
         nextTurn: bool = False
         princessed: bool = False
+        rangered: bool = False
         ifPortal: bool = False
         ifBarn: bool = False
         isAbbey: bool = False
@@ -1750,7 +1776,7 @@ class Player:
                 nextTurn = len(self.board.riverDeck) == 0
 
                 # put tile
-                isBegin, pos, princessed = yield from self.turnPutTile(turn, isBegin)
+                isBegin, pos, princessed, rangered = yield from self.turnPutTile(turn, isBegin)
             else:
                 # ask abbey
                 if self.board.checkPack(5, 'b'):
@@ -1765,7 +1791,7 @@ class Player:
                         isBegin = yield from self.turnOpenGift(turn, isBegin)
 
                     # put tile
-                    isBegin, pos, princessed = yield from self.turnPutTile(turn, isBegin)
+                    isBegin, pos, princessed, rangered = yield from self.turnPutTile(turn, isBegin)
 
                     # builder generate a second turn
                     if turn == 0:
@@ -1780,14 +1806,14 @@ class Player:
 
             if not princessed:
                 # put a follower
-                ifPortal, ifBarn = yield from self.turnPutFollower(tile, pos)
+                ifPortal, ifBarn = yield from self.turnPutFollower(tile, pos, rangered)
 
             # move a dragon
             if self.board.checkPack(3, "b") and tile.dragon == DragonType.Dragon:
                 yield from self.turnMoveDragon()
 
             # score
-            yield from self.turnScoring(tile, pos, ifBarn)
+            yield from self.turnScoring(tile, pos, ifBarn, rangered)
 
             self.board.state = State.End
             if nextTurn:
