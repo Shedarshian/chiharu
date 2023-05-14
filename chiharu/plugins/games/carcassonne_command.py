@@ -508,7 +508,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 else:
                     board.setImageArgs()
                     await session.send([board.saveImg()])
-                    await session.send('请选择是否使用礼物卡，回复“返回”跳过。')
+                    await session.send((f'玩家{data["names"][board.current_turn_player_id]}开始行动，' if ret["begin"] else "") + '请选择是否使用礼物卡，回复“返回”跳过。')
     
     command = session.msg_text.strip()
     if data['adding_extensions']:
