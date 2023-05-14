@@ -1771,7 +1771,7 @@ class Player:
         ChoosingOwnFollower：同一格的自己的follower【询问仙子/Cash out细化】（-1：无法移动，-2：不符合要求）
         PrincessAsking：单个object上的follower【询问公主】（-1：未找到跟随者）
         CaptureTower：询问高塔抓人（-1：未找到跟随者），ExchangingPrisoner：询问交换俘虏（-1：未找到跟随者）
-        ChoosingGiftCard：使用礼物卡（-1：未找到礼物卡，-2：板块不存在，-3：不符合要求，-4：没有跟随者，-5：无法放置）
+        ChoosingGiftCard：使用礼物卡（-1：未找到礼物卡）
         AskingSynod：坐标+跟随者（-1：板块不存在，-2：不符合要求，-3：没有跟随者，-4：无法放置）"""
         isBegin: bool = True
         nextTurn: bool = False

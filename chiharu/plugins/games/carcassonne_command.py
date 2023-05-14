@@ -316,6 +316,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     case "challengeFailed":
                         outputs.append({"shrine": "神龛", "cloister": "修道院"}[d['type']] + "的挑战失败！")
                     case "drawGift":
+                        outputs.append("你抽了一张礼物卡，已通过私聊发送。")
                         await session.send("你抽到了礼物卡：" + d['gift'].name + "\n你手中的礼物卡有：" + d['player'].giftsText(), ensure_private=True)
                     case "useGift":
                         outputs.append("你使用了礼物卡：" + d['gift'].name)
@@ -501,6 +502,13 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     board.setImageArgs()
                     await session.send([board.saveImg()])
                     await session.send('请选择放置的修道院板块坐标以及跟随者。')
+            case State.ChoosingGiftCard:
+                if ret["last_err"] == -1:
+                    await session.send("未找到礼物卡！")
+                else:
+                    board.setImageArgs()
+                    await session.send([board.saveImg()])
+                    await session.send('请选择是否使用礼物卡，回复“返回”跳过。')
     
     command = session.msg_text.strip()
     if data['adding_extensions']:
@@ -599,7 +607,9 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 pos = board.tileNameToPos(xs, ys)
                 await advance(board, {"pos": pos})
         case State.ChoosingGiftCard:
-            if match := re.match(r"\s*([0-9]+)$", command):
+            if command in ("不放", "返回"):
+                await advance(board, {"id": -1})
+            elif match := re.match(r"\s*([0-9]+)$", command):
                 ns = match.group(1)
                 await advance(board, {"id": int(ns) - 1})
         case _:
