@@ -348,12 +348,14 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     await session.send("必须扩张河流！")
                 elif rete == -10:
                     await session.send("河流分叉必须岔开！")
+                elif ret["last_err"] == -11:
+                    await session.send("未找到礼物卡！")
                 else:
                     if ret["begin"] and ret["second_turn"]:
                         await session.send("玩家继续第二回合")
                     board.setImageArgs()
                     await session.send([board.saveImg()])
-                    await session.send((f'玩家{data["names"][board.current_turn_player_id]}开始行动，' if ret["begin"] else "") + '请选择放图块的坐标，以及用URDL将指定方向旋转至向上。' + ("此时可发送“赎回玩家nxxx”花3分赎回囚犯。" if not ret["second_turn"] and board.checkPack(4, "b") else ""))
+                    await session.send((f'玩家{data["names"][board.current_turn_player_id]}开始行动，' if ret["begin"] else "") + '请选择放图块的坐标，以及用URDL将指定方向旋转至向上。' + ("此时可发送“赎回玩家nxxx”花3分赎回囚犯。" if not ret["second_turn"] and board.checkPack(4, "b") else "") + ('回复礼物+第几张使用礼物卡。' if board.checkPack(14, "a") and not ret["gifted"] else ""))
             case State.ChoosingPos:
                 if ret["last_err"] == -1:
                     await session.send("板块不存在！")
@@ -502,13 +504,6 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     board.setImageArgs()
                     await session.send([board.saveImg()])
                     await session.send('请选择放置的修道院板块坐标以及跟随者。')
-            case State.ChoosingGiftCard:
-                if ret["last_err"] == -1:
-                    await session.send("未找到礼物卡！")
-                else:
-                    board.setImageArgs()
-                    await session.send([board.saveImg()])
-                    await session.send((f'玩家{data["names"][board.current_turn_player_id]}开始行动，' if ret["begin"] else "") + '请选择是否使用礼物卡，回复第几张进行使用，回复“返回”跳过。')
     
     command = session.msg_text.strip()
     if data['adding_extensions']:
@@ -545,7 +540,10 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             elif match := re.match(r"\s*赎回玩家(\d+)(.*)?$", command):
                 player_id = int(match.group(1)) - 1
                 name = match.group(2)
-                await advance(board, {"player_id": player_id, "which": name or "follower", "speical": "prisoner"})
+                await advance(board, {"player_id": player_id, "which": name or "follower", "special": "prisoner"})
+            elif match := re.match(r"\s*礼物([0-9]+)$", command):
+                ns = match.group(1)
+                await advance(board, {"id": int(ns) - 1, "special": "gift"})
         case State.ChoosingOwnFollower | State.ChoosingSegment:
             if match := re.match(r"\s*([a-z])$", command):
                 n = ord(match.group(1)) - ord('a')
@@ -606,11 +604,5 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 xs = match.group(1); ys = match.group(2)
                 pos = board.tileNameToPos(xs, ys)
                 await advance(board, {"pos": pos})
-        case State.ChoosingGiftCard:
-            if command in ("不放", "返回"):
-                await advance(board, {"id": -1})
-            elif match := re.match(r"\s*([0-9]+)$", command):
-                ns = match.group(1)
-                await advance(board, {"id": int(ns) - 1})
         case _:
             pass
