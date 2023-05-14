@@ -46,10 +46,12 @@ class TradeCounter(Enum):
 all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 7: 'abc', 12: 'ab', 14: 'ab'}
 T = TypeVar('T')
 TAsync = Generator[dict[str, Any], dict[str, Any], T]
-def findAllMax(items: Sequence[T], key: Callable[[T], int]) -> tuple[int, list[T]]:
-    maxScore: int = 0
+def findAllMax(items: Sequence[T], key: Callable[[T], int], criteria=None) -> tuple[int, list[T]]:
+    maxScore: int = -99
     maxPlayer: list[T] = []
     for player in items:
+        if criteria is not None and not criteria(player):
+            continue
         if (score := key(player)) > maxScore:
             maxScore = score
             maxPlayer = [player]
@@ -607,7 +609,7 @@ class CanScore(ABC):
         for token in self.iterTokens():
             if isinstance(token, Follower) and isinstance(token.player, Player):
                 strengths[token.player.id] += token.strength
-        return findAllMax(self.board.players, lambda player: strengths[player.id])[1]
+        return findAllMax(self.board.players, lambda player: strengths[player.id], lambda player: strengths[player.id] != 0)[1]
     def checkPlayerAndScore(self, mid_game: bool, putBarn: bool=True) -> 'list[tuple[Player, int]]':
         players = self.checkScore(self.checkPlayer(), mid_game, putBarn)
         return players
@@ -1478,15 +1480,13 @@ class Player:
                         continue
                     break
         if self.board.checkPack(14, "a"):
-            gifted: bool = False
             for segment in tile.segments:
-                if self not in segment.object.checkPlayer():
-                    gifted = True
+                if len(l := segment.object.checkPlayer()) > 0 and self not in l:
+                    if gift := self.board.drawGift():
+                        self.board.addLog(type="drawGift", gift=gift, player=self)
+                        self.gifts.append(gift)
+                        self.gifts.sort(key=lambda g: g.id)
                     break
-            if gifted and (gift := self.board.drawGift()):
-                self.board.addLog(type="drawGift", gift=gift, player=self)
-                self.gifts.append(gift)
-                self.gifts.sort(key=lambda g: g.id)
         if len(self.handTiles) > 1:
             for tile2 in self.handTiles:
                 if tile2 is not tile:
@@ -1860,7 +1860,7 @@ class Player:
         if self.board.checkPack(2, "d"):
             trade_counter_xpos = length
             length += 120
-        if self.board.checkPack(14, "b"):
+        if self.board.checkPack(14, "a"):
             gift_xpos = length
             length += 28
         img = Image.new("RGBA", (length, 24))
@@ -1903,7 +1903,7 @@ class Player:
             dr.text((trade_counter_xpos + 40, 12), f"麦{self.tradeCounter[1]}", "black", self.board.font_name, "lm")
             dr.text((trade_counter_xpos + 80, 12), f"布{self.tradeCounter[2]}", "black", self.board.font_name, "lm")
         # gift card count
-        if self.board.checkPack(14, "b"):
+        if self.board.checkPack(14, "a"):
             dr.rectangle((gift_xpos + 4, 4, gift_xpos + 20, 20), "green")
             dr.text((gift_xpos + 12, 12), str(len(self.gifts)), "white", self.board.font_name, "mm")
         return img
