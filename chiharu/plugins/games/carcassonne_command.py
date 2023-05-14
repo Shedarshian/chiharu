@@ -348,8 +348,10 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     await session.send("必须扩张河流！")
                 elif rete == -10:
                     await session.send("河流分叉必须岔开！")
-                elif ret["last_err"] == -11:
+                elif rete == -11:
                     await session.send("未找到礼物卡！")
+                elif rete == -12:
+                    await session.send("请指定使用哪张手牌！")
                 else:
                     if ret["begin"] and ret["second_turn"]:
                         await session.send("玩家继续第二回合")

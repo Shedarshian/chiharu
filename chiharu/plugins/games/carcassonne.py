@@ -1383,7 +1383,7 @@ class Player:
         return isBegin
         yield {}
     def turnPutTile(self, turn: int, isBegin: bool) -> TAsync[tuple[bool, tuple[int, int], bool, bool]]:
-        pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11] = 0
+        pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12] = 0
         prisonered: bool = False
         gifted: bool = False
         while 1:
@@ -1419,6 +1419,9 @@ class Player:
                 ret2 = yield from gift.use(self)
                 self.board.giftDiscard.append(gift)
                 gifted = True
+                continue
+            if ret["tilenum"] == -1 and len(self.handTiles) != 1:
+                pass_err = -12
                 continue
             pos: tuple[int, int] = ret["pos"]
             orient: Dir = ret["orient"]
@@ -1751,7 +1754,7 @@ class Player:
                 break
     def turn(self) -> TAsync[None]:
         """PuttingTile：坐标+方向（-1：已有连接, -2：无法连接，-3：没有挨着，-4：未找到可赎回的囚犯，-5：余分不足，-6：河流不能回环
-        -7：河流不能180度，-8：修道院和神龛不能有多个相邻，-9：必须扩张河流，-10：河流分叉必须岔开，-11：未找到礼物卡）
+        -7：河流不能180度，-8：修道院和神龛不能有多个相邻，-9：必须扩张河流，-10：河流分叉必须岔开，-11：未找到礼物卡，-12：请指定使用哪张）
         ChoosingPos：选择坐标（-1：板块不存在，-2：不符合要求）
         PuttingFollower：单个板块feature+跟随者（-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门，-5：找不到高塔
         -6：高塔有人，-7：手里没有高塔片段，-8：找不到修道院长）
