@@ -1919,6 +1919,8 @@ class Player:
                 dr.rectangle((92 + i * 96, 12, 164 + i * 96, 84), self.tokenColor, None)
                 img.paste(tile.image(), (96 + i * 96, 16))
                 # text
+                if len(self.handTiles) > 1:
+                    dr.text((100 + i * 96, 10), chr(ord('a') + i), "black", font, "mb")
                 dr.text((128 + i * 96, 10), "U", "black", font, "mb")
                 dr.text((128 + i * 96, 86), "D", "black", font, "mt")
                 dr.text((90 + i * 96, 48), "L", "black", font, "rm")
@@ -2076,7 +2078,7 @@ class GiftChangePosition(Gift):
             return -1
         while 1:
             user.board.state = State.ChoosingPos
-            ret = yield {"last_err": pass_err, "speical": "change_position"}
+            ret = yield {"last_err": pass_err, "special": "change_position"}
             if ret["pos"] not in user.board.tiles:
                 pass_err = -1
                 continue

@@ -508,7 +508,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 else:
                     board.setImageArgs()
                     await session.send([board.saveImg()])
-                    await session.send((f'玩家{data["names"][board.current_turn_player_id]}开始行动，' if ret["begin"] else "") + '请选择是否使用礼物卡，回复“返回”跳过。')
+                    await session.send((f'玩家{data["names"][board.current_turn_player_id]}开始行动，' if ret["begin"] else "") + '请选择是否使用礼物卡，回复第几张进行使用，回复“返回”跳过。')
     
     command = session.msg_text.strip()
     if data['adding_extensions']:
@@ -536,8 +536,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
     
     match board.state:
         case State.PuttingTile:
-            if match := re.match(r"\s*(甲|乙|丙)?\s*([A-Z]+)([0-9]+)\s*([URDL])$", command):
-                tilenum = '甲乙丙'.index(match.group(1)) if match.group(1) else -1
+            if match := re.match(r"\s*([a-z])?\s*([A-Z]+)([0-9]+)\s*([URDL])$", command):
+                tilenum = ord(match.group(1)) - ord('a') if match.group(1) else -1
                 xs = match.group(2); ys = match.group(3); orients = match.group(4)
                 pos = board.tileNameToPos(xs, ys)
                 orient = {'U': Dir.UP, 'R': Dir.LEFT, 'D': Dir.DOWN, 'L': Dir.RIGHT}[orients]
