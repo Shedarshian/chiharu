@@ -427,11 +427,11 @@ class Board:
                     for tpos in ((0, 0), (64, 0), (0, 64), (64, 64)):
                         draw(c, tpos, i)
                         i += 1
-        if draw_tile_follower is not None and draw_tile_follower in self.tiles and self.checkPack(3, 'c'):
+        if draw_tile_follower is not None and draw_tile_follower in self.tiles:
             tile = self.tiles[draw_tile_follower]
             i = ord('a')
             for follower in tile.iterAllTokens():
-                if isinstance(follower, Follower) and follower.parent is self.current_turn_player and self.fairy.canMove(follower):
+                if isinstance(follower, Follower) and follower.parent is self.current_turn_player:
                     draw(self.findTilePos(tile), tile.findTokenDrawPos(follower), i)
                     i += 1
         if princess is not None:
@@ -2042,7 +2042,9 @@ class GiftCashOut(Gift):
             assert isinstance(follower.parent, (Segment, BaseCloister))
             assert isinstance(follower.player, Player)
             obj = follower.parent.object if isinstance(follower.parent, Segment) else follower.parent
-            yield from follower.player.addScore(2 * len(list(obj.iterTokens())))
+            score = 2 * len(list(obj.iterTokens()))
+            user.board.addLog(id="score", player=user, num=score, source="cash_out")
+            yield from follower.player.addScore(score)
             follower.putBackToHand()
             break
         return 1

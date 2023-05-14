@@ -304,7 +304,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             for d in board.log:
                 match d["id"]:
                     case "score":
-                        outputs.append(f"玩家{data['names'][d['player'].id]}因" + {"fairy": "仙子", "complete": "已完成建筑", "final": "未完成建筑", "fairy_complete": "已完成建筑中的仙子", "ranger": "护林员"}[d["source"]] + f"获得{d['num']}分。")
+                        outputs.append(f"玩家{data['names'][d['player'].id]}因" + {"fairy": "仙子", "complete": "已完成建筑", "final": "未完成建筑", "fairy_complete": "已完成建筑中的仙子", "ranger": "护林员", "cash_out": "兑现"}[d["source"]] + f"获得{d['num']}分。")
                     case "redraw":
                         outputs.append("牌堆顶卡无法放置，故重抽一张。")
                     case "putbackBuilder":
@@ -357,7 +357,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                         await session.send("玩家继续第二回合")
                     board.setImageArgs()
                     await session.send([board.saveImg()])
-                    await session.send((f'玩家{data["names"][board.current_turn_player_id]}开始行动，' if ret["begin"] else "") + '请选择放图块的坐标，以及用URDL将指定方向旋转至向上。' + ("此时可发送“赎回玩家nxxx”花3分赎回囚犯。" if not ret["second_turn"] and board.checkPack(4, "b") else "") + ('回复礼物+第几张使用礼物卡。' if board.checkPack(14, "a") and not ret["gifted"] else ""))
+                    await session.send((f'玩家{data["names"][board.current_turn_player_id]}开始行动，' if ret["begin"] else "") + '请选择放图块的坐标，以及用URDL将指定方向旋转至向上。' + ("此时可发送“赎回玩家nxxx”花3分赎回囚犯。" if not ret["second_turn"] and board.checkPack(4, "b") else "") + ('回复礼物+第几张使用礼物卡，“查询礼物”查询。' if board.checkPack(14, "a") and not ret["gifted"] else ""))
             case State.ChoosingPos:
                 if ret["last_err"] == -1:
                     await session.send("板块不存在！")
@@ -460,6 +460,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                         await session.send('请额外指定要放置在哪个跟随者旁。')
                     elif ret["special"] == "cash_out":
                         await session.send('请额外指定要兑现哪个跟随者。')
+                    elif ret["special"] == "change_position":
+                        await session.send('请额外指定要切换哪个跟随者。')
             case State.PrincessAsking:
                 if ret["last_err"] == -1:
                     await session.send("未找到跟随者！")
