@@ -317,6 +317,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                         outputs.append({"shrine": "神龛", "cloister": "修道院"}[d['type']] + "的挑战失败！")
                     case "drawGift":
                         pass # TODO 私聊发送礼物
+                    case "take2NoTile":
+                        outputs.append("并未找到第二张可以放置的板块！")
             await session.send("\n".join(outputs))
             board.log = []
         match board.state:
@@ -361,9 +363,11 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     elif ret["special"] == "road_sweeper":
                         await session.send("请选择未完成道路，输入图块坐标。")
                     elif ret["special"] == "cash_out":
-                        await session.send("请选择跟随者，输入图块坐标。")
+                        await session.send("请选择跟随者兑现，输入图块坐标。")
                     elif ret["special"] == "ranger":
                         await session.send("请选择要将护林员移动到的图块坐标。")
+                    elif ret["special"] == "change_position":
+                        await session.send("请选择跟随者切换形态，输入图块坐标。")
             case State.PuttingFollower:
                 if ret["last_err"] == -1:
                     await session.send("没有找到跟随者！")
@@ -472,11 +476,15 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             case State.ChoosingSegment:
                 if ret["last_err"] == -1:
                     await session.send("未找到片段号！")
+                if ret["last_err"] == -2:
+                    await session.send("不符合要求！")
                 else:
                     board.setImageArgs(draw_tile_seg=ret["last_put"], draw_occupied_seg=True)
                     await session.send([board.saveImg()])
                     if ret["special"] == "road_sweeper":
                         await session.send('请选择道路片段。')
+                    if ret["special"] == "change_position":
+                        await session.send('请选择切换形态的片段。')
             case State.AskingSynod:
                 if ret["last_err"] == -1:
                     await session.send("板块不存在！")
@@ -515,11 +523,12 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
     
     match board.state:
         case State.PuttingTile:
-            if match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([URDL])$", command):
-                xs = match.group(1); ys = match.group(2); orients = match.group(3)
+            if match := re.match(r"\s*(甲|乙|丙)?\s*([A-Z]+)([0-9]+)\s*([URDL])$", command):
+                tilenum = '甲乙丙'.index(match.group(1)) if match.group(1) else -1
+                xs = match.group(2); ys = match.group(3); orients = match.group(4)
                 pos = board.tileNameToPos(xs, ys)
                 orient = {'U': Dir.UP, 'R': Dir.LEFT, 'D': Dir.DOWN, 'L': Dir.RIGHT}[orients]
-                await advance(board, {"pos": pos, "orient": orient})
+                await advance(board, {"pos": pos, "orient": orient, "tilenum": tilenum})
             elif match := re.match(r"\s*赎回玩家(\d+)(.*)?$", command):
                 player_id = int(match.group(1)) - 1
                 name = match.group(2)

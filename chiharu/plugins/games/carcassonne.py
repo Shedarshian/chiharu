@@ -1,4 +1,4 @@
-from typing import Literal, Any, Generator, Type, TypeVar, Iterable, Callable, Sequence
+from typing import Literal, Any, Generator, Type, TypeVar, Iterable, Callable, Sequence, TypedDict
 import random, itertools, more_itertools, json
 from enum import Enum, auto
 from abc import ABC, abstractmethod
@@ -210,6 +210,19 @@ class Board:
             raise NoDeckEnd
         tile = self.deck[0]
         self.popTile(tile)
+        return tile
+    def drawTileCanPut(self):
+        tile = self.drawTile()
+        checked: int = 0
+        while tile is not None and not self.checkTileCanPut(tile):
+            self.addLog(id="redraw", tile=tile)
+            checked += 1
+            self.deck.append(tile)
+            tile = self.drawTile()
+            if checked >= len(self.deck):
+                return None
+        if checked >= 1:
+            random.shuffle(self.deck)
         return tile
     def drawRiverTile(self):
         tile = self.riverDeck[0]
@@ -546,9 +559,8 @@ class Board:
                 return
             _, isAbbey, pos = yield from player.turnAskAbbey(0, True, True)
             if isAbbey:
-                assert player.handTile is not None
-                yield from player.turnScoring(player.handTile, pos, False, False)
-                player.handTile = None
+                yield from player.turnScoring(player.handTiles[0], pos, False, False)
+                player.handTiles.pop(0)
     def process(self) -> TAsync[bool]:
         try:
             while 1:
@@ -1273,7 +1285,7 @@ class Player:
         self.tokens: list[Token] = []
         self.allTokens: list[Token] = []
         self.score: int = 0
-        self.handTile: Tile | None = None
+        self.handTiles: list[Tile] = []
         if self.board.checkPack(2, 'd'):
             self.tradeCounter = [0, 0, 0]
         if self.board.checkPack(5, 'b'):
@@ -1331,7 +1343,7 @@ class Player:
         return tokens[0]
 
     def turnDrawRiver(self, isBegin: bool) -> TAsync[bool]:
-        self.handTile = self.board.drawRiverTile()
+        self.handTiles.append(self.board.drawRiverTile())
         return isBegin
         yield {}
     def turnAskAbbey(self, turn: int, isBegin: bool, endGame: bool) -> TAsync[tuple[bool, bool, tuple[int, int]]]:
@@ -1354,24 +1366,17 @@ class Player:
                 if r < 0:
                     pass_err = -8 if r == -8 else -1
                     continue
-                self.handTile = tile
+                self.handTiles.append(tile)
                 self.board.tiles[pos] = tile
                 for dr in Dir:
                     self.board.tiles[pos + dr].closeSideAbbey(-dr)
                 break
         return isBegin, isAbbey, pos
     def turnDrawTile(self, turn: int, isBegin: bool) -> TAsync[bool]:
-        self.handTile = self.board.drawTile()
-        checked: int = 0
-        while self.handTile is not None and not self.board.checkTileCanPut(self.handTile):
-            self.board.addLog(id="redraw", tile=self.handTile)
-            checked += 1
-            self.board.deck.append(self.handTile)
-            self.handTile = self.board.drawTile()
-            if checked >= len(self.board.deck):
-                raise CantPutError
-        if checked >= 1:
-            random.shuffle(self.board.deck)
+        tile = self.board.drawTileCanPut()
+        if tile is None:
+            raise CantPutError
+        self.handTiles.append(tile)
         return isBegin
         yield {}
     def turnOpenGift(self, turn: int, isBegin: bool) -> TAsync[bool]:
@@ -1420,8 +1425,8 @@ class Player:
                 continue
             pos: tuple[int, int] = ret["pos"]
             orient: Dir = ret["orient"]
-            tile = self.handTile
-            assert tile is not None
+            tilenum: int = ret["tilenum"]
+            tile: Tile = self.handTiles[tilenum]
             pass_err = self.board.canPutTile(tile, pos, orient)
             if pass_err < 0:
                 continue
@@ -1477,12 +1482,17 @@ class Player:
             if gifted and (gift := self.board.drawGift()):
                 self.board.addLog(type="drawGift", gift=gift)
                 self.gifts.append(gift)
+        if len(self.handTiles) > 1:
+            for tile2 in self.handTiles:
+                if tile2 is not tile:
+                    self.board.deck.append(tile2)
+            self.handTiles = [tile]
+            random.shuffle(self.board.deck)
         return isBegin, pos, princessed, rangered
     def turnCheckBuilder(self) -> TAsync[bool]:
-        assert self.handTile is not None
         if not self.board.checkPack(2, 'b'):
             return False
-        for seg in self.handTile.segments:
+        for seg in self.handTiles[0].segments:
             for token in seg.object.iterTokens():
                 if token.player is self and isinstance(token, Builder):
                     return True
@@ -1749,7 +1759,7 @@ class Player:
         ChoosingPos：选择坐标（-1：板块不存在，-2：不符合要求）
         PuttingFollower：单个板块feature+跟随者（-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门，-5：找不到高塔
         -6：高塔有人，-7：手里没有高塔片段，-8：找不到修道院长）
-        ChoosingSegment：选择单个板块feature（-1：未找到片段）
+        ChoosingSegment：选择单个板块feature（-1：未找到片段，-2：不符合要求）
         WagonAsking：选马车（-1：没有图块，-2：图块过远，-3：无法放置）
         AbbeyAsking/FinalAbbeyAsking：询问僧院板块（-1：无法放置，-8：修道院和神龛不能有多个相邻）
         MovingDragon：询问龙（-1：无法移动）
@@ -1797,9 +1807,7 @@ class Player:
                     # builder generate a second turn
                     if turn == 0:
                         nextTurn = yield from self.turnCheckBuilder()
-            tile = self.handTile
-            assert tile is not None
-            self.handTile = None
+            tile = self.handTiles.pop(0)
 
             # check dragon
             if self.board.checkPack(3, "b") and tile.dragon == DragonType.Volcano:
@@ -1888,20 +1896,21 @@ class Player:
             dr.text((trade_counter_xpos + 80, 12), f"布{self.tradeCounter[2]}", "black", self.board.font_name, "lm")
         return img
     def handTileImage(self):
-        img = Image.new("RGBA", (176, 96))
+        img = Image.new("RGBA", (80 + 96 * max(1, len(self.handTiles)), 96))
         dr = ImageDraw.Draw(img)
-        if self.handTile is None:
+        if len(self.handTiles) == 0:
             dr.text((0, 48), self.show_name + "  请选择", "black", self.board.font_name, "lm")
         else:
             dr.text((0, 48), self.show_name, "black", self.board.font_name, "lm")
-            dr.rectangle((92, 12, 164, 84), self.tokenColor, None)
-            img.paste(self.handTile.image(), (96, 16))
-            # text
             font = ImageFont.truetype("msyhbd.ttc", 10)
-            dr.text((128, 10), "U", "black", font, "mb")
-            dr.text((128, 86), "D", "black", font, "mt")
-            dr.text((90, 48), "L", "black", font, "rm")
-            dr.text((166, 48), "R", "black", font, "lm")
+            for i, tile in enumerate(self.handTiles):
+                dr.rectangle((92 + i * 96, 12, 164 + i * 96, 84), self.tokenColor, None)
+                img.paste(tile.image(), (96 + i * 96, 16))
+                # text
+                dr.text((128 + i * 96, 10), "U", "black", font, "mb")
+                dr.text((128 + i * 96, 86), "D", "black", font, "mt")
+                dr.text((90 + i * 96, 48), "L", "black", font, "rm")
+                dr.text((166 + i * 96, 48), "R", "black", font, "lm")
         return img
 
 class Gift:
@@ -1977,7 +1986,7 @@ class GiftRoadSweeper(Gift):
                         continue
                     s = tile.segments[ret2["id"] - len(tile.features)]
                     if s not in roads:
-                        pass_err = -1
+                        pass_err = -2
                         continue
                     road = s
                     break
@@ -2031,11 +2040,102 @@ class GiftCashOut(Gift):
 class GiftChangePosition(Gift):
     name = "切换形态"
     def use(self, user: Player) -> TAsync[int]:
+        pass_err: Literal[0, -1, -2, -3] = 0
+        for t in user.board.tiles.values():
+            bk = False
+            followers = [token for token in t.iterAllTokens() if isinstance(token, Follower) and token.player is user]
+            for token in followers:
+                if isinstance(token.parent, FieldSegment):
+                    if any(isinstance(segment, (CitySegment, RoadSegment)) and token.canPut(segment) for segment in t.segments) or any(isinstance(feature, Monastry) and token.canPut(feature) for feature in t.features):
+                        break
+                if isinstance(token.parent, (CitySegment, RoadSegment, Monastry)):
+                    if any(isinstance(segment, FieldSegment) and token.canPut(segment) for segment in t.segments):
+                        break
+            else:
+                continue
+            break
+        else:
+            return -1
+        while 1:
+            user.board.state = State.ChoosingPos
+            ret = yield {"last_err": pass_err, "speical": "change_position"}
+            if ret["pos"] not in user.board.tiles:
+                pass_err = -1
+                continue
+            tile = user.board.tiles[ret["pos"]]
+            followers = [token for token in tile.iterAllTokens() if isinstance(token, Follower) and token.player is user]
+            can_choose: list[tuple[Follower, Sequence[Segment | Monastry]]] = []
+            for token in followers:
+                if isinstance(token.parent, FieldSegment):
+                    can_put: Sequence[Monastry | Segment] = [segment for segment in tile.segments if isinstance(segment, (CitySegment, RoadSegment)) and token.canPut(segment)] + [feature for feature in tile.features if isinstance(feature, Monastry) and token.canPut(feature)]
+                    if len(can_put) > 0:
+                        can_choose.append((token, can_put))
+                if isinstance(token.parent, (CitySegment, RoadSegment, Monastry)):
+                    can_put = [segment for segment in tile.segments if isinstance(segment, FieldSegment) and token.canPut(segment)]
+                    if len(can_put) > 0:
+                        can_choose.append((token, can_put))
+            if len(can_choose) == 0:
+                pass_err = -2
+                continue
+            follower, put_list = can_choose[0]
+            if len(can_choose) > 1:
+                pass_err = 0
+                while 1:
+                    user.board.state = State.ChoosingOwnFollower
+                    ret2 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "change_position"}
+                    if ret2["id"] < 0 or ret2["id"] >= len(followers):
+                        pass_err = -2
+                        continue
+                    follower = followers[ret2["id"]]
+                    for f, l in can_choose:
+                        if f is follower:
+                            put_list = l
+                            break
+                    else:
+                        pass_err = -3
+                        continue
+                    break
+            if len(put_list) == 1:
+                to_put = put_list[0]
+            else:
+                pass_err = 0
+                while 1:
+                    user.board.state = State.ChoosingSegment
+                    ret3 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "change_position"}
+                    id: int = ret3["id"]
+                    if id < len(tile.features):
+                        p = tile.features[id]
+                        if p in put_list and isinstance(p, Monastry):
+                            to_put = p
+                        else:
+                            pass_err = -2
+                            continue
+                    elif id < len(tile.features) + len(tile.segments):
+                        p2 = tile.segments[id - len(tile.features)]
+                        if p2 in put_list:
+                            to_put = p2
+                        else:
+                            pass_err = -2
+                            continue
+                    else:
+                        pass_err = -1
+                        continue
+                    break
+            follower.remove()
+            yield from follower.putOn(to_put)
+            break
         return 1
         yield {}
 class GiftTake2(Gift):
     name = "再来一张"
     def use(self, user: Player) -> TAsync[int]:
+        if len(user.board.deck) == 0:
+            return -1
+        tile = user.board.drawTileCanPut()
+        if tile is None:
+            user.board.addLog(id="take2NoTile")
+        else:
+            user.handTiles.append(tile)
         return 1
         yield {}
 
