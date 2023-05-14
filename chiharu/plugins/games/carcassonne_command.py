@@ -316,7 +316,10 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     case "challengeFailed":
                         outputs.append({"shrine": "神龛", "cloister": "修道院"}[d['type']] + "的挑战失败！")
                     case "drawGift":
-                        pass # TODO 私聊发送礼物
+                        await session.send("你抽到了礼物卡：" + d['gift'].name + "\n你手中的礼物卡有：" + d['player'].giftsText(), ensure_private=True)
+                    case "useGift":
+                        outputs.append("你使用了礼物卡：" + d['gift'].name)
+                        await session.send("你现在手中的礼物卡有：" + d['player'].giftsText(), ensure_private=True)
                     case "take2NoTile":
                         outputs.append("并未找到第二张可以放置的板块！")
             await session.send("\n".join(outputs))
@@ -515,6 +518,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
     if command.startswith("查询剩余"):
         await session.send([board.saveRemainTileImg()])
         return
+    if command == "查询礼物":
+        await session.send("你手中的礼物卡有：" + board.players[user_id].giftsText(), ensure_private=True)
     if board.current_player_id != user_id:
         return
     if command == "重新查询":
@@ -593,5 +598,9 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 xs = match.group(1); ys = match.group(2)
                 pos = board.tileNameToPos(xs, ys)
                 await advance(board, {"pos": pos})
+        case State.ChoosingGiftCard:
+            if match := re.match(r"\s*([0-9]+)$", command):
+                ns = match.group(1)
+                await advance(board, {"id": int(ns) - 1})
         case _:
             pass

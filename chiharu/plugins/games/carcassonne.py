@@ -1341,6 +1341,8 @@ class Player:
         if len(tokens) == 0:
             return None
         return tokens[0]
+    def giftsText(self):
+        return "\n".join(str(i + 1) + "." + card.name for i, card in enumerate(self.gifts))
 
     def turnDrawRiver(self, isBegin: bool) -> TAsync[bool]:
         self.handTiles.append(self.board.drawRiverTile())
@@ -1385,7 +1387,7 @@ class Player:
         pass_err: Literal[0, -1] = 0
         while 1:
             self.board.state = State.ChoosingGiftCard
-            ret = yield {"second_turn": turn == 1, "last_err": pass_err, "begin": isBegin, "card_id": -1}
+            ret = yield {"second_turn": turn == 1, "last_err": pass_err, "begin": isBegin}
             isBegin = False
             if ret["id"] == -1:
                 return isBegin
@@ -1393,7 +1395,9 @@ class Player:
                 pass_err = -1
                 continue
             gift: Gift = self.gifts.pop(ret["id"])
+            self.board.addLog(id="useGift", gift=gift, player=self)
             ret2 = yield from gift.use(self)
+            self.board.giftDiscard.append(gift)
             break
         return isBegin
     def turnPutTile(self, turn: int, isBegin: bool) -> TAsync[tuple[bool, tuple[int, int], bool, bool]]:
@@ -1480,8 +1484,9 @@ class Player:
                     gifted = True
                     break
             if gifted and (gift := self.board.drawGift()):
-                self.board.addLog(type="drawGift", gift=gift)
+                self.board.addLog(type="drawGift", gift=gift, player=self)
                 self.gifts.append(gift)
+                self.gifts.sort(key=lambda g: g.id)
         if len(self.handTiles) > 1:
             for tile2 in self.handTiles:
                 if tile2 is not tile:
@@ -1855,6 +1860,9 @@ class Player:
         if self.board.checkPack(2, "d"):
             trade_counter_xpos = length
             length += 120
+        if self.board.checkPack(14, "b"):
+            gift_xpos = length
+            length += 28
         img = Image.new("RGBA", (length, 24))
         dr = ImageDraw.Draw(img)
         dr.text((0, 12), str(self.id + 1) + "." + self.show_name, "black", self.board.font_name, "lm")
@@ -1894,6 +1902,10 @@ class Player:
             dr.text((trade_counter_xpos, 12), f"酒{self.tradeCounter[0]}", "black", self.board.font_name, "lm")
             dr.text((trade_counter_xpos + 40, 12), f"麦{self.tradeCounter[1]}", "black", self.board.font_name, "lm")
             dr.text((trade_counter_xpos + 80, 12), f"布{self.tradeCounter[2]}", "black", self.board.font_name, "lm")
+        # gift card count
+        if self.board.checkPack(14, "b"):
+            dr.rectangle((gift_xpos + 4, 4, gift_xpos + 20, 20), "green")
+            dr.text((gift_xpos + 12, 12), str(len(self.gifts)), "white", self.board.font_name, "mm")
         return img
     def handTileImage(self):
         img = Image.new("RGBA", (80 + 96 * max(1, len(self.handTiles)), 96))
@@ -1915,6 +1927,8 @@ class Player:
 
 class Gift:
     __slots__ = ()
+    name = ""
+    id = -1
     @classmethod
     def make(cls, id: int) -> 'Type[Gift]':
         return [GiftSynod, GiftRoadSweeper, GiftCashOut, GiftChangePosition, GiftTake2][id]
@@ -1924,6 +1938,7 @@ class Gift:
         yield {}
 class GiftSynod(Gift):
     name = "教会会议"
+    id = 0
     def use(self, user: Player) -> TAsync[int]:
         pass_err: Literal[0, -1, -2, -3, -4] = 0
         for t in user.board.tiles.values():
@@ -1956,6 +1971,7 @@ class GiftSynod(Gift):
         return 1
 class GiftRoadSweeper(Gift):
     name = "马路清扫者"
+    id = 1
     def use(self, user: Player) -> TAsync[int]:
         pass_err: Literal[0, -1, -2, -3, -4] = 0
         for t in user.board.tiles.values():
@@ -1995,6 +2011,7 @@ class GiftRoadSweeper(Gift):
         return 1
 class GiftCashOut(Gift):
     name = "兑现"
+    id = 2
     def use(self, user: Player) -> TAsync[int]:
         pass_err: Literal[0, -1, -2, -3, -4] = 0
         for t in user.board.tiles.values():
@@ -2039,6 +2056,7 @@ class GiftCashOut(Gift):
         return 1
 class GiftChangePosition(Gift):
     name = "切换形态"
+    id = 3
     def use(self, user: Player) -> TAsync[int]:
         pass_err: Literal[0, -1, -2, -3] = 0
         for t in user.board.tiles.values():
@@ -2128,6 +2146,7 @@ class GiftChangePosition(Gift):
         yield {}
 class GiftTake2(Gift):
     name = "再来一张"
+    id = 4
     def use(self, user: Player) -> TAsync[int]:
         if len(user.board.deck) == 0:
             return -1
