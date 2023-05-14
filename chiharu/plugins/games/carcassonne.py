@@ -1481,9 +1481,9 @@ class Player:
                     break
         if self.board.checkPack(14, "a"):
             for segment in tile.segments:
-                if len(l := segment.object.checkPlayer()) > 0 and self not in l:
+                if isinstance(segment, (RoadSegment, CitySegment)) and len(l := segment.object.checkPlayer()) > 0 and self not in l:
                     if gift := self.board.drawGift():
-                        self.board.addLog(type="drawGift", gift=gift, player=self)
+                        self.board.addLog(id="drawGift", gift=gift, player=self)
                         self.gifts.append(gift)
                         self.gifts.sort(key=lambda g: g.id)
                     break
