@@ -470,6 +470,10 @@ class Board:
             img.alpha_composite(self.ranger.image(), posshift(*pos_ranger, offset_edge, (-13, -8)))
         # remain tiles
         dr.text((0, 0), str(len(self.riverDeck) if len(self.riverDeck) != 0 else len(self.deck)), "black", self.font_name, "lt")
+        # remain gift
+        if self.checkPack(14, "a"):
+            dr.rectangle((0, 32, 16, 48), "green")
+            dr.text((0, 32), str(len(self.giftDeck)), "white", self.font_name, "lt")
         return img
     def playerImage(self):
         imgs = [p.image() for p in self.players]
