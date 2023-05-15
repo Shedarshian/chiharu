@@ -504,6 +504,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                         await session.send('请选择道路片段。')
                     if ret["special"] == "change_position":
                         await session.send('请选择切换形态的片段。')
+                    if ret["special"] == "flier":
+                        await session.send('请选择放置跟随者的片段。')
             case State.AskingSynod:
                 if ret["last_err"] == -1:
                     await session.send("板块不存在！")
