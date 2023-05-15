@@ -212,7 +212,7 @@ async def ccs_extension(session: CommandSession):
                 if exa not in all_extensions:
                     session.finish("不存在扩展" + exas + "！")
                 exb = exbs or all_extensions[exa]
-                for c in exbs:
+                for c in exb:
                     if c not in all_extensions[exa]:
                         session.finish("扩展" + exas + "不存在" + c + "小项！")
                     exabs.append((exa, c))
