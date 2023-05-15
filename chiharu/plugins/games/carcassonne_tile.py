@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from PIL import Image, ImageDraw
-from .carcassonne_asset.readTile import Dir, SegmentPic, OneSideSegmentPic, DoubleSideSegmentPic, RoadSegmentPic, AreaSegmentPic, AllSideSegmentPic
+from .carcassonne_asset.readTile import Dir
 
 def readTileData(packData: dict[int, str]):
     from pathlib import Path
@@ -13,7 +13,6 @@ def readTileData(packData: dict[int, str]):
             if currentTile is None:
                 raise ValueError
             currentTile.CheckLimited()
-            currentTile.MakeElse()
             tiles.append(currentTile)
             currentTile = None
         for line in f.readlines():

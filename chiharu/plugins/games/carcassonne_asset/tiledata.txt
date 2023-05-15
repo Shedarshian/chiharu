@@ -123,8 +123,8 @@ Picture 2c
     City up 16
     City down 16
     Junction 32,32
-    Road left-junction0
-    Road right-junction0
+    Road left-junction0 16
+    Road right-junction0 16
     Cut junction0-32,16
     Cut junction0-32,48
     Field else (Road1-up) [56,16]
