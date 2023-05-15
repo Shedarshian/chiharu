@@ -48,7 +48,7 @@ class ProxyLexer(object):
     def token(self):
         tok = self.lexer.token()
         if tok is None:
-            if self.end :
+            if self.end:
                 self.end = False
             else:
                 self.end = True
