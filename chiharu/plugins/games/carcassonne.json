@@ -6187,9 +6187,267 @@
         {
             "name": "另一些小扩展合集",
             "id": 13,
-            "tiles": {
-                
-            }
+            "tiles": {"a": [
+                {
+                    "id": 0,
+                    "sides": "FFRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Flier",
+                            "posx": 48,
+                            "posy": 16,
+                            "direction": 6
+                        }
+                    ]
+                },
+                {
+                    "id": 1,
+                    "sides": "FRFR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 48
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Flier",
+                            "posx": 16,
+                            "posy": 16,
+                            "direction": 6
+                        }
+                    ]
+                },
+                {
+                    "id": 2,
+                    "sides": "FRFR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 48
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Flier",
+                            "posx": 16,
+                            "posy": 16,
+                            "direction": 0
+                        }
+                    ]
+                },
+                {
+                    "id": 3,
+                    "sides": "FRFR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 48
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Flier",
+                            "posx": 16,
+                            "posy": 16,
+                            "direction": 7
+                        }
+                    ]
+                },
+                {
+                    "id": 4,
+                    "sides": "FFRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Flier",
+                            "posx": 48,
+                            "posy": 16,
+                            "direction": 1
+                        }
+                    ]
+                },
+                {
+                    "id": 5,
+                    "sides": "FFRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Flier",
+                            "posx": 48,
+                            "posy": 16,
+                            "direction": 4
+                        }
+                    ]
+                },
+                {
+                    "id": 6,
+                    "sides": "FFFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 4, 5, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Flier",
+                            "posx": 16,
+                            "posy": 32,
+                            "direction": 6
+                        }
+                    ]
+                },
+                {
+                    "id": 7,
+                    "sides": "FFFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 4, 5, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 16
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 48,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Flier",
+                            "posx": 16,
+                            "posy": 16,
+                            "direction": 7
+                        }
+                    ]
+                }
+            ]}
         },
         {
             "name": "又新又好的精选小扩展合集",

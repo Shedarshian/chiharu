@@ -330,6 +330,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                         await session.send("你现在手中的礼物卡有：" + d['player'].giftsText(), ensure_private=True)
                     case "take2NoTile":
                         outputs.append("并未找到第二张可以放置的板块！")
+                    case "dice":
+                        outputs.append(f"骰子扔出了f{d['result']}点。")
             await session.send("\n".join(outputs))
             board.log = []
         match board.state:

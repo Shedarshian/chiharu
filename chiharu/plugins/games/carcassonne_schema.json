@@ -360,6 +360,9 @@
                 },
                 {
                     "$ref": "#/$defs/TowerFeatureData"
+                },
+                {
+                    "$ref": "#/$defs/FlierFeatureData"
                 }
             ]
         },
@@ -460,6 +463,33 @@
                 "posy",
                 "numposx",
                 "numposy"
+            ]
+        },
+        "FlierFeatureData": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "Flier"
+                },
+                "posx": {
+                    "type": "integer",
+                    "description": "The x position to put token."
+                },
+                "posy": {
+                    "type": "integer",
+                    "description": "The y position to put token."
+                },
+                "direction": {
+                    "type": "integer",
+                    "description": "The direction flier points to."
+                }
+            },
+            "required": [
+                "type",
+                "posx",
+                "posy",
+                "direction"
             ]
         }
     }
