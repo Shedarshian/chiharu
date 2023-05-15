@@ -1,6 +1,6 @@
 from enum import Enum, auto
 from abc import ABC, abstractmethod
-from PIL import Image
+from PIL import Image, ImageDraw
 
 class Dir(Enum):
     UP = 0
@@ -108,7 +108,7 @@ def readTileData(packData: dict[int, str]):
                         currentTile.segments.append((CitySegmentData if words[0] == "City" else FieldSegmentData)(p))
                     case "Road":
                         if words[1] in ("up", "down", "left", "right"):
-                            p2: list[RoadSegmentPic] | AreaSegmentPic = OneSideSegmentPic(Dir[words[1].upper()], int(words[2]))
+                            p2: list[RoadSegmentPic] | OneSideSegmentPic = OneSideSegmentPic(Dir[words[1].upper()], int(words[2]))
                         elif '-' in words[1]:
                             la = words[1].split('-')
                             n: list[tuple[int, int]] = []
@@ -178,8 +178,7 @@ class TileData:
 class SegmentData(ABC):
     def inDirArea(self, dir: Dir) -> bool:
         return False
-    @abstractmethod
-    def makeSide(self) -> 'list[SegmentData] | None':
+    def makeSide(self) -> None:
         pass
 class PointSegmentData(SegmentData):
     def __init__(self, pos: tuple[int, int]) -> None:
@@ -193,6 +192,7 @@ class AreaSegmentData(SegmentData):
     def __init__(self, type: AreaSegmentPic) -> None:
         super().__init__()
         self.type = type
+        self.side: list[Dir] = []
     def inDirArea(self, dir: Dir) -> bool:
         return self.type.inDirArea(dir)
 class RiverSegmentData(LineSegmentData):
@@ -224,6 +224,11 @@ class CitySegmentData(AreaSegmentData):
     def __init__(self, type: AreaSegmentPic) -> None:
         super().__init__(type)
         self.pennant: int = 0
+    def makeSide(self):
+        if isinstance(self.type, OneSideSegmentPic):
+            self.side = [self.type.dir]
+        elif isinstance(self.type, DoubleSideSegmentPic):
+            self.side = list(self.type.dirs)
 class FieldSegmentData(AreaSegmentData):
     pass
 class FeatureSegmentData(PointSegmentData):
@@ -231,5 +236,7 @@ class FeatureSegmentData(PointSegmentData):
         super().__init__(pos)
         self.pos = pos
         self.type = type.lower()
-class CutSegmentData(PointSegmentData):
-    pass
+class CutSegmentData(LineSegmentData):
+    def __init__(self, type: RoadSegmentPic) -> None:
+        super().__init__()
+        self.type = type
