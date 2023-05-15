@@ -6174,12 +6174,22 @@
                     "thing_id": "b",
                     "num": 1,
                     "image": [0, 0, 16, 20]
+                },
+                {
+                    "name": "gold",
+                    "distribute": false,
+                    "thing_id": "d",
+                    "num": 12,
+                    "image": [16, 0, 30, 12]
                 }
             ]
         },
         {
-            "name": "",
-            "id": 13
+            "name": "另一些小扩展合集",
+            "id": 13,
+            "tiles": {
+                
+            }
         },
         {
             "name": "又新又好的精选小扩展合集",
