@@ -1155,6 +1155,7 @@ class Flier(Feature, CanScore):
                     continue
                 break
         yield from token.putOn(to_put)
+
 class Token(ABC):
     def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
         self.parent: Tile | Segment | Object | Feature | Player | Board = parent
@@ -1170,9 +1171,11 @@ class Token(ABC):
     def make(cls, typ: str) -> Type['Token']:
         return {"follower": BaseFollower, "跟随者": BaseFollower, "big follower": BigFollower, "大跟随者": BigFollower, "builder": Builder, "建筑师": Builder, "pig": Pig, "猪": Pig, "mayor": Mayor, "市长": Mayor, "wagon": Wagon, "马车": Wagon, "barn": Barn, "谷仓": Barn, "dragon": Dragon, "龙": Dragon, "fairy": Fairy, "仙子": Fairy, "abbot": Abbot, "修道院长": Abbot, "ranger": Ranger, "护林员": Ranger}[typ.lower()]
     def canPut(self, seg: Segment | Feature | Tile):
+        if not isinstance(seg, self.canPutTypes):
+            return False
         if isinstance(seg, Segment):
             return not any(isinstance(token, Dragon) for token in seg.tile.tokens)
-        return isinstance(seg, self.canPutTypes)
+        return False
     def putOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
         yield from self.selfPutOn(seg)
         if isinstance(seg, Feature):
