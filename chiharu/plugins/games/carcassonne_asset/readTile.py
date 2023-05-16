@@ -2,7 +2,7 @@ import re
 from PIL import Image, ImageDraw
 from enum import Enum, auto
 from abc import ABC
-from typing import NamedTuple
+from typing import NamedTuple, Any
 from copy import deepcopy
 import ply.lex as lex, ply.yacc as yacc
 
@@ -30,12 +30,12 @@ class Dir(Enum):
 class ParserError(Exception):
     pass
 
-addable = {"Cloister", "Cathedral", "Inn", "pennant", "Cloth", "Wine", "Grain"}
-tile_addable = {"Garden"}
+addable = {"Cathedral", "Inn", "pennant", "Cloth", "Wine", "Grain", "Princess"}
+tile_addable = {"Garden", "Tower", "Portal", "Volcano", "Dragon", "Cloister"}
 segments = {"City", "Road", "Field", "River", "Feature", "Junction", "Cut"}
 directions = ["up", "right", "down", "left"]
-elses = ["else", "where", "Picture", "ud", "lr", "start"]
-tokens = ["DIRECTION", "NUMBER", "WORD", "PACKNAME", "SIDES", "ADDABLE", "TILE_ADDABLE"] + [s.upper() for s in segments] + [s.upper() for s in elses]
+elses = ["else", "where", "ud", "lr", "start"]
+tokens = ["DIRECTION", "NUMBER", "WORD", "PACKNAME", "SIDES", "ADDABLE", "TILE_ADDABLE", "PICTURE"] + [s.upper() for s in segments] + [s.upper() for s in elses]
 literals = '()[]/-;,*'
 
 line_num = 0
@@ -45,6 +45,10 @@ def TileDataLexer():
         r'\n'
         global line_num
         line_num += 1
+    def t_PICTURE(t):
+        r'Picture\d+'
+        t.value = t.value[7:]
+        return t
     def t_PACKNAME(t):
         r'\d+[a-zA-Z]+'
         return t
@@ -87,7 +91,8 @@ class TileDataParser:
            more_hints :
            more_road_sides :
            extras :
-           more_extras :"""
+           more_extras :
+           op_param :"""
         p[0] = []
     def p_Pictures(self, p):
         """pictures : PICTURE PACKNAME tiles pictures"""
@@ -131,7 +136,8 @@ class TileDataParser:
            road_side : '(' road_sides ')'
            more_hints : '/' hints
            more_road_sides : ',' road_sides
-           more_extras : ';' extras"""
+           more_extras : ';' extras
+           op_param : '(' params ')'"""
         p[0] = p[2]
     def p_Hints(self, p):
         """hints : pos more_hints
@@ -168,8 +174,8 @@ class TileDataParser:
         """nums : '*' NUMBER PACKNAME extras nums"""
         p[0] = [NumDataTuple(p[2], p[3], p[4])] + p[5]
     def p_Extras0(self, p):
-        """extras : TILE_ADDABLE pos more_extras"""
-        p[0] = [AddableExtraOrderData(p[1], p[2])] + p[3]
+        """extras : TILE_ADDABLE op_param any_pos more_extras"""
+        p[0] = [AddableExtraOrderData(p[1], p[2], p[3])] + p[4]
     def p_Extras1(self, p):
         """extras : START more_extras"""
         p[0] = [StartExtraOrderData()] + p[2]
@@ -179,6 +185,9 @@ class TileDataParser:
     def p_Extras3(self, p):
         """extras : WHERE any_segment NUMBER hint more_extras"""
         p[0] = [HintExtraOrderData(p[2], p[3], p[4])] + p[5]
+    def p_Params0(self, p):
+        """params : DIRECTION"""
+        p[0] = [p[1]]
     def p_error(self, p):
         raise ParserError(line_num, p)
     def build(self, **kwargs):
@@ -197,7 +206,7 @@ class SegmentType(Enum):
     Junction = auto()
     Cut = auto()
 class SegmentData(ABC):
-    def __init__(self, type: SegmentType, hint: list[tuple[int, int] | str]) -> None:
+    def __init__(self, type: SegmentType, hint: list[tuple[int, int] | str | Dir]) -> None:
         self.type = type
         self.hint_line: str | None = None
         if "ud" in hint:
@@ -208,7 +217,7 @@ class SegmentData(ABC):
             hint.remove("lr")
         if not all(isinstance(s, tuple) for s in hint):
             raise ParserError("ud/lr not right")
-        self.hint = [s for s in hint if isinstance(s, tuple)]
+        self.hint = [s for s in hint if isinstance(s, tuple)] # TODO dir
 class PointSegmentData(SegmentData):
     def __init__(self, type: SegmentType, pos: tuple[int, int], hint) -> None:
         super().__init__(type, hint)
@@ -250,7 +259,8 @@ class StartExtraOrderData(NamedTuple):
     pass
 class AddableExtraOrderData(NamedTuple):
     feature: str
-    pos: tuple[int, int]
+    params: list[Any]
+    pos: tuple[int, int] | str | Dir
 class FeatureExtraOrderData(NamedTuple):
     type: SegmentType
     id: int
@@ -258,7 +268,7 @@ class FeatureExtraOrderData(NamedTuple):
 class HintExtraOrderData(NamedTuple):
     type: SegmentType
     id: int
-    hint: list[tuple[int, int] | str]
+    hint: list[tuple[int, int] | str | Dir]
 
 class RoadSideTuple(NamedTuple):
     road_num: int

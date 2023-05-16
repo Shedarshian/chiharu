@@ -1,4 +1,4 @@
-Picture 4c
+Picture0000
 0 CCCC
     City else [32,32]
         *1 0a City 0 pennant
@@ -22,7 +22,12 @@ Picture 4c
     City right-down 16
     Field else [32,32/20,44/44,20]
         *1 2a City 0 Wine
-Picture 3c
+4 CCCC
+    Field left 24
+    City else [40,40]
+    City left 16
+        *1 4a Tower (up) 22,14
+Picture0001
 0 CCCF
     Field left 16
     City else [40,32]
@@ -30,39 +35,51 @@ Picture 3c
         *1 0a City 0 pennant
         *1 0a Garden 11,34; where Field 0 [8,16/8,48]
         *1 2a City 0 Grain
-1 CCCR
-    Road left 16
-    City else [40,32]
-        *1 0a
-        *2 0a City 0 pennant
-        *1 2a City 0 Wine
-2 CCCF
+        *1 3a City 0 Princess
+        *1 0a Portal; where Field 0 [8,16/8,48]
+        *1 0a Dragon; Cloister 28,24; where City 0 [40,40]
+1 CCCF
     City up 16
     City right 16
     City down 16
     Field else [24,32]
         *1 1a
-3 CCCF
+2 CCCF
     City up 16
     City right-down 16
     Field else [24,32]
         *1 1a City 1 pennant
-4 CCCF
+3 CCCF
     Field left 16
     Field right 24 [48,16/48,32]
     City else [32,32/ud]
     City right 16
         *1 2a City 0 Wine
         *1 2a City 0 Cloth
-5 CCCR
+Picture0002
+0 CCCR
+    Road left 16
+    City else [40,32]
+        *1 0a
+        *2 0a City 0 pennant
+        *1 2a City 0 Wine
+        *1 4a Tower (up) 50,50; where City 0 [40,24]
+1 CCCR
     City up 16
     City right-down 16
     Road left-32,48 16
-    Field else (Road0-up) [8,16/40,24]
     Field else (Road0-down) [8,48]
+    Field else (Road0-up) [8,16/40,24]
         *1 2a City 1 Grain
         *1 2a City 1 Cloth
-Picture 2c
+2 CCCR
+    City up-right 16
+    City down 16
+    Road left-32,16 16
+    Field else (Road0-down) [8,48/40,40]
+    Field else (Road0-up) [8,16]
+        *1 7c
+Picture0011
 0 CCFF
     City up-right 16
     Field else [24,40]
@@ -72,26 +89,53 @@ Picture 2c
         *1 0a City 0 pennant; Garden 25,39; where Field 0 [36,28/8,56]
         *1 2a City 0 Wine
         *1 2a City 0 Grain
+        *1 3a Dragon
+        *1 3a Garden 25,39; where City 0 Princess
+        *1 4a Tower (up) 14,50; where Field 0 [36,36/ud]
 1 CCFF
     City up 16
     City right 16
     Field else [24,40]
         *1 0a
         *1 0a Garden 22,46; where Field 0 [36,28/8,56]
-2 CFCF
-    City up 16
-    City down 16
-    Field else [32,32]
-        *2 0a
-        *1 0a Garden 32,32; where Field 0 [16,32/48,32]
-3 CFCF
+        *1 3a Volcano; where Field 0 [36,28/8,56]
+        *1 4a Tower (up) 14,50; where Field 0 [36,36/ud]
+2 CCFF
     Field left 16
-    Field right 16
-    City else [32,32]
-        *1 0a
-        *2 0a City 0 pennant
+    Field down 16
+    City else [40,24]
+        *1 3a City 0 Princess
+        *1 7c
+Picture0012
+0 CCFR
+    City up-right 16
+    Road left-32,16 16
+    Field else (Road0-down) [32,48]
+    Field else (Road0-up) [8,16]
+        *1 1a Road 0 Inn
+        *1 2a City 0 Grain
+        *1 7c
+1 CCFR
+    Road left 16
+    Field down 16
+    City else [28,36]
+        *1 2a City 0 Grain
+Picture0021
+0 CCRF
+    City up-right 16
+    Road down-32,16 0
+    Field else (Road0-right) [40,40/ud]
+    Field else (Road0-left) [16,32]
+        *1 1a
+        *1 2a City 0 Cloth; Garden 17,41; where Field 1 [16,16]
+1 CCRF
+    Road down 16
+    Field left 16
+    City else [28,36]
         *1 2a City 0 Wine
-4 CCRR
+        *1 4a Tower (up) 42,22; where City 0 [28,36]
+Picture0022
+0 CCRR
     City up-right 16
     Road left-down 16
     Field else (Road0-up-right) [32,32/56,8]
@@ -99,50 +143,9 @@ Picture 2c
         *3 0a
         *2 0a City 0 pennant
         *1 1a City 0 pennant; Road 0 Inn
-5 CCFR
-    City up-right 16
-    Road left-32,16 16
-    Field else (Road0-down) [32,48]
-    Field else (Road0-up) [8,16]
-        *1 1a
-        *1 2a City 0 Grain
-6 CCRF
-    City up-right 16
-    Road down-32,16 16
-    Field else (Road0-right) [40,40/ud]
-    Field else (Road0-left) [16,32]
-        *1 1a
-        *1 2a City 0 Cloth; Garden 17,41; where Field 1 [16,16]
-7 CRCR
-    Road left 16
-    Road right 16
-    City else [32,32]
-        *1 1a
-        *1 2a City 0 Wine
-8 CRCR
-    City up 16
-    City down 16
-    Junction 32,32
-    Road left-Junction0 0
-    Road right-Junction0 0
-    Cut Junction0-32,16
-    Cut Junction0-32,48
-    Field else (Road1-up) [56,16]
-    Field else (Road1-down) [56,48]
-    Field else (Road0-down) [8,48]
-    Field else (Road0-up) [8,16]
-        *1 1a
-9 CCFR
-    Road left 16
-    Field down 16
-    City else [28,36]
-        *1 2a City 0 Grain
-10 CCRF
-    Road down 16
-    Field left 16
-    City else [28,36]
-        *1 2a City 0 Wine
-11 CCRR
+        *1 3a City 0 Princess
+        *1 3a Portal; where Field 1 [4,60]
+1 CCRR
     City up-right 16
     Road left-32,16 16
     Road down-48,32 16
@@ -150,22 +153,50 @@ Picture 2c
     Field else (Road0-down,Road1-left) [24,40/8,56]
     Field else (Road0-up) [8,16]
         *1 2a City 0 Wine; Garden 16,48
-12 CCRR
+        *1 7c
+2 CCRR
     Road left 16
     Road down 16
     City else [28,36]
         *1 2a City 0 Cloth
-13 CFCR
+3 CCRR
+    City up 16
+    City right 16
+    Road left-32,16 16
+    Road down-48,32 16
+    Field else (Road1-right) [48,56]
+    Field else (Road0-down,Road1-left) [24,40/8,56]
+    Field else (Road0-up) [8,16]
+        *1 5a
+Picture 0101
+0 CFCF
+    City up 16
+    City down 16
+    Field else [32,32]
+        *2 0a
+        *1 0a Garden 32,32; where Field 0 [16,32/48,32]
+1 CFCF
+    Field left 16
+    Field right 16
+    City else [32,32]
+        *1 0a
+        *2 0a City 0 pennant
+        *1 2a City 0 Wine
+        *1 3a City 0 pennant; Dragon
+Picture 0102
+0 CFCR
     Road left 16
     Field right 16
     City else [32,32]
         *1 2a City 0 Grain
         *1 2a City 0 Wine
-Picture 1c
+        *1 7c
+Picture0111
 0 CFFF
     City up 16
     Field else [32,48]
         *4 0a
+        *1 0a Garden 32,44; where Field 0 [48,40/16,40]
         *1 0a Garden 32,44; where Field 0 [48,40/16,40]
 1 CFRR
     City up 16
@@ -222,16 +253,36 @@ Picture 1c
     Field else (Road0-up) [56,48]
     Field else (Road0-down) [16,48]
         *1 2a
-Picture 0c
+Picture 0202
+0 CRCR
+    Road left 16
+    Road right 16
+    City else [32,32]
+        *1 1a
+        *1 2a City 0 Wine
+8 CRCR
+    City up 16
+    City down 16
+    Junction 32,32
+    Road left-Junction0 0
+    Road right-Junction0 0
+    Cut Junction0-32,16
+    Cut Junction0-32,48
+    Field else (Road1-up) [56,16]
+    Field else (Road1-down) [56,48]
+    Field else (Road0-down) [8,48]
+    Field else (Road0-up) [8,16]
+        *1 1a
+Picture0c
 0 FFFF
     Feature 32,32
     Field else [12,12/12,52/52,12/52,52]
-        *4 0a Feature 0 Cloister
+        *4 0a Cloister Feature0
 1 FFFR
     Feature 32,32
     Road left-Feature0 0
     Field else [12,12/12,52/52,12/52,52]
-        *2 0a Feature 0 Cloister
+        *2 0a Cloister Feature0 
 2 FFRR
     Road left-down 16
     Field else (Road0-up-right) [48,16]
@@ -264,7 +315,7 @@ Picture 0c
     Field else (Road0-up,Road2-up) [32,16]
     Field else (Road0-down,Road1-right) [56,56]
     Field else (Road0-down,Road1-left) [8,56]
-        *1 2a Feature 0 Cloister
+        *1 2a Cloister Feature0
 6 RRRR
     Junction 32,32
     Road left-Junction0 0
