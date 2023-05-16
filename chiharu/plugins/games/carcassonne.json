@@ -6447,7 +6447,16 @@
                         }
                     ]
                 }
-            ]}
+            ]},
+            "tokens": [
+                {
+                    "name": "phantom",
+                    "distribute": true,
+                    "thing_id": "k",
+                    "num": 1,
+                    "image": [0, 0, 17, 14]
+                }
+            ]
         },
         {
             "name": "又新又好的精选小扩展合集",

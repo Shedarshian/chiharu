@@ -44,7 +44,7 @@ class TradeCounter(Enum):
     Wine = auto()
     Grain = auto()
     Cloth = auto()
-all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 7: 'abc', 12: 'ab', 14: 'ab'}
+all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 7: 'abc', 12: 'ab', 13: 'abcdefgh', 14: 'ab'}
 T = TypeVar('T')
 TAsync = Generator[dict[str, Any], dict[str, Any], T]
 def findAllMax(items: Sequence[T], key: Callable[[T], int], criteria=None) -> tuple[int, list[T]]:
@@ -1175,7 +1175,7 @@ class Token(ABC):
         return self.player.checkPack(packid, thingid)
     @classmethod
     def make(cls, typ: str) -> Type['Token']:
-        return {"follower": BaseFollower, "跟随者": BaseFollower, "big follower": BigFollower, "大跟随者": BigFollower, "builder": Builder, "建筑师": Builder, "pig": Pig, "猪": Pig, "mayor": Mayor, "市长": Mayor, "wagon": Wagon, "马车": Wagon, "barn": Barn, "谷仓": Barn, "dragon": Dragon, "龙": Dragon, "fairy": Fairy, "仙子": Fairy, "abbot": Abbot, "修道院长": Abbot, "ranger": Ranger, "护林员": Ranger}[typ.lower()]
+        return {"follower": BaseFollower, "跟随者": BaseFollower, "big follower": BigFollower, "大跟随者": BigFollower, "builder": Builder, "建筑师": Builder, "pig": Pig, "猪": Pig, "mayor": Mayor, "市长": Mayor, "wagon": Wagon, "马车": Wagon, "barn": Barn, "谷仓": Barn, "dragon": Dragon, "龙": Dragon, "fairy": Fairy, "仙子": Fairy, "abbot": Abbot, "修道院长": Abbot, "ranger": Ranger, "护林员": Ranger, "phantom": Phantom, "幽灵": Phantom}[typ.lower()]
     def canPut(self, seg: Segment | Feature | Tile):
         if not isinstance(seg, self.canPutTypes):
             return False
@@ -1197,7 +1197,7 @@ class Token(ABC):
         if isinstance(self.player, Board):
             return self.img.copy()
         if isinstance(self, (BaseFollower, BigFollower)) and isinstance(self.parent, FieldSegment):
-            mask = open_img("token0").crop((16, 0, 32, 16))
+            mask = self.board.tokenimgs[0].crop((16, 0, 32, 16))
         else:
             mask = self.img
         x = Image.new("RGBA", self.img.size)
@@ -1347,6 +1347,12 @@ class Gingerbread(Figure):
     canPutTypes = (CitySegment,)
     key = (14, 1)
 class Phantom(Follower):
+    def image(self):
+        assert isinstance(self.player, Player)
+        id = (4, 2, 0, 1, 5, 3)[self.player.id]
+        if isinstance(self.parent, FieldSegment):
+            return self.board.tokenimgs[13].crop(((id % 3) * 17, 28 + (id // 3) * 14, (id % 3) * 17 + 16, 28 + (id // 3) * 14 + 13))
+        return self.board.tokenimgs[13].crop(((id % 3) * 17, (id // 3) * 14, (id % 3 + 1) * 17, (id // 3 + 1) * 14))
     key = (13, 4)
 
 AbbeyData = {"id": -1, "sides": "FFFF", "segments": [], "features": [{"type": "Cloister", "posx": 32, "posy": 36}]}
@@ -1626,16 +1632,40 @@ class Player:
                     return True
         return False
         yield {}
-    def turnPutFollower(self, tile: Tile, pos: tuple[int, int], rangered: bool) -> TAsync[tuple[bool, bool, bool]]:
-        pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7, -8, -9] = 0
+    def turnPutFollower(self, tile: Tile, pos: tuple[int, int], rangered: bool) -> TAsync[bool]:
+        pass_err: int = 0
         if_portal: bool = False
         if_flier: bool = False
         put_barn: bool = False
         pos_put = pos
         tile_put = tile
+        ph_put: int = -1
         while 1:
             self.board.state = State.PuttingFollower
             ret = yield {"last_err": pass_err, "last_put": pos_put, "if_portal": if_portal, "rangered": rangered}
+            if self.board.checkPack(13, "k") and not if_portal and (ph_put := ret.get("phantom", -1)) != -1:
+                phantom = more_itertools.only(t for t in self.tokens if isinstance(t, Phantom))
+                if phantom is None:
+                    pass_err = -10
+                    continue
+                if ph_put == ret["id"]:
+                    pass_err = -11
+                    continue
+                if ph_put != -2:
+                    seg_ph: Segment | Feature = tile_put.segments[0]
+                    if 0 <= ph_put < len(tile_put.features):
+                        seg_ph = tile_put.features[ph_put]
+                    elif len(tile_put.features) <= ph_put < (len(tile_put.segments) + len(tile_put.features)):
+                        seg_ph = tile_put.segments[ph_put - len(tile_put.features)]
+                    else:
+                        pass_err = -11
+                        continue
+                    if isinstance(seg_ph, Feature) and not isinstance(seg_ph, CanScore):
+                        pass_err = -11
+                        continue
+                    if not phantom.canPut(seg_ph) or seg_ph.occupied() or if_portal and seg_ph.closed():
+                        pass_err = -11
+                        continue
             if self.board.checkPack(3, "c") and ret.get("special") == "fairy":
                 pos_fairy: tuple[int, int] = ret["pos"]
                 if pos_fairy not in self.board.tiles:
@@ -1658,8 +1688,11 @@ class Player:
                             continue
                         follower = followers[ret["id"]]
                 self.board.fairy.moveTo(follower, tile_fairy)
-                break
+                continue
             if self.board.checkPack(3, "d") and not if_portal and ret.get("special") == "portal":
+                if ph_put >= 0:
+                    pass_err = -12
+                    continue
                 pos_portal: tuple[int, int] = ret["pos"]
                 if pos_portal not in self.board.tiles or tile.dragon != DragonType.Portal:
                     pass_err = -4
@@ -1674,6 +1707,9 @@ class Player:
                 if_portal = False
                 continue
             if self.board.checkPack(4, "b") and ret.get("special") == "tower":
+                if ph_put >= 0:
+                    pass_err = -12
+                    continue
                 pos_tower: tuple[int, int] = ret["pos"]
                 if pos_tower not in self.board.tiles:
                     pass_err = -5
@@ -1745,6 +1781,9 @@ class Player:
             else:
                 pass_err = -2
                 continue
+            if isinstance(seg_put, Flier) and ph_put >= 0:
+                pass_err = -12
+                continue
             if isinstance(seg_put, Feature) and not isinstance(seg_put, CanScore):
                 pass_err = -2
                 continue
@@ -1760,7 +1799,60 @@ class Player:
             put_barn = isinstance(token, Barn)
             if_flier = isinstance(seg_put, Flier)
             break
-        return if_portal, if_flier, put_barn
+        if ph_put != -1:
+            ph_portal: bool = False
+            pos_put = pos
+            tile_put = tile
+            while 1:
+                if ph_put == -2:
+                    self.board.state = State.PuttingFollower
+                    ret2 = yield {"last_err": pass_err, "last_put": pos, "if_portal": ph_portal, "rangered": rangered, "special": "phantom"}
+                    if self.board.checkPack(3, "d") and not ph_portal and ret.get("special") == "portal":
+                        if if_portal:
+                            pass_err = -13
+                            continue
+                        pos_portal = ret["pos"]
+                        if pos_portal not in self.board.tiles or tile.dragon != DragonType.Portal:
+                            pass_err = -4
+                            continue
+                        pos_put = pos_portal
+                        tile_put = self.board.tiles[pos_portal]
+                        ph_portal = True
+                        continue
+                    if not if_portal and ph_portal and ret["id"] == -1:
+                        pos_put = pos
+                        tile_put = tile
+                        ph_portal = False
+                        continue
+                    ph_put = ret["id"]
+                    if ph_put == -1:
+                        break
+                    seg_ph = tile_put.segments[0]
+                    if 0 <= ph_put < len(tile_put.features):
+                        seg_ph = tile_put.features[ph_put]
+                    elif len(tile_put.features) <= ph_put < (len(tile_put.segments) + len(tile_put.features)):
+                        seg_ph = tile_put.segments[ph_put - len(tile_put.features)]
+                    else:
+                        pass_err = -11
+                        continue
+
+                ph_put = -2
+                if phantom is None:
+                    pass_err = -10
+                    continue
+                if isinstance(seg_ph, Flier) and if_flier:
+                    pass_err = -13
+                    continue
+                if isinstance(seg_ph, Feature) and not isinstance(seg_ph, CanScore):
+                    pass_err = -11
+                    continue
+                if not token.canPut(seg_ph) or seg_ph.occupied() or ph_portal and seg_ph.closed():
+                    pass_err = -11
+                    continue
+                self.tokens.remove(phantom)
+                yield from phantom.putOn(seg_ph)
+                break
+        return put_barn
     def turnCaptureTower(self, tower: Tower, pos: tuple[int, int]) -> TAsync[None]:
         followers = [token for token in self.board.tiles[pos].iterAllTokens() if isinstance(token, Follower)] + [token for dr in Dir for i in range(tower.height) if (pos[0] + dr.corr()[0] * (i + 1), pos[1] + dr.corr()[1] * (i + 1)) in self.board.tiles for token in self.board.tiles[pos[0] + dr.corr()[0] * (i + 1), pos[1] + dr.corr()[1] * (i + 1)].iterAllTokens() if isinstance(token, Follower)]
         if len(followers) == 0:
@@ -1888,7 +1980,8 @@ class Player:
         -7：河流不能180度，-8：修道院和神龛不能有多个相邻，-9：必须扩张河流，-10：河流分叉必须岔开，-11：未找到礼物卡，-12：请指定使用哪张）
         ChoosingPos：选择坐标（-1：板块不存在，-2：不符合要求）
         PuttingFollower：单个板块feature+跟随者（-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门，-5：找不到高塔
-        -6：高塔有人，-7：手里没有高塔片段，-8：找不到修道院长）
+        -6：高塔有人，-7：手里没有高塔片段，-8：找不到修道院长，-9：无法移动护林员，-10：没有幽灵，-11：幽灵无法放置
+        -12：在高塔/传送门/飞行器时使用幽灵，-13：不能重复使用传送门/飞行器）
         ChoosingSegment：选择单个板块feature（-1：未找到片段，-2：不符合要求）
         WagonAsking：选马车（-1：没有图块，-2：图块过远，-3：无法放置）
         AbbeyAsking/FinalAbbeyAsking：询问僧院板块（-1：无法放置，-8：修道院和神龛不能有多个相邻）
@@ -1942,7 +2035,7 @@ class Player:
 
             if not princessed:
                 # put a follower
-                ifPortal, ifFlier, ifBarn = yield from self.turnPutFollower(tile, pos, rangered)
+                ifBarn = yield from self.turnPutFollower(tile, pos, rangered)
 
             # move a dragon
             if self.board.checkPack(3, "b") and tile.dragon == DragonType.Dragon:
@@ -2285,7 +2378,7 @@ class GiftTake2(Gift):
         yield {}
 
 if __name__ == "__main__":
-    b = Board({1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 7: "bc", 12: "ab"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔"])
+    b = Board({1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 7: "bc", 12: "ab", 13: "h"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
     d = {
             "name": "follower",
             "distribute": True,

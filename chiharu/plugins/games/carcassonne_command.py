@@ -189,7 +189,7 @@ async def ccs_extension(session: CommandSession):
             data = cacason.uncomplete[group_id]
             pas = True
     pack_names = ["Inns and Cathedrals", "Traders and Builders", "The Princess and The Dragon", "The Tower", "Abbey and Mayor", "", "河流合集", "", "", "", "", "小扩展合集", "", "又新又好的精选小扩展合集"]
-    thing_names = [["图块", "跟随者", "旅馆机制", "主教教堂机制"], ["图块", "建筑师", "猪", "交易标记"], ["图块", "龙", "仙子", "传送门", "公主"], ["图块", "高塔"], ["图块", "僧院板块", "市长", "马车", "谷仓"], [], ["河流", "河流2", "GQ11图块", "20周年河流"], [], [], [], [], ["花园", "修道院长"], [], ["礼物卡牌", "护林员"]]
+    thing_names = [["图块", "跟随者", "旅馆机制", "主教教堂机制"], ["图块", "建筑师", "猪", "交易标记"], ["图块", "龙", "仙子", "传送门", "公主"], ["图块", "高塔"], ["图块", "僧院板块", "市长", "马车", "谷仓"], [], ["河流", "河流2", "GQ11图块", "20周年河流"], [], [], [], [], ["花园", "修道院长"], ["飞行器图块", "飞行器", "金子图块", "金块", "", "", "", "幽灵"], ["礼物卡牌", "护林员"]]
     start_names = {0: "默认", 7: "河流"}
     start_no_start = ((7, "c"),)
     if pas:
@@ -371,22 +371,35 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     await session.send("找不到修道院长！")
                 elif ret["last_err"] == -9:
                     await session.send("无法移动护林员！")
+                elif ret["last_err"] == -10:
+                    await session.send("未找到幽灵！")
+                elif ret["last_err"] == -11:
+                    await session.send("幽灵无法放置！")
+                elif ret["last_err"] == -12:
+                    await session.send("在高塔/传送门/飞行器时不能使用幽灵，请仅仅申请“放幽灵”！")
+                elif ret["last_err"] == -13:
+                    await session.send("不能重复使用传送门/飞行器！")
                 else:
                     board.setImageArgs(draw_tile_seg=ret["last_put"])
                     await session.send([board.saveImg()])
-                    prompt = "请选择放置跟随者的位置（小写字母）以及放置的特殊跟随者名称（如有需要）"
-                    if board.checkPack(3, "c"):
-                        prompt += "，回复跟随者所在板块位置以及“仙子”移动仙子"
+                    if ret.get("special") == "phantom":
+                        prompt = "请选择放置幽灵的位置"
+                    else:
+                        prompt = "请选择放置跟随者的位置（小写字母）以及放置的特殊跟随者名称（如有需要）"
+                        if board.checkPack(3, "c"):
+                            prompt += "，回复跟随者所在板块位置以及“仙子”移动仙子"
+                        if board.checkPack(4, "b"):
+                            prompt += "，回复板块位置以及“高塔”以及跟随者名称（可选）放置高塔片段或跟随者"
+                        if board.checkPack(12, "b"):
+                            prompt += "，回复板块位置以及“修道院长”回收修道院长"
+                        if board.checkPack(14, "b") and not ret["rangered"]:
+                            prompt += "，回复板块位置以及“护林员”移动护林员"
+                        if board.checkPack(13, "k"):
+                            prompt += "，后加“放幽灵”申请放幽灵，或直接后加小写字母以及“幽灵”放置幽灵"
                     if not ret["if_portal"] and board.checkPack(3, "d") and board.tiles[ret["last_put"]].dragon == DragonType.Portal:
                         prompt += "，回复板块位置以及“传送门”使用传送门"
-                    if board.checkPack(4, "b"):
-                        prompt += "，回复板块位置以及“高塔”以及跟随者名称（可选）放置高塔片段或跟随者"
-                    if board.checkPack(12, "b"):
-                        prompt += "，回复板块位置以及“修道院长”回收修道院长"
-                    if board.checkPack(14, "b") and not ret["rangered"]:
-                        prompt += "，回复板块位置以及“护林员”移动护林员"
                     if ret["if_portal"]:
-                        prompt += "，回复“返回”返回"
+                        prompt += "，回复“返回”返回原板块" + ("并重新选择幽灵" if board.checkPack(13, "k") and ret.get("special") != "phantom" else "")
                     else:
                         prompt += "，回复“不放”跳过"
                     prompt += "。"
@@ -542,20 +555,27 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         case State.PuttingFollower:
             if command in ("不放", "返回"):
                 await advance(board, {"id": -1})
-            elif match := re.match(r"\s*([a-z])\s*(.*)?$", command):
+            dct: dict[str, Any] = {}
+            if board.checkPack(13, "k") and (match0 := re.match(r"(.*\S)\s*([a-z])\s*(幽灵|phantom)$", command)):
+                n = ord(match0.group(2)) - ord('a')
+                command = match0.group(1)
+                dct = {"phantom": n}
+            elif board.checkPack(13, "k") and (match0 := re.match(r"(.*)\s*放(幽灵|phantom)$", command)):
+                command = match0.group(1)
+                dct = {"phantom": -2}
+            if match := re.match(r"\s*([a-z])\s*(.*)?$", command):
                 n = ord(match.group(1)) - ord('a')
                 name = match.group(2)
-                await advance(board, {"id": n, "which": name or "follower"})
+                await advance(board, {"id": n, "which": name or "follower", **dct})
             elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(仙子|fairy|传送门|portal|修道院长|abbot|护林员|ranger)$", command):
                 xs = match.group(1); ys = match.group(2)
                 pos = board.tileNameToPos(xs, ys)
                 special = {"仙子": "fairy", "传送门": "portal", "修道院长": "abbot", "护林员": "ranger"}.get(match.group(3), match.group(3))
-                if board.checkPack(3, "c") and special == "fairy" or board.checkPack(3, "d") and special == "portal" or board.checkPack(12, "b") and special == "ranger" or board.checkPack(14, "b") and special == "ranger":
-                    await advance(board, {"id": -2, "pos": pos, "special": special})
+                await advance(board, {"id": -2, "pos": pos, "special": special, **dct})
             elif board.checkPack(4, "b") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(高塔|tower)\s*(.*)?$", command)):
                 xs = match.group(1); ys = match.group(2); which = match.group(4)
                 pos = board.tileNameToPos(xs, ys)
-                await advance(board, {"id": -2, "pos": pos, "special": "tower", "which": which})
+                await advance(board, {"id": -2, "pos": pos, "special": "tower", "which": which, **dct})
         case State.AskingSynod:
             if match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(.*)?$", command):
                 xs = match.group(1); ys = match.group(2)
