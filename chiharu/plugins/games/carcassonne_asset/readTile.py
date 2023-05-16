@@ -31,11 +31,12 @@ class ParserError(Exception):
     pass
 
 addable = {"Cathedral", "Inn", "pennant", "Cloth", "Wine", "Grain", "Princess"}
-tile_addable = {"Garden", "Tower", "Portal", "Volcano", "Dragon", "Cloister"}
+tile_addable = {"Portal", "Volcano", "Dragon"}
+tile_addable_pos = {"Garden", "Tower", "Cloister"}
 segments = {"City", "Road", "Field", "River", "Feature", "Junction", "Cut"}
 directions = ["up", "right", "down", "left"]
 elses = ["else", "where", "ud", "lr", "start"]
-tokens = ["DIRECTION", "NUMBER", "WORD", "PACKNAME", "SIDES", "ADDABLE", "TILE_ADDABLE", "PICTURE"] + [s.upper() for s in segments] + [s.upper() for s in elses]
+tokens = ["DIRECTION", "NUMBER", "WORD", "PACKNAME", "SIDES", "ADDABLE", "TILE_ADDABLE", "TILE_ADDABLE_POS", "PICTURE"] + [s.upper() for s in segments] + [s.upper() for s in elses]
 literals = '()[]/-;,*'
 
 line_num = 0
@@ -67,6 +68,8 @@ def TileDataLexer():
             t.type = "ADDABLE"
         elif t.value in tile_addable:
             t.type = "TILE_ADDABLE"
+        elif t.value in tile_addable_pos:
+            t.type = "TILE_ADDABLE_POS"
         elif set(t.value) < set("CRFS"):
             t.type = "SIDES"
         else:
@@ -95,8 +98,8 @@ class TileDataParser:
            op_param :"""
         p[0] = []
     def p_Pictures(self, p):
-        """pictures : PICTURE PACKNAME tiles pictures"""
-        p[0] = [PictureDataTuple(p[2], p[3])] + p[4]
+        """pictures : PICTURE tiles pictures"""
+        p[0] = [PictureDataTuple(p[1], p[2])] + p[3]
     def p_Tiles(self, p):
         """tiles : NUMBER SIDES segments nums tiles"""
         p[0] = [TileDataTuple(p[1], p[2], p[3], p[4])] + p[4]
@@ -174,15 +177,18 @@ class TileDataParser:
         """nums : '*' NUMBER PACKNAME extras nums"""
         p[0] = [NumDataTuple(p[2], p[3], p[4])] + p[5]
     def p_Extras0(self, p):
-        """extras : TILE_ADDABLE op_param any_pos more_extras"""
+        """extras : TILE_ADDABLE_POS op_param any_pos more_extras"""
         p[0] = [AddableExtraOrderData(p[1], p[2], p[3])] + p[4]
     def p_Extras1(self, p):
+        """extras : TILE_ADDABLE op_param more_extras"""
+        p[0] = [AddableExtraOrderData(p[1], p[2], None)] + p[3]
+    def p_Extras2(self, p):
         """extras : START more_extras"""
         p[0] = [StartExtraOrderData()] + p[2]
-    def p_Extras2(self, p):
+    def p_Extras3(self, p):
         """extras : any_segment NUMBER ADDABLE more_extras"""
         p[0] = [FeatureExtraOrderData(p[1], p[2], p[3])] + p[4]
-    def p_Extras3(self, p):
+    def p_Extras4(self, p):
         """extras : WHERE any_segment NUMBER hint more_extras"""
         p[0] = [HintExtraOrderData(p[2], p[3], p[4])] + p[5]
     def p_Params0(self, p):
@@ -260,7 +266,7 @@ class StartExtraOrderData(NamedTuple):
 class AddableExtraOrderData(NamedTuple):
     feature: str
     params: list[Any]
-    pos: tuple[int, int] | str | Dir
+    pos: tuple[int, int] | str | Dir | None
 class FeatureExtraOrderData(NamedTuple):
     type: SegmentType
     id: int

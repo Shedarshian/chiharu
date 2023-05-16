@@ -90,7 +90,7 @@ Picture0011
         *1 2a City 0 Wine
         *1 2a City 0 Grain
         *1 3a Dragon
-        *1 3a Garden 25,39; where City 0 Princess
+        *1 3a Garden 25,39; City 0 Princess
         *1 4a Tower (up) 14,50; where Field 0 [36,36/ud]
 1 CCFF
     City up 16
@@ -168,7 +168,7 @@ Picture0022
     Field else (Road0-down,Road1-left) [24,40/8,56]
     Field else (Road0-up) [8,16]
         *1 5a
-Picture 0101
+Picture0101
 0 CFCF
     City up 16
     City down 16
@@ -183,7 +183,7 @@ Picture 0101
         *2 0a City 0 pennant
         *1 2a City 0 Wine
         *1 3a City 0 pennant; Dragon
-Picture 0102
+Picture0102
 0 CFCR
     Road left 16
     Field right 16
@@ -198,7 +198,7 @@ Picture0111
         *4 0a
         *1 0a Garden 32,44; where Field 0 [48,40/16,40]
         *1 3a Dragon; Garden 24,32; where Field 0 [48,32]
-        *1 3a Volcano; where Field 0 48,32
+        *1 3a Volcano; where Field 0 [48,32]
         *1 4a Tower (left) 47,46
 1 CFFF
     Field left-down 16
@@ -245,7 +245,7 @@ Picture0122
     Field else (Road0-left,Road1-down) [8,56]
     Field else (Road0-left,Road1-up) [8,16]
         *1 2a
-Picture 0202
+Picture0202
 0 CRCR
     Road left 16
     Road right 16
@@ -270,7 +270,7 @@ Picture 0202
     Field left 16
     Field right 16
     City else [32,16/32,48]
-    Road left-right
+    Road left-right 0
     Field else (Road0-left-up,Road0-left-down) [8,8/8,56]
     Field else (Road0-right-up,Road0-right-down) [56,8/56,56]
         *1 3a Dragon
@@ -278,7 +278,7 @@ Picture 0202
     Field left 16
     Field right 16
     City else [32,16/32,48]
-    Road left-right
+    Road left-right 0
     Field else (Road0-left-up) [8,8]
     Field else (Road0-left-down) [8,56]
     Field else (Road0-right-up) [56,8]
@@ -288,7 +288,7 @@ Picture 0202
     Field left 16
     Field right 16
     City else [32,16/32,48]
-    Road left-right
+    Road left-right 0
     Field else (Road0-left-up) [8,8]
     Field else (Road0-left-down) [8,56]
     Field else (Road0-right-up) [56,8]
@@ -297,7 +297,7 @@ Picture 0202
 4 CRCR
     City up 16
     City down 16
-    Road left-right
+    Road left-right 0
     Field else (Road0-up) [8,8/56,8]
     Field else (Road0-down) [8,56/56,56]
         *1 4a Tower (left) 47,14
@@ -306,7 +306,7 @@ Picture 0202
     Field left 16
     Field right 16
     City else [32,16/32,48]
-    Road left-right
+    Road left-right 0
     Field else (Road0-left-up,Road0-left-down) [8,8/8,56]
     Field else (Road0-right-up) [56,8]
     Field else (Road0-right-down) [56,56]
@@ -321,7 +321,7 @@ Picture0211
 Picture0212
 0 CRFR
     City up 16
-    Road left-right 16
+    Road left-right 0
     Field else (Road0-up) [8,20/56,20]
     Field else (Road0-down) [32,48]
         *3 0a
