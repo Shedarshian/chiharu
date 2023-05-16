@@ -197,49 +197,47 @@ Picture0111
     Field else [32,48]
         *4 0a
         *1 0a Garden 32,44; where Field 0 [48,40/16,40]
-        *1 0a Garden 32,44; where Field 0 [48,40/16,40]
-1 CFRR
+        *1 3a Dragon; Garden 24,32; where Field 0 [48,32]
+        *1 3a Volcano; where Field 0 48,32
+        *1 4a Tower (left) 47,46
+1 CFFF
+    Field left-down 16
+    Field right 16
+    City else [32,32]
+        *1 1a
+2 CFFF
+    Field left 16
+    Field down 16
+    Field right 16
+    City else [32,32]
+        *1 5a City 0 pennant
+Picture0112
+0 CFFR
+    City up 16
+    Road left-32,16 0
+    Field else (Road0-down) [48,48]
+    Field else (Road0-up) [8,8]
+        *1 5a
+Picture0121
+0 CFRF
+    City up 16
+    Road down-32,16 0
+    Field else (Road0-right) [48,48]
+    Field else (Road0-left) [16,48]
+        *1 1a
+        *1 4a Tower (left) 29,17
+Picture0122
+0 CFRR
     City up 16
     Road left-down 16
     Field else (Road0-up-right) [48,32]
     Field else (Road0-left-down) [8,56]
         *3 0a
         *1 1a Road 0 Inn
-2 CRFR
-    City up 16
-    Road left-right 16
-    Field else (Road0-up) [8,20/56,20]
-    Field else (Road0-down) [32,48]
-        *3 0a
-        *1 0a start
-3 CRRF
-    City up 16
-    Road right-down 16
-    Field else (Road0-up-left) [16,32]
-    Field else (Road0-right-down) [56,56]
-        *3 0a
-4 CRRR
-    City up 16
-    Junction 32,32
-    Road left-Junction0 0
-    Road down-Junction0 0
-    Road right-Junction0 0
-    Field else (Road0-up,Road2-up) [8,20/56,20]
-    Field else (Road0-down,Road1-right) [56,56]
-    Field else (Road0-down,Road1-left) [8,56]
-        *3 0a
-5 CFFF
-    Field left-down 16
-    Field right 16
-    City else [32,32]
-        *1 1a
-6 CFRF
-    City up 16
-    Road down-32,16 0
-    Field else (Road0-right) [48,48]
-    Field else (Road0-left) [16,48]
-        *1 1a
-7 CFRR
+        *1 3a Dragon; where Field 0 [48,48]
+        *1 3a Portal; where Field 0 [48,48]
+        *1 4a Tower (left) 49,31; where Field 0 [48,48]
+1 CFRR
     City up 16
     Road down-32,16 16
     Road left-32,32 16
@@ -247,20 +245,15 @@ Picture0111
     Field else (Road0-left,Road1-down) [8,56]
     Field else (Road0-left,Road1-up) [8,16]
         *1 2a
-8 CRFF
-    City up 16
-    Road right-32,16 16
-    Field else (Road0-up) [56,48]
-    Field else (Road0-down) [16,48]
-        *1 2a
 Picture 0202
 0 CRCR
     Road left 16
     Road right 16
     City else [32,32]
-        *1 1a
+        *1 1a City 0 pennant
         *1 2a City 0 Wine
-8 CRCR
+        *1 7c
+1 CRCR
     City up 16
     City down 16
     Junction 32,32
@@ -273,31 +266,156 @@ Picture 0202
     Field else (Road0-down) [8,48]
     Field else (Road0-up) [8,16]
         *1 1a
-Picture0c
+2 CRCR
+    Field left 16
+    Field right 16
+    City else [32,16/32,48]
+    Road left-right
+    Field else (Road0-left-up,Road0-left-down) [8,8/8,56]
+    Field else (Road0-right-up,Road0-right-down) [56,8/56,56]
+        *1 3a Dragon
+3 CRCR
+    Field left 16
+    Field right 16
+    City else [32,16/32,48]
+    Road left-right
+    Field else (Road0-left-up) [8,8]
+    Field else (Road0-left-down) [8,56]
+    Field else (Road0-right-up) [56,8]
+    Field else (Road0-right-down) [56,56]
+        *1 4a Tower (up) 43,20
+3 CRCR
+    Field left 16
+    Field right 16
+    City else [32,16/32,48]
+    Road left-right
+    Field else (Road0-left-up) [8,8]
+    Field else (Road0-left-down) [8,56]
+    Field else (Road0-right-up) [56,8]
+    Field else (Road0-right-down) [56,56]
+        *1 4a Tower (up) 43,20
+4 CRCR
+    City up 16
+    City down 16
+    Road left-right
+    Field else (Road0-up) [8,8/56,8]
+    Field else (Road0-down) [8,56/56,56]
+        *1 4a Tower (left) 47,14
+        *1 7c
+4 CRCR
+    Field left 16
+    Field right 16
+    City else [32,16/32,48]
+    Road left-right
+    Field else (Road0-left-up,Road0-left-down) [8,8/8,56]
+    Field else (Road0-right-up) [56,8]
+    Field else (Road0-right-down) [56,56]
+        *1 5a City 0 pennant
+Picture0211
+0 CRFF
+    City up 16
+    Road right-32,16 16
+    Field else (Road0-up) [56,48]
+    Field else (Road0-down) [16,48]
+        *1 2a
+Picture0212
+0 CRFR
+    City up 16
+    Road left-right 16
+    Field else (Road0-up) [8,20/56,20]
+    Field else (Road0-down) [32,48]
+        *3 0a
+        *1 0a start
+Picture0221
+0 CRRF
+    City up 16
+    Road right-down 16
+    Field else (Road0-up-left) [16,32]
+    Field else (Road0-right-down) [56,56]
+        *3 0a
+        *1 3a Dragon; where Field 0 [16,48]
+        *1 3a Portal; where Field 0 [16,48]
+Picture0222
+0 CRRR
+    City up 16
+    Junction 32,32
+    Road left-Junction0 0
+    Road down-Junction0 0
+    Road right-Junction0 0
+    Field else (Road0-up,Road2-up) [8,20/56,20]
+    Field else (Road0-down,Road1-right) [56,56]
+    Field else (Road0-down,Road1-left) [8,56]
+        *3 0a
+        *1 3a City 0 Princess
+1 CRRR
+    City up 16
+    Road right-32,16 16
+    Road left-down 16
+    Field else (Road0-up,Road2-up) [56,16]
+    Field else (Road0-down,Road1-up-right) [56,56/32,32]
+    Field else (Road1-left-down) [8,56]
+Picture1111
 0 FFFF
-    Feature 32,32
     Field else [12,12/12,52/52,12/52,52]
-        *4 0a Cloister Feature0
-1 FFFR
+        *4 0a Cloister 32,32
+        *1 3a Volcano
+        *4 4a Tower (left) 36,32; Garden 24,12; where Field 0 [12,52/52,12/52,52]
+        *4 4a Tower (left) 44,21; Cloister 18,48
+Picture1112
+0 FFFR
     Feature 32,32
     Road left-Feature0 0
     Field else [12,12/12,52/52,12/52,52]
-        *2 0a Cloister Feature0 
-2 FFRR
+        *2 0a Cloister Feature0
+        *1 3a Volcano
+        *1 5a Garden 43,15
+Picture1122
+0 FFRR
     Road left-down 16
     Field else (Road0-up-right) [48,16]
     Field else (Road0-left-down) [8,56]
         *8 0a
         *1 0a Garden 43,20; where Field 0 [52,48/16,12]
         *1 1a Road 0 Inn
-3 FRFR
+        *2 3a Dragon; where Field 0 [52,48/16,12]
+        *2 3a Volcano; where Field 0 [52,48/16,12]
+1 FFRR
+    Feature 32,32
+    Road down-Feature0 0
+    Road left-Feature0 0
+    Field else (Road0-right,Road1-up) [52,48/16,12]
+    Field else (Road0-left,Road1-down) [8,56]
+        *1 4a Tower (left) 36,32
+Picture1212
+0 FRFR
     Road left-right 16
     Field else (Road0-up) [32,16]
     Field else (Road0-down) [32,48]
         *7 0a
         *1 0a Garden 32,48; where Field 0 [32,16/32,48]
         *1 1a Road 0 Inn; Garden 32,48; where Field 0 [32,16/32,48]
-4 FRRR
+        *1 3a Dragon; where Field 0 [48,16]
+        *1 3a Volcano; where Field 0 [16,16]
+1 FRFR
+    Feature 32,32
+    Road left-Feature0 0
+    Road right-Feature0 0
+    Field else (Road0-up,Road1-up) [32,16]
+    Field else (Road0-down,Road1-down) [32,48]
+        *1 1a Cloister Feature0
+Picture1222
+0 FRRR
+    Feature 32,32
+    Road left-Feature0 0
+    Road down-Feature0 0
+    Road right-Feature0 0
+    Field else (Road0-up,Road2-up) [32,16]
+    Field else (Road0-down,Road1-right) [56,56]
+    Field else (Road0-down,Road1-left) [8,56]
+        *1 2a Cloister Feature0
+        *1 3a Cloister Feature0; Dragon; where Field 0 [16,16]
+        *1 4a Tower (left) 36,32
+1 FRRR
     Junction 32,32
     Road left-Junction0 0
     Road down-Junction0 0
@@ -307,16 +425,10 @@ Picture0c
     Field else (Road0-down,Road1-left) [8,56]
         *4 0a
         *1 1a Road 0 Inn; Road 2 Inn
-5 FRRR
-    Feature 32,32
-    Road left-Feature0 0
-    Road down-Feature0 0
-    Road right-Feature0 0
-    Field else (Road0-up,Road2-up) [32,16]
-    Field else (Road0-down,Road1-right) [56,56]
-    Field else (Road0-down,Road1-left) [8,56]
-        *1 2a Cloister Feature0
-6 RRRR
+        *1 3a Dragon; where Field 0 [48,16]
+        *1 3a Portal; where Field 0 [16,16]
+Picture2222
+0 RRRR
     Junction 32,32
     Road left-Junction0 0
     Road down-Junction0 0
@@ -327,13 +439,19 @@ Picture0c
     Field else (Road0-down,Road1-left) [8,56]
     Field else (Road0-up,Road3-left) [8,8]
         *1 0a
-7 FRFR
+1 RRRR
     Feature 32,32
     Road left-Feature0 0
+    Road down-Feature0 0
     Road right-Feature0 0
-    Field else (Road0-up,Road1-up) [32,16]
-    Field else (Road0-down,Road1-down) [32,48]
-        *1 1a
+    Road up-Feature0 0
+    Field else (Road2-up,Road3-right) [56,8]
+    Field else (Road2-down,Road1-right) [56,56]
+    Field else (Road0-down,Road1-left) [8,56]
+    Field else (Road0-up,Road3-left) [8,8]
+        *1 4a Tower (left) 36,32
+        *1 5a Cloister Feature0
+        *1 7c Cloister Feature0
 3 RRRR
     Road left-up 16
     Road right-down 16
@@ -341,6 +459,8 @@ Picture0c
     Field else (Road1-right-down) [56,56]
     Field else (Road0-up-left) [8,8]
         *1 1a
+        *1 3a Portal; where Field 0 [56,16/16,48]
+        *1 4a Tower (left) 52,16; where Field 0 [16,48]
 4 RRRR
     Road left-right 0
     Road up-down 0
