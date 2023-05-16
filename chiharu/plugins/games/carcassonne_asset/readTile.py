@@ -30,7 +30,7 @@ class Dir(Enum):
 class ParserError(Exception):
     pass
 
-addable = {"Cathedral", "Inn", "pennant", "Cloth", "Wine", "Grain", "Princess"}
+addable = {"Cathedral", "Inn", "pennant", "Cloth", "Wine", "Grain", "Princess", "Pigherd"}
 tile_addable = {"Portal", "Volcano", "Dragon"}
 tile_addable_pos = {"Garden", "Tower", "Cloister"}
 segments = {"City", "Road", "Field", "River", "Feature", "Junction", "Cut"}

@@ -359,8 +359,9 @@ Picture1111
     Field else [12,12/12,52/52,12/52,52]
         *4 0a Cloister 32,32
         *1 3a Volcano
-        *4 4a Tower (left) 36,32; Garden 24,12; where Field 0 [12,52/52,12/52,52]
-        *4 4a Tower (left) 44,21; Cloister 18,48
+        *1 4a Tower (left) 36,32; Garden 24,12; where Field 0 [12,52/52,12/52,52]
+        *1 4a Tower (left) 44,21; Cloister 18,48
+        *1 7c Field 0 Pigherd
 Picture1112
 0 FFFR
     Feature 32,32
