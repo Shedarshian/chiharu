@@ -1216,7 +1216,7 @@ class Token(ABC):
         if self.board.checkPack(3, 'c') and self.board.fairy.follower is self:
             self.board.fairy.follower = None
     canEatByDragon: bool = True
-    canPutTypes: 'tuple[Type[Segment] | Type[Feature] | Type[Tile],...]' = (Segment, Monastry, Flier)
+    canPutTypes: 'tuple[Type[Segment] | Type[Feature] | Type[Tile],...]' = (Segment, Monastry, Flier, Tower)
     key: tuple[int, int] = (-1, -1)
 class Follower(Token):
     @property
@@ -1346,6 +1346,8 @@ class Gingerbread(Figure):
         yield from super().selfPutOn(seg)
     canPutTypes = (CitySegment,)
     key = (14, 1)
+class Phantom(Follower):
+    key = (13, 4)
 
 AbbeyData = {"id": -1, "sides": "FFFF", "segments": [], "features": [{"type": "Cloister", "posx": 32, "posy": 36}]}
 class State(Enum):
