@@ -39,6 +39,7 @@ class DragonType(Enum):
     Volcano = auto()
     Dragon = auto()
     Portal = auto()
+    Gingerbread = auto()
 class TradeCounter(Enum):
     Wine = auto()
     Grain = auto()
@@ -130,6 +131,8 @@ class Board:
             self.fairy = [token for token in self.tokens if isinstance(token, Fairy)][0]
         if self.checkPack(14, "b"):
             self.ranger = [token for token in self.tokens if isinstance(token, Ranger)][0]
+        if self.checkPack(14, "d"):
+            self.gingerbread = [token for token in self.tokens if isinstance(token, Gingerbread)][0]
         if start_tile_pack == 7:
             if self.checkPack(7, "b"):
                 if self.checkPack(7, "c"):
@@ -699,7 +702,7 @@ class Tile:
         self.orient: Dir = Dir.UP
         self.token_pos: tuple[int, int] = (data.get("posx", 32), data.get("posy", 32))
         fs: list[str] = [s["type"] for s in data.get("features", [])]
-        self.dragon: DragonType = DragonType.Volcano if "Volcano" in fs else DragonType.Dragon if "Dragon" in fs else DragonType.Portal if "Portal" in fs else DragonType.No
+        self.dragon: DragonType = DragonType.Volcano if "Volcano" in fs else DragonType.Dragon if "Dragon" in fs else DragonType.Portal if "Portal" in fs else DragonType.Gingerbread if "Gingerbread" in fs else DragonType.No
         self.img = img
     def iterAllTokens(self):
         yield from (token for seg in self.segments for token in seg.tokens)
@@ -1162,7 +1165,6 @@ class Token(ABC):
         self.player = parent
         self.board = parent if isinstance(parent, Board) else parent.board
         self.img = img
-        self.canEatByDragon: bool = True
     def checkPack(self, packid: int, thingid: str):
         if isinstance(self.player, Player):
             return self.player.board.checkPack(packid, thingid)
@@ -1209,6 +1211,7 @@ class Token(ABC):
         self.parent = self.player
         if self.board.checkPack(3, 'c') and self.board.fairy.follower is self:
             self.board.fairy.follower = None
+    canEatByDragon: bool = True
     canPutTypes: 'tuple[Type[Segment] | Type[Feature] | Type[Tile],...]' = (Segment, Monastry, Flier)
     key: tuple[int, int] = (-1, -1)
 class Follower(Token):
@@ -1256,9 +1259,6 @@ class Wagon(Follower):
     canPutTypes = (CitySegment, RoadSegment, Monastry, Flier)
     key = (3, 1)
 class Barn(Figure):
-    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
-        super().__init__(parent, data, img)
-        self.canEatByDragon = False
     def canPut(self, seg: Segment | Feature | Tile):
         return isinstance(seg, Tile) and (pos := self.board.findTilePos(seg)) and \
             all((pos[0] + i, pos[1] + j) in self.board.tiles and not self.board.tiles[pos[0] + i, pos[1] + j].isAbbey for i in (0, 1) for j in (0, 1)) and \
@@ -1269,13 +1269,13 @@ class Barn(Figure):
             self.parent = s
         return
         yield {}
+    canEatByDragon = False
     canPutTypes = (Tile,)
     key = (5, 2)
 class Dragon(Figure):
     def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
         super().__init__(parent, data, img)
         self.tile: Tile | None = None
-        self.canEatByDragon: bool = False
     def canMove(self, tile: Tile):
         if self.board.checkPack(3, "c") and self.board.fairy.tile is tile:
             return False
@@ -1294,6 +1294,7 @@ class Dragon(Figure):
     def putBackToHand(self):
         self.tile = None
         return super().putBackToHand()
+    canEatByDragon = False
     key = (3, 0)
 class Fairy(Figure):
     def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
@@ -1301,7 +1302,6 @@ class Fairy(Figure):
         self.follower: Follower | None = None
         self.tile: Tile | None = None
         self.drawpos: tuple[int, int] = 32, 32
-        self.canEatByDragon = False
     def canMove(self, follower: Follower):
         return True
     def moveTo(self, follower: Follower, tile: Tile):
@@ -1313,6 +1313,7 @@ class Fairy(Figure):
         self.follower = None
         self.tile = None
         return super().putBackToHand()
+    canEatByDragon = False
     key = (3, 1)
 class Abbot(Follower):
     canPutTypes = (BaseCloister, Flier)
@@ -1325,6 +1326,16 @@ class Ranger(Figure):
         return pos not in self.board.tiles and any(pos + dr in self.board.tiles for dr in Dir)
     def moveTo(self, pos: tuple[int, int]):
         self.pos = pos
+    key = (14, 0)
+class Gingerbread(Figure):
+    def selfPutOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
+        if self.parent is not None:
+            assert isinstance(self.parent, CitySegment)
+            pass
+        return super().selfPutOn(seg)
+    pass
+    canPutTypes = (CitySegment,)
+    key = (14, 1)
 
 AbbeyData = {"id": -1, "sides": "FFFF", "segments": [], "features": [{"type": "Cloister", "posx": 32, "posy": 36}]}
 class State(Enum):
