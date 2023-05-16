@@ -6465,7 +6465,7 @@
                     "distribute": false,
                     "thing_id": "d",
                     "num": 1,
-                    "image": [0, 0, 29, 17]
+                    "image": [29, 0, 40, 14]
                 }
             ]
         }
