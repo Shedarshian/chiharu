@@ -414,12 +414,12 @@ class Board:
                 tile = self.tiles[c]
                 i = ord('a')
                 for feature in tile.features:
-                    if isinstance(feature, CanScore) and (draw_occupied_seg or not feature.occupied()):
+                    if isinstance(feature, CanScore) and (draw_occupied_seg or len(feature.tokens) == 0):
                         tpos = turn(feature.token_pos, tile.orient)
                         draw(c, tpos, i)
                     i += 1
                 for seg in tile.segments:
-                    if draw_occupied_seg or not seg.occupied():
+                    if draw_occupied_seg or len(seg.tokens) == 0:
                         tpos = turn(seg.token_pos, tile.orient)
                         draw(c, tpos, i)
                     i += 1
@@ -1685,12 +1685,13 @@ class Player:
             if token is None:
                 pass_err = -1
                 continue
-            if not token.canPut(seg_put) or not isinstance(seg_put, Tile) and (seg_put.occupied() or (if_portal and seg_put.closed())):
+            if not token.canPut(seg_put) or not isinstance(seg_put, Tile) and (isinstance(token, Follower) and seg_put.occupied() or if_portal and seg_put.closed()):
                 pass_err = -2
                 continue
             self.tokens.remove(token)
             yield from token.putOn(seg_put)
             put_barn = isinstance(token, Barn)
+            if_flier = isinstance(seg_put, Flier)
             break
         return if_portal, if_flier, put_barn
     def turnCaptureTower(self, tower: Tower, pos: tuple[int, int]) -> TAsync[None]:
