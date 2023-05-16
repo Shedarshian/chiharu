@@ -663,7 +663,7 @@ class CanScore(ABC):
                     yield from wagon.putOn(seg_put)
                     break
             self.board.current_player_id = self.board.current_turn_player_id
-    def score(self, putBarn: bool) -> TAsync[None]:
+    def score(self, scorer: 'Player', putBarn: bool) -> TAsync[None]:
         players = self.checkPlayerAndScore(True, putBarn=putBarn)
         for player, score in players:
             if score != 0:
@@ -675,6 +675,10 @@ class CanScore(ABC):
                     self.board.addLog(id="score", player=token.player, source="fairy_complete", num=3)
                     yield from token.player.addScore(3)
         yield from self.moveWagon()
+        if self.board.checkPack(14, "d"):
+            ginger = more_itertools.only(token for token in self.iterTokens() if isinstance(token, Gingerbread))
+            if ginger is not None:
+                yield from scorer.turnMoveGingerbread(True)
         self.removeAllFollowers()
     def scoreFinal(self):
         players = self.checkPlayerAndScore(False)
@@ -1086,9 +1090,9 @@ class Monastry(BaseCloister):
 class Cloister(Monastry):
     def getChallenge(self):
         return self.getCloister(Shrine)
-    def score(self, putBarn: bool) -> TAsync[None]:
+    def score(self, scorer: 'Player', putBarn: bool) -> TAsync[None]:
         hasmeeple: bool = len(self.tokens) != 0
-        yield from super().score(putBarn)
+        yield from super().score(scorer, putBarn)
         if self.board.checkPack(6, 'h') and (cloister := self.getChallenge()) and not cloister.closed() and hasmeeple and len(cloister.tokens) != 0:
             self.board.addLog(id="challengeFailed", type="shrine")
             cloister.removeAllFollowers()
@@ -1097,9 +1101,9 @@ class Garden(BaseCloister):
 class Shrine(Monastry):
     def getChallenge(self):
         return self.getCloister(Cloister)
-    def score(self, putBarn: bool) -> TAsync[None]:
+    def score(self, scorer: 'Player', putBarn: bool) -> TAsync[None]:
         hasmeeple: bool = len(self.tokens) != 0
-        yield from super().score(putBarn)
+        yield from super().score(scorer, putBarn)
         if self.board.checkPack(6, 'h') and (cloister := self.getChallenge()) and not cloister.closed() and hasmeeple and len(cloister.tokens) != 0:
             self.board.addLog(id="challengeFailed", type="cloister")
             cloister.removeAllFollowers()
@@ -1331,9 +1335,15 @@ class Gingerbread(Figure):
     def selfPutOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
         if self.parent is not None:
             assert isinstance(self.parent, CitySegment)
-            pass
-        return super().selfPutOn(seg)
-    pass
+            players: list[Player] = []
+            for token in self.parent.object.iterTokens():
+                if isinstance(token.parent, Player) and token.parent not in players:
+                    players.append(token.parent)
+            score = self.parent.object.checkTile()
+            for player in players:
+                self.board.addLog(id="score", player=player, source="gingerbread", num=score)
+                yield from player.addScore(score)
+        yield from super().selfPutOn(seg)
     canPutTypes = (CitySegment,)
     key = (14, 1)
 
@@ -1549,6 +1559,8 @@ class Player:
                         pass_err = -1
                         continue
                     break
+        if self.board.checkPack(14, "d") and tile.dragon == DragonType.Gingerbread:
+            yield from self.turnMoveGingerbread(False)
         if self.board.checkPack(14, "a"):
             for segment in tile.segments:
                 if isinstance(segment, (RoadSegment, CitySegment)) and len(l := segment.object.checkPlayer()) > 0 and self not in l:
@@ -1564,6 +1576,45 @@ class Player:
             self.handTiles = [tile]
             random.shuffle(self.board.deck)
         return isBegin, pos, princessed, rangered
+    def turnMoveGingerbread(self, complete: bool) -> TAsync[None]:
+        ginger = self.board.gingerbread
+        for t in self.board.tiles.values():
+            citys = [segment for segment in t.segments if isinstance(segment, CitySegment) and not segment.closed() and ginger.canPut(segment)]
+            if len(citys) > 0:
+                break
+        else:
+            if complete:
+                ginger.putBackToHand()
+            return
+        pass_err: Literal[0, -1, -2] = 0
+        while 1:
+            self.board.state = State.ChoosingPos
+            ret = yield {"last_err": pass_err, "special": "gingerbread"}
+            if ret["pos"] not in self.board.tiles:
+                pass_err = -1
+                continue
+            tile = self.board.tiles[ret["pos"]]
+            citys = [segment for segment in tile.segments if isinstance(segment, CitySegment) and not segment.closed() and ginger.canPut(segment)]
+            if len(citys) == 0:
+                pass_err = -2
+                continue
+            city = citys[0]
+            if len(citys) >= 2:
+                pass_err = 0
+                while 1:
+                    self.board.state = State.ChoosingSegment
+                    ret2 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "gingerbread"}
+                    if ret2["id"] < len(tile.features) or ret2["id"] >= len(tile.features) + len(tile.segments):
+                        pass_err = -1
+                        continue
+                    s = tile.segments[ret2["id"] - len(tile.features)]
+                    if s not in citys:
+                        pass_err = -2
+                        continue
+                    city = s
+                    break
+            yield from ginger.putOn(city)
+            break
     def turnCheckBuilder(self) -> TAsync[bool]:
         if not self.board.checkPack(2, 'b'):
             return False
@@ -1809,14 +1860,14 @@ class Player:
                     for i in range(3):
                         self.tradeCounter[i] += tc[i]
                     self.board.addLog(id="tradeCounter", tradeCounter=tc)
-            yield from obj.score(ifBarn)
+            yield from obj.score(self, ifBarn)
         for i in (-1, 0, 1):
             for j in (-1, 0, 1):
                 npos = (pos[0] + i, pos[1] + j)
                 if npos in self.board.tiles:
                     for feature in self.board.tiles[npos].features:
                         if isinstance(feature, CanScore) and feature.closed():
-                            yield from feature.score(ifBarn)
+                            yield from feature.score(self, ifBarn)
         if rangered:
             self.board.addLog(id="score", player=self, source="ranger", num=3)
             yield from self.addScore(3)

@@ -350,6 +350,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                         await session.send("请选择要将护林员移动到的图块坐标。")
                     elif ret["special"] == "change_position":
                         await session.send("请选择跟随者切换形态，输入图块坐标。")
+                    elif ret["special"] == "gingerbread":
+                        await session.send("请选择要移动到的城市，输入图块坐标。")
             case State.PuttingFollower:
                 if ret["last_err"] == -1:
                     await session.send("没有找到跟随者！")
@@ -467,10 +469,12 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     await session.send([board.saveImg()])
                     if ret["special"] == "road_sweeper":
                         await session.send('请选择道路片段。')
-                    if ret["special"] == "change_position":
+                    elif ret["special"] == "change_position":
                         await session.send('请选择切换形态的片段。')
-                    if ret["special"] == "flier":
+                    elif ret["special"] == "flier":
                         await session.send('请选择放置跟随者的片段。')
+                    elif ret["special"] == "gingerbread":
+                        await session.send('请选择姜饼人移动到的片段。')
             case State.AskingSynod:
                 if ret["last_err"] == -1:
                     await session.send("板块不存在！")
