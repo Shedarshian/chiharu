@@ -3,7 +3,7 @@ import random, itertools, more_itertools, json
 from enum import Enum, auto
 from abc import ABC, abstractmethod
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
-from .carcassonne_tile import Dir
+from .carcassonne_tile import Dir, open_img
 
 class CantPutError(Exception):
     pass
@@ -54,13 +54,6 @@ def turn(pos: tuple[int, int], dir: Dir):
 
 TToken = TypeVar("TToken", bound="Token")
 
-def open_pack():
-    from pathlib import Path
-    with open(Path(__file__).parent / "carcassonne.json", encoding="utf-8") as f:
-        return json.load(f)
-def open_img(name: str):
-    from pathlib import Path
-    return Image.open(Path(__file__).parent / "carcassonne_asset" / (name + ".png")).convert("RGBA")
 class Board:
     def __init__(self, packs_options: dict[int, str], player_names: list[str], start_tile_pack: int=0) -> None:
         all_packs = open_pack()["packs"]
