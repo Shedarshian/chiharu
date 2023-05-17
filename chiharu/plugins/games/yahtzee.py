@@ -132,10 +132,16 @@ class AI(Player):
                     stat, wjscore, _, els = line.split(",", 3)
                     if stat == ''.join("1" if name in self.scoreboard else "0" for name in reversed(Player.Name)) and int(wjscore) in (-1, self.wjscore):
                         break
-                for name, count, _ in more_itertools.chunked(els.split(","), 3):
-                    if name == ''.join(str(i) for i in self._all_dice):
-                        saved_count = int(count)
-                        break
+                if len(self.scoreboard) == 11:
+                    for name, _ in more_itertools.chunked(els.split(","), 2):
+                        if name == ''.join(str(i) for i in self._all_dice):
+                            saved_count = ([s for s in Player.Name if s not in self.scoreboard][0]).value - 1
+                            break
+                else:
+                    for name, count, _ in more_itertools.chunked(els.split(","), 3):
+                        if name == ''.join(str(i) for i in self._all_dice):
+                            saved_count = int(count)
+                            break
             return "计分", [saved_count + 1]
         else:
             return "重扔", [self._all_dice[i] for i, x in enumerate(reversed(f"{saved_count:0>5b}")) if x == "1"]
@@ -300,6 +306,10 @@ async def yahtzee_process(session: NLPSession, data: Dict[str, Any], delete_func
                         if i != len(f) - 1 and x == m:
                             if achievement.yahtzee.get(str(data['players'][i])):
                                 await session.send(achievement.yahtzee.get_str())
+                        if i == len(f) - 1 and x == m:
+                            if achievement.yahtzee.get("3335928706"):
+                                await session.send(achievement.yahtzee.get_str())
+                            achievement.yahtzee.get("2711644761")
                 await delete_func()
                 return
         p = data['boards'][data['current_player']]

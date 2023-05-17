@@ -1111,7 +1111,6 @@
                         {
                             "type": "City",
                             "to": [0, 1],
-                            "pennant": 1,
                             "posx": 32,
                             "posy": 8
                         },
@@ -1506,7 +1505,12 @@
                             "to": [3],
                             "bush": true,
                             "posx": 16,
-                            "posy": 32
+                            "posy": 32,
+                            "features": [
+                                {
+                                    "type": "Inn"
+                                }
+                            ]
                         },
                         {
                             "type": "Field",
@@ -2695,7 +2699,7 @@
                                     "type": "Princess"
                                 }
                             ],
-                            "posx": 32,
+                            "posx": 40,
                             "posy": 8
                         },
                         {
@@ -2709,8 +2713,8 @@
                             "type": "Field",
                             "to": [],
                             "adjacent_city": [0, 1],
-                            "posx": 32,
-                            "posy": 32
+                            "posx": 36,
+                            "posy": 36
                         },
                         {
                             "type": "Field",
@@ -2763,7 +2767,7 @@
                             "to": [5, 6],
                             "adjacent_city": [0],
                             "posx": 8,
-                            "posy": 32
+                            "posy": 16
                         }
                     ],
                     "features": [
@@ -2781,7 +2785,7 @@
                             "type": "City",
                             "to": [0, 1, 2],
                             "posx": 40,
-                            "posy": 32
+                            "posy": 40
                         },
                         {
                             "type": "Field",
@@ -2794,8 +2798,8 @@
                     "features": [
                         {
                             "type": "Cloister",
-                            "posx": 28,
-                            "posy": 24
+                            "posx": 32,
+                            "posy": 20
                         },
                         {
                             "type": "Dragon"
@@ -2850,7 +2854,7 @@
                             "to": [3, 4, 5, 6],
                             "adjacent_city": [0],
                             "posx": 24,
-                            "posy": 40
+                            "posy": 32
                         }
                     ],
                     "features": [
@@ -2913,7 +2917,7 @@
                             "to": [3, 4, 5, 6],
                             "adjacent_city": [0, 1],
                             "posx": 24,
-                            "posy": 40
+                            "posy": 28
                         }
                     ],
                     "features": [
@@ -3077,7 +3081,7 @@
                             "to": [1, 2, 3, 4, 5, 6],
                             "adjacent_city": [0],
                             "posx": 32,
-                            "posy": 40
+                            "posy": 28  
                         }
                     ],
                     "features": [
@@ -3108,7 +3112,7 @@
                             "to": [1, 2, 3, 6],
                             "adjacent_city": [0],
                             "posx": 48,
-                            "posy": 32
+                            "posy": 48
                         },
                         {
                             "type": "Field",
@@ -3146,7 +3150,7 @@
                             "to": [1, 2, 3, 6],
                             "adjacent_city": [0],
                             "posx": 48,
-                            "posy": 32
+                            "posy": 48
                         },
                         {
                             "type": "Field",
@@ -3158,7 +3162,7 @@
                     ],
                     "features": [
                         {
-                            "type": "Volcano"
+                            "type": "Portal"
                         }
                     ]
                 },
@@ -3184,7 +3188,7 @@
                             "to": [1, 2],
                             "adjacent_city": [0],
                             "posx": 56,
-                            "posy": 8
+                            "posy": 16
                         },
                         {
                             "type": "Field",
@@ -3222,7 +3226,7 @@
                             "to": [1, 4, 5, 6],
                             "adjacent_city": [0],
                             "posx": 16,
-                            "posy": 32
+                            "posy": 48
                         },
                         {
                             "type": "Field",
@@ -3260,7 +3264,7 @@
                             "to": [1, 4, 5, 6],
                             "adjacent_city": [0],
                             "posx": 16,
-                            "posy": 32
+                            "posy": 48
                         },
                         {
                             "type": "Field",
@@ -3396,7 +3400,7 @@
                             "to": [0, 1, 2, 3, 6, 7],
                             "adjacent_city": [],
                             "posx": 48,
-                            "posy": 16
+                            "posy": 48
                         },
                         {
                             "type": "Field",
@@ -3428,7 +3432,7 @@
                             "to": [0, 1, 2, 3, 6, 7],
                             "adjacent_city": [],
                             "posx": 48,
-                            "posy": 16
+                            "posy": 48
                         },
                         {
                             "type": "Field",
@@ -3459,7 +3463,7 @@
                             "type": "Field",
                             "to": [0, 1, 6, 7],
                             "adjacent_city": [],
-                            "posx": 32,
+                            "posx": 48,
                             "posy": 16
                         },
                         {
@@ -3491,7 +3495,7 @@
                             "type": "Field",
                             "to": [0, 1, 6, 7],
                             "adjacent_city": [],
-                            "posx": 32,
+                            "posx": 56,
                             "posy": 16
                         },
                         {
@@ -3516,26 +3520,26 @@
                         {
                             "type": "Road",
                             "to": [1],
-                            "posx": 48,
+                            "posx": 52,
                             "posy": 32
                         },
                         {
                             "type": "Road",
                             "to": [2],
                             "posx": 32,
-                            "posy": 48
+                            "posy": 52
                         },
                         {
                             "type": "Road",
                             "to": [3],
-                            "posx": 16,
+                            "posx": 12,
                             "posy": 32
                         },
                         {
                             "type": "Field",
                             "to": [0, 1, 6, 7],
                             "adjacent_city": [],
-                            "posx": 32,
+                            "posx": 24,
                             "posy": 16
                         },
                         {
@@ -3591,7 +3595,7 @@
                             "type": "Field",
                             "to": [0, 1, 6, 7],
                             "adjacent_city": [],
-                            "posx": 32,
+                            "posx": 48,
                             "posy": 16
                         },
                         {
@@ -5319,7 +5323,7 @@
         {
             "name": "Multiple Small Extensions",
             "id": 7,
-            "tiles": {"a": [
+            "tiles": {"b": [
                 {
                     "id": 0,
                     "sides": "FFFS",
@@ -5344,7 +5348,7 @@
                             "to": [0, 1, 6, 7],
                             "adjacent_city": [],
                             "posx": 32,
-                            "posy": 16
+                            "posy": 12
                         },
                         {
                             "type": "Field",
@@ -5492,7 +5496,7 @@
                             "to": [0, 1, 2, 3, 6, 7],
                             "adjacent_city": [],
                             "posx": 48,
-                            "posy": 16
+                            "posy": 48
                         },
                         {
                             "type": "Field",
@@ -5505,8 +5509,8 @@
                     "features": [
                         {
                             "type": "Garden",
-                            "posx": 32,
-                            "posy": 32
+                            "posx": 43,
+                            "posy": 20
                         }
                     ]
                 },
@@ -5572,7 +5576,7 @@
                             "type": "Field",
                             "to": [0, 1, 6, 7],
                             "adjacent_city": [],
-                            "posx": 32,
+                            "posx": 48,
                             "posy": 16
                         },
                         {
@@ -5587,7 +5591,7 @@
                         {
                             "type": "Cloister",
                             "posx": 32,
-                            "posy": 36
+                            "posy": 28
                         }
                     ]
                 },
@@ -5598,30 +5602,30 @@
                     "segments": [
                         {
                             "type": "Road",
-                            "to": [0, 3],
-                            "posx": 24,
+                            "to": [0, 1],
+                            "posx": 40,
                             "posy": 24
                         },
                         {
                             "type": "Field",
-                            "to": [0, 1, 4, 5],
+                            "to": [0, 1],
+                            "adjacent_city": [],
+                            "posx": 56,
+                            "posy": 8
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 6, 7],
                             "adjacent_city": [],
                             "posx": 32,
                             "posy": 32
                         },
                         {
                             "type": "Field",
-                            "to": [2, 3],
-                            "adjacent_city": [],
-                            "posx": 56,
-                            "posy": 56
-                        },
-                        {
-                            "type": "Field",
-                            "to": [6, 7],
+                            "to": [4, 5],
                             "adjacent_city": [],
                             "posx": 8,
-                            "posy": 8
+                            "posy": 56
                         }
                     ]
                 },
@@ -5634,7 +5638,7 @@
                             "type": "Road",
                             "to": [0, 2],
                             "posx": 32,
-                            "posy": 48,
+                            "posy": 16,
                             "features": [
                                 {
                                     "type": "Inn"
@@ -5672,7 +5676,7 @@
                     ]
                 }
             ],
-            "d": [
+            "c": [
                 {
                     "id": 12,
                     "sides": "CCCR",
@@ -6006,7 +6010,12 @@
                             "to": [0, 1, 2, 3, 4, 5, 6, 7],
                             "adjacent_city": [],
                             "posx": 52,
-                            "posy": 32
+                            "posy": 32,
+                            "features": [
+                                {
+                                    "type": "Pigherd"
+                                }
+                            ]
                         }
                     ]
                 },
@@ -6111,7 +6120,7 @@
                         {
                             "type": "City",
                             "to": [0],
-                            "posx": 24,
+                            "posx": 32,
                             "posy": 8
                         },
                         {
@@ -6137,15 +6146,337 @@
                     ]
                 }
             ]},
+            "starting_tile": 0
+        },
+        {
+            "name": "",
+            "id": 8
+        },
+        {
+            "name": "",
+            "id": 9
+        },
+        {
+            "name": "",
+            "id": 10
+        },
+        {
+            "name": "",
+            "id": 11
+        },
+        {
+            "name": "小扩展合集",
+            "id": 12,
             "tokens": [
                 {
                     "name": "abbot",
                     "distribute": true,
-                    "thing_id": "c",
-                    "num": 1
+                    "thing_id": "b",
+                    "num": 1,
+                    "image": [0, 0, 16, 20]
+                },
+                {
+                    "name": "gold",
+                    "distribute": false,
+                    "thing_id": "d",
+                    "num": 12,
+                    "image": [16, 0, 30, 12]
                 }
-            ],
-            "starting_tile": 0
+            ]
+        },
+        {
+            "name": "另一些小扩展合集",
+            "id": 13,
+            "tiles": {"a": [
+                {
+                    "id": 0,
+                    "sides": "FFRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Flier",
+                            "posx": 48,
+                            "posy": 16,
+                            "direction": 6
+                        }
+                    ]
+                },
+                {
+                    "id": 1,
+                    "sides": "FRFR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 48
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Flier",
+                            "posx": 16,
+                            "posy": 16,
+                            "direction": 6
+                        }
+                    ]
+                },
+                {
+                    "id": 2,
+                    "sides": "FRFR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 48
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Flier",
+                            "posx": 16,
+                            "posy": 16,
+                            "direction": 0
+                        }
+                    ]
+                },
+                {
+                    "id": 3,
+                    "sides": "FRFR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [1, 3],
+                            "posx": 32,
+                            "posy": 32
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Field",
+                            "to": [2, 3, 4, 5],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 48
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Flier",
+                            "posx": 16,
+                            "posy": 16,
+                            "direction": 7
+                        }
+                    ]
+                },
+                {
+                    "id": 4,
+                    "sides": "FFRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Flier",
+                            "posx": 48,
+                            "posy": 16,
+                            "direction": 1
+                        }
+                    ]
+                },
+                {
+                    "id": 5,
+                    "sides": "FFRR",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Road",
+                            "to": [2, 3],
+                            "posx": 24,
+                            "posy": 40
+                        },
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 48
+                        },
+                        {
+                            "type": "Field",
+                            "to": [4, 5],
+                            "adjacent_city": [],
+                            "posx": 8,
+                            "posy": 56
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Flier",
+                            "posx": 48,
+                            "posy": 16,
+                            "direction": 4
+                        }
+                    ]
+                },
+                {
+                    "id": 6,
+                    "sides": "FFFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 4, 5, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 32,
+                            "posy": 32
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Flier",
+                            "posx": 16,
+                            "posy": 32,
+                            "direction": 6
+                        }
+                    ]
+                },
+                {
+                    "id": 7,
+                    "sides": "FFFF",
+                    "num": 1,
+                    "segments": [
+                        {
+                            "type": "Field",
+                            "to": [0, 1, 2, 3, 4, 5, 6, 7],
+                            "adjacent_city": [],
+                            "posx": 48,
+                            "posy": 16
+                        }
+                    ],
+                    "features": [
+                        {
+                            "type": "Garden",
+                            "posx": 48,
+                            "posy": 16
+                        },
+                        {
+                            "type": "Flier",
+                            "posx": 16,
+                            "posy": 16,
+                            "direction": 7
+                        }
+                    ]
+                }
+            ]},
+            "tokens": [
+                {
+                    "name": "phantom",
+                    "distribute": true,
+                    "thing_id": "k",
+                    "num": 1,
+                    "image": [0, 0, 17, 14]
+                }
+            ]
+        },
+        {
+            "name": "又新又好的精选小扩展合集",
+            "id": 14,
+            "tokens": [
+                {
+                    "name": "ranger",
+                    "distribute": false,
+                    "thing_id": "b",
+                    "num": 1,
+                    "image": [0, 0, 29, 17]
+                },
+                {
+                    "name": "gingerbread",
+                    "distribute": false,
+                    "thing_id": "d",
+                    "num": 1,
+                    "image": [29, 0, 40, 14]
+                }
+            ]
         }
     ]
 }
