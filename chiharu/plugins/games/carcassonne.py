@@ -1306,8 +1306,6 @@ class Fairy(Figure):
         self.follower: Follower | None = None
         self.tile: Tile | None = None
         self.drawpos: tuple[int, int] = 32, 32
-    def canMove(self, follower: Follower):
-        return True
     def moveTo(self, follower: Follower, tile: Tile):
         self.tile = tile
         self.follower = follower
@@ -1672,7 +1670,7 @@ class Player:
                     pass_err = -3
                     continue
                 tile_fairy = self.board.tiles[pos_fairy]
-                followers = [token for token in tile_fairy.iterAllTokens() if isinstance(token, Follower) and token.player is self and self.board.fairy.canMove(token)]
+                followers = [token for token in tile_fairy.iterAllTokens() if isinstance(token, Follower) and token.player is self]
                 if len(followers) == 0:
                     pass_err = -3
                     continue
