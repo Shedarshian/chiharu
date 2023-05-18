@@ -44,7 +44,7 @@ class TradeCounter(Enum):
     Wine = auto()
     Grain = auto()
     Cloth = auto()
-all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 7: 'abc', 12: 'ab', 13: 'abcdefgh', 14: 'ab'}
+all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 7: 'abc', 12: 'ab', 13: 'abcdefghijk', 14: 'ab'}
 T = TypeVar('T')
 TAsync = Generator[dict[str, Any], dict[str, Any], T]
 def findAllMax(items: Sequence[T], key: Callable[[T], int], criteria=None) -> tuple[int, list[T]]:
