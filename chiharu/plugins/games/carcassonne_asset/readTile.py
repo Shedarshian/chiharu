@@ -290,7 +290,7 @@ class AreaSegmentPic(SegmentPic):
     __slots__ = ("radius",)
     def __init__(self, type: SegmentType, hint) -> None:
         super().__init__(type, hint)
-        self.radius = 10
+        self.radius = 6
     def drawPos(self, num: int) -> Sequence[tuple[float, float]]:
         if num == 1:
             return [self.hint[0]]
@@ -337,7 +337,7 @@ class SmallSegmentPic(AreaSegmentPic):
     __slots__ = ("side", "width")
     def __init__(self, type: SegmentType, side: tuple[Dir,bool], width: int, hint) -> None:
         super().__init__(type, hint)
-        self.radius = 6
+        self.radius = 4
         self.side = side
         self.width = width
         self.hint = [(32 + (32 - width // 2) * (cor := side[0].corr())[0] + 16 * (cor2 := (side[0] + Dir.LEFT).corr())[0], 32 + (32 - width // 2) * cor[1] + 16 * cor2[1])]

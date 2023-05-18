@@ -132,8 +132,13 @@ class AreaSegmentData(SegmentData):
                                 sd = (rside, (rside - dir == Dir.RIGHT))
                                 self.side.append(sd)
                                 data.all_sides.remove(sd)
+                    t = road.lines[0].nodes_init[-1]
+                    if isinstance(t, tuple) and isinstance(t[0], int):
+                        for city in data.segments:
+                            if isinstance(city, CitySegmentData):
+                                city.pic
                 self.sortSide()
-                for road_num, sides in segment.road_sides:
+                for dr, b in self.side:
                     pass # 循环两遍，夹在0和3之间的都要被检测                        
     def sortSide(self):
         self.side.sort(key=Dir.sideKey)
