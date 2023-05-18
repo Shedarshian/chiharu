@@ -2271,7 +2271,7 @@ class GiftCashOut(Gift):
             assert isinstance(follower.parent, (Segment, BaseCloister))
             assert isinstance(follower.player, Player)
             obj = follower.parent.object if isinstance(follower.parent, Segment) else follower.parent
-            score = 2 * len(list(obj.iterTokens()))
+            score = sum(2 for token in obj.iterTokens() if isinstance(token, Follower))
             user.board.addLog(id="score", player=user, num=score, source="cash_out")
             yield from follower.player.addScore(score)
             follower.putBackToHand()
