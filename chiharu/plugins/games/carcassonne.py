@@ -1807,11 +1807,11 @@ class Player:
                 if ph_put == -2:
                     self.board.state = State.PuttingFollower
                     ret2 = yield {"last_err": pass_err, "last_put": pos, "if_portal": ph_portal, "rangered": rangered, "special": "phantom"}
-                    if self.board.checkPack(3, "d") and not ph_portal and ret.get("special") == "portal":
+                    if self.board.checkPack(3, "d") and not ph_portal and ret2.get("special") == "portal":
                         if if_portal:
                             pass_err = -13
                             continue
-                        pos_portal = ret["pos"]
+                        pos_portal = ret2["pos"]
                         if pos_portal not in self.board.tiles or tile.dragon != DragonType.Portal:
                             pass_err = -4
                             continue
@@ -1819,12 +1819,12 @@ class Player:
                         tile_put = self.board.tiles[pos_portal]
                         ph_portal = True
                         continue
-                    if not if_portal and ph_portal and ret["id"] == -1:
+                    if not if_portal and ph_portal and ret2["id"] == -1:
                         pos_put = pos
                         tile_put = tile
                         ph_portal = False
                         continue
-                    ph_put = ret["id"]
+                    ph_put = ret2["id"]
                     if ph_put == -1:
                         break
                     seg_ph = tile_put.segments[0]
