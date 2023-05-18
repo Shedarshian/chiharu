@@ -434,7 +434,7 @@ class Board:
             tile = self.tiles[draw_tile_follower]
             i = ord('a')
             for follower in tile.iterAllTokens():
-                if isinstance(follower, Follower) and follower.parent is self.current_turn_player:
+                if isinstance(follower, Follower) and follower.player is self.current_turn_player:
                     draw(self.findTilePos(tile), tile.findTokenDrawPos(follower), i)
                     i += 1
         if princess is not None:
@@ -1687,8 +1687,9 @@ class Player:
                             pass_err = -2
                             continue
                         follower = followers[ret["id"]]
+                        break
                 self.board.fairy.moveTo(follower, tile_fairy)
-                continue
+                break
             if self.board.checkPack(3, "d") and not if_portal and ret.get("special") == "portal":
                 if ph_put >= 0:
                     pass_err = -12
@@ -1700,11 +1701,13 @@ class Player:
                 pos_put = pos_portal
                 tile_put = self.board.tiles[pos_portal]
                 if_portal = True
+                pass_err = 0
                 continue
             if if_portal and ret["id"] == -1:
                 pos_put = pos
                 tile_put = tile
                 if_portal = False
+                pass_err = 0
                 continue
             if self.board.checkPack(4, "b") and ret.get("special") == "tower":
                 if ph_put >= 0:
