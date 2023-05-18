@@ -2283,7 +2283,6 @@ class GiftChangePosition(Gift):
     def use(self, user: Player) -> TAsync[int]:
         pass_err: Literal[0, -1, -2, -3] = 0
         for t in user.board.tiles.values():
-            bk = False
             followers = [token for token in t.iterAllTokens() if isinstance(token, Follower) and token.player is user]
             for token in followers:
                 if isinstance(token.parent, FieldSegment):
@@ -2362,8 +2361,13 @@ class GiftChangePosition(Gift):
                         pass_err = -1
                         continue
                     break
+            to_check: Segment | None = None
+            if isinstance(follower.parent, Segment):
+                to_check = follower.parent
             follower.remove()
             yield from follower.putOn(to_put)
+            if to_check is not None:
+                to_check.object.checkRemoveBuilderAndPig()
             break
         return 1
         yield {}
