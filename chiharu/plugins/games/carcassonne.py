@@ -1648,7 +1648,7 @@ class Player:
                 if phantom is None:
                     pass_err = -10
                     continue
-                if ph_put == ret["id"]:
+                if ph_put == ret["id"] and ph_put != -2:
                     pass_err = -11
                     continue
                 if ph_put != -2:
@@ -1806,6 +1806,7 @@ class Player:
             ph_portal: bool = False
             pos_put = pos
             tile_put = tile
+            pass_err = 0
             while 1:
                 if ph_put == -2:
                     self.board.state = State.PuttingFollower
@@ -1849,7 +1850,7 @@ class Player:
                 if isinstance(seg_ph, Feature) and not isinstance(seg_ph, CanScore):
                     pass_err = -11
                     continue
-                if not token.canPut(seg_ph) or seg_ph.occupied() or ph_portal and seg_ph.closed():
+                if not phantom.canPut(seg_ph) or seg_ph.occupied() or ph_portal and seg_ph.closed():
                     pass_err = -11
                     continue
                 self.tokens.remove(phantom)

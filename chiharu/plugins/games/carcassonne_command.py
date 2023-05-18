@@ -428,7 +428,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                         board.setImageArgs()
                         await session.send([board.saveImg()])
                     await session.send((f'玩家{data["names"][board.current_player_id]}' if ret["begin"] or board.state == State.FinalAbbeyAsking else "") + ("开始行动，选择" if ret["begin"] else "选择最后" if board.state == State.FinalAbbeyAsking else "请选择") + "是否放置僧院板块，回复“不放”跳过。")
-            case State.WagonAsking:
+            case State.MovingDragon:
                 if ret["last_err"] == -1:
                     await session.send("无法移动！")
                 else:
@@ -558,10 +558,10 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             dct: dict[str, Any] = {}
             if board.checkPack(13, "k") and (match0 := re.match(r"(.*\S)\s*([a-z])\s*(幽灵|phantom)$", command)):
                 n = ord(match0.group(2)) - ord('a')
-                command = match0.group(1)
+                command = match0.group(1).strip()
                 dct = {"phantom": n}
-            elif board.checkPack(13, "k") and (match0 := re.match(r"(.*)\s*放(幽灵|phantom)$", command)):
-                command = match0.group(1)
+            elif board.checkPack(13, "k") and (match0 := re.match(r"(.*\S)\s*放(幽灵|phantom)$", command)):
+                command = match0.group(1).strip()
                 dct = {"phantom": -2}
             if match := re.match(r"\s*([a-z])\s*(.*)?$", command):
                 n = ord(match.group(1)) - ord('a')
