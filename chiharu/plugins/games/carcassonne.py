@@ -1181,7 +1181,7 @@ class Token(ABC):
             return False
         if isinstance(seg, Segment):
             return not any(isinstance(token, Dragon) for token in seg.tile.tokens)
-        return False
+        return True
     def putOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
         yield from self.selfPutOn(seg)
         if isinstance(seg, Feature):
