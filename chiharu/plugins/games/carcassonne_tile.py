@@ -124,6 +124,7 @@ class AreaSegmentData(SegmentData):
                         self.addAdj(seg)
             else:
                 roads = [road for road in data.segments if isinstance(road, (RoadSegmentData, RiverSegmentData))]
+                checks: dict[tuple[Dir, bool], CitySegmentData | RoadSegmentData | RiverSegmentData] = {}
                 for road_num, sides in segment.road_sides:
                     road = roads[road_num]
                     for rside in road.side:
@@ -131,15 +132,38 @@ class AreaSegmentData(SegmentData):
                             if dir.orthogonal(rside):
                                 sd = (rside, (rside - dir == Dir.RIGHT))
                                 self.side.append(sd)
+                                checks[sd] = road
                                 data.all_sides.remove(sd)
                     t = road.lines[0].nodes_init[-1]
                     if isinstance(t, tuple) and isinstance(t[0], int):
                         for city in data.segments:
-                            if isinstance(city, CitySegmentData):
-                                city.pic
+                            if isinstance(city, CitySegmentData) and city.pic.onSelfEdge(t):
+                                checks[city.pic.begin()] = city
+                                checks[city.pic.end()] = city
                 self.sortSide()
-                for dr, b in self.side:
-                    pass # 循环两遍，夹在0和3之间的都要被检测                        
+                cl = list(checks.keys())
+                begin = Dir.sideKey([(d, b) for d, b in reversed(sorted(list(checks.keys()), key=Dir.sideKey)) if not b][0])
+                begined: bool = False
+                for i in range(8):
+                    d = Dir.fromSideKey(begin + i)
+                    match begined, d in checks, d[1]:
+                        case True, False, _:
+                            self.side.append(d)
+                        case True, True, True:
+                            begined = False
+                            if isinstance(c := checks[d], AreaSegmentData):
+                                self.addAdj(c)
+                        case True, True, False:
+                            raise ValueError
+                        case False, True, True:
+                            raise ValueError
+                        case False, True, False:
+                            begined = True
+                            if isinstance(c := checks[d], AreaSegmentData):
+                                self.addAdj(c)
+                        case False, False, _:
+                            pass
+        self.sortSide()
     def sortSide(self):
         self.side.sort(key=Dir.sideKey)
     def addAdj(self, other: "AreaSegmentData"):
@@ -149,16 +173,16 @@ class AreaSegmentData(SegmentData):
     def drawPosPut(self, num: int):
         return self.pic.drawPosPut(num)
 class CitySegmentData(AreaSegmentData):
-    def __init__(self, segment: AreaSegmentPic, data: TileData) -> None:
-        super().__init__(segment, data)
-        pass
+    def addAdj(self, other: "AreaSegmentData"):
+        if isinstance(other, FieldSegmentData) and self not in other.adjCity:
+            other.adjCity.append(self)
 class FieldSegmentData(AreaSegmentData):
     type: SegmentType = SegmentType.Field
     def __init__(self, segment: AreaSegmentPic, data: TileData) -> None:
         super().__init__(segment, data)
         self.adjCity: list[CitySegmentData] = []
     def addAdj(self, other: AreaSegmentData):
-        if isinstance(other, CitySegmentData):
+        if isinstance(other, CitySegmentData) and other not in self.adjCity:
             self.adjCity.append(other)
 class LineSegmentData(SegmentData):
     def __init__(self, line: LineSegmentPic, data: TileData) -> None:

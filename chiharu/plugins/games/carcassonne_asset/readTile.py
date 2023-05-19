@@ -30,8 +30,11 @@ class Dir(Enum):
     def orthogonal(self, other: 'Dir'):
         return self.value % 2 != other.value % 2
     @staticmethod
-    def sideKey(t: tuple[Dir, bool]):
+    def sideKey(t: 'tuple[Dir, bool]'):
         return (t[0].value * 2 + (7 if t[1] else 8)) % 8
+    @staticmethod
+    def fromSideKey(t: int) -> 'tuple[Dir, bool]':
+        return Dir((t + 1) % 8 // 2), t % 2 == 1
 
 class ParserError(Exception):
     pass
@@ -291,6 +294,12 @@ class AreaSegmentPic(SegmentPic):
     def __init__(self, type: SegmentType, hint) -> None:
         super().__init__(type, hint)
         self.radius = 6
+    def onSelfEdge(self, pos: tuple[int, int]) -> bool:
+        return False
+    def begin(self) -> tuple[Dir, bool]:
+        raise NotImplementedError
+    def end(self) -> tuple[Dir, bool]:
+        raise NotImplementedError
     def drawPos(self, num: int) -> Sequence[tuple[float, float]]:
         if num == 1:
             return [self.hint[0]]
@@ -349,6 +358,12 @@ class OneSideSegmentPic(AreaSegmentPic):
         self.width = width
         self.hint = [(32 + (32 - width // 2) * (cor := dir.corr())[0], 32 + (32 - width // 2) * cor[1])]
         self.hint_line = Dir.UP if dir == Dir.DOWN else Dir.LEFT if dir == Dir.RIGHT else dir
+    def onSelfEdge(self, pos: tuple[int, int]):
+        return self.dir == Dir.UP and pos[1] == self.width or self.dir == Dir.DOWN and pos[1] == 64 - self.width or self.dir == Dir.LEFT and pos[0] == self.width or self.dir == Dir.RIGHT and pos[0] == 64 - self.width
+    def begin(self):
+        return (self.dir, True)
+    def end(self):
+        return (self.dir, False)
 class DoubleSideSegmentPic(AreaSegmentPic):
     __slots__ = ("dirs", "width")
     def __init__(self, type: SegmentType, dirs: tuple[Dir, Dir], width: int, hint) -> None:
@@ -358,6 +373,12 @@ class DoubleSideSegmentPic(AreaSegmentPic):
             self.dirs = (Dir.LEFT, Dir.UP)
         self.hint = [(32 + (32 - width // 2) * (cor := dir.corr())[0], 32 + (32 - width // 2) * cor[1]) for dir in self.dirs]
         self.width = width
+    def onSelfEdge(self, pos: tuple[int, int]):
+        return Dir.UP in self.dirs and pos[1] == self.width or Dir.DOWN in self.dirs and pos[1] == 64 - self.width or Dir.LEFT in self.dirs and pos[0] == self.width or Dir.RIGHT in self.dirs and pos[0] == 64 - self.width
+    def begin(self):
+        return (self.dirs[0], True)
+    def end(self):
+        return (self.dirs[1], False)
     def drawPos(self, num: int) -> Sequence[tuple[float, float]]:
         if num == 1:
             return [self.hint[0]]
