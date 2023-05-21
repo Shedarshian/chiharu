@@ -27,16 +27,22 @@ def readTileData(packData: dict[int, str]):
                         match order:
                             case StartExtraOrderData():
                                 tile_now.start = True
+                            case AddableExtraOrderData(feature, params, None):
+                                tile.segments.append(AddableSegmentData(feature, params))
                             case AddableExtraOrderData(feature, params, pos):
-                                pass
-                            case FeatureExtraOrderData(type, id, feature):
-                                pass
+                                tile.segments.append(FeatureSegmentData(feature, pos, params, tile)) # type: ignore
+                            case FeatureExtraOrderData(type, id, feature, params):
+                                seg = [seg for seg in tile.segments if seg.type == type][id]
+                                seg.addables.append(AddableSegmentData(feature, params))
                             case HintExtraOrderData(type, id, hint):
-                                pass
+                                seg = [seg for seg in tile.segments if seg.type == type][id]
+                                assert isinstance(seg, AreaSegmentData)
+                                seg.pic.makeHint(hint)
                     tile_now.sub_id = i
                     for _ in range(num - 1):
                         tiles.append(deepcopy(tile_now))
                     tiles.append(tile_now)
+    return tiles
 
 class TileData:
     def __init__(self, picname: str, id: int, sides: str, segments: list[SegmentPic]) -> None:
@@ -73,7 +79,7 @@ class TileData:
                 case SegmentType.Feature:
                     if not isinstance(segment, PointSegmentPic):
                         raise NotImplementedError
-                    self.segments.append(FeatureSegmentData(segment, self))
+                    self.segments.append(EmptyFeatureSegmentData(segment, self))
                     self.points.append(segment)
                 case SegmentType.Junction | SegmentType.Bridge | SegmentType.Roundabout:
                     if not isinstance(segment, PointSegmentPic):
@@ -94,6 +100,8 @@ class TileData:
 
 class SegmentData:
     type: SegmentType = SegmentType.City
+    def __init__(self) -> None:
+        self.addables: list[AddableSegmentData] = []
 class AreaSegmentData(SegmentData):
     def __init__(self, segment: AreaSegmentPic, data: TileData) -> None:
         self.pic = segment
@@ -226,7 +234,29 @@ class RoadSegmentData(LineSegmentData):
         return ret
 class RiverSegmentData(LineSegmentData):
     pass
-class FeatureSegmentData(SegmentData):
+class EmptyFeatureSegmentData(SegmentData):
     type: SegmentType = SegmentType.Feature
     def __init__(self, segment: PointSegmentPic, data: TileData) -> None:
         self.pic = segment
+class AddableSegmentData(SegmentData):
+    type: SegmentType = SegmentType.Feature
+    def __init__(self, type: str, params: list[Any]) -> None:
+        super().__init__()
+        self.feature = type
+        self.params = params
+class FeatureSegmentData(EmptyFeatureSegmentData, AddableSegmentData):
+    def __init__(self, type: str, pos: tuple[int, int] | Dir | tuple[SegmentType, int], params: list[Any], data: TileData) -> None:
+        AddableSegmentData.__init__(self, type, params)
+        if isinstance(pos, tuple):
+            if isinstance(pos[0], SegmentType):
+                f = [seg for seg in data.segments if seg.type == pos[0]][pos[1]]
+                assert isinstance(f, PointSegmentPic)
+                self.pos: tuple[int, int] = f.pos
+            else:
+                self.pos = pos
+        else:
+            self.pos = pos.tilepos()
+        segment = PointSegmentPic(SegmentType.Feature, self.pos, [])
+        EmptyFeatureSegmentData.__init__(self, segment, data)
+
+

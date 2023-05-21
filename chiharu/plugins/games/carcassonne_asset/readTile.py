@@ -201,8 +201,8 @@ class TileDataParser:
         """extras : START more_extras"""
         p[0] = [StartExtraOrderData()] + p[2]
     def p_Extras3(self, p):
-        """extras : any_segment NUMBER ADDABLE more_extras"""
-        p[0] = [FeatureExtraOrderData(p[1], p[2], p[3])] + p[4]
+        """extras : any_segment NUMBER ADDABLE op_param more_extras"""
+        p[0] = [FeatureExtraOrderData(p[1], p[2], p[3], p[4])] + p[5]
     def p_Extras4(self, p):
         """extras : WHERE any_segment NUMBER hint more_extras"""
         p[0] = [HintExtraOrderData(p[2], p[3], p[4])] + p[5]
@@ -234,6 +234,9 @@ class SegmentPic(ABC):
     def __init__(self, type: SegmentType, hint: list[tuple[int, int] | str]) -> None:
         self.type = type
         self.hint_line: Dir | None = None
+        self.hint: list[tuple[int, int]] = []
+        self.makeHint(hint)
+    def makeHint(self, hint: list[tuple[int, int] | str]):
         if "ud" in hint:
             self.hint_line = Dir.UP
             hint.remove("ud")
@@ -429,6 +432,7 @@ class FeatureExtraOrderData(NamedTuple):
     type: SegmentType
     id: int
     feature: str
+    params: list[Any]
 class HintExtraOrderData(NamedTuple):
     type: SegmentType
     id: int
