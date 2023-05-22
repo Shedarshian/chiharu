@@ -3,7 +3,7 @@ import more_itertools, random
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Follower
 from .carcassonne import State, Connectable, Gift, Dir, CanScore, TAsync, CantPutError
-from .carcassonne import Barn, Builder, Pig, DragonType, CitySegment, RoadSegment, AbbeyData
+from .carcassonne import Barn, Builder, Pig, AddableType, CitySegment, RoadSegment, AbbeyData
 from .carcassonne import Phantom, Tower, Abbot, BaseCloister, Flier, TradeCounter, BigFollower
 
 class Player:
@@ -201,7 +201,7 @@ class Player:
                         pass_err = -1
                         continue
                     break
-        if self.board.checkPack(14, "d") and tile.dragon == DragonType.Gingerbread:
+        if self.board.checkPack(14, "d") and tile.dragon == AddableType.Gingerbread:
             yield from self.turnMoveGingerbread(False)
         if self.board.checkPack(14, "a"):
             for segment in tile.segments:
@@ -329,7 +329,7 @@ class Player:
                     pass_err = -12
                     continue
                 pos_portal: tuple[int, int] = ret["pos"]
-                if pos_portal not in self.board.tiles or tile.dragon != DragonType.Portal:
+                if pos_portal not in self.board.tiles or tile.dragon != AddableType.Portal:
                     pass_err = -4
                     continue
                 pos_put = pos_portal
@@ -450,7 +450,7 @@ class Player:
                             pass_err = -13
                             continue
                         pos_portal = ret2["pos"]
-                        if pos_portal not in self.board.tiles or tile.dragon != DragonType.Portal:
+                        if pos_portal not in self.board.tiles or tile.dragon != AddableType.Portal:
                             pass_err = -4
                             continue
                         pos_put = pos_portal
@@ -668,7 +668,7 @@ class Player:
             tile = self.handTiles.pop(0)
 
             # check dragon
-            if self.board.checkPack(3, "b") and tile.dragon == DragonType.Volcano:
+            if self.board.checkPack(3, "b") and tile.dragon == AddableType.Volcano:
                 self.board.dragon.moveTo(tile)
 
             if not princessed:
@@ -676,7 +676,7 @@ class Player:
                 ifBarn = yield from self.turnPutFollower(tile, pos, rangered)
 
             # move a dragon
-            if self.board.checkPack(3, "b") and tile.dragon == DragonType.Dragon:
+            if self.board.checkPack(3, "b") and tile.dragon == AddableType.Dragon:
                 yield from self.turnMoveDragon()
 
             # score

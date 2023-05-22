@@ -2,7 +2,7 @@ from typing import Dict, Any, Callable, Awaitable, Literal
 import re, random, json, datetime
 from .carcassonne import Connectable, Dir, TradeCounter, open_pack, State, CantPutError, all_extensions
 from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Player
-from .carcassonne import DragonType, Builder
+from .carcassonne import AddableType, Builder
 from ..inject import CommandGroup, on_command
 from .. import config, game
 from nonebot import CommandSession, NLPSession, get_bot
@@ -396,7 +396,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                             prompt += "，回复板块位置以及“护林员”移动护林员"
                         if board.checkPack(13, "k"):
                             prompt += "，后加“放幽灵”申请放幽灵，或直接后加小写字母以及“幽灵”放置幽灵"
-                    if not ret["if_portal"] and board.checkPack(3, "d") and board.tiles[ret["last_put"]].dragon == DragonType.Portal:
+                    if not ret["if_portal"] and board.checkPack(3, "d") and board.tiles[ret["last_put"]].dragon == AddableType.Portal:
                         prompt += "，回复板块位置以及“传送门”使用传送门"
                     if ret["if_portal"]:
                         prompt += "，回复“返回”返回原板块" + ("并重新选择幽灵" if board.checkPack(13, "k") and ret.get("special") != "phantom" else "")

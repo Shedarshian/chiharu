@@ -23,6 +23,7 @@ def readTileData(packData: dict[int, str]):
                     if match.group(2) not in packData.get(int(match.group(1)), ""):
                         continue
                     tile_now = deepcopy(tile)
+                    tile_now.img = img.crop((64 * i, 64 * tilet.id, 64 * i + 64, 64 * tilet.id + 64))
                     for order in extra_orders:
                         match order:
                             case StartExtraOrderData():
@@ -55,6 +56,7 @@ class TileData:
         self.sub_id = 0
         self.elsed: bool = False
         self.all_sides: list[tuple[Dir, bool]] = [(dr, b) for dr in Dir for b in (True, False)]
+        self.img: Image.Image = None # type: ignore
         for segment in segments:
             match segment.type:
                 case SegmentType.City:
