@@ -209,6 +209,9 @@ class TileDataParser:
     def p_Params0(self, p):
         """params : DIRECTION"""
         p[0] = [p[1]]
+    def p_Params1(self, p):
+        """params : NUMBER"""
+        p[0] = [p[1]]
     def p_error(self, p):
         raise ParserError(line_num, p)
     def build(self, **kwargs):
@@ -218,6 +221,29 @@ class TileDataParser:
 parser = TileDataParser()
 parser.build()
 
+def disCir(pos: tuple[int, int], radius: float, r: int):
+    ret: list[tuple[int, int]] = []
+    ang = r % 2 * math.pi / 2
+    d = math.pi * 2 / r
+    for _ in range(r):
+        ret.append((pos[0] + round(radius * math.cos(ang)), pos[1] - round(radius * math.sin(ang))))
+        ang += d
+    return ret
+def disLine(line: str, pos: tuple[int, int], radius: float, r: int):
+    ret: list[tuple[int, int]] = []
+    if line == "ud":
+        ang: float = -radius
+        d = 2 * radius / (r - 1)
+        for _ in range(r):
+            ret.append((pos[0], pos[1] + round(ang)))
+            ang += d
+    elif line == "lr":
+        ang = -radius
+        d = 2 * radius / (r - 1)
+        for _ in range(r):
+            ret.append((pos[0] + round(ang), pos[1]))
+            ang += d
+    return ret
 class SegmentType(Enum):
     City = auto()
     Road = auto()
@@ -233,15 +259,15 @@ class SegmentPic(ABC):
     __slots__ = ("type", "hint", "hint_line")
     def __init__(self, type: SegmentType, hint: list[tuple[int, int] | str]) -> None:
         self.type = type
-        self.hint_line: Dir | None = None
+        self.hint_line: str | None = None
         self.hint: list[tuple[int, int]] = []
         self.makeHint(hint)
     def makeHint(self, hint: list[tuple[int, int] | str]):
         if "ud" in hint:
-            self.hint_line = Dir.UP
+            self.hint_line = "ud"
             hint.remove("ud")
         elif "lr" in hint:
-            self.hint_line = Dir.LEFT
+            self.hint_line = "lr"
             hint.remove("lr")
         if not all(isinstance(s, tuple) for s in hint):
             raise ParserError("ud/lr not right")
@@ -259,8 +285,19 @@ class PointSegmentPic(SegmentPic):
     @property
     def radius(self):
         return 8 if self.type == SegmentType.Feature else 0
+    def drawPos(self, num: int) -> Sequence[tuple[int, int]]:
+        if num == 1:
+            return [self.pos]
+        if num == 0:
+            return []
+        ret: list[tuple[int, int]] = disCir(self.pos, self.radius, num)
+        return ret
+    def putPos(self, num: int) -> tuple[int, int]:
+        if num == 1:
+            return self.pos[0] + self.radius, self.pos[1]
+        return self.pos
 class LineSegmentPic(SegmentPic):
-    __slots__ = ("nodes", "sides", "nodes_init", "width", "link")
+    __slots__ = ("nodes", "sides", "nodes_init", "width", "link", "center")
     def __init__(self, type: SegmentType, nodes: list[tuple[int, int] | Dir | tuple[SegmentType, int]], width: int, hint) -> None:
         super().__init__(type, hint)
         self.nodes_init: list[tuple[int, int] | Dir | tuple[SegmentType, int]] = nodes
@@ -268,6 +305,7 @@ class LineSegmentPic(SegmentPic):
         self.nodes: list[tuple[int, int]] = []
         self.width = width
         self.link: tuple[SegmentType, int] | None = None
+        self.center: tuple[int, int] = 0, 0
     def makeNodes(self, points: list[PointSegmentPic]):
         for i, node in enumerate(self.nodes_init):
             if isinstance(node, Dir):
@@ -291,7 +329,21 @@ class LineSegmentPic(SegmentPic):
                     self.link = node
             else:
                 self.nodes.append(node)
+        if len(self.nodes) == 2:
+            self.center = (self.nodes[0][0] + self.nodes[1][0]) // 2, (self.nodes[0][1] + self.nodes[1][1]) // 2
+        else:
+            self.center = self.getPortion(0.5)
         del self.nodes_init
+    def getPortion(self, f: float) -> tuple[int, int]:
+        lens: list[float] = [((i[0] - j[0]) ** 2 + (i[1] - j[1]) ** 2) ** 0.5 for i, j in more_itertools.windowed(self.nodes, 2, fillvalue=(0, 0))]
+        l = sum(lens) * f
+        for i, le in enumerate(lens):
+            if l < le:
+                d2 = self.nodes[i + 1][0] - self.nodes[i][0], self.nodes[i + 1][1] - self.nodes[i][1]
+                ds = le / (d2[0] ** 2 + d2[1] ** 2) ** 0.5
+                return round(ds * d2[0] + self.nodes[i][0]), round(ds * d2[1] + self.nodes[i][1])
+            l -= le
+        return 0, 0
 class AreaSegmentPic(SegmentPic):
     __slots__ = ("radius",)
     def __init__(self, type: SegmentType, hint) -> None:
@@ -303,14 +355,14 @@ class AreaSegmentPic(SegmentPic):
         raise NotImplementedError
     def end(self) -> tuple[Dir, bool]:
         raise NotImplementedError
-    def drawPos(self, num: int) -> Sequence[tuple[float, float]]:
+    def drawPos(self, num: int) -> Sequence[tuple[int, int]]:
         if num == 1:
             return [self.hint[0]]
         if num <= len(self.hint):
             return self.hint[:num]
         repeat = num // len(self.hint)
         p1 = num % len(self.hint)
-        ret: list[tuple[float, float]] = []
+        ret: list[tuple[int, int]] = []
         for i, p in enumerate(self.hint):
             r = repeat + (1 if i < p1 else 0)
             if r == 1:
@@ -322,29 +374,23 @@ class AreaSegmentPic(SegmentPic):
                 else:
                     ret.append((p[0] - self.radius, p[1]))
                     ret.append((p[0] + self.radius, p[1]))
-            elif self.hint_line == "ud":
-                ang: float = -16
-                d = 32 / (r - 1)
-                for _ in range(r):
-                    ret.append((p[0], p[1] + ang))
-                    ang += d
-            elif self.hint_line == "lr":
-                ang = -16
-                d = 32 / (r - 1)
-                for _ in range(r):
-                    ret.append((p[0] + ang, p[1]))
-                    ang += d
+            elif self.hint_line is not None:
+                ret.extend(disLine(self.hint_line, p, 16, r))
             else:
-                ang = r % 2 * math.pi / 2
-                d = math.pi * 2 / r
-                for _ in range(r):
-                    ret.append((p[0] + self.radius * math.cos(ang), p[1] - self.radius * math.sin(ang)))
-                    ang += d
+                ret.extend(disCir(p, self.radius, r))
         return ret
-    def drawPosPut(self, num: int):
-        if len(self.hint) >= num + 1:
+    def putPos(self, num: int):
+        if len(self.hint) > num:
             return self.hint[num]
-        return []
+        repeat = num // len(self.hint)
+        p1 = num % len(self.hint)
+        if self.hint_line is not None:
+            if (self.hint_line == "ud") == (repeat == 1):
+                return self.hint[p1][0], self.hint[p1][1] + self.radius
+            return self.hint[p1][0] + self.radius, self.hint[p1][1]
+        if repeat == 1:
+            return self.hint[p1][0] + self.radius, self.hint[p1][1]
+        return self.hint[p1]
 class SmallSegmentPic(AreaSegmentPic):
     __slots__ = ("side", "width")
     def __init__(self, type: SegmentType, side: tuple[Dir,bool], width: int, hint) -> None:
@@ -360,7 +406,7 @@ class OneSideSegmentPic(AreaSegmentPic):
         self.dir = dir
         self.width = width
         self.hint = [(32 + (32 - width // 2) * (cor := dir.corr())[0], 32 + (32 - width // 2) * cor[1])]
-        self.hint_line = Dir.UP if dir == Dir.DOWN else Dir.LEFT if dir == Dir.RIGHT else dir
+        self.hint_line = "ud" if dir in (Dir.UP, Dir.DOWN) else "lr"
     def onSelfEdge(self, pos: tuple[int, int]):
         return self.dir == Dir.UP and pos[1] == self.width or self.dir == Dir.DOWN and pos[1] == 64 - self.width or self.dir == Dir.LEFT and pos[0] == self.width or self.dir == Dir.RIGHT and pos[0] == 64 - self.width
     def begin(self):
@@ -382,14 +428,14 @@ class DoubleSideSegmentPic(AreaSegmentPic):
         return (self.dirs[0], True)
     def end(self):
         return (self.dirs[1], False)
-    def drawPos(self, num: int) -> Sequence[tuple[float, float]]:
+    def drawPos(self, num: int) -> Sequence[tuple[int, int]]:
         if num == 1:
             return [self.hint[0]]
         if num <= 2:
             return self.hint[:num]
         repeat = num // 2
         p1 = num % 2
-        ret: list[tuple[float, float]] = []
+        ret: list[tuple[int, int]] = []
         for i, p in enumerate(self.hint):
             r = repeat + (1 if i < p1 else 0)
             if r == 1:
@@ -402,18 +448,18 @@ class DoubleSideSegmentPic(AreaSegmentPic):
                     ret.append((p[0] - self.radius, p[1]))
                     ret.append((p[0] + self.radius, p[1]))
             elif self.dirs[i] in (Dir.LEFT, Dir.RIGHT):
-                ang: float = -16
-                d = 32 / (r - 1)
-                for _ in range(r):
-                    ret.append((p[0], p[1] + ang))
-                    ang += d
+                ret.extend(disLine("lr", p, 16, r))
             else:
-                ang = -16
-                d = 32 / (r - 1)
-                for _ in range(r):
-                    ret.append((p[0] + ang, p[1]))
-                    ang += d
+                ret.extend(disLine("ud", p, 16, r))
         return ret
+    def putPos(self, num: int):
+        if num < 2:
+            return self.hint[num]
+        repeat = num // 2
+        p1 = num % 2
+        if (self.dirs[p1] in (Dir.UP, Dir.DOWN)) == (repeat == 1):
+            return self.hint[p1][0], self.hint[p1][1] + self.radius
+        return self.hint[p1][0] + self.radius, self.hint[p1][1]
 class ElseSegmentPic(AreaSegmentPic):
     __slots__ = ("road_sides",)
     def __init__(self, type: SegmentType, road_sides: 'list[RoadSideTuple]', hint) -> None:

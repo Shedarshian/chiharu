@@ -20,9 +20,11 @@ def readTileData(packData: dict[int, str]):
                     match = re.match(r"(\d+)([a-z])", packname)
                     if match is None:
                         continue
-                    if match.group(2) not in packData.get(int(match.group(1)), ""):
+                    i = int(match.group(1))
+                    if match.group(2) not in packData.get(i, ""):
                         continue
                     tile_now = deepcopy(tile)
+                    tile_now.packid = i
                     tile_now.img = img.crop((64 * i, 64 * tilet.id, 64 * i + 64, 64 * tilet.id + 64))
                     for order in extra_orders:
                         match order:
@@ -44,10 +46,16 @@ def readTileData(packData: dict[int, str]):
                         tiles.append(deepcopy(tile_now))
                     tiles.append(tile_now)
     return tiles
+def readPackData():
+    from pathlib import Path
+    import json
+    with open(Path(__file__).parent / "carcassonne.json", encoding="utf-8") as f:
+        return json.load(f)
 
 class TileData:
     def __init__(self, picname: str, id: int, sides: str, segments: list[SegmentPic]) -> None:
         self.picname = picname
+        self.packid: int = -1
         self.id = id
         self.sides = sides
         self.segments: list[SegmentData] = []

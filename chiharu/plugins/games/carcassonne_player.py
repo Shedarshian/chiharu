@@ -3,8 +3,8 @@ import more_itertools, random
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Follower
 from .carcassonne import State, Connectable, Gift, Dir, CanScore, TAsync, CantPutError
-from .carcassonne import Barn, Builder, Pig, AddableType, CitySegment, RoadSegment, AbbeyData
-from .carcassonne import Phantom, Tower, Abbot, BaseCloister, Flier, TradeCounter, BigFollower
+from .carcassonne import Barn, Builder, Pig, TileAddable, CitySegment, RoadSegment, AbbeyData
+from .carcassonne import Phantom, Tower, Abbot, BaseCloister, Flier, BigFollower, Addable
 
 class Player:
     def __init__(self, board: Board, id: int, name: str) -> None:
@@ -92,7 +92,7 @@ class Player:
                 isAbbey = True
                 self.hasAbbey = False
                 pos = ret["pos"]
-                tile = Tile(self.board, AbbeyData, self.board.abbeyImg, 5, True)
+                tile = Tile(self.board, AbbeyData, True)
                 r = self.board.canPutTile(tile, pos, Dir.UP)
                 if r < 0:
                     pass_err = -8 if r == -8 else -1
@@ -154,7 +154,8 @@ class Player:
             pos: tuple[int, int] = ret["pos"]
             orient: Dir = ret["orient"]
             tilenum: int = ret["tilenum"]
-            tile: Tile = self.handTiles[tilenum]
+            tile: Tile = self.handTiles[0]
+            tile = self.handTiles[tilenum]
             pass_err = self.board.canPutTile(tile, pos, orient)
             if pass_err < 0:
                 continue
@@ -184,7 +185,7 @@ class Player:
                 self.board.tiles[pos + dr].addConnect(tile, -dr)
         rangered: bool = self.board.checkPack(14, "b") and self.board.ranger.pos == pos
         princessed: bool = False
-        if self.board.checkPack(3, "e") and (seg := more_itertools.only(seg for seg in tile.segments if seg.princess)):
+        if self.board.checkPack(3, "e") and (seg := more_itertools.only(seg for seg in tile.segments if seg.addable == Addable.Princess)):
             followers = [token for token in seg.object.iterTokens() if isinstance(token, Follower) and isinstance(token.parent, Segment)]
             if len(followers) != 0:
                 pass_err = 0
@@ -201,7 +202,7 @@ class Player:
                         pass_err = -1
                         continue
                     break
-        if self.board.checkPack(14, "d") and tile.dragon == AddableType.Gingerbread:
+        if self.board.checkPack(14, "d") and tile.addable == TileAddable.Gingerbread:
             yield from self.turnMoveGingerbread(False)
         if self.board.checkPack(14, "a"):
             for segment in tile.segments:
@@ -246,10 +247,10 @@ class Player:
                 while 1:
                     self.board.state = State.ChoosingSegment
                     ret2 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "gingerbread"}
-                    if ret2["id"] < len(tile.features) or ret2["id"] >= len(tile.features) + len(tile.segments):
+                    s = tile.getSeg(ret2["id"])
+                    if not isinstance(s, CitySegment):
                         pass_err = -1
                         continue
-                    s = tile.segments[ret2["id"] - len(tile.features)]
                     if s not in citys:
                         pass_err = -2
                         continue
@@ -286,12 +287,8 @@ class Player:
                     pass_err = -11
                     continue
                 if ph_put != -2:
-                    seg_ph: Segment | Feature = tile_put.segments[0]
-                    if 0 <= ph_put < len(tile_put.features):
-                        seg_ph = tile_put.features[ph_put]
-                    elif len(tile_put.features) <= ph_put < (len(tile_put.segments) + len(tile_put.features)):
-                        seg_ph = tile_put.segments[ph_put - len(tile_put.features)]
-                    else:
+                    seg_ph = tile_put.getSeg(ph_put)
+                    if seg_ph is None:
                         pass_err = -11
                         continue
                     if isinstance(seg_ph, Feature) and not isinstance(seg_ph, CanScore):
@@ -329,7 +326,7 @@ class Player:
                     pass_err = -12
                     continue
                 pos_portal: tuple[int, int] = ret["pos"]
-                if pos_portal not in self.board.tiles or tile.dragon != AddableType.Portal:
+                if pos_portal not in self.board.tiles or tile.addable != TileAddable.Portal:
                     pass_err = -4
                     continue
                 pos_put = pos_portal
@@ -403,10 +400,8 @@ class Player:
             if ret["id"] == -1:
                 break
             seg_put: Segment | Feature | Tile = tile_put
-            if 0 <= ret["id"] < len(tile_put.features):
-                seg_put = tile_put.features[ret["id"]]
-            elif len(tile_put.features) <= ret["id"] < (ll := len(tile_put.segments) + len(tile_put.features)):
-                seg_put = tile_put.segments[ret["id"] - len(tile_put.features)]
+            if 0 <= ret["id"] < (ll := len(tile_put.segments) + len(tile_put.features)):
+                seg_put = tile_put.getSeg(ret["id"])
             elif self.board.checkPack(5, "e") and not tile_put.isAbbey and ll <= ret["id"] < ll + 4 and (pos := self.board.findTilePos(tile_put)):
                 # for barn
                 offset = [(-1, -1), (0, -1), (-1, 0), (0, 0)][ret["id"] - ll]
@@ -450,7 +445,7 @@ class Player:
                             pass_err = -13
                             continue
                         pos_portal = ret2["pos"]
-                        if pos_portal not in self.board.tiles or tile.dragon != AddableType.Portal:
+                        if pos_portal not in self.board.tiles or tile.addable != TileAddable.Portal:
                             pass_err = -4
                             continue
                         pos_put = pos_portal
@@ -465,12 +460,8 @@ class Player:
                     ph_put = ret2["id"]
                     if ph_put == -1:
                         break
-                    seg_ph = tile_put.segments[0]
-                    if 0 <= ph_put < len(tile_put.features):
-                        seg_ph = tile_put.features[ph_put]
-                    elif len(tile_put.features) <= ph_put < (len(tile_put.segments) + len(tile_put.features)):
-                        seg_ph = tile_put.segments[ph_put - len(tile_put.features)]
-                    else:
+                    seg_ph = tile_put.getSeg(ph_put)
+                    if seg_ph is None:
                         pass_err = -11
                         continue
 
@@ -582,11 +573,11 @@ class Player:
             tc: list[int] = [0, 0, 0]
             if self.board.checkPack(2, 'd') and obj.type == Connectable.City:
                 for seg2 in obj.segments:
-                    if seg2.tradeCounter == TradeCounter.Wine:
+                    if seg2.addable == Addable.Wine:
                         tc[0] += 1
-                    elif seg2.tradeCounter == TradeCounter.Grain:
+                    elif seg2.addable == Addable.Grain:
                         tc[1] += 1
-                    elif seg2.tradeCounter == TradeCounter.Cloth:
+                    elif seg2.addable == Addable.Cloth:
                         tc[2] += 1
                 if tc != [0, 0, 0]:
                     for i in range(3):
@@ -633,8 +624,6 @@ class Player:
         nextTurn: bool = False
         princessed: bool = False
         rangered: bool = False
-        ifPortal: bool = False
-        ifFlier: bool = False
         ifBarn: bool = False
         isAbbey: bool = False
         # check fairy
@@ -668,7 +657,7 @@ class Player:
             tile = self.handTiles.pop(0)
 
             # check dragon
-            if self.board.checkPack(3, "b") and tile.dragon == AddableType.Volcano:
+            if self.board.checkPack(3, "b") and tile.addable == TileAddable.Volcano:
                 self.board.dragon.moveTo(tile)
 
             if not princessed:
@@ -676,7 +665,7 @@ class Player:
                 ifBarn = yield from self.turnPutFollower(tile, pos, rangered)
 
             # move a dragon
-            if self.board.checkPack(3, "b") and tile.dragon == AddableType.Dragon:
+            if self.board.checkPack(3, "b") and tile.addable == TileAddable.Dragon:
                 yield from self.turnMoveDragon()
 
             # score
