@@ -13,7 +13,7 @@ changelog = ""
 
 cacason = game.GameSameGroup('cacason', can_private=True)
 config.CommandGroup(('play', 'cacason'), hide=True)
-packs = readPackData()
+packs = readPackData()["packs"]
 config.CommandGroup('cacason', des=packs[0]["help"], short_des='卡卡颂。', hide_in_parent=True, display_parents='game')
 for pack in packs:
     if "help" in pack:
