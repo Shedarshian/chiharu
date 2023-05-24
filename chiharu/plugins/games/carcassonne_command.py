@@ -545,6 +545,8 @@ async def ccs_check(session: CommandSession):
         def pos(w: int, h: int, *offsets: tuple[int, int]):
             return w * (64 + 8) + sum(c[0] for c in offsets) + 8, h * (64 + 20) + sum(c[1] for c in offsets) + 20
         all_packs = readTileData({exa: exb})
+        if len(all_packs) == 0:
+            session.finish("此扩展无图块！")
         ss = list(sorted(set(tileData.serialNumber for tileData in all_packs)))
         s2: dict[str, list[tuple[Image.Image, int]]] = {}
         font_name = ImageFont.truetype("msyhbd.ttc", 16)
