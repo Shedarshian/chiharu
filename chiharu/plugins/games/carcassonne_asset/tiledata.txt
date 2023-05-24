@@ -75,7 +75,7 @@ Picture0001
 5 CCCF
     City else (u-l,u-r,d-l,d-r) [32,7/32,56/lr]
     City else (r-u,r-d) [40,30/lr]
-    Field else (l-u,l-d) {0,1} [12,32/ud]
+    Field else (l-u,l-d) {0,1} [12,16/12,48]
     Field else {0,1} [48,16/48,48]
         *1 5a City 1 pennant
 Picture0002
@@ -257,7 +257,7 @@ Picture0121
 1 CFRF
     City u 16
     Feature 32,32
-    Road d-Feature0
+    Road d-Feature0 0
     Field else [16,16/16,48]
         *1 6g Shrine Feature0
 Picture0122
