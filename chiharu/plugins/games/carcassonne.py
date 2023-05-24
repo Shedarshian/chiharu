@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 from .carcassonne_tile import Dir, open_img, readTileData, readPackData, TileData, PointSegmentPic
 from .carcassonne_tile import CitySegmentData, RoadSegmentData, RiverSegmentData, FieldSegmentData, FeatureSegmentData, AddableSegmentData
-from .carcassonne_tile import AreaSegmentPic, LineSegmentPic, SegmentType
+from .carcassonne_tile import AreaSegmentPic, LineSegmentPic, SegmentData
 
 class CantPutError(Exception):
     pass
@@ -66,7 +66,7 @@ TToken = TypeVar("TToken", bound="Token")
 class Board:
     def __init__(self, packs_options: dict[int, str], player_names: list[str], start_tile_pack: int=0) -> None:
         all_packs = readTileData(packs_options)
-        packs: list[dict[str, Any]] = readPackData()
+        packs: list[dict[str, Any]] = readPackData()["packs"]
         self.packs_options = packs_options
         self.tiles: dict[tuple[int, int], Tile] = {}
         self.riverDeck: list[Tile] = []
@@ -87,8 +87,11 @@ class Board:
             self.allTileimgs[tile.serialNumber] = tile.img
         for pack in packs:
             pack_id = pack["id"]
-            self.tokenimgs[pack_id] = open_img("token" + str(pack_id))
+            if "tokens" in pack:
+                self.tokenimgs[pack_id] = open_img("token" + str(pack_id))
             for t in pack.get("tokens", []):
+                if pack_id not in packs_options:
+                    continue
                 if "thing_id" in t and t["thing_id"] not in packs_options[pack_id]:
                     continue
                 num = t["num"] if "num" in t else t["numOfPlayers"][str(len(self.players))]
@@ -642,26 +645,31 @@ class Tile:
         self.img: Image.Image = board.abbeyImg if isAbbey else data.img
         self.segments: list[Segment] = []
         self.features: list[Feature] = []
+        self.tokens: list[Token] = []
+        self.board = board
+        self.isAbbey = isAbbey
+        self.connectTile: list[Tile | None] = [None] * 4
+        self.orient: Dir = Dir.UP
         self.addable: TileAddable = TileAddable.No
+
         for seg in data.segments:
             if isinstance(seg, CitySegmentData):
                 self.segments.append(CitySegment(self, seg))
             elif isinstance(seg, RoadSegmentData):
                 self.segments.append(RoadSegment(self, seg))
             elif isinstance(seg, FieldSegmentData):
-                self.segments.append(FieldSegment(self, seg))
+                self.segments.append(FieldSegment(self, seg, data.segments))
             elif isinstance(seg, RiverSegmentData):
                 self.segments.append(RiverSegment(self, seg))
             elif isinstance(seg, FeatureSegmentData):
                 self.features.append(Feature.make(seg.feature)(self, seg, seg.params))
             elif isinstance(seg, AddableSegmentData):
                 self.addable = TileAddable[seg.feature]
+        for seg2 in self.segments:
+            if isinstance(seg2, FieldSegment):
+                seg2.makeAdjCity()
+        self.segments.sort(key=lambda x: x.key())
 
-        self.tokens: list[Token] = []
-        self.board = board
-        self.isAbbey = isAbbey
-        self.connectTile: list[Tile | None] = [None] * 4
-        self.orient: Dir = Dir.UP
     @property
     def serialNumber(self):
         return self.packid, self.picname, self.id, self.sub_id
@@ -757,7 +765,7 @@ class Tile:
         citycorrs: list[tuple[float, float]] = []
         for seg in self.segments:
             corr = seg.drawPos(1)[0]
-            if isinstance(seg, AreaSegment):
+            if isinstance(seg, LineSegment):
                 for dir in seg.side.keys():
                     if dir == Dir.UP:
                         dr.line((corr[0], 0, corr[0], corr[1]), seg.color, 2)
@@ -767,12 +775,13 @@ class Tile:
                         dr.line((corr[0], 64, corr[0], corr[1]), seg.color, 2)
                     elif dir == Dir.LEFT:
                         dr.line((0, corr[1], corr[0], corr[1]), seg.color, 2)
-            elif isinstance(seg, FieldSegment):
+            elif isinstance(seg, AreaSegment):
                 for du in seg.side.keys():
                     cr = {(Dir.UP, True): (16, 0), (Dir.UP, False): (48, 0), (Dir.RIGHT, True): (64, 16), (Dir.RIGHT, False): (64, 48), (Dir.DOWN, True): (48, 64), (Dir.DOWN, False): (16, 64), (Dir.LEFT, True): (0, 48), (Dir.LEFT, False): (0, 16)}[du]
                     dr.line(cr + corr, seg.color, 2)
-                for city in seg.adjacentCity:
-                    dr.line((citycorrs[self.segments.index(city)], corr), "gray", 2)
+                if isinstance(seg, FieldSegment):
+                    for city in seg.adjacentCity:
+                        dr.line((citycorrs[self.segments.index(city)], corr), "gray", 2)
             citycorrs.append(corr)
             ci += 1
         ci = 1
@@ -801,8 +810,8 @@ class Tile:
             poses = seg.drawPos(len(seg.tokens))
             drawn_poses.extend(poses)
             for i, token in enumerate(seg.tokens):
+                t = token.image()
                 if isinstance(token, Barn):
-                    t = token.image()
                     img.alpha_composite(t, pos(64, 64, (-t.size[0] // 2, -t.size[1] // 2)))
                 else:
                     img.alpha_composite(t, pos(*turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2)))
@@ -888,6 +897,8 @@ class Segment(ABC):
     @abstractmethod
     def putPos(self, num: int) -> tuple[int, int]:
         pass
+    def key(self):
+        return (-1,)
 class AreaSegment(Segment):
     def __init__(self, tile: Tile, side: list[tuple[Dir, bool]], pic: AreaSegmentPic) -> None:
         super().__init__(tile)
@@ -909,6 +920,8 @@ class AreaSegment(Segment):
         return self.pic.drawPos(num)
     def putPos(self, num: int):
         return self.pic.putPos(num)
+    def key(self):
+        return tuple(sorted(Dir.sideKey(t) for t in self.side.keys()))
 class LineSegment(Segment):
     def __init__(self, tile: Tile, side: list[Dir], pic: list[LineSegmentPic]) -> None:
         super().__init__(tile)
@@ -953,6 +966,8 @@ class LineSegment(Segment):
         elif r % 2 == 0:
             return p.center
         return p.getPortion(0.5 + 0.5 / (r + 1))
+    def key(self):
+        return tuple(sorted(t.value for t in self.side.keys()))
 class CitySegment(AreaSegment):
     def __init__(self, tile: Tile, data: CitySegmentData) -> None:
         super().__init__(tile, data.side, data.pic)
@@ -966,9 +981,13 @@ class CitySegment(AreaSegment):
                 self.addable = Addable[addable.feature]
             if tile.board.checkPack(3, "e") and addable.feature == "Princess":
                 self.addable = Addable.Princess
+    def key(self):
+        return (0, super().key())
 class RoadSegment(LineSegment):
     type = Connectable.Road
     color = "black"
+    def key(self):
+        return (1, super().key())
     def __init__(self, tile: Tile, data: RoadSegmentData) -> None:
         super().__init__(tile, data.side, data.lines)
         for addable in data.addables:
@@ -979,15 +998,25 @@ class RiverSegment(LineSegment):
     color = "blue"
     def __init__(self, tile: Tile, data: RiverSegmentData) -> None:
         super().__init__(tile, data.side, data.lines)
+    def key(self):
+        return (3, super().key())
 class FieldSegment(AreaSegment):
     type = Connectable.Field
     color = "green"
-    def __init__(self, tile: Tile, data: FieldSegmentData) -> None:
+    def __init__(self, tile: Tile, data: FieldSegmentData, segments: list[SegmentData]) -> None:
         super().__init__(tile, data.side, data.pic)
+        self.adjacentCitytemp = data.adjCity
+        self.adjacentSegtemp = segments
         self.adjacentCity: list[Segment] = []
         for addable in data.addables:
             if tile.board.checkPack(2, "c") and addable.feature == "Pigherd":
                 self.addable = Addable.Pigherd
+    def makeAdjCity(self):
+        self.adjacentCity = [self.tile.segments[self.adjacentSegtemp.index(seg)] for seg in self.adjacentCitytemp]
+        del self.adjacentCitytemp
+        del self.adjacentSegtemp
+    def key(self):
+        return (2, super().key())
 
 class Object(CanScore):
     def __init__(self, seg: Segment) -> None:
@@ -1172,7 +1201,7 @@ class Tower(Feature):
     @property
     def num_pos(self):
         cor = self.num_dir.corr()
-        return self.pic.pos[0] + cor[0], self.pic.pos[1] + cor[1]
+        return self.pic.pos[0] + 11 * cor[0], self.pic.pos[1] + 11 * cor[1]
 class Flier(Feature, CanScore):
     def __init__(self, parent: Tile, pic: FeatureSegmentData, data: list[Any]) -> None:
         Feature.__init__(self, parent, pic, data)
@@ -1222,9 +1251,10 @@ class Flier(Feature, CanScore):
 class TokenMeta(type):
     def __new__(cls, name: str, base, attr):
         ncls = super().__new__(cls, name, base, attr)
-        if name in attr:
+        if 'name' in attr:
             Token.all_name[name.lower()] = ncls # type: ignore
             Token.all_name[attr["name"]] = ncls # type: ignore
+        return ncls
 class Token(metaclass=TokenMeta):
     all_name: dict[str, 'Type[Token]'] = {}
     def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
@@ -1429,6 +1459,7 @@ class Phantom(Follower):
         return self.board.tokenimgs[13].crop(((id % 3) * 17, (id // 3) * 14, (id % 3 + 1) * 17, (id // 3 + 1) * 14))
     key = (13, 4)
     name = "幽灵"
+Token.all_name["follower"] = BaseFollower
 
 AbbeyData = TileData("abbey", 0, "FFFF", [])
 AbbeyData.segments.append(FeatureSegmentData("Cloister", (32, 32), [], AbbeyData))
@@ -1691,7 +1722,7 @@ class GiftTake2(Gift):
 from .carcassonne_player import Player
 
 if __name__ == "__main__":
-    b = Board({1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 7: "bc", 12: "ab", 13: "h"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
+    b = Board({1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 12: "ab"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
     d = {
             "name": "follower",
             "distribute": True,
@@ -1699,26 +1730,30 @@ if __name__ == "__main__":
             "image": [0, 0, 16, 16]
         }
     b.players[0].tokens.pop(0)
-    def _(i: int, packid: int, yshift: int):
-        t = b.tiles[i % 5, i // 5 + yshift] = [s for s in b.deck + b.riverDeck if s.id == i and s.picname == packid][0]
-        # t.turn(Dir.LEFT)
-        for seg in t.segments:
-            b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-            for _ in b.players[0].tokens[-1].putOn(seg):
-                pass
-        for feature in t.features:
-            if isinstance(feature, BaseCloister):
+    yshift = 0
+    picnames = sorted(set(s.serialNumber[1] for s in b.deck + b.riverDeck))
+    for pic in picnames:
+        ss = sorted(set(s.serialNumber[1:] for s in b.deck + b.riverDeck if s.picname == pic))
+        for i, s2 in enumerate(ss):
+            t = b.tiles[i % 5, i // 5 + yshift] = [s for s in b.deck + b.riverDeck if s.picname == pic and s.serialNumber[1:] == s2][0]
+            t.turn(Dir.LEFT)
+            for seg in t.segments:
                 b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-                for _ in b.players[0].tokens[-1].putOn(feature):
+                for _ in b.players[0].tokens[-1].putOn(seg):
                     pass
-            if isinstance(feature, Tower):
-                b.players[1].tokens.append(BaseFollower(b.players[1], d, open_img("token0").crop((0, 0, 16, 16))))
-                for _ in b.players[1].tokens[-1].putOn(feature):
-                    pass
-                feature.height = random.randint(0, 9)
-    for i in range(32):
-        _(i, 0, 0)
-    for i in range(24):
-        _(i, 7, 7)
+            for feature in t.features:
+                if isinstance(feature, BaseCloister):
+                    b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+                    for _ in b.players[0].tokens[-1].putOn(feature):
+                        pass
+                if isinstance(feature, Tower):
+                    b.players[1].tokens.append(BaseFollower(b.players[1], d, open_img("token0").crop((0, 0, 16, 16))))
+                    for _ in b.players[1].tokens[-1].putOn(feature):
+                        pass
+                    feature.height = random.randint(0, 9)
+        yshift += (len(ss) + 1) // 5
+    seg = b.tiles[4, 3].segments[2]
+    assert isinstance(seg, LineSegment)
     b.dragonMoved.extend([b.tiles[0, 0], b.tiles[1, 0], b.tiles[2, 0], b.tiles[2, 1]])
+    # b.setImageArgs(debug=True)
     b.image().show()

@@ -1,13 +1,9 @@
 from typing import Literal, Any, Generator, Type, TypeVar, Iterable, Callable, Sequence, TypedDict
 import more_itertools, random
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
-from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Follower
-from .carcassonne import State, Connectable, Gift, Dir, CanScore, TAsync, CantPutError
-from .carcassonne import Barn, Builder, Pig, TileAddable, CitySegment, RoadSegment, AbbeyData
-from .carcassonne import Phantom, Tower, Abbot, BaseCloister, Flier, BigFollower, Addable
 
 class Player:
-    def __init__(self, board: Board, id: int, name: str) -> None:
+    def __init__(self, board: 'Board', id: int, name: str) -> None:
         self.board = board
         self.id = id
         self.name = name[:20]
@@ -35,7 +31,7 @@ class Player:
                 show_name = show_name[:-1]
             show_name += "..."
         return show_name
-    def addScore(self, score: int) -> TAsync[None]:
+    def addScore(self, score: int) -> 'TAsync[None]':
         self.score += score
         return
         yield {}
@@ -61,7 +57,7 @@ class Player:
                 if self is player:
                     score += scorec
         return self.score + score
-    def findToken(self, key: str, where: Sequence[Token] | None=None):
+    def findToken(self, key: str, where: 'Sequence[Token] | None'=None):
         try:
             typ = Token.make(key)
         except KeyError:
@@ -73,11 +69,11 @@ class Player:
     def giftsText(self):
         return "\n".join(str(i + 1) + "." + card.name for i, card in enumerate(self.gifts))
 
-    def turnDrawRiver(self, isBegin: bool) -> TAsync[bool]:
+    def turnDrawRiver(self, isBegin: bool) -> 'TAsync[bool]':
         self.handTiles.append(self.board.drawRiverTile())
         return isBegin
         yield {}
-    def turnAskAbbey(self, turn: int, isBegin: bool, endGame: bool) -> TAsync[tuple[bool, bool, tuple[int, int]]]:
+    def turnAskAbbey(self, turn: int, isBegin: bool, endGame: bool) -> 'TAsync[tuple[bool, bool, tuple[int, int]]]':
         isAbbey: bool = False
         tile: Tile | None = None
         pos: tuple[int, int] = (-1, -1)
@@ -103,14 +99,14 @@ class Player:
                     self.board.tiles[pos + dr].closeSideAbbey(-dr)
                 break
         return isBegin, isAbbey, pos
-    def turnDrawTile(self, turn: int, isBegin: bool) -> TAsync[bool]:
+    def turnDrawTile(self, turn: int, isBegin: bool) -> 'TAsync[bool]':
         tile = self.board.drawTileCanPut()
         if tile is None:
             raise CantPutError
         self.handTiles.append(tile)
         return isBegin
         yield {}
-    def turnPutTile(self, turn: int, isBegin: bool) -> TAsync[tuple[bool, tuple[int, int], bool, bool]]:
+    def turnPutTile(self, turn: int, isBegin: bool) -> 'TAsync[tuple[bool, tuple[int, int], bool, bool]]':
         pass_err: Literal[0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12] = 0
         prisonered: bool = False
         gifted: bool = False
@@ -219,7 +215,7 @@ class Player:
             self.handTiles = [tile]
             random.shuffle(self.board.deck)
         return isBegin, pos, princessed, rangered
-    def turnMoveGingerbread(self, complete: bool) -> TAsync[None]:
+    def turnMoveGingerbread(self, complete: bool) -> 'TAsync[None]':
         ginger = self.board.gingerbread
         for t in self.board.tiles.values():
             citys = [segment for segment in t.segments if isinstance(segment, CitySegment) and not segment.closed() and ginger.canPut(segment)]
@@ -258,7 +254,7 @@ class Player:
                     break
             yield from ginger.putOn(city)
             break
-    def turnCheckBuilder(self) -> TAsync[bool]:
+    def turnCheckBuilder(self) -> 'TAsync[bool]':
         if not self.board.checkPack(2, 'b'):
             return False
         for seg in self.handTiles[0].segments:
@@ -267,7 +263,7 @@ class Player:
                     return True
         return False
         yield {}
-    def turnPutFollower(self, tile: Tile, pos: tuple[int, int], rangered: bool) -> TAsync[bool]:
+    def turnPutFollower(self, tile: 'Tile', pos: tuple[int, int], rangered: bool) -> 'TAsync[bool]':
         pass_err: int = 0
         if_portal: bool = False
         if_flier: bool = False
@@ -482,7 +478,7 @@ class Player:
                 yield from phantom.putOn(seg_ph)
                 break
         return put_barn
-    def turnCaptureTower(self, tower: Tower, pos: tuple[int, int]) -> TAsync[None]:
+    def turnCaptureTower(self, tower: 'Tower', pos: tuple[int, int]) -> 'TAsync[None]':
         followers = [token for token in self.board.tiles[pos].iterAllTokens() if isinstance(token, Follower)] + [token for dr in Dir for i in range(tower.height) if (pos[0] + dr.corr()[0] * (i + 1), pos[1] + dr.corr()[1] * (i + 1)) in self.board.tiles for token in self.board.tiles[pos[0] + dr.corr()[0] * (i + 1), pos[1] + dr.corr()[1] * (i + 1)].iterAllTokens() if isinstance(token, Follower)]
         if len(followers) == 0:
             return
@@ -505,7 +501,7 @@ class Player:
                 self.prisoners.append(follower)
                 yield from self.checkReturnPrisoner()
             break
-    def checkReturnPrisoner(self) -> TAsync[None]:
+    def checkReturnPrisoner(self) -> 'TAsync[None]':
         for player in self.board.players:
             if player is self:
                 continue
@@ -536,7 +532,7 @@ class Player:
                 self.board.addLog(id="exchangePrisoner", p1=t[0], p2=t[1])
             t[0].putBackToHand()
             t[1].putBackToHand()
-    def turnMoveDragon(self) -> TAsync[None]:
+    def turnMoveDragon(self) -> 'TAsync[None]':
         dragon = self.board.dragon
         assert dragon.tile is not None
         pass_err: Literal[0, -1] = 0
@@ -559,7 +555,7 @@ class Player:
             self.board.nextAskingPlayer()
         self.board.current_player_id = self.board.current_turn_player_id
         self.board.dragonMoved = []
-    def turnScoring(self, tile: Tile, pos: tuple[int, int], ifBarn: bool, rangered: bool) -> TAsync[None]:
+    def turnScoring(self, tile: 'Tile', pos: tuple[int, int], ifBarn: bool, rangered: bool) -> 'TAsync[None]':
         objects: list[Object] = []
         for seg in tile.segments:
             if seg.closed() and seg.object not in objects:
@@ -604,7 +600,7 @@ class Player:
                     continue
                 self.board.ranger.moveTo(pos_ranger)
                 break
-    def turn(self) -> TAsync[None]:
+    def turn(self) -> 'TAsync[None]':
         """PuttingTile：坐标+方向（-1：已有连接, -2：无法连接，-3：没有挨着，-4：未找到可赎回的囚犯，-5：余分不足，-6：河流不能回环
         -7：河流不能180度，-8：修道院和神龛不能有多个相邻，-9：必须扩张河流，-10：河流分叉必须岔开，-11：未找到礼物卡，-12：请指定使用哪张）
         ChoosingPos：选择坐标（-1：板块不存在，-2：不符合要求）
@@ -768,3 +764,8 @@ class Player:
                 dr.text((90 + i * 96, 48), "L", "black", font, "rm")
                 dr.text((166 + i * 96, 48), "R", "black", font, "lm")
         return img
+
+from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Follower
+from .carcassonne import State, Connectable, Gift, Dir, CanScore, TAsync, CantPutError
+from .carcassonne import Barn, Builder, Pig, TileAddable, CitySegment, RoadSegment, AbbeyData
+from .carcassonne import Phantom, Tower, Abbot, BaseCloister, Flier, BigFollower, Addable

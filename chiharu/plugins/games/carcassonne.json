@@ -22,7 +22,7 @@
             "things": ["图块", "大跟随者", "旅馆机制", "主教教堂机制"],
             "tokens": [
                 {
-                    "name": "big follower",
+                    "name": "bigfollower",
                     "distribute": true,
                     "num": 1,
                     "image": [0, 0, 16, 16],

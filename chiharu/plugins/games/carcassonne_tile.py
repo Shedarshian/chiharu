@@ -8,6 +8,7 @@ def open_img(name: str):
     from pathlib import Path
     return Image.open(Path(__file__).parent / "carcassonne_asset" / (name + ".png")).convert("RGBA")
 def readTileData(packData: dict[int, str]):
+    packData[0] = "a"
     from pathlib import Path
     tiles: list[TileData] = []
     with open(Path(__file__).parent / "carcassonne_asset" / "tiledata.txt", encoding="utf-8") as f:
@@ -15,8 +16,9 @@ def readTileData(packData: dict[int, str]):
         for name, tilets in data:
             img = open_img(name)
             for tilet in tilets:
+                # print(name, tilet.id, tilet.sides)
                 tile = TileData(name, tilet.id, tilet.sides, tilet.segments)
-                for i, (num, packname, extra_orders) in enumerate(tilet.nums):
+                for i0, (num, packname, extra_orders) in enumerate(tilet.nums):
                     match = re.match(r"(\d+)([a-z])", packname)
                     if match is None:
                         continue
@@ -25,23 +27,23 @@ def readTileData(packData: dict[int, str]):
                         continue
                     tile_now = deepcopy(tile)
                     tile_now.packid = i
-                    tile_now.img = img.crop((64 * i, 64 * tilet.id, 64 * i + 64, 64 * tilet.id + 64))
+                    tile_now.img = img.crop((64 * i0, 64 * tilet.id, 64 * i0 + 64, 64 * tilet.id + 64))
                     for order in extra_orders:
                         match order:
                             case StartExtraOrderData():
                                 tile_now.start = True
                             case AddableExtraOrderData(feature, params, None):
-                                tile.segments.append(AddableSegmentData(feature, params))
+                                tile_now.segments.append(AddableSegmentData(feature, params))
                             case AddableExtraOrderData(feature, params, pos):
-                                tile.segments.append(FeatureSegmentData(feature, pos, params, tile)) # type: ignore
+                                tile_now.segments.append(FeatureSegmentData(feature, pos, params, tile_now)) # type: ignore
                             case FeatureExtraOrderData(type, id, feature, params):
-                                seg = [seg for seg in tile.segments if seg.type == type][id]
+                                seg = [seg for seg in tile_now.segments if seg.type == type][id]
                                 seg.addables.append(AddableSegmentData(feature, params))
                             case HintExtraOrderData(type, id, hint):
-                                seg = [seg for seg in tile.segments if seg.type == type][id]
+                                seg = [seg for seg in tile_now.segments if seg.type == type][id]
                                 assert isinstance(seg, AreaSegmentData)
                                 seg.pic.makeHint(hint)
-                    tile_now.sub_id = i
+                    tile_now.sub_id = i0
                     for _ in range(num - 1):
                         tiles.append(deepcopy(tile_now))
                     tiles.append(tile_now)
@@ -82,10 +84,12 @@ class TileData:
                         self.segments.extend(RoadSegmentData.makeOneSide(segment, self))
                     else:
                         raise NotImplementedError
-                case SegmentType.River | SegmentType.Cut:
+                case SegmentType.River:
                     if not isinstance(segment, LineSegmentPic):
                         raise NotImplementedError
                     self.segments.append(RiverSegmentData(segment, self))
+                case SegmentType.Cut:
+                    pass
                 case SegmentType.Feature:
                     if not isinstance(segment, PointSegmentPic):
                         raise NotImplementedError
@@ -114,17 +118,20 @@ class SegmentData:
         self.addables: list[AddableSegmentData] = []
 class AreaSegmentData(SegmentData):
     def __init__(self, segment: AreaSegmentPic, data: TileData) -> None:
+        super().__init__()
         self.pic = segment
         self.side: list[tuple[Dir, bool]] = [] # counter-clockwise
         if isinstance(segment, OneSideSegmentPic):
             self.side = [(segment.dir, True), (segment.dir, False)]
-            for side in self.side:
-                data.all_sides.remove(side)
-            if data.elsed:
+            if not data.elsed:
+                for side in self.side:
+                    data.all_sides.remove(side)
+            else:
                 # data after "else" has eat effect
                 for seg in data.segments:
                     if isinstance(seg, AreaSegmentData):
-                        # eat
+                        if any(dr == segment.dir for dr, b in seg.side):
+                            self.addAdj(seg)
                         seg.side = [(dr, b) for dr, b in seg.side if dr != segment.dir]
         elif isinstance(segment, DoubleSideSegmentPic):
             self.side = [(dir, f) for dir in segment.dirs for f in (True, False)]
@@ -140,10 +147,11 @@ class AreaSegmentData(SegmentData):
                 for seg in data.segments:
                     if isinstance(seg, AreaSegmentData) and isinstance(seg.pic, (OneSideSegmentPic, DoubleSideSegmentPic, SmallSegmentPic)):
                         self.addAdj(seg)
-            else:
+            elif isinstance(segment.road_sides[0], RoadSideTuple):
                 roads = [road for road in data.segments if isinstance(road, (RoadSegmentData, RiverSegmentData))]
                 checks: dict[tuple[Dir, bool], CitySegmentData | RoadSegmentData | RiverSegmentData] = {}
                 for road_num, sides in segment.road_sides:
+                    assert isinstance(road_num, int) and isinstance(sides, list)
                     road = roads[road_num]
                     for rside in road.side:
                         for dir in sides:
@@ -158,15 +166,20 @@ class AreaSegmentData(SegmentData):
                             if isinstance(city, CitySegmentData) and city.pic.onSelfEdge(t):
                                 checks[city.pic.begin()] = city
                                 checks[city.pic.end()] = city
+                                break
                 self.sortSide()
-                cl = list(checks.keys())
                 begin = Dir.sideKey([(d, b) for d, b in reversed(sorted(list(checks.keys()), key=Dir.sideKey)) if not b][0])
                 begined: bool = False
                 for i in range(8):
                     d = Dir.fromSideKey(begin + i)
                     match begined, d in checks, d[1]:
                         case True, False, _:
-                            self.side.append(d)
+                            if d in data.all_sides:
+                                self.side.append(d)
+                                data.all_sides.remove(d)
+                            else:
+                                e = [seg for seg in data.segments if isinstance(seg, AreaSegmentData) and d in seg.side][0]
+                                self.addAdj(e)
                         case True, True, True:
                             begined = False
                             if isinstance(c := checks[d], AreaSegmentData):
@@ -174,13 +187,22 @@ class AreaSegmentData(SegmentData):
                         case True, True, False:
                             raise ValueError
                         case False, True, True:
-                            raise ValueError
+                            pass
                         case False, True, False:
                             begined = True
                             if isinstance(c := checks[d], AreaSegmentData):
                                 self.addAdj(c)
                         case False, False, _:
                             pass
+            else:
+                for d1, d2 in segment.road_sides:
+                    assert isinstance(d1, Dir) and isinstance(d2, Dir)
+                    b = d2 == d1 + Dir.LEFT
+                    self.side.append((d1, b))
+                    data.all_sides.remove((d1, b))
+                lc = [c for c in data.segments if isinstance(c, CitySegmentData)]
+                for i in segment.adjCity:
+                    self.addAdj(lc[i])
         self.sortSide()
     def sortSide(self):
         self.side.sort(key=Dir.sideKey)
@@ -188,8 +210,8 @@ class AreaSegmentData(SegmentData):
         pass
     def drawPos(self, num: int):
         return self.pic.drawPos(num)
-    def drawPosPut(self, num: int):
-        return self.pic.drawPosPut(num)
+    def putPos(self, num: int):
+        return self.pic.putPos(num)
 class CitySegmentData(AreaSegmentData):
     def addAdj(self, other: "AreaSegmentData"):
         if isinstance(other, FieldSegmentData) and self not in other.adjCity:
@@ -197,13 +219,14 @@ class CitySegmentData(AreaSegmentData):
 class FieldSegmentData(AreaSegmentData):
     type: SegmentType = SegmentType.Field
     def __init__(self, segment: AreaSegmentPic, data: TileData) -> None:
-        super().__init__(segment, data)
         self.adjCity: list[CitySegmentData] = []
+        super().__init__(segment, data)
     def addAdj(self, other: AreaSegmentData):
         if isinstance(other, CitySegmentData) and other not in self.adjCity:
             self.adjCity.append(other)
 class LineSegmentData(SegmentData):
     def __init__(self, line: LineSegmentPic, data: TileData) -> None:
+        super().__init__()
         self.lines: list[LineSegmentPic] = [line]
         self.valid = True
         self.link: tuple[SegmentType, int] | None = None
@@ -223,10 +246,10 @@ class LineSegmentData(SegmentData):
             if len(l) != 0:
                 if line.link[0] == SegmentType.Roundabout:
                     l[0].eat(self)
-                elif line.link[0] == SegmentType.Bridge and len(l) == 2:
-                    if len(l[0].lines) == 1:
+                elif line.link[0] == SegmentType.Bridge:
+                    if len(l) == 3:
                         l[0].eat(self)
-                    else:
+                    elif len(l) == 4:
                         l[1].eat(self)
 class RoadSegmentData(LineSegmentData):
     type: SegmentType = SegmentType.Road
@@ -247,6 +270,7 @@ class RiverSegmentData(LineSegmentData):
 class EmptyFeatureSegmentData(SegmentData):
     type: SegmentType = SegmentType.Feature
     def __init__(self, segment: PointSegmentPic, data: TileData) -> None:
+        super().__init__()
         self.pic = segment
 class AddableSegmentData(SegmentData):
     type: SegmentType = SegmentType.Feature
@@ -254,19 +278,18 @@ class AddableSegmentData(SegmentData):
         super().__init__()
         self.feature = type
         self.params = params
-class FeatureSegmentData(EmptyFeatureSegmentData, AddableSegmentData):
+class FeatureSegmentData(AddableSegmentData):
     def __init__(self, type: str, pos: tuple[int, int] | Dir | tuple[SegmentType, int], params: list[Any], data: TileData) -> None:
         AddableSegmentData.__init__(self, type, params)
         if isinstance(pos, tuple):
             if isinstance(pos[0], SegmentType):
                 f = [seg for seg in data.segments if seg.type == pos[0]][pos[1]]
-                assert isinstance(f, PointSegmentPic)
-                self.pos: tuple[int, int] = f.pos
+                assert isinstance(f, EmptyFeatureSegmentData)
+                self.pos: tuple[int, int] = f.pic.pos
             else:
                 self.pos = pos
         else:
             self.pos = pos.tilepos()
-        segment = PointSegmentPic(SegmentType.Feature, self.pos, [])
-        EmptyFeatureSegmentData.__init__(self, segment, data)
+        self.pic = PointSegmentPic(SegmentType.Feature, self.pos, [])
 
 

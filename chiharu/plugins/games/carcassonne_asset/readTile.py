@@ -13,7 +13,7 @@ class Dir(Enum):
     def corr(self) -> tuple[int, int]:
         return ((0, -1), (1, 0), (0, 1), (-1, 0))[self.value]
     def tilepos(self) -> tuple[int, int]:
-        return [(32, 0), (32, 64), (0, 32), (64, 32)][self.value]
+        return [(32, 0), (64, 32), (32, 64), (0, 32)][self.value]
     @classmethod
     def fromCorr(cls, corr: tuple[int, int]):
         return Dir(((0, -1), (1, 0), (0, 1), (-1, 0)).index(corr))
@@ -43,10 +43,10 @@ addable = {"Cathedral", "Inn", "pennant", "Cloth", "Wine", "Grain", "Princess", 
 tile_addable = {"Portal", "Volcano", "Dragon"}
 tile_addable_pos = {"Garden", "Tower", "Cloister"}
 segments = {"City", "Road", "Field", "River", "Feature", "Junction", "Cut", "Bridge", "Roundabout", "Tunnel"}
-directions = ["up", "right", "down", "left"]
+directions = ["u", "r", "d", "l"]
 elses = ["else", "where", "ud", "lr", "start", "R"]
 tokens = ["DIRECTION", "NUMBER", "WORD", "PACKNAME", "SIDES", "ADDABLE", "TILE_ADDABLE", "TILE_ADDABLE_POS", "PICTURE"] + [s.upper() for s in segments] + [s.upper() for s in elses]
-literals = '()[]/-;,*'
+literals = '()[]{}/-;,*'
 
 line_num = 0
 def TileDataLexer():
@@ -68,11 +68,14 @@ def TileDataLexer():
         return t
     def t_WORD(t):
         r'[a-zA-Z]+'
-        if t.value in segments or t.value in elses:
+        if t.value in segments:
+            t.type = t.value.upper()
+            t.value = SegmentType[t.value]
+        elif t.value in elses:
             t.type = t.value.upper()
         elif t.value in directions:
             t.type = "DIRECTION"
-            t.value = Dir[t.value.upper()]
+            t.value = Dir(directions.index(t.value))
         elif t.value in addable:
             t.type = "ADDABLE"
         elif t.value in tile_addable:
@@ -104,14 +107,17 @@ class TileDataParser:
            more_road_sides :
            extras :
            more_extras :
-           op_param :"""
+           op_param :
+           more_manual_sides :
+           adjcity :
+           more_adjcitys :"""
         p[0] = []
     def p_Pictures(self, p):
         """pictures : PICTURE tiles pictures"""
         p[0] = [PictureDataTuple(p[1], p[2])] + p[3]
     def p_Tiles(self, p):
         """tiles : NUMBER SIDES segments nums tiles"""
-        p[0] = [TileDataTuple(p[1], p[2], p[3], p[4])] + p[4]
+        p[0] = [TileDataTuple(p[1], p[2], p[3], p[4])] + p[5]
     def p_Segments(self, p):
         """segments : segment segments"""
         p[0] = [p[1]] + p[2]
@@ -124,17 +130,17 @@ class TileDataParser:
         | FEATURE
         | CUT
         | TUNNEL"""
-        p[0] = SegmentType[p[1]]
+        p[0] = p[1]
     def p_AnyAreaType(self, p):
         """any_area : CITY
         | FIELD"""
-        p[0] = SegmentType[p[1]]
+        p[0] = p[1]
     def p_AnyPointType(self, p):
         """any_point : JUNCTION
         | FEATURE
         | BRIDGE
         | ROUNDABOUT"""
-        p[0] = SegmentType[p[1]]
+        p[0] = p[1]
     def p_pos(self, p):
         """pos : NUMBER ',' NUMBER"""
         p[0] = (p[1], p[3])
@@ -148,11 +154,15 @@ class TileDataParser:
         p[0] = p[1], p[2]
     def p_Hint(self, p):
         """hint : '[' hints ']'
+           road_side : '(' manual_sides ')'
            road_side : '(' road_sides ')'
            more_hints : '/' hints
            more_road_sides : ',' road_sides
+           more_manual_sides : ',' manual_sides
            more_extras : ';' extras
-           op_param : '(' params ')'"""
+           op_param : '(' params ')'
+           adjcity : '{' adjcitys '}'
+           more_adjcitys : ',' adjcitys"""
         p[0] = p[2]
     def p_Hints(self, p):
         """hints : pos more_hints
@@ -183,8 +193,8 @@ class TileDataParser:
         """segment : CUT any_pos '-' any_pos"""
         p[0] = LineSegmentPic(p[1], [p[2], p[4]], 0, [])
     def p_ElseSegment(self, p):
-        """segment : any_area ELSE road_side hint"""
-        p[0] = ElseSegmentPic(p[1], p[3], p[4])
+        """segment : any_area ELSE road_side adjcity hint"""
+        p[0] = ElseSegmentPic(p[1], p[3], p[4], p[5])
     def p_TunnelSegment(self, p):
         """segment : TUNNEL ROAD NUMBER ROAD NUMBER"""
         p[0] = TunnelSegmentPic(p[1], p[3], p[5], [])
@@ -212,6 +222,12 @@ class TileDataParser:
     def p_Params1(self, p):
         """params : NUMBER"""
         p[0] = [p[1]]
+    def p_ManualSides(self, p):
+        """manual_sides : DIRECTION - DIRECTION more_manual_sides"""
+        p[0] = [(p[1], p[3])] + p[4]
+    def p_AdjCities(self, p):
+        """adjcitys : NUMBER more_adjcitys"""
+        p[0] = [p[1]] + p[2]
     def p_error(self, p):
         raise ParserError(line_num, p)
     def build(self, **kwargs):
@@ -333,14 +349,13 @@ class LineSegmentPic(SegmentPic):
             self.center = (self.nodes[0][0] + self.nodes[1][0]) // 2, (self.nodes[0][1] + self.nodes[1][1]) // 2
         else:
             self.center = self.getPortion(0.5)
-        del self.nodes_init
     def getPortion(self, f: float) -> tuple[int, int]:
         lens: list[float] = [((i[0] - j[0]) ** 2 + (i[1] - j[1]) ** 2) ** 0.5 for i, j in more_itertools.windowed(self.nodes, 2, fillvalue=(0, 0))]
         l = sum(lens) * f
         for i, le in enumerate(lens):
             if l < le:
                 d2 = self.nodes[i + 1][0] - self.nodes[i][0], self.nodes[i + 1][1] - self.nodes[i][1]
-                ds = le / (d2[0] ** 2 + d2[1] ** 2) ** 0.5
+                ds = l / (d2[0] ** 2 + d2[1] ** 2) ** 0.5
                 return round(ds * d2[0] + self.nodes[i][0]), round(ds * d2[1] + self.nodes[i][1])
             l -= le
         return 0, 0
@@ -393,20 +408,22 @@ class AreaSegmentPic(SegmentPic):
         return self.hint[p1]
 class SmallSegmentPic(AreaSegmentPic):
     __slots__ = ("side", "width")
-    def __init__(self, type: SegmentType, side: tuple[Dir,bool], width: int, hint) -> None:
+    def __init__(self, type: SegmentType, side: tuple[Dir, bool], width: int, hint) -> None:
         super().__init__(type, hint)
         self.radius = 4
         self.side = side
         self.width = width
-        self.hint = [(32 + (32 - width // 2) * (cor := side[0].corr())[0] + 16 * (cor2 := (side[0] + Dir.LEFT).corr())[0], 32 + (32 - width // 2) * cor[1] + 16 * cor2[1])]
+        if self.hint == []:
+            self.hint = [(32 + (32 - width // 2) * (cor := side[0].corr())[0] + 16 * (cor2 := (side[0] + (Dir.LEFT if side[1] else Dir.RIGHT)).corr())[0], 32 + (32 - width // 2) * cor[1] + 16 * cor2[1])]
 class OneSideSegmentPic(AreaSegmentPic):
     __slots__ = ("dir", "width")
     def __init__(self, type: SegmentType, dir: Dir, width: int, hint) -> None:
         super().__init__(type, hint)
         self.dir = dir
         self.width = width
-        self.hint = [(32 + (32 - width // 2) * (cor := dir.corr())[0], 32 + (32 - width // 2) * cor[1])]
-        self.hint_line = "ud" if dir in (Dir.UP, Dir.DOWN) else "lr"
+        if self.hint == []:
+            self.hint = [(32 + (32 - width // 2) * (cor := dir.corr())[0], 32 + (32 - width // 2) * cor[1])]
+            self.hint_line = "ud" if dir in (Dir.UP, Dir.DOWN) else "lr"
     def onSelfEdge(self, pos: tuple[int, int]):
         return self.dir == Dir.UP and pos[1] == self.width or self.dir == Dir.DOWN and pos[1] == 64 - self.width or self.dir == Dir.LEFT and pos[0] == self.width or self.dir == Dir.RIGHT and pos[0] == 64 - self.width
     def begin(self):
@@ -420,8 +437,9 @@ class DoubleSideSegmentPic(AreaSegmentPic):
         self.dirs: tuple[Dir, Dir] = tuple(Dir(x) for x in sorted(dir.value for dir in dirs)) # type: ignore
         if dirs == (Dir.UP, Dir.LEFT):
             self.dirs = (Dir.LEFT, Dir.UP)
-        self.hint = [(32 + (32 - width // 2) * (cor := dir.corr())[0], 32 + (32 - width // 2) * cor[1]) for dir in self.dirs]
-        self.width = width
+        if self.hint == []:
+            self.hint = [(32 + (32 - width // 2) * (cor := dir.corr())[0], 32 + (32 - width // 2) * cor[1]) for dir in self.dirs]
+            self.width = width
     def onSelfEdge(self, pos: tuple[int, int]):
         return Dir.UP in self.dirs and pos[1] == self.width or Dir.DOWN in self.dirs and pos[1] == 64 - self.width or Dir.LEFT in self.dirs and pos[0] == self.width or Dir.RIGHT in self.dirs and pos[0] == 64 - self.width
     def begin(self):
@@ -461,10 +479,11 @@ class DoubleSideSegmentPic(AreaSegmentPic):
             return self.hint[p1][0], self.hint[p1][1] + self.radius
         return self.hint[p1][0] + self.radius, self.hint[p1][1]
 class ElseSegmentPic(AreaSegmentPic):
-    __slots__ = ("road_sides",)
-    def __init__(self, type: SegmentType, road_sides: 'list[RoadSideTuple]', hint) -> None:
+    __slots__ = ("road_sides", "adjCity")
+    def __init__(self, type: SegmentType, road_sides: 'list[RoadSideTuple] | list[tuple[Dir, Dir]]', adjCity: list[int], hint) -> None:
         super().__init__(type, hint)
         self.road_sides = road_sides
+        self.adjCity = adjCity
         if len(self.hint) == 0:
             raise ValueError
 
