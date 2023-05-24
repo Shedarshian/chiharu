@@ -546,11 +546,11 @@ async def ccs_check(session: CommandSession):
             return w * (64 + 8) + sum(c[0] for c in offsets) + 8, h * (64 + 8) + sum(c[1] for c in offsets) + 8
         all_packs = readTileData({exa: exb})
         ss = list(sorted(set(tileData.serialNumber for tileData in all_packs)))
-        s2: dict[tuple[str, int], list[Image.Image]] = {}
+        s2: dict[str, list[Image.Image]] = {}
         for s in ss:
-            if s[1:3] not in s2:
-                s2[s[1:3]] = []
-            s2[s[1:3]].append([tileData.img for tileData in all_packs if tileData.serialNumber == s][0])
+            if s[1] not in s2:
+                s2[s[1]] = []
+            s2[s[1]].extend([tileData.img for tileData in all_packs if tileData.serialNumber == s][0])
         height = sum((len(x) + 4) // 5 for x in s2.values())
         img = Image.new("RGBA", pos(5, height), "LightCyan")
         y: int = 0
