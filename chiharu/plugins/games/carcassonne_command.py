@@ -540,23 +540,28 @@ async def ccs_check(session: CommandSession):
         exa, exb = int(match.group(1)), match.group(2)
         if not exb:
             exb = all_extensions[exa]
-        from PIL import Image, ImageDraw
+        from PIL import Image, ImageDraw, ImageFont
         from .carcassonne_tile import readTileData
         def pos(w: int, h: int, *offsets: tuple[int, int]):
-            return w * (64 + 8) + sum(c[0] for c in offsets) + 8, h * (64 + 8) + sum(c[1] for c in offsets) + 8
+            return w * (64 + 8) + sum(c[0] for c in offsets) + 8, h * (64 + 20) + sum(c[1] for c in offsets) + 20
         all_packs = readTileData({exa: exb})
         ss = list(sorted(set(tileData.serialNumber for tileData in all_packs)))
-        s2: dict[str, list[Image.Image]] = {}
+        s2: dict[str, list[tuple[Image.Image, int]]] = {}
+        font_name = ImageFont.truetype("msyhbd.ttc", 16)
         for s in ss:
             if s[1] not in s2:
                 s2[s[1]] = []
-            s2[s[1]].append([tileData.img for tileData in all_packs if tileData.serialNumber == s][0])
+            l = [tileData.img for tileData in all_packs if tileData.serialNumber == s]
+            s2[s[1]].append((l[0], len(l)))
         height = sum((len(x) + 4) // 5 for x in s2.values())
         img = Image.new("RGBA", pos(5, height), "LightCyan")
+        dr = ImageDraw.Draw(img)
         y: int = 0
         for l in s2.values():
-            for i, timg in enumerate(l):
-                img.paste(timg, pos(i % 5, y + i // 5))
+            for i, (timg, num) in enumerate(l):
+                p = (i % 5, y + i // 5)
+                img.paste(timg, pos(*p))
+                dr.text(pos(*p, (32, 65)), str(num), "black", font_name, "mt")
             y += (len(l) + 4) // 5
         from .. import config
         name = 'ccs' + str(random.randint(0, 9)) + '.png'
