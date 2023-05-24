@@ -117,6 +117,9 @@ class TileData:
                 segdata.makeLink(self)
         self.segments = [seg for seg in self.segments if not isinstance(seg, RoadSegmentData) or seg.valid]
         del self.elsed
+    @property
+    def serialNumber(self):
+        return self.packid, self.picname, self.id, self.sub_id
 
 class SegmentData:
     type: SegmentType = SegmentType.City

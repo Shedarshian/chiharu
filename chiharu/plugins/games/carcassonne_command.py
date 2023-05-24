@@ -533,3 +533,34 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         case _:
             pass
 
+@on_command(('play', 'cacason', 'check'), only_to_me=False, hide=True)
+@config.ErrorHandle
+async def ccs_check(session: CommandSession):
+    if match := re.match(r'ex(\d+)([a-z]*)', session.current_arg_text):
+        exa, exb = int(match.group(1)), match.group(2)
+        if not exb:
+            exb = all_extensions[exa]
+        from PIL import Image, ImageDraw
+        from .carcassonne_tile import readTileData
+        def pos(w: int, h: int, *offsets: tuple[int, int]):
+            return w * (64 + 8) + sum(c[0] for c in offsets) + 8, h * (64 + 8) + sum(c[1] for c in offsets) + 8
+        all_packs = readTileData({exa: exb})
+        ss = list(sorted(set(tileData.serialNumber for tileData in all_packs)))
+        s2: dict[tuple[str, int], list[Image.Image]] = {}
+        for s in ss:
+            if s[1:3] not in s2:
+                s2[s[1:3]] = []
+            s2[s[1:3]].append([tileData.img for tileData in all_packs if tileData.serialNumber == s][0])
+        height = sum((len(x) + 4) // 5 for x in s2.values())
+        img = Image.new("RGBA", pos(5, height), "LightCyan")
+        y: int = 0
+        for l in s2.values():
+            for i, timg in enumerate(l):
+                img.paste(timg, pos(i % 5, y + i // 5))
+            y += (len(l) + 4) // 5
+        from .. import config
+        name = 'ccs' + str(random.randint(0, 9)) + '.png'
+        img.save(config.img(name))
+        await session.send(config.cq.img(name))
+    else:
+        await session.send("请发送扩展编号如ex1ab")
