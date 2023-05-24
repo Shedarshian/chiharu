@@ -1553,10 +1553,10 @@ class GiftRoadSweeper(Gift):
                 while 1:
                     user.board.state = State.ChoosingSegment
                     ret2 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "road_sweeper"}
-                    if ret2["id"] < len(tile.features) or ret2["id"] >= len(tile.features) + len(tile.segments):
+                    s = tile.getSeg(ret2["id"])
+                    if not isinstance(s, RoadSegment):
                         pass_err = -1
                         continue
-                    s = tile.segments[ret2["id"] - len(tile.features)]
                     if s not in roads:
                         pass_err = -2
                         continue
@@ -1677,24 +1677,15 @@ class GiftChangePosition(Gift):
                 while 1:
                     user.board.state = State.ChoosingSegment
                     ret3 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "change_position"}
-                    id: int = ret3["id"]
-                    if id < len(tile.features):
-                        p = tile.features[id]
-                        if p in put_list and isinstance(p, Monastry):
-                            to_put = p
-                        else:
-                            pass_err = -2
-                            continue
-                    elif id < len(tile.features) + len(tile.segments):
-                        p2 = tile.segments[id - len(tile.features)]
-                        if p2 in put_list:
-                            to_put = p2
-                        else:
-                            pass_err = -2
-                            continue
-                    else:
+                    p = tile.getSeg(ret2["id"])
+                    if p is None:
                         pass_err = -1
                         continue
+                    elif p not in put_list:
+                        pass_err = -2
+                        continue
+                    else:
+                        to_put = p
                     break
             to_check: Segment | None = None
             if isinstance(follower.parent, Segment):
