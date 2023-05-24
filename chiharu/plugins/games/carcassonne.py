@@ -664,7 +664,9 @@ class Tile:
             elif isinstance(seg, RiverSegmentData):
                 self.segments.append(RiverSegment(self, seg))
             elif isinstance(seg, FeatureSegmentData):
-                self.features.append(Feature.make(seg.feature)(self, seg, seg.params))
+                typ = Feature.make(seg.feature)
+                if typ.pack[0] == 0 or self.board.checkPack(*typ.pack):
+                    self.features.append(typ(self, seg, seg.params))
             elif isinstance(seg, AddableSegmentData):
                 self.addable = TileAddable[seg.feature]
         for seg2 in self.segments:
@@ -955,7 +957,7 @@ class LineSegment(Segment):
                 ret.append(p.center)
             else:
                 for c in range(r):
-                    ret.append(p.getPortion(c / (r + 1)))
+                    ret.append(p.getPortion((c + 1) / (r + 1)))
         return ret
     def putPos(self, num: int):
         if num < len(self.pic):
@@ -1131,6 +1133,7 @@ class Object(CanScore):
 
 TCloister = TypeVar('TCloister', bound='BaseCloister')
 class Feature:
+    pack = (0, "a")
     def __init__(self, parent: Tile, segment: FeatureSegmentData, data: list[Any]) -> None:
         self.pic = segment.pic
         self.pos = segment.pos
@@ -1185,7 +1188,7 @@ class Cloister(Monastry):
             self.board.addLog(id="challengeFailed", type="shrine")
             cloister.removeAllFollowers()
 class Garden(BaseCloister):
-    pass
+    pack = (12, "a")
 class Shrine(Monastry):
     def getChallenge(self):
         return self.getCloister(Cloister)
@@ -1196,6 +1199,7 @@ class Shrine(Monastry):
             self.board.addLog(id="challengeFailed", type="cloister")
             cloister.removeAllFollowers()
 class Tower(Feature):
+    pack = (4, "b")
     def __init__(self, parent: Tile, pic: FeatureSegmentData, data: list[Any]) -> None:
         super().__init__(parent, pic, data)
         self.height: int = 0
@@ -1205,6 +1209,7 @@ class Tower(Feature):
         cor = self.num_dir.corr()
         return self.pic.pos[0] + 11 * cor[0], self.pic.pos[1] + 11 * cor[1]
 class Flier(Feature, CanScore):
+    pack = (13, "b")
     def __init__(self, parent: Tile, pic: FeatureSegmentData, data: list[Any]) -> None:
         Feature.__init__(self, parent, pic, data)
         CanScore.__init__(self, parent.board)
@@ -1229,7 +1234,7 @@ class Flier(Feature, CanScore):
         if pos_new not in self.board.tiles:
             return
         tile = self.board.tiles[pos_new]
-        put_list: Sequence[Segment | Feature] = [segment for segment in tile.segments if not segment.object.closed() and token.canPut(segment)] + [feature for feature in tile.features if isinstance(feature, CanScore) and not feature.closed() and token.canPut(feature)]
+        put_list: Sequence[Segment | Feature] = [segment for segment in tile.segments if not isinstance(segment, FieldSegment) and not segment.object.closed() and token.canPut(segment)] + [feature for feature in tile.features if isinstance(feature, CanScore) and not feature.closed() and token.canPut(feature)]
         if len(put_list) == 0:
             return
         if len(put_list) == 1:
