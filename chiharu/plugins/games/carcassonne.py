@@ -545,7 +545,7 @@ class CanScore(ABC):
     def closed(self) -> bool:
         pass
     def occupied(self):
-        return any(True for t in self.iterTokens())
+        return any(isinstance(t.player, Player) for t in self.iterTokens())
     @abstractmethod
     def iterTokens(self) -> 'Iterable[Token]':
         pass
@@ -850,12 +850,12 @@ class Tile:
             dr.text(pos(*tpos), text, "black", font, "mm")
         i = ord('a')
         for feature in self.features:
-            if isinstance(feature, CanScore) and (draw_occupied_seg or len(feature.tokens) == 0):
+            if isinstance(feature, CanScore) and (draw_occupied_seg or len([token for token in feature.tokens if isinstance(token.player, Player)]) == 0):
                 tpos = turn(feature.putPos(len(feature.tokens)), self.orient)
                 draw(tpos, i)
             i += 1
         for seg in self.segments:
-            if draw_occupied_seg or len(seg.tokens) == 0:
+            if draw_occupied_seg or len([token for token in seg.tokens if isinstance(token.player, Player)]) == 0:
                 tpos = turn(seg.putPos(len(seg.tokens)), self.orient)
                 draw(tpos, i)
             i += 1
@@ -1138,8 +1138,6 @@ class Feature:
         self.pos = segment.pos
         self.parent = parent
         self.tokens: list[Token] = []
-    def occupied(self):
-        return len(self.tokens) != 0
     @classmethod
     def make(cls, typ: str) -> Type["Feature"]:
         return {"cloister": Cloister, "garden": Garden, "shrine": Shrine, "tower": Tower, "flier": Flier}[typ.lower()]
