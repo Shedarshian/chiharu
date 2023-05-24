@@ -86,7 +86,7 @@ async def ccs_extension(session: CommandSession):
 12. 一些小扩展合集
     (a) 花园；(b) 修道院长。
 13. 另一些小扩展合集
-    (k) 幽灵。
+    (a) 飞行器图块；(b) 飞行器；(k) 幽灵。
 14. 又新又好的精选小扩展合集
     (a) 礼物卡牌；(b) 护林员。
 

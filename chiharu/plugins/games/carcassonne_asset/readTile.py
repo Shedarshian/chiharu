@@ -427,7 +427,7 @@ class OneSideSegmentPic(AreaSegmentPic):
         self.width = width
         if self.hint == []:
             self.hint = [(32 + (32 - width // 2) * (cor := dir.corr())[0], 32 + (32 - width // 2) * cor[1])]
-            self.hint_line = "ud" if dir in (Dir.UP, Dir.DOWN) else "lr"
+            self.hint_line = "lr" if dir in (Dir.UP, Dir.DOWN) else "ud"
     def onSelfEdge(self, pos: tuple[int, int]):
         return self.dir == Dir.UP and pos[1] == self.width or self.dir == Dir.DOWN and pos[1] == 64 - self.width or self.dir == Dir.LEFT and pos[0] == self.width or self.dir == Dir.RIGHT and pos[0] == 64 - self.width
     def begin(self):
