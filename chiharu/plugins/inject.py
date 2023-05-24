@@ -143,7 +143,7 @@ class CommandGroup:
                environment: Environment = None,
                hide: bool = False,
                hide_in_parent: bool = False,
-               display_parents: Union[None, str, Tuple[str], Iterable[Tuple[str]]] = None,
+               display_parents: Union[None, str, Tuple[str,...], Iterable[Tuple[str,...]]] = None,
                display_id: int = 0):
         if isinstance(name, str):
             name = (name,)

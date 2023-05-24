@@ -1,0 +1,533 @@
+Picture0000
+0 CCCC
+    City else [32,32]
+        *1 0a City 0 pennant
+        *2 1a City 0 Cathedral
+        *1 5a City 0 pennant; City 0 pennant
+1 CCCC
+    City u 16
+    City r 16
+    City d 16
+    City l 16
+    Field else [32,32]
+        *1 1a Garden 32,32; where Field 0 [20,20/44,20/20,44/44,44]
+2 CCCC
+    City u-l 16
+    City r 16
+    City d 16
+    Field else [38,38]
+        *1 2a City 0 Cloth
+3 CCCC
+    City u-l 16
+    City r-d 16
+    Field else [32,32/20,44/44,20]
+        *1 2a City 0 Wine
+4 CCCC
+    Field l 24 [16,16/16,48]
+    City else [40,32]
+    City l 16
+        *1 4a Tower (u) 50,22; where City 0 [40,40]
+5 CCCC
+    City else (u-l,u-r,d-l,d-r) [32,56/lr]
+    City else (l-u,l-d,r-u,r-d) [8,32/56,32/lr]
+    Field else {0,1} [16,16/16,48]
+    Field else {0,1} [48,16/48,48]
+        *1 5a City 0 pennant
+Picture0001
+0 CCCF
+    Field l 16
+    City else [40,32]
+        *2 0a
+        *1 0a City 0 pennant
+        *1 0a Garden 11,34; where Field 0 [8,16/8,48]
+        *1 2a City 0 Grain
+        *1 3a City 0 Princess
+        *1 3a Portal; where Field 0 [8,16/8,48]
+        *1 3a Dragon; Cloister 32,20; where City 0 [40,40]
+1 CCCF
+    City u 16
+    City r 16
+    City d 16
+    Field else [24,32]
+        *1 1a
+2 CCCF
+    City u 16
+    City r-d 16
+    Field else [24,32]
+        *1 1a City 1 pennant
+3 CCCF
+    Field l 16
+    Field r 24 [48,16/48,32]
+    City else [32,32/ud]
+    City r 16
+        *1 2a City 0 Wine
+        *1 2a City 0 Cloth
+4 CCCF
+    City r-d 16
+    City else (u-l,u-r) [20,32]
+    Field else (l-u,l-d) {1} [4,32/ud]
+    Field else {0,1} [36,36]
+        *1 3a City 0 pennant; City 1 Princess
+5 CCCF
+    City else (u-l,u-r,d-l,d-r) [32,7/32,56/lr]
+    City else (r-u,r-d) [40,30/lr]
+    Field else (l-u,l-d) {0,1} [12,32/ud]
+    Field else {0,1} [48,16/48,48]
+        *1 5a City 1 pennant
+Picture0002
+0 CCCR
+    Road l 16
+    City else [40,32]
+        *1 0a
+        *2 0a City 0 pennant
+        *1 2a City 0 Wine
+        *1 4a Tower (u) 50,50; where City 0 [40,24]
+1 CCCR
+    City u 16
+    City r-d 16
+    Road l-32,48 16
+    Field else (R0-d) [8,48]
+    Field else (R0-u) [8,16/40,24]
+        *1 2a City 1 Grain
+        *1 2a City 1 Cloth
+2 CCCR
+    City u-r 16
+    City d 16
+    Road l-32,16 16
+    Field else (R0-d) [8,48/40,40]
+    Field else (R0-u) [8,16]
+        *1 7c
+Picture0011
+0 CCFF
+    City u-r 16
+    Field else [24,40]
+        *2 0a
+        *1 0a City 0 pennant
+        *1 0a Garden 25,39; where Field 0 [36,28/8,56]
+        *1 0a City 0 pennant; Garden 25,39; where Field 0 [36,28/8,56]
+        *1 2a City 0 Wine
+        *1 2a City 0 Grain
+        *1 3a Dragon
+        *1 3a Garden 21,45; City 0 Princess; where Field 0 [36,28/8,56]
+        *1 4a Tower (u) 14,50; where Field 0 [36,36/ud]
+        *1 13c Cloister 32,38; Gold; where Field 0 [8,56]
+1 CCFF
+    City u 16
+    City r 16
+    Field else [24,40]
+        *1 0a
+        *1 0a Garden 22,46; where Field 0 [36,28/8,56]
+        *1 3a Volcano; where Field 0 [36,28/8,56]
+        *1 4a Tower (u) 14,50; where Field 0 [36,36/ud]
+2 CCFF
+    Field l 16
+    Field d 16
+    City else [40,24]
+        *1 3a City 0 Princess
+        *1 7c
+Picture0012
+0 CCFR
+    City u-r 16
+    Road l-32,16 16
+    Field else (R0-d) [32,48]
+    Field else (R0-u) [8,16]
+        *1 1a Road 0 Inn
+        *1 2a City 0 Grain
+        *1 7c
+1 CCFR
+    Road l 16
+    Field d 16
+    City else [28,36]
+        *1 2a City 0 Grain
+Picture0021
+0 CCRF
+    City u-r 16
+    Road d-32,16 0
+    Field else (R0-r) [40,40/ud]
+    Field else (R0-l) [16,32]
+        *1 1a
+        *1 2a City 0 Cloth; Garden 17,41; where Field 1 [16,16]
+1 CCRF
+    Road d 16
+    Field l 16
+    City else [28,36]
+        *1 2a City 0 Wine
+        *1 4a Tower (u) 42,22; where City 0 [28,36]
+Picture0022
+0 CCRR
+    City u-r 16
+    Road l-d 16
+    Field else (R0-u-r) [32,32/48,56/8,16]
+    Field else (R0-l-d) [8,56]
+        *3 0a
+        *2 0a City 0 pennant
+        *1 1a City 0 pennant; Road 0 Inn
+        *1 3a City 0 Princess
+        *1 3a Portal; where Field 1 [4,60]
+        *1 13c Gold; where Field 1 [4,60]
+        *1 13c Gold; Cloister 32,36; where Road 0 2; where Field 0 [48,56/8,16]
+1 CCRR
+    City u-r 16
+    Road l-32,16 16
+    Road d-48,32 16
+    Field else (R1-r) [48,56]
+    Field else (R0-d,R1-l) [24,40/8,56]
+    Field else (R0-u) [8,16]
+        *1 2a City 0 Wine; Garden 16,48
+        *1 7c
+2 CCRR
+    Road l 16
+    Road d 16
+    City else [28,36]
+        *1 2a City 0 Cloth
+3 CCRR
+    City u 16
+    City r 16
+    Road l-32,16 16
+    Road d-48,32 16
+    Field else (R1-r) [48,56]
+    Field else (R0-d,R1-l) [24,40/8,56]
+    Field else (l-u) {0} [8,16]
+        *1 5a
+Picture0101
+0 CFCF
+    City u 16
+    City d 16
+    Field else [32,32]
+        *2 0a
+        *1 0a Garden 32,32; where Field 0 [16,32/48,32]
+1 CFCF
+    Field l 16
+    Field r 16
+    City else [32,32]
+        *1 0a
+        *2 0a City 0 pennant
+        *1 2a City 0 Wine
+        *1 3a City 0 pennant; Dragon
+Picture0102
+0 CFCR
+    Road l 16
+    Field r 16
+    City else [32,32]
+        *1 2a City 0 Grain
+        *1 2a City 0 Wine
+        *1 7c
+Picture0111
+0 CFFF
+    City u 16
+    Field else [32,48]
+        *4 0a
+        *1 0a Garden 32,44; where Field 0 [48,40/16,40]
+        *1 3a Dragon; Garden 20,33; where Field 0 [48,32]
+        *1 3a Volcano; where Field 0 [48,32]
+        *1 4a Tower (l) 47,46; where Field 0 [16,48]
+1 CFFF
+    Field l-d 16
+    Field r 16
+    City else [32,32]
+        *1 1a
+2 CFFF
+    Field l 16
+    Field d 16
+    Field r 16
+    City else [32,32]
+        *1 5a City 0 pennant
+Picture0112
+0 CFFR
+    City u 16
+    Road l-32,16 16
+    Field else (R0-d) [48,48]
+    Field else (R0-u) [8,16]
+        *1 5a
+Picture0121
+0 CFRF
+    City u 16
+    Road d-32,16 0
+    Field else (R0-r) [48,48]
+    Field else (R0-l) [16,48]
+        *1 1a
+        *1 4a Tower (l) 29,17
+Picture0122
+0 CFRR
+    City u 16
+    Road l-d 16
+    Field else (R0-u-r) [48,32]
+    Field else (R0-l-d) [8,56]
+        *3 0a
+        *1 1a Road 0 Inn
+        *1 3a Dragon; where Field 0 [48,48]
+        *1 3a Portal; where Field 0 [48,48]
+        *1 4a Tower (l) 49,31; where Field 0 [48,48]
+1 CFRR
+    City u 16
+    Road d-32,16 0
+    Road l-32,32 0
+    Field else (R0-r) [48,32]
+    Field else (d-l,l-d) [8,56]
+    Field else (l-u) {0} [8,16]
+        *1 2a
+2 CFRR
+    City u 16
+    Roundabout 32,32
+    Road d-Roundabout0 0
+    Road l-Roundabout0 0
+    Cut 32,16-Roundabout0
+    Field else (d-r,r-d,r-u) {0} [48,32]
+    Field else (R0-l,R1-d) [8,56]
+    Field else (l-u) {0} [8,16]
+        *1 5a
+Picture0202
+0 CRCR
+    Road l 16
+    Road r 16
+    City else [32,32]
+        *1 1a City 0 pennant
+        *1 2a City 0 Wine
+        *1 7c
+1 CRCR
+    City u 16
+    City d 16
+    Junction 32,32
+    Road l-Junction0 0
+    Road r-Junction0 0
+    Cut 32,16-Junction0
+    Cut 32,48-Junction0
+    Field else (r-u) {0} [56,16]
+    Field else (r-d) {1} [56,48]
+    Field else (l-d) {1} [8,48]
+    Field else (l-u) {0} [8,16]
+        *1 1a
+2 CRCR
+    Field l 16 [8,16/8,48]
+    Field r 16 [56,16/56,48]
+    City else [32,32/32,48/32,16]
+    Road l-10,32 0
+    Road r-54,32 0
+    Tunnel Road0 Road1
+        *1 3a Dragon
+3 CRCR
+    City else (u-l,u-r,d-l,d-r) [32,16/32,48]
+    Field else (l-u) {0} [8,16]
+    Field else (l-d) {0} [8,48]
+    Field else (r-u) {0} [56,16]
+    Field else (r-d) {0} [56,48]
+    Road l-r 0
+        *1 4a Tower (u) 43,20
+        *1 13c Gold
+4 CRCR
+    City u 16
+    City d 16
+    Road l-r 0
+    Field else (R0-u) [8,16/56,16]
+    Field else (R0-d) [8,48/56,48]
+        *1 4a Tower (l) 47,14
+        *1 7c
+5 CRCR
+    Field else (l-u,l-d) [8,16/8,48]
+    City else (u-l,u-r,d-l,d-r) [32,16/32,48]
+    Field else (r-u) {0} [56,16]
+    Field else (r-d) {0} [56,48]
+    Road l-10,32 0
+    Road r-32,32 0
+    Tunnel Road0 Road1
+        *1 5a City 0 pennant
+Picture0211
+0 CRFF
+    City u 16
+    Road r-32,16 16
+    Field else (R0-u) [56,16]
+    Field else (R0-d) [16,48]
+        *1 2a
+Picture0212
+0 CRFR
+    City u 16
+    Road l-r 0
+    Field else (R0-u) [8,20/56,20]
+    Field else (R0-d) [32,48]
+        *4 0a start
+1 CRFR
+    City u 16
+    Road l-r 0
+    Cut 32,16-32,32
+    Field else (r-u) {0} [56,16]
+    Field else (R0-d) [32,48]
+    Field else (l-u) {0} [8,20]
+        *1 4a Tower (l) 31,49; where Field 1 [48,48]
+Picture0221
+0 CRRF
+    City u 16
+    Road r-d 16
+    Field else (R0-u-l) [16,32]
+    Field else (R0-r-d) [56,56]
+        *3 0a
+        *1 3a Dragon; where Field 0 [16,48]
+        *1 3a Portal; where Field 0 [16,48]
+1 CRRF
+    City u 16
+    Roundabout 32,32
+    Road r-Roundabout0 0
+    Road d-Roundabout0 0
+    Cut 32,16-Roundabout0
+    Field else (r-u) {0} [56,16]
+    Field else (d-l,l-d,l-u) {0} [16,32]
+    Field else (R0-d,R1-r) [56,56]
+        *1 5a
+Picture0222
+0 CRRR
+    City u 16
+    Junction 32,32
+    Road l-Junction0 0
+    Road d-Junction0 0
+    Road r-Junction0 0
+    Field else (R0-u,R2-u) [8,20/56,20]
+    Field else (R2-d,R1-r) [56,56]
+    Field else (R0-d,R1-l) [8,56]
+        *3 0a
+        *1 3a City 0 Princess
+1 CRRR
+    City u 16
+    Road l-d 16
+    Road r-32,16 16
+    Field else (R1-u) [56,16]
+    Field else (l-u,d-r,r-d) {0} [56,56/32,32]
+    Field else (R0-l-d) [8,56]
+Picture1111
+0 FFFF
+    Field else [12,12/12,52/52,12/52,52]
+        *4 0a Cloister 32,32
+        *1 3a Volcano
+        *1 4a Tower (l) 36,32; Garden 24,12; where Field 0 [12,52/52,12/52,52]
+        *1 4a Tower (l) 44,21; Cloister 18,48
+        *1 7c Field 0 Pigherd
+        *1 13a Flier (6) 19,48; where Field 0 [12,12/52,12/52,52]
+        *1 13a Flier (7) 22,24; Garden 45,46; where Field 0 [12,52/52,12]
+Picture1112
+0 FFFR
+    Feature 32,32
+    Road l-Feature0 0
+    Field else [12,12/12,52/52,12/52,52]
+        *2 0a Cloister Feature0
+        *1 3a Volcano
+        *1 5a Garden 43,15; where Field 0 [12,12/12,52/52,52]
+Picture1122
+0 FFRR
+    Road l-d 16
+    Field else (R0-u-r) [48,16]
+    Field else (R0-l-d) [8,56]
+        *8 0a
+        *1 0a Garden 43,20; where Field 0 [52,48/16,12]
+        *1 1a Road 0 Inn
+        *2 3a Dragon; where Field 0 [52,48/16,12]
+        *1 3a Volcano; where Field 0 [52,48/16,12]
+        *1 13c Gold; Cloister 32,36; where Road 0 2
+        *1 13a Flier (6) 46,20; where Field 0 [16,16/48,48]
+        *1 13a Flier (1) 42,20; where Field 0 [16,16/48,48]
+        *1 13a Flier (4) 42,20; where Field 0 [16,16/48,48]
+1 FFRR
+    Feature 32,32
+    Road d-Feature0 0
+    Road l-Feature0 0
+    Field else (R0-r,R1-u) [52,48/16,12]
+    Field else (R0-l,R1-d) [8,56]
+        *1 4a Tower (l) 36,32
+Picture1212
+0 FRFR
+    Road l-r 16
+    Field else (R0-u) [32,16]
+    Field else (R0-d) [32,48]
+        *7 0a
+        *1 0a Garden 32,48; where Field 1 [16,48/48,48]
+        *1 1a Road 0 Inn; Garden 32,48; where Field 1 [16,48/48,48]
+        *1 3a Dragon; where Field 0 [48,16]
+        *1 3a Volcano; where Field 0 [16,16]
+        *1 13a Flier (6) 18,16; where Field 0 [48,16]
+        *1 13a Flier (0) 48,16; where Field 0 [16,16]
+        *1 13a Flier (7) 20,16; where Field 0 [48,16]
+1 FRFR
+    Feature 32,32
+    Road l-Feature0 0
+    Road r-Feature0 0
+    Field else (R0-u,R1-u) [32,12]
+    Field else (R0-d,R1-d) [32,52]
+        *1 1a Cloister Feature0
+Picture1222
+0 FRRR
+    Feature 32,32
+    Road l-Feature0 0
+    Road d-Feature0 0
+    Road r-Feature0 0
+    Field else (R0-u,R2-u) [32,12]
+    Field else (R2-d,R1-r) [56,56]
+    Field else (R0-d,R1-l) [8,56]
+        *1 2a Cloister Feature0
+        *1 3a Cloister Feature0; Dragon; where Field 0 [16,12]
+        *1 4a Tower (l) 36,32
+1 FRRR
+    Junction 32,32
+    Road l-Junction0 0
+    Road d-Junction0 0
+    Road r-Junction0 0
+    Field else (R0-u,R2-u) [32,16]
+    Field else (R2-d,R1-r) [56,56]
+    Field else (R0-d,R1-l) [8,56]
+        *4 0a
+        *1 1a Road 0 Inn; Road 2 Inn
+        *1 3a Dragon; where Field 0 [48,16]
+        *1 3a Portal; where Field 0 [16,16]
+2 FRRR
+    Roundabout 32,32
+    Road l-Roundabout0 0
+    Road d-Roundabout0 0
+    Road r-Roundabout0 0
+    Field else (R0-u,R2-u) [32,16]
+    Field else (R2-d,R1-r) [56,56]
+    Field else (R0-d,R1-l) [8,56]
+        *1 5a
+Picture2222
+0 RRRR
+    Junction 32,32
+    Road l-Junction0 0
+    Road d-Junction0 0
+    Road r-Junction0 0
+    Road u-Junction0 0
+    Field else (R2-u,R3-r) [56,8]
+    Field else (R2-d,R1-r) [56,56]
+    Field else (R0-d,R1-l) [8,56]
+    Field else (R0-u,R3-l) [8,8]
+        *1 0a
+1 RRRR
+    Feature 32,32
+    Road l-Feature0 0
+    Road d-Feature0 0
+    Road r-Feature0 0
+    Road u-Feature0 0
+    Field else (R2-u,R3-r) [56,8]
+    Field else (R2-d,R1-r) [56,56]
+    Field else (R0-d,R1-l) [8,56]
+    Field else (R0-u,R3-l) [8,8]
+        *1 4a Tower (l) 36,32
+        *1 5a Cloister Feature0
+        *1 7c Cloister Feature0
+2 RRRR
+    Road l-u 16
+    Road r-d 16
+    Field else (R0-r-d,R1-u-l) [48,16/16,48]
+    Field else (R1-r-d) [56,56]
+    Field else (R0-u-l) [8,8]
+        *1 1a
+        *1 3a Portal; where Field 0 [16,48/32,32]
+        *1 4a Tower (l) 52,16; where Field 0 [16,48/32,32]
+        *1 13c Gold
+        *1 13c Gold; Cloister 32,32; where Road 0 2
+3 RRRR
+    Bridge 32,32
+    Road u-Bridge0 0
+    Road r-Bridge0 0
+    Road d-Bridge0 0
+    Road l-Bridge0 0
+    Field else (R0-r,R1-u) [56,8]
+    Field else (R2-r,R1-d) [56,56]
+    Field else (R2-l,R3-d) [8,56]
+    Field else (R0-l,R3-u) [8,8]
+        *1 2a
+        *1 13c Gold

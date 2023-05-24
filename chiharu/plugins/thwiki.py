@@ -16,6 +16,7 @@ from nonebot.command import call_command
 import aiocqhttp
 from . import config, help
 from .inject import on_command
+raise ValueError
 config.logger.open('thwiki')
 def not_banned(session):
     global banlist
