@@ -747,7 +747,7 @@ class Tile:
                         token.last_pos = post
                         break
                 else:
-                    post = (32, 32)
+                    post = (random.randint(8, 56), random.randint(8, 56))
             return turn(token.last_pos, self.orient)
         return (32, 32)
     def getSeg(self, i: int):
