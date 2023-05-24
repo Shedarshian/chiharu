@@ -206,8 +206,8 @@ Picture0101
     Field l 16
     Field r 16
     City else [32,32]
-        *1 0a
         *2 0a City 0 pennant
+        *1 0a
         *1 2a City 0 Wine
         *1 3a City 0 pennant; Dragon
 Picture0102
