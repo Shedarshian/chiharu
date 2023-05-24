@@ -200,9 +200,9 @@ class AreaSegmentData(SegmentData):
                     b = d2 == d1 + Dir.LEFT
                     self.side.append((d1, b))
                     data.all_sides.remove((d1, b))
-                lc = [c for c in data.segments if isinstance(c, CitySegmentData)]
-                for i in segment.adjCity:
-                    self.addAdj(lc[i])
+            lc = [c for c in data.segments if isinstance(c, CitySegmentData)]
+            for i in segment.adjCity:
+                self.addAdj(lc[i])
         self.sortSide()
     def sortSide(self):
         self.side.sort(key=Dir.sideKey)
