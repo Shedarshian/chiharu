@@ -4,6 +4,7 @@ Picture0000
         *1 0a City 0 pennant
         *2 1a City 0 Cathedral
         *1 5a City 0 pennant; City 0 pennant
+        *1 14c Gingerbread
 1 CCCC
     City u 16
     City r 16
@@ -11,12 +12,14 @@ Picture0000
     City l 16
     Field else [32,32]
         *1 1a Garden 32,32; where Field 0 [20,20/44,20/20,44/44,44]
+        *1 14c Gingerbread
 2 CCCC
     City u-l 16
     City r 16
     City d 16
     Field else [38,38]
         *1 2a City 0 Cloth
+        *1 14c Gingerbread
 3 CCCC
     City u-l 16
     City r-d 16
@@ -62,6 +65,7 @@ Picture0001
     City r 16
         *1 2a City 0 Wine
         *1 2a City 0 Cloth
+        *1 14c Gingerbread
 4 CCCF
     City r-d 16
     City else (u-l,u-r) [20,32]
@@ -90,6 +94,7 @@ Picture0002
     Field else (R0-u) [8,16/40,24]
         *1 2a City 1 Grain
         *1 2a City 1 Cloth
+        *1 14c Gingerbread
 2 CCCR
     City u-r 16
     City d 16
@@ -134,6 +139,7 @@ Picture0012
         *1 1a Road 0 Inn
         *1 2a City 0 Grain
         *1 7c
+        *1 14c Gingerbread
 1 CCFR
     Road l 16
     Field d 16
@@ -221,6 +227,7 @@ Picture0111
         *1 3a Dragon; Garden 20,33; where Field 0 [48,32]
         *1 3a Volcano; where Field 0 [48,32]
         *1 4a Tower (l) 47,46; where Field 0 [16,48]
+        *1 6g Shrine 32,32
 1 CFFF
     Field l-d 16
     Field r 16
@@ -247,6 +254,12 @@ Picture0121
     Field else (R0-l) [16,48]
         *1 1a
         *1 4a Tower (l) 29,17
+1 CFRF
+    City u 16
+    Feature 32,32
+    Road d-Feature0
+    Field else [16,16/16,48]
+        *1 6g Shrine Feature0
 Picture0122
 0 CFRR
     City u 16
@@ -401,6 +414,7 @@ Picture1111
         *1 7c Field 0 Pigherd
         *1 13a Flier (6) 19,48; where Field 0 [12,12/52,12/52,52]
         *1 13a Flier (7) 22,24; Garden 45,46; where Field 0 [12,52/52,12]
+        *1 6g Shrine 32,32
 Picture1112
 0 FFFR
     Feature 32,32
@@ -409,6 +423,7 @@ Picture1112
         *2 0a Cloister Feature0
         *1 3a Volcano
         *1 5a Garden 43,15; where Field 0 [12,12/12,52/52,52]
+        *1 6g Shrine Feature0
 Picture1122
 0 FFRR
     Road l-d 16
@@ -450,6 +465,7 @@ Picture1212
     Field else (R0-u,R1-u) [32,12]
     Field else (R0-d,R1-d) [32,52]
         *1 1a Cloister Feature0
+        *1 6g Shrine Feature0
 Picture1222
 0 FRRR
     Feature 32,32

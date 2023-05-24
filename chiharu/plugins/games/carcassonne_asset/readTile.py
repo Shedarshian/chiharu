@@ -40,8 +40,8 @@ class ParserError(Exception):
     pass
 
 addable = {"Cathedral", "Inn", "pennant", "Cloth", "Wine", "Grain", "Princess", "Pigherd"}
-tile_addable = {"Portal", "Volcano", "Dragon", "Gold"}
-tile_addable_pos = {"Garden", "Tower", "Cloister", "Flier"}
+tile_addable = {"Portal", "Volcano", "Dragon", "Gold", "Gingerbread"}
+tile_addable_pos = {"Garden", "Tower", "Cloister", "Shrine", "Flier"}
 segments = {"City", "Road", "Field", "River", "Feature", "Junction", "Cut", "Bridge", "Roundabout", "Tunnel"}
 directions = ["u", "r", "d", "l"]
 elses = ["else", "where", "ud", "lr", "start", "R"]

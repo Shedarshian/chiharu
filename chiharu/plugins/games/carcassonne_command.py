@@ -19,7 +19,7 @@ for pack in packs:
     if "help" in pack and pack["id"] != 0:
         config.CommandGroup(('cacason', 'ex' + str(pack["id"])),
                     des=pack.get("full_name", pack["name"]) + "\n" + pack["help"],
-                    short_des=pack.get("full_name", pack["name"]), display_parents=("play", "cacason", "extension"))
+                    short_des=pack.get("full_name", pack["name"]), hide_in_parent=True, display_parents=("play", "cacason", "extension"))
 
 @on_command(("cacason", "version"), hide=True, only_to_me=False)
 @config.ErrorHandle
@@ -81,6 +81,8 @@ async def ccs_extension(session: CommandSession):
     (a) 图块；(b) 高塔。
 5. 僧院板块与市长（Abbey and Mayor）
     (a) 图块；(b) 僧院板块；(c) 市长；(d) 马车；(e) 谷仓。
+6. 伯爵、国王与小偷（Count, King and Robber）
+    (a) 图块；(g) 神龛图块；(h) 神龛。
 7. 河流合集
     (b) 河流2*；(c) GQ11图块*。
 12. 一些小扩展合集
