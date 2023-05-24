@@ -66,6 +66,7 @@ TToken = TypeVar("TToken", bound="Token")
 
 class Board:
     def __init__(self, packs_options: dict[int, str], player_names: list[str], start_tile_pack: int=0) -> None:
+        print(packs_options)
         all_packs = readTileData(packs_options)
         packs: list[dict[str, Any]] = readPackData()["packs"]
         self.packs_options = packs_options
@@ -377,7 +378,7 @@ class Board:
                 if c not in self.tiles:
                     continue
                 tile = self.tiles[c]
-                tile.drawPutToken(img, c, draw_occupied_seg, self.checkPack(5, "e") and len(choose_follower2) == 1 and any(isinstance(token, Barn) for token in self.current_turn_player.tokens))
+                tile.drawPutToken(img, posshift(*c), draw_occupied_seg, self.checkPack(5, "e") and len(choose_follower2) == 1 and any(isinstance(token, Barn) for token in self.current_turn_player.tokens))
         if draw_tile_follower is not None and draw_tile_follower in self.tiles:
             tile = self.tiles[draw_tile_follower]
             i = ord('a')

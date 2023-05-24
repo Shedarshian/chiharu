@@ -42,8 +42,8 @@ Picture0001
         *1 0a Garden 11,34; where Field 0 [8,16/8,48]
         *1 2a City 0 Grain
         *1 3a City 0 Princess
-        *1 0a Portal; where Field 0 [8,16/8,48]
-        *1 0a Dragon; Cloister 32,20; where City 0 [40,40]
+        *1 3a Portal; where Field 0 [8,16/8,48]
+        *1 3a Dragon; Cloister 32,20; where City 0 [40,40]
 1 CCCF
     City u 16
     City r 16

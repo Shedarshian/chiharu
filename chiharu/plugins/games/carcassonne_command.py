@@ -17,7 +17,8 @@ packs = readPackData()["packs"]
 config.CommandGroup('cacason', des=packs[0]["help"], short_des='卡卡颂。', hide_in_parent=True, display_parents='game')
 for pack in packs:
     if "help" in pack:
-        config.CommandGroup(('cacason', 'ex' + str(pack["id"])), des=pack.get("full_name", pack["name"]) + pack["help"],
+        config.CommandGroup(('cacason', 'ex' + str(pack["id"])),
+                    des=pack.get("full_name", pack["name"]) + "\n" + pack["help"],
                     short_des=pack.get("full_name", pack["name"]), display_parents=("play", "cacason", "extensions"))
 
 @on_command(("cacason", "version"), hide=True, only_to_me=False)
@@ -115,7 +116,7 @@ async def ccs_extension(session: CommandSession):
         if session.current_arg_text.startswith("check"):
             if len(data['extensions']) == 0:
                 session.finish("目前未开启任何扩展包。")
-            await session.send("目前开启的扩展包有：\n" + '\n'.join(packs[packid]["name"] + "\n\t" + "，".join(packs[packid]["things"][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items()) + "\n目前的起始板块是：\n" + start_names[data['starting_tile']])
+            await session.send("目前开启的扩展包有：\n" + '\n'.join(packs[packid]["name"] + "\n\t" + "，".join(packs[packid]["things"][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items() if packid != 0) + "\n目前的起始板块是：\n" + start_names[data['starting_tile']])
             return
         if match := re.match(r'(open|close)(( ex\d+[a-z]*)+)', session.current_arg_text):
             command = match.group(1)
