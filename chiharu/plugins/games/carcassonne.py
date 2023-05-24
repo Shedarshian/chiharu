@@ -35,7 +35,7 @@ class Addable(Enum):
     Cloth = auto()
     Princess = auto()
     Pigherd = auto()
-all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 7: 'abc', 12: 'ab', 13: 'abcdefghijk', 14: 'ab'}
+all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 6: 'abcdefgh', 7: 'abcd', 12: 'abcdef', 13: 'abcdefghijk', 14: 'abcdefg'}
 T = TypeVar('T')
 TAsync = Generator[dict[str, Any], dict[str, Any], T]
 def findAllMax(items: Sequence[T], key: Callable[[T], int], criteria=None) -> tuple[int, list[T]]:
