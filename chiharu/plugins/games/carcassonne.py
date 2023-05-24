@@ -610,7 +610,7 @@ class CanScore(ABC):
                     yield from wagon.putOn(seg_put)
                     break
             self.board.current_player_id = self.board.current_turn_player_id
-    def score(self, scorer: 'Player', putBarn: bool, ifFairy: bool=True) -> TAsync[None]:
+    def score(self, putBarn: bool, ifFairy: bool=True) -> TAsync[bool]:
         players = self.checkPlayerAndScore(True, putBarn=putBarn)
         for player, score in players:
             if score != 0:
@@ -622,11 +622,14 @@ class CanScore(ABC):
                     self.board.addLog(id="score", player=token.player, source="fairy_complete", num=3)
                     yield from token.player.addScore(3)
         yield from self.moveWagon()
+        gingered: bool = False
         if self.board.checkPack(14, "d"):
             ginger = more_itertools.only(token for token in self.iterTokens() if isinstance(token, Gingerbread))
             if ginger is not None:
-                yield from scorer.turnMoveGingerbread(True)
+                yield from ginger.score()
+                gingered = True
         self.removeAllFollowers()
+        return gingered
     def scoreFinal(self):
         players = self.checkPlayerAndScore(False)
         for player, score in players:
@@ -1178,23 +1181,25 @@ class Monastry(BaseCloister):
 class Cloister(Monastry):
     def getChallenge(self):
         return self.getCloister(Shrine)
-    def score(self, scorer: 'Player', putBarn: bool, ifFairy: bool=True) -> TAsync[None]:
+    def score(self, putBarn: bool, ifFairy: bool=True) -> TAsync[bool]:
         hasmeeple: bool = len(self.tokens) != 0
-        yield from super().score(scorer, putBarn, ifFairy)
+        gingered = yield from super().score(putBarn, ifFairy)
         if self.board.checkPack(6, 'h') and (cloister := self.getChallenge()) and not cloister.closed() and hasmeeple and len(cloister.tokens) != 0:
             self.board.addLog(id="challengeFailed", type="shrine")
             cloister.removeAllFollowers()
+        return gingered
 class Garden(BaseCloister):
     pack = (12, "a")
 class Shrine(Monastry):
     def getChallenge(self):
         return self.getCloister(Cloister)
-    def score(self, scorer: 'Player', putBarn: bool, ifFairy: bool=True) -> TAsync[None]:
+    def score(self, putBarn: bool, ifFairy: bool=True) -> TAsync[bool]:
         hasmeeple: bool = len(self.tokens) != 0
-        yield from super().score(scorer, putBarn, ifFairy)
+        gingered = yield from super().score(putBarn, ifFairy)
         if self.board.checkPack(6, 'h') and (cloister := self.getChallenge()) and not cloister.closed() and hasmeeple and len(cloister.tokens) != 0:
             self.board.addLog(id="challengeFailed", type="cloister")
             cloister.removeAllFollowers()
+        return gingered
 class Tower(Feature):
     pack = (4, "b")
     def __init__(self, parent: Tile, pic: FeatureSegmentData, data: list[Any]) -> None:
@@ -1440,7 +1445,7 @@ class Ranger(Figure):
     key = (14, 0)
     name = "护林员"
 class Gingerbread(Figure):
-    def selfPutOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
+    def score(self) -> TAsync[None]:
         if not isinstance(self.parent, Board):
             assert isinstance(self.parent, CitySegment)
             players: list[Player] = []
@@ -1451,7 +1456,6 @@ class Gingerbread(Figure):
             for player in players:
                 self.board.addLog(id="score", player=player, source="gingerbread", num=score)
                 yield from player.addScore(score)
-        yield from super().selfPutOn(seg)
     canPutTypes = (CitySegment,)
     key = (14, 1)
     name = "姜饼人"

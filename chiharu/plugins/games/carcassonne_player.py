@@ -198,8 +198,6 @@ class Player:
                         pass_err = -1
                         continue
                     break
-        if self.board.checkPack(14, "d") and tile.addable == TileAddable.Gingerbread:
-            yield from self.turnMoveGingerbread(False)
         if self.board.checkPack(14, "a"):
             for segment in tile.segments:
                 if isinstance(segment, (RoadSegment, CitySegment)) and len(l := segment.object.checkPlayer()) > 0 and self not in l:
@@ -252,6 +250,8 @@ class Player:
                         continue
                     city = s
                     break
+            if not complete:
+                yield from ginger.score()
             yield from ginger.putOn(city)
             break
     def turnCheckBuilder(self) -> 'TAsync[bool]':
@@ -555,8 +555,9 @@ class Player:
             self.board.nextAskingPlayer()
         self.board.current_player_id = self.board.current_turn_player_id
         self.board.dragonMoved = []
-    def turnScoring(self, tile: 'Tile', pos: tuple[int, int], ifBarn: bool, rangered: bool) -> 'TAsync[None]':
+    def turnScoring(self, tile: 'Tile', pos: tuple[int, int], ifBarn: bool, rangered: bool) -> 'TAsync[bool]':
         objects: list[Object] = []
+        gingered: bool = False
         for seg in tile.segments:
             if seg.closed() and seg.object not in objects:
                 objects.append(seg.object)
@@ -579,14 +580,16 @@ class Player:
                     for i in range(3):
                         self.tradeCounter[i] += tc[i]
                     self.board.addLog(id="tradeCounter", tradeCounter=tc)
-            yield from obj.score(self, ifBarn)
+            if (yield from obj.score(ifBarn)):
+                gingered = True
         for i in (-1, 0, 1):
             for j in (-1, 0, 1):
                 npos = (pos[0] + i, pos[1] + j)
                 if npos in self.board.tiles:
                     for feature in self.board.tiles[npos].features:
                         if isinstance(feature, CanScore) and feature.closed():
-                            yield from feature.score(self, ifBarn)
+                            if (yield from feature.score(ifBarn)):
+                                gingered = True
         if rangered:
             self.board.addLog(id="score", player=self, source="ranger", num=3)
             yield from self.addScore(3)
@@ -600,6 +603,7 @@ class Player:
                     continue
                 self.board.ranger.moveTo(pos_ranger)
                 break
+        return gingered
     def turn(self) -> 'TAsync[None]':
         """PuttingTile：坐标+方向（-1：已有连接, -2：无法连接，-3：没有挨着，-4：未找到可赎回的囚犯，-5：余分不足，-6：河流不能回环
         -7：河流不能180度，-8：修道院和神龛不能有多个相邻，-9：必须扩张河流，-10：河流分叉必须岔开，-11：未找到礼物卡，-12：请指定使用哪张）
@@ -622,6 +626,7 @@ class Player:
         rangered: bool = False
         ifBarn: bool = False
         isAbbey: bool = False
+        gingered: bool = False
         # check fairy
         if self.board.checkPack(3, "c") and self.board.fairy.follower is not None and self.board.fairy.follower.player is self:
             self.board.addLog(id="score", player=self, num=1, source="fairy")
@@ -665,7 +670,11 @@ class Player:
                 yield from self.turnMoveDragon()
 
             # score
-            yield from self.turnScoring(tile, pos, ifBarn, rangered)
+            gingered = yield from self.turnScoring(tile, pos, ifBarn, rangered)
+
+            # move Gingerbread man
+            if self.board.checkPack(14, "d") and (gingered or tile.addable == TileAddable.Gingerbread):
+                yield from self.turnMoveGingerbread(gingered)
 
             self.board.state = State.End
             if nextTurn:
