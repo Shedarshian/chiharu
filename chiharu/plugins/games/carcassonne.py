@@ -1218,12 +1218,13 @@ class Flier(Feature, CanScore):
     def getTile(self) -> 'list[Tile]':
         return []
     def putOnBy(self, token: 'Token') -> TAsync[None]:
+        token.putBackToHand()
         pos = self.board.findTilePos(self.parent)
         if pos is None:
             return
         dice = random.randint(1, 3)
         self.board.addLog(id="dice", result=dice)
-        ps = {0: (0, -1), 1: (1, -1), 2: (1, 0), 3: (1, 1), 4: (0, 1), 5: (-1, 1), 6: (-1, 0), 7: (-1, -1)}[self.direction]
+        ps = {0: (0, -1), 1: (1, -1), 2: (1, 0), 3: (1, 1), 4: (0, 1), 5: (-1, 1), 6: (-1, 0), 7: (-1, -1)}[(self.direction + self.parent.orient.value * 2) % 8]
         pos_new = pos[0] + ps[0] * dice, pos[1] + ps[1] * dice
         if pos_new not in self.board.tiles:
             return
