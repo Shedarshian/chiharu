@@ -16,10 +16,10 @@ config.CommandGroup(('play', 'cacason'), hide=True)
 packs = readPackData()["packs"]
 config.CommandGroup('cacason', des=packs[0]["help"], short_des='卡卡颂。', hide_in_parent=True, display_parents='game')
 for pack in packs:
-    if "help" in pack:
+    if "help" in pack and pack["id"] != 0:
         config.CommandGroup(('cacason', 'ex' + str(pack["id"])),
                     des=pack.get("full_name", pack["name"]) + "\n" + pack["help"],
-                    short_des=pack.get("full_name", pack["name"]), display_parents=("play", "cacason", "extensions"))
+                    short_des=pack.get("full_name", pack["name"]), display_parents=("play", "cacason", "extension"))
 
 @on_command(("cacason", "version"), hide=True, only_to_me=False)
 @config.ErrorHandle
@@ -88,7 +88,7 @@ async def ccs_extension(session: CommandSession):
 13. 另一些小扩展合集
     (a) 飞行器图块；(b) 飞行器；(k) 幽灵。
 14. 又新又好的精选小扩展合集
-    (a) 礼物卡牌；(b) 护林员。
+    (a) 礼物卡牌；(b) 护林员；(c) 姜饼人图块；(d) 姜饼人。
 
 使用例：-play.cacason.extension check：查询目前开启了哪些扩展包。
 -play.cacason.extension open ex1：开启所有扩展包1的内容。
@@ -530,3 +530,4 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await advance(board, {"pos": pos})
         case _:
             pass
+
