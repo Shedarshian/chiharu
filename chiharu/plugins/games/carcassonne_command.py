@@ -550,7 +550,7 @@ async def ccs_check(session: CommandSession):
         for s in ss:
             if s[1] not in s2:
                 s2[s[1]] = []
-            s2[s[1]].extend([tileData.img for tileData in all_packs if tileData.serialNumber == s][0])
+            s2[s[1]].append([tileData.img for tileData in all_packs if tileData.serialNumber == s][0])
         height = sum((len(x) + 4) // 5 for x in s2.values())
         img = Image.new("RGBA", pos(5, height), "LightCyan")
         y: int = 0
