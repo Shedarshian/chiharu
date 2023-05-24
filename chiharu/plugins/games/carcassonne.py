@@ -66,7 +66,6 @@ TToken = TypeVar("TToken", bound="Token")
 
 class Board:
     def __init__(self, packs_options: dict[int, str], player_names: list[str], start_tile_pack: int=0) -> None:
-        print(packs_options)
         all_packs = readTileData(packs_options)
         packs: list[dict[str, Any]] = readPackData()["packs"]
         self.packs_options = packs_options

@@ -428,6 +428,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
     if data['adding_extensions']:
         if command in ("开始游戏", "游戏开始"):
             # 开始游戏
+            data['extensions'][0] = "a"
             board: Board = Board(data['extensions'], data['names'], data['starting_tile'])
             data['board'] = board
             await advance(board)
