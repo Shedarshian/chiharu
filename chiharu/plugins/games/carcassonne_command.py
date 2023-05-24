@@ -18,7 +18,7 @@ config.CommandGroup('cacason', des=packs[0]["help"], short_des='卡卡颂。', h
 for pack in packs:
     if "help" in pack:
         config.CommandGroup(('cacason', 'ex' + str(pack["id"])), des=pack.get("full_name", pack["name"]) + pack["help"],
-                    short_des=pack["full_name"], display_parents=("play", "cacason", "extensions"))
+                    short_des=pack.get("full_name", pack["name"]), display_parents=("play", "cacason", "extensions"))
 
 @on_command(("cacason", "version"), hide=True, only_to_me=False)
 @config.ErrorHandle
