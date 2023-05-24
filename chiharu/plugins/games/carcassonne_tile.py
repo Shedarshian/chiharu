@@ -8,7 +8,6 @@ def open_img(name: str):
     from pathlib import Path
     return Image.open(Path(__file__).parent / "carcassonne_asset" / (name + ".png")).convert("RGBA")
 def readTileData(packData: dict[int, str]):
-    packData[0] = "a"
     from pathlib import Path
     tiles: list[TileData] = []
     with open(Path(__file__).parent / "carcassonne_asset" / "tiledata.txt", encoding="utf-8") as f:
