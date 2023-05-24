@@ -40,8 +40,8 @@ class ParserError(Exception):
     pass
 
 addable = {"Cathedral", "Inn", "pennant", "Cloth", "Wine", "Grain", "Princess", "Pigherd"}
-tile_addable = {"Portal", "Volcano", "Dragon"}
-tile_addable_pos = {"Garden", "Tower", "Cloister"}
+tile_addable = {"Portal", "Volcano", "Dragon", "Gold"}
+tile_addable_pos = {"Garden", "Tower", "Cloister", "Flier"}
 segments = {"City", "Road", "Field", "River", "Feature", "Junction", "Cut", "Bridge", "Roundabout", "Tunnel"}
 directions = ["u", "r", "d", "l"]
 elses = ["else", "where", "ud", "lr", "start", "R"]
@@ -214,8 +214,12 @@ class TileDataParser:
         """extras : any_segment NUMBER ADDABLE op_param more_extras"""
         p[0] = [FeatureExtraOrderData(p[1], p[2], p[3], p[4])] + p[5]
     def p_Extras4(self, p):
-        """extras : WHERE any_segment NUMBER hint more_extras"""
+        """extras : WHERE any_area NUMBER hint more_extras"""
         p[0] = [HintExtraOrderData(p[2], p[3], p[4])] + p[5]
+    def p_Extras5(self, p):
+        """extras : WHERE ROAD NUMBER NUMBER more_extras
+                  | WHERE RIVER NUMBER NUMBER more_extras"""
+        p[0] = [RoadWidthExtraOrderData(p[2], p[3], p[4])] + p[5]
     def p_Params0(self, p):
         """params : DIRECTION"""
         p[0] = [p[1]]
@@ -502,6 +506,10 @@ class HintExtraOrderData(NamedTuple):
     type: SegmentType
     id: int
     hint: list[tuple[int, int] | str]
+class RoadWidthExtraOrderData(NamedTuple):
+    type: SegmentType
+    id: int
+    width: int
 
 class RoadSideTuple(NamedTuple):
     road_num: int

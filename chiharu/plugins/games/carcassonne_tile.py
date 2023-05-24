@@ -43,6 +43,12 @@ def readTileData(packData: dict[int, str]):
                                 seg = [seg for seg in tile_now.segments if seg.type == type][id]
                                 assert isinstance(seg, AreaSegmentData)
                                 seg.pic.makeHint(hint)
+                            case RoadWidthExtraOrderData(type, id, width):
+                                seg = [seg for seg in tile_now.segments if seg.type == type][id]
+                                assert isinstance(seg, LineSegmentData)
+                                for line in seg.lines:
+                                    line.width = width
+                                    line.makeNodes(tile_now.points)
                     tile_now.sub_id = i0
                     for _ in range(num - 1):
                         tiles.append(deepcopy(tile_now))
