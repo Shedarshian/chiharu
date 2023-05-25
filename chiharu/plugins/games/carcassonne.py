@@ -76,6 +76,7 @@ class Board:
         self.players: list[Player] = [Player(self, i, name) for i, name in enumerate(player_names)]
         self.tokenimgs: dict[int, Image.Image] = {}
         self.allTileimgs: dict[tuple[int, str, int, int], Image.Image] = {}
+        self.connected: list[tuple[tuple[int, int], Dir]] = []
         start_tile: Tile | None = None
         for tileData in all_packs:
             tile = Tile(self, tileData, False)
@@ -111,19 +112,42 @@ class Board:
         for player in self.players:
             player.allTokens = [t for t in player.tokens]
         self.allTokens = [t for t in self.tokens]
-            # if self.checkPack(7, "b"):
-            #     if self.checkPack(7, "c"):
-            #         start_id = 22
-            #         self.popRiverTile([t for t in self.riverDeck if t.packid == 7 and t.id == 0][0])
-            #     else:
-            #         start_id = 0
-            #     start_tile = [t for t in self.riverDeck if t.packid == start_tile_pack and t.id == start_id][0]
-            #     self.popRiverTile(start_tile)
-            #     start_tile.turn(Dir.LEFT) TODO
-        if start_tile is None:
-            raise NotImplementedError
-        self.popTile(start_tile)
-        self.tiles[0, 0] = start_tile
+        start_id = None
+        if start_tile_pack == 7:
+            if self.checkPack(7, "d"):
+                start_id = (7, "0313", 0, 0)
+            if self.checkPack(7, "a"):
+                if start_id is not None:
+                    self.popRiverTile([t for t in self.riverDeck if t.serialNumber == (7, "1223", 0, 0)][0])
+                else:
+                    start_id = (7, "1223", 0, 0)
+            if self.checkPack(7, "c"):
+                if start_id is not None:
+                    self.popRiverTile([t for t in self.riverDeck if t.serialNumber == (7, "1213", 0, 0)][0])
+                else:
+                    start_id = (7, "1213", 0, 0)
+            if self.checkPack(7, "b"):
+                if start_id is not None:
+                    self.popRiverTile([t for t in self.riverDeck if t.serialNumber == (7, "1113", 0, 0)][0])
+                else:
+                    start_id = (7, "1113", 0, 0)
+            if start_id is None:
+                raise NotImplementedError
+            start_tile = [t for t in self.riverDeck if t.serialNumber == start_id][0]
+            self.popRiverTile(start_tile)
+            if not self.checkPack(7, "d"):
+                start_tile.turn(Dir.LEFT)
+            self.tiles[0, 0] = start_tile
+            self.connected.append(((0, 0), Dir.RIGHT))
+            if self.checkPack(7, "d"):
+                start_tile2 = [t for t in self.riverDeck if t.serialNumber == (7, "1323", 1, 0)][0]
+                self.popRiverTile(start_tile2)
+                self.tiles[1, 0] = start_tile2
+        else:
+            if start_tile is None:
+                raise NotImplementedError
+            self.popTile(start_tile)
+            self.tiles[0, 0] = start_tile
         self.current_player_id = 0
         self.current_turn_player_id = 0
         random.shuffle(self.deck)
@@ -131,13 +155,29 @@ class Board:
             self.riverDeck = []
         if len(self.riverDeck) > 0:
             random.shuffle(self.riverDeck)
-        # if self.checkPack(7, "b"):
-        #     fork = [tile for tile in self.riverDeck if tile.id == 1][0]
-        #     self.riverDeck.remove(fork)
-        #     self.riverDeck = [fork] + self.riverDeck
-        #     end = [tile for tile in self.riverDeck if tile.id == 3][0]
-        #     self.riverDeck.remove(end)
-        #     self.riverDeck.append(end)
+        if self.checkPack(7, "b"):
+            fork = [tile for tile in self.riverDeck if tile.serialNumber == (7, "1333", 0, 0)][0]
+            self.popRiverTile(fork)
+            self.riverDeck = [fork] + self.riverDeck
+            volcano_end = [tile for tile in self.riverDeck if tile.serialNumber == (7, "1113", 0, 1)][0]
+            self.popRiverTile(volcano_end)
+            # city_end = [tile for tile in self.riverDeck if tile.serialNumber == (7, "0131", 0, 0)][0]
+        if self.checkPack(7, "a"):
+            cloister_end = [tile for tile in self.riverDeck if tile.serialNumber == (7, "1113", 0, 2)][0]
+            self.popRiverTile(cloister_end)
+        if self.checkPack(7, "d"):
+            cloister_end = [tile for tile in self.riverDeck if tile.serialNumber == (7, "1113", 0, 3)][0]
+            self.popRiverTile(cloister_end)
+            both_end = [tile for tile in self.riverDeck if tile.serialNumber == (7, "0132", 0, 0)][0]
+            self.popRiverTile(both_end)
+        if len(self.riverDeck) > 0:
+            fff_end = volcano_end if self.checkPack(3, "b") and self.checkPack(7, "b") or not (self.checkPack(3, "a") and self.checkPack(3, "d")) else cloister_end
+            if self.checkPack(7, "d"):
+                sh = [both_end, fff_end]
+                random.shuffle(sh)
+                self.riverDeck.extend(sh)
+            else:
+                self.riverDeck.append(fff_end)
         self.players[0].tokens.sort(key=lambda x: x.key)
         self.token_pos: dict[Type[Token], int] = {}
         xpos = 0

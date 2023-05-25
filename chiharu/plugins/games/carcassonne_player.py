@@ -170,11 +170,11 @@ class Player:
                     pass_err = -9
                     continue
                 rdrs.remove(drs[0].value)
-                if len(rdrs) == 2 and sides[Dir.DOWN.value] == Connectable.River:
+                if len(rdrs) == 2 and sides[[dr.value for dr in Dir if dr.corr() == pos][0]] == Connectable.River:
                     pass_err = -10
                     continue
                 if len(rdrs) == 1:
-                    if pos[0] < 0 and rdrs[0] not in (Dir.LEFT.value, Dir.DOWN.value) or pos[0] > 0 and rdrs[0] not in (Dir.RIGHT.value, Dir.DOWN.value):
+                    if rdrs[0] not in (Dir.LEFT.value if pos[0] < 0 else Dir.RIGHT.value, Dir.DOWN.value if pos[1] < 0 else Dir.UP.value):
                         pass_err = -7
                         continue
             break
