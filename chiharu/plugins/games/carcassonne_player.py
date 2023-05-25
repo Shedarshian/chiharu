@@ -252,6 +252,7 @@ class Player:
                     break
             if not complete:
                 yield from ginger.score()
+            ginger.remove()
             yield from ginger.putOn(city)
             break
     def turnCheckBuilder(self) -> 'TAsync[bool]':

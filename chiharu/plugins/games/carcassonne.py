@@ -621,13 +621,13 @@ class CanScore(ABC):
                 if self.board.fairy.follower is token and isinstance(token.player, Player):
                     self.board.addLog(id="score", player=token.player, source="fairy_complete", num=3)
                     yield from token.player.addScore(3)
-        yield from self.moveWagon()
         gingered: bool = False
         if self.board.checkPack(14, "d"):
             ginger = more_itertools.only(token for token in self.iterTokens() if isinstance(token, Gingerbread))
             if ginger is not None:
                 yield from ginger.score()
                 gingered = True
+        yield from self.moveWagon()
         self.removeAllFollowers()
         return gingered
     def scoreFinal(self):
@@ -1450,8 +1450,8 @@ class Gingerbread(Figure):
             assert isinstance(self.parent, CitySegment)
             players: list[Player] = []
             for token in self.parent.object.iterTokens():
-                if isinstance(token.parent, Player) and token.parent not in players:
-                    players.append(token.parent)
+                if isinstance(token.player, Player) and token.player not in players:
+                    players.append(token.player)
             score = self.parent.object.checkTile()
             for player in players:
                 self.board.addLog(id="score", player=player, source="gingerbread", num=score)
