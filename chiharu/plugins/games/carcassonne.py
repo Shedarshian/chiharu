@@ -131,13 +131,13 @@ class Board:
             self.riverDeck = []
         if len(self.riverDeck) > 0:
             random.shuffle(self.riverDeck)
-        if self.checkPack(7, "b"):
-            fork = [tile for tile in self.riverDeck if tile.id == 1][0]
-            self.riverDeck.remove(fork)
-            self.riverDeck = [fork] + self.riverDeck
-            end = [tile for tile in self.riverDeck if tile.id == 3][0]
-            self.riverDeck.remove(end)
-            self.riverDeck.append(end)
+        # if self.checkPack(7, "b"):
+        #     fork = [tile for tile in self.riverDeck if tile.id == 1][0]
+        #     self.riverDeck.remove(fork)
+        #     self.riverDeck = [fork] + self.riverDeck
+        #     end = [tile for tile in self.riverDeck if tile.id == 3][0]
+        #     self.riverDeck.remove(end)
+        #     self.riverDeck.append(end)
         self.players[0].tokens.sort(key=lambda x: x.key)
         self.token_pos: dict[Type[Token], int] = {}
         xpos = 0
@@ -938,6 +938,8 @@ class AreaSegment(Segment):
 class LineSegment(Segment):
     def __init__(self, tile: Tile, side: list[Dir], pic: list[LineSegmentPic]) -> None:
         super().__init__(tile)
+        if len(pic) == 0:
+            raise ValueError
         self.pic = pic
         self.side: dict[Dir, Segment | None] = {s: None for s in side}
     def turn(self, dir: Dir):
@@ -1477,14 +1479,14 @@ class Phantom(Follower):
     key = (13, 4)
     name = "幽灵"
 class King(Figure):
-    def __init__(self, parent: Player | Board, data: dict[str, Any], img: Image) -> None:
+    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
         super().__init__(parent, data, img)
         self.max: int = 0
         self.complete_citys: list[Object] = []
     key = (6, 0)
     name = "国王"
 class Robber(Figure):
-    def __init__(self, parent: Player | Board, data: dict[str, Any], img: Image) -> None:
+    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
         super().__init__(parent, data, img)
         self.max: int = 0
         self.complete_roads: list[Object] = []
@@ -1745,7 +1747,7 @@ class GiftTake2(Gift):
 from .carcassonne_player import Player
 
 if __name__ == "__main__":
-    b = Board({0: "a", 1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 6: "abcdefgh", 7: "c", 12: "ab", 13: "abcd"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
+    b = Board({0: "a", 1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 6: "abcdefgh", 7: "abcd", 12: "ab", 13: "abcd"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
     d = {
             "name": "follower",
             "distribute": True,
@@ -1760,21 +1762,21 @@ if __name__ == "__main__":
         for i, s2 in enumerate(ss):
             t = b.tiles[i % 5, i // 5 + yshift] = [s for s in b.deck + b.riverDeck if s.picname == pic and s.serialNumber[1:] == s2][0]
             # t.turn(Dir.LEFT)
-            # for seg in t.segments:
-            #     b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-            #     for _ in b.players[0].tokens[-1].putOn(seg):
-            #         pass
-            # for feature in t.features:
-            #     if isinstance(feature, BaseCloister):
-            #         b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-            #         for _ in b.players[0].tokens[-1].putOn(feature):
-            #             pass
-            #     if isinstance(feature, Tower):
-            #         b.players[1].tokens.append(BaseFollower(b.players[1], d, open_img("token0").crop((0, 0, 16, 16))))
-            #         for _ in b.players[1].tokens[-1].putOn(feature):
-            #             pass
-            #         feature.height = random.randint(0, 9)
+            for seg in t.segments:
+                b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+                for _ in b.players[0].tokens[-1].putOn(seg):
+                    pass
+            for feature in t.features:
+                if isinstance(feature, BaseCloister):
+                    b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+                    for _ in b.players[0].tokens[-1].putOn(feature):
+                        pass
+                if isinstance(feature, Tower):
+                    b.players[1].tokens.append(BaseFollower(b.players[1], d, open_img("token0").crop((0, 0, 16, 16))))
+                    for _ in b.players[1].tokens[-1].putOn(feature):
+                        pass
+                    feature.height = random.randint(0, 9)
         yshift += (len(ss) + 4) // 5
     b.dragonMoved.extend([b.tiles[0, 0], b.tiles[1, 0], b.tiles[2, 0], b.tiles[2, 1]])
-    b.setImageArgs(debug=True)
+    # b.setImageArgs(debug=True)
     b.image().show()

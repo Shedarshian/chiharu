@@ -82,7 +82,7 @@ def TileDataLexer():
             t.type = "TILE_ADDABLE"
         elif t.value in tile_addable_pos:
             t.type = "TILE_ADDABLE_POS"
-        elif set(t.value) < set("CRFS"):
+        elif set(t.value) <= set("CRFS"):
             t.type = "SIDES"
         else:
             raise ParserError('Unknown word ' + t.value)

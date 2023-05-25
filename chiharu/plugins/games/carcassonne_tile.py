@@ -114,7 +114,7 @@ class TileData:
         for segdata in self.segments:
             if isinstance(segdata, LineSegmentData) and segdata.valid:
                 segdata.makeLink(self)
-        self.segments = [seg for seg in self.segments if not isinstance(seg, RoadSegmentData) or seg.valid]
+        self.segments = [seg for seg in self.segments if not isinstance(seg, LineSegmentData) or seg.valid]
         del self.elsed
     @property
     def serialNumber(self):

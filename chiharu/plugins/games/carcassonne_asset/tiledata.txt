@@ -547,3 +547,173 @@ Picture2222
     Field else (R0-l,R3-u) [8,8]
         *1 2a
         *1 13c Gold
+Picture0033
+0 CCSS
+    City u-r 16
+    River l-d 24
+    Field else (R0-u-r) [36,28/48,56/8,16]
+    Field else (R0-l-d) [8,56]
+        *1 7b City 0 pennant
+        *1 7a
+        *1 7d
+Picture0131
+0 CFSF
+    City u 16
+    River d-32,16 0
+    Field else (R0-r) [48,48]
+    Field else (R0-l) [16,48]
+        *1 7b
+Picture0132
+0 CFSR
+    City u 16
+    River d-32,16 0
+    Road l-32,32 0
+    Field else (d-r,r-d,r-u) {0} [48,32]
+    Field else (d-l,l-d) [8,56]
+    Field else (l-u) {0} [8,16]
+        *1 7d
+Picture0303
+0 CSCS
+    City else (u-l,u-r,d-l,d-r) [32,8/32,56/lr]
+    River l-r 0
+    Field else (l-u,r-u) {0} [8,16/56,16]
+    Field else (l-d,r-d) {0} [8,48/56,48]
+        *1 7b
+1 CSCS
+    City u 16
+    City d 16
+    River l-r 0
+    Field else (R0-u) [8,16/56,16]
+    Field else (R0-d) [8,48/56,48]
+        *1 7c
+        *1 7d
+        *1 7a
+Picture0313
+0 CSFS
+    City u 16
+    River l-r 0
+    Field else (R0-u) [8,16/56,16]
+    Field else (R0-d) [32,48]
+        *1 7d
+Picture0323
+0 CSRS
+    City u 16
+    Bridge 32,32
+    River l-Bridge0 0
+    Road d-Bridge0 0
+    River r-Bridge0 0
+    Field else (l-u) {0} [8,16]
+    Field else (r-u) {0} [56,16]
+    Field else (R0-d,R1-l) [8,56]
+    Field else (R2-d,R1-r) [56,56]
+        *1 7b
+        *1 7a
+        *1 7d
+Picture0331
+0 CSSF
+    City u 16
+    River r-d 31
+    Field else (r-u) {0} [56,16]
+    Field else (l-u,l-d,d-l) {0} [16,32]
+    Field else (R0-r-d) [56,56]
+        *1 7d
+Picture1113
+0 FFFS
+    River l-32,32 0
+    Field else [48,32]
+        *1 7b
+        *1 7b Volcano
+        *1 7a Cloister 50,16; where Field 0 [48,48]
+        *1 7d Cloister 50,16; where Field 0 [48,48]
+Picture1133
+0 FFSS
+    River l-d 24
+    Field else (R0-l-d) [8,56]
+    Field else (R0-r-u) [48,16]
+        *1 7b Garden 43,20; where Field 1 [16,16/48,48]
+        *1 7b Field 0 Pigherd; where Field 1 [16,16/48,48]
+        *1 7a
+        *1 7a Garden 43,20; where Field 1 [16,16/48,48]
+        *1 7d
+        *1 7d Garden 43,20; where Field 1 [16,16/48,48]
+Picture1213
+0 FRFS
+    River l-32,32 0
+    Road r-32,32 0
+    Field else (R0-u,R1-u) [32,16]
+    Field else (R0-d,R1-d) [32,48]
+        *1 7c
+Picture1223
+0 FRRS
+    River l-32,32 0
+    Road r-d 16
+    Field else (R1-r-d) [56,56]
+    Field else (R0-u,R1-u) [32,16]
+    Field else (R0-d,R1-l) [8,56]
+        *1 7a
+Picture1313
+0 FSFS
+    River l-r 0
+    Feature 32,28
+    Field else (R0-u) [16,16/48,16]
+    Field else (R0-d) [16,48/48,48]
+        *1 7b Cloister Feature0
+1 FSFS
+    River l-r 0
+    Field else (R0-u) [32,16]
+    Field else (R0-d) [32,48]
+        *2 7a
+        *2 7d
+Picture1323
+0 FSRS
+    River l-r 0
+    Feature 32,28
+    Road d-Feature0 0
+    Field else (R0-u) [16,16/48,16]
+    Field else (l-d) [8,56]
+    Field else (r-d) [56,56]
+        *1 7a Cloister Feature0
+        *1 7d Cloister Feature0
+1 FSRS
+    River l-r 0
+    Road d-0,40 2
+    Field else (R0-u) [16,16/48,16]
+    Field else (l-d) [8,60]
+    Field else (r-d) [56,56]
+        *1 7d
+Picture1333
+0 FSSS
+    River l-32,32 0
+    River d-32,32 0
+    River r-32,32 0
+    Field else (R0-u,R2-u) [32,16]
+    Field else (R0-d,R1-l) [8,56]
+    Field else (R2-d,R1-r) [56,56]
+        *1 7b
+Picture2233
+0 RRSS
+    River l-d 24
+    Road u-r 16
+    Field else (R0-r-u,R1-l-d) [16,16/48,48]
+    Field else (R1-r-u) [56,8]
+    Field else (R0-l-d) [8,56]
+        *1 7b
+        *2 7d
+        *1 7a
+Picture2323
+0 RSRS
+    Bridge 32,32
+    Road u-Bridge0 0
+    River r-Bridge0 0
+    Road d-Bridge0 0
+    River l-Bridge0 0
+    Field else (R0-r,R1-u) [56,8]
+    Field else (R2-r,R1-d) [56,56]
+    Field else (R2-l,R3-d) [8,56]
+    Field else (R0-l,R3-u) [8,8]
+        *1 7b Road 0 Inn
+        *1 7a
+        *1 7d
+        *1 7d Garden 18,50
+
+
