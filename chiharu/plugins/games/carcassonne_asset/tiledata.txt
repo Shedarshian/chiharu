@@ -663,7 +663,7 @@ Picture1313
     Field else (R0-u) [32,16]
     Field else (R0-d) [32,48]
         *2 7a
-        *2 7d
+        *3 7d
 Picture1323
 0 FSRS
     River l-r 0
