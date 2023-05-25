@@ -316,6 +316,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                             prompt += "，回复板块位置以及“修道院长”回收修道院长"
                         if board.checkPack(14, "b") and not ret["rangered"]:
                             prompt += "，回复板块位置以及“护林员”移动护林员"
+                        if board.checkPack(13, "j") and board.tiles[ret["last_put"]].addable == TileAddable.Festival:
+                            prompt += "，回复板块位置以及“节日”移除物体（移除谷仓请指定谷仓左上角的板块）"
                         if board.checkPack(13, "k"):
                             prompt += "，后加“放幽灵”申请放幽灵，或直接后加小写字母以及“幽灵”放置幽灵"
                     if not ret["if_portal"] and board.checkPack(3, "d") and board.tiles[ret["last_put"]].addable == TileAddable.Portal:
@@ -500,10 +502,10 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 n = ord(match.group(1)) - ord('a')
                 name = match.group(2)
                 await advance(board, {"id": n, "which": name or "follower", **dct})
-            elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(仙子|fairy|传送门|portal|修道院长|abbot|护林员|ranger)$", command):
+            elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(仙子|fairy|传送门|portal|修道院长|abbot|护林员|ranger|节日|festival)$", command):
                 xs = match.group(1); ys = match.group(2)
                 pos = board.tileNameToPos(xs, ys)
-                special = {"仙子": "fairy", "传送门": "portal", "修道院长": "abbot", "护林员": "ranger"}.get(match.group(3), match.group(3))
+                special = {"仙子": "fairy", "传送门": "portal", "修道院长": "abbot", "护林员": "ranger", "节日": "festival"}.get(match.group(3), match.group(3))
                 await advance(board, {"id": -2, "pos": pos, "special": special, **dct})
             elif board.checkPack(4, "b") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(高塔|tower)\s*(.*)?$", command)):
                 xs = match.group(1); ys = match.group(2); which = match.group(4)

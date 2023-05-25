@@ -473,7 +473,7 @@ class Player:
                 if pass_err < 0:
                     continue
                 break
-            if self.board.checkPack(13, "j") and ret.get("special") == "festival":
+            if self.board.checkPack(13, "j") and tile.addable == TileAddable.Festival and ret.get("special") == "festival":
                 pass_err = yield from self.turnMovingFestival(ret)
                 if pass_err < 0:
                     continue

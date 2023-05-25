@@ -26,6 +26,7 @@ class TileAddable(Enum):
     Portal = auto()
     Gold = auto()
     Gingerbread = auto()
+    Festival = auto()
 class Addable(Enum):
     No = auto()
     Cathedral = auto()
