@@ -18,7 +18,7 @@ config.CommandGroup('cacason', short_des='卡卡颂。', hide_in_parent=True, di
 for pack in packs:
     if "help" in pack:
         config.CommandGroup(('cacason', 'ex' + str(pack["id"])), display_id=pack["id"],
-                    des=pack.get("full_name", pack["name"]) + "\n" + pack["help"],
+                    des=[config.cq.img(r"C:\coolq\image\ccs.png")] if pack["id"] == 0 else pack.get("full_name", pack["name"]) + "\n" + pack["help"],
                     short_des=pack.get("full_name", pack["name"]))
 
 @on_command(("cacason", "version"), hide=True, only_to_me=False)
