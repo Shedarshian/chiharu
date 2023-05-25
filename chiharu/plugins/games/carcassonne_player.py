@@ -398,6 +398,31 @@ class Player:
         yield from self.addScore(score)
         abbot.putBackToHand()
         return 0
+    def turnMovingFestival(self, ret: dict[str, Any]) -> 'TAsync[Literal[0, -14]]':
+        pos: tuple[int, int] = ret["pos"]
+        if pos not in self.board.tiles:
+            return -14
+        tile = self.board.tiles[pos]
+        al = [token for token in tile.iterAllTokens()] + [token for token in tile.tokens] + [token for seg in tile.segments for token in seg.object.tokens]
+        can_remove = [token for token in al if token.player is self]
+        if len(can_remove) == 0:
+            return -14
+        if len(can_remove) == 1:
+            to_remove = can_remove[0]
+        else:
+            pass_err: Literal[0, -1, -2] = 0
+            while 1:
+                self.board.state = State.ChoosingTileFigure
+                ret = yield {'last_put': pos, 'last_err': pass_err, 'special': "festival"}
+                if ret["id"] < 0 or ret["id"] >= len(al):
+                    pass_err = -1
+                    continue
+                to_remove = al[ret["id"]]
+                if to_remove not in can_remove:
+                    pass_err = -2
+                    continue
+        to_remove.putBackToHand()
+        return 0
     def turnPutFollower(self, tile: 'Tile', pos: tuple[int, int], rangered: bool) -> 'TAsync[bool]':
         pass_err: int = 0
         if_portal: bool = False
@@ -445,6 +470,11 @@ class Player:
                 break
             if self.board.checkPack(12, "b") and ret.get("special") == "abbot":
                 pass_err = yield from self.turnMovingAbbot(ret)
+                if pass_err < 0:
+                    continue
+                break
+            if self.board.checkPack(13, "j") and ret.get("special") == "festival":
+                pass_err = yield from self.turnMovingFestival(ret)
                 if pass_err < 0:
                     continue
                 break
@@ -646,7 +676,7 @@ class Player:
         ChoosingPos：选择坐标（-1：板块不存在，-2：不符合要求）
         PuttingFollower：单个板块feature+跟随者（-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门，-5：找不到高塔
         -6：高塔有人，-7：手里没有高塔片段，-8：找不到修道院长，-9：无法移动护林员，-10：没有幽灵，-11：幽灵无法放置
-        -12：在高塔/传送门/飞行器时使用幽灵，-13：不能重复使用传送门/飞行器）
+        -12：在高塔/传送门/飞行器时使用幽灵，-13：不能重复使用传送门/飞行器，-14：无法移除（节日））
         ChoosingSegment：选择单个板块feature（-1：未找到片段，-2：不符合要求）
         WagonAsking：选马车（-1：没有图块，-2：图块过远，-3：无法放置）
         AbbeyAsking/FinalAbbeyAsking：询问僧院板块（-1：无法放置，-8：修道院和神龛不能有多个相邻）
@@ -655,7 +685,8 @@ class Player:
         PrincessAsking：单个object上的follower【询问公主】（-1：未找到跟随者）
         CaptureTower：询问高塔抓人（-1：未找到跟随者），ExchangingPrisoner：询问交换俘虏（-1：未找到跟随者）
         ChoosingGiftCard：使用礼物卡（-1：未找到礼物卡）
-        AskingSynod：坐标+跟随者（-1：板块不存在，-2：不符合要求，-3：没有跟随者，-4：无法放置）"""
+        AskingSynod：坐标+跟随者（-1：板块不存在，-2：不符合要求，-3：没有跟随者，-4：无法放置）
+        ChoosingTileFigure：选择图块上的任意figure（-1：未找到，-2：不符合要求）"""
         isBegin: bool = True
         nextTurn: bool = False
         princessed: bool = False

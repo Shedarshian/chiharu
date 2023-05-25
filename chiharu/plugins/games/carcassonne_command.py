@@ -88,7 +88,7 @@ async def ccs_extension(session: CommandSession):
 12. 一些小扩展合集
     (a) 花园；(b) 修道院长。
 13. 另一些小扩展合集
-    (a) 飞行器图块；(b) 飞行器；(k) 幽灵。
+    (a) 飞行器图块；(b) 飞行器；(i) 节日图块；(j) 节日；(k) 幽灵。
 14. 又新又好的精选小扩展合集
     (a) 礼物卡牌；(b) 护林员；(c) 姜饼人图块；(d) 姜饼人。
 
@@ -423,6 +423,16 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     board.setImageArgs()
                     await session.send([board.saveImg()])
                     await session.send('请选择放置的修道院板块坐标以及跟随者。')
+            case State.ChoosingTileFigure:
+                if ret["last_err"] == -1:
+                    await session.send("未找到物体！")
+                elif ret["last_err"] == -2:
+                    await session.send("不符合要求！")
+                else:
+                    board.setImageArgs(tile_figure=ret["last_put"])
+                    await session.send([board.saveImg()])
+                    if ret["special"] == "festival":
+                        await session.send('请选择板块上要移除的物体。')
     
     command = session.msg_text.strip()
     if data['adding_extensions']:
@@ -464,7 +474,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             elif match := re.match(r"\s*礼物([0-9]+)$", command):
                 ns = match.group(1)
                 await advance(board, {"id": int(ns) - 1, "special": "gift"})
-        case State.ChoosingOwnFollower | State.ChoosingSegment:
+        case State.ChoosingOwnFollower | State.ChoosingSegment | State.ChoosingTileFigure:
             if match := re.match(r"\s*([a-z])$", command):
                 n = ord(match.group(1)) - ord('a')
                 await advance(board, {"id": n})

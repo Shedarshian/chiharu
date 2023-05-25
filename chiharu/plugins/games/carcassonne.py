@@ -363,6 +363,7 @@ class Board:
         princess: Object | None = self.imageArgs.get("princess")
         tower_pos: tuple[int, int] | None = self.imageArgs.get("tower_pos")
         draw_occupied_seg: bool = self.imageArgs.get("draw_occupied_seg", False)
+        tile_figure: tuple[int, int] | None = self.imageArgs.get("tile_figure")
 
         leftmost, rightmost = self.lrborder
         uppermost, lowermost = self.udborder
@@ -446,6 +447,12 @@ class Board:
                 if isinstance(follower.parent, Segment):
                     draw(self.findTilePos(follower.parent.tile), follower.parent.tile.findTokenDrawPos(follower), i)
                     i += 1
+        if tile_figure is not None:
+            tile = self.tiles[tile_figure]
+            i = ord('a')
+            for token in list(tile.iterAllTokens()) + tile.tokens + [token for seg in tile.segments for token in seg.object.tokens]:
+                draw(tile_figure, tile.findTokenDrawPos(token), i)
+                i += 1
         # tiles dragon has moved
         if self.checkPack(3, "b"):
             for tile in self.dragonMoved:
@@ -781,29 +788,21 @@ class Tile:
         return seg
     def findTokenDrawPos(self, token: 'Token'):
         """turned"""
+        if isinstance(token, Barn) and (seg := self.getBarnSeg()) and token in seg.tokens:
+            return (64, 64)
         for seg in self.segments:
             if token in seg.tokens:
                 id = seg.tokens.index(token)
                 return turn(seg.drawPos(len(seg.tokens))[id], self.orient)
+            if token in seg.object.tokens:
+                pass # TODO for castle
         for feature in self.features:
             if token in feature.tokens:
                 id = feature.tokens.index(token)
                 return turn(feature.drawPos(len(feature.tokens))[id], self.orient)
         if token in self.tokens:
-            drawn_poses: list[tuple[int, int]] = []
-            for seg in self.segments:
-                drawn_poses.extend(seg.drawPos(len(seg.tokens)))
-            for feature in self.features:
-                drawn_poses.extend(feature.drawPos(len(feature.tokens)))
-            if token.last_pos == (0, 0):
-                for _ in range(10):
-                    post = (random.randint(8, 56), random.randint(8, 56))
-                    if all(dist2(post, p) >= 16 for p in drawn_poses):
-                        token.last_pos = post
-                        break
-                else:
-                    post = (random.randint(8, 56), random.randint(8, 56))
-            return turn(token.last_pos, self.orient)
+            assert isinstance(token, TileFigure)
+            return turn(token.findDrawPos(), self.orient)
         return (32, 32)
     def getSeg(self, i: int):
         if i < len(self.features):
@@ -883,16 +882,9 @@ class Tile:
                 font_tower = ImageFont.truetype("calibrib.ttf", 10)
                 dr.text(pos(*turn(feature.num_pos, self.orient)), str(feature.height), "black", font_tower, "mm")
         for token in self.tokens:
-            if token.last_pos == (0, 0):
-                for _ in range(10):
-                    post = (random.randint(8, 56), random.randint(8, 56))
-                    if all(dist2(post, p) >= 16 for p in drawn_poses):
-                        token.last_pos = post
-                        break
-                else:
-                    post = (32, 32)
+            assert isinstance(token, TileFigure)
             t = token.image()
-            img.alpha_composite(t, pos(*turn(post, self.orient), (-t.size[0] // 2, -t.size[1] // 2)))
+            img.alpha_composite(t, pos(*turn(token.findDrawPos(drawn_poses), self.orient), (-t.size[0] // 2, -t.size[1] // 2)))
     def drawPutToken(self, img: Image.Image, beg_pos: tuple[int, int], draw_occupied_seg: bool, drawBarn: bool):
         def pos(i, j, *offsets: tuple[int, int]):
             return beg_pos[0] + i + sum(x[0] for x in offsets), beg_pos[1] + j + sum(x[1] for x in offsets)
@@ -1326,7 +1318,6 @@ class Token(metaclass=TokenMeta):
         self.player = parent
         self.board = parent if isinstance(parent, Board) else parent.board
         self.img = img
-        self.last_pos: tuple[int, int] = 0, 0
     def checkPack(self, packid: int, thingid: str):
         if isinstance(self.player, Player):
             return self.player.board.checkPack(packid, thingid)
@@ -1382,6 +1373,30 @@ class Follower(Token):
         return 1
 class Figure(Token):
     pass
+class TileFigure(Figure):
+    def __init__(self, parent: Player | Board, data: dict[str, Any], img: Image) -> None:
+        super().__init__(parent, data, img)
+        self.draw_pos: tuple[int, int] | None = None
+    def findDrawPos(self, drawn_poses: list[tuple[int, int]] | None=None):
+        if not isinstance(self.parent, Tile):
+            return (0, 0)
+        if self.draw_pos is not None:
+            return self.draw_pos
+        if drawn_poses is None:
+            drawn_poses = []
+        for seg in self.parent.segments:
+            drawn_poses.extend(seg.drawPos(len(seg.tokens)))
+        for feature in self.parent.features:
+            drawn_poses.extend(feature.drawPos(len(feature.tokens)))
+        if self.draw_pos == (0, 0):
+            for _ in range(10):
+                post = (random.randint(8, 56), random.randint(8, 56))
+                if all(dist2(post, p) >= 16 for p in drawn_poses):
+                    self.draw_pos = post
+                    break
+            else:
+                post = (random.randint(8, 56), random.randint(8, 56))
+        return self.draw_pos
 class BaseFollower(Follower):
     key = (0, 0)
     name = "跟随者"
