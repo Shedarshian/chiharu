@@ -18,6 +18,10 @@ class Player:
         if self.board.checkPack(4, 'b'):
             self.towerPieces: int = 0
             self.prisoners: list[Follower] = []
+        if self.board.checkPack(6, "b"):
+            self.king: bool = False
+        if self.board.checkPack(6, "c"):
+            self.robber: bool = False
         if self.board.checkPack(14, 'a'):
             self.gifts: list[Gift] = []
     @property
@@ -581,6 +585,28 @@ class Player:
                     for i in range(3):
                         self.tradeCounter[i] += tc[i]
                     self.board.addLog(id="tradeCounter", tradeCounter=tc)
+            if self.board.checkPack(6, 'b') and obj.type == Connectable.City:
+                count = obj.checkTile()
+                if count > self.board.king.max:
+                    self.board.king.max = count
+                    self.board.king.remove()
+                    yield from self.board.king.putOn(obj.segments[0])
+                    for player in self.board.players:
+                        player.king = False
+                    self.king = True
+                if obj not in self.board.king.complete_citys:
+                    self.board.king.complete_citys.append(obj)
+            if self.board.checkPack(6, 'c') and obj.type == Connectable.Road:
+                count = obj.checkTile()
+                if count > self.board.robber.max:
+                    self.board.robber.max = count
+                    self.board.robber.remove()
+                    yield from self.board.robber.putOn(obj.segments[0])
+                    for player in self.board.players:
+                        player.robber = False
+                    self.robber = True
+                if obj not in self.board.robber.complete_roads:
+                    self.board.robber.complete_roads.append(obj)
             if (yield from obj.score(ifBarn)):
                 gingered = True
         for i in (-1, 0, 1):
@@ -695,7 +721,19 @@ class Player:
             score_str = score_str[:-1] + "+" + str(trade_score) + score_str[-1]
         if self.board.checkPack(14, 'a') and not no_final_score:
             score_str = score_str[:-1] + "+" + str(2 * len(self.gifts)) + score_str[-1]
-        score_length = 120 + (45 if self.board.checkPack(2, 'd') else 0) + (30 if self.board.checkPack(14, 'a') else 0)
+        if self.board.checkPack(6, 'b'):
+            score_str = score_str[:-1] + "+" + str(len(self.board.king.complete_citys) if self.king else 0) + score_str[-1]
+        if self.board.checkPack(6, 'c'):
+            score_str = score_str[:-1] + "+" + str(len(self.board.robber.complete_roads) if self.robber else 0) + score_str[-1]
+        score_length = 120
+        if self.board.checkPack(2, 'd'):
+            score_length += 45
+        if self.board.checkPack(6, 'b'):
+            score_length += 45
+        if self.board.checkPack(6, 'c'):
+            score_length += 45
+        if self.board.checkPack(14, 'a'):
+            score_length += 30
         length = 100 + score_length + self.board.token_length
         if self.board.checkPack(5, "b"):
             abbey_xpos = length
@@ -708,6 +746,12 @@ class Player:
         if self.board.checkPack(2, "d"):
             trade_counter_xpos = length
             length += 120
+        if self.board.checkPack(6, 'b'):
+            king_xpos = length
+            length += 19
+        if self.board.checkPack(6, 'c'):
+            robber_xpos = length
+            length += 19
         if self.board.checkPack(14, "a"):
             gift_xpos = length
             length += 28
@@ -750,6 +794,14 @@ class Player:
             dr.text((trade_counter_xpos, 12), f"酒{self.tradeCounter[0]}", "black", self.board.font_name, "lm")
             dr.text((trade_counter_xpos + 40, 12), f"麦{self.tradeCounter[1]}", "black", self.board.font_name, "lm")
             dr.text((trade_counter_xpos + 80, 12), f"布{self.tradeCounter[2]}", "black", self.board.font_name, "lm")
+        # king
+        if self.board.checkPack(6, "b") and self.king:
+            timg = self.board.king.image()
+            img.alpha_composite(timg, (king_xpos, 12 - timg.size[1] // 2))
+        # robber
+        if self.board.checkPack(6, "c") and self.robber:
+            timg = self.board.robber.image()
+            img.alpha_composite(timg, (robber_xpos, 12 - timg.size[1] // 2))
         # gift card count
         if self.board.checkPack(14, "a"):
             dr.rectangle((gift_xpos + 4, 4, gift_xpos + 20, 20), "green")

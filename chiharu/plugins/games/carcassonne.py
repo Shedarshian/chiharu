@@ -161,14 +161,18 @@ class Board:
             self.dragonMoved: list[Tile] = []
         if self.checkPack(3, "c"):
             self.fairy = [token for token in self.tokens if isinstance(token, Fairy)][0]
-        if self.checkPack(14, "b"):
-            self.ranger = [token for token in self.tokens if isinstance(token, Ranger)][0]
-        if self.checkPack(14, "d"):
-            self.gingerbread = [token for token in self.tokens if isinstance(token, Gingerbread)][0]
+        if self.checkPack(6, "b"):
+            self.king = [token for token in self.tokens if isinstance(token, King)][0]
+        if self.checkPack(6, "c"):
+            self.robber = [token for token in self.tokens if isinstance(token, Robber)][0]
         if self.checkPack(14, 'a'):
             self.giftDeck = [Gift.make(i)() for i in range(5) for _ in range(5)]
             random.shuffle(self.giftDeck)
             self.giftDiscard: list[Gift] = []
+        if self.checkPack(14, "b"):
+            self.ranger = [token for token in self.tokens if isinstance(token, Ranger)][0]
+        if self.checkPack(14, "d"):
+            self.gingerbread = [token for token in self.tokens if isinstance(token, Gingerbread)][0]
         self.imageArgs: dict[str, Any] = {}
     def checkPack(self, packid: int, thingid: str):
         return packid in self.packs_options and thingid in self.packs_options[packid]
@@ -247,10 +251,13 @@ class Board:
                 max_token, max_players = findAllMax(self.players, lambda player, i=i: player.tradeCounter[i]) # type: ignore
                 for player in max_players:
                     player.addScoreFinal(10)
-        if self.checkPack(14, 'a'):
-            for player in self.players:
-                if len(player.gifts) >= 0:
-                    player.addScoreFinal(2 * len(player.gifts))
+        for player in self.players:
+            if self.checkPack(6, "b") and player.king:
+                player.addScoreFinal(len(self.king.complete_citys))
+            if self.checkPack(6, "c") and player.robber:
+                player.addScoreFinal(len(self.robber.complete_roads))
+            if self.checkPack(14, 'a') and len(player.gifts) >= 0:
+                player.addScoreFinal(2 * len(player.gifts))
     def winner(self):
         return findAllMax(self.players, lambda player: player.score)
     def canPutTile(self, tile: 'Tile', pos: tuple[int, int], orient: Dir) -> Literal[-1, -2, -3, -8, 0]:
@@ -1469,6 +1476,21 @@ class Phantom(Follower):
         return self.board.tokenimgs[13].crop(((id % 3) * 17, (id // 3) * 14, (id % 3 + 1) * 17, (id // 3 + 1) * 14))
     key = (13, 4)
     name = "幽灵"
+class King(Figure):
+    def __init__(self, parent: Player | Board, data: dict[str, Any], img: Image) -> None:
+        super().__init__(parent, data, img)
+        self.max: int = 0
+        self.complete_citys: list[Object] = []
+    key = (6, 0)
+    name = "国王"
+class Robber(Figure):
+    def __init__(self, parent: Player | Board, data: dict[str, Any], img: Image) -> None:
+        super().__init__(parent, data, img)
+        self.max: int = 0
+        self.complete_roads: list[Object] = []
+    key = (6, 1)
+    name = "小偷"
+
 Token.all_name["follower"] = BaseFollower
 
 AbbeyData = TileData("abbey", 0, "FFFF", [])
