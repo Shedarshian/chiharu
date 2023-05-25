@@ -537,6 +537,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
 @on_command(('cacason', 'check'), only_to_me=False, display_id=998)
 @config.ErrorHandle
 async def ccs_check(session: CommandSession):
+    """查询卡卡颂图块内容。"""
     if match := re.match(r'ex(\d+)([a-z]*)', session.current_arg_text):
         exa, exb = int(match.group(1)), match.group(2)
         if not exb:
