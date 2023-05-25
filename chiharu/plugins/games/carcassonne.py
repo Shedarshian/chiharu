@@ -487,6 +487,8 @@ class Board:
             return w * (64 + 8) + sum(c[0] for c in offsets) + 8, h * (64 + 20) + sum(c[1] for c in offsets) + 20
         x2: dict[int, int] = {}
         for ids in sorted(self.allTileimgs.keys()):
+            if "3" in ids[1]:
+                continue
             dct = self.allTileimgs[ids]
             if not remove_zero or sum(1 for tile in self.deck if tile.serialNumber == ids) != 0:
                 x2[ids[0]] = x2.get(ids[0], 0) + 1
@@ -497,6 +499,8 @@ class Board:
         x: int = 0
         last_pack: int = 0
         for ids in sorted(self.allTileimgs.keys()):
+            if "3" in ids[1]:
+                continue
             if ids[0] != last_pack:
                 last_pack = ids[0]
                 y += (x - 1) // 5 + 1
