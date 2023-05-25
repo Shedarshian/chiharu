@@ -14,12 +14,12 @@ changelog = ""
 cacason = game.GameSameGroup('cacason', can_private=True)
 config.CommandGroup(('play', 'cacason'), hide=True)
 packs = readPackData()["packs"]
-config.CommandGroup('cacason', des=packs[0]["help"], short_des='卡卡颂。', hide_in_parent=True, display_parents='game')
+config.CommandGroup('cacason', short_des='卡卡颂。', hide_in_parent=True, display_parents='game')
 for pack in packs:
-    if "help" in pack and pack["id"] != 0:
+    if "help" in pack:
         config.CommandGroup(('cacason', 'ex' + str(pack["id"])), display_id=pack["id"],
                     des=pack.get("full_name", pack["name"]) + "\n" + pack["help"],
-                    short_des=pack.get("full_name", pack["name"]), hide_in_parent=True, display_parents=("play", "cacason", "extension"))
+                    short_des=pack.get("full_name", pack["name"]), hide_in_parent=True)
 
 @on_command(("cacason", "version"), hide=True, only_to_me=False)
 @config.ErrorHandle
@@ -534,7 +534,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         case _:
             pass
 
-@on_command(('play', 'cacason', 'check'), only_to_me=False, hide=True)
+@on_command(('cacason', 'check'), only_to_me=False, hide=True)
 @config.ErrorHandle
 async def ccs_check(session: CommandSession):
     if match := re.match(r'ex(\d+)([a-z]*)', session.current_arg_text):
