@@ -670,8 +670,8 @@ Picture1323
     Feature 32,28
     Road d-Feature0 0
     Field else (R0-u) [16,16/48,16]
-    Field else (l-d) [8,56]
-    Field else (r-d) [56,56]
+    Field else (l-d,d-l) [8,56]
+    Field else (r-d,d-r) [56,56]
         *1 7a Cloister Feature0
         *1 7d Cloister Feature0
 1 FSRS
