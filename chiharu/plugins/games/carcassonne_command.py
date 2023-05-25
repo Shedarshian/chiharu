@@ -17,7 +17,7 @@ packs = readPackData()["packs"]
 config.CommandGroup('cacason', des=packs[0]["help"], short_des='卡卡颂。', hide_in_parent=True, display_parents='game')
 for pack in packs:
     if "help" in pack and pack["id"] != 0:
-        config.CommandGroup(('cacason', 'ex' + str(pack["id"])),
+        config.CommandGroup(('cacason', 'ex' + str(pack["id"])), display_id=pack["id"],
                     des=pack.get("full_name", pack["name"]) + "\n" + pack["help"],
                     short_des=pack.get("full_name", pack["name"]), hide_in_parent=True, display_parents=("play", "cacason", "extension"))
 
@@ -540,7 +540,12 @@ async def ccs_check(session: CommandSession):
     if match := re.match(r'ex(\d+)([a-z]*)', session.current_arg_text):
         exa, exb = int(match.group(1)), match.group(2)
         if not exb:
-            exb = all_extensions[exa]
+            if exa == 0:
+                exb = "a"
+            elif exa not in all_extensions:
+                session.finish("未找到扩展" + str(exa))
+            else:
+                exb = all_extensions[exa]
         from PIL import Image, ImageDraw, ImageFont
         from .carcassonne_tile import readTileData
         def pos(w: int, h: int, *offsets: tuple[int, int]):
