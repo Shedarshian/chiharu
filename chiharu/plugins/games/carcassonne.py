@@ -1256,6 +1256,7 @@ class Flier(Feature, CanScore):
                     pass_err = -2
                     continue
                 break
+        token.player.tokens.remove(token)
         yield from token.putOn(to_put)
 
 class TokenMeta(type):

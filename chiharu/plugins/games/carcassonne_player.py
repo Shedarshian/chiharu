@@ -38,7 +38,7 @@ class Player:
     def addScoreFinal(self, score: int):
         self.score += score
     def checkMeepleScoreCurrent(self):
-        all_objects: list[Object | CanScore] = []
+        all_objects: list[CanScore] = []
         all_barns: list[Object] = []
         score: int = 0
         for token in self.allTokens:
