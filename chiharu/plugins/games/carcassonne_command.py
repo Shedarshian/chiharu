@@ -66,7 +66,7 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
     # 选择扩展
     await session.send("请选择想开启或是关闭的扩展，发送如open ex1开启扩展，close ex1关闭，check查询，选择完毕后发送开始游戏即可开始。")
 
-@on_command(('play', 'cacason', 'extension'), only_to_me=False, hide_in_parent=True, display_parents=("cacason",), args=('[check/open/close]', '[ex??]'), short_des="修改卡卡颂对局使用的扩展。")
+@on_command(('play', 'cacason', 'extension'), only_to_me=False, hide_in_parent=True, display_parents=("cacason",), args=('[check/open/close]', '[ex??]'), short_des="修改卡卡颂对局使用的扩展。", display_id=999)
 @config.ErrorHandle
 async def ccs_extension(session: CommandSession):
     """修改卡卡颂对局使用的扩展。
@@ -84,7 +84,7 @@ async def ccs_extension(session: CommandSession):
 6. 伯爵、国王与小偷（Count, King and Robber）
     (a) 图块；(g) 神龛图块；(h) 神龛。
 7. 河流合集
-    (b) 河流2*；(c) GQ11图块*。
+    (a) 河流*；(b) 河流2*；(c) GQ11图块*；(d) 20周年河流*。
 12. 一些小扩展合集
     (a) 花园；(b) 修道院长。
 13. 另一些小扩展合集
@@ -534,7 +534,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         case _:
             pass
 
-@on_command(('cacason', 'check'), only_to_me=False, hide=True)
+@on_command(('cacason', 'check'), only_to_me=False, display_id=998)
 @config.ErrorHandle
 async def ccs_check(session: CommandSession):
     if match := re.match(r'ex(\d+)([a-z]*)', session.current_arg_text):
