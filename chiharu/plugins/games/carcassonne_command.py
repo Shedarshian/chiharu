@@ -82,7 +82,7 @@ async def ccs_extension(session: CommandSession):
 5. 僧院板块与市长（Abbey and Mayor）
     (a) 图块；(b) 僧院板块；(c) 市长；(d) 马车；(e) 谷仓。
 6. 伯爵、国王与小偷（Count, King and Robber）
-    (a) 图块；(g) 神龛图块；(h) 神龛。
+    (a) 图块；(b) 国王；(c) 小偷；(g) 神龛图块；(h) 神龛。
 7. 河流合集
     (a) 河流*；(b) 河流2*；(c) GQ11图块*；(d) 20周年河流*。
 12. 一些小扩展合集
