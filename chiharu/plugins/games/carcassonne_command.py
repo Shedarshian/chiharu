@@ -162,7 +162,7 @@ async def ccs_extension(session: CommandSession):
                 session.finish("已开启。" + ret)
             else:
                 session.finish("已关闭。" + ret)
-        session.finish(ccs_extension.__doc__)
+    session.finish(ccs_extension.__doc__)
 
 @cacason.end(('play', 'cacason', 'end'))
 async def ccs_end(session: CommandSession, data: dict[str, Any]):
