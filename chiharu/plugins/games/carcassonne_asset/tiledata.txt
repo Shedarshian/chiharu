@@ -404,6 +404,7 @@ Picture0222
     Field else (R1-u) [56,16]
     Field else (l-u,d-r,r-d) {0} [56,56/32,32]
     Field else (R0-l-d) [8,56]
+        *1 7c
 Picture1111
 0 FFFF
     Field else [12,12/12,52/52,12/52,52]
