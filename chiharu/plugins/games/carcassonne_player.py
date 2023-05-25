@@ -268,6 +268,136 @@ class Player:
                     return True
         return False
         yield {}
+    def turnCheckPhantom(self, ret: dict[str, Any], ph_put: int,
+                         tile_put: 'Tile', if_portal: bool) -> 'TAsync[Literal[0, -10, -11]]':
+        phantom = more_itertools.only(t for t in self.tokens if isinstance(t, Phantom))
+        if phantom is None:
+            return -10
+        if ph_put == ret["id"] and ph_put != -2:
+            return -11
+        if ph_put != -2:
+            seg_ph = tile_put.getSeg(ph_put)
+            if seg_ph is None:
+                return -11
+            if isinstance(seg_ph, Feature) and not isinstance(seg_ph, CanScore):
+                return -11
+            if not phantom.canPut(seg_ph) or seg_ph.occupied() or if_portal and seg_ph.closed():
+                return -11
+        return 0
+        yield {}
+    def turnMovingFairy(self, ret: dict[str, Any]) -> 'TAsync[Literal[0, -3]]':
+        pos_fairy: tuple[int, int] = ret["pos"]
+        if pos_fairy not in self.board.tiles:
+            return -3
+        tile_fairy = self.board.tiles[pos_fairy]
+        followers = [token for token in tile_fairy.iterAllTokens() if isinstance(token, Follower) and token.player is self]
+        if len(followers) == 0:
+            return -3
+        if len(followers) == 1:
+            follower = followers[0]
+        else:
+            pass_err = 0
+            while 1:
+                self.board.state = State.ChoosingOwnFollower
+                ret = yield {"last_err": pass_err, "last_put": pos_fairy, "special": "fairy"}
+                if ret["id"] < 0 or ret["id"] >= len(followers):
+                    pass_err = -2
+                    continue
+                follower = followers[ret["id"]]
+                break
+        self.board.fairy.moveTo(follower, tile_fairy)
+        return 0
+    def turnPuttingPhantom(self, pos: tuple[int, int], tile: 'Tile',
+                           if_portal: bool, if_flier: bool, rangered: bool, ph_put: int) -> 'TAsync[None]':
+        ph_portal: bool = False
+        pos_put = pos
+        tile_put = tile
+        pass_err = 0
+        while 1:
+            if ph_put == -2:
+                self.board.state = State.PuttingFollower
+                ret2 = yield {"last_err": pass_err, "last_put": pos_put, "if_portal": ph_portal, "rangered": rangered, "special": "phantom"}
+                if self.board.checkPack(3, "d") and not ph_portal and ret2.get("special") == "portal":
+                    if if_portal:
+                        pass_err = -13
+                        continue
+                    pos_portal = ret2["pos"]
+                    if pos_portal not in self.board.tiles or tile.addable != TileAddable.Portal:
+                        pass_err = -4
+                        continue
+                    pos_put = pos_portal
+                    tile_put = self.board.tiles[pos_portal]
+                    ph_portal = True
+                    continue
+                if not if_portal and ph_portal and ret2["id"] == -1:
+                    pos_put = pos
+                    tile_put = tile
+                    ph_portal = False
+                    continue
+                ph_put = ret2["id"]
+                if ph_put == -1:
+                    break
+                seg_ph = tile_put.getSeg(ph_put)
+                if seg_ph is None:
+                    pass_err = -11
+                    continue
+
+            ph_put = -2
+            phantom = more_itertools.only(t for t in self.tokens if isinstance(t, Phantom))
+            if phantom is None:
+                pass_err = -10
+                continue
+            if isinstance(seg_ph, Flier) and if_flier:
+                pass_err = -13
+                continue
+            if isinstance(seg_ph, Feature) and not isinstance(seg_ph, CanScore):
+                pass_err = -11
+                continue
+            if not phantom.canPut(seg_ph) or seg_ph.occupied() or ph_portal and seg_ph.closed():
+                pass_err = -11
+                continue
+            self.tokens.remove(phantom)
+            yield from phantom.putOn(seg_ph)
+            break
+    def turnCheckTower(self, ret: dict[str, Any]) -> 'TAsync[Literal[0, -1, -2, -5, -6, -7, -12]]':
+        pos_tower: tuple[int, int] = ret["pos"]
+        if pos_tower not in self.board.tiles:
+            return -5
+        tile_tower = self.board.tiles[pos_tower]
+        tower = more_itertools.only(feature for feature in tile_tower.features if isinstance(feature, Tower))
+        if tower is None:
+            return -5
+        if len(tower.tokens) != 0:
+            return -6
+        if not ret.get("which"):
+            if self.towerPieces == 0:
+                return -7
+            self.towerPieces -= 1
+            tower.height += 1
+            yield from self.turnCaptureTower(tower, pos_tower)
+            return 0
+        token = self.findToken(ret["which"])
+        if token is None:
+            return -1
+        if not token.canPut(tower):
+            return -2
+        self.tokens.remove(token)
+        yield from token.putOn(tower)
+        return 0
+    def turnMovingAbbot(self, ret: dict[str, Any]) -> 'TAsync[Literal[0, -8]]':
+        pos_abbot: tuple[int, int] = ret["pos"]
+        if pos_abbot not in self.board.tiles:
+            return -8
+        tile_abbot = self.board.tiles[pos_abbot]
+        abbots = [token for feature in tile_abbot.features for token in feature.tokens if isinstance(token, Abbot) and token.player is self]
+        if len(abbots) == 0:
+            return -8
+        abbot = abbots[0]
+        assert isinstance(abbot.parent, BaseCloister)
+        score = abbot.parent.checkScore([self], True, False)[0][1]
+        yield from self.addScore(score)
+        abbot.putBackToHand()
+        return 0
     def turnPutFollower(self, tile: 'Tile', pos: tuple[int, int], rangered: bool) -> 'TAsync[bool]':
         pass_err: int = 0
         if_portal: bool = False
@@ -280,47 +410,13 @@ class Player:
             self.board.state = State.PuttingFollower
             ret = yield {"last_err": pass_err, "last_put": pos_put, "if_portal": if_portal, "rangered": rangered}
             if self.board.checkPack(13, "k") and not if_portal and (ph_put := ret.get("phantom", -1)) != -1:
-                phantom = more_itertools.only(t for t in self.tokens if isinstance(t, Phantom))
-                if phantom is None:
-                    pass_err = -10
+                r = yield from self.turnCheckPhantom(ret, ph_put, tile_put, if_portal)
+                if pass_err < 0:
                     continue
-                if ph_put == ret["id"] and ph_put != -2:
-                    pass_err = -11
-                    continue
-                if ph_put != -2:
-                    seg_ph = tile_put.getSeg(ph_put)
-                    if seg_ph is None:
-                        pass_err = -11
-                        continue
-                    if isinstance(seg_ph, Feature) and not isinstance(seg_ph, CanScore):
-                        pass_err = -11
-                        continue
-                    if not phantom.canPut(seg_ph) or seg_ph.occupied() or if_portal and seg_ph.closed():
-                        pass_err = -11
-                        continue
             if self.board.checkPack(3, "c") and ret.get("special") == "fairy":
-                pos_fairy: tuple[int, int] = ret["pos"]
-                if pos_fairy not in self.board.tiles:
-                    pass_err = -3
+                pass_err = yield from self.turnMovingFairy(ret)
+                if pass_err < 0:
                     continue
-                tile_fairy = self.board.tiles[pos_fairy]
-                followers = [token for token in tile_fairy.iterAllTokens() if isinstance(token, Follower) and token.player is self]
-                if len(followers) == 0:
-                    pass_err = -3
-                    continue
-                if len(followers) == 1:
-                    follower = followers[0]
-                else:
-                    pass_err = 0
-                    while 1:
-                        self.board.state = State.ChoosingOwnFollower
-                        ret = yield {"last_err": pass_err, "last_put": pos_fairy, "special": "fairy"}
-                        if ret["id"] < 0 or ret["id"] >= len(followers):
-                            pass_err = -2
-                            continue
-                        follower = followers[ret["id"]]
-                        break
-                self.board.fairy.moveTo(follower, tile_fairy)
                 break
             if self.board.checkPack(3, "d") and not if_portal and ret.get("special") == "portal":
                 if ph_put >= 0:
@@ -345,51 +441,12 @@ class Player:
                 if ph_put >= 0:
                     pass_err = -12
                     continue
-                pos_tower: tuple[int, int] = ret["pos"]
-                if pos_tower not in self.board.tiles:
-                    pass_err = -5
-                    continue
-                tile_tower = self.board.tiles[pos_tower]
-                tower = more_itertools.only(feature for feature in tile_tower.features if isinstance(feature, Tower))
-                if tower is None:
-                    pass_err = -5
-                    continue
-                if len(tower.tokens) != 0:
-                    pass_err = -6
-                    continue
-                if not ret.get("which"):
-                    if self.towerPieces == 0:
-                        pass_err = -7
-                        continue
-                    self.towerPieces -= 1
-                    tower.height += 1
-                    yield from self.turnCaptureTower(tower, pos_tower)
-                    break
-                token = self.findToken(ret["which"])
-                if token is None:
-                    pass_err = -1
-                    continue
-                if not token.canPut(tower):
-                    pass_err = -2
-                    continue
-                self.tokens.remove(token)
-                yield from token.putOn(tower)
+                yield from self.turnCheckTower(ret)
                 break
             if self.board.checkPack(12, "b") and ret.get("special") == "abbot":
-                pos_abbot: tuple[int, int] = ret["pos"]
-                if pos_abbot not in self.board.tiles:
-                    pass_err = -8
+                pass_err = yield from self.turnMovingAbbot(ret)
+                if pass_err < 0:
                     continue
-                tile_abbot = self.board.tiles[pos_abbot]
-                abbots = [token for feature in tile_abbot.features for token in feature.tokens if isinstance(token, Abbot) and token.player is self]
-                if len(abbots) == 0:
-                    pass_err = -8
-                    continue
-                abbot = abbots[0]
-                assert isinstance(abbot.parent, BaseCloister)
-                score = abbot.parent.checkScore([self], True, False)[0][1]
-                yield from self.addScore(score)
-                abbot.putBackToHand()
                 break
             if self.board.checkPack(14, "b") and not rangered and ret.get("special") == "ranger":
                 pos_ranger: tuple[int, int] = ret["pos"]
@@ -433,55 +490,7 @@ class Player:
             if_flier = isinstance(seg_put, Flier)
             break
         if ph_put != -1:
-            ph_portal: bool = False
-            pos_put = pos
-            tile_put = tile
-            pass_err = 0
-            while 1:
-                if ph_put == -2:
-                    self.board.state = State.PuttingFollower
-                    ret2 = yield {"last_err": pass_err, "last_put": pos, "if_portal": ph_portal, "rangered": rangered, "special": "phantom"}
-                    if self.board.checkPack(3, "d") and not ph_portal and ret2.get("special") == "portal":
-                        if if_portal:
-                            pass_err = -13
-                            continue
-                        pos_portal = ret2["pos"]
-                        if pos_portal not in self.board.tiles or tile.addable != TileAddable.Portal:
-                            pass_err = -4
-                            continue
-                        pos_put = pos_portal
-                        tile_put = self.board.tiles[pos_portal]
-                        ph_portal = True
-                        continue
-                    if not if_portal and ph_portal and ret2["id"] == -1:
-                        pos_put = pos
-                        tile_put = tile
-                        ph_portal = False
-                        continue
-                    ph_put = ret2["id"]
-                    if ph_put == -1:
-                        break
-                    seg_ph = tile_put.getSeg(ph_put)
-                    if seg_ph is None:
-                        pass_err = -11
-                        continue
-
-                ph_put = -2
-                if phantom is None:
-                    pass_err = -10
-                    continue
-                if isinstance(seg_ph, Flier) and if_flier:
-                    pass_err = -13
-                    continue
-                if isinstance(seg_ph, Feature) and not isinstance(seg_ph, CanScore):
-                    pass_err = -11
-                    continue
-                if not phantom.canPut(seg_ph) or seg_ph.occupied() or ph_portal and seg_ph.closed():
-                    pass_err = -11
-                    continue
-                self.tokens.remove(phantom)
-                yield from phantom.putOn(seg_ph)
-                break
+            yield from self.turnPuttingPhantom(pos, tile, if_portal, if_flier, rangered, ph_put)
         return put_barn
     def turnCaptureTower(self, tower: 'Tower', pos: tuple[int, int]) -> 'TAsync[None]':
         followers = [token for token in self.board.tiles[pos].iterAllTokens() if isinstance(token, Follower)] + [token for dr in Dir for i in range(tower.height) if (pos[0] + dr.corr()[0] * (i + 1), pos[1] + dr.corr()[1] * (i + 1)) in self.board.tiles for token in self.board.tiles[pos[0] + dr.corr()[0] * (i + 1), pos[1] + dr.corr()[1] * (i + 1)].iterAllTokens() if isinstance(token, Follower)]

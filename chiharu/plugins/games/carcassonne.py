@@ -1556,6 +1556,7 @@ class State(Enum):
     CaptureTower = auto()
     ExchangingPrisoner = auto()
     AskingSynod = auto()
+    ChoosingTileFigure = auto()
     Error = auto()
 
 class Gift:
