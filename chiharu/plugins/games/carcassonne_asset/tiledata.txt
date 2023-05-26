@@ -118,7 +118,7 @@ Picture0011
         *1 3a Dragon
         *1 3a Garden 21,45; City 0 Princess; where Field 0 [36,28/8,56]
         *1 4a Tower (u) 14,50; where Field 0 [36,36/ud]
-        *1 13c Cloister 32,38; Gold; where Field 0 [8,56]
+        *1 13c Cloister 28,42; Gold; where Field 0 [8,56]
 1 CCFF
     City u 16
     City r 16
@@ -174,7 +174,7 @@ Picture0022
         *1 3a City 0 Princess
         *1 3a Portal; where Field 1 [4,60]
         *1 13c Gold; where Field 1 [4,60]
-        *1 13c Gold; Cloister 32,36; where Road 0 2; where Field 0 [48,56/8,16]
+        *1 13c Gold; Cloister 28,42; where Road 0 2; where Field 0 [48,56/8,16]
 1 CCRR
     City u-r 16
     Road l-32,16 16
@@ -232,7 +232,7 @@ Picture0111
         *1 3a Volcano; where Field 0 [48,32]
         *1 4a Tower (l) 47,46; where Field 0 [16,48]
         *1 6g Shrine 32,32
-        *1 6a Cloister 32,40; where Field 0 [12,32/52,32]
+        *1 6a Cloister 36,44; where Field 0 [12,32/52,32]
 1 CFFF
     Field l-d 16
     Field r 16
@@ -251,7 +251,7 @@ Picture0112
     Field else (R0-d) [48,48]
     Field else (R0-u) [8,16]
         *1 5a
-        *1 6a Garden 48,48
+        *1 6a Garden 44,47; where Field 0 [56,16/16,48]
         *1 13i Festival
 Picture0121
 0 CFRF
@@ -266,7 +266,7 @@ Picture0121
     City u 16
     Feature 32,32
     Road d-Feature0 0
-    Field else [16,16/16,48]
+    Field else [16,48/48,48]
         *1 6g Shrine Feature0
 Picture0122
 0 CFRR
@@ -556,7 +556,7 @@ Picture2222
         *1 3a Portal; where Field 0 [16,48/32,32]
         *1 4a Tower (l) 52,16; where Field 0 [16,48/32,32]
         *1 13c Gold
-        *1 13c Gold; Cloister 32,32; where Road 0 2
+        *1 13c Gold; Cloister 32,32; where Road 0 4; where Road 1 4
         *1 13i Festival
 3 RRRR
     Bridge 32,32

@@ -587,7 +587,7 @@ class Board:
             while 1:
                 yield from self.current_player.turn()
                 self.nextPlayer()
-        except CantPutError:
+        except (CantPutError,):
             midEnd = True
         except NoDeckEnd:
             midEnd = False
@@ -1794,9 +1794,10 @@ if __name__ == "__main__":
         }
     b.players[0].tokens.pop(0)
     yshift = 0
-    picnames = sorted(set(s.serialNumber[1] for s in b.deck + b.riverDeck))
+    cri = lambda s: s.serialNumber[0] in (6, 13)
+    picnames = sorted(set(s.serialNumber[1] for s in b.deck + b.riverDeck if cri(s)))
     for pic in picnames:
-        ss = sorted(set(s.serialNumber[1:] for s in b.deck + b.riverDeck if s.picname == pic))
+        ss = sorted(set(s.serialNumber[1:] for s in b.deck + b.riverDeck if s.picname == pic if cri(s)))
         for i, s2 in enumerate(ss):
             t = b.tiles[i % 5, i // 5 + yshift] = [s for s in b.deck + b.riverDeck if s.picname == pic and s.serialNumber[1:] == s2][0]
             # t.turn(Dir.LEFT)
@@ -1815,6 +1816,5 @@ if __name__ == "__main__":
                         pass
                     feature.height = random.randint(0, 9)
         yshift += (len(ss) + 4) // 5
-    b.dragonMoved.extend([b.tiles[0, 0], b.tiles[1, 0], b.tiles[2, 0], b.tiles[2, 1]])
     # b.setImageArgs(debug=True)
     b.image().show()
