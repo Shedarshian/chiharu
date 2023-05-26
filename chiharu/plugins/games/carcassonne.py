@@ -191,6 +191,9 @@ class Board:
                     xpos += t.image().size[0] + 24 + 4
                 else:
                     xpos += t.image().size[0] + 4
+        if self.checkPack(13, 'd'): # gold
+            self.token_pos[Gold] = xpos
+            xpos += 14 + 24 + 4
         self.token_length = xpos
         self.font_name = ImageFont.truetype("msyhbd.ttc", 16)
         self.font_score = ImageFont.truetype("msyhbd.ttc", 24)
@@ -629,46 +632,6 @@ class CanScore(ABC):
     def checkPlayerAndScore(self, mid_game: bool, putBarn: bool=True) -> 'list[tuple[Player, int]]':
         players = self.checkScore(self.checkPlayer(), mid_game, putBarn)
         return players
-    def moveWagon(self) -> TAsync[None]:
-        # move wagon
-        if not self.board.checkPack(5, "d"):
-            return
-        to_remove: list[Wagon] = [token for token in self.iterTokens() if isinstance(token, Wagon)]
-        to_remove.sort(key=lambda token: ((0, token.player.id) if token.player.id >= self.board.current_player_id else (1, token.player.id)) if isinstance(token.player, Player) else (-1, -1))
-        if len(to_remove) > 0:
-            for wagon in to_remove:
-                if not isinstance(wagon.parent, Segment) or (pos := self.board.findTilePos(wagon.parent.tile)) is None:
-                    continue
-                assert isinstance(wagon.player, Player)
-                self.board.current_player_id = wagon.player.id
-                pass_err: Literal[0, -1, -2, -3] = 0
-                while 1:
-                    self.board.state = State.WagonAsking
-                    ret = yield {"pos": pos, "player_id": wagon.player.id, "last_err": pass_err}
-                    if "pos" not in ret or ret["pos"] is None:
-                        break
-                    pos_put: tuple[int, int] = ret["pos"]
-                    if pos_put not in self.board.tiles:
-                        pass_err = -1
-                        continue
-                    if pos_put[0] - pos[0] not in (-1, 0, 1) or pos_put[1] - pos[1] not in (-1, 0, 1):
-                        pass_err = -2
-                        continue
-                    tile = self.board.tiles[pos_put]
-                    seg_put = tile.getSeg(ret["seg"])
-                    if seg_put is None:
-                        pass_err = -3
-                        continue
-                    if (isinstance(seg_put, Feature) and not isinstance(seg_put, Monastry)):
-                        pass_err = -3
-                        continue
-                    if seg_put.closed() or seg_put.occupied() or not wagon.canPut(seg_put):
-                        pass_err = -3
-                        continue
-                    wagon.parent.tokens.remove(wagon)
-                    yield from wagon.putOn(seg_put)
-                    break
-            self.board.current_player_id = self.board.current_turn_player_id
     def score(self, putBarn: bool, ifFairy: bool=True) -> TAsync[bool]:
         players = self.checkPlayerAndScore(True, putBarn=putBarn)
         for player, score in players:
@@ -686,8 +649,6 @@ class CanScore(ABC):
             if ginger is not None:
                 yield from ginger.score()
                 gingered = True
-        yield from self.moveWagon()
-        self.removeAllFollowers()
         return gingered
     def scoreFinal(self):
         players = self.checkPlayerAndScore(False)
@@ -811,6 +772,9 @@ class Tile:
         if i < len(self.features) + len(self.segments):
             return self.segments[i - len(self.features)]
         return None
+    def putOnBy(self, token: 'Token') -> TAsync[None]:
+        return
+        yield {}
 
     def debugImage(self):
         img = Image.new("RGBA", (64, 64), "white")
@@ -949,6 +913,12 @@ class Segment(ABC):
         pass
     def key(self):
         return (-1,)
+    def putOnBy(self, token: 'Token') -> TAsync[None]:
+        for token in self.tile.tokens:
+            if isinstance(token, TileFigure):
+                token.draw_pos = None
+        return
+        yield {}
 class AreaSegment(Segment):
     def __init__(self, tile: Tile, side: list[tuple[Dir, bool]], pic: AreaSegmentPic) -> None:
         super().__init__(tile)
@@ -1191,6 +1161,9 @@ class Feature:
     def make(cls, typ: str) -> Type["Feature"]:
         return {"cloister": Cloister, "garden": Garden, "shrine": Shrine, "tower": Tower, "flier": Flier}[typ.lower()]
     def putOnBy(self, token: 'Token') -> TAsync[None]:
+        for token in self.parent.tokens:
+            if isinstance(token, TileFigure):
+                token.draw_pos = None
         return
         yield {}
     def drawPos(self, num: int):
@@ -1304,6 +1277,7 @@ class Flier(Feature, CanScore):
                 break
         token.player.tokens.remove(token)
         yield from token.putOn(to_put)
+        yield from super().putOnBy(token)
 
 class TokenMeta(type):
     def __new__(cls, name: str, base, attr):
@@ -1334,8 +1308,7 @@ class Token(metaclass=TokenMeta):
         return True
     def putOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
         yield from self.selfPutOn(seg)
-        if isinstance(seg, Feature):
-            yield from seg.putOnBy(self)
+        yield from seg.putOnBy(self)
         return
         yield {}
     def selfPutOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
@@ -1398,6 +1371,7 @@ class TileFigure(Figure):
             else:
                 post = (random.randint(8, 56), random.randint(8, 56))
         return self.draw_pos
+    canPutTypes = (Tile,)
 class BaseFollower(Follower):
     key = (0, 0)
     name = "跟随者"
@@ -1552,6 +1526,9 @@ class Robber(Figure):
         self.complete_roads: list[Object] = []
     key = (6, 1)
     name = "小偷"
+class Gold(TileFigure):
+    key = (13, 0)
+    name = "金块"
 
 Token.all_name["follower"] = BaseFollower
 
