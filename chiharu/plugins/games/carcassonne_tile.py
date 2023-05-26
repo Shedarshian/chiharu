@@ -15,7 +15,7 @@ def readTileData(packData: dict[int, str]):
         for name, tilets in data:
             img = open_img(name)
             for tilet in tilets:
-                # print(name, tilet.id, tilet.sides)
+                print(name, tilet.id, tilet.sides)
                 tile = TileData(name, tilet.id, tilet.sides, tilet.segments)
                 for i0, (num, packname, extra_orders) in enumerate(tilet.nums):
                     match = re.match(r"(\d+)([a-z])", packname)

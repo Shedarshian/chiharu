@@ -413,7 +413,7 @@ Picture0222
     City u 16
     Road l-d 16
     Road r-32,16 16
-    Field else (R1-u) [56,16]
+    Field else (r-u) {0} [56,16]
     Field else (l-u,d-r,r-d) {0} [56,56/32,32]
     Field else (R0-l-d) [8,56]
         *1 7c
@@ -421,7 +421,7 @@ Picture0222
     City u 16
     Road r-d 16
     Road l-32,16 16
-    Field else (R1-u) [8,16]
+    Field else (l-u) {0} [8,16]
     Field else (r-u,d-l,l-d) {0} [8,56/32,32]
     Field else (R0-r-d) [56,56]
         *1 6a

@@ -1348,7 +1348,7 @@ class Follower(Token):
 class Figure(Token):
     pass
 class TileFigure(Figure):
-    def __init__(self, parent: Player | Board, data: dict[str, Any], img: Image) -> None:
+    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
         super().__init__(parent, data, img)
         self.draw_pos: tuple[int, int] | None = None
     def findDrawPos(self, drawn_poses: list[tuple[int, int]] | None=None):
@@ -1785,7 +1785,7 @@ class GiftTake2(Gift):
 from .carcassonne_player import Player
 
 if __name__ == "__main__":
-    b = Board({0: "a", 1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 6: "abcdefgh", 7: "abcd", 12: "ab", 13: "abcd"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
+    b = Board({0: "a", 1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 6: "abcdefgh", 7: "abcd", 12: "ab", 13: "abcdijk"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
     d = {
             "name": "follower",
             "distribute": True,
