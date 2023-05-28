@@ -660,7 +660,7 @@ class Player:
         self.board.current_player_id = self.board.current_turn_player_id
     def turnChooseGold(self, objects: 'list[CanScore]') -> 'TAsync[None]':
         players: 'dict[Player, list[Gold]]' = {}
-        num = 0
+        all_golds: list[Gold] = []
         for obj in objects:
             golds: list[Gold] = []
             for tile in obj.getTile():
@@ -672,9 +672,14 @@ class Player:
             for player in (l := obj.checkPlayer()):
                 if player not in players:
                     players[player] = []
-                players[player].extend(golds)
+                for gold in golds:
+                    if gold not in players[player]:
+                        players[player].append(gold)
             if len(l) > 0:
-                num += len(golds)
+                for gold in golds:
+                    if gold not in all_golds:
+                        all_golds.append(gold)
+        num = len(all_golds)
         if num == 0 or len(players) == 0:
             return
         if len(players) == 1:

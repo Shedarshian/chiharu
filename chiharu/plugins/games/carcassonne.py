@@ -110,7 +110,7 @@ class Board:
                             p.tokens.extend(Token.make(t["name"])(p, t, img) for i in range(num))
                     else:
                         self.tokens.extend(Token.make(t["name"])(self, t, img) for i in range(num))
-        if pack_id == 5 and self.checkPack(5, "b"):
+        if self.checkPack(5, "b"):
             self.abbeyImg = open_img("abbey")
         for player in self.players:
             player.allTokens = [t for t in player.tokens]
