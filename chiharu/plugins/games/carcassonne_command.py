@@ -14,12 +14,12 @@ changelog = ""
 cacason = game.GameSameGroup('cacason', can_private=True)
 config.CommandGroup(('play', 'cacason'), hide=True)
 packs = readPackData()["packs"]
-config.CommandGroup('cacason', des=packs[0]["help"], short_des='卡卡颂。', hide_in_parent=True, display_parents='game')
+config.CommandGroup('cacason', short_des='卡卡颂。', hide_in_parent=True, display_parents='game')
 for pack in packs:
     if "help" in pack:
-        config.CommandGroup(('cacason', 'ex' + str(pack["id"])),
+        config.CommandGroup(('cacason', 'ex' + str(pack["id"])), display_id=pack["id"],
                     des=pack.get("full_name", pack["name"]) + "\n" + pack["help"],
-                    short_des=pack.get("full_name", pack["name"]), display_parents=("play", "cacason", "extensions"))
+                    short_des=pack.get("full_name", pack["name"]))
 
 @on_command(("cacason", "version"), hide=True, only_to_me=False)
 @config.ErrorHandle
@@ -66,7 +66,7 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
     # 选择扩展
     await session.send("请选择想开启或是关闭的扩展，发送如open ex1开启扩展，close ex1关闭，check查询，选择完毕后发送开始游戏即可开始。")
 
-@on_command(('play', 'cacason', 'extension'), only_to_me=False, hide_in_parent=True, display_parents=("cacason",), args=('[check/open/close]', '[ex??]'), short_des="修改卡卡颂对局使用的扩展。")
+@on_command(('play', 'cacason', 'extension'), only_to_me=False, hide_in_parent=True, display_parents=("cacason",), args=('[check/open/close]', '[ex??]'), short_des="修改卡卡颂对局使用的扩展。", display_id=999)
 @config.ErrorHandle
 async def ccs_extension(session: CommandSession):
     """修改卡卡颂对局使用的扩展。
@@ -81,14 +81,16 @@ async def ccs_extension(session: CommandSession):
     (a) 图块；(b) 高塔。
 5. 僧院板块与市长（Abbey and Mayor）
     (a) 图块；(b) 僧院板块；(c) 市长；(d) 马车；(e) 谷仓。
+6. 伯爵、国王与小偷（Count, King and Robber）
+    (a) 图块；(b) 国王；(c) 小偷；(g) 神龛图块；(h) 神龛。
 7. 河流合集
-    (b) 河流2*；(c) GQ11图块*。
+    (a) 河流*；(b) 河流2*；(c) GQ11图块*；(d) 20周年河流*。
 12. 一些小扩展合集
     (a) 花园；(b) 修道院长。
 13. 另一些小扩展合集
-    (a) 飞行器图块；(b) 飞行器；(k) 幽灵。
+    (a) 飞行器图块；(b) 飞行器；(i) 节日图块；(j) 节日；(k) 幽灵。
 14. 又新又好的精选小扩展合集
-    (a) 礼物卡牌；(b) 护林员。
+    (a) 礼物卡牌；(b) 护林员；(c) 姜饼人图块；(d) 姜饼人。
 
 使用例：-play.cacason.extension check：查询目前开启了哪些扩展包。
 -play.cacason.extension open ex1：开启所有扩展包1的内容。
@@ -160,7 +162,7 @@ async def ccs_extension(session: CommandSession):
                 session.finish("已开启。" + ret)
             else:
                 session.finish("已关闭。" + ret)
-        session.finish(ccs_extension.__doc__)
+    await call_command(get_bot(), session.ctx, ('help',), current_arg="play.cacason.extension")
 
 @cacason.end(('play', 'cacason', 'end'))
 async def ccs_end(session: CommandSession, data: dict[str, Any]):
@@ -257,6 +259,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     await session.send("板块不存在！")
                 elif ret["last_err"] == -2:
                     await session.send("不符合要求！")
+                elif ret["last_err"] == -3:
+                    await session.send("这个金块不是你的！")
                 else:
                     board.setImageArgs()
                     await session.send([board.saveImg()])
@@ -272,6 +276,10 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                         await session.send("请选择跟随者切换形态，输入图块坐标。")
                     elif ret["special"] == "gingerbread":
                         await session.send("请选择要移动到的城市，输入图块坐标。")
+                    elif ret["special"] == "gold":
+                        await session.send("请选择放置另一个金块的图块坐标。")
+                    elif ret["special"] == "gold":
+                        await session.send(f"请玩家{data['names'][board.current_player_id]}选择拿取金块的图块坐标。")
             case State.PuttingFollower:
                 if ret["last_err"] == -1:
                     await session.send("没有找到跟随者！")
@@ -314,6 +322,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                             prompt += "，回复板块位置以及“修道院长”回收修道院长"
                         if board.checkPack(14, "b") and not ret["rangered"]:
                             prompt += "，回复板块位置以及“护林员”移动护林员"
+                        if board.checkPack(13, "j") and board.tiles[ret["last_put"]].addable == TileAddable.Festival:
+                            prompt += "，回复板块位置以及“节日”移除物体（移除谷仓请指定谷仓左上角的板块）"
                         if board.checkPack(13, "k"):
                             prompt += "，后加“放幽灵”申请放幽灵，或直接后加小写字母以及“幽灵”放置幽灵"
                     if not ret["if_portal"] and board.checkPack(3, "d") and board.tiles[ret["last_put"]].addable == TileAddable.Portal:
@@ -421,11 +431,22 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     board.setImageArgs()
                     await session.send([board.saveImg()])
                     await session.send('请选择放置的修道院板块坐标以及跟随者。')
+            case State.ChoosingTileFigure:
+                if ret["last_err"] == -1:
+                    await session.send("未找到物体！")
+                elif ret["last_err"] == -2:
+                    await session.send("不符合要求！")
+                else:
+                    board.setImageArgs(tile_figure=ret["last_put"])
+                    await session.send([board.saveImg()])
+                    if ret["special"] == "festival":
+                        await session.send('请选择板块上要移除的物体。')
     
     command = session.msg_text.strip()
     if data['adding_extensions']:
         if command in ("开始游戏", "游戏开始"):
             # 开始游戏
+            data['extensions'][0] = "a"
             board: Board = Board(data['extensions'], data['names'], data['starting_tile'])
             data['board'] = board
             await advance(board)
@@ -461,7 +482,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             elif match := re.match(r"\s*礼物([0-9]+)$", command):
                 ns = match.group(1)
                 await advance(board, {"id": int(ns) - 1, "special": "gift"})
-        case State.ChoosingOwnFollower | State.ChoosingSegment:
+        case State.ChoosingOwnFollower | State.ChoosingSegment | State.ChoosingTileFigure:
             if match := re.match(r"\s*([a-z])$", command):
                 n = ord(match.group(1)) - ord('a')
                 await advance(board, {"id": n})
@@ -487,10 +508,10 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 n = ord(match.group(1)) - ord('a')
                 name = match.group(2)
                 await advance(board, {"id": n, "which": name or "follower", **dct})
-            elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(仙子|fairy|传送门|portal|修道院长|abbot|护林员|ranger)$", command):
+            elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(仙子|fairy|传送门|portal|修道院长|abbot|护林员|ranger|节日|festival)$", command):
                 xs = match.group(1); ys = match.group(2)
                 pos = board.tileNameToPos(xs, ys)
-                special = {"仙子": "fairy", "传送门": "portal", "修道院长": "abbot", "护林员": "ranger"}.get(match.group(3), match.group(3))
+                special = {"仙子": "fairy", "传送门": "portal", "修道院长": "abbot", "护林员": "ranger", "节日": "festival"}.get(match.group(3), match.group(3))
                 await advance(board, {"id": -2, "pos": pos, "special": special, **dct})
             elif board.checkPack(4, "b") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(高塔|tower)\s*(.*)?$", command)):
                 xs = match.group(1); ys = match.group(2); which = match.group(4)
@@ -530,3 +551,48 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await advance(board, {"pos": pos})
         case _:
             pass
+
+@on_command(('cacason', 'check'), only_to_me=False, display_id=998)
+@config.ErrorHandle
+async def ccs_check(session: CommandSession):
+    """查询卡卡颂图块内容。"""
+    if match := re.match(r'ex(\d+)([a-z]*)', session.current_arg_text):
+        exa, exb = int(match.group(1)), match.group(2)
+        if not exb:
+            if exa == 0:
+                exb = "a"
+            elif exa not in all_extensions:
+                session.finish("未找到扩展" + str(exa))
+            else:
+                exb = all_extensions[exa]
+        from PIL import Image, ImageDraw, ImageFont
+        from .carcassonne_tile import readTileData
+        def pos(w: int, h: int, *offsets: tuple[int, int]):
+            return w * (64 + 8) + sum(c[0] for c in offsets) + 8, h * (64 + 20) + sum(c[1] for c in offsets) + 20
+        all_packs = readTileData({exa: exb})
+        if len(all_packs) == 0:
+            session.finish("此扩展无图块！")
+        ss = list(sorted(set(tileData.serialNumber for tileData in all_packs)))
+        s2: dict[str, list[tuple[Image.Image, int]]] = {}
+        font_name = ImageFont.truetype("msyhbd.ttc", 16)
+        for s in ss:
+            if s[1] not in s2:
+                s2[s[1]] = []
+            l = [tileData.img for tileData in all_packs if tileData.serialNumber == s]
+            s2[s[1]].append((l[0], len(l)))
+        height = sum((len(x) + 4) // 5 for x in s2.values())
+        img = Image.new("RGBA", pos(5, height), "LightCyan")
+        dr = ImageDraw.Draw(img)
+        y: int = 0
+        for l in s2.values():
+            for i, (timg, num) in enumerate(l):
+                p = (i % 5, y + i // 5)
+                img.paste(timg, pos(*p))
+                dr.text(pos(*p, (32, 65)), str(num), "black", font_name, "mt")
+            y += (len(l) + 4) // 5
+        from .. import config
+        name = 'ccs' + str(random.randint(0, 9)) + '.png'
+        img.save(config.img(name))
+        await session.send(config.cq.img(name))
+    else:
+        await session.send("请发送扩展编号如ex1ab")
