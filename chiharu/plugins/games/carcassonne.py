@@ -637,9 +637,9 @@ class CanScore(ABC):
                 strengths[token.player.id] += token.strength
         players = findAllMax(self.board.players, lambda player: strengths[player.id], lambda player: strengths[player.id] != 0)[1]
         if self.board.checkPack(9, "d"):
-            on_hills = [token.player for token in self.iterTokens() if token.player in players and isinstance(token.player, Player) and isinstance(token.parent, (Segment, Feature)) and token.parent.tile.addable == TileAddable.Hill]
+            on_hills = [token.player for token in self.iterTokens() if token.player in players and isinstance(token, Follower) and isinstance(token.parent, (Segment, Feature)) and token.parent.tile.addable == TileAddable.Hill]
             if len(on_hills) != 0:
-                return on_hills
+                return on_hills # type: ignore
         return players
     def checkPlayerAndScore(self, complete: bool, putBarn: bool=True) -> 'list[tuple[Player, int]]':
         players = self.checkScore(self.checkPlayer(), complete, putBarn)
