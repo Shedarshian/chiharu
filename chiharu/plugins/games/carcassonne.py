@@ -1208,7 +1208,7 @@ class BaseCloister(Feature, CanScore):
                     for feature in self.board.tiles[pos[0] + i, pos[1] + j].features
                     if isinstance(feature, typ))
 class Monastry(BaseCloister):
-    def checkScore(self, players: list[Player], complete: bool, putBarn: bool) -> list[tuple[Player, int]]:
+    def checkScore(self, players: 'list[Player]', complete: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
         if self.board.checkPack(9, "e") and complete:
             score = sum(4 if tile.addable == TileAddable.Vineyard else 1 for tile in self.getTile())
             return [(player, score) for player in players]
