@@ -353,6 +353,10 @@ class Player:
                 continue
             self.tokens.remove(token)
             yield from token.putOn(seg_put)
+            if isinstance(token, Shepherd):
+                token.grow()
+                if isinstance(token.parent, FieldSegment) and all(seg.selfClosed() for seg in token.parent.object.segments):
+                    yield from token.score()
             put_barn = isinstance(token, Barn)
             if_flier = isinstance(seg_put, Flier)
             break
@@ -569,6 +573,27 @@ class Player:
                 self.board.addLog(id="exchangePrisoner", p1=t[0], p2=t[1])
             t[0].putBackToHand()
             t[1].putBackToHand()
+
+    def turnCheckShepherd(self, tile: 'Tile') -> 'TAsync[None]':
+        shepherd: Shepherd | None = None
+        for seg in tile.segments:
+            for token in seg.object.iterTokens():
+                if token.player is self and isinstance(token, Shepherd):
+                    shepherd = token
+                    break
+            else:
+                continue
+            break
+        if shepherd is None:
+            return
+        self.board.state = State.ChoosingShepherd
+        ret = yield {}
+        if ret["id"] == 1:
+            shepherd.grow()
+        elif ret["id"] == 2:
+            yield from shepherd.score()
+        if isinstance(shepherd.parent, FieldSegment) and all(seg.selfClosed() for seg in shepherd.parent.object.segments):
+            yield from shepherd.score()
 
     def turnMoveDragon(self) -> 'TAsync[None]':
         dragon = self.board.dragon
@@ -818,7 +843,8 @@ class Player:
         CaptureTower：询问高塔抓人（-1：未找到跟随者），ExchangingPrisoner：询问交换俘虏（-1：未找到跟随者）
         ChoosingGiftCard：使用礼物卡（-1：未找到礼物卡）
         AskingSynod：坐标+跟随者（-1：板块不存在，-2：不符合要求，-3：没有跟随者，-4：无法放置）
-        ChoosingTileFigure：选择图块上的任意figure（-1：未找到，-2：不符合要求）"""
+        ChoosingTileFigure：选择图块上的任意figure（-1：未找到，-2：不符合要求）
+        ChoosingShepherd：选择牧羊人动作[1羊2分]"""
         isBegin: bool = True
         nextTurn: bool = False
         princessed: bool = False
@@ -863,6 +889,9 @@ class Player:
             if not princessed:
                 # put a follower
                 ifBarn = yield from self.turnPutFollower(tile, pos, rangered)
+            
+            if self.board.checkPack(9, "b"):
+                yield from self.turnCheckShepherd(tile)
 
             # move a dragon
             if self.board.checkPack(3, "b") and tile.addable == TileAddable.Dragon:
@@ -1004,7 +1033,7 @@ class Player:
                 dr.text((166 + i * 96, 48), "R", "black", font, "lm")
         return img
 
-from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Follower
+from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Follower, FieldSegment
 from .carcassonne import State, Connectable, Gift, Dir, CanScore, TAsync, CantPutError
 from .carcassonne import Barn, Builder, Pig, TileAddable, CitySegment, RoadSegment, AbbeyData, Wagon, Monastry
-from .carcassonne import Phantom, Tower, Abbot, BaseCloister, Flier, BigFollower, Addable, Gold
+from .carcassonne import Phantom, Tower, Abbot, BaseCloister, Flier, BigFollower, Addable, Gold, Shepherd

@@ -211,6 +211,9 @@ class Board:
             self.king = [token for token in self.tokens if isinstance(token, King)][0]
         if self.checkPack(6, "c"):
             self.robber = [token for token in self.tokens if isinstance(token, Robber)][0]
+        if self.checkPack(9, 'b'):
+            self.sheeps = [1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, -1, -1]
+            random.shuffle(self.sheeps)
         if self.checkPack(9, 'c'):
             self.hill_tiles: list[Tile] = []
         if self.checkPack(14, 'a'):
@@ -1551,6 +1554,48 @@ class Gold(TileFigure):
     @classmethod
     def score(cls, num: int):
         return (num + 2) // 3 * num
+class Shepherd(Figure):
+    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
+        super().__init__(parent, data, img)
+        self.sheeps: list[int] = []
+    def canPut(self, seg: Segment | Feature | Tile):
+        if not super().canPut(seg):
+            return False
+        if isinstance(seg, FieldSegment) and any(isinstance(t, Shepherd) for t in seg.object.iterTokens()):
+            return False
+        return True
+    def putBackToHand(self):
+        super().putBackToHand()
+        self.board.sheeps.extend(self.sheeps)
+        self.sheeps = []
+    def grow(self):
+        assert isinstance(self.parent, FieldSegment)
+        i = random.choice(self.board.sheeps)
+        self.board.addLog(type="shepherd", player=self.player, sheep=i)
+        if i == -1:
+            self.putBackToHand()
+            for t in self.parent.object.iterTokens():
+                if isinstance(t, Shepherd):
+                    t.putBackToHand()
+        else:
+            self.board.sheeps.remove(i)
+            self.sheeps.append(i)
+    def score(self):
+        assert isinstance(self.parent, FieldSegment)
+        to_score: list[Shepherd] = []
+        score = 0
+        for t in self.parent.object.iterTokens():
+            if isinstance(t, Shepherd):
+                to_score.append(t)
+                score += sum(t.sheeps)
+        for t in to_score:
+            assert isinstance(t.player, Player)
+            yield from t.player.addScore(score)
+        for t in to_score:
+            t.putBackToHand()
+    key = (9, 0)
+    name = "牧羊人"
+    canPutTypes = (FieldSegment,)
 
 Token.all_name["follower"] = BaseFollower
 
@@ -1572,6 +1617,7 @@ class State(Enum):
     ExchangingPrisoner = auto()
     AskingSynod = auto()
     ChoosingTileFigure = auto()
+    ChoosingShepherd = auto()
     Error = auto()
 
 class Gift:
