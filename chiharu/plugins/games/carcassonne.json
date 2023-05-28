@@ -203,7 +203,7 @@
                     "distribute": false,
                     "thing_id": "d",
                     "num": 12,
-                    "image": [0, 54, 30, 66]
+                    "image": [0, 54, 14, 66]
                 },
                 {
                     "name": "phantom",
