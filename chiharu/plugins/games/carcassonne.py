@@ -27,6 +27,8 @@ class TileAddable(Enum):
     Gold = auto()
     Gingerbread = auto()
     Festival = auto()
+    Hill = auto()
+    Vineyard = auto()
 class Addable(Enum):
     No = auto()
     Cathedral = auto()
@@ -36,7 +38,7 @@ class Addable(Enum):
     Cloth = auto()
     Princess = auto()
     Pigherd = auto()
-all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 6: 'abcdefgh', 7: 'abcd', 12: 'abcdef', 13: 'abcdefghijk', 14: 'abcdefg'}
+all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 6: 'abcdefgh', 7: 'abcd', 9: 'abcd', 12: 'abcdef', 13: 'abcdefghijk', 14: 'abcdefg'}
 T = TypeVar('T')
 TAsync = Generator[dict[str, Any], dict[str, Any], T]
 def findAllMax(items: Sequence[T], key: Callable[[T], int], criteria=None) -> tuple[int, list[T]]:
@@ -1785,7 +1787,7 @@ class GiftTake2(Gift):
 from .carcassonne_player import Player
 
 if __name__ == "__main__":
-    b = Board({0: "a", 1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 6: "abcdefgh", 7: "abcd", 12: "ab", 13: "abcdijk"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
+    b = Board({0: "a", 1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 6: "abcdefgh", 7: "abcd", 9: "a", 12: "ab", 13: "abcdijk"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
     d = {
             "name": "follower",
             "distribute": True,
@@ -1794,7 +1796,7 @@ if __name__ == "__main__":
         }
     b.players[0].tokens.pop(0)
     yshift = 0
-    cri = lambda s: s.serialNumber[0] in (6, 13)
+    cri = lambda s: s.serialNumber[0] in (9,)
     picnames = sorted(set(s.serialNumber[1] for s in b.deck + b.riverDeck if cri(s)))
     for pic in picnames:
         ss = sorted(set(s.serialNumber[1:] for s in b.deck + b.riverDeck if s.picname == pic if cri(s)))

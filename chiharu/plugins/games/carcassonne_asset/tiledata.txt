@@ -84,7 +84,7 @@ Picture0001
 6 CCCF
     City else (u-l,u-r,r-u) [48,12/lr]
     City else (d-l,d-r,r-d) [48,52/lr]
-    Field else (l-u,l-d) {0,1} [16,32/lr]
+    Field else (l-u,l-d) {0,1} [32,32/lr]
         *2 9a Vineyard
 Picture0002
 0 CCCR
@@ -159,9 +159,9 @@ Picture0012
 2 CCFR
     City u 16
     City r 16
-    Road l-48,16 0
-    Field else (R0-u) [8,16]
-    Field else (R0-d) [48,56]
+    Road l-48,32 0
+    Field else (l-u) {0,1} [8,16]
+    Field else (l-d,d-l,d-r) {1} [48,56]
         *1 9a Vineyard
 Picture0021
 0 CCRF
@@ -235,7 +235,7 @@ Picture0101
     City else (d-l,d-r) [32,48]
     Field else (l-u,l-d) {0,1} [16,32]
     Field else (r-u,r-d) {0,1} [48,32]
-        *1 9a Vineyard
+        *1 9a Vineyard; where Field 0 [8,48]
 Picture0102
 0 CFCR
     Road l 16
@@ -267,9 +267,9 @@ Picture0111
     City else [32,32]
         *1 5a City 0 pennant
 3 CFFF
-    City else (u-l,u-r) [16,32/ud]
-    Field else (l-u,l-d,d-l) {0} [16,32/ud]
-    Field else (r-u,r-d,d-r) {0} [48,32/ud]
+    City else (u-l,u-r) [32,32/ud]
+    Field else (l-u,l-d,d-l) {0} [12,32/ud]
+    Field else (r-u,r-d,d-r) {0} [52,32/ud]
         *2 9a Vineyard
 Picture0112
 0 CFFR
@@ -417,7 +417,7 @@ Picture0221
         *1 3a Portal; where Field 0 [16,48]
         *1 13i Festival
         *1 9a Hill; where Field 0 [16,48]
-        *1 9a Cloister 16,36; where Field 0 [16,56]
+        *1 9a Cloister 16,40; where Field 0 [16,56]
 1 CRRF
     City u 16
     Roundabout 32,32
@@ -498,7 +498,7 @@ Picture1122
     Field else (R0-l,R1-d) [8,56]
         *1 4a Tower (l) 36,32
         *1 13i Festival; Cloister Feature0
-        *1 9a Hill; Garden 20,16; where Field 0 [48,16/52,48]
+        *1 9a Hill; Garden 22,12; where Field 0 [48,16/52,48]
 Picture1212
 0 FRFR
     Road l-r 16
@@ -555,17 +555,17 @@ Picture1222
     Field else (R0-d,R1-l) [8,56]
         *1 5a
 3 FRRR
+    Feature 22,32
     Road r-d 16
-    Feature 24,32
     Road l-Feature0 0
-    Field (R0-u-l) [48,16/8,56]
-    Field (R0-r-d) [56,56]
+    Field else (R0-u-l) [48,16/8,56]
+    Field else (R0-r-d) [56,56]
         *1 9a Cloister Feature 0
 4 FRRR
     Road l-r 0
     Road d-32,48 0
-    Field (R0-u) [32,16]
-    Field (R0-d) [8,56/56,56]
+    Field else (R0-u) [32,16]
+    Field else (R0-d) [8,56/56,56]
         *1 9a Vineyard; where Field 0 [16,16]
 Picture2222
 0 RRRR
