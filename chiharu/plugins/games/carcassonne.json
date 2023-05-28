@@ -160,8 +160,12 @@
             "id": 8
         },
         {
-            "name": "",
-            "id": 9
+            "name": "Hills & Sheep",
+            "full_name": "扩展9：高山与羊（Hills & Sheep）",
+            "id": 9,
+            "help": "",
+            "things": ["图块", "牧羊人", "高山", "葡萄园"],
+            "tokens": []
         },
         {
             "name": "",
