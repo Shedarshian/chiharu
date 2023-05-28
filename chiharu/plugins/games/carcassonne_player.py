@@ -626,7 +626,7 @@ class Player:
         to_remove: list[Wagon] = [token for obj in objects for token in obj.iterTokens() if isinstance(token, Wagon)]
         to_remove.sort(key=lambda token: ((0, token.player.id) if token.player.id >= self.board.current_player_id else (1, token.player.id)) if isinstance(token.player, Player) else (-1, -1))
         for wagon in to_remove:
-            if not isinstance(wagon.parent, Segment) or (pos := self.board.findTilePos(wagon.parent.tile)) is None:
+            if not isinstance(wagon.parent, (Segment, Monastry)) or (pos := self.board.findTilePos(wagon.parent.tile)) is None:
                 continue
             assert isinstance(wagon.player, Player)
             self.board.current_player_id = wagon.player.id
