@@ -766,6 +766,9 @@ class Tile:
     def getBarnSeg(self):
         seg = more_itertools.only(s for s in self.segments if s.inSideA(Dir.RIGHT, False) and s.inSideA(Dir.DOWN, True) and s.type == Connectable.Field)
         return seg
+    def getBarnSegLU(self):
+        seg = more_itertools.only(s for s in self.segments if s.inSideA(Dir.LEFT, False) and s.inSideA(Dir.UP, True) and s.type == Connectable.Field)
+        return seg
     def findTokenDrawPos(self, token: 'Token'):
         """turned"""
         if isinstance(token, Barn) and (seg := self.getBarnSeg()) and token in seg.tokens:
@@ -1442,7 +1445,9 @@ class Barn(Figure):
     def canPut(self, seg: Segment | Feature | Tile):
         return isinstance(seg, Tile) and (pos := self.board.findTilePos(seg)) and \
             all((pos[0] + i, pos[1] + j) in self.board.tiles and not self.board.tiles[pos[0] + i, pos[1] + j].isAbbey for i in (0, 1) for j in (0, 1)) and \
-            (barnseg := seg.getBarnSeg()) is not None and all(not isinstance(t, Barn) for s in barnseg.object.segments for t in s.tokens)
+            (barnseg := seg.getBarnSeg()) is not None and \
+            all(not isinstance(t, Barn) for s in barnseg.object.segments for t in s.tokens) and \
+            self.board.tiles[pos[0] + 1, pos[1] + 1].getBarnSegLU() is not None
     def selfPutOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
         if isinstance(seg, Tile) and (s := seg.getBarnSeg()):
             s.tokens.append(self)
