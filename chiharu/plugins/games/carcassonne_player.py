@@ -248,6 +248,7 @@ class Player:
                     continue
                 tile2 = self.board.tiles[ret["pos"]]
                 yield from golds[1].putOn(tile2)
+                break
 
     def turnCheckBuilder(self) -> 'TAsync[bool]':
         if not self.board.checkPack(2, 'b'):
@@ -511,6 +512,7 @@ class Player:
                 if to_remove not in can_remove:
                     pass_err = -2
                     continue
+                break
         to_remove.putBackToHand()
         return 0
     def turnCaptureTower(self, tower: 'Tower', pos: tuple[int, int]) -> 'TAsync[None]':
@@ -678,6 +680,7 @@ class Player:
                             l2.remove(gold)
                     gold.remove()
                     self.board.current_player.tokens.append(gold)
+                    break
             self.board.current_player_id = self.board.current_turn_player_id
     def turnScoring(self, tile: 'Tile', pos: tuple[int, int], ifBarn: bool, rangered: bool) -> 'TAsync[bool]':
         objects: list[CanScore] = []

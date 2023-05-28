@@ -309,6 +309,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     await session.send("在高塔/传送门/飞行器时不能使用幽灵，请仅仅申请“放幽灵”！")
                 elif ret["last_err"] == -13:
                     await session.send("不能重复使用传送门/飞行器！")
+                elif ret["last_err"] == -14:
+                    await session.send("无法使用节日移除！")
                 else:
                     board.setImageArgs(draw_tile_seg=ret["last_put"])
                     await session.send([board.saveImg()])
