@@ -713,6 +713,7 @@ class Player:
                     gold.remove()
                     self.board.current_player.tokens.append(gold)
                     break
+                self.board.nextAskingPlayer()
             self.board.current_player_id = self.board.current_turn_player_id
     def turnScoring(self, tile: 'Tile', pos: tuple[int, int], ifBarn: bool, rangered: bool) -> 'TAsync[bool]':
         objects: list[CanScore] = []
