@@ -172,6 +172,8 @@ class Player:
         for dr in Dir:
             if pos + dr in self.board.tiles:
                 self.board.tiles[pos + dr].addConnect(tile, -dr)
+        if tile.addable == TileAddable.Hill and self.board.checkPack(9, 'c') and len(self.board.deck) > 0:
+            self.board.hill_tiles.append(self.board.drawTile())
         rangered: bool = self.board.checkPack(14, "b") and self.board.ranger.pos == pos
         princessed: bool = False
         if self.board.checkPack(3, "e") and (seg := more_itertools.only(seg for seg in tile.segments if seg.addable == Addable.Princess)):
@@ -482,7 +484,7 @@ class Player:
             return -8
         abbot = abbots[0]
         assert isinstance(abbot.parent, BaseCloister)
-        score = abbot.parent.checkScore([self], True, False)[0][1]
+        score = abbot.parent.checkScore([self], False, False)[0][1]
         yield from self.addScore(score)
         abbot.putBackToHand()
         return 0

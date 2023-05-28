@@ -211,6 +211,8 @@ class Board:
             self.king = [token for token in self.tokens if isinstance(token, King)][0]
         if self.checkPack(6, "c"):
             self.robber = [token for token in self.tokens if isinstance(token, Robber)][0]
+        if self.checkPack(9, 'c'):
+            self.hill_tiles: list[Tile] = []
         if self.checkPack(14, 'a'):
             self.giftDeck = [Gift.make(i)() for i in range(5) for _ in range(5)]
             random.shuffle(self.giftDeck)
@@ -499,11 +501,14 @@ class Board:
         def pos(w: int, h: int, *offsets: tuple[int, int]):
             return w * (64 + 8) + sum(c[0] for c in offsets) + 8, h * (64 + 20) + sum(c[1] for c in offsets) + 20
         x2: dict[int, int] = {}
+        to_check = self.deck
+        if self.checkPack(9, 'c'):
+            to_check = self.deck + self.hill_tiles
         for ids in sorted(self.allTileimgs.keys()):
             if "3" in ids[1]:
                 continue
             dct = self.allTileimgs[ids]
-            if not remove_zero or sum(1 for tile in self.deck if tile.serialNumber == ids) != 0:
+            if not remove_zero or sum(1 for tile in to_check if tile.serialNumber == ids) != 0:
                 x2[ids[0]] = x2.get(ids[0], 0) + 1
         height = sum((x - 1) // 5 + 1 for x in x2.values())
         img = Image.new("RGBA", pos(5, height), "LightCyan")
@@ -519,7 +524,7 @@ class Board:
                 y += (x - 1) // 5 + 1
                 x = 0
             timg = self.allTileimgs[ids]
-            if not remove_zero or (num := sum(1 for tile in self.deck if tile.serialNumber == ids)) != 0:
+            if not remove_zero or (num := sum(1 for tile in to_check if tile.serialNumber == ids)) != 0:
                 p = (x % 5, y + x // 5)
                 img.paste(timg, pos(*p))
                 dr.text(pos(*p, (32, 65)), str(num), "black", self.font_name, "mt")
@@ -614,7 +619,7 @@ class CanScore(ABC):
     def iterTokens(self) -> 'Iterable[Token]':
         pass
     @abstractmethod
-    def checkScore(self, players: 'list[Player]', mid_game: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
+    def checkScore(self, players: 'list[Player]', complete: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
         pass
     @abstractmethod
     def getTile(self) -> 'list[Tile]':
@@ -630,9 +635,14 @@ class CanScore(ABC):
         for token in self.iterTokens():
             if isinstance(token, Follower) and isinstance(token.player, Player):
                 strengths[token.player.id] += token.strength
-        return findAllMax(self.board.players, lambda player: strengths[player.id], lambda player: strengths[player.id] != 0)[1]
-    def checkPlayerAndScore(self, mid_game: bool, putBarn: bool=True) -> 'list[tuple[Player, int]]':
-        players = self.checkScore(self.checkPlayer(), mid_game, putBarn)
+        players = findAllMax(self.board.players, lambda player: strengths[player.id], lambda player: strengths[player.id] != 0)[1]
+        if self.board.checkPack(9, "d"):
+            on_hills = [token.player for token in self.iterTokens() if token.player in players and isinstance(token.player, Player) and isinstance(token.parent, (Segment, Feature)) and token.parent.tile.addable == TileAddable.Hill]
+            if len(on_hills) != 0:
+                return on_hills
+        return players
+    def checkPlayerAndScore(self, complete: bool, putBarn: bool=True) -> 'list[tuple[Player, int]]':
+        players = self.checkScore(self.checkPlayer(), complete, putBarn)
         return players
     def score(self, putBarn: bool, ifFairy: bool=True) -> TAsync[bool]:
         players = self.checkPlayerAndScore(True, putBarn=putBarn)
@@ -1091,12 +1101,12 @@ class Object(CanScore):
         return players
     def checkBarn(self):
         return self.board.checkPack(5, 'e') and self.type == Connectable.Field and any(isinstance(token, Barn) for token in self.iterTokens())
-    def checkScore(self, players: 'list[Player]', mid_game: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
+    def checkScore(self, players: 'list[Player]', complete: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
         match self.type:
             case Connectable.City:
-                base = 2 if mid_game else 1
+                base = 2 if complete else 1
                 if self.board.checkPack(1, "d") and any(seg.addable == Addable.Cathedral for seg in self.segments):
-                    if mid_game:
+                    if complete:
                         base += 1
                     else:
                         base = 0
@@ -1105,7 +1115,7 @@ class Object(CanScore):
             case Connectable.Road:
                 base = 1
                 if self.board.checkPack(1, "c") and any(seg.addable == Addable.Inn for seg in self.segments):
-                    if mid_game:
+                    if complete:
                         base += 1
                     else:
                         base = 0
@@ -1154,16 +1164,16 @@ class Object(CanScore):
 TCloister = TypeVar('TCloister', bound='BaseCloister')
 class Feature:
     pack = (0, "a")
-    def __init__(self, parent: Tile, segment: FeatureSegmentData, data: list[Any]) -> None:
+    def __init__(self, tile: Tile, segment: FeatureSegmentData, data: list[Any]) -> None:
         self.pic = segment.pic
         self.pos = segment.pos
-        self.parent = parent
+        self.tile = tile
         self.tokens: list[Token] = []
     @classmethod
     def make(cls, typ: str) -> Type["Feature"]:
         return {"cloister": Cloister, "garden": Garden, "shrine": Shrine, "tower": Tower, "flier": Flier}[typ.lower()]
     def putOnBy(self, token: 'Token') -> TAsync[None]:
-        for token in self.parent.tokens:
+        for token in self.tile.tokens:
             if isinstance(token, TileFigure):
                 token.draw_pos = None
         return
@@ -1181,16 +1191,16 @@ class BaseCloister(Feature, CanScore):
     def closed(self) -> bool:
         return len(self.getTile()) == 9
     def getTile(self):
-        pos = self.parent.board.findTilePos(self.parent)
+        pos = self.tile.board.findTilePos(self.tile)
         if pos is None:
-            return [self]
-        return [self.parent.board.tiles[pos[0] + i, pos[1] + j] for i in (-1, 0, 1) for j in (-1, 0, 1) if (pos[0] + i, pos[1] + j) in self.parent.board.tiles]
-    def checkScore(self, players: 'list[Player]', mid_game: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
+            return [self.tile]
+        return [self.tile.board.tiles[pos[0] + i, pos[1] + j] for i in (-1, 0, 1) for j in (-1, 0, 1) if (pos[0] + i, pos[1] + j) in self.tile.board.tiles]
+    def checkScore(self, players: 'list[Player]', complete: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
         score = len(self.getTile())
         return [(player, score) for player in players]
     def getCloister(self, typ: Type[TCloister]) -> TCloister | None:
-        assert isinstance(self.parent, Tile)
-        pos = self.board.findTilePos(self.parent)
+        assert isinstance(self.tile, Tile)
+        pos = self.board.findTilePos(self.tile)
         if pos is None:
             return None
         return more_itertools.only(feature for i in (-1, 0, 1) for j in (-1, 0, 1)
@@ -1198,7 +1208,11 @@ class BaseCloister(Feature, CanScore):
                     for feature in self.board.tiles[pos[0] + i, pos[1] + j].features
                     if isinstance(feature, typ))
 class Monastry(BaseCloister):
-    pass
+    def checkScore(self, players: list[Player], complete: bool, putBarn: bool) -> list[tuple[Player, int]]:
+        if self.board.checkPack(9, "e") and complete:
+            score = sum(4 if tile.addable == TileAddable.Vineyard else 1 for tile in self.getTile())
+            return [(player, score) for player in players]
+        return super().checkScore(players, complete, putBarn)
 class Cloister(Monastry):
     def getChallenge(self):
         return self.getCloister(Shrine)
@@ -1241,18 +1255,18 @@ class Flier(Feature, CanScore):
         return True
     def iterTokens(self) -> 'Iterable[Token]':
         return []
-    def checkScore(self, players: 'list[Player]', mid_game: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
+    def checkScore(self, players: 'list[Player]', complete: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
         return []
     def getTile(self) -> 'list[Tile]':
         return []
     def putOnBy(self, token: 'Token') -> TAsync[None]:
         token.putBackToHand()
-        pos = self.board.findTilePos(self.parent)
+        pos = self.board.findTilePos(self.tile)
         if pos is None:
             return
         dice = random.randint(1, 3)
         self.board.addLog(id="dice", result=dice)
-        ps = {0: (0, -1), 1: (1, -1), 2: (1, 0), 3: (1, 1), 4: (0, 1), 5: (-1, 1), 6: (-1, 0), 7: (-1, -1)}[(self.direction + self.parent.orient.value * 2) % 8]
+        ps = {0: (0, -1), 1: (1, -1), 2: (1, 0), 3: (1, 1), 4: (0, 1), 5: (-1, 1), 6: (-1, 0), 7: (-1, -1)}[(self.direction + self.tile.orient.value * 2) % 8]
         pos_new = pos[0] + ps[0] * dice, pos[1] + ps[1] * dice
         if pos_new not in self.board.tiles:
             return
