@@ -174,7 +174,7 @@ class Board:
             both_end = [tile for tile in self.riverDeck if tile.serialNumber == (7, "0132", 0, 0)][0]
             self.popRiverTile(both_end)
         if len(self.riverDeck) > 0:
-            fff_end = volcano_end if self.checkPack(3, "b") and self.checkPack(7, "b") or not self.checkPack(3, "a") and not self.checkPack(3, "d") else cloister_end
+            fff_end = volcano_end if self.checkPack(3, "b") and self.checkPack(7, "b") or not self.checkPack(7, "a") and not self.checkPack(7, "d") else cloister_end
             if self.checkPack(7, "d"):
                 sh = [both_end, fff_end]
                 random.shuffle(sh)
