@@ -863,7 +863,7 @@ class Player:
             # draw river
             if len(self.board.riverDeck) != 0:
                 isBegin = yield from self.turnDrawRiver(isBegin)
-                nextTurn = len(self.board.riverDeck) == 0
+                nextTurn = len(self.board.riverDeck) == 0 and self.handTiles[0].addable == TileAddable.Volcano
 
                 # put tile
                 isBegin, pos, princessed, rangered = yield from self.turnPutTile(turn, isBegin)

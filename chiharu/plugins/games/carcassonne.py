@@ -1380,14 +1380,14 @@ class TileFigure(Figure):
             return self.draw_pos
         if drawn_poses is None:
             drawn_poses = []
-        for seg in self.parent.segments:
-            drawn_poses.extend(seg.drawPos(len(seg.tokens)))
-        for feature in self.parent.features:
-            drawn_poses.extend(feature.drawPos(len(feature.tokens)))
+            for seg in self.parent.segments:
+                drawn_poses.extend(seg.drawPos(len(seg.tokens)))
+            for feature in self.parent.features:
+                drawn_poses.extend(feature.drawPos(len(feature.tokens)))
         if self.draw_pos is None:
             for _ in range(10):
                 post = (random.randint(8, 56), random.randint(8, 56))
-                if all(dist2(post, p) >= 16 for p in drawn_poses):
+                if all(dist2(post, p) >= 256 for p in drawn_poses):
                     self.draw_pos = post
                     break
             else:
