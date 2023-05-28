@@ -530,7 +530,7 @@ class Board:
                 y += (x - 1) // 5 + 1
                 x = 0
             timg = self.allTileimgs[ids]
-            if not remove_zero or (num := sum(1 for tile in to_check if tile.serialNumber == ids)) != 0:
+            if (num := sum(1 for tile in to_check if tile.serialNumber == ids)) != 0 or not remove_zero:
                 p = (x % 5, y + x // 5)
                 img.paste(timg, pos(*p))
                 dr.text(pos(*p, (32, 65)), str(num), "black", self.font_name, "mt")
