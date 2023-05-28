@@ -38,7 +38,7 @@ class Addable(Enum):
     Cloth = auto()
     Princess = auto()
     Pigherd = auto()
-all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 6: 'abcdefgh', 7: 'abcd', 9: 'abcd', 12: 'abcdef', 13: 'abcdefghijk', 14: 'abcdefg'}
+all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 6: 'abcdefgh', 7: 'abcd', 9: 'abcde', 12: 'abcdef', 13: 'abcdefghijk', 14: 'abcdefg'}
 T = TypeVar('T')
 TAsync = Generator[dict[str, Any], dict[str, Any], T]
 def findAllMax(items: Sequence[T], key: Callable[[T], int], criteria=None) -> tuple[int, list[T]]:
@@ -1355,7 +1355,7 @@ class Token(metaclass=TokenMeta):
         if self.board.checkPack(3, 'c') and self.board.fairy.follower is self:
             self.board.fairy.follower = None
     canEatByDragon: bool = True
-    canPutTypes: 'tuple[Type[Segment] | Type[Feature] | Type[Tile],...]' = (Segment, Monastry, Flier, Tower)
+    canPutTypes: 'tuple[Type[Segment] | Type[Feature] | Type[Tile],...]' = (FieldSegment, CitySegment, RoadSegment, Monastry, Flier, Tower)
     key: tuple[int, int] = (-1, -1)
 class Follower(Token):
     @property
