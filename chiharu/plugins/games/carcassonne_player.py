@@ -888,18 +888,23 @@ class Player:
                 if all(self.tradeCounter[i] >= player.tradeCounter[i] for player in self.board.players):
                     trade_score += 10
             score_str = score_str[:-1] + "+" + str(trade_score) + score_str[-1]
-        if self.board.checkPack(14, 'a') and not no_final_score:
-            score_str = score_str[:-1] + "+" + str(2 * len(self.gifts)) + score_str[-1]
         if self.board.checkPack(6, 'b'):
             score_str = score_str[:-1] + "+" + str(len(self.board.king.complete_citys) if self.king else 0) + score_str[-1]
         if self.board.checkPack(6, 'c'):
             score_str = score_str[:-1] + "+" + str(len(self.board.robber.complete_roads) if self.robber else 0) + score_str[-1]
+        if self.board.checkPack(13, 'd'):
+            gold_num = sum(1 for token in self.tokens if isinstance(token, Gold))
+            score_str = score_str[:-1] + "+" + str(Gold.score(gold_num)) + score_str[-1]
+        if self.board.checkPack(14, 'a') and not no_final_score:
+            score_str = score_str[:-1] + "+" + str(2 * len(self.gifts)) + score_str[-1]
         score_length = 120
         if self.board.checkPack(2, 'd'):
             score_length += 45
         if self.board.checkPack(6, 'b'):
             score_length += 45
         if self.board.checkPack(6, 'c'):
+            score_length += 45
+        if self.board.checkPack(13, 'd'):
             score_length += 45
         if self.board.checkPack(14, 'a'):
             score_length += 30

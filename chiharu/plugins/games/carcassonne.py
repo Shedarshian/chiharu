@@ -174,7 +174,7 @@ class Board:
             both_end = [tile for tile in self.riverDeck if tile.serialNumber == (7, "0132", 0, 0)][0]
             self.popRiverTile(both_end)
         if len(self.riverDeck) > 0:
-            fff_end = volcano_end if self.checkPack(3, "b") and self.checkPack(7, "b") or not (self.checkPack(3, "a") and self.checkPack(3, "d")) else cloister_end
+            fff_end = volcano_end if self.checkPack(3, "b") and self.checkPack(7, "b") or not self.checkPack(3, "a") and not self.checkPack(3, "d") else cloister_end
             if self.checkPack(7, "d"):
                 sh = [both_end, fff_end]
                 random.shuffle(sh)
@@ -306,6 +306,9 @@ class Board:
                 player.addScoreFinal(len(self.robber.complete_roads))
             if self.checkPack(14, 'a') and len(player.gifts) >= 0:
                 player.addScoreFinal(2 * len(player.gifts))
+            if self.checkPack(13, 'd'):
+                gold_num = sum(1 for token in player.tokens if isinstance(token, Gold))
+                player.addScoreFinal(Gold.score(gold_num))
     def winner(self):
         return findAllMax(self.players, lambda player: player.score)
     def canPutTile(self, tile: 'Tile', pos: tuple[int, int], orient: Dir) -> Literal[-1, -2, -3, -8, 0]:
@@ -878,7 +881,7 @@ class Tile:
                 draw(tpos, i)
             i += 1
         for seg in self.segments:
-            if draw_occupied_seg or len([token for token in seg.tokens if isinstance(token.player, Player)]) == 0:
+            if (draw_occupied_seg or len([token for token in seg.tokens if isinstance(token.player, Player)]) == 0) and not isinstance(seg, RiverSegment):
                 tpos = turn(seg.putPos(len(seg.tokens)), self.orient)
                 draw(tpos, i)
             i += 1
@@ -1378,7 +1381,7 @@ class TileFigure(Figure):
             drawn_poses.extend(seg.drawPos(len(seg.tokens)))
         for feature in self.parent.features:
             drawn_poses.extend(feature.drawPos(len(feature.tokens)))
-        if self.draw_pos == (0, 0):
+        if self.draw_pos is None:
             for _ in range(10):
                 post = (random.randint(8, 56), random.randint(8, 56))
                 if all(dist2(post, p) >= 16 for p in drawn_poses):
@@ -1545,6 +1548,9 @@ class Robber(Figure):
 class Gold(TileFigure):
     key = (13, 0)
     name = "金块"
+    @classmethod
+    def score(cls, num: int):
+        return (num + 2) // 3 * num
 
 Token.all_name["follower"] = BaseFollower
 
