@@ -90,8 +90,8 @@ Picture0002
 0 CCCR
     Road l 16
     City else [40,32]
-        *1 0a
         *2 0a City 0 pennant
+        *1 0a
         *1 2a City 0 Wine
         *1 4a Tower (u) 50,50; where City 0 [40,24]
 1 CCCR
