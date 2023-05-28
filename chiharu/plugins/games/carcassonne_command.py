@@ -280,7 +280,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                         await session.send("请选择要移动到的城市，输入图块坐标。")
                     elif ret["special"] == "gold":
                         await session.send("请选择放置另一个金块的图块坐标。")
-                    elif ret["special"] == "gold":
+                    elif ret["special"] == "gold_take":
                         await session.send(f"请玩家{data['names'][board.current_player_id]}选择拿取金块的图块坐标。")
             case State.PuttingFollower:
                 if ret["last_err"] == -1:

@@ -764,7 +764,7 @@ class Tile:
             segs.append(s1)
         return segs
     def getBarnSeg(self):
-        seg = more_itertools.only(s for s in self.segments if s.inSideA(Dir.RIGHT, False) and s.inSideA(Dir.DOWN, True))
+        seg = more_itertools.only(s for s in self.segments if s.inSideA(Dir.RIGHT, False) and s.inSideA(Dir.DOWN, True) and s.type == Connectable.Field)
         return seg
     def findTokenDrawPos(self, token: 'Token'):
         """turned"""
@@ -1541,6 +1541,7 @@ class King(Figure):
         self.complete_citys: list[Object] = []
     key = (6, 0)
     name = "国王"
+    canEatByDragon = False
 class Robber(Figure):
     def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
         super().__init__(parent, data, img)
@@ -1548,9 +1549,11 @@ class Robber(Figure):
         self.complete_roads: list[Object] = []
     key = (6, 1)
     name = "小偷"
+    canEatByDragon = False
 class Gold(TileFigure):
     key = (13, 0)
     name = "金块"
+    canEatByDragon = False
     @classmethod
     def score(cls, num: int):
         return (num + 2) // 3 * num

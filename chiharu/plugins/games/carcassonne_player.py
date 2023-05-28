@@ -232,6 +232,7 @@ class Player:
         tile = self.board.tiles[pos]
         golds = [token for token in self.board.tokens if isinstance(token, Gold)]
         yield from golds[0].putOn(tile)
+        self.board.tokens.remove(golds[0])
         adj = [(pos[0] + i[0], pos[1] + i[1]) for i in ((0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1)) if (pos[0] + i[0], pos[1] + i[1]) in self.board.tiles]
         if len(adj) == 1:
             yield from golds[1].putOn(self.board.tiles[adj[0]])
@@ -249,6 +250,7 @@ class Player:
                 tile2 = self.board.tiles[ret["pos"]]
                 yield from golds[1].putOn(tile2)
                 break
+        self.board.tokens.remove(golds[1])
 
     def turnCheckBuilder(self) -> 'TAsync[bool]':
         if not self.board.checkPack(2, 'b'):
