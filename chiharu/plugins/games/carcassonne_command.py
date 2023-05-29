@@ -13,13 +13,7 @@ changelog = ""
 
 cacason = game.GameSameGroup('cacason', can_private=True)
 config.CommandGroup(('play', 'cacason'), hide=True)
-packs = readPackData()["packs"]
 config.CommandGroup('cacason', short_des='卡卡颂。', hide_in_parent=True, display_parents='game')
-for pack in packs:
-    if "help" in pack:
-        config.CommandGroup(('cacason', 'ex' + str(pack["id"])), display_id=pack["id"],
-                    des=pack.get("full_name", pack["name"]) + "\n" + pack["help"],
-                    short_des=pack.get("full_name", pack["name"]))
 
 @on_command(("cacason", "version"), hide=True, only_to_me=False)
 @config.ErrorHandle
@@ -69,30 +63,7 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
 @on_command(('play', 'cacason', 'extension'), only_to_me=False, hide_in_parent=True, display_parents=("cacason",), args=('[check/open/close]', '[ex??]'), short_des="修改卡卡颂对局使用的扩展。", display_id=999)
 @config.ErrorHandle
 async def ccs_extension(session: CommandSession):
-    """修改卡卡颂对局使用的扩展。
-    可开关的扩展与小项有（*为包含起始板块）：
-1. 旅馆与主教教堂（Inns and Cathedrals）
-    (a) 图块；(b) 大跟随者；(c) 旅馆机制；(d) 主教教堂机制。
-2. 商人与建筑师（Traders and Builders）
-    (a) 图块；(b) 建筑师；(c) 猪；(d) 交易标记。
-3. 公主与龙（The Princess and The Dragon）
-    (a) 图块；(b) 龙；(c) 仙子；(d) 传送门；(e) 公主。
-4. 高塔（The Tower）
-    (a) 图块；(b) 高塔。
-5. 僧院板块与市长（Abbey and Mayor）
-    (a) 图块；(b) 僧院板块；(c) 市长；(d) 马车；(e) 谷仓。
-6. 伯爵、国王与小偷（Count, King and Robber）
-    (a) 图块；(b) 国王；(c) 小偷；(g) 神龛图块；(h) 神龛。
-7. 河流合集
-    (a) 河流*；(b) 河流2*；(c) GQ11图块*；(d) 20周年河流*。
-9. 高山与羊（Hills & Sheep）
-    (a) 图块；(b) 牧羊人；(c) 高山（藏图块功能）；(d) 高山（破平局功能）；(e) 葡萄园。
-12. 一些小扩展合集
-    (a) 花园；(b) 修道院长。
-13. 另一些小扩展合集
-    (a) 飞行器图块；(b) 飞行器；(c) 金子图块；(d) 金块；(i) 节日图块；(j) 节日；(k) 幽灵。
-14. 又新又好的精选小扩展合集
-    (a) 礼物卡牌；(b) 护林员；(c) 姜饼人图块；(d) 姜饼人。
+    """修改卡卡颂对局使用的扩展。查询扩展列表请使用-cacason.rule。
 
 使用例：-play.cacason.extension check：查询目前开启了哪些扩展包。
 -play.cacason.extension open ex1：开启所有扩展包1的内容。
@@ -555,6 +526,22 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 await advance(board, {"pos": pos})
         case _:
             pass
+
+@on_command(('cacason', 'rule'), only_to_me=False, short_des="查询卡卡颂扩展列表与扩展规则。")
+@config.ErrorHandle
+async def ccs_rule(session: CommandSession):
+    if match := re.match(r'ex(\d+)', session.current_arg_text):
+        exa = int(match.group(1))
+        packs = readPackData()["packs"]
+        for pack in packs:
+            if pack["id"] == exa and "help" in pack:
+                await session.send(pack.get("full_name", pack["name"]) + "\n" + pack["help"])
+packs = readPackData()["packs"]
+ccs_rule.__doc__ = "查看卡卡颂规则（*为包含起始板块）。" + \
+    '\n'.join((f"ex{pack}. " + pack.get("full_name", pack["name"]) + "\n    " +
+        '；'.join(f"({chr(ord('a') + i)} {name}) " for i, name in enumerate(pack["things"]) if i not in pack.get("undone", [])) + '。')
+        for pack in packs if "things" in pack)
+del packs
 
 @on_command(('cacason', 'check'), only_to_me=False, display_id=998)
 @config.ErrorHandle
