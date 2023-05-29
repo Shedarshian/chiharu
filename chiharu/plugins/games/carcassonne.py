@@ -1457,10 +1457,13 @@ class Barn(Figure):
     canPutTypes = (Tile,)
     key = (5, 2)
     name = "谷仓"
-class Dragon(Figure):
+class Dragon(TileFigure):
     def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
         super().__init__(parent, data, img)
         self.tile: Tile | None = None
+        self.draw_pos = (32, 32)
+    def findDrawPos(self, drawn_poses: list[tuple[int, int]] | None=None):
+        return (32, 32)
     def canMove(self, tile: Tile):
         if self.board.checkPack(3, "c") and self.board.fairy.tile is tile:
             return False
