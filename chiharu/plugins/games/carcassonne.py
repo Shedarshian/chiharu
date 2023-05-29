@@ -406,6 +406,17 @@ class Board:
             dr.line(pos(0, j, (-10, 63)) + pos(width + 1, j, (10, 63)), "gray")
         dr.line(pos(0, height + 1, (-10, 0)) + pos(width + 1, height + 1, (10, 0)), "gray")
         dr.line(pos(0, height + 1, (-10, 10)) + pos(width + 1, height + 1, (10, 10)), "gray")
+        # hill
+        if self.checkPack(9, 'c'):
+            to_paste: list[tuple[tuple[int, int], Image.Image]] = []
+            for p, tile in self.tiles.items():
+                if tile.addable == TileAddable.Hill:
+                    imgt = img.crop(posshift(*p) + posshift(*p, (64, 64)))
+                    to_paste.append((p, imgt))
+            to_paste.sort(key=lambda x: x[0])
+            for p, imgt in to_paste:
+                dr.rectangle(posshift(*p) + posshift(*p, (64, 64)), "gray")
+                img.paste(imgt, posshift(*p, (-2, -4)))
         # text
         font = ImageFont.truetype("msyhbd.ttc", 10)
         def alpha(n):
@@ -768,21 +779,28 @@ class Tile:
         return seg
     def findTokenDrawPos(self, token: 'Token'):
         """turned"""
+        if self.addable == TileAddable.Hill:
+            add = (-2, -4)
+        else:
+            add = (0, 0)
         if isinstance(token, Barn) and (seg := self.getBarnSeg()) and token in seg.tokens:
             return (64, 64)
         for seg in self.segments:
             if token in seg.tokens:
                 id = seg.tokens.index(token)
-                return turn(seg.drawPos(len(seg.tokens))[id], self.orient)
+                t = turn(seg.drawPos(len(seg.tokens))[id], self.orient)
+                return t[0] + add[0], t[1] + add[1]
             if token in seg.object.tokens:
                 pass # TODO for castle
         for feature in self.features:
             if token in feature.tokens:
                 id = feature.tokens.index(token)
-                return turn(feature.drawPos(len(feature.tokens))[id], self.orient)
+                t = turn(feature.drawPos(len(feature.tokens))[id], self.orient)
+                return t[0] + add[0], t[1] + add[1]
         if token in self.tokens:
             assert isinstance(token, TileFigure)
-            return turn(token.findDrawPos(), self.orient)
+            t = turn(token.findDrawPos(), self.orient)
+            return t[0] + add[0], t[1] + add[1]
         return (32, 32)
     def getSeg(self, i: int):
         if i < len(self.features):
@@ -844,6 +862,10 @@ class Tile:
     def drawToken(self, img: Image.Image, beg_pos: tuple[int, int]):
         def pos(i, j, *offsets: tuple[int, int]):
             return beg_pos[0] + i + sum(x[0] for x in offsets), beg_pos[1] + j + sum(x[1] for x in offsets)
+        if self.addable == TileAddable.Hill:
+            add = (-2, -4)
+        else:
+            add = (0, 0)
         drawn_poses: list[tuple[int, int]] = []
         for seg in self.segments:
             poses = seg.drawPos(len(seg.tokens))
@@ -853,21 +875,21 @@ class Tile:
                 if isinstance(token, Barn):
                     img.alpha_composite(t, pos(64, 64, (-t.size[0] // 2, -t.size[1] // 2)))
                 else:
-                    img.alpha_composite(t, pos(*turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2)))
+                    img.alpha_composite(t, pos(*turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2), add))
         for feature in self.features:
             poses = feature.drawPos(len(feature.tokens))
             drawn_poses.extend(poses)
             for i, token in enumerate(feature.tokens):
                 t = token.image()
-                img.alpha_composite(t, pos(*turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2)))
+                img.alpha_composite(t, pos(*turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2), add))
             if isinstance(feature, Tower):
                 dr = ImageDraw.Draw(img)
                 font_tower = ImageFont.truetype("calibrib.ttf", 10)
-                dr.text(pos(*turn(feature.num_pos, self.orient)), str(feature.height), "black", font_tower, "mm")
+                dr.text(pos(*turn(feature.num_pos, self.orient), add), str(feature.height), "black", font_tower, "mm")
         for token in self.tokens:
             assert isinstance(token, TileFigure)
             t = token.image()
-            img.alpha_composite(t, pos(*turn(token.findDrawPos(drawn_poses), self.orient), (-t.size[0] // 2, -t.size[1] // 2)))
+            img.alpha_composite(t, pos(*turn(token.findDrawPos(drawn_poses), self.orient), (-t.size[0] // 2, -t.size[1] // 2), add))
     def drawPutToken(self, img: Image.Image, beg_pos: tuple[int, int], draw_occupied_seg: bool, drawBarn: bool):
         def pos(i, j, *offsets: tuple[int, int]):
             return beg_pos[0] + i + sum(x[0] for x in offsets), beg_pos[1] + j + sum(x[1] for x in offsets)

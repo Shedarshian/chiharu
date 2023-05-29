@@ -111,6 +111,7 @@ class TileData:
                     roads[segment.num1].eat(roads[segment.num2])
             if isinstance(segment, ElseSegmentPic):
                 self.elsed = True
+        self.segments = [seg for seg in self.segments if not isinstance(seg, LineSegmentData) or seg.valid]
         for segdata in self.segments:
             if isinstance(segdata, LineSegmentData) and segdata.valid:
                 segdata.makeLink(self)
@@ -241,11 +242,12 @@ class LineSegmentData(SegmentData):
         line.makeNodes(data.points)
         self.side: list[Dir] = [s for s in line.sides]
     def eat(self, other: 'LineSegmentData'):
-        self.lines.extend(other.lines)
-        other.lines = []
-        self.side.extend(other.side)
-        other.side = []
-        other.valid = False
+        if other is not self:
+            self.lines.extend(other.lines)
+            other.lines = []
+            self.side.extend(other.side)
+            other.side = []
+            other.valid = False
     def makeLink(self, data: TileData):
         line = self.lines[0]
         if line.link is not None:
@@ -255,9 +257,9 @@ class LineSegmentData(SegmentData):
                 if line.link[0] == SegmentType.Roundabout:
                     l[0].eat(self)
                 elif line.link[0] == SegmentType.Bridge:
-                    if len(l) == 3:
+                    if l.index(self) % 2 == 0:
                         l[0].eat(self)
-                    elif len(l) == 4:
+                    else:
                         l[1].eat(self)
 class RoadSegmentData(LineSegmentData):
     type: SegmentType = SegmentType.Road

@@ -700,7 +700,7 @@ Picture1133
     Field else (R0-l-d) [8,56]
     Field else (R0-r-u) [48,16]
         *1 7b Garden 43,20; where Field 1 [16,16/48,48]
-        *1 7b Field 0 Pigherd; where Field 1 [16,16/48,48]
+        *1 7b Field 1 Pigherd; where Field 1 [16,16/48,48]
         *1 7a
         *1 7a Garden 43,20; where Field 1 [16,16/48,48]
         *1 7d

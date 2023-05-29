@@ -192,6 +192,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                         outputs.append("并未找到第二张可以放置的板块！")
                     case "dice":
                         outputs.append(f"骰子扔出了{d['result']}点。")
+                    case "dragonMove":
+                        outputs.append(f"玩家{data['names'][d['player'].id]}自动向{d['dir'].name[0]}方向动了一次龙。")
             await session.send("\n".join(outputs))
             board.log = []
         match board.state:

@@ -605,16 +605,21 @@ class Player:
         for i in range(6):
             pass_err = 0
             pos = self.board.findTilePos(dragon.tile)
-            if not any(pos + dr in self.board.tiles and dragon.canMove(self.board.tiles[pos + dr]) for dr in Dir):
+            adj = [dr for dr in Dir if pos + dr in self.board.tiles and dragon.canMove(self.board.tiles[pos + dr])]
+            if len(adj) == 0:
                 break
-            while 1:
-                self.board.state = State.MovingDragon
-                ret = yield {"last_err": pass_err, "moved_num": i}
-                dr: Dir = ret["direction"]
-                if pos + dr not in self.board.tiles or not dragon.canMove(self.board.tiles[pos + dr]):
-                    pass_err = -1
-                    continue
-                break
+            elif len(adj) == 1:
+                self.board.addLog(id="dragonMove", dir=dr, player=self.board.current_player)
+                dr: Dir = adj[0]
+            else:
+                while 1:
+                    self.board.state = State.MovingDragon
+                    ret = yield {"last_err": pass_err, "moved_num": i}
+                    dr = ret["direction"]
+                    if pos + dr not in self.board.tiles or not dragon.canMove(self.board.tiles[pos + dr]):
+                        pass_err = -1
+                        continue
+                    break
             dragon.moveTo(self.board.tiles[pos + dr])
             self.board.dragonMoved.append(dragon.tile)
             self.board.nextAskingPlayer()
