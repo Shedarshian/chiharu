@@ -543,7 +543,7 @@ ccs_rule.__doc__ = "查看卡卡颂规则（*为包含起始板块）。\n" + \
         '；'.join(f"({chr(ord('a') + i)}) {name} " for i, name in enumerate(pack["things"]) if i not in pack.get("undone", [])) + '。')
         for pack in packs if "things" in pack)
 del packs
-on_command(('cacason', 'rule'), only_to_me=False, short_des="查询卡卡颂扩展列表与扩展规则。")(ccs_rule)
+on_command(('cacason', 'rule'), only_to_me=False, short_des="查询卡卡颂扩展列表与扩展规则。", args=("ex?",))(ccs_rule)
 
 @on_command(('cacason', 'check'), only_to_me=False, display_id=998)
 @config.ErrorHandle
