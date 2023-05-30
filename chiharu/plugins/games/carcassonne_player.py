@@ -11,6 +11,8 @@ class Player:
         self.allTokens: list[Token] = []
         self.score: int = 0
         self.handTiles: list[Tile] = []
+        self.score_str: str = ""
+        self.score_length: int = 0
         if self.board.checkPack(2, 'd'):
             self.tradeCounter = [0, 0, 0]
         if self.board.checkPack(5, 'b'):
@@ -922,37 +924,32 @@ class Player:
                 continue
             break
 
-    def image(self):
+    def image_pre(self):
         no_final_score: bool = self.board.imageArgs.get("no_final_score", False)
         score_str = str(self.score)
         if not no_final_score:
             score_str += " (" + str(self.checkMeepleScoreCurrent()) + ")"
-        if self.board.checkPack(2, 'd') and not no_final_score:
-            trade_score = 0
-            for i in range(3):
-                if all(self.tradeCounter[i] >= player.tradeCounter[i] for player in self.board.players):
-                    trade_score += 10
-            score_str = score_str[:-1] + "+" + str(trade_score) + score_str[-1]
-        if self.board.checkPack(6, 'b'):
-            score_str = score_str[:-1] + "+" + str(len(self.board.king.complete_citys) if self.king else 0) + score_str[-1]
-        if self.board.checkPack(6, 'c'):
-            score_str = score_str[:-1] + "+" + str(len(self.board.robber.complete_roads) if self.robber else 0) + score_str[-1]
-        if self.board.checkPack(13, 'd'):
-            gold_num = sum(1 for token in self.tokens if isinstance(token, Gold))
-            score_str = score_str[:-1] + "+" + str(Gold.score(gold_num)) + score_str[-1]
-        if self.board.checkPack(14, 'a') and not no_final_score:
-            score_str = score_str[:-1] + "+" + str(2 * len(self.gifts)) + score_str[-1]
-        score_length = 120
-        if self.board.checkPack(2, 'd'):
-            score_length += 45
-        if self.board.checkPack(6, 'b'):
-            score_length += 45
-        if self.board.checkPack(6, 'c'):
-            score_length += 45
-        if self.board.checkPack(13, 'd'):
-            score_length += 45
-        if self.board.checkPack(14, 'a'):
-            score_length += 30
+            if self.board.checkPack(2, 'd'):
+                trade_score = 0
+                for i in range(3):
+                    if all(self.tradeCounter[i] >= player.tradeCounter[i] for player in self.board.players):
+                        trade_score += 10
+                score_str = score_str[:-1] + "+" + str(trade_score) + score_str[-1]
+            if self.board.checkPack(3, 'c'):
+                score_str = score_str[:-1] + "+" + str(3 if self.board.fairy.follower is not None and self.board.fairy.follower.player is self else 0) + score_str[-1]
+            if self.board.checkPack(6, 'b'):
+                score_str = score_str[:-1] + "+" + str(len(self.board.king.complete_citys) if self.king else 0) + score_str[-1]
+            if self.board.checkPack(6, 'c'):
+                score_str = score_str[:-1] + "+" + str(len(self.board.robber.complete_roads) if self.robber else 0) + score_str[-1]
+            if self.board.checkPack(13, 'd'):
+                gold_num = sum(1 for token in self.tokens if isinstance(token, Gold))
+                score_str = score_str[:-1] + "+" + str(Gold.score(gold_num)) + score_str[-1]
+            if self.board.checkPack(14, 'a') and not no_final_score:
+                score_str = score_str[:-1] + "+" + str(2 * len(self.gifts)) + score_str[-1]
+        self.score_str = score_str
+        self.score_length = self.board.font_score.getlength(score_str) + 20
+    def image(self, score_length: int):
+        score_str = self.score_str
         length = 100 + score_length + self.board.token_length
         if self.board.checkPack(5, "b"):
             abbey_xpos = length

@@ -1,6 +1,7 @@
 from typing import Literal, Any, Generator, Type, TypeVar, Iterable, Callable, Sequence, TypedDict
 import random, itertools, more_itertools, json
 from enum import Enum, auto
+from collections import Counter
 from abc import ABC, abstractmethod
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 from .carcassonne_tile import Dir, open_img, readTileData, readPackData, TileData, PointSegmentPic
@@ -506,7 +507,10 @@ class Board:
             dr.text((0, 32), str(len(self.giftDeck)), "white", self.font_name, "lt")
         return img
     def playerImage(self):
-        imgs = [p.image() for p in self.players]
+        for p in self.players:
+            p.image_pre()
+        score_length = max(p.score_length for p in self.players)
+        imgs = [p.image(score_length) for p in self.players]
         img = Image.new("RGBA", (imgs[0].size[0], 24 * len(self.players)))
         for i, pimg in enumerate(imgs):
             img.alpha_composite(pimg, (0, i * 24))
@@ -515,21 +519,28 @@ class Board:
         return self.current_player.handTileImage()
     def remainTileImages(self):
         remove_zero = len(self.deck) <= len(self.tiles)
+        extra = 40 if self.checkPack(9, 'b') else 0
         def pos(w: int, h: int, *offsets: tuple[int, int]):
-            return w * (64 + 8) + sum(c[0] for c in offsets) + 8, h * (64 + 20) + sum(c[1] for c in offsets) + 20
+            return w * (64 + 8) + sum(c[0] for c in offsets) + 8, h * (64 + 20) + sum(c[1] for c in offsets) + 20 + extra
         x2: dict[int, int] = {}
-        to_check = self.deck
-        if self.checkPack(9, 'c'):
-            to_check = self.deck + self.hill_tiles
+        if (river := len(self.riverDeck) != 0):
+            to_check = self.riverDeck
+        else:
+            to_check = self.deck
+            if self.checkPack(9, 'c'):
+                to_check = self.deck + self.hill_tiles
         for ids in sorted(self.allTileimgs.keys()):
-            if "3" in ids[1]:
+            if ("3" in ids[1]) == river:
                 continue
-            dct = self.allTileimgs[ids]
             if not remove_zero or sum(1 for tile in to_check if tile.serialNumber == ids) != 0:
                 x2[ids[0]] = x2.get(ids[0], 0) + 1
         height = sum((x - 1) // 5 + 1 for x in x2.values())
         img = Image.new("RGBA", pos(5, height), "LightCyan")
         dr = ImageDraw.Draw(img)
+        if self.checkPack(9, 'b'):
+            txt = "，".join(f"{s}羊：{self.sheeps.count(s)}" for s in (1, 2, 3, 4))
+            txt += f"，狼：{self.sheeps.count(-1)}"
+            dr.text((10, 10), txt, "black", self.font_name, "lt")
         y: int = 0
         x: int = 0
         last_pack: int = 0
@@ -679,12 +690,17 @@ class CanScore(ABC):
                 yield from ginger.score()
                 gingered = True
         return gingered
-    def scoreFinal(self):
+    def scoreFinal(self, ifFairy: bool=True):
         players = self.checkPlayerAndScore(False)
         for player, score in players:
             if score != 0:
                 self.board.addLog(id="score", player=player, source="final", num=score)
                 player.addScoreFinal(score)
+        if self.board.checkPack(3, "c") and ifFairy and self.board.fairy.follower is not None:
+            for token in self.iterTokens():
+                if self.board.fairy.follower is token and isinstance(token.player, Player):
+                    self.board.addLog(id="score", player=token.player, source="fairy_complete", num=3)
+                    token.player.addScoreFinal(3)
         self.removeAllFollowers()
 
 class Tile:
@@ -1179,8 +1195,8 @@ class Object(CanScore):
             if not any(token.player is t.player for seg in self.segments for token in seg.tokens if isinstance(token, Follower)):
                 self.board.addLog(id="putbackBuilder", builder=t)
                 t.putBackToHand()
-    def scoreFinal(self):
-        super().scoreFinal()
+    def scoreFinal(self, ifFairy: bool=True):
+        super().scoreFinal(ifFairy)
         # barn
         if self.type == Connectable.Field and any(isinstance(token, Barn) for seg in self.segments for token in seg.tokens):
             players = self.checkBarnAndScore()
@@ -1625,6 +1641,14 @@ class Shepherd(Figure):
             yield from t.player.addScore(score)
         for t in to_score:
             t.putBackToHand()
+    def image(self):
+        img = super().image()
+        dr = ImageDraw.Draw(img)
+        font = ImageFont.truetype("msyhbd.ttc", 10)
+        dr.ellipse(((12, 12), (24, 24)), "white", "black", 1)
+        text = str(sum(self.sheeps))
+        dr.text((18, 18), text, "black", font, "mm")
+        return img
     key = (9, 0)
     name = "牧羊人"
     canPutTypes = (FieldSegment,)
