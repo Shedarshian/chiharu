@@ -1189,10 +1189,10 @@ class Object(CanScore):
                     else:
                         base = 0
                 base_pennant = base
-                if self.board.checkPack(15, "a") and self.board.landCity[0] == LandCity.Siege:
+                if self.board.checkPack(15, "a") and complete and self.board.landCity[0] == LandCity.Siege:
                     base_pennant += 1
                 score = base * self.checkTile(self.board.checkPack(15, "a") and self.board.landCity[0] == LandCity.BadNeighborhood) + base_pennant * self.checkPennant()
-                if self.board.checkPack(15, "a"):
+                if self.board.checkPack(15, "a") and complete:
                     if self.board.landCity[0] == LandCity.CitizensJury:
                         players = []
                         for token in self.iterTokens():
@@ -1210,10 +1210,10 @@ class Object(CanScore):
                         base += 1
                     else:
                         base = 0
-                if self.board.checkPack(15, "a") and self.board.landRoad[0] == LandRoad.StreetFair:
+                if self.board.checkPack(15, "a") and complete and self.board.landRoad[0] == LandRoad.StreetFair:
                     base += 1
                 score = base * self.checkTile()
-                if self.board.checkPack(15, "a"):
+                if self.board.checkPack(15, "a") and complete:
                     if self.board.landRoad[0] == LandRoad.Poverty:
                         score -= 3
                     elif self.board.landRoad[0] == LandRoad.Highway:
@@ -1312,7 +1312,7 @@ class Monastry(BaseCloister):
         score = len(self.getTile())
         if self.board.checkPack(9, "e") and complete:
             score += sum(3 for tile in self.getTile() if tile.addable == TileAddable.Vineyard)
-        if self.board.checkPack(15, "a"):
+        if self.board.checkPack(15, "a") and complete:
             if self.board.landMonastry[0] == LandMonastry.Wealth:
                 score += 3
             elif self.board.landMonastry[0] == LandMonastry.HermitMonastery:
