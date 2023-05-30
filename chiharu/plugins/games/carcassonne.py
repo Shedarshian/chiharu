@@ -39,6 +39,14 @@ class Addable(Enum):
     Cloth = auto()
     Princess = auto()
     Pigherd = auto()
+class Shed(Enum):
+    No = auto()
+    Farmhouse = auto()
+    Cowshed = auto()
+    Donkey = auto()
+    Pigsty = auto()
+    Watertower = auto()
+    Highwaymen = auto()
 all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 6: 'abcdefgh', 7: 'abcd', 9: 'abcde', 12: 'abcdef', 13: 'abcdefghijk', 14: 'abcdefg'}
 T = TypeVar('T')
 TAsync = Generator[dict[str, Any], dict[str, Any], T]
@@ -972,6 +980,7 @@ class Segment(ABC):
         self.tile = tile
         self.object = Object(self)
         self.addable = Addable.No
+        self.shed = Shed.No
     @classmethod
     def make(cls, typ: str) -> Type['Segment']:
         return {"City": CitySegment, "Field": FieldSegment, "Road": RoadSegment, "River": RiverSegment}[typ] # type: ignore
@@ -1078,13 +1087,15 @@ class CitySegment(AreaSegment):
         super().__init__(tile, data.side, data.pic)
         self.pennant: int = 0
         for addable in data.addables:
-            if addable.feature == "pennant":
+            if addable.feature in Shed.__members__:
+                self.shed = Shed[addable.feature]
+            elif addable.feature == "pennant":
                 self.pennant += 1
-            if tile.board.checkPack(1, "d") and addable.feature == "Cathedral":
+            elif tile.board.checkPack(1, "d") and addable.feature == "Cathedral":
                 self.addable = Addable.Cathedral
-            if tile.board.checkPack(2, "d") and addable.feature in ("Cloth", "Wine", "Grain"):
+            elif tile.board.checkPack(2, "d") and addable.feature in ("Cloth", "Wine", "Grain"):
                 self.addable = Addable[addable.feature]
-            if tile.board.checkPack(3, "e") and addable.feature == "Princess":
+            elif tile.board.checkPack(3, "e") and addable.feature == "Princess":
                 self.addable = Addable.Princess
     def key(self):
         return (0, super().key())
@@ -1096,7 +1107,9 @@ class RoadSegment(LineSegment):
     def __init__(self, tile: Tile, data: RoadSegmentData) -> None:
         super().__init__(tile, data.side, data.lines)
         for addable in data.addables:
-            if tile.board.checkPack(1, "c") and addable.feature == "Inn":
+            if addable.feature in Shed.__members__:
+                self.shed = Shed[addable.feature]
+            elif tile.board.checkPack(1, "c") and addable.feature == "Inn":
                 self.addable = Addable.Inn
 class RiverSegment(LineSegment):
     type = Connectable.River
@@ -1114,7 +1127,9 @@ class FieldSegment(AreaSegment):
         self.adjacentSegtemp = segments
         self.adjacentCity: list[Segment] = []
         for addable in data.addables:
-            if tile.board.checkPack(2, "c") and addable.feature == "Pigherd":
+            if addable.feature in Shed.__members__:
+                self.shed = Shed[addable.feature]
+            elif tile.board.checkPack(2, "c") and addable.feature == "Pigherd":
                 self.addable = Addable.Pigherd
     def makeAdjCity(self):
         self.adjacentCity = [self.tile.segments[self.adjacentSegtemp.index(seg)] for seg in self.adjacentCitytemp]
@@ -1155,9 +1170,12 @@ class Object(CanScore):
         if bad_neiborhood:
             tiles: list[Tile] = []
             for seg in self.segments:
-                assert isinstance(seg, CitySegment)
-                if not isinstance(seg.pic, OneSideSegmentPic) and seg.tile not in tiles:
-                    tiles.append(seg.tile)
+                if isinstance(seg, CitySegment):
+                    if not isinstance(seg.pic, OneSideSegmentPic) and seg.tile not in tiles:
+                        tiles.append(seg.tile)
+                elif isinstance(seg, RoadSegment):
+                    if not any(seg2.shed == Shed.Farmhouse for seg2 in seg.tile.segments) and seg.tile not in tiles:
+                        tiles.append(seg.tile)
             return len(tiles)
         return len(self.getTile())
     def checkPennant(self):
@@ -1191,7 +1209,7 @@ class Object(CanScore):
                 base_pennant = base
                 if self.board.checkPack(15, "a") and complete and self.board.landCity[0] == LandCity.Siege:
                     base_pennant += 1
-                score = base * self.checkTile(self.board.checkPack(15, "a") and self.board.landCity[0] == LandCity.BadNeighborhood) + base_pennant * self.checkPennant()
+                score = base * self.checkTile(self.board.checkPack(15, "a") and complete and self.board.landCity[0] == LandCity.BadNeighborhood) + base_pennant * self.checkPennant()
                 if self.board.checkPack(15, "a") and complete:
                     if self.board.landCity[0] == LandCity.CitizensJury:
                         players = []
@@ -1212,7 +1230,7 @@ class Object(CanScore):
                         base = 0
                 if self.board.checkPack(15, "a") and complete and self.board.landRoad[0] == LandRoad.StreetFair:
                     base += 1
-                score = base * self.checkTile()
+                score = base * self.checkTile(self.board.checkPack(15, "a") and complete and self.board.landRoad[0] == LandRoad.PeasantUprising)
                 if self.board.checkPack(15, "a") and complete:
                     if self.board.landRoad[0] == LandRoad.Poverty:
                         score -= 3
