@@ -4,7 +4,7 @@ from enum import Enum, auto
 from collections import Counter
 from abc import ABC, abstractmethod
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
-from .carcassonne_tile import Dir, open_img, readTileData, readPackData, TileData, PointSegmentPic
+from .carcassonne_tile import Dir, open_img, readTileData, readPackData, TileData, OneSideSegmentPic
 from .carcassonne_tile import CitySegmentData, RoadSegmentData, RiverSegmentData, FieldSegmentData, FeatureSegmentData, AddableSegmentData
 from .carcassonne_tile import AreaSegmentPic, LineSegmentPic, SegmentData
 
@@ -225,6 +225,16 @@ class Board:
             self.ranger = [token for token in self.tokens if isinstance(token, Ranger)][0]
         if self.checkPack(14, "d"):
             self.gingerbread = [token for token in self.tokens if isinstance(token, Gingerbread)][0]
+        if self.checkPack(15, "a"):
+            self.landCity = [x for x in LandCity]
+            random.shuffle(self.landCity)
+            self.landCityDiscard: list[LandCity] = []
+            self.landRoad = [x for x in LandRoad]
+            random.shuffle(self.landRoad)
+            self.landRoadDiscard: list[LandRoad] = []
+            self.landMonastry = [x for x in LandMonastry]
+            random.shuffle(self.landMonastry)
+            self.landMonastryDiscard: list[LandMonastry] = []
         self.imageArgs: dict[str, Any] = {}
     def checkPack(self, packid: int, thingid: str):
         return packid in self.packs_options and thingid in self.packs_options[packid]
@@ -281,6 +291,23 @@ class Board:
             self.giftDeck = self.giftDiscard
             random.shuffle(self.giftDeck)
         return self.giftDeck.pop(0)
+    def updateLand(self):
+        self.landCityDiscard.append(self.landCity.pop(0))
+        if len(self.landCity) == 0:
+            self.landCity = self.landCityDiscard
+            self.landCityDiscard = []
+            random.shuffle(self.landCity)
+        self.landRoadDiscard.append(self.landRoad.pop(0))
+        if len(self.landRoad) == 0:
+            self.landRoad = self.landRoadDiscard
+            self.landRoadDiscard = []
+            random.shuffle(self.landRoad)
+        self.landMonastryDiscard.append(self.landMonastry.pop(0))
+        if len(self.landMonastry) == 0:
+            self.landMonastry = self.landMonastryDiscard
+            self.landMonastryDiscard = []
+            random.shuffle(self.landMonastry)
+
     def nextPlayer(self):
         self.current_turn_player_id += 1
         if self.current_turn_player_id >= len(self.players):
@@ -1124,7 +1151,14 @@ class Object(CanScore):
             if seg.tile not in tiles:
                 tiles.append(seg.tile)
         return tiles
-    def checkTile(self):
+    def checkTile(self, bad_neiborhood: bool=False):
+        if bad_neiborhood:
+            tiles: list[Tile] = []
+            for seg in self.segments:
+                assert isinstance(seg, CitySegment)
+                if not isinstance(seg.pic, OneSideSegmentPic) and seg.tile not in tiles:
+                    tiles.append(seg.tile)
+            return len(tiles)
         return len(self.getTile())
     def checkPennant(self):
         return sum(seg.pennant for seg in self.segments if isinstance(seg, CitySegment))
@@ -1154,7 +1188,20 @@ class Object(CanScore):
                         base += 1
                     else:
                         base = 0
-                score = base * (self.checkTile() + self.checkPennant())
+                base_pennant = base
+                if self.board.checkPack(15, "a") and self.board.landCity[0] == LandCity.Siege:
+                    base_pennant += 1
+                score = base * self.checkTile(self.board.checkPack(15, "a") and self.board.landCity[0] == LandCity.BadNeighborhood) + base_pennant * self.checkPennant()
+                if self.board.checkPack(15, "a"):
+                    if self.board.landCity[0] == LandCity.CitizensJury:
+                        players = []
+                        for token in self.iterTokens():
+                            if isinstance(token.player, Player) and token.player not in players:
+                                players.append(token.player)
+                    elif self.board.landCity[0] == LandCity.Wealth:
+                        score += 3
+                    elif self.board.landCity[0] == LandCity.Poverty:
+                        score -= 3
                 new_players: list[tuple[Player, int]] = [(player, score) for player in players]
             case Connectable.Road:
                 base = 1
@@ -1163,7 +1210,14 @@ class Object(CanScore):
                         base += 1
                     else:
                         base = 0
+                if self.board.checkPack(15, "a") and self.board.landRoad[0] == LandRoad.StreetFair:
+                    base += 1
                 score = base * self.checkTile()
+                if self.board.checkPack(15, "a"):
+                    if self.board.landRoad[0] == LandRoad.Poverty:
+                        score -= 3
+                    elif self.board.landRoad[0] == LandRoad.Highway:
+                        score = base * 5
                 new_players = [(player, score) for player in players]
             case Connectable.Field:
                 complete_city: list[Object] = []
@@ -1185,7 +1239,9 @@ class Object(CanScore):
                     base = 3 if putBarn else 1
                     new_players = [(player, base * len(complete_city)) for player in players]
             case _:
-                new_players = [(player, 0) for player in players]
+                new_players = []
+        if self.board.checkPack(15, "a") and len(new_players) != 0:
+            self.board.updateLand()
         return new_players
     def checkRemoveBuilderAndPig(self):
         if not self.board.checkPack(2, "b") and not self.board.checkPack(2, "c"):
@@ -1253,10 +1309,17 @@ class BaseCloister(Feature, CanScore):
                     if isinstance(feature, typ))
 class Monastry(BaseCloister):
     def checkScore(self, players: 'list[Player]', complete: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
+        score = len(self.getTile())
         if self.board.checkPack(9, "e") and complete:
-            score = sum(4 if tile.addable == TileAddable.Vineyard else 1 for tile in self.getTile())
-            return [(player, score) for player in players]
-        return super().checkScore(players, complete, putBarn)
+            score += sum(3 for tile in self.getTile() if tile.addable == TileAddable.Vineyard)
+        if self.board.checkPack(15, "a"):
+            if self.board.landMonastry[0] == LandMonastry.Wealth:
+                score += 3
+            elif self.board.landMonastry[0] == LandMonastry.HermitMonastery:
+                score -= sum(1 for tile in self.getTile() if any(isinstance(seg, CitySegment) for seg in tile.segments))
+            else:
+                score += sum(1 for tile in self.getTile() if any(isinstance(seg, RoadSegment) for seg in tile.segments))
+        return [(player, score) for player in players]
 class Cloister(Monastry):
     def getChallenge(self):
         return self.getCloister(Shrine)
@@ -1676,237 +1739,8 @@ class State(Enum):
     ChoosingShepherd = auto()
     Error = auto()
 
-class Gift:
-    __slots__ = ()
-    name = ""
-    id = -1
-    @classmethod
-    def make(cls, id: int) -> 'Type[Gift]':
-        return [GiftSynod, GiftRoadSweeper, GiftCashOut, GiftChangePosition, GiftTake2][id]
-    @abstractmethod
-    def use(self, user: 'Player') -> TAsync[int]:
-        return 1
-        yield {}
-class GiftSynod(Gift):
-    name = "教会会议"
-    id = 0
-    def use(self, user: 'Player') -> TAsync[int]:
-        pass_err: Literal[0, -1, -2, -3, -4] = 0
-        for t in user.board.tiles.values():
-            cloister = more_itertools.only(feature for feature in t.features if isinstance(feature, Monastry))
-            if cloister and not cloister.closed():
-                break
-        else:
-            return -1
-        while 1:
-            user.board.state = State.AskingSynod
-            ret = yield {"last_err": pass_err}
-            if ret["pos"] not in user.board.tiles:
-                pass_err = -1
-                continue
-            tile: Tile = user.board.tiles[ret["pos"]]
-            cloister = more_itertools.only(feature for feature in tile.features if isinstance(feature, Monastry))
-            if cloister is None:
-                pass_err = -2
-                continue
-            token = user.findToken(ret.get("which", "follower"))
-            if token is None:
-                pass_err = -3
-                continue
-            if not token.canPut(cloister) or cloister.closed():
-                pass_err = -4
-                continue
-            user.tokens.remove(token)
-            yield from token.putOn(cloister)
-            break
-        return 1
-class GiftRoadSweeper(Gift):
-    name = "马路清扫者"
-    id = 1
-    def use(self, user: 'Player') -> TAsync[int]:
-        pass_err: Literal[0, -1, -2, -3, -4] = 0
-        for t in user.board.tiles.values():
-            roads = [segment for segment in t.segments if isinstance(segment, RoadSegment) and not segment.closed()]
-            if len(roads) > 0:
-                break
-        else:
-            return -1
-        while 1:
-            user.board.state = State.ChoosingPos
-            ret = yield {"last_err": pass_err, "special": "road_sweeper"}
-            if ret["pos"] not in user.board.tiles:
-                pass_err = -1
-                continue
-            tile = user.board.tiles[ret["pos"]]
-            roads = [segment for segment in tile.segments if isinstance(segment, RoadSegment) and not segment.closed()]
-            if len(roads) == 0:
-                pass_err = -2
-                continue
-            road: RoadSegment = roads[0]
-            if len(roads) >= 2:
-                pass_err = 0
-                while 1:
-                    user.board.state = State.ChoosingSegment
-                    ret2 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "road_sweeper"}
-                    s = tile.getSeg(ret2["id"])
-                    if not isinstance(s, RoadSegment):
-                        pass_err = -1
-                        continue
-                    if s not in roads:
-                        pass_err = -2
-                        continue
-                    road = s
-                    break
-            road.object.scoreFinal()
-            break
-        return 1
-class GiftCashOut(Gift):
-    name = "兑现"
-    id = 2
-    def use(self, user: 'Player') -> TAsync[int]:
-        pass_err: Literal[0, -1, -2, -3, -4] = 0
-        for t in user.board.tiles.values():
-            followers = [token for token in t.iterAllTokens() if isinstance(token, Follower) and token.player is user and isinstance(token.parent, (Segment, BaseCloister))]
-            if len(followers) > 0:
-                break
-        else:
-            return -1
-        while 1:
-            user.board.state = State.ChoosingPos
-            ret = yield {"last_err": pass_err, "special": "cash_out"}
-            if ret["pos"] not in user.board.tiles:
-                pass_err = -1
-                continue
-            tile = user.board.tiles[ret["pos"]]
-            followers = [token for token in tile.iterAllTokens() if isinstance(token, Follower) and token.player is user]
-            can_choose = [token for token in followers if isinstance(token.parent, (Segment, BaseCloister))]
-            if len(can_choose) == 0:
-                pass_err = -2
-                continue
-            if len(can_choose) == 1:
-                follower: Follower = can_choose[0]
-            else:
-                pass_err = 0
-                while 1:
-                    user.board.state = State.ChoosingOwnFollower
-                    ret2 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "cash_out"}
-                    if ret2["id"] < 0 or ret2["id"] >= len(followers):
-                        pass_err = -2
-                        continue
-                    follower = followers[ret2["id"]]
-                    if not isinstance(follower.parent, (Segment, BaseCloister)):
-                        pass_err = -3
-                        continue
-                    break
-            assert isinstance(follower.parent, (Segment, BaseCloister))
-            assert isinstance(follower.player, Player)
-            obj = follower.parent.object if isinstance(follower.parent, Segment) else follower.parent
-            score = sum(2 for token in obj.iterTokens() if isinstance(token, Follower))
-            user.board.addLog(id="score", player=user, num=score, source="cash_out")
-            yield from follower.player.addScore(score)
-            follower.putBackToHand()
-            break
-        return 1
-class GiftChangePosition(Gift):
-    name = "切换形态"
-    id = 3
-    def use(self, user: 'Player') -> TAsync[int]:
-        pass_err: Literal[0, -1, -2, -3] = 0
-        for t in user.board.tiles.values():
-            followers = [token for token in t.iterAllTokens() if isinstance(token, Follower) and token.player is user]
-            for token in followers:
-                if isinstance(token.parent, FieldSegment):
-                    if any(isinstance(segment, (CitySegment, RoadSegment)) and token.canPut(segment) for segment in t.segments) or any(isinstance(feature, Monastry) and token.canPut(feature) for feature in t.features):
-                        break
-                if isinstance(token.parent, (CitySegment, RoadSegment, Monastry)):
-                    if any(isinstance(segment, FieldSegment) and token.canPut(segment) for segment in t.segments):
-                        break
-            else:
-                continue
-            break
-        else:
-            return -1
-        while 1:
-            user.board.state = State.ChoosingPos
-            ret = yield {"last_err": pass_err, "special": "change_position"}
-            if ret["pos"] not in user.board.tiles:
-                pass_err = -1
-                continue
-            tile = user.board.tiles[ret["pos"]]
-            followers = [token for token in tile.iterAllTokens() if isinstance(token, Follower) and token.player is user]
-            can_choose: list[tuple[Follower, Sequence[Segment | Monastry]]] = []
-            for token in followers:
-                if isinstance(token.parent, FieldSegment):
-                    can_put: Sequence[Monastry | Segment] = [segment for segment in tile.segments if isinstance(segment, (CitySegment, RoadSegment)) and token.canPut(segment)] + [feature for feature in tile.features if isinstance(feature, Monastry) and token.canPut(feature)]
-                    if len(can_put) > 0:
-                        can_choose.append((token, can_put))
-                if isinstance(token.parent, (CitySegment, RoadSegment, Monastry)):
-                    can_put = [segment for segment in tile.segments if isinstance(segment, FieldSegment) and token.canPut(segment)]
-                    if len(can_put) > 0:
-                        can_choose.append((token, can_put))
-            if len(can_choose) == 0:
-                pass_err = -2
-                continue
-            follower, put_list = can_choose[0]
-            if len(can_choose) > 1:
-                pass_err = 0
-                while 1:
-                    user.board.state = State.ChoosingOwnFollower
-                    ret2 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "change_position"}
-                    if ret2["id"] < 0 or ret2["id"] >= len(followers):
-                        pass_err = -2
-                        continue
-                    follower = followers[ret2["id"]]
-                    for f, l in can_choose:
-                        if f is follower:
-                            put_list = l
-                            break
-                    else:
-                        pass_err = -3
-                        continue
-                    break
-            if len(put_list) == 1:
-                to_put = put_list[0]
-            else:
-                pass_err = 0
-                while 1:
-                    user.board.state = State.ChoosingSegment
-                    ret3 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "change_position"}
-                    p = tile.getSeg(ret2["id"])
-                    if p is None:
-                        pass_err = -1
-                        continue
-                    elif p not in put_list:
-                        pass_err = -2
-                        continue
-                    else:
-                        to_put = p
-                    break
-            to_check: Segment | None = None
-            if isinstance(follower.parent, Segment):
-                to_check = follower.parent
-            follower.remove()
-            yield from follower.putOn(to_put)
-            if to_check is not None:
-                to_check.object.checkRemoveBuilderAndPig()
-            break
-        return 1
-        yield {}
-class GiftTake2(Gift):
-    name = "再来一张"
-    id = 4
-    def use(self, user: 'Player') -> TAsync[int]:
-        if len(user.board.deck) == 0:
-            return -1
-        tile = user.board.drawTileCanPut()
-        if tile is None:
-            user.board.addLog(id="take2NoTile")
-        else:
-            user.handTiles.append(tile)
-        return 1
-        yield {}
-
 from .carcassonne_player import Player
+from .carcassonne_extra import Gift, LandCity, LandRoad, LandMonastry
 
 if __name__ == "__main__":
     b = Board({0: "a", 1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 6: "abcdefgh", 7: "abcd", 9: "a", 12: "ab", 13: "abcdijk"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
