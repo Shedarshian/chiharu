@@ -1,5 +1,6 @@
 from typing import Dict, Any, Callable, Awaitable, Literal
-import re, random, json, datetime
+import re, random, json, datetime, itertools
+from collections import defaultdict
 from .carcassonne import Connectable, Dir, State, CantPutError, all_extensions
 from .carcassonne import Board, readPackData
 from .carcassonne import TileAddable, Builder
@@ -93,40 +94,62 @@ async def ccs_extension(session: CommandSession):
         if session.current_arg_text.startswith("check"):
             if len(data['extensions']) == 0:
                 session.finish("目前未开启任何扩展包。")
+            packs = readPackData()["packs"]
             await session.send("目前开启的扩展包有：\n" + '\n'.join(packs[packid]["name"] + "\n\t" + "，".join(packs[packid]["things"][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items() if packid != 0) + "\n目前的起始板块是：\n" + start_names[data['starting_tile']])
             return
         if match := re.match(r'(open|close)(( ex\d+[a-z]*)+| random\d+)', session.current_arg_text):
             command = match.group(1)
             exs = [ex[2:] for ex in match.group(2)[1:].split(' ')]
+            exabs: defaultdict[int, str] = defaultdict(lambda: "")
+            start_to_change: int = -1
             if exs[0].startswith('random'):
+                packs = readPackData()["packs"]
                 n = int(exs[0][6:])
                 big, small = [(2, 4), (3, 6)][n]
-                # TODO
-            exabs: list[tuple[int, str]] = []
-            start_to_change: int = -1
-            for ex in exs:
-                match2 = re.match(r'(\d+)([a-z]*)', ex)
-                if not match2:
-                    continue
-                exas, exbs = match2.groups()
-                exa = int(exas)
-                if exa not in all_extensions:
-                    session.finish("不存在扩展" + exas + "！")
-                exb = exbs or all_extensions[exa]
-                for c in exb:
-                    if c not in all_extensions[exa]:
-                        session.finish("扩展" + exas + "不存在" + c + "小项！")
-                    exabs.append((exa, c))
-                    if command == "open" and exa in data['extensions'] and c in data['extensions'][exa]:
-                        session.finish("扩展" + exas + "的" + c + "小项已被添加过！")
-                    if command == "close" and not (exa in data['extensions'] and c in data['extensions'][exa]):
-                        session.finish("扩展" + exas + "的" + c + "小项未被添加过！")
-                    if command == "open" and (data['starting_tile'] not in (0, exa) or start_to_change not in (-1, exa)) and exa in start_names and (exa, c) not in start_no_start:
-                        session.finish("起始板块冲突！")
-                    if exa in start_names and (exa, c) not in start_no_start:
-                        start_to_change = exa if command == "open" else 0
+                bigs = [pack for pack in packs if pack.get("big", False)]
+                smalls = list(itertools.chain(*([(pack, c) for c in pack.get("small", [])] for pack in packs)))
+                random.shuffle(bigs)
+                random.shuffle(smalls)
+                for i in range(big):
+                    p = bigs[i]
+                    if isinstance(p["big"], list):
+                        exabs[p["id"]] += ''.join(chr(ord('a') + j) for j in p["big"])
+                    if p["id"] in (6, 11):
+                        start_to_change = p['id']
+                for p, ln in smalls:
+                    pb = p.get('has_begin', [])
+                    if any(j in pb for j in ln):
+                        if start_to_change != -1:
+                            continue
+                        start_to_change = p['id']
+                    exabs[p["id"]] += ''.join(chr(ord('a') + j) for j in ln)
+                    small -= 1
+                    if small <= 0:
+                        break
+            else:
+                for ex in exs:
+                    match2 = re.match(r'(\d+)([a-z]*)', ex)
+                    if not match2:
+                        continue
+                    exas, exbs = match2.groups()
+                    exa = int(exas)
+                    if exa not in all_extensions:
+                        session.finish("不存在扩展" + exas + "！")
+                    exb = exbs or all_extensions[exa]
+                    for c in exb:
+                        if c not in all_extensions[exa]:
+                            session.finish("扩展" + exas + "不存在" + c + "小项！")
+                        exabs[exa] += c
+                        if command == "open" and exa in data['extensions'] and c in data['extensions'][exa]:
+                            session.finish("扩展" + exas + "的" + c + "小项已被添加过！")
+                        if command == "close" and not (exa in data['extensions'] and c in data['extensions'][exa]):
+                            session.finish("扩展" + exas + "的" + c + "小项未被添加过！")
+                        if command == "open" and (data['starting_tile'] not in (0, exa) or start_to_change not in (-1, exa)) and exa in start_names and (exa, c) not in start_no_start:
+                            session.finish("起始板块冲突！")
+                        if exa in start_names and (exa, c) not in start_no_start:
+                            start_to_change = exa if command == "open" else 0
             ret = ""
-            for exa, c in exabs:
+            for exa, c in exabs.items():
                 if command == "open":
                     if exa not in data['extensions']:
                         data['extensions'][exa] = c
@@ -552,8 +575,8 @@ ccs_rule.__doc__ = "查看卡卡颂规则（*为包含起始板块）。\n" + \
     '\n'.join((f"ex{pack['id']}. " + pack.get("full_name", pack["name"]) + "\n    " +
         '；'.join(f"({chr(ord('a') + i)}) {name}" for i, name in enumerate(pack["things"]) if i not in pack.get("undone", [])) + '。')
         for pack in packs if "things" in pack)
-del packs
 on_command(('cacason', 'rule'), only_to_me=False, short_des="查询卡卡颂扩展列表与扩展规则。", args=("[ex?]",))(ccs_rule)
+del packs
 
 @on_command(('cacason', 'check'), only_to_me=False, display_id=998)
 @config.ErrorHandle
