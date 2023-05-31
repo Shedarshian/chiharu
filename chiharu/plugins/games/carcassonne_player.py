@@ -165,7 +165,12 @@ class Player:
                     pass_err = -10
                     continue
                 if len(rdrs) == 1:
-                    if rdrs[0] not in (Dir.LEFT.value if pos[0] < 0 else Dir.RIGHT.value, Dir.UP.value if pos[1] < 0 else Dir.DOWN.value):
+                    t: list[int] = []
+                    if pos[0] < 0: t.append(Dir.LEFT.value)
+                    if pos[0] > 0: t.append(Dir.RIGHT.value)
+                    if pos[1] < 0: t.append(Dir.UP.value)
+                    if pos[1] > 0: t.append(Dir.DOWN.value)
+                    if rdrs[0] not in t:
                         pass_err = -7
                         continue
             break
@@ -188,7 +193,6 @@ class Player:
                     if gift := self.board.drawGift():
                         self.board.addLog(id="drawGift", gift=gift, player=self)
                         self.gifts.append(gift)
-                        self.gifts.sort(key=lambda g: g.id)
                     break
         if len(self.handTiles) > 1:
             for tile2 in self.handTiles:

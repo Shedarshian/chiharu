@@ -107,8 +107,8 @@ Picture0002
     City u-r 16
     City d 16
     Road l-32,16 16
-    Field else (R0-d) [8,48/40,40]
-    Field else (R0-u) [8,16]
+    Field else (l-d) {0,1} [8,48/40,40]
+    Field else (l-u) {0} [8,16]
         *1 7c
 Picture0011
 0 CCFF
@@ -170,7 +170,7 @@ Picture0021
     Field else (R0-r) [40,40/ud]
     Field else (R0-l) [16,32]
         *1 1a
-        *1 2a City 0 Cloth; Garden 17,41; where Field 1 [16,16]
+        *1 2a City 0 Cloth; Garden 17,41; where Field 1 [8,16]
 1 CCRF
     Road d 16
     Field l 16
@@ -375,8 +375,8 @@ Picture0202
         *1 4a Tower (l) 47,14
         *1 7c
 5 CRCR
-    Field else (l-u,l-d) [8,16/8,48]
     City else (u-l,u-r,d-l,d-r) [32,16/32,48]
+    Field else (l-u,l-d) {0} [8,16/8,48]
     Field else (r-u) {0} [56,16]
     Field else (r-d) {0} [56,48]
     Road l-10,32 0
@@ -748,7 +748,7 @@ Picture1323
     Road d-0,40 2
     Field else (R0-u) [16,16/48,16]
     Field else (l-d,d-l) [8,60]
-    Field else (r-d,d-l) [56,56]
+    Field else (r-d,d-r) [56,56]
         *1 7d
 Picture1333
 0 FSSS
