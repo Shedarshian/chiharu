@@ -155,6 +155,7 @@ class Board:
                 start_tile2 = [t for t in self.riverDeck if t.serialNumber == (7, "1323", 1, 0)][0]
                 self.popRiverTile(start_tile2)
                 self.tiles[1, 0] = start_tile2
+                self.tiles[0, 0].addConnect(self.tiles[1, 0], Dir.RIGHT)
         else:
             if start_tile is None:
                 raise NotImplementedError
@@ -565,7 +566,7 @@ class Board:
             if self.checkPack(9, 'c'):
                 to_check = self.deck + self.hill_tiles
         for ids in sorted(self.allTileimgs.keys()):
-            if ("3" in ids[1]) == river:
+            if ("3" in ids[1]) != river:
                 continue
             if not remove_zero or sum(1 for tile in to_check if tile.serialNumber == ids) != 0:
                 x2[ids[0]] = x2.get(ids[0], 0) + 1

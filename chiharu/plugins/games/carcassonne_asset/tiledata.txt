@@ -747,8 +747,8 @@ Picture1323
     River l-r 0
     Road d-0,40 2
     Field else (R0-u) [16,16/48,16]
-    Field else (l-d) [8,60]
-    Field else (r-d) [56,56]
+    Field else (l-d,d-l) [8,60]
+    Field else (r-d,d-l) [56,56]
         *1 7d
 Picture1333
 0 FSSS

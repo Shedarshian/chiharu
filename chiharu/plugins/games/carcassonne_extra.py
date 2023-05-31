@@ -199,7 +199,7 @@ class GiftChangePosition(Gift):
                 while 1:
                     user.board.state = State.ChoosingSegment
                     ret3 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "change_position"}
-                    p = tile.getSeg(ret2["id"])
+                    p = tile.getSeg(ret3["id"])
                     if p is None:
                         pass_err = -1
                         continue
