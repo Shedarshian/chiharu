@@ -68,7 +68,9 @@ async def ccs_extension(session: CommandSession):
 使用例：-play.cacason.extension check：查询目前开启了哪些扩展包。
 -play.cacason.extension open ex1：开启所有扩展包1的内容。
 -play.cacason.extension open ex1b：开启扩展包1，但只开启1中b小项的内容。
--play.cacason.extension close ex1a：关闭扩展包1中a小项的内容。"""
+-play.cacason.extension close ex1a：关闭扩展包1中a小项的内容。
+-play.cacason.extension open random1：随机开启2个大扩与4个小扩。
+-play.cacason.extension open random2：随机开启3个大扩与6个小扩。"""
     try:
         group_id = int(session.ctx['group_id'])
     except KeyError:
@@ -93,9 +95,13 @@ async def ccs_extension(session: CommandSession):
                 session.finish("目前未开启任何扩展包。")
             await session.send("目前开启的扩展包有：\n" + '\n'.join(packs[packid]["name"] + "\n\t" + "，".join(packs[packid]["things"][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items() if packid != 0) + "\n目前的起始板块是：\n" + start_names[data['starting_tile']])
             return
-        if match := re.match(r'(open|close)(( ex\d+[a-z]*)+)', session.current_arg_text):
+        if match := re.match(r'(open|close)(( ex\d+[a-z]*)+| random\d+)', session.current_arg_text):
             command = match.group(1)
             exs = [ex[2:] for ex in match.group(2)[1:].split(' ')]
+            if exs[0].startswith('random'):
+                n = int(exs[0][6:])
+                big, small = [(2, 4), (3, 6)][n]
+                # TODO
             exabs: list[tuple[int, str]] = []
             start_to_change: int = -1
             for ex in exs:
@@ -430,6 +436,8 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             data['adding_extensions'] = False
         elif match := re.match(r'(open|close)( ex\d+[a-z]?)+|check', command):
             await call_command(get_bot(), session.ctx, ('play', 'cacason', 'extension'), current_arg=command)
+        elif command.startswith('open') or command.startswith('close'):
+            await session.send(ccs_extension.__doc__.replace("-play.cacason.extension ", ""))
         return
     user_id: int = data['players'].index(session.ctx['user_id'])
     board = data['board']

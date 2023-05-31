@@ -329,7 +329,7 @@ class Player:
             if ret["id"] == -1:
                 break
             seg_put: Segment | Feature | Tile = tile_put
-            if 0 <= ret["id"] < (ll := len(tile_put.segments) + len(tile_put.features)):
+            if (ll := len(tile_put.segments) + len(tile_put.features)) > ret["id"] >= 0:
                 seg_put = tile_put.getSeg(ret["id"])
             elif self.board.checkPack(5, "e") and not tile_put.isAbbey and ll <= ret["id"] < ll + 4 and (pos := self.board.findTilePos(tile_put)):
                 # for barn
