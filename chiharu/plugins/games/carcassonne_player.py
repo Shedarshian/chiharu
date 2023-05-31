@@ -1044,6 +1044,7 @@ class Player:
         return img
 
 from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Follower, FieldSegment
-from .carcassonne import State, Connectable, Gift, Dir, CanScore, TAsync, CantPutError
+from .carcassonne import State, Connectable, Dir, CanScore, TAsync, CantPutError
 from .carcassonne import Barn, Builder, Pig, TileAddable, CitySegment, RoadSegment, AbbeyData, Wagon, Monastry
 from .carcassonne import Phantom, Tower, Abbot, BaseCloister, Flier, BigFollower, Addable, Gold, Shepherd
+from .carcassonne_extra import Gift
