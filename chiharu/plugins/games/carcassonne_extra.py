@@ -249,5 +249,6 @@ class LandMonastry(Enum):
     HermitMonastery = auto()
     PilgrimageRoute = auto()
 
-from .carcassonne import Player, State, Tile, RoadSegment, Follower, Segment, BaseCloister, FieldSegment, CitySegment
+from .carcassonne import State, Tile, RoadSegment, Follower, Segment, BaseCloister, FieldSegment, CitySegment
 from .carcassonne import TAsync, Monastry
+from .carcassonne_player import Player
