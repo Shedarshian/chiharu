@@ -947,7 +947,7 @@ class Player:
             if self.board.checkPack(14, 'a') and not no_final_score:
                 score_str = score_str[:-1] + "+" + str(2 * len(self.gifts)) + score_str[-1]
         self.score_str = score_str
-        self.score_length = self.board.font_score.getlength(score_str) + 20
+        self.score_length = int(self.board.font_score.getlength(score_str)) + 20
     def image(self, score_length: int):
         score_str = self.score_str
         length = 100 + score_length + self.board.token_length
