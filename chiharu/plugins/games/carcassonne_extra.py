@@ -1,4 +1,3 @@
-from .carcassonne import *
 
 class Gift:
     __slots__ = ()
@@ -245,3 +244,5 @@ class LandMonastry(Enum):
     Wealth = auto()
     HermitMonastery = auto()
     PilgrimageRoute = auto()
+
+from .carcassonne import *
