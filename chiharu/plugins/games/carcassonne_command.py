@@ -104,7 +104,7 @@ async def ccs_extension(session: CommandSession):
             start_to_change: int = -1
             if exs[0].startswith('ndom'):
                 packs = readPackData()["packs"]
-                n = int(exs[0][6:])
+                n = int(exs[0][4:])
                 big, small = [(2, 4), (3, 6)][n]
                 bigs = [pack for pack in packs if pack.get("big", False)]
                 smalls = list(itertools.chain(*([(pack, c) for c in pack.get("small", [])] for pack in packs)))
