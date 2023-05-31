@@ -105,7 +105,10 @@ async def ccs_extension(session: CommandSession):
             if exs[0].startswith('ndom'):
                 packs = readPackData()["packs"]
                 n = int(exs[0][4:])
-                big, small = [(2, 4), (3, 6)][n]
+                if n <= 0 or n >= 3:
+                    await session.send("random预设只有0，1！")
+                    return
+                big, small = [(2, 4), (3, 6)][n - 1]
                 bigs = [pack for pack in packs if pack.get("big", False)]
                 smalls = list(itertools.chain(*([(pack, c) for c in pack.get("small", [])] for pack in packs)))
                 random.shuffle(bigs)
@@ -457,7 +460,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
             data['board'] = board
             await advance(board)
             data['adding_extensions'] = False
-        elif match := re.match(r'(open|close)( ex\d+[a-z]?)+|check', command):
+        elif match := re.match(r'(open|close)(( ex\d+[a-z]?)+| random\d+)|check', command):
             await call_command(get_bot(), session.ctx, ('play', 'cacason', 'extension'), current_arg=command)
         elif command.startswith('open') or command.startswith('close'):
             await session.send(ccs_extension.__doc__.replace("-play.cacason.extension ", ""))
