@@ -88,7 +88,7 @@ async def ccs_extension(session: CommandSession):
         if qq in cacason.uncomplete[group_id]['players']:
             data = cacason.uncomplete[group_id]
             pas = True
-    start_names = {0: "默认", 7: "河流"}
+    start_names = {0: "默认", 6: "卡卡颂城", 7: "河流"}
     start_no_start = ((7, "c"),)
     if pas:
         if session.current_arg_text.startswith("check"):
@@ -106,7 +106,7 @@ async def ccs_extension(session: CommandSession):
                 packs = readPackData()["packs"]
                 n = int(exs[0][4:])
                 if n <= 0 or n >= 3:
-                    await session.send("random预设只有0，1！")
+                    await session.send("random预设只有1，2！")
                     return
                 big, small = [(2, 4), (3, 6)][n - 1]
                 bigs = [pack for pack in packs if pack.get("big", False)]

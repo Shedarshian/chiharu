@@ -140,7 +140,6 @@
             "small": [[0, 1, 2], [6, 7]],
             "big": [3, 4, 5],
             "has_begin": [4],
-            "undone": [3, 4, 5],
             "tokens": [
                 {
                     "name": "king",
