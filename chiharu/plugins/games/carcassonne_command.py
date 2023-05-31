@@ -102,7 +102,7 @@ async def ccs_extension(session: CommandSession):
             exs = [ex[2:] for ex in match.group(2)[1:].split(' ')]
             exabs: defaultdict[int, str] = defaultdict(lambda: "")
             start_to_change: int = -1
-            if exs[0].startswith('random'):
+            if exs[0].startswith('ndom'):
                 packs = readPackData()["packs"]
                 n = int(exs[0][6:])
                 big, small = [(2, 4), (3, 6)][n]
