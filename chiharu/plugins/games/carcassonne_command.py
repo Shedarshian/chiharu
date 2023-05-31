@@ -95,6 +95,7 @@ async def ccs_extension(session: CommandSession):
             if len(data['extensions']) == 0:
                 session.finish("目前未开启任何扩展包。")
             packs = readPackData()["packs"]
+            data['extensions'] = {c: data['extensions'][c] for c in sorted(data['extensions'].keys())}
             await session.send("目前开启的扩展包有：\n" + '\n'.join(packs[packid]["name"] + "\n\t" + "；".join('(' + c + ') ' + packs[packid]["things"][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items() if packid != 0) + "\n目前的起始板块是：\n" + start_names[data['starting_tile']])
             return
         if match := re.match(r'(open|close)(( ex\d+[a-z]*)+| random\d+)', session.current_arg_text):
