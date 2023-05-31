@@ -95,7 +95,7 @@ async def ccs_extension(session: CommandSession):
             if len(data['extensions']) == 0:
                 session.finish("目前未开启任何扩展包。")
             packs = readPackData()["packs"]
-            await session.send("目前开启的扩展包有：\n" + '\n'.join(packs[packid]["name"] + "\n\t" + "，".join(packs[packid]["things"][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items() if packid != 0) + "\n目前的起始板块是：\n" + start_names[data['starting_tile']])
+            await session.send("目前开启的扩展包有：\n" + '\n'.join(packs[packid]["name"] + "\n\t" + "；".join('(' + c + ') ' + packs[packid]["things"][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items() if packid != 0) + "\n目前的起始板块是：\n" + start_names[data['starting_tile']])
             return
         if match := re.match(r'(open|close)(( ex\d+[a-z]*)+| random\d+)', session.current_arg_text):
             command = match.group(1)
@@ -117,6 +117,8 @@ async def ccs_extension(session: CommandSession):
                     p = bigs[i]
                     if isinstance(p["big"], list):
                         exabs[p["id"]] += ''.join(chr(ord('a') + j) for j in p["big"])
+                    else:
+                        exabs[p["id"]] += all_extensions[p["id"]]
                     if p["id"] in (6, 11):
                         start_to_change = p['id']
                 for p, ln in smalls:
