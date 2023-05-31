@@ -1,3 +1,7 @@
+from abc import abstractmethod
+from enum import Enum, auto
+from typing import Type, Literal, Sequence
+import more_itertools
 
 class Gift:
     __slots__ = ()
@@ -7,13 +11,13 @@ class Gift:
     def make(cls, id: int) -> 'Type[Gift]':
         return [GiftSynod, GiftRoadSweeper, GiftCashOut, GiftChangePosition, GiftTake2][id]
     @abstractmethod
-    def use(self, user: 'Player') -> TAsync[int]:
+    def use(self, user: 'Player') -> 'TAsync[int]':
         return 1
         yield {}
 class GiftSynod(Gift):
     name = "教会会议"
     id = 0
-    def use(self, user: 'Player') -> TAsync[int]:
+    def use(self, user: 'Player') -> 'TAsync[int]':
         pass_err: Literal[0, -1, -2, -3, -4] = 0
         for t in user.board.tiles.values():
             cloister = more_itertools.only(feature for feature in t.features if isinstance(feature, Monastry))
@@ -46,7 +50,7 @@ class GiftSynod(Gift):
 class GiftRoadSweeper(Gift):
     name = "马路清扫者"
     id = 1
-    def use(self, user: 'Player') -> TAsync[int]:
+    def use(self, user: 'Player') -> 'TAsync[int]':
         pass_err: Literal[0, -1, -2, -3, -4] = 0
         for t in user.board.tiles.values():
             roads = [segment for segment in t.segments if isinstance(segment, RoadSegment) and not segment.closed()]
@@ -86,7 +90,7 @@ class GiftRoadSweeper(Gift):
 class GiftCashOut(Gift):
     name = "兑现"
     id = 2
-    def use(self, user: 'Player') -> TAsync[int]:
+    def use(self, user: 'Player') -> 'TAsync[int]':
         pass_err: Literal[0, -1, -2, -3, -4] = 0
         for t in user.board.tiles.values():
             followers = [token for token in t.iterAllTokens() if isinstance(token, Follower) and token.player is user and isinstance(token.parent, (Segment, BaseCloister))]
@@ -133,7 +137,7 @@ class GiftCashOut(Gift):
 class GiftChangePosition(Gift):
     name = "切换形态"
     id = 3
-    def use(self, user: 'Player') -> TAsync[int]:
+    def use(self, user: 'Player') -> 'TAsync[int]':
         pass_err: Literal[0, -1, -2, -3] = 0
         for t in user.board.tiles.values():
             followers = [token for token in t.iterAllTokens() if isinstance(token, Follower) and token.player is user]
@@ -218,7 +222,7 @@ class GiftChangePosition(Gift):
 class GiftTake2(Gift):
     name = "再来一张"
     id = 4
-    def use(self, user: 'Player') -> TAsync[int]:
+    def use(self, user: 'Player') -> 'TAsync[int]':
         if len(user.board.deck) == 0:
             return -1
         tile = user.board.drawTileCanPut()
@@ -245,4 +249,5 @@ class LandMonastry(Enum):
     HermitMonastery = auto()
     PilgrimageRoute = auto()
 
-from .carcassonne import *
+from .carcassonne import Player, State, Tile, RoadSegment, Follower, Segment, BaseCloister, FieldSegment, CitySegment
+from .carcassonne import TAsync, Monastry
