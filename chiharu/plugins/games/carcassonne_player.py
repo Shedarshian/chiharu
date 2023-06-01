@@ -440,10 +440,10 @@ class Player:
                 ph_put = ret2["id"]
                 if ph_put == -1:
                     break
-                seg_ph = tile_put.getSeg(ph_put)
-                if seg_ph is None:
-                    pass_err = -11
-                    continue
+            seg_ph = tile_put.getSeg(ph_put)
+            if seg_ph is None:
+                pass_err = -11
+                continue
 
             ph_put = -2
             phantom = more_itertools.only(t for t in self.tokens if isinstance(t, Phantom))
