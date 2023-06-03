@@ -338,17 +338,17 @@ class Board:
             for i in range(3):
                 max_token, max_players = findAllMax(self.players, lambda player, i=i: player.tradeCounter[i]) # type: ignore
                 for player in max_players:
-                    player.addScoreFinal(10)
+                    player.addScoreFinal(10, type=ScoreReason.Trade)
         for player in self.players:
             if self.checkPack(6, "b") and player.king:
-                player.addScoreFinal(len(self.king.complete_citys))
+                player.addScoreFinal(len(self.king.complete_citys), type=ScoreReason.King)
             if self.checkPack(6, "c") and player.robber:
-                player.addScoreFinal(len(self.robber.complete_roads))
+                player.addScoreFinal(len(self.robber.complete_roads), type=ScoreReason.Robber)
             if self.checkPack(14, 'a') and len(player.gifts) >= 0:
-                player.addScoreFinal(2 * len(player.gifts))
+                player.addScoreFinal(2 * len(player.gifts), type=ScoreReason.Gift)
             if self.checkPack(13, 'd'):
                 gold_num = sum(1 for token in player.tokens if isinstance(token, Gold))
-                player.addScoreFinal(Gold.score(gold_num))
+                player.addScoreFinal(Gold.score(gold_num), type=ScoreReason.Gold)
     def winner(self):
         return findAllMax(self.players, lambda player: player.score)
     def canPutTile(self, tile: 'Tile', pos: tuple[int, int], orient: Dir) -> Literal[-1, -2, -3, -8, 0]:
@@ -404,8 +404,11 @@ class Board:
                 if (i, j) not in self.tiles and all((i, j) + dir in self.tiles for dir in Dir):
                     return True
         return False
+
     def addLog(self, /, **log):
         self.log.append(log)
+    def addStats(self):
+        pass
 
     def tileImages(self):
         draw_tile_seg: tuple[int, int] | list[tuple[int, int]] | None = self.imageArgs.get("draw_tile_seg")
@@ -677,6 +680,9 @@ class CanScore(ABC):
     @abstractmethod
     def closed(self) -> bool:
         pass
+    @abstractmethod
+    def scoreType(self) -> 'ScoreReason':
+        pass
     def occupied(self):
         return any(isinstance(t.player, Player) for t in self.iterTokens())
     @abstractmethod
@@ -713,12 +719,12 @@ class CanScore(ABC):
         for player, score in players:
             if score != 0:
                 self.board.addLog(id="score", player=player, source="complete", num=score)
-                yield from player.addScore(score)
+                yield from player.addScore(score, type=self.scoreType())
         if self.board.checkPack(3, "c") and ifFairy and self.board.fairy.follower is not None:
             for token in self.iterTokens():
                 if self.board.fairy.follower is token and isinstance(token.player, Player):
                     self.board.addLog(id="score", player=token.player, source="fairy_complete", num=3)
-                    yield from token.player.addScore(3)
+                    yield from token.player.addScore(3, type=ScoreReason.Fairy)
         gingered: bool = False
         if self.board.checkPack(14, "d"):
             ginger = more_itertools.only(token for token in self.iterTokens() if isinstance(token, Gingerbread))
@@ -731,12 +737,12 @@ class CanScore(ABC):
         for player, score in players:
             if score != 0:
                 self.board.addLog(id="score", player=player, source="final", num=score)
-                player.addScoreFinal(score)
+                player.addScoreFinal(score, type=self.scoreType())
         if self.board.checkPack(3, "c") and ifFairy and self.board.fairy.follower is not None:
             for token in self.iterTokens():
                 if self.board.fairy.follower is token and isinstance(token.player, Player):
                     self.board.addLog(id="score", player=token.player, source="fairy_complete", num=3)
-                    token.player.addScoreFinal(3)
+                    token.player.addScoreFinal(3, type=ScoreReason.Fairy)
         self.removeAllFollowers()
 
 class Tile:
@@ -1146,6 +1152,8 @@ class Object(CanScore):
         self.tokens: list[Token] = []
         self.segments: list[Segment] = [seg]
         self.board = seg.tile.board
+    def scoreType(self) -> 'ScoreReason':
+        return ScoreReason[self.type.name]
     def eat(self, other: 'Object'):
         if other is self:
             return self
@@ -1277,7 +1285,7 @@ class Object(CanScore):
             players = self.checkBarnAndScore()
             for player, score in players:
                 if score != 0:
-                    player.addScoreFinal(score)
+                    player.addScoreFinal(score, type=ScoreReason.Field)
             self.removeAllFollowers(lambda token: isinstance(token, Barn))
 
 TCloister = TypeVar('TCloister', bound='BaseCloister')
@@ -1305,6 +1313,8 @@ class BaseCloister(Feature, CanScore):
     def __init__(self, parent: Tile, pic: FeatureSegmentData, data: list[Any]) -> None:
         Feature.__init__(self, parent, pic, data)
         CanScore.__init__(self, parent.board)
+    def scoreType(self) -> 'ScoreReason':
+        return ScoreReason.Monastry
     def iterTokens(self) -> 'Iterable[Token]':
         yield from self.tokens
     def closed(self) -> bool:
@@ -1351,6 +1361,8 @@ class Cloister(Monastry):
         return gingered
 class Garden(BaseCloister):
     pack = (12, "a")
+    def scoreType(self) -> 'ScoreReason':
+        return ScoreReason.Garden
 class Shrine(Monastry):
     def getChallenge(self):
         return self.getCloister(Cloister)
@@ -1648,7 +1660,7 @@ class Gingerbread(Figure):
             score = self.parent.object.checkTile()
             for player in players:
                 self.board.addLog(id="score", player=player, source="gingerbread", num=score)
-                yield from player.addScore(score)
+                yield from player.addScore(score, type=ScoreReason.Gingerbread)
     canPutTypes = (CitySegment,)
     key = (14, 1)
     name = "姜饼人"
@@ -1720,7 +1732,7 @@ class Shepherd(Figure):
                 score += sum(t.sheeps)
         for t in to_score:
             assert isinstance(t.player, Player)
-            yield from t.player.addScore(score)
+            yield from t.player.addScore(score, type=ScoreReason.Shepherd)
         for t in to_score:
             t.putBackToHand()
     def image(self):
@@ -1795,3 +1807,5 @@ if __name__ == "__main__":
         yshift += (len(ss) + 4) // 5
     b.setImageArgs(debug=True)
     b.image().show()
+
+from .carcassonne_extra import ScoreReason

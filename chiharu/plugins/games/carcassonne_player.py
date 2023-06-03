@@ -13,6 +13,7 @@ class Player:
         self.handTiles: list[Tile] = []
         self.score_str: str = ""
         self.score_length: int = 0
+        self.score_stat: dict[ScoreReason, int] = {s: 0 for s in ScoreReason.__members__.values()}
         if self.board.checkPack(2, 'd'):
             self.tradeCounter = [0, 0, 0]
         if self.board.checkPack(5, 'b'):
@@ -37,12 +38,14 @@ class Player:
                 show_name = show_name[:-1]
             show_name += "..."
         return show_name
-    def addScore(self, score: int) -> 'TAsync[None]':
+    def addScore(self, score: int, type: 'ScoreReason') -> 'TAsync[None]':
         self.score += score
+        self.score_stat[type] += score
         return
         yield {}
-    def addScoreFinal(self, score: int):
+    def addScoreFinal(self, score: int, type: 'ScoreReason'):
         self.score += score
+        self.score_stat[type] += score
     def checkMeepleScoreCurrent(self):
         all_objects: list[CanScore] = []
         all_barns: list[Object] = []
@@ -211,8 +214,8 @@ class Player:
         token = player.findToken(ret.get("which", "follower"))
         if token is None:
             return -4
-        yield from self.addScore(-3)
-        yield from player.addScore(3)
+        yield from self.addScore(-3, ScoreReason.PayPrisoner)
+        yield from player.addScore(3, ScoreReason.PayPrisoner)
         player.prisoners.remove(token)
         self.tokens.append(token)
         return 0
@@ -498,7 +501,7 @@ class Player:
         abbot = abbots[0]
         assert isinstance(abbot.parent, BaseCloister)
         score = abbot.parent.checkScore([self], False, False)[0][1]
-        yield from self.addScore(score)
+        yield from self.addScore(score, type=abbot.parent.scoreType())
         abbot.putBackToHand()
         return 0
     def turnMovingFestival(self, ret: dict[str, Any]) -> 'TAsync[Literal[0, -14]]':
@@ -790,7 +793,7 @@ class Player:
             obj.removeAllFollowers()
         if rangered:
             self.board.addLog(id="score", player=self, source="ranger", num=3)
-            yield from self.addScore(3)
+            yield from self.addScore(3, type=ScoreReason.Ranger)
             pass_err: Literal[0, -2] = 0
             while 1:
                 self.board.state = State.ChoosingPos
@@ -874,7 +877,7 @@ class Player:
         # check fairy
         if self.board.checkPack(3, "c") and self.board.fairy.follower is not None and self.board.fairy.follower.player is self:
             self.board.addLog(id="score", player=self, num=1, source="fairy")
-            yield from self.addScore(1)
+            yield from self.addScore(1, type=ScoreReason.Fairy)
 
         for turn in range(2):
             # draw river
@@ -1051,4 +1054,4 @@ from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Follower,
 from .carcassonne import State, Connectable, Dir, CanScore, TAsync, CantPutError
 from .carcassonne import Barn, Builder, Pig, TileAddable, CitySegment, RoadSegment, AbbeyData, Wagon, Monastry
 from .carcassonne import Phantom, Tower, Abbot, BaseCloister, Flier, BigFollower, Addable, Gold, Shepherd
-from .carcassonne_extra import Gift
+from .carcassonne_extra import Gift, ScoreReason

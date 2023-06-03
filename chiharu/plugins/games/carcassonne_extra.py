@@ -1,4 +1,7 @@
 from abc import abstractmethod
+from datalite import datalite
+from enum import IntEnum
+from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Type, Literal, Sequence
 import more_itertools
@@ -130,7 +133,7 @@ class GiftCashOut(Gift):
             obj = follower.parent.object if isinstance(follower.parent, Segment) else follower.parent
             score = sum(2 for token in obj.iterTokens() if isinstance(token, Follower))
             user.board.addLog(id="score", player=user, num=score, source="cash_out")
-            yield from follower.player.addScore(score)
+            yield from follower.player.addScore(score, type=ScoreReason.Gift)
             follower.putBackToHand()
             break
         return 1
@@ -248,6 +251,136 @@ class LandMonastry(Enum):
     Wealth = auto()
     HermitMonastery = auto()
     PilgrimageRoute = auto()
+
+@dataclass
+class ccsGameStat:
+    group_id: int
+    players: str
+    extensions: str
+    time: str
+    winner: int
+    scores: str
+    city_begin: int
+    city_end: int
+    road_begin: int
+    road_end: int
+    monastry_begin: int
+    monastry_end: int
+    field_begin: int
+    field_end: int
+    meeple_begin: int
+    meeple_end: int
+    tower_begin: int
+    tower_end: int
+@dataclass
+class ccsCityStat:
+    game: int
+    players: str
+    tiles: int
+    complete: bool
+    score: int
+    pennants: int = 0
+    cathedral: int = 0
+    wine: int = 0
+    wheat: int = 0
+    cloth: int = 0
+    mage: bool = False
+    witch: bool = False
+    citizens_jury: bool = False
+    bad_neibourhood: int = 0
+    wealth: bool = False
+    poverty: bool = False
+    siege: bool = False
+@dataclass
+class ccsRoadStat:
+    game: int
+    players: str
+    tiles: int
+    complete: bool
+    score: int
+    inn: int = 0
+    ferry: int = 0
+    mage: bool = False
+    witch: bool = False
+    street_fair: bool = False
+    highway: bool = False
+    peasant_uprising: int = 0
+    poverty: bool = False
+@dataclass
+class ccsMonastryStat:
+    game: int
+    players: str
+    type: str
+    tiles: int
+    complete: bool
+    score: int
+    abbey: bool = False
+    vineyard: int = 0
+    challenge_complete: bool = False
+    hermit_monastry: bool = False
+    pilgrimage_route: bool = False
+    wealth: bool = False
+@dataclass
+class ccsFieldStat:
+    game: int
+    players: str
+    cities: int
+    score: int
+    is_barn: bool = False
+    put_barn: bool = False
+    connect_barn: bool = False
+    pig: str = ''
+    pigherd: int = 0
+class HomeReason(IntEnum):
+    Score = 0
+    Dragon = 1
+    Princess = 2
+    Tower = 3
+    Challenge = 4
+    Messenger8 = 5
+    CropCircle = 6
+    Festival = 7
+    RoadSweeper = 8
+    CashOut = 9
+@dataclass
+class ccsMeepleStat:
+    game: int
+    player: int
+    type: str
+    stay_turn: int
+    home_reason: HomeReason
+    ability: int = 0
+    fairy_1: int = 0
+    fairy_3: int = 0
+@dataclass
+class ccsTowerStat:
+    game: int
+    player: int
+    capture: str
+    exchange: str = ''
+class ScoreReason(IntEnum):
+    City = 0
+    Road = 1
+    Monastry = 2
+    Field = 3
+    Garden = 4
+    Trade = 5
+    Fairy = 6
+    Prisoner = 7
+    PayPrisoner = 8
+    King = 9
+    Robber = 10
+    Shepherd = 11
+    Messenger = 12
+    Gold = 13
+    ScoringRobber = 14
+    Gift = 15
+    Gingerbread = 16
+    Ranger = 17
+@dataclass
+class ccsScoreStat:
+    origin: ScoreReason
+    num: int
 
 from .carcassonne import State, Tile, RoadSegment, Follower, Segment, BaseCloister, FieldSegment, CitySegment
 from .carcassonne import TAsync, Monastry

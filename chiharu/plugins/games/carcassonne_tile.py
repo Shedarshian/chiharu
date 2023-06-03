@@ -1,6 +1,5 @@
-import re, more_itertools
-from abc import ABC, abstractmethod
-from PIL import Image, ImageDraw
+import re
+from PIL import Image
 from copy import deepcopy
 from .carcassonne_asset.readTile import *
 
@@ -301,5 +300,3 @@ class FeatureSegmentData(AddableSegmentData):
         else:
             self.pos = pos.tilepos()
         self.pic = PointSegmentPic(SegmentType.Feature, self.pos, [])
-
-
