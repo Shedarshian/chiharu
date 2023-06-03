@@ -1391,6 +1391,8 @@ class Flier(Feature, CanScore):
         self.direction: int = data[0]
     def closed(self) -> bool:
         return True
+    def scoreType(self) -> 'ScoreReason':
+        return ScoreReason.City
     def iterTokens(self) -> 'Iterable[Token]':
         return []
     def checkScore(self, players: 'list[Player]', complete: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
