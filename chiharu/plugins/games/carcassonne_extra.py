@@ -242,6 +242,8 @@ class LandCity(Enum):
     Siege = auto()
     BadNeighborhood = auto()
     CitizensJury = auto()
+    def saveID(self):
+        return {LandCity.CitizensJury: 0, LandCity.Poverty: 1, LandCity.Siege: 2, LandCity.Wealth: 3, LandCity.BadNeighborhood: 4}[self]
 class LandRoad(Enum):
     Poverty = auto()
     StreetFair = auto()
@@ -281,16 +283,8 @@ class ccsCityStat:
     score: int
     pennants: int = 0
     cathedral: int = 0
-    wine: int = 0
-    wheat: int = 0
-    cloth: int = 0
-    mage: bool = False
-    witch: bool = False
-    citizens_jury: bool = False
-    bad_neibourhood: int = 0
-    wealth: bool = False
-    poverty: bool = False
-    siege: bool = False
+    mage_witch: int = 0
+    land_surveyor: int = 0
 @dataclass
 class ccsRoadStat:
     game: int

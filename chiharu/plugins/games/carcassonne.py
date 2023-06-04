@@ -212,6 +212,7 @@ class Board:
         self.state: State = State.End
         self.stateGen = self.process()
         self.log: list[dict[str, Any]] = []
+        self.stats: tuple[list[ccsCityStat], list[ccsRoadStat], list[ccsFieldStat], list[ccsMonastryStat], list[ccsMeepleStat]] = ([], [], [], [], [])
         if self.checkPack(3, "b"):
             self.dragon = [token for token in self.tokens if isinstance(token, Dragon)][0]
             self.dragonMoved: list[Tile] = []
@@ -316,6 +317,10 @@ class Board:
             self.landMonastry = self.landMonastryDiscard
             self.landMonastryDiscard = []
             random.shuffle(self.landMonastry)
+    def setGameStatId(self, id: int):
+        for l in self.stats:
+            for d in l: # type: ignore
+                d.game = id
 
     def nextPlayer(self):
         self.current_turn_player_id += 1
@@ -694,6 +699,8 @@ class CanScore(ABC):
     @abstractmethod
     def getTile(self) -> 'list[Tile]':
         pass
+    def addStat(self, complete: bool, putBarn: bool, score: 'list[tuple[Player, int]]'):
+        return
     def removeAllFollowers(self, criteria: 'Callable[[Token], bool] | None'=None):
         if criteria is None:
             criteria = lambda token: isinstance(token.player, Player) and not isinstance(token, Barn)
@@ -714,17 +721,15 @@ class CanScore(ABC):
     def checkPlayerAndScore(self, complete: bool, putBarn: bool=True) -> 'list[tuple[Player, int]]':
         players = self.checkScore(self.checkPlayer(), complete, putBarn)
         return players
-    def score(self, putBarn: bool, ifFairy: bool=True) -> TAsync[bool]:
+    def score(self, putBarn: bool, ifExtra: bool=True) -> TAsync[bool]:
         players = self.checkPlayerAndScore(True, putBarn=putBarn)
         for player, score in players:
             if score != 0:
                 self.board.addLog(id="score", player=player, source="complete", num=score)
                 yield from player.addScore(score, type=self.scoreType())
-        if self.board.checkPack(3, "c") and ifFairy and self.board.fairy.follower is not None:
+        if ifExtra:
             for token in self.iterTokens():
-                if self.board.fairy.follower is token and isinstance(token.player, Player):
-                    self.board.addLog(id="score", player=token.player, source="fairy_complete", num=3)
-                    yield from token.player.addScore(3, type=ScoreReason.Fairy)
+                yield from token.scoreExtra()
         gingered: bool = False
         if self.board.checkPack(14, "d"):
             ginger = more_itertools.only(token for token in self.iterTokens() if isinstance(token, Gingerbread))
@@ -732,17 +737,15 @@ class CanScore(ABC):
                 yield from ginger.score()
                 gingered = True
         return gingered
-    def scoreFinal(self, ifFairy: bool=True):
+    def scoreFinal(self, ifExtra: bool=True):
         players = self.checkPlayerAndScore(False)
         for player, score in players:
             if score != 0:
                 self.board.addLog(id="score", player=player, source="final", num=score)
                 player.addScoreFinal(score, type=self.scoreType())
-        if self.board.checkPack(3, "c") and ifFairy and self.board.fairy.follower is not None:
+        if ifExtra:
             for token in self.iterTokens():
-                if self.board.fairy.follower is token and isinstance(token.player, Player):
-                    self.board.addLog(id="score", player=token.player, source="fairy_complete", num=3)
-                    token.player.addScoreFinal(3, type=ScoreReason.Fairy)
+                yield from token.scoreExtra()
         self.removeAllFollowers()
 
 class Tile:
@@ -1278,8 +1281,8 @@ class Object(CanScore):
             if not any(token.player is t.player for seg in self.segments for token in seg.tokens if isinstance(token, Follower)):
                 self.board.addLog(id="putbackBuilder", builder=t)
                 t.putBackToHand()
-    def scoreFinal(self, ifFairy: bool=True):
-        super().scoreFinal(ifFairy)
+    def scoreFinal(self, ifExtra: bool=True):
+        super().scoreFinal(ifExtra)
         # barn
         if self.type == Connectable.Field and any(isinstance(token, Barn) for seg in self.segments for token in seg.tokens):
             players = self.checkBarnAndScore()
@@ -1287,6 +1290,23 @@ class Object(CanScore):
                 if score != 0:
                     player.addScoreFinal(score, type=ScoreReason.Field)
             self.removeAllFollowers(lambda token: isinstance(token, Barn))
+    def addStat(self, complete: bool, putBarn: bool, score: 'list[tuple[Player, int]]'):
+        if len(score) == 0:
+            return
+        match self.type:
+            case Connectable.City:
+                stat = ccsCityStat(0, json.dumps([p.id for p, s in score]), self.getTile(), complete, score[0][1])
+                stat.pennants = self.checkPennant()
+                if self.board.checkPack(1, "d"):
+                    stat.cathedral = sum(1 for seg in self.segments if seg.addable == Addable.Cathedral)
+                if self.board.checkPack(15, "a") and complete:
+                    if self.board.landCity[0] == LandCity.BadNeighborhood:
+                        stat.land_surveyor = 4 + (stat.tiles - self.checkTile(True))
+                    else:
+                        stat.land_surveyor = self.board.landCity[0].saveID()
+                if self.board.checkPack(13, "f"):
+                    stat.mage_witch = sum(1 if isinstance(token, Mage) else 2 if isinstance(token, Witch) else 0 for token in self.iterTokens())
+        return
 
 TCloister = TypeVar('TCloister', bound='BaseCloister')
 class Feature:
@@ -1352,9 +1372,9 @@ class Monastry(BaseCloister):
 class Cloister(Monastry):
     def getChallenge(self):
         return self.getCloister(Shrine)
-    def score(self, putBarn: bool, ifFairy: bool=True) -> TAsync[bool]:
+    def score(self, putBarn: bool, ifExtra: bool=True) -> TAsync[bool]:
         hasmeeple: bool = len(self.tokens) != 0
-        gingered = yield from super().score(putBarn, ifFairy)
+        gingered = yield from super().score(putBarn, ifExtra)
         if self.board.checkPack(6, 'h') and (cloister := self.getChallenge()) and not cloister.closed() and hasmeeple and len(cloister.tokens) != 0:
             self.board.addLog(id="challengeFailed", type="shrine")
             cloister.removeAllFollowers()
@@ -1366,9 +1386,9 @@ class Garden(BaseCloister):
 class Shrine(Monastry):
     def getChallenge(self):
         return self.getCloister(Cloister)
-    def score(self, putBarn: bool, ifFairy: bool=True) -> TAsync[bool]:
+    def score(self, putBarn: bool, ifExtra: bool=True) -> TAsync[bool]:
         hasmeeple: bool = len(self.tokens) != 0
-        gingered = yield from super().score(putBarn, ifFairy)
+        gingered = yield from super().score(putBarn, ifExtra)
         if self.board.checkPack(6, 'h') and (cloister := self.getChallenge()) and not cloister.closed() and hasmeeple and len(cloister.tokens) != 0:
             self.board.addLog(id="challengeFailed", type="cloister")
             cloister.removeAllFollowers()
@@ -1494,6 +1514,10 @@ class Token(metaclass=TokenMeta):
         self.parent = self.player
         if self.board.checkPack(3, 'c') and self.board.fairy.follower is self:
             self.board.fairy.follower = None
+    def scoreExtra(self) -> TAsync[None]:
+        if self.board.checkPack(3, "c") and self.board.fairy.follower is self and isinstance(self.player, Player):
+            self.board.addLog(id="score", player=self.player, source="fairy_complete", num=3)
+            yield from self.player.addScore(3, type=ScoreReason.Fairy)
     canEatByDragon: bool = True
     canPutTypes: 'tuple[Type[Segment] | Type[Feature] | Type[Tile],...]' = (FieldSegment, CitySegment, RoadSegment, Monastry, Flier, Tower)
     key: tuple[int, int] = (-1, -1)
@@ -1748,6 +1772,12 @@ class Shepherd(Figure):
     key = (9, 0)
     name = "牧羊人"
     canPutTypes = (FieldSegment,)
+class Mage(Figure):
+    key = (13, 1)
+    name = "法师"
+class Witch(Figure):
+    key = (13, 2)
+    name = "女巫"
 
 Token.all_name["follower"] = BaseFollower
 
@@ -1772,7 +1802,8 @@ class State(Enum):
     ChoosingShepherd = auto()
     Error = auto()
 
-from .carcassonne_extra import Gift, LandCity, LandRoad, LandMonastry
+from .carcassonne_extra import Gift, LandCity, LandRoad, LandMonastry, ScoreReason
+from .carcassonne_extra import ccsCityStat, ccsGameStat, ccsRoadStat, ccsFieldStat, ccsMonastryStat, ccsMeepleStat, ccsTowerStat
 from .carcassonne_player import Player
 
 if __name__ == "__main__":
@@ -1809,5 +1840,3 @@ if __name__ == "__main__":
         yshift += (len(ss) + 4) // 5
     b.setImageArgs(debug=True)
     b.image().show()
-
-from .carcassonne_extra import ScoreReason
