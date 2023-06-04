@@ -196,7 +196,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 if len(board.prompts) >= 6:
                     board.prompts.pop(0)
             with open(config.pag(f"cacason\\{board.group_id}.json"), 'w', encoding='utf-8') as f:
-                f.write(json.dumps({"lastTime": datetime.datetime.now().isoformat(), "prompt": '· ' + '<br>· '.join(board.prompts)}))
+                f.write(json.dumps({"lastTime": datetime.datetime.now().isoformat(), "prompt": '· ' + '\n· '.join(board.prompts)}))
             await session.send(prompt)
         try:
             if to_send is None:
