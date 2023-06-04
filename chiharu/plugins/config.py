@@ -17,7 +17,7 @@ from .inject import find_help, CommandGroup, Environment, AllGroup, Admin, Const
 PATH = "C:\\coolq_data\\"
 PATH_IMG = "C:\\go\\data\\images"
 PATH_REC = "C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\record"
-PATH_PAGE = "C:\\game"
+PATH_PAGE = "C:\\games"
 
 def rel(rel_path):
     return path.join(PATH, rel_path)
