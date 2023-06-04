@@ -60,12 +60,12 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
     data['adding_extensions'] = True
     import os, shutil
     group_id = session.ctx['group_id']
-    if not os.path.isfile(config.pag(f"cacason/{group_id}.html")):
-        with open(config.pag(f"cacason/{group_id}.html"), "w", encoding='utf-8') as f:
-            with open(config.pag("cacason/index.html"), encoding='utf-8') as f2:
+    if not os.path.isfile(config.pag(f"cacason\\{group_id}.html")):
+        with open(config.pag(f"cacason\\{group_id}.html"), "w", encoding='utf-8') as f:
+            with open(config.pag("cacason\\index.html"), encoding='utf-8') as f2:
                 f.write(f2.read().replace("test", str(group_id)))
-        shutil.copy(config.pag("cacason/test.json"), config.pag(f"cacason/{group_id}.json"))
-        shutil.copy(config.pag("cacason/test.png"), config.pag(f"cacason/{group_id}.png"))
+        shutil.copy(config.pag("cacason\\test.json"), config.pag(f"cacason\\{group_id}.json"))
+        shutil.copy(config.pag("cacason\\test.png"), config.pag(f"cacason\\{group_id}.png"))
     # 选择扩展
     await session.send("请选择想开启或是关闭的扩展，发送如open ex1开启扩展，close ex1关闭，check查询，选择完毕后发送开始游戏即可开始。")
 
@@ -197,7 +197,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 prompts.append(prompt)
                 if len(prompts) >= 6:
                     prompts.pop(0)
-            with open(config.pag(f"cacason/{board.group_id}.json"), 'w', encoding='utf-8') as f:
+            with open(config.pag(f"cacason\\{board.group_id}.json"), 'w', encoding='utf-8') as f:
                 f.write(json.dumps({"lastTime": datetime.datetime.now().isoformat(), "prompt": '· ' + '<br>· '.join(prompts)}))
         try:
             if to_send is None:
