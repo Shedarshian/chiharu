@@ -58,6 +58,14 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
     data['players'] = [data['players'][i] for i in order]
     data['names'] = [data['names'][i] for i in order]
     data['adding_extensions'] = True
+    import os, shutil
+    group_id = session.ctx['group_id']
+    if not os.path.isfile(config.pag(f"cacason/{group_id}.html")):
+        with open(config.pag(f"cacason/{group_id}.html"), "w", encoding='utf-8') as f:
+            with open(config.pag("cacason/index.html"), encoding='utf-8') as f2:
+                f.write(f2.read().replace("test", str(group_id)))
+        shutil.copy(config.pag("cacason/test.json"), config.pag(f"cacason/{group_id}.json"))
+        shutil.copy(config.pag("cacason/test.png"), config.pag(f"cacason/{group_id}.png"))
     # 选择扩展
     await session.send("请选择想开启或是关闭的扩展，发送如open ex1开启扩展，close ex1关闭，check查询，选择完毕后发送开始游戏即可开始。")
 
@@ -180,8 +188,17 @@ async def ccs_end(session: CommandSession, data: dict[str, Any]):
 @config.ErrorHandle
 async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Callable[[], Awaitable]):
     next_turn = False
+    prompts: list[str] = []
     async def advance(board: Board, to_send: dict[str, Any] | None=None):
-        nonlocal next_turn
+        nonlocal next_turn, prompts
+        async def send(prompt):
+            await session.send(prompt)
+            if isinstance(prompt, str):
+                prompts.append(prompt)
+                if len(prompts) >= 6:
+                    prompts.pop(0)
+            with open(config.pag(f"cacason/{board.group_id}.json"), 'w', encoding='utf-8') as f:
+                f.write(json.dumps({"lastTime": datetime.datetime.now().isoformat(), "prompt": '· ' + '<br>· '.join(prompts)}))
         try:
             if to_send is None:
                 ret = next(board.stateGen)
@@ -189,14 +206,14 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                 ret = board.stateGen.send(to_send)
         except StopIteration as e:
             if e.value:
-                await session.send("所有剩余图块均无法放置，提前结束游戏！")
+                await send("所有剩余图块均无法放置，提前结束游戏！")
             board.setImageArgs(no_final_score=True)
             await session.send([board.saveImg()])
             score_win, players_win = board.winner()
             if len(players_win) == 1:
-                await session.send(f'玩家{players_win[0].name}以{score_win}分获胜！')
+                await send(f'玩家{players_win[0].name}以{score_win}分获胜！')
             else:
-                await session.send('玩家' + '，'.join(p.name for p in players_win) + f'以{score_win}分获胜！')
+                await send('玩家' + '，'.join(p.name for p in players_win) + f'以{score_win}分获胜！')
             # game log
             config.userdata.execute("insert into cacason_gamelog (group_id, users, extensions, time, score, winner, winner_score) values (?, ?, ?, ?, ?, ?, ?)", (session.ctx['group_id'], ','.join(str(q) for q in data['players']), json.dumps(data['extensions']), datetime.datetime.now().isoformat(), ','.join(str(p.score) for p in board.players), ','.join(str(q) for q in players_win), score_win))
             await delete_func()
@@ -229,96 +246,98 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                         outputs.append(f"骰子扔出了{d['result']}点。")
                     case "dragonMove":
                         outputs.append(f"玩家{data['names'][d['player'].id]}自动向{d['dir'].name[0]}方向动了一次龙。")
-            await session.send("\n".join(outputs))
+            await send("\n".join(outputs))
             board.log = []
         match board.state:
             case State.PuttingTile:
                 rete = ret["last_err"]
                 if rete == -1:
-                    await session.send("已有连接！")
+                    await send("已有连接！")
                 elif rete == -2:
-                    await session.send("无法连接！")
+                    await send("无法连接！")
                 elif rete == -3:
-                    await session.send("没有挨着！")
+                    await send("没有挨着！")
                 elif rete == -4:
-                    await session.send("未找到可赎回的囚犯！")
+                    await send("未找到可赎回的囚犯！")
                 elif rete == -5:
-                    await session.send("余分不足以赎回！")
+                    await send("余分不足以赎回！")
                 elif rete == -6:
-                    await session.send("河流不能回环！")
+                    await send("河流不能回环！")
                 elif rete == -7:
-                    await session.send("河流不能拐弯180度！")
+                    await send("河流不能拐弯180度！")
                 elif rete == -8:
-                    await session.send("修道院不能和多个神龛相连，反之亦然！")
+                    await send("修道院不能和多个神龛相连，反之亦然！")
                 elif rete == -9:
-                    await session.send("必须扩张河流！")
+                    await send("必须扩张河流！")
                 elif rete == -10:
-                    await session.send("河流分叉必须岔开！")
+                    await send("河流分叉必须岔开！")
                 elif rete == -11:
-                    await session.send("未找到礼物卡！")
+                    await send("未找到礼物卡！")
                 elif rete == -12:
-                    await session.send("请指定使用哪张手牌！")
+                    await send("请指定使用哪张手牌！")
                 else:
                     if ret["begin"] and ret["second_turn"]:
-                        await session.send("玩家继续第二回合")
+                        await send("玩家继续第二回合")
                     board.setImageArgs()
                     await session.send([board.saveImg()])
-                    await session.send((f'玩家{data["names"][board.current_turn_player_id]}开始行动，' if ret["begin"] else "") + '请选择放图块的坐标，以及用URDL将指定方向旋转至向上。' + ("此时可发送“赎回玩家nxxx”花3分赎回囚犯。" if not ret["second_turn"] and board.checkPack(4, "b") else "") + ('回复礼物+第几张使用礼物卡，“查询礼物”查询。' if board.checkPack(14, "a") and not ret["gifted"] else ""))
+                    await send((f'玩家{data["names"][board.current_turn_player_id]}开始行动，' if ret["begin"] else "") + '请选择放图块的坐标，以及用URDL将指定方向旋转至向上。' + ("此时可发送“赎回玩家nxxx”花3分赎回囚犯。" if not ret["second_turn"] and board.checkPack(4, "b") else "") + ('回复礼物+第几张使用礼物卡，“查询礼物”查询。' if board.checkPack(14, "a") and not ret["gifted"] else ""))
             case State.ChoosingPos:
                 if ret["last_err"] == -1:
-                    await session.send("板块不存在！")
+                    await send("板块不存在！")
                 elif ret["last_err"] == -2:
-                    await session.send("不符合要求！")
+                    await send("不符合要求！")
                 elif ret["last_err"] == -3:
-                    await session.send("这个金块不是你的！")
+                    await send("这个金块不是你的！")
                 else:
                     board.setImageArgs()
                     await session.send([board.saveImg()])
                     if ret["special"] == "synod":
-                        await session.send("请选择修道院，输入图块坐标。")
+                        await send("请选择修道院，输入图块坐标。")
                     elif ret["special"] == "road_sweeper":
-                        await session.send("请选择未完成道路，输入图块坐标。")
+                        await send("请选择未完成道路，输入图块坐标。")
                     elif ret["special"] == "cash_out":
-                        await session.send("请选择跟随者兑现，输入图块坐标。")
+                        await send("请选择跟随者兑现，输入图块坐标。")
                     elif ret["special"] == "ranger":
-                        await session.send("请选择要将护林员移动到的图块坐标。")
+                        await send("请选择要将护林员移动到的图块坐标。")
                     elif ret["special"] == "change_position":
-                        await session.send("请选择跟随者切换形态，输入图块坐标。")
+                        await send("请选择跟随者切换形态，输入图块坐标。")
                     elif ret["special"] == "gingerbread":
-                        await session.send("请选择要移动到的城市，输入图块坐标。")
+                        await send("请选择要移动到的城市，输入图块坐标。")
                     elif ret["special"] == "gold":
-                        await session.send("请选择放置另一个金块的图块坐标。")
+                        await send("请选择放置另一个金块的图块坐标。")
                     elif ret["special"] == "gold_take":
-                        await session.send(f"请玩家{data['names'][board.current_player_id]}选择拿取金块的图块坐标。")
+                        await send(f"请玩家{data['names'][board.current_player_id]}选择拿取金块的图块坐标。")
+                    else:
+                        await send("请选择坐标（通用）。")
             case State.PuttingFollower:
                 if ret["last_err"] == -1:
-                    await session.send("没有找到跟随者！")
+                    await send("没有找到跟随者！")
                 elif ret["last_err"] == -2:
-                    await session.send("无法放置！")
+                    await send("无法放置！")
                 elif ret["last_err"] == -3:
-                    await session.send("无法移动仙子！")
+                    await send("无法移动仙子！")
                 elif ret["last_err"] == -4:
-                    await session.send("无法使用传送门！")
+                    await send("无法使用传送门！")
                 elif ret["last_err"] == -5:
-                    await session.send("找不到高塔！")
+                    await send("找不到高塔！")
                 elif ret["last_err"] == -6:
-                    await session.send("高塔有人！")
+                    await send("高塔有人！")
                 elif ret["last_err"] == -7:
-                    await session.send("手里没有高塔片段！")
+                    await send("手里没有高塔片段！")
                 elif ret["last_err"] == -8:
-                    await session.send("找不到修道院长！")
+                    await send("找不到修道院长！")
                 elif ret["last_err"] == -9:
-                    await session.send("无法移动护林员！")
+                    await send("无法移动护林员！")
                 elif ret["last_err"] == -10:
-                    await session.send("未找到幽灵！")
+                    await send("未找到幽灵！")
                 elif ret["last_err"] == -11:
-                    await session.send("幽灵无法放置！")
+                    await send("幽灵无法放置！")
                 elif ret["last_err"] == -12:
-                    await session.send("在高塔/传送门/飞行器时不能使用幽灵，请仅仅申请“放幽灵”！")
+                    await send("在高塔/传送门/飞行器时不能使用幽灵，请仅仅申请“放幽灵”！")
                 elif ret["last_err"] == -13:
-                    await session.send("不能重复使用传送门/飞行器！")
+                    await send("不能重复使用传送门/飞行器！")
                 elif ret["last_err"] == -14:
-                    await session.send("无法使用节日移除！")
+                    await send("无法使用节日移除！")
                 else:
                     board.setImageArgs(draw_tile_seg=ret["last_put"])
                     await session.send([board.saveImg()])
@@ -345,121 +364,127 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
                     else:
                         prompt += "，回复“不放”跳过"
                     prompt += "。"
-                    await session.send(prompt)
+                    await send(prompt)
             case State.WagonAsking:
                 if ret["last_err"] == -1:
-                    await session.send("没有该图块！")
+                    await send("没有该图块！")
                 elif ret["last_err"] == -2:
-                    await session.send("图块过远，只能放在本图块或是相邻的8块上！")
+                    await send("图块过远，只能放在本图块或是相邻的8块上！")
                 elif ret["last_err"] == -3:
-                    await session.send("无法放置！")
+                    await send("无法放置！")
                 else:
                     pos = ret["pos"]
                     board.setImageArgs(draw_tile_seg=[(pos[0] + i, pos[1] + j) for i in (-1, 0, 1) for j in (-1, 0, 1)])
                     await session.send([board.saveImg()])
-                    await session.send("请选择马车要移动到的图块，以及该图块上的位置（小写字母），回复“不放”收回马车。")
+                    await send("请选择马车要移动到的图块，以及该图块上的位置（小写字母），回复“不放”收回马车。")
             case State.AbbeyAsking | State.FinalAbbeyAsking:
                 if ret["last_err"] == -1:
-                    await session.send("无法放置！")
+                    await send("无法放置！")
                 elif ret["last_err"] == -8:
-                    await session.send("修道院不能和多个神龛相连！")
+                    await send("修道院不能和多个神龛相连！")
                 else:
                     if ret["begin"] and ret["second_turn"]:
-                        await session.send("玩家继续第二回合")
+                        await send("玩家继续第二回合")
                     if ret["begin"]:
                         board.setImageArgs()
                         await session.send([board.saveImg()])
-                    await session.send((f'玩家{data["names"][board.current_player_id]}' if ret["begin"] or board.state == State.FinalAbbeyAsking else "") + ("开始行动，选择" if ret["begin"] else "选择最后" if board.state == State.FinalAbbeyAsking else "请选择") + "是否放置僧院板块，回复“不放”跳过。")
+                    await send((f'玩家{data["names"][board.current_player_id]}' if ret["begin"] or board.state == State.FinalAbbeyAsking else "") + ("开始行动，选择" if ret["begin"] else "选择最后" if board.state == State.FinalAbbeyAsking else "请选择") + "是否放置僧院板块，回复“不放”跳过。")
             case State.MovingDragon:
                 if ret["last_err"] == -1:
-                    await session.send("无法移动！")
+                    await send("无法移动！")
                 else:
                     board.setImageArgs()
                     await session.send([board.saveImg()])
-                    await session.send(f'玩家{data["names"][board.current_player_id]}第{ret["moved_num"] + 1}次移动龙，请输入URDL移动。')
+                    await send(f'玩家{data["names"][board.current_player_id]}第{ret["moved_num"] + 1}次移动龙，请输入URDL移动。')
             case State.ChoosingOwnFollower:
                 if ret["last_err"] == -1:
-                    await session.send("无法移动！")
+                    await send("无法移动！")
                 if ret["last_err"] == -2:
-                    await session.send("未找到跟随者！")
+                    await send("未找到跟随者！")
                 if ret["last_err"] == -3:
-                    await session.send("不符合要求！")
+                    await send("不符合要求！")
                 else:
                     board.setImageArgs(draw_tile_follower=ret["last_put"])
                     await session.send([board.saveImg()])
                     if ret["special"] == "fairy":
-                        await session.send('请额外指定要放置在哪个跟随者旁。')
+                        await send('请额外指定要放置在哪个跟随者旁。')
                     elif ret["special"] == "cash_out":
-                        await session.send('请额外指定要兑现哪个跟随者。')
+                        await send('请额外指定要兑现哪个跟随者。')
                     elif ret["special"] == "change_position":
-                        await session.send('请额外指定要切换哪个跟随者。')
+                        await send('请额外指定要切换哪个跟随者。')
+                    else:
+                        await send("请选择跟随者（通用）。")
             case State.PrincessAsking:
                 if ret["last_err"] == -1:
-                    await session.send("未找到跟随者！")
+                    await send("未找到跟随者！")
                 else:
                     board.setImageArgs(princess=ret["object"])
                     await session.send([board.saveImg()])
-                    await session.send('你放置了公主，可以指定公主要移走哪名跟随者，回复“返回”跳过。')
+                    await send('你放置了公主，可以指定公主要移走哪名跟随者，回复“返回”跳过。')
             case State.CaptureTower:
                 if ret["last_err"] == -1:
-                    await session.send("未找到跟随者！")
+                    await send("未找到跟随者！")
                 else:
                     board.setImageArgs(tower_pos=ret["pos"])
                     await session.send([board.saveImg()])
-                    await session.send('请选择要抓的跟随者，回复“不抓”跳过。')
+                    await send('请选择要抓的跟随者，回复“不抓”跳过。')
             case State.ExchangingPrisoner:
                 if ret["last_err"] == -1:
-                    await session.send("未找到跟随者！")
+                    await send("未找到跟随者！")
                 else:
                     board.setImageArgs()
                     await session.send([board.saveImg()])
-                    await session.send(f'请玩家{data["names"][board.current_player_id]}选择换回的对方的跟随者。')
+                    await send(f'请玩家{data["names"][board.current_player_id]}选择换回的对方的跟随者。')
             case State.ChoosingSegment:
                 if ret["last_err"] == -1:
-                    await session.send("未找到片段号！")
+                    await send("未找到片段号！")
                 if ret["last_err"] == -2:
-                    await session.send("不符合要求！")
+                    await send("不符合要求！")
                 else:
                     board.setImageArgs(draw_tile_seg=ret["last_put"], draw_occupied_seg=True)
                     await session.send([board.saveImg()])
                     if ret["special"] == "road_sweeper":
-                        await session.send('请选择道路片段。')
+                        await send('请选择道路片段。')
                     elif ret["special"] == "change_position":
-                        await session.send('请选择切换形态的片段。')
+                        await send('请选择切换形态的片段。')
                     elif ret["special"] == "flier":
-                        await session.send('请选择放置跟随者的片段。')
+                        await send('请选择放置跟随者的片段。')
                     elif ret["special"] == "gingerbread":
-                        await session.send('请选择姜饼人移动到的片段。')
+                        await send('请选择姜饼人移动到的片段。')
+                    else:
+                        await send("请选择片段（通用）。")
             case State.AskingSynod:
                 if ret["last_err"] == -1:
-                    await session.send("板块不存在！")
+                    await send("板块不存在！")
                 elif ret["last_err"] == -2:
-                    await session.send("不符合要求！")
+                    await send("不符合要求！")
                 elif ret["last_err"] == -3:
-                    await session.send("没有跟随者！")
+                    await send("没有跟随者！")
                 elif ret["last_err"] == -4:
-                    await session.send("无法放置！")
+                    await send("无法放置！")
                 else:
                     board.setImageArgs()
                     await session.send([board.saveImg()])
-                    await session.send('请选择放置的修道院板块坐标以及跟随者。')
+                    await send('请选择放置的修道院板块坐标以及跟随者。')
             case State.ChoosingTileFigure:
                 if ret["last_err"] == -1:
-                    await session.send("未找到物体！")
+                    await send("未找到物体！")
                 elif ret["last_err"] == -2:
-                    await session.send("不符合要求！")
+                    await send("不符合要求！")
                 else:
                     board.setImageArgs(tile_figure=ret["last_put"])
                     await session.send([board.saveImg()])
                     if ret["special"] == "festival":
-                        await session.send('请选择板块上要移除的物体。')
-    
+                        await send('请选择板块上要移除的物体。')
+                    else:
+                        await send("请选择板块上的物体（通用）。")
+
     command = session.msg_text.strip()
     if data['adding_extensions']:
         if command in ("开始游戏", "游戏开始"):
             # 开始游戏
             data['extensions'][0] = "a"
-            board: Board = Board(data['extensions'], data['names'], data['starting_tile'])
+            board: Board = Board(data['extensions'], data['names'], data['starting_tile'], session.ctx["group_id"])
             data['board'] = board
             await advance(board)
             data['adding_extensions'] = False

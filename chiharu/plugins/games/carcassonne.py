@@ -77,9 +77,11 @@ def dist2(pos1: tuple[int, int], pos2: tuple[int, int]) -> float:
 TToken = TypeVar("TToken", bound="Token")
 
 class Board:
-    def __init__(self, packs_options: dict[int, str], player_names: list[str], start_tile_pack: int=0) -> None:
+    def __init__(self, packs_options: dict[int, str], player_names: list[str],
+                 start_tile_pack: int=0, group_id: int | None = None) -> None:
         all_packs = readTileData(packs_options)
         packs: list[dict[str, Any]] = readPackData()["packs"]
+        self.group_id = group_id
         self.packs_options = packs_options
         self.tiles: dict[tuple[int, int], Tile] = {}
         self.riverDeck: list[Tile] = []
@@ -451,6 +453,14 @@ class Board:
             dr.line(pos(0, j, (-10, 63)) + pos(width + 1, j, (10, 63)), "gray")
         dr.line(pos(0, height + 1, (-10, 0)) + pos(width + 1, height + 1, (10, 0)), "gray")
         dr.line(pos(0, height + 1, (-10, 10)) + pos(width + 1, height + 1, (10, 10)), "gray")
+        # last pos
+        for player in self.players:
+            if player.last_pos is not None:
+                color = "white" if player.tokenColor == "gray" else player.tokenColor
+                dr.rectangle(posshift(*player.last_pos, (0, 0)) + posshift(*player.last_pos, (63, 1)), color)
+                dr.rectangle(posshift(*player.last_pos, (0, 0)) + posshift(*player.last_pos, (1, 63)), color)
+                dr.rectangle(posshift(*player.last_pos, (62, 0)) + posshift(*player.last_pos, (63, 63)), color)
+                dr.rectangle(posshift(*player.last_pos, (0, 62)) + posshift(*player.last_pos, (63, 63)), color)
         # hill
         if self.checkPack(9, 'c'):
             to_paste: list[tuple[tuple[int, int], Image.Image]] = []
@@ -461,7 +471,7 @@ class Board:
             to_paste.sort(key=lambda x: x[0])
             for p, imgt in to_paste:
                 dr.rectangle(posshift(*p) + posshift(*p, (64, 64)), "gray")
-                img.paste(imgt, posshift(*p, (-2, -4)))
+                img.paste(imgt, posshift(*p, (-1, -3)))
         # text
         font = ImageFont.truetype("msyhbd.ttc", 10)
         def alpha(n):
@@ -642,6 +652,8 @@ class Board:
         from .. import config
         name = 'ccs' + str(random.randint(0, 9) + self.current_player_id * 10) + '.png'
         self.image().save(config.img(name))
+        if self.group_id is not None:
+            self.image().save(config.pag(f"cacason/{self.group_id}.png"))
         return config.cq.img(name)
     def saveRemainTileImg(self):
         from .. import config
@@ -1807,7 +1819,7 @@ from .carcassonne_extra import ccsCityStat, ccsGameStat, ccsRoadStat, ccsFieldSt
 from .carcassonne_player import Player
 
 if __name__ == "__main__":
-    b = Board({0: "a", 1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 6: "abcdefgh", 7: "abcd", 9: "a", 12: "ab", 13: "abcdijk"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
+    b = Board({0: "a", 1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 6: "abcdefgh", 7: "abcd", 9: "abc", 12: "ab", 13: "abcdijk"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
     d = {
             "name": "follower",
             "distribute": True,
@@ -1816,7 +1828,7 @@ if __name__ == "__main__":
         }
     b.players[0].tokens.pop(0)
     yshift = 0
-    cri = lambda s: True #s.serialNumber[0] in (9,)
+    cri = lambda s: s.serialNumber[0] in (6, 9,)
     picnames = sorted(set(s.serialNumber[1] for s in b.deck + b.riverDeck if cri(s)))
     for pic in picnames:
         ss = sorted(set(s.serialNumber[1:] for s in b.deck + b.riverDeck if s.picname == pic if cri(s)))
@@ -1838,5 +1850,7 @@ if __name__ == "__main__":
             #             pass
             #         feature.height = random.randint(0, 9)
         yshift += (len(ss) + 4) // 5
-    b.setImageArgs(debug=True)
+    for p in b.players:
+        p.last_pos = (0, p.id)
+    # b.setImageArgs(debug=True)
     b.image().show()

@@ -14,6 +14,7 @@ class Player:
         self.score_str: str = ""
         self.score_length: int = 0
         self.score_stat: dict[ScoreReason, int] = {s: 0 for s in ScoreReason.__members__.values()}
+        self.last_pos: tuple[int, int] | None = None
         if self.board.checkPack(2, 'd'):
             self.tradeCounter = [0, 0, 0]
         if self.board.checkPack(5, 'b'):
@@ -179,6 +180,7 @@ class Player:
             break
         tile.turn(orient)
         self.board.tiles[pos] = tile
+        self.last_pos = pos
         for dr in Dir:
             if pos + dr in self.board.tiles:
                 self.board.tiles[pos + dr].addConnect(tile, -dr)
