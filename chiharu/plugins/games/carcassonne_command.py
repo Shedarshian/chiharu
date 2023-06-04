@@ -188,17 +188,16 @@ async def ccs_end(session: CommandSession, data: dict[str, Any]):
 @config.ErrorHandle
 async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Callable[[], Awaitable]):
     next_turn = False
-    prompts: list[str] = []
     async def advance(board: Board, to_send: dict[str, Any] | None=None):
-        nonlocal next_turn, prompts
+        nonlocal next_turn
         async def send(prompt):
-            await session.send(prompt)
             if isinstance(prompt, str):
-                prompts.append(prompt)
-                if len(prompts) >= 6:
-                    prompts.pop(0)
+                board.prompts.append(prompt)
+                if len(board.prompts) >= 6:
+                    board.prompts.pop(0)
             with open(config.pag(f"cacason\\{board.group_id}.json"), 'w', encoding='utf-8') as f:
-                f.write(json.dumps({"lastTime": datetime.datetime.now().isoformat(), "prompt": '· ' + '<br>· '.join(prompts)}))
+                f.write(json.dumps({"lastTime": datetime.datetime.now().isoformat(), "prompt": '· ' + '<br>· '.join(board.prompts)}))
+            await session.send(prompt)
         try:
             if to_send is None:
                 ret = next(board.stateGen)

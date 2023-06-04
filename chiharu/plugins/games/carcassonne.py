@@ -91,6 +91,7 @@ class Board:
         self.tokenimgs: dict[int, Image.Image] = {}
         self.allTileimgs: dict[tuple[int, str, int, int], Image.Image] = {}
         self.connected: list[tuple[tuple[int, int], Dir]] = []
+        self.prompts: list[str] = []
         start_tile: Tile | None = None
         for tileData in all_packs:
             tile = Tile(self, tileData, False)
