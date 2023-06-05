@@ -810,6 +810,9 @@ class Player:
                 break
         return gingered
 
+    def turnMessenger(self) -> 'TAsync[None]':
+        pass
+
     def turnMoveGingerbread(self, complete: bool) -> 'TAsync[None]':
         ginger = self.board.gingerbread
         for t in self.board.tiles.values():
