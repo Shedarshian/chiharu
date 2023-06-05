@@ -30,6 +30,7 @@ class TileAddable(Enum):
     Festival = auto()
     Hill = auto()
     Vineyard = auto()
+    MageWitch = auto()
 class Addable(Enum):
     No = auto()
     Cathedral = auto()

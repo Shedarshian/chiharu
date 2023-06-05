@@ -378,10 +378,6 @@ class ScoreReason(IntEnum):
     Gift = 15
     Gingerbread = 16
     Ranger = 17
-@dataclass
-class ccsScoreStat:
-    origin: ScoreReason
-    num: int
 
 from .carcassonne import State, Tile, RoadSegment, Follower, Segment, BaseCloister, FieldSegment, CitySegment
 from .carcassonne import TAsync, Monastry
