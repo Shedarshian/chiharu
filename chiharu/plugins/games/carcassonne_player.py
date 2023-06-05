@@ -231,8 +231,8 @@ class Player:
             ret = yield {"object": seg.object, "last_err": pass_err}
             id: int = ret["id"]
             if id >= 0 and id < len(followers):
-                followers[id].putBackToHand()
-                seg.object.checkRemoveBuilderAndPig()
+                followers[id].putBackToHand(HomeReason.Princess)
+                seg.object.checkRemoveBuilderAndPig(HomeReason.Princess)
                 return True
             elif id != -1:
                 pass_err = -1
@@ -269,6 +269,7 @@ class Player:
         for seg in self.handTiles[0].segments:
             for token in seg.object.iterTokens():
                 if token.player is self and isinstance(token, Builder):
+                    token.ability += 1
                     return True
         return False
         yield {}
@@ -504,7 +505,7 @@ class Player:
         assert isinstance(abbot.parent, BaseCloister)
         score = abbot.parent.checkScore([self], False, False)[0][1]
         yield from self.addScore(score, type=abbot.parent.scoreType())
-        abbot.putBackToHand()
+        abbot.putBackToHand(HomeReason.Abbot)
         return 0
     def turnMovingFestival(self, ret: dict[str, Any]) -> 'TAsync[Literal[0, -14]]':
         pos: tuple[int, int] = ret["pos"]
@@ -530,7 +531,7 @@ class Player:
                     pass_err = -2
                     continue
                 break
-        to_remove.putBackToHand()
+        to_remove.putBackToHand(HomeReason.Festival)
         return 0
     def turnCaptureTower(self, tower: 'Tower', pos: tuple[int, int]) -> 'TAsync[None]':
         followers = [token for token in self.board.tiles[pos].iterAllTokens() if isinstance(token, Follower)] + [token for dr in Dir for i in range(tower.height) if (pos[0] + dr.corr()[0] * (i + 1), pos[1] + dr.corr()[1] * (i + 1)) in self.board.tiles for token in self.board.tiles[pos[0] + dr.corr()[0] * (i + 1), pos[1] + dr.corr()[1] * (i + 1)].iterAllTokens() if isinstance(token, Follower)]
@@ -548,9 +549,9 @@ class Player:
                 continue
             follower = followers[id]
             if follower.player is self:
-                follower.putBackToHand()
+                follower.putBackToHand(HomeReason.Tower)
             else:
-                follower.remove()
+                follower.remove(None)
                 follower.parent = self
                 self.prisoners.append(follower)
                 yield from self.checkReturnPrisoner()
@@ -584,8 +585,8 @@ class Player:
                     self.board.current_player_id = self.board.current_turn_player_id
             if c[0] and c[1]:
                 self.board.addLog(id="exchangePrisoner", p1=t[0], p2=t[1])
-            t[0].putBackToHand()
-            t[1].putBackToHand()
+            t[0].putBackToHand(HomeReason.Tower)
+            t[1].putBackToHand(HomeReason.Tower)
 
     def turnCheckShepherd(self, tile: 'Tile') -> 'TAsync[None]':
         shepherd: Shepherd | None = None
@@ -670,7 +671,8 @@ class Player:
                 if seg_put.closed() or seg_put.occupied() or not wagon.canPut(seg_put):
                     pass_err = -3
                     continue
-                wagon.parent.tokens.remove(wagon)
+                wagon.remove(None)
+                wagon.ability += 1
                 yield from wagon.putOn(seg_put)
                 break
         self.board.current_player_id = self.board.current_turn_player_id
@@ -701,7 +703,7 @@ class Player:
         if len(players) == 1:
             for player in players:
                 for gold in players[player]:
-                    gold.remove()
+                    gold.remove(None)
                     player.tokens.append(gold)
         else:
             for i in range(num):
@@ -726,7 +728,7 @@ class Player:
                     for l2 in players.values():
                         if gold in l2:
                             l2.remove(gold)
-                    gold.remove()
+                    gold.remove(None)
                     self.board.current_player.tokens.append(gold)
                     break
                 self.board.nextAskingPlayer()
@@ -770,7 +772,7 @@ class Player:
                     count = obj.checkTile()
                     if count > self.board.king.max:
                         self.board.king.max = count
-                        self.board.king.remove()
+                        self.board.king.remove(None)
                         yield from self.board.king.putOn(obj.segments[0])
                         for player in self.board.players:
                             player.king = False
@@ -781,7 +783,7 @@ class Player:
                     count = obj.checkTile()
                     if count > self.board.robber.max:
                         self.board.robber.max = count
-                        self.board.robber.remove()
+                        self.board.robber.remove(None)
                         yield from self.board.robber.putOn(obj.segments[0])
                         for player in self.board.players:
                             player.robber = False
@@ -792,7 +794,7 @@ class Player:
                 gingered = True
         yield from self.turnMoveWagon(objects)
         for obj in objects:
-            obj.removeAllFollowers()
+            obj.removeAllFollowers(HomeReason.Score)
         if rangered:
             self.board.addLog(id="score", player=self, source="ranger", num=3)
             yield from self.addScore(3, type=ScoreReason.Ranger)
@@ -816,7 +818,7 @@ class Player:
                 break
         else:
             if complete:
-                ginger.putBackToHand()
+                ginger.putBackToHand(HomeReason.Score)
             return
         pass_err: Literal[0, -1, -2] = 0
         while 1:
@@ -847,7 +849,7 @@ class Player:
                     break
             if not complete:
                 yield from ginger.score()
-            ginger.remove()
+            ginger.remove(None)
             yield from ginger.putOn(city)
             break
 
@@ -878,6 +880,7 @@ class Player:
         gingered: bool = False
         # check fairy
         if self.board.checkPack(3, "c") and self.board.fairy.follower is not None and self.board.fairy.follower.player is self:
+            self.board.fairy.follower.fairy_1 += 1
             self.board.addLog(id="score", player=self, num=1, source="fairy")
             yield from self.addScore(1, type=ScoreReason.Fairy)
 
@@ -1056,4 +1059,4 @@ from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Follower,
 from .carcassonne import State, Connectable, Dir, CanScore, TAsync, CantPutError
 from .carcassonne import Barn, Builder, Pig, TileAddable, CitySegment, RoadSegment, AbbeyData, Wagon, Monastry
 from .carcassonne import Phantom, Tower, Abbot, BaseCloister, Flier, BigFollower, Addable, Gold, Shepherd
-from .carcassonne_extra import Gift, ScoreReason
+from .carcassonne_extra import Gift, ScoreReason, HomeReason

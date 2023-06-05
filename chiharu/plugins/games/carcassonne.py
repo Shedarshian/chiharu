@@ -339,9 +339,11 @@ class Board:
             for seg in tile.segments:
                 if len(seg.tokens) != 0 or len(seg.object.tokens) != 0:
                     seg.object.scoreFinal()
+                    seg.object.removeAllFollowers(HomeReason.Score)
             for feature in tile.features:
                 if isinstance(feature, CanScore) and len(feature.tokens) != 0:
                     feature.scoreFinal()
+                    feature.removeAllFollowers(HomeReason.Score)
         if self.checkPack(2, "d"):
             for i in range(3):
                 max_token, max_players = findAllMax(self.players, lambda player, i=i: player.tradeCounter[i]) # type: ignore
@@ -712,14 +714,14 @@ class CanScore(ABC):
     @abstractmethod
     def getTile(self) -> 'list[Tile]':
         pass
-    def addStat(self, complete: bool, putBarn: bool, score: 'list[tuple[Player, int]]'):
+    def addStat(self, complete: bool, putBarn: bool, score: 'list[tuple[Player, int]]', isBarn: bool):
         return
-    def removeAllFollowers(self, criteria: 'Callable[[Token], bool] | None'=None):
+    def removeAllFollowers(self, reason: 'HomeReason', criteria: 'Callable[[Token], bool] | None'=None):
         if criteria is None:
             criteria = lambda token: isinstance(token.player, Player) and not isinstance(token, Barn)
         to_remove: list[Token] = [token for token in self.iterTokens() if criteria(token)]
         for token in to_remove:
-            token.putBackToHand()
+            token.putBackToHand(reason)
     def checkPlayer(self) -> 'list[Player]':
         strengths: list[int] = [0 for i in range(len(self.board.players))]
         for token in self.iterTokens():
@@ -740,6 +742,7 @@ class CanScore(ABC):
             if score != 0:
                 self.board.addLog(id="score", player=player, source="complete", num=score)
                 yield from player.addScore(score, type=self.scoreType())
+        self.addStat(True, putBarn, players, False)
         if ifExtra:
             for token in self.iterTokens():
                 yield from token.scoreExtra()
@@ -756,10 +759,10 @@ class CanScore(ABC):
             if score != 0:
                 self.board.addLog(id="score", player=player, source="final", num=score)
                 player.addScoreFinal(score, type=self.scoreType())
+        self.addStat(False, False, players, False)
         if ifExtra:
             for token in self.iterTokens():
                 yield from token.scoreExtra()
-        self.removeAllFollowers()
 
 class Tile:
     def __init__(self, board: Board, data: TileData, isAbbey: bool) -> None:
@@ -1263,12 +1266,7 @@ class Object(CanScore):
                         score = base * 5
                 new_players = [(player, score) for player in players]
             case Connectable.Field:
-                complete_city: list[Object] = []
-                for seg in self.segments:
-                    if isinstance(seg, FieldSegment):
-                        for segc in seg.adjacentCity:
-                            if segc.closed() and segc.object not in complete_city:
-                                complete_city.append(segc.object)
+                complete_city = self.checkCompleteCities()
                 if self.board.checkPack(2, "c"):
                     new_players = []
                     for player in players:
@@ -1286,14 +1284,22 @@ class Object(CanScore):
         if self.board.checkPack(15, "a") and len(new_players) != 0:
             self.board.updateLand()
         return new_players
-    def checkRemoveBuilderAndPig(self):
+    def checkRemoveBuilderAndPig(self, reason: 'HomeReason'):
         if not self.board.checkPack(2, "b") and not self.board.checkPack(2, "c"):
             return
         ts = [token for seg in self.segments for token in seg.tokens if isinstance(token, (Builder, Pig))]
         for t in ts:
             if not any(token.player is t.player for seg in self.segments for token in seg.tokens if isinstance(token, Follower)):
                 self.board.addLog(id="putbackBuilder", builder=t)
-                t.putBackToHand()
+                t.putBackToHand(reason)
+    def checkCompleteCities(self):
+        complete_city: list[Object] = []
+        for seg in self.segments:
+            if isinstance(seg, FieldSegment):
+                for segc in seg.adjacentCity:
+                    if segc.closed() and segc.object not in complete_city:
+                        complete_city.append(segc.object)
+        return complete_city
     def scoreFinal(self, ifExtra: bool=True):
         super().scoreFinal(ifExtra)
         # barn
@@ -1302,13 +1308,18 @@ class Object(CanScore):
             for player, score in players:
                 if score != 0:
                     player.addScoreFinal(score, type=ScoreReason.Field)
-            self.removeAllFollowers(lambda token: isinstance(token, Barn))
-    def addStat(self, complete: bool, putBarn: bool, score: 'list[tuple[Player, int]]'):
+            self.removeAllFollowers(HomeReason.Score, lambda token: isinstance(token, Barn))
+            self.addStat(False, False, players, True)
+    def addStat(self, complete: bool, putBarn: bool, score: 'list[tuple[Player, int]]', isBarn: bool):
         if len(score) == 0:
             return
+        players = json.dumps([p.id for p, s in score])
+        scores = ''
+        if not all(s == score[0][1] for p, s in score):
+            scores = json.dumps([(p.id, s) for p, s in score])
         match self.type:
             case Connectable.City:
-                stat = ccsCityStat(0, json.dumps([p.id for p, s in score]), self.getTile(), complete, score[0][1])
+                stat = ccsCityStat(0, players, len(self.getTile()), complete, score[0][1], scores)
                 stat.pennants = self.checkPennant()
                 if self.board.checkPack(1, "d"):
                     stat.cathedral = sum(1 for seg in self.segments if seg.addable == Addable.Cathedral)
@@ -1319,7 +1330,26 @@ class Object(CanScore):
                         stat.land_surveyor = self.board.landCity[0].saveID()
                 if self.board.checkPack(13, "f"):
                     stat.mage_witch = sum(1 if isinstance(token, Mage) else 2 if isinstance(token, Witch) else 0 for token in self.iterTokens())
-        return
+                self.board.stats[0].append(stat)
+            case Connectable.Road:
+                stat2 = ccsRoadStat(0, players, len(self.getTile()), complete, score[0][1], scores)
+                if self.board.checkPack(1, "c"):
+                    stat2.inn = sum(1 for seg in self.segments if seg.addable == Addable.Inn)
+                if self.board.checkPack(13, "f"):
+                    stat2.mage_witch = sum(1 if isinstance(token, Mage) else 2 if isinstance(token, Witch) else 0 for token in self.iterTokens())
+                if self.board.checkPack(15, "a") and complete:
+                    if self.board.landRoad[0] == LandRoad.PeasantUprising:
+                        stat2.land_surveyor = 3 + (stat2.tiles - self.checkTile(True))
+                    else:
+                        stat2.land_surveyor = self.board.landRoad[0].saveID()
+                self.board.stats[1].append(stat2)
+            case Connectable.Field:
+                barn = 3 if isBarn else 0 if not complete else 1 if putBarn else 2
+                stat3 = ccsFieldStat(0, players, len(self.checkCompleteCities()), score[0][1], scores, barn)
+                if self.board.checkPack(2, "c") and not isBarn:
+                    stat3.pigherd = sum(1 for seg in self.segments if seg.addable == Addable.Pigherd)
+                    stat3.pig = json.dumps([token.player.id for token in self.iterTokens() if isinstance(token, Pig) and isinstance(token.player, Player)])
+                self.board.stats[2].append(stat3)
 
 TCloister = TypeVar('TCloister', bound='BaseCloister')
 class Feature:
@@ -1369,6 +1399,27 @@ class BaseCloister(Feature, CanScore):
                     if (pos[0] + i, pos[1] + j) in self.board.tiles
                     for feature in self.board.tiles[pos[0] + i, pos[1] + j].features
                     if isinstance(feature, typ))
+    def addStat(self, complete: bool, putBarn: bool, score: 'list[tuple[Player, int]]', isBarn: bool):
+        if len(score) == 0:
+            return
+        players = json.dumps([p.id for p, s in score])
+        scores = ''
+        if not all(s == score[0][1] for p, s in score):
+            scores = json.dumps([(p.id, s) for p, s in score])
+        stat = ccsMonastryStat(0, players, self.__class__.__name__.lower(), len(self.getTile()), complete, score[0][1], scores)
+        stat.abbey = self.tile.isAbbey
+        if self.board.checkPack(9, "e") and complete and isinstance(self, Monastry):
+            stat.vineyard = sum(1 for tile in self.getTile() if tile.addable == TileAddable.Vineyard)
+        if self.board.checkPack(15, "a") and complete and isinstance(self, Monastry):
+            if self.board.landMonastry[0] == LandMonastry.Wealth:
+                stat.wealth = True
+            elif self.board.landMonastry[0] == LandMonastry.HermitMonastery:
+                stat.hermit_monastry = sum(1 for tile in self.getTile() if any(isinstance(seg, CitySegment) for seg in tile.segments))
+            else:
+                stat.pilgrimage_route = sum(1 for tile in self.getTile() if any(isinstance(seg, RoadSegment) for seg in tile.segments))
+        if self.board.checkPack(6, 'h') and isinstance(self, (Cloister, Shrine)) and (cloister := self.getChallenge()) and not cloister.closed() and len(self.tokens) != 0 and len(cloister.tokens) != 0: # pylint: disable=no-member
+            stat.challenge_complete = True
+        self.board.stats[3].append(stat)
 class Monastry(BaseCloister):
     def checkScore(self, players: 'list[Player]', complete: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
         score = len(self.getTile())
@@ -1390,7 +1441,7 @@ class Cloister(Monastry):
         gingered = yield from super().score(putBarn, ifExtra)
         if self.board.checkPack(6, 'h') and (cloister := self.getChallenge()) and not cloister.closed() and hasmeeple and len(cloister.tokens) != 0:
             self.board.addLog(id="challengeFailed", type="shrine")
-            cloister.removeAllFollowers()
+            cloister.removeAllFollowers(HomeReason.Challenge)
         return gingered
 class Garden(BaseCloister):
     pack = (12, "a")
@@ -1404,7 +1455,7 @@ class Shrine(Monastry):
         gingered = yield from super().score(putBarn, ifExtra)
         if self.board.checkPack(6, 'h') and (cloister := self.getChallenge()) and not cloister.closed() and hasmeeple and len(cloister.tokens) != 0:
             self.board.addLog(id="challengeFailed", type="cloister")
-            cloister.removeAllFollowers()
+            cloister.removeAllFollowers(HomeReason.Challenge)
         return gingered
 class Tower(Feature):
     pack = (4, "b")
@@ -1433,7 +1484,7 @@ class Flier(Feature, CanScore):
     def getTile(self) -> 'list[Tile]':
         return []
     def putOnBy(self, token: 'Token') -> TAsync[None]:
-        token.putBackToHand()
+        token.remove(None)
         pos = self.board.findTilePos(self.tile)
         if pos is None:
             return
@@ -1482,6 +1533,11 @@ class Token(metaclass=TokenMeta):
         self.player = parent
         self.board = parent if isinstance(parent, Board) else parent.board
         self.img = img
+        self.turns: int = 0
+        self.ability: int = 0
+        if self.board.checkPack(3, 'c'):
+            self.fairy_1: int = 0
+            self.fairy_3: int = 0
     def checkPack(self, packid: int, thingid: str):
         if isinstance(self.player, Player):
             return self.player.board.checkPack(packid, thingid)
@@ -1515,20 +1571,34 @@ class Token(metaclass=TokenMeta):
         x = Image.new("RGBA", self.img.size)
         x.paste(Image.new("RGBA", self.img.size, self.player.tokenColor), (0, 0), mask)
         return x
-    def remove(self):
+    def remove(self, reason: 'HomeReason | None'):
         if isinstance(self.parent, (Tile, Segment, Feature, Object)):
             self.parent.tokens.remove(self)
         if self.board.checkPack(3, 'c') and self.board.fairy.follower is self:
             self.board.fairy.follower = None
-    def putBackToHand(self):
+        if reason is not None:
+            self.addStat(reason)
+            self.turns = 0
+    def putBackToHand(self, reason: 'HomeReason'):
         if isinstance(self.parent, (Tile, Segment, Feature, Object)):
             self.parent.tokens.remove(self)
         self.player.tokens.append(self)
         self.parent = self.player
         if self.board.checkPack(3, 'c') and self.board.fairy.follower is self:
             self.board.fairy.follower = None
+        self.addStat(reason)
+        self.turns = 0
+    def addStat(self, reason: 'HomeReason'):
+        if not isinstance(self.player, Player):
+            return
+        stat = ccsMeepleStat(0, self.player.id, self.__class__.__name__.lower(), self.turns, reason, self.ability)
+        if self.board.checkPack(3, 'c'):
+            stat.fairy_1 = self.fairy_1
+            stat.fairy_3 = self.fairy_3
+        self.board.stats[4].append(stat)
     def scoreExtra(self) -> TAsync[None]:
         if self.board.checkPack(3, "c") and self.board.fairy.follower is self and isinstance(self.player, Player):
+            self.fairy_3 += 1
             self.board.addLog(id="score", player=self.player, source="fairy_complete", num=3)
             yield from self.player.addScore(3, type=ScoreReason.Fairy)
     canEatByDragon: bool = True
@@ -1647,12 +1717,12 @@ class Dragon(TileFigure):
         to_remove = tile.tokens + [token for seg in tile.segments for token in seg.tokens] + [token for feature in tile.features for token in feature.tokens]
         for token in to_remove:
             if token.canEatByDragon:
-                token.putBackToHand()
+                token.putBackToHand(HomeReason.Dragon)
         for seg in tile.segments:
-            seg.object.checkRemoveBuilderAndPig()
-    def putBackToHand(self):
+            seg.object.checkRemoveBuilderAndPig(HomeReason.Dragon)
+    def putBackToHand(self, reason: 'HomeReason'):
         self.tile = None
-        return super().putBackToHand()
+        return super().putBackToHand(reason)
     canEatByDragon = False
     key = (3, 0)
     name = "龙"
@@ -1667,10 +1737,10 @@ class Fairy(Figure):
         self.follower = follower
         pos = tile.findTokenDrawPos(follower)
         self.drawpos = pos[0], pos[1] + 8
-    def putBackToHand(self):
+    def putBackToHand(self, reason: 'HomeReason'):
         self.follower = None
         self.tile = None
-        return super().putBackToHand()
+        return super().putBackToHand(reason)
     canEatByDragon = False
     key = (3, 1)
     name = "仙子"
@@ -1745,8 +1815,8 @@ class Shepherd(Figure):
         if isinstance(seg, FieldSegment) and any(isinstance(t, Shepherd) for t in seg.object.iterTokens()):
             return False
         return True
-    def putBackToHand(self):
-        super().putBackToHand()
+    def putBackToHand(self, reason: 'HomeReason'):
+        super().putBackToHand(reason)
         self.board.sheeps.extend(self.sheeps)
         self.sheeps = []
     def grow(self):
@@ -1754,10 +1824,10 @@ class Shepherd(Figure):
         i = random.choice(self.board.sheeps)
         self.board.addLog(type="shepherd", player=self.player, sheep=i)
         if i == -1:
-            self.putBackToHand()
+            self.putBackToHand(HomeReason.Wolf)
             for t in self.parent.object.iterTokens():
                 if isinstance(t, Shepherd):
-                    t.putBackToHand()
+                    t.putBackToHand(HomeReason.Wolf)
         else:
             self.board.sheeps.remove(i)
             self.sheeps.append(i)
@@ -1773,7 +1843,7 @@ class Shepherd(Figure):
             assert isinstance(t.player, Player)
             yield from t.player.addScore(score, type=ScoreReason.Shepherd)
         for t in to_score:
-            t.putBackToHand()
+            t.putBackToHand(HomeReason.Shepherd)
     def image(self):
         img = super().image()
         dr = ImageDraw.Draw(img)
@@ -1815,7 +1885,7 @@ class State(Enum):
     ChoosingShepherd = auto()
     Error = auto()
 
-from .carcassonne_extra import Gift, LandCity, LandRoad, LandMonastry, ScoreReason
+from .carcassonne_extra import Gift, LandCity, LandRoad, LandMonastry, ScoreReason, HomeReason
 from .carcassonne_extra import ccsCityStat, ccsGameStat, ccsRoadStat, ccsFieldStat, ccsMonastryStat, ccsMeepleStat, ccsTowerStat
 from .carcassonne_player import Player
 

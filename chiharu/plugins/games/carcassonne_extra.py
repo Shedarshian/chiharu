@@ -88,6 +88,7 @@ class GiftRoadSweeper(Gift):
                     road = s
                     break
             road.object.scoreFinal()
+            road.object.removeAllFollowers(HomeReason.RoadSweeper)
             break
         return 1
 class GiftCashOut(Gift):
@@ -134,7 +135,7 @@ class GiftCashOut(Gift):
             score = sum(2 for token in obj.iterTokens() if isinstance(token, Follower))
             user.board.addLog(id="score", player=user, num=score, source="cash_out")
             yield from follower.player.addScore(score, type=ScoreReason.Gift)
-            follower.putBackToHand()
+            follower.putBackToHand(HomeReason.CashOut)
             break
         return 1
 class GiftChangePosition(Gift):
@@ -215,10 +216,10 @@ class GiftChangePosition(Gift):
             to_check: Segment | None = None
             if isinstance(follower.parent, Segment):
                 to_check = follower.parent
-            follower.remove()
+            follower.remove(None)
             yield from follower.putOn(to_put)
             if to_check is not None:
-                to_check.object.checkRemoveBuilderAndPig()
+                to_check.object.checkRemoveBuilderAndPig(HomeReason.ChangePosition)
             break
         return 1
         yield {}
@@ -249,10 +250,14 @@ class LandRoad(Enum):
     StreetFair = auto()
     Highway = auto()
     PeasantUprising = auto()
+    def saveID(self):
+        return {LandRoad.Highway: 0, LandRoad.Poverty: 1, LandRoad.StreetFair: 2, LandRoad.PeasantUprising: 3}[self]
 class LandMonastry(Enum):
     Wealth = auto()
     HermitMonastery = auto()
     PilgrimageRoute = auto()
+    def saveID(self):
+        return {LandMonastry.HermitMonastery: 0, LandMonastry.PilgrimageRoute: 1, LandMonastry.Wealth: 2}[self]
 
 @dataclass
 class ccsGameStat:
@@ -281,6 +286,7 @@ class ccsCityStat:
     tiles: int
     complete: bool
     score: int
+    scores: str = ''
     pennants: int = 0
     cathedral: int = 0
     mage_witch: int = 0
@@ -292,14 +298,11 @@ class ccsRoadStat:
     tiles: int
     complete: bool
     score: int
+    scores: str = ''
     inn: int = 0
     ferry: int = 0
-    mage: bool = False
-    witch: bool = False
-    street_fair: bool = False
-    highway: bool = False
-    peasant_uprising: int = 0
-    poverty: bool = False
+    mage_witch: int = 0
+    land_surveyor: int = 0
 @dataclass
 class ccsMonastryStat:
     game: int
@@ -308,11 +311,12 @@ class ccsMonastryStat:
     tiles: int
     complete: bool
     score: int
+    scores: str = ''
     abbey: bool = False
     vineyard: int = 0
     challenge_complete: bool = False
-    hermit_monastry: bool = False
-    pilgrimage_route: bool = False
+    hermit_monastry: int = 0
+    pilgrimage_route: int = 0
     wealth: bool = False
 @dataclass
 class ccsFieldStat:
@@ -320,9 +324,8 @@ class ccsFieldStat:
     players: str
     cities: int
     score: int
-    is_barn: bool = False
-    put_barn: bool = False
-    connect_barn: bool = False
+    scores: str = ''
+    barn: int = 0 # 0: no, 1: putting barn, 2: connecting barn, 3: is barn
     pig: str = ''
     pigherd: int = 0
 class HomeReason(IntEnum):
@@ -331,11 +334,15 @@ class HomeReason(IntEnum):
     Princess = 2
     Tower = 3
     Challenge = 4
-    Messenger8 = 5
-    CropCircle = 6
-    Festival = 7
-    RoadSweeper = 8
-    CashOut = 9
+    Wolf = 5
+    Shepherd = 6
+    Abbot = 7
+    Messenger8 = 8
+    CropCircle = 9
+    Festival = 10
+    RoadSweeper = 11
+    CashOut = 12
+    ChangePosition = 13
 @dataclass
 class ccsMeepleStat:
     game: int
