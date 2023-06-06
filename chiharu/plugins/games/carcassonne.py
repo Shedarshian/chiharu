@@ -723,7 +723,7 @@ class CanScore(ABC):
         to_remove: list[Token] = [token for token in self.iterTokens() if criteria(token)]
         for token in to_remove:
             token.putBackToHand(reason)
-    def checkPlayer(self) -> 'list[Player]':
+    def checkPlayer(self, complete: bool) -> 'list[Player]':
         strengths: list[int] = [0 for i in range(len(self.board.players))]
         for token in self.iterTokens():
             if isinstance(token, Follower) and isinstance(token.player, Player):
@@ -735,7 +735,7 @@ class CanScore(ABC):
                 return on_hills # type: ignore
         return players
     def checkPlayerAndScore(self, complete: bool, putBarn: bool=True) -> 'list[tuple[Player, int]]':
-        players = self.checkScore(self.checkPlayer(), complete, putBarn)
+        players = self.checkScore(self.checkPlayer(complete), complete, putBarn)
         return players
     def score(self, putBarn: bool, ifExtra: bool=True) -> TAsync[bool]:
         players = self.checkPlayerAndScore(True, putBarn=putBarn)
@@ -1226,6 +1226,14 @@ class Object(CanScore):
         return players
     def checkBarn(self):
         return self.board.checkPack(5, 'e') and self.type == Connectable.Field and any(isinstance(token, Barn) for token in self.iterTokens())
+    def checkPlayer(self, complete: bool) -> 'list[Player]':
+        if self.board.checkPack(15, "a") and complete and self.type == Connectable.City and self.board.landCity[0] == LandCity.CitizensJury:
+            players = []
+            for token in self.iterTokens():
+                if isinstance(token.player, Player) and token.player not in players:
+                    players.append(token.player)
+            return players
+        return super().checkPlayer(complete)
     def checkScore(self, players: 'list[Player]', complete: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
         match self.type:
             case Connectable.City:
@@ -1240,12 +1248,7 @@ class Object(CanScore):
                     base_pennant += 1
                 score = base * self.checkTile(self.board.checkPack(15, "a") and complete and self.board.landCity[0] == LandCity.BadNeighborhood) + base_pennant * self.checkPennant()
                 if self.board.checkPack(15, "a") and complete:
-                    if self.board.landCity[0] == LandCity.CitizensJury:
-                        players = []
-                        for token in self.iterTokens():
-                            if isinstance(token.player, Player) and token.player not in players:
-                                players.append(token.player)
-                    elif self.board.landCity[0] == LandCity.Wealth:
+                    if self.board.landCity[0] == LandCity.Wealth:
                         score += 3
                     elif self.board.landCity[0] == LandCity.Poverty:
                         score -= 3

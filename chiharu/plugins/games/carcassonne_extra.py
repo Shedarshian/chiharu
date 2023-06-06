@@ -95,48 +95,16 @@ class GiftCashOut(Gift):
     name = "兑现"
     id = 2
     def use(self, user: 'Player') -> 'TAsync[int]':
-        pass_err: Literal[0, -1, -2, -3, -4] = 0
-        for t in user.board.tiles.values():
-            followers = [token for token in t.iterAllTokens() if isinstance(token, Follower) and token.player is user and isinstance(token.parent, (Segment, BaseCloister))]
-            if len(followers) > 0:
-                break
-        else:
+        follower = yield from user.utilityChoosingFollower('cash_out', lambda t: isinstance(t.parent, (Segment, BaseCloister)))
+        if follower is None:
             return -1
-        while 1:
-            user.board.state = State.ChoosingPos
-            ret = yield {"last_err": pass_err, "special": "cash_out"}
-            if ret["pos"] not in user.board.tiles:
-                pass_err = -1
-                continue
-            tile = user.board.tiles[ret["pos"]]
-            followers = [token for token in tile.iterAllTokens() if isinstance(token, Follower) and token.player is user]
-            can_choose = [token for token in followers if isinstance(token.parent, (Segment, BaseCloister))]
-            if len(can_choose) == 0:
-                pass_err = -2
-                continue
-            if len(can_choose) == 1:
-                follower: Follower = can_choose[0]
-            else:
-                pass_err = 0
-                while 1:
-                    user.board.state = State.ChoosingOwnFollower
-                    ret2 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "cash_out"}
-                    if ret2["id"] < 0 or ret2["id"] >= len(followers):
-                        pass_err = -2
-                        continue
-                    follower = followers[ret2["id"]]
-                    if not isinstance(follower.parent, (Segment, BaseCloister)):
-                        pass_err = -3
-                        continue
-                    break
-            assert isinstance(follower.parent, (Segment, BaseCloister))
-            assert isinstance(follower.player, Player)
-            obj = follower.parent.object if isinstance(follower.parent, Segment) else follower.parent
-            score = sum(2 for token in obj.iterTokens() if isinstance(token, Follower))
-            user.board.addLog(id="score", player=user, num=score, source="cash_out")
-            yield from follower.player.addScore(score, type=ScoreReason.Gift)
-            follower.putBackToHand(HomeReason.CashOut)
-            break
+        assert isinstance(follower.parent, (Segment, BaseCloister))
+        assert isinstance(follower.player, Player)
+        obj = follower.parent.object if isinstance(follower.parent, Segment) else follower.parent
+        score = sum(2 for token in obj.iterTokens() if isinstance(token, Follower))
+        user.board.addLog(id="score", player=user, num=score, source="cash_out")
+        yield from follower.player.addScore(score, type=ScoreReason.Gift)
+        follower.putBackToHand(HomeReason.CashOut)
         return 1
 class GiftChangePosition(Gift):
     name = "切换形态"
@@ -259,6 +227,73 @@ class LandMonastry(Enum):
     def saveID(self):
         return {LandMonastry.HermitMonastery: 0, LandMonastry.PilgrimageRoute: 1, LandMonastry.Wealth: 2}[self]
 
+class Messenger:
+    __slots__ = ()
+    id = -1
+    @classmethod
+    def make(cls, id: int) -> 'Type[Messenger]':
+        return [Messenger1, Messenger2, Messenger3, Messenger4, Messenger5, Messenger6, Messenger7, Messenger8][id - 1]
+    def use(self, user: 'Player') -> 'TAsync[bool]':
+        return (yield from self.selfUse(user))
+    @abstractmethod
+    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+        return False
+        yield {}
+class Messenger1(Messenger):
+    id = 1
+    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+        score = min(token.parent.object.checkScore([user], False, False)[0][1] for token in user.allTokens if isinstance(token.parent, RoadSegment))
+        yield from user.addScore(score, ScoreReason.Messenger)
+        return False
+class Messenger2(Messenger):
+    id = 2
+    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+        score = min(token.parent.object.checkScore([user], False, False)[0][1] for token in user.allTokens if isinstance(token.parent, CitySegment))
+        yield from user.addScore(score, ScoreReason.Messenger)
+        return False
+class Messenger3(Messenger):
+    id = 3
+    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+        score = min(token.parent.checkScore([user], False, False)[0][1] for token in user.allTokens if isinstance(token.parent, Monastry))
+        yield from user.addScore(score, ScoreReason.Messenger)
+        return False
+class Messenger4(Messenger):
+    id = 4
+    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+        return True
+        yield {}
+class Messenger5(Messenger):
+    id = 5
+    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+        all_cities: list[Object] = []
+        for token in user.allTokens:
+            if isinstance(token.parent, CitySegment) and token.parent.object not in all_cities:
+                all_cities.append(token.parent.object)
+        score = sum(2 * city.checkPennant() for city in all_cities)
+        yield from user.addScore(score, ScoreReason.Messenger)
+        return False
+class Messenger6(Messenger):
+    id = 6
+    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+        score = sum(2 for token in user.allTokens if isinstance(token.parent, CitySegment) and isinstance(token, Follower))
+        yield from user.addScore(score, ScoreReason.Messenger)
+        return False
+class Messenger7(Messenger):
+    id = 7
+    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+        score = sum(2 for token in user.allTokens if isinstance(token.parent, FieldSegment) and isinstance(token, Follower))
+        yield from user.addScore(score, ScoreReason.Messenger)
+        return False
+class Messenger8(Messenger):
+    id = 8
+    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+        follower = yield from user.utilityChoosingFollower('messenger8')
+        if follower is None:
+            return False
+        if isinstance(follower.parent, Segment):
+            scores = follower.parent.object.checkPlayerAndScore(False)
+        return False
+
 @dataclass
 class ccsGameStat:
     group_id: int
@@ -380,5 +415,5 @@ class ScoreReason(IntEnum):
     Ranger = 17
 
 from .carcassonne import State, Tile, RoadSegment, Follower, Segment, BaseCloister, FieldSegment, CitySegment
-from .carcassonne import TAsync, Monastry
+from .carcassonne import TAsync, Monastry, Object
 from .carcassonne_player import Player

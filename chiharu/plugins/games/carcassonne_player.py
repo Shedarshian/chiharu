@@ -1,4 +1,4 @@
-from typing import Literal, Any, Sequence
+from typing import Literal, Any, Sequence, Callable
 import more_itertools, random
 from PIL import Image, ImageDraw, ImageFont
 
@@ -26,6 +26,8 @@ class Player:
             self.king: bool = False
         if self.board.checkPack(6, "c"):
             self.robber: bool = False
+        if self.board.checkPack(12, "c"):
+            self.score2: int = 0
         if self.board.checkPack(14, 'a'):
             self.gifts: list[Gift] = []
     @property
@@ -78,6 +80,58 @@ class Player:
         return tokens[0]
     def giftsText(self):
         return "\n".join(str(i + 1) + "." + card.name for i, card in enumerate(self.gifts))
+
+    def utilityChoosingFollower(self, special: str, criteria: 'Callable[[Token], bool] | None'=None,
+            pos_beg: tuple[int, int] | None=None) -> 'TAsync[Follower | None]':
+        pass_err: Literal[0, -1, -2, -3, -4] = 0
+        if criteria is None:
+            criteria = lambda t: True
+        if pos_beg is None:
+            for t in self.board.tiles.values():
+                followers = [token for token in t.iterAllTokens() if isinstance(token, Follower) and token.player is self and criteria(token)]
+                if len(followers) > 0:
+                    break
+            else:
+                return None
+        else:
+            t = self.board.tiles[pos_beg]
+            followers = [token for token in t.iterAllTokens() if isinstance(token, Follower) and token.player is self and criteria(token)]
+            if len(followers) == 0:
+                return None
+        while 1:
+            if pos_beg is None:
+                self.board.state = State.ChoosingPos
+                ret = yield {"last_err": pass_err, "special": special}
+                if ret["pos"] not in self.board.tiles:
+                    pass_err = -1
+                    continue
+                pos = ret["pos"]
+            else:
+                pos = pos_beg
+            tile = self.board.tiles[pos]
+            followers = [token for token in tile.iterAllTokens() if isinstance(token, Follower) and token.player is self]
+            can_choose = [token for token in followers if criteria(token)]
+            if len(can_choose) == 0:
+                pass_err = -2
+                if pos_beg is None:
+                    continue
+                else:
+                    return None
+            if len(can_choose) == 1:
+                return can_choose[0]
+            pass_err = 0
+            while 1:
+                self.board.state = State.ChoosingOwnFollower
+                ret2 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "cash_out"}
+                if ret2["id"] < 0 or ret2["id"] >= len(followers):
+                    pass_err = -2
+                    continue
+                follower = followers[ret2["id"]]
+                if follower not in can_choose:
+                    pass_err = -3
+                    continue
+                break
+            return follower
 
     def turnDrawRiver(self, isBegin: bool) -> 'TAsync[bool]':
         self.handTiles.append(self.board.drawRiverTile())
@@ -194,7 +248,7 @@ class Player:
             yield from self.turnPutGold(pos)
         if self.board.checkPack(14, "a"):
             for segment in tile.segments:
-                if isinstance(segment, (RoadSegment, CitySegment)) and len(l := segment.object.checkPlayer()) > 0 and self not in l:
+                if isinstance(segment, (RoadSegment, CitySegment)) and len(l := segment.object.checkPlayer(True)) > 0 and self not in l:
                     if gift := self.board.drawGift():
                         self.board.addLog(id="drawGift", gift=gift, player=self)
                         self.gifts.append(gift)
@@ -398,22 +452,10 @@ class Player:
         pos_fairy: tuple[int, int] = ret["pos"]
         if pos_fairy not in self.board.tiles:
             return -3
-        tile_fairy = self.board.tiles[pos_fairy]
-        followers = [token for token in tile_fairy.iterAllTokens() if isinstance(token, Follower) and token.player is self]
-        if len(followers) == 0:
+        follower = yield from self.utilityChoosingFollower('fairy', None, pos_fairy)
+        if follower is None:
             return -3
-        if len(followers) == 1:
-            follower = followers[0]
-        else:
-            pass_err = 0
-            while 1:
-                self.board.state = State.ChoosingOwnFollower
-                ret = yield {"last_err": pass_err, "last_put": pos_fairy, "special": "fairy"}
-                if ret["id"] < 0 or ret["id"] >= len(followers):
-                    pass_err = -2
-                    continue
-                follower = followers[ret["id"]]
-                break
+        tile_fairy = self.board.tiles[pos_fairy]
         self.board.fairy.moveTo(follower, tile_fairy)
         return 0
     def turnPuttingPhantom(self, pos: tuple[int, int], tile: 'Tile',
@@ -503,8 +545,10 @@ class Player:
             return -8
         abbot = abbots[0]
         assert isinstance(abbot.parent, BaseCloister)
-        score = abbot.parent.checkScore([self], False, False)[0][1]
-        yield from self.addScore(score, type=abbot.parent.scoreType())
+        scores = abbot.parent.checkPlayerAndScore(False, False)
+        l = [s for p, s in scores if p is self]
+        if len(l) != 0:
+            yield from self.addScore(l[0], type=abbot.parent.scoreType())
         abbot.putBackToHand(HomeReason.Abbot)
         return 0
     def turnMovingFestival(self, ret: dict[str, Any]) -> 'TAsync[Literal[0, -14]]':
@@ -687,7 +731,7 @@ class Player:
                         golds.append(token)
             if len(golds) == 0:
                 continue
-            for player in (l := obj.checkPlayer()):
+            for player in (l := obj.checkPlayer(True)):
                 if player not in players:
                     players[player] = []
                 for gold in golds:
@@ -811,7 +855,12 @@ class Player:
         return gingered
 
     def turnMessenger(self) -> 'TAsync[None]':
-        pass
+        if self.score % 5 != 0 and self.score2 % 5 != 0:
+            return
+        while 1:
+            pass
+        return
+        yield {}
 
     def turnMoveGingerbread(self, complete: bool) -> 'TAsync[None]':
         ginger = self.board.gingerbread
@@ -933,6 +982,10 @@ class Player:
             # move Gingerbread man
             if self.board.checkPack(14, "d") and (gingered or tile.addable == TileAddable.Gingerbread):
                 yield from self.turnMoveGingerbread(gingered)
+            
+            # messenger
+            if self.board.checkPack(12, "c"):
+                yield from self.turnMessenger()
 
             self.board.state = State.End
             if nextTurn:
