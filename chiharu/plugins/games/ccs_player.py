@@ -29,6 +29,7 @@ class Player:
             self.robber: bool = False
         if self.board.checkPack(12, "c"):
             self.score2: int = 0
+            self.begin_score = self.score, self.score2
         if self.board.checkPack(14, 'a'):
             self.gifts: list[Gift] = []
     @property
@@ -43,10 +44,19 @@ class Player:
             show_name += "..."
         return show_name
     def addScore(self, score: int, type: 'ScoreReason') -> 'TAsync[None]':
-        self.score += score
+        if self.board.checkPack(12, "c"):
+            self.board.state = State.ChoosingScoreMove
+            from .ccs_helper import RecieveChoose
+            ret = yield Send(0)
+            assert isinstance(ret, RecieveChoose)
+            if ret.chosen:
+                self.score2 += score
+            else:
+                self.score += score
+        else:
+            self.score += score
         self.score_stat[type] += score
         return
-        yield {}
     def addScoreFinal(self, score: int, type: 'ScoreReason'):
         self.score += score
         self.score_stat[type] += score
@@ -69,6 +79,8 @@ class Player:
             for player, scorec in barn.checkBarnAndScore():
                 if self is player:
                     score += scorec
+        if self.board.checkPack(12, "c"):
+            return self.score + self.score2 + score
         return self.score + score
     def findToken(self, key: str, where: 'Sequence[Token] | None'=None):
         try:
@@ -671,10 +683,10 @@ class Player:
         if shepherd is None:
             return
         self.board.state = State.ChoosingShepherd
-        from .ccs_helper import RecieveShepherd
+        from .ccs_helper import RecieveChoose
         ret = yield Send(0)
-        assert isinstance(ret, RecieveShepherd)
-        if not ret.score:
+        assert isinstance(ret, RecieveChoose)
+        if not ret.chosen:
             shepherd.grow()
         else:
             yield from shepherd.score()
@@ -699,8 +711,8 @@ class Player:
             else:
                 while 1:
                     self.board.state = State.MovingDragon
-                    from .ccs_helper import SendMovingDragon, RecieveDir
-                    ret = yield SendMovingDragon(pass_err, i)
+                    from .ccs_helper import SendInt, RecieveDir
+                    ret = yield SendInt(pass_err, i)
                     assert isinstance(ret, RecieveDir)
                     dr = ret.dir
                     if pos + dr not in self.board.tiles or not dragon.canMove(self.board.tiles[pos + dr]):
@@ -893,13 +905,22 @@ class Player:
         return gingered
 
     def turnMessenger(self) -> 'TAsync[None]':
-        if self.score % 5 != 0 and self.score2 % 5 != 0:
-            return
         while 1:
-            pass
+            if not (self.score % 5 == 0 and self.score != self.begin_score[0] or self.score2 % 5 == 0 and self.score2 != self.begin_score[1]):
+                return
+            self.begin_score = self.score, self.score2
+            mes = self.board.drawMessenger()
+            if mes is None:
+                return
+            self.board.state = State.ChoosingMessenger
+            from .ccs_helper import SendInt, RecieveChoose
+            ret = yield SendInt(0, mes.id)
+            assert isinstance(ret, RecieveChoose)
+            if ret.chosen:
+                yield from mes.use()
+            else:
+                yield from self.addScore(2, ScoreReason.Messenger)
         return
-        yield {}
-
     def turnMoveGingerbread(self, complete: bool) -> 'TAsync[None]':
         ginger = self.board.gingerbread
         for t in self.board.tiles.values():
@@ -972,6 +993,7 @@ class Player:
         ifBarn: bool = False
         isAbbey: bool = False
         gingered: bool = False
+        self.begin_score = self.score, self.score2
         # check fairy
         if self.board.checkPack(3, "c") and self.board.fairy.follower is not None and self.board.fairy.follower.player is self:
             self.board.fairy.follower.fairy_1 += 1
@@ -1038,6 +1060,8 @@ class Player:
     def image_pre(self):
         no_final_score: bool = self.board.imageArgs.get("no_final_score", False)
         score_str = str(self.score)
+        if self.board.checkPack(12, "c"):
+            score_str += "+" + str(self.score2)
         if not no_final_score:
             score_str += " (" + str(self.checkMeepleScoreCurrent()) + ")"
             if self.board.checkPack(2, 'd'):
@@ -1085,7 +1109,10 @@ class Player:
         img = Image.new("RGBA", (length, 24))
         dr = ImageDraw.Draw(img)
         dr.text((0, 12), str(self.id + 1) + "." + self.show_name, "black", self.board.font_name, "lm")
-        dr.text((100 + score_length // 2, 12), score_str, "black", self.board.font_score, "mm")
+        if self.board.checkPack(12, "c"):
+            dr.text((100 + score_length // 2, 12), score_str, "black", self.board.font_score, "mm")
+        else:
+            dr.text((100 + score_length // 2, 12), score_str, "black", self.board.font_score, "mm")
         # tokens
         self.tokens.sort(key=lambda x: x.key)
         last_key: tuple[int, int] = (-1, -2)

@@ -88,6 +88,8 @@ class State(Enum):
     AskingSynod = auto()
     ChoosingTileFigure = auto()
     ChoosingShepherd = auto()
+    ChoosingScoreMove = auto()
+    ChoosingMessenger = auto()
     Error = auto()
 @dataclass
 class Send(ABC):
@@ -151,8 +153,8 @@ class RecieveWagon(RecievePos):
 class SendAbbeyAsking(SendBegin):
     pass
 @dataclass
-class SendMovingDragon(Send):
-    moved_num: int
+class SendInt(Send):
+    num: int
 @dataclass
 class SendPosSpecial(SendPos):
     special: str = ''
@@ -166,8 +168,8 @@ class RecieveWhich(Recieve):
 class RecievePosWhich(RecievePos):
     which: str
 @dataclass
-class RecieveShepherd(Recieve):
-    score: bool
+class RecieveChoose(Recieve):
+    chosen: bool
 
 @dataclass
 class Log(ABC):

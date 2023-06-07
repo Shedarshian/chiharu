@@ -18,6 +18,7 @@ class Gift:
         return 1
         yield {}
 class GiftSynod(Gift):
+    __slots__ = ()
     name = "教会会议"
     id = 0
     def use(self, user: 'Player') -> 'TAsync[int]':
@@ -53,6 +54,7 @@ class GiftSynod(Gift):
             break
         return 1
 class GiftRoadSweeper(Gift):
+    __slots__ = ()
     name = "马路清扫者"
     id = 1
     def use(self, user: 'Player') -> 'TAsync[int]':
@@ -98,6 +100,7 @@ class GiftRoadSweeper(Gift):
             break
         return 1
 class GiftCashOut(Gift):
+    __slots__ = ()
     name = "兑现"
     id = 2
     def use(self, user: 'Player') -> 'TAsync[int]':
@@ -114,6 +117,7 @@ class GiftCashOut(Gift):
         follower.putBackToHand(HomeReason.CashOut)
         return 1
 class GiftChangePosition(Gift):
+    __slots__ = ()
     name = "切换形态"
     id = 3
     def use(self, user: 'Player') -> 'TAsync[int]':
@@ -205,6 +209,7 @@ class GiftChangePosition(Gift):
         return 1
         yield {}
 class GiftTake2(Gift):
+    __slots__ = ()
     name = "再来一张"
     id = 4
     def use(self, user: 'Player') -> 'TAsync[int]':
@@ -247,38 +252,41 @@ class Messenger:
     @classmethod
     def make(cls, id: int) -> 'Type[Messenger]':
         return [Messenger1, Messenger2, Messenger3, Messenger4, Messenger5, Messenger6, Messenger7, Messenger8][id - 1]
-    def use(self, user: 'Player') -> 'TAsync[bool]':
-        return (yield from self.selfUse(user))
     @abstractmethod
-    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+    def use(self, user: 'Player') -> 'TAsync[bool]':
         return False
         yield {}
 class Messenger1(Messenger):
+    __slots__ = ()
     id = 1
-    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+    def use(self, user: 'Player') -> 'TAsync[bool]':
         score = min(token.parent.object.checkScore([user], False, False)[0][1] for token in user.allTokens if isinstance(token.parent, RoadSegment))
         yield from user.addScore(score, ScoreReason.Messenger)
         return False
 class Messenger2(Messenger):
+    __slots__ = ()
     id = 2
-    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+    def use(self, user: 'Player') -> 'TAsync[bool]':
         score = min(token.parent.object.checkScore([user], False, False)[0][1] for token in user.allTokens if isinstance(token.parent, CitySegment))
         yield from user.addScore(score, ScoreReason.Messenger)
         return False
 class Messenger3(Messenger):
+    __slots__ = ()
     id = 3
-    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+    def use(self, user: 'Player') -> 'TAsync[bool]':
         score = min(token.parent.checkScore([user], False, False)[0][1] for token in user.allTokens if isinstance(token.parent, Monastry))
         yield from user.addScore(score, ScoreReason.Messenger)
         return False
 class Messenger4(Messenger):
+    __slots__ = ()
     id = 4
-    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+    def use(self, user: 'Player') -> 'TAsync[bool]':
         return True
         yield {}
 class Messenger5(Messenger):
+    __slots__ = ()
     id = 5
-    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+    def use(self, user: 'Player') -> 'TAsync[bool]':
         all_cities: list[Object] = []
         for token in user.allTokens:
             if isinstance(token.parent, CitySegment) and token.parent.object not in all_cities:
@@ -287,25 +295,38 @@ class Messenger5(Messenger):
         yield from user.addScore(score, ScoreReason.Messenger)
         return False
 class Messenger6(Messenger):
+    __slots__ = ()
     id = 6
-    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+    def use(self, user: 'Player') -> 'TAsync[bool]':
         score = sum(2 for token in user.allTokens if isinstance(token.parent, CitySegment) and isinstance(token, Follower))
         yield from user.addScore(score, ScoreReason.Messenger)
         return False
 class Messenger7(Messenger):
+    __slots__ = ()
     id = 7
-    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+    def use(self, user: 'Player') -> 'TAsync[bool]':
         score = sum(2 for token in user.allTokens if isinstance(token.parent, FieldSegment) and isinstance(token, Follower))
         yield from user.addScore(score, ScoreReason.Messenger)
         return False
 class Messenger8(Messenger):
+    __slots__ = ()
     id = 8
-    def selfUse(self, user: 'Player') -> 'TAsync[bool]':
+    def use(self, user: 'Player') -> 'TAsync[bool]':
         follower = yield from user.utilityChoosingFollower('messenger8')
         if follower is None:
             return False
         if isinstance(follower.parent, Segment):
             scores = follower.parent.object.checkPlayerAndScore(False)
+        elif isinstance(follower.parent, CanScore):
+            scores = follower.parent.checkPlayerAndScore(False)
+        else:
+            return False
+        lscore = [s for p, s in scores if p is user]
+        if len(lscore) != 0:
+            score = lscore[0]
+            yield from user.addScore(score, ScoreReason.Messenger)
+            yield from follower.scoreExtra()
+        follower.putBackToHand(HomeReason.Messenger8)
         return False
 
 @dataclass
@@ -429,6 +450,6 @@ class ScoreReason(IntEnum):
     Ranger = 17
 
 from .ccs import State, Tile, RoadSegment, Follower, Segment, BaseCloister, FieldSegment, CitySegment
-from .ccs import TAsync, Monastry, Object
+from .ccs import TAsync, Monastry, Object, CanScore
 from .ccs_player import Player
 from .ccs_helper import RecievePos, RecieveId, Send

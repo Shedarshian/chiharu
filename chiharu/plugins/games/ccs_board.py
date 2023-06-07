@@ -163,6 +163,10 @@ class Board:
             self.giftDeck = [Gift.make(i)() for i in range(5) for _ in range(5)]
             random.shuffle(self.giftDeck)
             self.giftDiscard: list[Gift] = []
+        if self.checkPack(12, "c"):
+            self.messengerDeck = [Messenger.make(i)() for i in range(1, 9)]
+            random.shuffle(self.messengerDeck)
+            self.messengerDiscard: list[Messenger] = []
         if self.checkPack(14, "b"):
             self.ranger = [token for token in self.tokens if isinstance(token, Ranger)][0]
         if self.checkPack(14, "d"):
@@ -234,6 +238,15 @@ class Board:
             self.giftDeck = self.giftDiscard
             random.shuffle(self.giftDeck)
         return self.giftDeck.pop(0)
+    def drawMessenger(self):
+        if not self.checkPack(12, 'c'):
+            return None
+        if len(self.messengerDeck) == 0:
+            if len(self.messengerDiscard) == 0:
+                return None
+            self.messengerDeck = self.messengerDiscard
+            random.shuffle(self.messengerDeck)
+        return self.messengerDeck.pop(0)
     def updateLand(self):
         self.landCityDiscard.append(self.landCity.pop(0))
         if len(self.landCity) == 0:
@@ -265,6 +278,10 @@ class Board:
         if self.current_player_id >= len(self.players):
             self.current_player_id -= len(self.players)
     def endGameScore(self):
+        if self.checkPack(12, "c"):
+            for player in self.players:
+                player.score += player.score2
+                player.score2 = 0
         for tile in self.tiles.values():
             for seg in tile.segments:
                 if len(seg.tokens) != 0 or len(seg.object.tokens) != 0:
@@ -833,14 +850,14 @@ class Board:
                         await send([self.saveImg()])
                     await send((f'玩家{self.current_player.long_name}' if ret.begin or self.state == State.FinalAbbeyAsking else "") + ("开始行动，选择" if ret.begin else "选择最后" if self.state == State.FinalAbbeyAsking else "请选择") + "是否放置僧院板块，回复“不放”跳过。")
             case State.MovingDragon:
-                from .ccs_helper import SendMovingDragon
-                assert isinstance(ret, SendMovingDragon)
+                from .ccs_helper import SendInt
+                assert isinstance(ret, SendInt)
                 if ret.last_err == -1:
                     await send("无法移动！")
                 else:
                     self.setImageArgs()
                     await send([self.saveImg()])
-                    await send(f'玩家{self.current_player.long_name}第{ret.moved_num + 1}次移动龙，请输入URDL移动。')
+                    await send(f'玩家{self.current_player.long_name}第{ret.num + 1}次移动龙，请输入URDL移动。')
             case State.ChoosingOwnFollower:
                 from .ccs_helper import SendPosSpecial
                 assert isinstance(ret, SendPosSpecial)
@@ -933,6 +950,17 @@ class Board:
                         await send('请选择板块上要移除的物体。')
                     else:
                         await send("请选择板块上的物体（通用）。")
+            case State.ChoosingShepherd:
+                await send("请选择扩张或是计分你的牧羊人。")
+            case State.ChoosingScoreMove:
+                from .ccs_helper import SendInt
+                assert isinstance(ret, SendInt)
+                await send(f"你增加了{ret.num}分，请选择记在第1个分还是第2个分上。")
+            case State.ChoosingMessenger:
+                from .ccs_helper import SendInt
+                assert isinstance(ret, SendInt)
+                await send(f"你抽到了圣旨{ret.num}分，请选择使用还是不用（换2分）。")
+
     async def parse_command(self, command: str, send: Callable[[Any], Awaitable], delete_func: Callable[[], Awaitable]):
         match self.state:
             case State.PuttingTile:
@@ -1024,18 +1052,30 @@ class Board:
                     pos = self.tileNameToPos(xs, ys)
                     await self.advance(send, delete_func, RecievePos(pos))
             case State.ChoosingShepherd:
-                from .ccs_helper import RecieveShepherd
+                from .ccs_helper import RecieveChoose
                 if command == "扩张":
-                    await self.advance(send, delete_func, RecieveShepherd(False))
+                    await self.advance(send, delete_func, RecieveChoose(False))
                 elif command == "计分":
-                    await self.advance(send, delete_func, RecieveShepherd(True))
+                    await self.advance(send, delete_func, RecieveChoose(True))
+            case State.ChoosingScoreMove:
+                from .ccs_helper import RecieveChoose
+                if command == "1":
+                    await self.advance(send, delete_func, RecieveChoose(False))
+                elif command == "2":
+                    await self.advance(send, delete_func, RecieveChoose(True))
+            case State.ChoosingMessenger:
+                from .ccs_helper import RecieveChoose
+                if command == "不用":
+                    await self.advance(send, delete_func, RecieveChoose(False))
+                elif command == "使用":
+                    await self.advance(send, delete_func, RecieveChoose(True))
             case _:
                 pass
 
 
 from .ccs import Tile, Segment, Token, Gold, Dragon, Fairy, Robber, Ranger, Gingerbread, CanScore
 from .ccs import Cloister, Shrine, BaseCloister, Object, Barn, Follower, Tower, TAsync, King
-from .ccs_extra import Gift, LandCity, LandRoad, LandMonastry, ScoreReason, HomeReason
+from .ccs_extra import Gift, LandCity, LandRoad, LandMonastry, ScoreReason, HomeReason, Messenger
 from .ccs_extra import ccsCityStat, ccsGameStat, ccsRoadStat, ccsFieldStat, ccsMonastryStat, ccsMeepleStat, ccsTowerStat
 from .ccs_player import Player
 from .ccs_helper import RecieveId, RecieveReturn, RecievePos
