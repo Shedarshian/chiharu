@@ -1154,9 +1154,11 @@ class Player:
                 dr.text((166 + i * 96, 48), "R", "black", font, "lm")
         return img
 
-from .ccs import Board, Tile, Segment, Object, Feature, Token, Follower, FieldSegment
-from .ccs import State, Connectable, Dir, CanScore, TAsync, CantPutError
+from .ccs import Tile, Segment, Object, Feature, Token, Follower, FieldSegment
+from .ccs import State, Connectable, Dir, CanScore, TAsync
 from .ccs import Barn, Builder, Pig, TileAddable, CitySegment, RoadSegment, AbbeyData, Wagon, Monastry
 from .ccs import Phantom, Tower, Abbot, BaseCloister, Flier, BigFollower, Addable, Gold, Shepherd
 from .ccs_extra import Gift, ScoreReason, HomeReason
-from .ccs_helper import RecieveBuyPrisoner, RecievePos, RecieveReturn, RecievePuttingFollower, RecieveId, Send
+from .ccs_helper import RecieveBuyPrisoner, RecievePos, RecieveReturn, RecievePuttingFollower, RecieveId
+from .ccs_helper import Send, CantPutError
+from .ccs_board import Board

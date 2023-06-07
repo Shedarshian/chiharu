@@ -1,14 +1,12 @@
 from typing import Literal, Any, Generator, Type, TypeVar, Iterable, Callable, Sequence, Awaitable
 import random, itertools, more_itertools, json
-from enum import Enum, auto
-from collections import Counter
 from abc import ABC, abstractmethod
-from PIL import Image, ImageDraw, ImageFont, ImageEnhance
-from .ccs_tile import Dir, open_img, readTileData, readPackData, TileData, OneSideSegmentPic
+from PIL import Image, ImageDraw, ImageFont
+from .ccs_tile import Dir, TileData, OneSideSegmentPic
 from .ccs_tile import CitySegmentData, RoadSegmentData, RiverSegmentData, FieldSegmentData, FeatureSegmentData, AddableSegmentData
 from .ccs_tile import AreaSegmentPic, LineSegmentPic, SegmentData
-from .ccs_helper import CantPutError, NoDeckEnd, Connectable, TileAddable, Addable, Shed
-from .ccs_helper import all_extensions, findAllMax, turn, dist2, State, Log, Send, Recieve
+from .ccs_helper import Connectable, TileAddable, Addable, Shed
+from .ccs_helper import findAllMax, turn, dist2, State, Log, Send, Recieve
 
 T = TypeVar('T')
 TAsync = Generator[Send, Recieve, T]
@@ -888,7 +886,6 @@ class Token(metaclass=TokenMeta):
         yield from self.selfPutOn(seg)
         yield from seg.putOnBy(self)
         return
-        yield {}
     def selfPutOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
         seg.tokens.append(self)
         self.parent = seg
@@ -1204,7 +1201,7 @@ Token.all_name["follower"] = BaseFollower
 AbbeyData = TileData("abbey", 0, "FFFF", [])
 AbbeyData.segments.append(FeatureSegmentData("Cloister", (32, 32), [], AbbeyData))
 
-from .ccs_extra import Gift, LandCity, LandRoad, LandMonastry, ScoreReason, HomeReason
+from .ccs_extra import LandCity, LandRoad, LandMonastry, ScoreReason, HomeReason
 from .ccs_extra import ccsCityStat, ccsGameStat, ccsRoadStat, ccsFieldStat, ccsMonastryStat, ccsMeepleStat, ccsTowerStat
 from .ccs_player import Player
 from .ccs_helper import RecieveId

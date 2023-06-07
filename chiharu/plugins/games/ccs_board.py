@@ -1,9 +1,9 @@
 from typing import Literal, Any, Type, Callable, Awaitable
-import random, more_itertools, json
+import random, more_itertools, json, re
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 from .ccs_tile import Dir, open_img, readTileData, readPackData
-from .ccs_helper import CantPutError, NoDeckEnd, TileAddable, Addable, Shed
-from .ccs_helper import all_extensions, findAllMax, turn, dist2, State, Log, Send, Recieve
+from .ccs_helper import CantPutError, NoDeckEnd, TileAddable
+from .ccs_helper import findAllMax, State, Log, Send, Recieve
 
 class Board:
     def __init__(self, packs_options: dict[int, str], player_names: list[str],
@@ -594,7 +594,7 @@ class Board:
         self.remainTileImages().save(config.img(name))
         return config.cq.img(name)
 
-    def endGameAskAbbey(self) -> TAsync[None]:
+    def endGameAskAbbey(self) -> 'TAsync[None]':
         if not self.checkPack(5, "b") or not self.checkHole():
             return
         players = [player for player in self.players if player.hasAbbey]
@@ -606,7 +606,7 @@ class Board:
             if isAbbey:
                 yield from player.turnScoring(player.handTiles[0], pos, False, False)
                 player.handTiles.pop(0)
-    def process(self) -> TAsync[bool]:
+    def process(self) -> 'TAsync[bool]':
         try:
             while 1:
                 yield from self.current_player.turn()
@@ -933,9 +933,109 @@ class Board:
                         await send('请选择板块上要移除的物体。')
                     else:
                         await send("请选择板块上的物体（通用）。")
+    async def parse_command(self, command: str, send: Callable[[Any], Awaitable], delete_func: Callable[[], Awaitable]):
+        match self.state:
+            case State.PuttingTile:
+                if match := re.match(r"\s*([a-z])?\s*([A-Z]+)([0-9]+)\s*([URDL])$", command):
+                    tilenum = ord(match.group(1)) - ord('a') if match.group(1) else -1
+                    xs = match.group(2); ys = match.group(3); orients = match.group(4)
+                    pos = self.tileNameToPos(xs, ys)
+                    orient = {'U': Dir.UP, 'R': Dir.LEFT, 'D': Dir.DOWN, 'L': Dir.RIGHT}[orients]
+                    from .ccs_helper import RecievePuttingTile
+                    await self.advance(send, delete_func, RecievePuttingTile(pos, orient, tilenum))
+                elif match := re.match(r"\s*赎回玩家(\d+)(.*)?$", command):
+                    player_id = int(match.group(1)) - 1
+                    name = match.group(2)
+                    from .ccs_helper import RecieveBuyPrisoner
+                    await self.advance(send, delete_func, RecieveBuyPrisoner(player_id, name or "follower"))
+                elif match := re.match(r"\s*礼物([0-9]+)$", command):
+                    ns = match.group(1)
+                    await self.advance(send, delete_func, RecieveId(int(ns) - 1))
+            case State.ChoosingOwnFollower | State.ChoosingSegment | State.ChoosingTileFigure:
+                if match := re.match(r"\s*([a-z])$", command):
+                    n = ord(match.group(1)) - ord('a')
+                    await self.advance(send, delete_func, RecieveId(n))
+            case State.PrincessAsking | State.CaptureTower:
+                if command in ("不放", "返回"):
+                    await self.advance(send, delete_func, RecieveReturn())
+                elif match := re.match(r"\s*([a-z]+)$", command):
+                    xs = match.group(1)
+                    n = (ord(xs[0]) - ord('a') + 1) * 26 + ord(xs[1]) - ord('a') if len(xs) == 2 else ord(xs) - ord('a')
+                    await self.advance(send, delete_func, RecieveId(n))
+            case State.PuttingFollower:
+                from .ccs_helper import RecievePuttingFollower
+                if command in ("不放", "返回"):
+                    await self.advance(send, delete_func, RecieveReturn())
+                phantom: int = -1
+                if self.checkPack(13, "k") and (match0 := re.match(r"(.*\S)\s*([a-z])\s*(幽灵|phantom)$", command)):
+                    n = ord(match0.group(2)) - ord('a')
+                    command = match0.group(1).strip()
+                    phantom = n
+                elif self.checkPack(13, "k") and (match0 := re.match(r"(.*\S)\s*放(幽灵|phantom)$", command)):
+                    command = match0.group(1).strip()
+                    phantom = -2
+                if match := re.match(r"\s*([a-z])\s*(.*)?$", command):
+                    n = ord(match.group(1)) - ord('a')
+                    name = match.group(2)
+                    await self.advance(send, delete_func, RecievePuttingFollower(n, name or "follower", phantom))
+                elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(仙子|fairy|传送门|portal|修道院长|abbot|护林员|ranger|节日|festival)$", command):
+                    xs = match.group(1); ys = match.group(2)
+                    pos = self.tileNameToPos(xs, ys)
+                    special = {"仙子": "fairy", "传送门": "portal", "修道院长": "abbot", "护林员": "ranger", "节日": "festival"}.get(match.group(3), match.group(3))
+                    await self.advance(send, delete_func, RecievePuttingFollower(-1, "follower", phantom, special, pos))
+                elif self.checkPack(4, "b") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(高塔|tower)\s*(.*)?$", command)):
+                    xs = match.group(1); ys = match.group(2); which = match.group(4)
+                    pos = self.tileNameToPos(xs, ys)
+                    await self.advance(send, delete_func, RecievePuttingFollower(-1, which, phantom, "tower", pos))
+            case State.AskingSynod:
+                if match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(.*)?$", command):
+                    xs = match.group(1); ys = match.group(2)
+                    name = match.group(3)
+                    pos = self.tileNameToPos(xs, ys)
+                    from .ccs_helper import RecievePosWhich
+                    await self.advance(send, delete_func, RecievePosWhich(pos, name or "follower"))
+            case State.ExchangingPrisoner:
+                if match := re.match(r"\s*(.*)$", command):
+                    from .ccs_helper import RecieveWhich
+                    await self.advance(send, delete_func, RecieveWhich(match.group(1)))
+            case State.MovingDragon:
+                if command in "URDL":
+                    dr = {"U": Dir.UP, "R": Dir.RIGHT, "D": Dir.DOWN, "L": Dir.LEFT}[command]
+                    from .ccs_helper import RecieveDir
+                    await self.advance(send, delete_func, RecieveDir(dr))
+            case State.WagonAsking:
+                if command == "不放":
+                    await self.advance(send, delete_func, RecieveReturn())
+                elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*([a-z])$", command):
+                    xs = match.group(1); ys = match.group(2); n = ord(match.group(3)) - ord('a')
+                    pos = self.tileNameToPos(xs, ys)
+                    from .ccs_helper import RecieveWagon
+                    await self.advance(send, delete_func, RecieveWagon(pos, n))
+            case State.AbbeyAsking | State.FinalAbbeyAsking:
+                if command == "不放":
+                    await self.advance(send, delete_func, RecieveReturn())
+                elif match := re.match(r"\s*([A-Z]+)([0-9]+)$", command):
+                    xs = match.group(1); ys = match.group(2)
+                    pos = self.tileNameToPos(xs, ys)
+                    await self.advance(send, delete_func, RecievePos(pos))
+            case State.ChoosingPos:
+                if match := re.match(r"\s*([A-Z]+)([0-9]+)$", command):
+                    xs = match.group(1); ys = match.group(2)
+                    pos = self.tileNameToPos(xs, ys)
+                    await self.advance(send, delete_func, RecievePos(pos))
+            case State.ChoosingShepherd:
+                from .ccs_helper import RecieveShepherd
+                if command == "扩张":
+                    await self.advance(send, delete_func, RecieveShepherd(False))
+                elif command == "计分":
+                    await self.advance(send, delete_func, RecieveShepherd(True))
+            case _:
+                pass
+
 
 from .ccs import Tile, Segment, Token, Gold, Dragon, Fairy, Robber, Ranger, Gingerbread, CanScore
 from .ccs import Cloister, Shrine, BaseCloister, Object, Barn, Follower, Tower, TAsync, King
 from .ccs_extra import Gift, LandCity, LandRoad, LandMonastry, ScoreReason, HomeReason
 from .ccs_extra import ccsCityStat, ccsGameStat, ccsRoadStat, ccsFieldStat, ccsMonastryStat, ccsMeepleStat, ccsTowerStat
 from .ccs_player import Player
+from .ccs_helper import RecieveId, RecieveReturn, RecievePos
