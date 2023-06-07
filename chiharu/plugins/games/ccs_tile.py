@@ -5,11 +5,11 @@ from .carcassonne_asset.readTile import *
 
 def open_img(name: str):
     from pathlib import Path
-    return Image.open(Path(__file__).parent / "carcassonne_asset" / (name + ".png")).convert("RGBA")
+    return Image.open(Path(__file__).parent / "ccs_asset" / (name + ".png")).convert("RGBA")
 def readTileData(packData: dict[int, str]):
     from pathlib import Path
     tiles: list[TileData] = []
-    with open(Path(__file__).parent / "carcassonne_asset" / "tiledata.txt", encoding="utf-8") as f:
+    with open(Path(__file__).parent / "ccs_asset" / "tiledata.txt", encoding="utf-8") as f:
         data = parser.parse(f.read())
         for name, tilets in data:
             img = open_img(name)
@@ -55,7 +55,7 @@ def readTileData(packData: dict[int, str]):
 def readPackData():
     from pathlib import Path
     import json
-    with open(Path(__file__).parent / "carcassonne.json", encoding="utf-8") as f:
+    with open(Path(__file__).parent / "ccs.json", encoding="utf-8") as f:
         return json.load(f)
 
 class TileData:

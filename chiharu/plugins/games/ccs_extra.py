@@ -30,16 +30,18 @@ class GiftSynod(Gift):
             return -1
         while 1:
             user.board.state = State.AskingSynod
-            ret = yield {"last_err": pass_err}
-            if ret["pos"] not in user.board.tiles:
+            from .ccs_helper import RecievePosWhich
+            ret = yield Send(pass_err)
+            assert isinstance(ret, RecievePosWhich)
+            if ret.pos not in user.board.tiles:
                 pass_err = -1
                 continue
-            tile: Tile = user.board.tiles[ret["pos"]]
+            tile: Tile = user.board.tiles[ret.pos]
             cloister = more_itertools.only(feature for feature in tile.features if isinstance(feature, Monastry))
             if cloister is None:
                 pass_err = -2
                 continue
-            token = user.findToken(ret.get("which", "follower"))
+            token = user.findToken(ret.which)
             if token is None:
                 pass_err = -3
                 continue
@@ -63,11 +65,13 @@ class GiftRoadSweeper(Gift):
             return -1
         while 1:
             user.board.state = State.ChoosingPos
-            ret = yield {"last_err": pass_err, "special": "road_sweeper"}
-            if ret["pos"] not in user.board.tiles:
+            from .ccs_helper import SendChoosingPos
+            ret = yield SendChoosingPos(pass_err, "road_sweeper")
+            assert isinstance(ret, RecievePos)
+            if ret.pos not in user.board.tiles:
                 pass_err = -1
                 continue
-            tile = user.board.tiles[ret["pos"]]
+            tile = user.board.tiles[ret.pos]
             roads = [segment for segment in tile.segments if isinstance(segment, RoadSegment) and not segment.closed()]
             if len(roads) == 0:
                 pass_err = -2
@@ -77,8 +81,10 @@ class GiftRoadSweeper(Gift):
                 pass_err = 0
                 while 1:
                     user.board.state = State.ChoosingSegment
-                    ret2 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "road_sweeper"}
-                    s = tile.getSeg(ret2["id"])
+                    from .ccs_helper import SendPosSpecial
+                    ret2 = yield SendPosSpecial(pass_err, ret.pos, "road_sweeper")
+                    assert isinstance(ret2, RecieveId)
+                    s = tile.getSeg(ret2.id)
                     if not isinstance(s, RoadSegment):
                         pass_err = -1
                         continue
@@ -102,7 +108,8 @@ class GiftCashOut(Gift):
         assert isinstance(follower.player, Player)
         obj = follower.parent.object if isinstance(follower.parent, Segment) else follower.parent
         score = sum(2 for token in obj.iterTokens() if isinstance(token, Follower))
-        user.board.addLog(id="score", player=user, num=score, source="cash_out")
+        from .ccs_helper import LogScore
+        user.board.addLog(LogScore(user.long_name, "cash_out", score))
         yield from follower.player.addScore(score, type=ScoreReason.Gift)
         follower.putBackToHand(HomeReason.CashOut)
         return 1
@@ -127,11 +134,13 @@ class GiftChangePosition(Gift):
             return -1
         while 1:
             user.board.state = State.ChoosingPos
-            ret = yield {"last_err": pass_err, "special": "change_position"}
-            if ret["pos"] not in user.board.tiles:
+            from .ccs_helper import SendChoosingPos
+            ret = yield SendChoosingPos(pass_err, "change_position")
+            assert isinstance(ret, RecievePos)
+            if ret.pos not in user.board.tiles:
                 pass_err = -1
                 continue
-            tile = user.board.tiles[ret["pos"]]
+            tile = user.board.tiles[ret.pos]
             followers = [token for token in tile.iterAllTokens() if isinstance(token, Follower) and token.player is user]
             can_choose: list[tuple[Follower, Sequence[Segment | Monastry]]] = []
             for token in followers:
@@ -151,11 +160,13 @@ class GiftChangePosition(Gift):
                 pass_err = 0
                 while 1:
                     user.board.state = State.ChoosingOwnFollower
-                    ret2 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "change_position"}
-                    if ret2["id"] < 0 or ret2["id"] >= len(followers):
+                    from .ccs_helper import SendPosSpecial
+                    ret2 = yield SendPosSpecial(pass_err, ret.pos, "change_position")
+                    assert isinstance(ret2, RecieveId)
+                    if ret2.id < 0 or ret2.id >= len(followers):
                         pass_err = -2
                         continue
-                    follower = followers[ret2["id"]]
+                    follower = followers[ret2.id]
                     for f, l in can_choose:
                         if f is follower:
                             put_list = l
@@ -170,8 +181,10 @@ class GiftChangePosition(Gift):
                 pass_err = 0
                 while 1:
                     user.board.state = State.ChoosingSegment
-                    ret3 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "change_position"}
-                    p = tile.getSeg(ret3["id"])
+                    from .ccs_helper import SendPosSpecial
+                    ret3 = yield SendPosSpecial(pass_err, ret.pos, "change_position")
+                    assert isinstance(ret3, RecieveId)
+                    p = tile.getSeg(ret3.id)
                     if p is None:
                         pass_err = -1
                         continue
@@ -199,7 +212,8 @@ class GiftTake2(Gift):
             return -1
         tile = user.board.drawTileCanPut()
         if tile is None:
-            user.board.addLog(id="take2NoTile")
+            from .ccs_helper import LogTake2NoTile
+            user.board.addLog(LogTake2NoTile())
         else:
             user.handTiles.append(tile)
         return 1
@@ -414,6 +428,7 @@ class ScoreReason(IntEnum):
     Gingerbread = 16
     Ranger = 17
 
-from .carcassonne import State, Tile, RoadSegment, Follower, Segment, BaseCloister, FieldSegment, CitySegment
-from .carcassonne import TAsync, Monastry, Object
-from .carcassonne_player import Player
+from .ccs import State, Tile, RoadSegment, Follower, Segment, BaseCloister, FieldSegment, CitySegment
+from .ccs import TAsync, Monastry, Object
+from .ccs_player import Player
+from .ccs_helper import RecievePos, RecieveId, Send

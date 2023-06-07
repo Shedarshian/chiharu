@@ -6,6 +6,7 @@ class Player:
     def __init__(self, board: 'Board', id: int, name: str) -> None:
         self.board = board
         self.id = id
+        self.long_name = name
         self.name = name[:20]
         self.tokens: list[Token] = []
         self.allTokens: list[Token] = []
@@ -101,11 +102,13 @@ class Player:
         while 1:
             if pos_beg is None:
                 self.board.state = State.ChoosingPos
-                ret = yield {"last_err": pass_err, "special": special}
-                if ret["pos"] not in self.board.tiles:
+                from .ccs_helper import SendChoosingPos
+                ret = yield SendChoosingPos(pass_err, special)
+                assert isinstance(ret, RecievePos)
+                if ret.pos not in self.board.tiles:
                     pass_err = -1
                     continue
-                pos = ret["pos"]
+                pos = ret.pos
             else:
                 pos = pos_beg
             tile = self.board.tiles[pos]
@@ -122,11 +125,13 @@ class Player:
             pass_err = 0
             while 1:
                 self.board.state = State.ChoosingOwnFollower
-                ret2 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "cash_out"}
-                if ret2["id"] < 0 or ret2["id"] >= len(followers):
+                from .ccs_helper import SendPosSpecial
+                ret2 = yield SendPosSpecial(pass_err, pos, special)
+                assert isinstance(ret2, RecieveId)
+                if ret2.id < 0 or ret2.id >= len(followers):
                     pass_err = -2
                     continue
-                follower = followers[ret2["id"]]
+                follower = followers[ret2.id]
                 if follower not in can_choose:
                     pass_err = -3
                     continue
@@ -145,13 +150,15 @@ class Player:
             while 1:
                 pass_err: Literal[0, -1, -8] = 0
                 self.board.state = State.FinalAbbeyAsking if endGame else State.AbbeyAsking
-                ret = yield {"second_turn": turn == 1, "last_err": pass_err, "begin": isBegin}
+                from .ccs_helper import SendAbbeyAsking
+                ret = yield SendAbbeyAsking(pass_err, isBegin, turn == 1)
                 isBegin = False
-                if not ret.get("put"):
+                if isinstance(ret, RecievePos):
                     break
+                assert isinstance(ret, RecievePos)
                 isAbbey = True
                 self.hasAbbey = False
-                pos = ret["pos"]
+                pos = ret.pos
                 tile = Tile(self.board, AbbeyData, True)
                 r = self.board.canPutTile(tile, pos, Dir.UP)
                 if r < 0:
@@ -177,34 +184,36 @@ class Player:
         gifted: bool = False
         while 1:
             self.board.state = State.PuttingTile
-            ret = yield {"second_turn": turn == 1, "last_err": pass_err, "begin": isBegin, "gifted": gifted}
+            from .ccs_helper import SendPuttingTile, RecievePuttingTile, RecieveId, RecieveBuyPrisoner
+            ret = yield SendPuttingTile(pass_err, isBegin, turn == 1, gifted)
+            assert isinstance(ret, (RecievePuttingTile, RecieveBuyPrisoner, RecieveId))
             pass_err = 0
             isBegin = False
-            if self.board.checkPack(4, "b") and turn == 0 and not prisonered and ret.get("special") == "prisoner":
+            if self.board.checkPack(4, "b") and turn == 0 and not prisonered and isinstance(ret, RecieveBuyPrisoner):
                 r = yield from self.turnExchangePrisoner(ret)
                 if r < 0:
                     pass_err = r
                     continue
                 prisonered = True
                 continue
-            if self.board.checkPack(14, "a") and not gifted and ret.get("special") == "gift":
-                if ret["id"] >= len(self.gifts):
+            if self.board.checkPack(14, "a") and not gifted and isinstance(ret, RecieveId):
+                if ret.id >= len(self.gifts):
                     pass_err = -11
                     continue
-                gift: Gift = self.gifts.pop(ret["id"])
-                self.board.addLog(id="useGift", gift=gift, player=self)
+                gift: Gift = self.gifts.pop(ret.id)
+                from .ccs_helper import LogUseGift
+                self.board.addLog(LogUseGift(gift.name, self.giftsText()))
                 ret2 = yield from gift.use(self)
                 self.board.giftDiscard.append(gift)
                 gifted = True
                 continue
-            if ret["tilenum"] == -1 and len(self.handTiles) != 1:
+            assert isinstance(ret, RecievePuttingTile)
+            if ret.tilenum == -1 and len(self.handTiles) != 1:
                 pass_err = -12
                 continue
-            pos: tuple[int, int] = ret["pos"]
-            orient: Dir = ret["orient"]
-            tilenum: int = ret["tilenum"]
-            tile: Tile = self.handTiles[0]
-            tile = self.handTiles[tilenum]
+            pos = ret.pos
+            orient = ret.orient
+            tile = self.handTiles[ret.tilenum]
             pass_err = self.board.canPutTile(tile, pos, orient)
             if pass_err < 0:
                 continue
@@ -250,7 +259,8 @@ class Player:
             for segment in tile.segments:
                 if isinstance(segment, (RoadSegment, CitySegment)) and len(l := segment.object.checkPlayer(True)) > 0 and self not in l:
                     if gift := self.board.drawGift():
-                        self.board.addLog(id="drawGift", gift=gift, player=self)
+                        from .ccs_helper import LogDrawGift
+                        self.board.addLog(LogDrawGift(gift.name, self.giftsText()))
                         self.gifts.append(gift)
                     break
         if len(self.handTiles) > 1:
@@ -260,14 +270,14 @@ class Player:
             self.handTiles = [tile]
             random.shuffle(self.board.deck)
         return isBegin, pos, princessed, rangered
-    def turnExchangePrisoner(self, ret: dict[str, Any]) -> 'TAsync[Literal[0, -4, -5]]':
+    def turnExchangePrisoner(self, ret: 'RecieveBuyPrisoner') -> 'TAsync[Literal[0, -4, -5]]':
         if self.score < 3:
             return -5
-        player_id: int = ret["player_id"]
+        player_id: int = ret.player_id
         if player_id < 0 or player_id >= len(self.board.players):
             return -4
         player: 'Player' = self.board.players[player_id]
-        token = player.findToken(ret.get("which", "follower"))
+        token = player.findToken(ret.follower)
         if token is None:
             return -4
         yield from self.addScore(-3, ScoreReason.PayPrisoner)
@@ -282,16 +292,17 @@ class Player:
         pass_err = 0
         while 1:
             self.board.state = State.PrincessAsking
-            ret = yield {"object": seg.object, "last_err": pass_err}
-            id: int = ret["id"]
+            from .ccs_helper import SendPrincess
+            ret = yield SendPrincess(pass_err, seg.object)
+            if isinstance(ret, RecieveReturn):
+                break
+            assert isinstance(ret, RecieveId)
+            id: int = ret.id
             if id >= 0 and id < len(followers):
                 followers[id].putBackToHand(HomeReason.Princess)
                 seg.object.checkRemoveBuilderAndPig(HomeReason.Princess)
                 return True
-            elif id != -1:
-                pass_err = -1
-                continue
-            break
+            pass_err = -1
         return False
     def turnPutGold(self, pos: tuple[int, int]) -> 'TAsync[None]':
         tile = self.board.tiles[pos]
@@ -305,14 +316,16 @@ class Player:
             pass_err: Literal[0, -1, -2] = 0
             while 1:
                 self.board.state = State.ChoosingPos
-                ret = yield {"last_err": pass_err, "special": "gold"}
-                if ret["pos"] not in self.board.tiles:
+                from .ccs_helper import SendChoosingPos
+                ret = yield SendChoosingPos(pass_err, 'gold')
+                assert isinstance(ret, RecievePos)
+                if ret.pos not in self.board.tiles:
                     pass_err = -1
                     continue
-                if ret["pos"] not in adj:
+                if ret.pos not in adj:
                     pass_err = -2
                     continue
-                tile2 = self.board.tiles[ret["pos"]]
+                tile2 = self.board.tiles[ret.pos]
                 yield from golds[1].putOn(tile2)
                 break
         self.board.tokens.remove(golds[1])
@@ -338,21 +351,31 @@ class Player:
         ph_put: int = -1
         while 1:
             self.board.state = State.PuttingFollower
-            ret = yield {"last_err": pass_err, "last_put": pos_put, "if_portal": if_portal, "rangered": rangered}
-            if self.board.checkPack(13, "k") and not if_portal and (ph_put := ret.get("phantom", -1)) != -1:
+            from .ccs_helper import SendPuttingFollower
+            ret = yield SendPuttingFollower(pass_err, pos_put, if_portal, rangered)
+            assert isinstance(ret, (RecieveReturn, RecievePuttingFollower))
+            if isinstance(ret, RecieveReturn):
+                if if_portal:
+                    pos_put = pos
+                    tile_put = tile
+                    if_portal = False
+                    pass_err = 0
+                    continue
+                break
+            if self.board.checkPack(13, "k") and not if_portal and (ph_put := ret.phantom) != -1:
                 r = yield from self.turnCheckPhantom(ret, ph_put, tile_put, if_portal)
                 if pass_err < 0:
                     continue
-            if self.board.checkPack(3, "c") and ret.get("special") == "fairy":
+            if self.board.checkPack(3, "c") and ret.special == "fairy":
                 pass_err = yield from self.turnMovingFairy(ret)
                 if pass_err < 0:
                     continue
                 break
-            if self.board.checkPack(3, "d") and not if_portal and ret.get("special") == "portal":
+            if self.board.checkPack(3, "d") and not if_portal and ret.special == "portal":
                 if ph_put >= 0:
                     pass_err = -12
                     continue
-                pos_portal: tuple[int, int] = ret["pos"]
+                pos_portal: tuple[int, int] = ret.pos
                 if pos_portal not in self.board.tiles or tile.addable != TileAddable.Portal:
                     pass_err = -4
                     continue
@@ -361,43 +384,35 @@ class Player:
                 if_portal = True
                 pass_err = 0
                 continue
-            if if_portal and ret["id"] == -1:
-                pos_put = pos
-                tile_put = tile
-                if_portal = False
-                pass_err = 0
-                continue
-            if self.board.checkPack(4, "b") and ret.get("special") == "tower":
+            if self.board.checkPack(4, "b") and ret.special == "tower":
                 if ph_put >= 0:
                     pass_err = -12
                     continue
                 yield from self.turnCheckTower(ret)
                 break
-            if self.board.checkPack(12, "b") and ret.get("special") == "abbot":
+            if self.board.checkPack(12, "b") and ret.special == "abbot":
                 pass_err = yield from self.turnMovingAbbot(ret)
                 if pass_err < 0:
                     continue
                 break
-            if self.board.checkPack(13, "j") and tile.addable == TileAddable.Festival and ret.get("special") == "festival":
+            if self.board.checkPack(13, "j") and tile.addable == TileAddable.Festival and ret.special == "festival":
                 pass_err = yield from self.turnMovingFestival(ret)
                 if pass_err < 0:
                     continue
                 break
-            if self.board.checkPack(14, "b") and not rangered and ret.get("special") == "ranger":
-                pos_ranger: tuple[int, int] = ret["pos"]
+            if self.board.checkPack(14, "b") and not rangered and ret.special == "ranger":
+                pos_ranger: tuple[int, int] = ret.pos
                 if not self.board.ranger.canMove(pos_ranger):
                     pass_err = -9
                     continue
                 self.board.ranger.moveTo(pos_ranger)
                 break
-            if ret["id"] == -1:
-                break
             seg_put: Segment | Feature | Tile = tile_put
-            if (ll := len(tile_put.segments) + len(tile_put.features)) > ret["id"] >= 0:
-                seg_put = tile_put.getSeg(ret["id"])
-            elif self.board.checkPack(5, "e") and not tile_put.isAbbey and ll <= ret["id"] < ll + 4 and (pos := self.board.findTilePos(tile_put)):
+            if (ll := len(tile_put.segments) + len(tile_put.features)) > ret.id >= 0:
+                seg_put = tile_put.getSeg(ret.id)
+            elif self.board.checkPack(5, "e") and not tile_put.isAbbey and ll <= ret.id < ll + 4 and (pos := self.board.findTilePos(tile_put)):
                 # for barn
-                offset = [(-1, -1), (0, -1), (-1, 0), (0, 0)][ret["id"] - ll]
+                offset = [(-1, -1), (0, -1), (-1, 0), (0, 0)][ret.id - ll]
                 if (tile2 := self.board.tiles.get((pos_put[0] + offset[0], pos_put[1] + offset[1]))) is not None:
                     seg_put = tile2
                 else:
@@ -412,7 +427,7 @@ class Player:
             if isinstance(seg_put, Feature) and not isinstance(seg_put, CanScore):
                 pass_err = -2
                 continue
-            token = self.findToken(ret.get("which", "follower"))
+            token = self.findToken(ret.which)
             if token is None:
                 pass_err = -1
                 continue
@@ -431,12 +446,12 @@ class Player:
         if ph_put != -1:
             yield from self.turnPuttingPhantom(pos, tile, if_portal, if_flier, rangered, ph_put)
         return put_barn
-    def turnCheckPhantom(self, ret: dict[str, Any], ph_put: int,
+    def turnCheckPhantom(self, ret: 'RecievePuttingFollower', ph_put: int,
                          tile_put: 'Tile', if_portal: bool) -> 'TAsync[Literal[0, -10, -11]]':
         phantom = more_itertools.only(t for t in self.tokens if isinstance(t, Phantom))
         if phantom is None:
             return -10
-        if ph_put == ret["id"] and ph_put != -2:
+        if isinstance(ret, RecievePuttingFollower) and ph_put == ret.id:
             return -11
         if ph_put != -2:
             seg_ph = tile_put.getSeg(ph_put)
@@ -448,8 +463,8 @@ class Player:
                 return -11
         return 0
         yield {}
-    def turnMovingFairy(self, ret: dict[str, Any]) -> 'TAsync[Literal[0, -3]]':
-        pos_fairy: tuple[int, int] = ret["pos"]
+    def turnMovingFairy(self, ret: 'RecievePuttingFollower') -> 'TAsync[Literal[0, -3]]':
+        pos_fairy: tuple[int, int] = ret.pos
         if pos_fairy not in self.board.tiles:
             return -3
         follower = yield from self.utilityChoosingFollower('fairy', None, pos_fairy)
@@ -467,12 +482,21 @@ class Player:
         while 1:
             if ph_put == -2:
                 self.board.state = State.PuttingFollower
-                ret2 = yield {"last_err": pass_err, "last_put": pos_put, "if_portal": ph_portal, "rangered": rangered, "special": "phantom"}
-                if self.board.checkPack(3, "d") and not ph_portal and ret2.get("special") == "portal":
+                from .ccs_helper import SendPuttingFollower
+                ret = yield SendPuttingFollower(pass_err, pos_put, ph_portal, rangered, "phantom")
+                assert isinstance(ret, (RecieveReturn, RecievePuttingFollower))
+                if isinstance(ret, RecieveReturn):
+                    if not if_portal and ph_portal:
+                        pos_put = pos
+                        tile_put = tile
+                        ph_portal = False
+                        continue
+                    break
+                if self.board.checkPack(3, "d") and not ph_portal and isinstance(ret, RecievePuttingFollower) and ret.special == "portal":
                     if if_portal:
                         pass_err = -13
                         continue
-                    pos_portal = ret2["pos"]
+                    pos_portal = ret.pos
                     if pos_portal not in self.board.tiles or tile.addable != TileAddable.Portal:
                         pass_err = -4
                         continue
@@ -480,14 +504,7 @@ class Player:
                     tile_put = self.board.tiles[pos_portal]
                     ph_portal = True
                     continue
-                if not if_portal and ph_portal and ret2["id"] == -1:
-                    pos_put = pos
-                    tile_put = tile
-                    ph_portal = False
-                    continue
-                ph_put = ret2["id"]
-                if ph_put == -1:
-                    break
+                ph_put = ret.id
             seg_ph = tile_put.getSeg(ph_put)
             if seg_ph is None:
                 pass_err = -11
@@ -510,8 +527,8 @@ class Player:
             self.tokens.remove(phantom)
             yield from phantom.putOn(seg_ph)
             break
-    def turnCheckTower(self, ret: dict[str, Any]) -> 'TAsync[Literal[0, -1, -2, -5, -6, -7, -12]]':
-        pos_tower: tuple[int, int] = ret["pos"]
+    def turnCheckTower(self, ret: 'RecievePuttingFollower') -> 'TAsync[Literal[0, -1, -2, -5, -6, -7, -12]]':
+        pos_tower: tuple[int, int] = ret.pos
         if pos_tower not in self.board.tiles:
             return -5
         tile_tower = self.board.tiles[pos_tower]
@@ -520,14 +537,14 @@ class Player:
             return -5
         if len(tower.tokens) != 0:
             return -6
-        if not ret.get("which"):
+        if ret.which == '':
             if self.towerPieces == 0:
                 return -7
             self.towerPieces -= 1
             tower.height += 1
             yield from self.turnCaptureTower(tower, pos_tower)
             return 0
-        token = self.findToken(ret["which"])
+        token = self.findToken(ret.which)
         if token is None:
             return -1
         if not token.canPut(tower):
@@ -535,8 +552,8 @@ class Player:
         self.tokens.remove(token)
         yield from token.putOn(tower)
         return 0
-    def turnMovingAbbot(self, ret: dict[str, Any]) -> 'TAsync[Literal[0, -8]]':
-        pos_abbot: tuple[int, int] = ret["pos"]
+    def turnMovingAbbot(self, ret: 'RecievePuttingFollower') -> 'TAsync[Literal[0, -8]]':
+        pos_abbot: tuple[int, int] = ret.pos
         if pos_abbot not in self.board.tiles:
             return -8
         tile_abbot = self.board.tiles[pos_abbot]
@@ -551,8 +568,8 @@ class Player:
             yield from self.addScore(l[0], type=abbot.parent.scoreType())
         abbot.putBackToHand(HomeReason.Abbot)
         return 0
-    def turnMovingFestival(self, ret: dict[str, Any]) -> 'TAsync[Literal[0, -14]]':
-        pos: tuple[int, int] = ret["pos"]
+    def turnMovingFestival(self, ret: 'RecievePuttingFollower') -> 'TAsync[Literal[0, -14]]':
+        pos: tuple[int, int] = ret.pos
         if pos not in self.board.tiles:
             return -14
         tile = self.board.tiles[pos]
@@ -566,11 +583,13 @@ class Player:
             pass_err: Literal[0, -1, -2] = 0
             while 1:
                 self.board.state = State.ChoosingTileFigure
-                ret = yield {'last_put': pos, 'last_err': pass_err, 'special': "festival"}
-                if ret["id"] < 0 or ret["id"] >= len(al):
+                from .ccs_helper import SendPosSpecial
+                ret2 = yield SendPosSpecial(pass_err, pos, "festival")
+                assert isinstance(ret2, RecieveId)
+                if ret2.id < 0 or ret2.id >= len(al):
                     pass_err = -1
                     continue
-                to_remove = al[ret["id"]]
+                to_remove = al[ret2.id]
                 if to_remove not in can_remove:
                     pass_err = -2
                     continue
@@ -584,10 +603,12 @@ class Player:
         pass_err: Literal[0, -1] = 0
         while 1:
             self.board.state = State.CaptureTower
-            ret = yield {"pos": pos, "last_err": pass_err}
-            id: int = ret["id"]
-            if id == -1:
+            from .ccs_helper import SendPos
+            ret = yield SendPos(pass_err, pos)
+            if isinstance(ret, RecieveReturn):
                 break
+            assert isinstance(ret, RecieveId)
+            id: int = ret.id
             if id < 0 or id >= len(followers):
                 pass_err = -1
                 continue
@@ -618,8 +639,10 @@ class Player:
                     self.board.current_player_id = player.id
                 while 1:
                     self.board.state = State.ExchangingPrisoner
-                    ret = yield {"last_err": pass_err}
-                    token = self.findToken(ret["which"], p[i])
+                    from .ccs_helper import Send, RecieveWhich
+                    ret = yield Send(pass_err)
+                    assert isinstance(ret, RecieveWhich)
+                    token = self.findToken(ret.which, p[i])
                     if token is None:
                         pass_err = -1
                         continue
@@ -628,7 +651,10 @@ class Player:
                 if i == 1:
                     self.board.current_player_id = self.board.current_turn_player_id
             if c[0] and c[1]:
-                self.board.addLog(id="exchangePrisoner", p1=t[0], p2=t[1])
+                from .ccs_helper import LogExchangePrisoner
+                assert isinstance(t[0].player, Player)
+                assert isinstance(t[1].player, Player)
+                self.board.addLog(LogExchangePrisoner(t[1].player.long_name, t[0].player.long_name))
             t[0].putBackToHand(HomeReason.Tower)
             t[1].putBackToHand(HomeReason.Tower)
 
@@ -645,10 +671,12 @@ class Player:
         if shepherd is None:
             return
         self.board.state = State.ChoosingShepherd
-        ret = yield {}
-        if ret["id"] == 1:
+        from .ccs_helper import RecieveShepherd
+        ret = yield Send(0)
+        assert isinstance(ret, RecieveShepherd)
+        if not ret.score:
             shepherd.grow()
-        elif ret["id"] == 2:
+        else:
             yield from shepherd.score()
         if isinstance(shepherd.parent, FieldSegment) and all(seg.selfClosed() for seg in shepherd.parent.object.segments):
             yield from shepherd.score()
@@ -665,13 +693,16 @@ class Player:
             if len(adj) == 0:
                 break
             elif len(adj) == 1:
-                self.board.addLog(id="dragonMove", dir=dr, player=self.board.current_player)
+                from .ccs_helper import LogDragonMove
+                self.board.addLog(LogDragonMove(self.board.current_player.long_name, dr))
                 dr: Dir = adj[0]
             else:
                 while 1:
                     self.board.state = State.MovingDragon
-                    ret = yield {"last_err": pass_err, "moved_num": i}
-                    dr = ret["direction"]
+                    from .ccs_helper import SendMovingDragon, RecieveDir
+                    ret = yield SendMovingDragon(pass_err, i)
+                    assert isinstance(ret, RecieveDir)
+                    dr = ret.dir
                     if pos + dr not in self.board.tiles or not dragon.canMove(self.board.tiles[pos + dr]):
                         pass_err = -1
                         continue
@@ -694,10 +725,12 @@ class Player:
             pass_err: Literal[0, -1, -2, -3] = 0
             while 1:
                 self.board.state = State.WagonAsking
-                ret = yield {"pos": pos, "player_id": wagon.player.id, "last_err": pass_err}
-                if "pos" not in ret or ret["pos"] is None:
+                from .ccs_helper import SendMovingWagon, RecieveWagon
+                ret = yield SendMovingWagon(pass_err, pos, wagon.player.id)
+                if isinstance(ret, RecieveReturn):
                     break
-                pos_put: tuple[int, int] = ret["pos"]
+                assert isinstance(ret, RecieveWagon)
+                pos_put: tuple[int, int] = ret.pos
                 if pos_put not in self.board.tiles:
                     pass_err = -1
                     continue
@@ -705,7 +738,7 @@ class Player:
                     pass_err = -2
                     continue
                 tile = self.board.tiles[pos_put]
-                seg_put = tile.getSeg(ret["seg"])
+                seg_put = tile.getSeg(ret.seg)
                 if seg_put is None:
                     pass_err = -3
                     continue
@@ -756,11 +789,13 @@ class Player:
                 pass_err: Literal[0, -1, -2, -3] = 0
                 while 1:
                     self.board.state = State.ChoosingPos
-                    ret = yield {"last_err": pass_err, "special": "gold_take"}
-                    if ret["pos"] not in self.board.tiles:
+                    from .ccs_helper import SendChoosingPos
+                    ret = yield SendChoosingPos(pass_err, "gold_take")
+                    assert isinstance(ret, RecievePos)
+                    if ret.pos not in self.board.tiles:
                         pass_err = -1
                         continue
-                    tile = self.board.tiles[ret["pos"]]
+                    tile = self.board.tiles[ret.pos]
                     golds = [token for token in tile.tokens if isinstance(token, Gold)]
                     if len(golds) == 0:
                         pass_err = -2
@@ -811,7 +846,8 @@ class Player:
                     if tc != [0, 0, 0]:
                         for i in range(3):
                             self.tradeCounter[i] += tc[i]
-                        self.board.addLog(id="tradeCounter", tradeCounter=tc)
+                        from .ccs_helper import LogTradeCounter
+                        self.board.addLog(LogTradeCounter(tc))
                 if self.board.checkPack(6, 'b') and obj.type == Connectable.City:
                     count = obj.checkTile()
                     if count > self.board.king.max:
@@ -840,17 +876,19 @@ class Player:
         for obj in objects:
             obj.removeAllFollowers(HomeReason.Score)
         if rangered:
-            self.board.addLog(id="score", player=self, source="ranger", num=3)
+            from .ccs_helper import LogScore
+            self.board.addLog(LogScore(self.long_name, "ranger", 3))
             yield from self.addScore(3, type=ScoreReason.Ranger)
             pass_err: Literal[0, -2] = 0
             while 1:
                 self.board.state = State.ChoosingPos
-                ret = yield {"last_err": pass_err, "special": "ranger"}
-                pos_ranger: tuple[int, int] = ret["pos"]
-                if not self.board.ranger.canMove(pos_ranger):
+                from .ccs_helper import SendChoosingPos
+                ret = yield SendChoosingPos(pass_err, "ranger")
+                assert isinstance(ret, RecievePos)
+                if not self.board.ranger.canMove(ret.pos):
                     pass_err = -2
                     continue
-                self.board.ranger.moveTo(pos_ranger)
+                self.board.ranger.moveTo(ret.pos)
                 break
         return gingered
 
@@ -875,11 +913,13 @@ class Player:
         pass_err: Literal[0, -1, -2] = 0
         while 1:
             self.board.state = State.ChoosingPos
-            ret = yield {"last_err": pass_err, "special": "gingerbread"}
-            if ret["pos"] not in self.board.tiles:
+            from .ccs_helper import SendChoosingPos
+            ret = yield SendChoosingPos(pass_err, "gingerbread")
+            assert isinstance(ret, RecievePos)
+            if ret.pos not in self.board.tiles:
                 pass_err = -1
                 continue
-            tile = self.board.tiles[ret["pos"]]
+            tile = self.board.tiles[ret.pos]
             citys = [segment for segment in tile.segments if isinstance(segment, CitySegment) and not segment.closed() and ginger.canPut(segment)]
             if len(citys) == 0:
                 pass_err = -2
@@ -889,8 +929,10 @@ class Player:
                 pass_err = 0
                 while 1:
                     self.board.state = State.ChoosingSegment
-                    ret2 = yield {"last_err": pass_err, "last_put": ret["pos"], "special": "gingerbread"}
-                    s = tile.getSeg(ret2["id"])
+                    from .ccs_helper import SendPosSpecial
+                    ret2 = yield SendPosSpecial(pass_err, ret.pos, "gingerbread")
+                    assert isinstance(ret2, RecieveId)
+                    s = tile.getSeg(ret2.id)
                     if not isinstance(s, CitySegment):
                         pass_err = -1
                         continue
@@ -933,7 +975,8 @@ class Player:
         # check fairy
         if self.board.checkPack(3, "c") and self.board.fairy.follower is not None and self.board.fairy.follower.player is self:
             self.board.fairy.follower.fairy_1 += 1
-            self.board.addLog(id="score", player=self, num=1, source="fairy")
+            from .ccs_helper import LogScore
+            self.board.addLog(LogScore(self.long_name, "fairy", 1))
             yield from self.addScore(1, type=ScoreReason.Fairy)
 
         for turn in range(2):
@@ -1111,8 +1154,9 @@ class Player:
                 dr.text((166 + i * 96, 48), "R", "black", font, "lm")
         return img
 
-from .carcassonne import Board, Tile, Segment, Object, Feature, Token, Follower, FieldSegment
-from .carcassonne import State, Connectable, Dir, CanScore, TAsync, CantPutError
-from .carcassonne import Barn, Builder, Pig, TileAddable, CitySegment, RoadSegment, AbbeyData, Wagon, Monastry
-from .carcassonne import Phantom, Tower, Abbot, BaseCloister, Flier, BigFollower, Addable, Gold, Shepherd
-from .carcassonne_extra import Gift, ScoreReason, HomeReason
+from .ccs import Board, Tile, Segment, Object, Feature, Token, Follower, FieldSegment
+from .ccs import State, Connectable, Dir, CanScore, TAsync, CantPutError
+from .ccs import Barn, Builder, Pig, TileAddable, CitySegment, RoadSegment, AbbeyData, Wagon, Monastry
+from .ccs import Phantom, Tower, Abbot, BaseCloister, Flier, BigFollower, Addable, Gold, Shepherd
+from .ccs_extra import Gift, ScoreReason, HomeReason
+from .ccs_helper import RecieveBuyPrisoner, RecievePos, RecieveReturn, RecievePuttingFollower, RecieveId, Send

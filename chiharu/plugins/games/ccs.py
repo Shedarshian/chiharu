@@ -1,80 +1,17 @@
-from typing import Literal, Any, Generator, Type, TypeVar, Iterable, Callable, Sequence, TypedDict
+from typing import Literal, Any, Generator, Type, TypeVar, Iterable, Callable, Sequence, Awaitable
 import random, itertools, more_itertools, json
 from enum import Enum, auto
 from collections import Counter
 from abc import ABC, abstractmethod
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
-from .carcassonne_tile import Dir, open_img, readTileData, readPackData, TileData, OneSideSegmentPic
-from .carcassonne_tile import CitySegmentData, RoadSegmentData, RiverSegmentData, FieldSegmentData, FeatureSegmentData, AddableSegmentData
-from .carcassonne_tile import AreaSegmentPic, LineSegmentPic, SegmentData
+from .ccs_tile import Dir, open_img, readTileData, readPackData, TileData, OneSideSegmentPic
+from .ccs_tile import CitySegmentData, RoadSegmentData, RiverSegmentData, FieldSegmentData, FeatureSegmentData, AddableSegmentData
+from .ccs_tile import AreaSegmentPic, LineSegmentPic, SegmentData
+from .ccs_helper import CantPutError, NoDeckEnd, Connectable, TileAddable, Addable, Shed
+from .ccs_helper import all_extensions, findAllMax, turn, dist2, State, Log, Send, Recieve
 
-class CantPutError(Exception):
-    pass
-class NoDeckEnd(Exception):
-    pass
-class Connectable(Enum):
-    City = auto()
-    Field = auto()
-    Road = auto()
-    River = auto()
-    @classmethod
-    def fromChar(cls, char: str):
-        return {"C": Connectable.City, "F": Connectable.Field, "R": Connectable.Road, "S": Connectable.River}[char]
-class TileAddable(Enum):
-    No = auto()
-    Volcano = auto()
-    Dragon = auto()
-    Portal = auto()
-    Gold = auto()
-    Gingerbread = auto()
-    Festival = auto()
-    Hill = auto()
-    Vineyard = auto()
-    MageWitch = auto()
-class Addable(Enum):
-    No = auto()
-    Cathedral = auto()
-    Inn = auto()
-    Wine = auto()
-    Grain = auto()
-    Cloth = auto()
-    Princess = auto()
-    Pigherd = auto()
-class Shed(Enum):
-    No = auto()
-    Farmhouse = auto()
-    Cowshed = auto()
-    Donkey = auto()
-    Pigsty = auto()
-    Watertower = auto()
-    Highwaymen = auto()
-all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 6: 'abcdefgh', 7: 'abcd', 9: 'abcde', 12: 'abcdef', 13: 'abcdefghijk', 14: 'abcdefg'}
 T = TypeVar('T')
-TAsync = Generator[dict[str, Any], dict[str, Any], T]
-def findAllMax(items: Sequence[T], key: Callable[[T], int], criteria=None) -> tuple[int, list[T]]:
-    maxScore: int = -99
-    maxPlayer: list[T] = []
-    for player in items:
-        if criteria is not None and not criteria(player):
-            continue
-        if (score := key(player)) > maxScore:
-            maxScore = score
-            maxPlayer = [player]
-        elif score == maxScore:
-            maxPlayer.append(player)
-    return maxScore, maxPlayer
-
-def turn(pos: tuple[int, int], dir: Dir):
-    if dir == Dir.UP:
-        return pos
-    if dir == Dir.RIGHT:
-        return 64 - pos[1], pos[0]
-    if dir == Dir.DOWN:
-        return 64 - pos[0], 64 - pos[1]
-    return pos[1], 64 - pos[0]
-def dist2(pos1: tuple[int, int], pos2: tuple[int, int]) -> float:
-    return (pos1[0] - pos2[0]) ** 2 + (pos1[1] - pos2[1]) ** 2
-
+TAsync = Generator[Send, Recieve, T]
 TToken = TypeVar("TToken", bound="Token")
 
 class Board:
@@ -215,7 +152,7 @@ class Board:
         self.font_score = ImageFont.truetype("msyhbd.ttc", 24)
         self.state: State = State.End
         self.stateGen = self.process()
-        self.log: list[dict[str, Any]] = []
+        self.log: list[Log] = []
         self.stats: tuple[list[ccsCityStat], list[ccsRoadStat], list[ccsFieldStat], list[ccsMonastryStat], list[ccsMeepleStat]] = ([], [], [], [], [])
         if self.checkPack(3, "b"):
             self.dragon = [token for token in self.tokens if isinstance(token, Dragon)][0]
@@ -283,7 +220,8 @@ class Board:
         tile = self.drawTile()
         checked: int = 0
         while tile is not None and not self.checkTileCanPut(tile):
-            self.addLog(id="redraw", tile=tile)
+            from .ccs_helper import LogRedraw
+            self.addLog(LogRedraw())
             checked += 1
             self.deck.append(tile)
             tile = self.drawTile()
@@ -416,7 +354,7 @@ class Board:
                     return True
         return False
 
-    def addLog(self, /, **log):
+    def addLog(self, log: Log):
         self.log.append(log)
     def addStats(self):
         pass
@@ -657,7 +595,7 @@ class Board:
         name = 'ccs' + str(random.randint(0, 9) + self.current_player_id * 10) + '.png'
         self.image().save(config.img(name))
         if self.group_id is not None:
-            self.image().save(config.pag(f"cacason\\{self.group_id}.png"))
+            self.image().save(config.pag(f"ccs\\{self.group_id}.png"))
         return config.cq.img(name)
     def saveRemainTileImg(self):
         from .. import config
@@ -693,6 +631,317 @@ class Board:
         self.state = State.End
         self.endGameScore()
         return midEnd
+
+    async def advance(self, send: Callable[[Any], Awaitable], delete_func: Callable[[], Awaitable],
+            to_send: Recieve | None=None):
+        try:
+            if to_send is None:
+                ret = next(self.stateGen)
+            else:
+                ret = self.stateGen.send(to_send)
+        except StopIteration as e:
+            if e.value:
+                await send("所有剩余图块均无法放置，提前结束游戏！")
+            self.setImageArgs(no_final_score=True)
+            await send([self.saveImg()])
+            score_win, players_win = self.winner()
+            if len(players_win) == 1:
+                await send(f'玩家{players_win[0].name}以{score_win}分获胜！')
+            else:
+                await send('玩家' + '，'.join(p.name for p in players_win) + f'以{score_win}分获胜！')
+            # game log
+            from .. import config
+            import datetime
+            config.userdata.execute("insert into ccs_gamelog (group_id, users, extensions, time, score, winner, winner_score) values (?, ?, ?, ?, ?, ?, ?)", (self.group_id or 0, ','.join(p.long_name for p in self.players), json.dumps(self.packs_options), datetime.datetime.now().isoformat(), ','.join(str(p.score) for p in self.players), ','.join(str(q) for q in players_win), score_win))
+            await delete_func()
+            return
+        if len(self.log) != 0:
+            outputs = []
+            from .ccs_helper import LogScore, LogRedraw, LogPutBackBuilder, LogExchangePrisoner
+            from .ccs_helper import LogTradeCounter, LogChallengeFailed, LogDrawGift, LogUseGift
+            from .ccs_helper import LogTake2NoTile, LogDice, LogDragonMove, LogShepherd
+            for d in self.log:
+                match d:
+                    case LogScore(player_name=name, source=source, num=num):
+                        outputs.append(f"玩家{name}因" + {"fairy": "仙子", "complete": "已完成建筑", "final": "未完成建筑", "fairy_complete": "已完成建筑中的仙子", "ranger": "护林员", "cash_out": "兑现", "gingerbread": "姜饼人"}[source] + f"获得{num}分。")
+                    case LogRedraw():
+                        outputs.append("牌堆顶卡无法放置，故重抽一张。")
+                    case LogPutBackBuilder(player_name=name, meeple_name=meeple_name):
+                        outputs.append(f"玩家{name}的{'建筑师' if meeple_name == 'Builder' else '猪'}因所在区域没人而返回。")
+                    case LogExchangePrisoner(player2_name=p2name, player1_name=p1name):
+                        outputs.append(f"玩家{p2name}和玩家{p1name}的囚犯自动互换了。")
+                    case LogTradeCounter(trade=trade):
+                        outputs.append("你获得了" + '，'.join(f"{num}个" + ["酒", "小麦", "布"][i] for i, num in enumerate(trade) if num != 0) + '。')
+                    case LogChallengeFailed(name=name):
+                        outputs.append({"shrine": "神龛", "cloister": "修道院"}[name] + "的挑战失败！")
+                    case LogDrawGift(gift_name=name, gifts_text=gifts):
+                        outputs.append("你抽了一张礼物卡，已通过私聊发送。")
+                        await send("你抽到了礼物卡：" + name + "\n你手中的礼物卡有：" + gifts, ensure_private=True) # type: ignore
+                    case LogUseGift(gift_name=name, gifts_text=gifts):
+                        outputs.append("你使用了礼物卡：" + name)
+                        await send("你现在手中的礼物卡有：" + gifts, ensure_private=True) # type: ignore
+                    case LogTake2NoTile():
+                        outputs.append("并未找到第二张可以放置的板块！")
+                    case LogDice(result=result):
+                        outputs.append(f"骰子扔出了{result}点。")
+                    case LogDragonMove(player_name=name, dir=dr):
+                        outputs.append(f"玩家{name}自动向{dr.name[0]}方向动了一次龙。")
+                    case LogShepherd(player_name=name, sheep=sheep):
+                        outputs.append(f"玩家{name}抽到了{'狼' if sheep == -1 else str(sheep) + '只羊'}。")
+            await send("\n".join(outputs))
+            self.log = []
+        match self.state:
+            case State.PuttingTile:
+                from .ccs_helper import SendPuttingTile
+                assert isinstance(ret, SendPuttingTile)
+                rete = ret.last_err
+                if rete == -1:
+                    await send("已有连接！")
+                elif rete == -2:
+                    await send("无法连接！")
+                elif rete == -3:
+                    await send("没有挨着！")
+                elif rete == -4:
+                    await send("未找到可赎回的囚犯！")
+                elif rete == -5:
+                    await send("余分不足以赎回！")
+                elif rete == -6:
+                    await send("河流不能回环！")
+                elif rete == -7:
+                    await send("河流不能拐弯180度！")
+                elif rete == -8:
+                    await send("修道院不能和多个神龛相连，反之亦然！")
+                elif rete == -9:
+                    await send("必须扩张河流！")
+                elif rete == -10:
+                    await send("河流分叉必须岔开！")
+                elif rete == -11:
+                    await send("未找到礼物卡！")
+                elif rete == -12:
+                    await send("请指定使用哪张手牌！")
+                else:
+                    if ret.begin and ret.second_turn:
+                        await send("玩家继续第二回合")
+                    self.setImageArgs()
+                    await send([self.saveImg()])
+                    await send((f'玩家{self.current_turn_player.long_name}开始行动，' if ret.begin else "") + '请选择放图块的坐标，以及用URDL将指定方向旋转至向上。' + ("此时可发送“赎回玩家nxxx”花3分赎回囚犯。" if not ret.second_turn and self.checkPack(4, "b") else "") + ('回复礼物+第几张使用礼物卡，“查询礼物”查询。' if self.checkPack(14, "a") and not ret.gifted else ""))
+            case State.ChoosingPos:
+                from .ccs_helper import SendChoosingPos
+                assert isinstance(ret, SendChoosingPos)
+                if ret.last_err == -1:
+                    await send("板块不存在！")
+                elif ret.last_err == -2:
+                    await send("不符合要求！")
+                elif ret.last_err == -3:
+                    await send("这个金块不是你的！")
+                else:
+                    self.setImageArgs()
+                    await send([self.saveImg()])
+                    if ret.special == "synod":
+                        await send("请选择修道院，输入图块坐标。")
+                    elif ret.special == "road_sweeper":
+                        await send("请选择未完成道路，输入图块坐标。")
+                    elif ret.special == "cash_out":
+                        await send("请选择跟随者兑现，输入图块坐标。")
+                    elif ret.special == "ranger":
+                        await send("请选择要将护林员移动到的图块坐标。")
+                    elif ret.special == "change_position":
+                        await send("请选择跟随者切换形态，输入图块坐标。")
+                    elif ret.special == "gingerbread":
+                        await send("请选择要移动到的城市，输入图块坐标。")
+                    elif ret.special == "gold":
+                        await send("请选择放置另一个金块的图块坐标。")
+                    elif ret.special == "gold_take":
+                        await send(f"请玩家{self.current_player.long_name}选择拿取金块的图块坐标。")
+                    else:
+                        await send("请选择坐标（通用）。")
+            case State.PuttingFollower:
+                from .ccs_helper import SendPuttingFollower
+                assert isinstance(ret, SendPuttingFollower)
+                if ret.last_err == -1:
+                    await send("没有找到跟随者！")
+                elif ret.last_err == -2:
+                    await send("无法放置！")
+                elif ret.last_err == -3:
+                    await send("无法移动仙子！")
+                elif ret.last_err == -4:
+                    await send("无法使用传送门！")
+                elif ret.last_err == -5:
+                    await send("找不到高塔！")
+                elif ret.last_err == -6:
+                    await send("高塔有人！")
+                elif ret.last_err == -7:
+                    await send("手里没有高塔片段！")
+                elif ret.last_err == -8:
+                    await send("找不到修道院长！")
+                elif ret.last_err == -9:
+                    await send("无法移动护林员！")
+                elif ret.last_err == -10:
+                    await send("未找到幽灵！")
+                elif ret.last_err == -11:
+                    await send("幽灵无法放置！")
+                elif ret.last_err == -12:
+                    await send("在高塔/传送门/飞行器时不能使用幽灵，请仅仅申请“放幽灵”！")
+                elif ret.last_err == -13:
+                    await send("不能重复使用传送门/飞行器！")
+                elif ret.last_err == -14:
+                    await send("无法使用节日移除！")
+                else:
+                    self.setImageArgs(draw_tile_seg=ret.last_put)
+                    await send([self.saveImg()])
+                    if ret.special == "phantom":
+                        prompt = "请选择放置幽灵的位置"
+                    else:
+                        prompt = "请选择放置跟随者的位置（小写字母）以及放置的特殊跟随者名称（如有需要）"
+                        if self.checkPack(3, "c"):
+                            prompt += "，回复跟随者所在板块位置以及“仙子”移动仙子"
+                        if self.checkPack(4, "b"):
+                            prompt += "，回复板块位置以及“高塔”以及跟随者名称（可选）放置高塔片段或跟随者"
+                        if self.checkPack(12, "b"):
+                            prompt += "，回复板块位置以及“修道院长”回收修道院长"
+                        if self.checkPack(14, "b") and not ret.rangered:
+                            prompt += "，回复板块位置以及“护林员”移动护林员"
+                        if self.checkPack(13, "j") and self.tiles[ret.last_put].addable == TileAddable.Festival:
+                            prompt += "，回复板块位置以及“节日”移除物体（移除谷仓请指定谷仓左上角的板块）"
+                        if self.checkPack(13, "k"):
+                            prompt += "，后加“放幽灵”申请放幽灵，或直接后加小写字母以及“幽灵”放置幽灵"
+                    if not ret.portaled and self.checkPack(3, "d") and self.tiles[ret.last_put].addable == TileAddable.Portal:
+                        prompt += "，回复板块位置以及“传送门”使用传送门"
+                    if ret.portaled:
+                        prompt += "，回复“返回”返回原板块" + ("并重新选择幽灵" if self.checkPack(13, "k") and ret.special != "phantom" else "")
+                    else:
+                        prompt += "，回复“不放”跳过"
+                    prompt += "。"
+                    await send(prompt)
+            case State.WagonAsking:
+                from .ccs_helper import SendMovingWagon
+                assert isinstance(ret, SendMovingWagon)
+                if ret.last_err == -1:
+                    await send("没有该图块！")
+                elif ret.last_err == -2:
+                    await send("图块过远，只能放在本图块或是相邻的8块上！")
+                elif ret.last_err == -3:
+                    await send("无法放置！")
+                else:
+                    pos = ret.pos
+                    self.setImageArgs(draw_tile_seg=[(pos[0] + i, pos[1] + j) for i in (-1, 0, 1) for j in (-1, 0, 1)])
+                    await send([self.saveImg()])
+                    await send("请选择马车要移动到的图块，以及该图块上的位置（小写字母），回复“不放”收回马车。")
+            case State.AbbeyAsking | State.FinalAbbeyAsking:
+                from .ccs_helper import SendAbbeyAsking
+                assert isinstance(ret, SendAbbeyAsking)
+                if ret.last_err == -1:
+                    await send("无法放置！")
+                elif ret.last_err == -8:
+                    await send("修道院不能和多个神龛相连！")
+                else:
+                    if ret.begin and ret.second_turn:
+                        await send("玩家继续第二回合")
+                    if ret.begin:
+                        self.setImageArgs()
+                        await send([self.saveImg()])
+                    await send((f'玩家{self.current_player.long_name}' if ret.begin or self.state == State.FinalAbbeyAsking else "") + ("开始行动，选择" if ret.begin else "选择最后" if self.state == State.FinalAbbeyAsking else "请选择") + "是否放置僧院板块，回复“不放”跳过。")
+            case State.MovingDragon:
+                from .ccs_helper import SendMovingDragon
+                assert isinstance(ret, SendMovingDragon)
+                if ret.last_err == -1:
+                    await send("无法移动！")
+                else:
+                    self.setImageArgs()
+                    await send([self.saveImg()])
+                    await send(f'玩家{self.current_player.long_name}第{ret.moved_num + 1}次移动龙，请输入URDL移动。')
+            case State.ChoosingOwnFollower:
+                from .ccs_helper import SendPosSpecial
+                assert isinstance(ret, SendPosSpecial)
+                if ret.last_err == -1:
+                    await send("无法移动！")
+                if ret.last_err == -2:
+                    await send("未找到跟随者！")
+                if ret.last_err == -3:
+                    await send("不符合要求！")
+                else:
+                    self.setImageArgs(draw_tile_follower=ret.pos)
+                    await send([self.saveImg()])
+                    if ret.special == "fairy":
+                        await send('请额外指定要放置在哪个跟随者旁。')
+                    elif ret.special == "cash_out":
+                        await send('请额外指定要兑现哪个跟随者。')
+                    elif ret.special == "change_position":
+                        await send('请额外指定要切换哪个跟随者。')
+                    else:
+                        await send("请选择跟随者（通用）。")
+            case State.PrincessAsking:
+                from .ccs_helper import SendPrincess
+                assert isinstance(ret, SendPrincess)
+                if ret.last_err == -1:
+                    await send("未找到跟随者！")
+                else:
+                    self.setImageArgs(princess=ret.object)
+                    await send([self.saveImg()])
+                    await send('你放置了公主，可以指定公主要移走哪名跟随者，回复“返回”跳过。')
+            case State.CaptureTower:
+                from .ccs_helper import SendPos
+                assert isinstance(ret, SendPos)
+                if ret.last_err == -1:
+                    await send("未找到跟随者！")
+                else:
+                    self.setImageArgs(tower_pos=ret.pos)
+                    await send([self.saveImg()])
+                    await send('请选择要抓的跟随者，回复“不抓”跳过。')
+            case State.ExchangingPrisoner:
+                if ret.last_err == -1:
+                    await send("未找到跟随者！")
+                else:
+                    self.setImageArgs()
+                    await send([self.saveImg()])
+                    await send(f'请玩家{self.current_player.long_name}选择换回的对方的跟随者。')
+            case State.ChoosingSegment:
+                from .ccs_helper import SendPosSpecial
+                assert isinstance(ret, SendPosSpecial)
+                if ret.last_err == -1:
+                    await send("未找到片段号！")
+                if ret.last_err == -2:
+                    await send("不符合要求！")
+                else:
+                    self.setImageArgs(draw_tile_seg=ret.pos, draw_occupied_seg=True)
+                    await send([self.saveImg()])
+                    if ret.special == "road_sweeper":
+                        await send('请选择道路片段。')
+                    elif ret.special == "change_position":
+                        await send('请选择切换形态的片段。')
+                    elif ret.special == "flier":
+                        await send('请选择放置跟随者的片段。')
+                    elif ret.special == "gingerbread":
+                        await send('请选择姜饼人移动到的片段。')
+                    else:
+                        await send("请选择片段（通用）。")
+            case State.AskingSynod:
+                if ret.last_err == -1:
+                    await send("板块不存在！")
+                elif ret.last_err == -2:
+                    await send("不符合要求！")
+                elif ret.last_err == -3:
+                    await send("没有跟随者！")
+                elif ret.last_err == -4:
+                    await send("无法放置！")
+                else:
+                    self.setImageArgs()
+                    await send([self.saveImg()])
+                    await send('请选择放置的修道院板块坐标以及跟随者。')
+            case State.ChoosingTileFigure:
+                from .ccs_helper import SendPosSpecial
+                assert isinstance(ret, SendPosSpecial)
+                if ret.last_err == -1:
+                    await send("未找到物体！")
+                elif ret.last_err == -2:
+                    await send("不符合要求！")
+                else:
+                    self.setImageArgs(tile_figure=ret.pos)
+                    await send([self.saveImg()])
+                    if ret.special == "festival":
+                        await send('请选择板块上要移除的物体。')
+                    else:
+                        await send("请选择板块上的物体（通用）。")
 
 class CanScore(ABC):
     def __init__(self, board: Board) -> None:
@@ -741,7 +990,8 @@ class CanScore(ABC):
         players = self.checkPlayerAndScore(True, putBarn=putBarn)
         for player, score in players:
             if score != 0:
-                self.board.addLog(id="score", player=player, source="complete", num=score)
+                from .ccs_helper import LogScore
+                self.board.addLog(LogScore(player.long_name, "complete", score))
                 yield from player.addScore(score, type=self.scoreType())
         self.addStat(True, putBarn, players, False)
         if ifExtra:
@@ -758,7 +1008,8 @@ class CanScore(ABC):
         players = self.checkPlayerAndScore(False)
         for player, score in players:
             if score != 0:
-                self.board.addLog(id="score", player=player, source="final", num=score)
+                from .ccs_helper import LogScore
+                self.board.addLog(LogScore(player.long_name, "final", score))
                 player.addScoreFinal(score, type=self.scoreType())
         self.addStat(False, False, players, False)
         if ifExtra:
@@ -1294,7 +1545,9 @@ class Object(CanScore):
         ts = [token for seg in self.segments for token in seg.tokens if isinstance(token, (Builder, Pig))]
         for t in ts:
             if not any(token.player is t.player for seg in self.segments for token in seg.tokens if isinstance(token, Follower)):
-                self.board.addLog(id="putbackBuilder", builder=t)
+                from .ccs_helper import LogPutBackBuilder
+                assert isinstance(t.player, Player)
+                self.board.addLog(LogPutBackBuilder(t.player.long_name, t.__class__.__name__))
                 t.putBackToHand(reason)
     def checkCompleteCities(self):
         complete_city: list[Object] = []
@@ -1444,7 +1697,8 @@ class Cloister(Monastry):
         hasmeeple: bool = len(self.tokens) != 0
         gingered = yield from super().score(putBarn, ifExtra)
         if self.board.checkPack(6, 'h') and (cloister := self.getChallenge()) and not cloister.closed() and hasmeeple and len(cloister.tokens) != 0:
-            self.board.addLog(id="challengeFailed", type="shrine")
+            from .ccs_helper import LogChallengeFailed
+            self.board.addLog(LogChallengeFailed("shrine"))
             cloister.removeAllFollowers(HomeReason.Challenge)
         return gingered
 class Garden(BaseCloister):
@@ -1458,7 +1712,8 @@ class Shrine(Monastry):
         hasmeeple: bool = len(self.tokens) != 0
         gingered = yield from super().score(putBarn, ifExtra)
         if self.board.checkPack(6, 'h') and (cloister := self.getChallenge()) and not cloister.closed() and hasmeeple and len(cloister.tokens) != 0:
-            self.board.addLog(id="challengeFailed", type="cloister")
+            from .ccs_helper import LogChallengeFailed
+            self.board.addLog(LogChallengeFailed("cloister"))
             cloister.removeAllFollowers(HomeReason.Challenge)
         return gingered
 class Tower(Feature):
@@ -1493,7 +1748,8 @@ class Flier(Feature, CanScore):
         if pos is None:
             return
         dice = random.randint(1, 3)
-        self.board.addLog(id="dice", result=dice)
+        from .ccs_helper import LogDice
+        self.board.addLog(LogDice(dice))
         ps = {0: (0, -1), 1: (1, -1), 2: (1, 0), 3: (1, 1), 4: (0, 1), 5: (-1, 1), 6: (-1, 0), 7: (-1, -1)}[(self.direction + self.tile.orient.value * 2) % 8]
         pos_new = pos[0] + ps[0] * dice, pos[1] + ps[1] * dice
         if pos_new not in self.board.tiles:
@@ -1508,8 +1764,10 @@ class Flier(Feature, CanScore):
             pass_err: Literal[0, -1, -2] = 0
             while 1:
                 self.board.state = State.ChoosingSegment
-                ret = yield {"last_err": pass_err, "last_put": pos_new, "special": "flier"}
-                p = tile.getSeg(ret["id"])
+                from .ccs_helper import SendPosSpecial
+                ret = yield SendPosSpecial(pass_err, pos_new, "flier")
+                assert isinstance(ret, RecieveId)
+                p = tile.getSeg(ret.id)
                 if p is None:
                     pass_err = -1
                     continue
@@ -1603,7 +1861,8 @@ class Token(metaclass=TokenMeta):
     def scoreExtra(self) -> TAsync[None]:
         if self.board.checkPack(3, "c") and self.board.fairy.follower is self and isinstance(self.player, Player):
             self.fairy_3 += 1
-            self.board.addLog(id="score", player=self.player, source="fairy_complete", num=3)
+            from .ccs_helper import LogScore
+            self.board.addLog(LogScore(self.player.long_name, "fairy_complete", 3))
             yield from self.player.addScore(3, type=ScoreReason.Fairy)
     canEatByDragon: bool = True
     canPutTypes: 'tuple[Type[Segment] | Type[Feature] | Type[Tile],...]' = (FieldSegment, CitySegment, RoadSegment, Monastry, Flier, Tower)
@@ -1772,7 +2031,8 @@ class Gingerbread(Figure):
                     players.append(token.player)
             score = self.parent.object.checkTile()
             for player in players:
-                self.board.addLog(id="score", player=player, source="gingerbread", num=score)
+                from .ccs_helper import LogScore
+                self.board.addLog(LogScore(player.long_name, "gingerbread", score))
                 yield from player.addScore(score, type=ScoreReason.Gingerbread)
     canPutTypes = (CitySegment,)
     key = (14, 1)
@@ -1825,8 +2085,10 @@ class Shepherd(Figure):
         self.sheeps = []
     def grow(self):
         assert isinstance(self.parent, FieldSegment)
+        assert isinstance(self.player, Player)
         i = random.choice(self.board.sheeps)
-        self.board.addLog(type="shepherd", player=self.player, sheep=i)
+        from .ccs_helper import LogShepherd
+        self.board.addLog(LogShepherd(self.player.long_name, i))
         if i == -1:
             self.putBackToHand(HomeReason.Wolf)
             for t in self.parent.object.iterTokens():
@@ -1870,28 +2132,11 @@ Token.all_name["follower"] = BaseFollower
 
 AbbeyData = TileData("abbey", 0, "FFFF", [])
 AbbeyData.segments.append(FeatureSegmentData("Cloister", (32, 32), [], AbbeyData))
-class State(Enum):
-    End = auto()
-    PuttingTile = auto()
-    ChoosingPos = auto()
-    PuttingFollower = auto()
-    ChoosingSegment = auto()
-    WagonAsking = auto()
-    AbbeyAsking = auto()
-    FinalAbbeyAsking = auto()
-    MovingDragon = auto()
-    ChoosingOwnFollower = auto()
-    PrincessAsking = auto()
-    CaptureTower = auto()
-    ExchangingPrisoner = auto()
-    AskingSynod = auto()
-    ChoosingTileFigure = auto()
-    ChoosingShepherd = auto()
-    Error = auto()
 
-from .carcassonne_extra import Gift, LandCity, LandRoad, LandMonastry, ScoreReason, HomeReason
-from .carcassonne_extra import ccsCityStat, ccsGameStat, ccsRoadStat, ccsFieldStat, ccsMonastryStat, ccsMeepleStat, ccsTowerStat
-from .carcassonne_player import Player
+from .ccs_extra import Gift, LandCity, LandRoad, LandMonastry, ScoreReason, HomeReason
+from .ccs_extra import ccsCityStat, ccsGameStat, ccsRoadStat, ccsFieldStat, ccsMonastryStat, ccsMeepleStat, ccsTowerStat
+from .ccs_player import Player
+from .ccs_helper import RecieveId
 
 if __name__ == "__main__":
     b = Board({0: "a", 1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 6: "abcdefgh", 7: "abcd", 9: "abc", 12: "ab", 13: "abcdijk"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
