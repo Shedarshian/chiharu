@@ -9,8 +9,11 @@ from .. import config, game
 from nonebot import CommandSession, NLPSession, get_bot
 from nonebot.command import call_command
 
-version = (1, 1, 15)
-changelog = ""
+version = (2, 1, 0)
+changelog = """ver 2.0.0
+· 重构板块结构。
+ver 2.1.0
+· 重构通信数据。"""
 
 cacason = game.GameSameGroup('cacason', can_private=True)
 config.CommandGroup(('play', 'cacason'), hide=True)
