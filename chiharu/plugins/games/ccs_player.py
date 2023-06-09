@@ -402,6 +402,11 @@ class Player:
                     continue
                 yield from self.turnCheckTower(ret)
                 break
+            if self.board.checkPack(10, "c") and ret.special == "acrobat":
+                pass_err = yield from self.turnAcrobat(pos, ret)
+                if pass_err < 0:
+                    continue
+                break
             if self.board.checkPack(12, "b") and ret.special == "abbot":
                 pass_err = yield from self.turnMovingAbbot(ret)
                 if pass_err < 0:
@@ -443,7 +448,7 @@ class Player:
             if token is None:
                 pass_err = -1
                 continue
-            if not token.canPut(seg_put) or not isinstance(seg_put, Tile) and (isinstance(token, Follower) and seg_put.occupied() or if_portal and seg_put.closed()):
+            if not token.canPut(seg_put) or not isinstance(seg_put, Tile) and (isinstance(token, Follower) and seg_put.occupied() or if_portal and not seg_put.canPut()):
                 pass_err = -2
                 continue
             self.tokens.remove(token)
@@ -471,7 +476,7 @@ class Player:
                 return -11
             if isinstance(seg_ph, Feature) and not isinstance(seg_ph, CanScore):
                 return -11
-            if not phantom.canPut(seg_ph) or seg_ph.occupied() or if_portal and seg_ph.closed():
+            if not phantom.canPut(seg_ph) or seg_ph.occupied() or if_portal and not seg_ph.canPut():
                 return -11
         return 0
         yield {}
@@ -533,7 +538,7 @@ class Player:
             if isinstance(seg_ph, Feature) and not isinstance(seg_ph, CanScore):
                 pass_err = -11
                 continue
-            if not phantom.canPut(seg_ph) or seg_ph.occupied() or ph_portal and seg_ph.closed():
+            if not phantom.canPut(seg_ph) or seg_ph.occupied() or ph_portal and not seg_ph.canPut():
                 pass_err = -11
                 continue
             self.tokens.remove(phantom)
@@ -579,6 +584,28 @@ class Player:
         if len(l) != 0:
             yield from self.addScore(l[0], type=abbot.parent.scoreType())
         abbot.putBackToHand(HomeReason.Abbot)
+        return 0
+    def turnAcrobat(self, pos: tuple[int, int], ret: 'RecievePuttingFollower') -> 'TAsync[Literal[0, -1, -15]]':
+        pos2: tuple[int, int] = ret.pos
+        if pos2 not in self.board.tiles:
+            return -15
+        tile = self.board.tiles[pos2]
+        acrobats = [feature for feature in tile.features if isinstance(feature, Acrobat)]
+        if len(acrobats) == 0:
+            return -15
+        acrobat = acrobats[0]
+        if len(acrobat.tokens) < 3:
+            if pos2[0] - pos[0] not in (-1, 0, 1) or pos2[1] - pos[1] not in (-1, 0, 1):
+                return -15
+            token = self.findToken("follower")
+            if token is None:
+                return -1
+            self.tokens.remove(token)
+            yield from token.putOn(acrobat)
+        else:
+            yield from acrobat.score(True, False)
+            for token in acrobat.tokens:
+                token.putBackToHand()
         return 0
     def turnMovingFestival(self, ret: 'RecievePuttingFollower') -> 'TAsync[Literal[0, -14]]':
         pos: tuple[int, int] = ret.pos
@@ -757,7 +784,7 @@ class Player:
                 if (isinstance(seg_put, Feature) and not isinstance(seg_put, Monastry)):
                     pass_err = -3
                     continue
-                if seg_put.closed() or seg_put.occupied() or not wagon.canPut(seg_put):
+                if not seg_put.canPut() or seg_put.occupied() or not wagon.canPut(seg_put):
                     pass_err = -3
                     continue
                 wagon.remove(None)
@@ -975,7 +1002,7 @@ class Player:
         ChoosingPos：选择坐标（-1：板块不存在，-2：不符合要求，-3：不是你的金块）
         PuttingFollower：单个板块feature+跟随者（-1：没有跟随者，-2：无法放置，-3：无法移动仙子，-4：无法使用传送门，-5：找不到高塔
         -6：高塔有人，-7：手里没有高塔片段，-8：找不到修道院长，-9：无法移动护林员，-10：没有幽灵，-11：幽灵无法放置
-        -12：在高塔/传送门/飞行器时使用幽灵，-13：不能重复使用传送门/飞行器，-14：无法移除（节日））
+        -12：在高塔/传送门/飞行器时使用幽灵，-13：不能重复使用传送门/飞行器，-14：无法移除（节日），-15：无法放置杂技）
         ChoosingSegment：选择单个板块feature（-1：未找到片段，-2：不符合要求）
         WagonAsking：选马车（-1：没有图块，-2：图块过远，-3：无法放置）
         AbbeyAsking/FinalAbbeyAsking：询问僧院板块（-1：无法放置，-8：修道院和神龛不能有多个相邻）
@@ -1190,7 +1217,7 @@ class Player:
         return img
 
 from .ccs import Tile, Segment, Object, Feature, Token, Follower, FieldSegment
-from .ccs import State, Connectable, Dir, CanScore, TAsync
+from .ccs import State, Connectable, Dir, CanScore, TAsync, Acrobat
 from .ccs import Barn, Builder, Pig, TileAddable, CitySegment, RoadSegment, AbbeyData, Wagon, Monastry
 from .ccs import Phantom, Tower, Abbot, BaseCloister, Flier, BigFollower, Addable, Gold, Shepherd
 from .ccs_extra import Gift, ScoreReason, HomeReason

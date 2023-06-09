@@ -794,6 +794,8 @@ class Board:
                     await send("不能重复使用传送门/飞行器！")
                 elif ret.last_err == -14:
                     await send("无法使用节日移除！")
+                elif ret.last_err == -15:
+                    await send("无法放置或计分杂技！")
                 else:
                     self.setImageArgs(draw_tile_seg=ret.last_put)
                     await send([self.saveImg()])
@@ -805,6 +807,8 @@ class Board:
                             prompt += "，回复跟随者所在板块位置以及“仙子”移动仙子"
                         if self.checkPack(4, "b"):
                             prompt += "，回复板块位置以及“高塔”以及跟随者名称（可选）放置高塔片段或跟随者"
+                        if self.checkPack(10, "c"):
+                            prompt += "，回复板块位置以及“杂技”放置杂技或计分杂技"
                         if self.checkPack(12, "b"):
                             prompt += "，回复板块位置以及“修道院长”回收修道院长"
                         if self.checkPack(14, "b") and not ret.rangered:
@@ -1006,10 +1010,10 @@ class Board:
                     n = ord(match.group(1)) - ord('a')
                     name = match.group(2)
                     await self.advance(send, delete_func, RecievePuttingFollower(n, name or "follower", phantom))
-                elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(仙子|fairy|传送门|portal|修道院长|abbot|护林员|ranger|节日|festival)$", command):
+                elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(仙子|fairy|传送门|portal|修道院长|abbot|护林员|ranger|节日|festival|杂技|acrobat)$", command):
                     xs = match.group(1); ys = match.group(2)
                     pos = self.tileNameToPos(xs, ys)
-                    special = {"仙子": "fairy", "传送门": "portal", "修道院长": "abbot", "护林员": "ranger", "节日": "festival"}.get(match.group(3), match.group(3))
+                    special = {"仙子": "fairy", "传送门": "portal", "修道院长": "abbot", "护林员": "ranger", "节日": "festival", "杂技": "acrobat"}.get(match.group(3), match.group(3))
                     await self.advance(send, delete_func, RecievePuttingFollower(-1, "follower", phantom, special, pos))
                 elif self.checkPack(4, "b") and (match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(高塔|tower)\s*(.*)?$", command)):
                     xs = match.group(1); ys = match.group(2); which = match.group(4)

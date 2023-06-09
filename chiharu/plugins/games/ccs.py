@@ -19,6 +19,8 @@ class CanScore(ABC):
     @abstractmethod
     def closed(self) -> bool:
         pass
+    def canPut(self) -> bool:
+        return not self.closed()
     @abstractmethod
     def scoreType(self) -> 'ScoreReason':
         pass
@@ -338,6 +340,8 @@ class Segment(ABC):
         return self.object.occupied()
     def closed(self):
         return self.object.closed()
+    def canPut(self):
+        return self.object.canPut()
     def inSide(self, dir: Dir):
         return False
     def inSideA(self, dir: Dir, up: bool):
@@ -824,7 +828,7 @@ class Flier(Feature, CanScore):
         if pos_new not in self.board.tiles:
             return
         tile = self.board.tiles[pos_new]
-        put_list: Sequence[Segment | Feature] = [segment for segment in tile.segments if not isinstance(segment, FieldSegment) and not segment.object.closed() and token.canPut(segment)] + [feature for feature in tile.features if token.canPut(feature) and isinstance(feature, CanScore) and not feature.closed()]
+        put_list: Sequence[Segment | Feature] = [segment for segment in tile.segments if not isinstance(segment, FieldSegment) and not segment.object.canPut() and token.canPut(segment)] + [feature for feature in tile.features if token.canPut(feature) and isinstance(feature, CanScore) and feature.canPut()]
         if len(put_list) == 0:
             return
         if len(put_list) == 1:
@@ -852,8 +856,27 @@ class Flier(Feature, CanScore):
 class Circus(Feature):
     pack = (12, "b")
 class Acrobat(Feature, CanScore):
+    pack = (12, "c")
     def closed(self) -> bool:
         return False
+    def canPut(self) -> bool:
+        return len(self.tokens) >= 3
+    def scoreType(self) -> 'ScoreReason':
+        return ScoreReason.Acrobat
+    def occupied(self):
+        return len(self.tokens) >= 3
+    def iterTokens(self) -> 'Iterable[Token]':
+        yield from self.tokens
+    def getTile(self) -> 'list[Tile]':
+        return []
+    def checkPlayer(self, complete: bool) -> 'list[Player]':
+        players: list[Player] = []
+        for token in self.iterTokens():
+            if token.player not in players and isinstance(token.player, Player):
+                players.append(token.player)
+        return players
+    def checkScore(self, players: 'list[Player]', complete: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
+        return [(player, 5 * sum(1 for token in self.iterTokens() if token.player is player)) for player in players]
 
 class TokenMeta(type):
     def __new__(cls, name: str, base, attr):
@@ -974,6 +997,7 @@ class TileFigure(Figure):
 class BaseFollower(Follower):
     key = (0, 0)
     name = "跟随者"
+    canPutTypes = (FieldSegment, CitySegment, RoadSegment, Monastry, Flier, Tower, Acrobat)
 class BigFollower(Follower):
     @property
     def strength(self):

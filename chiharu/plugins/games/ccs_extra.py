@@ -320,11 +320,13 @@ class Messenger8(Messenger):
     id = 8
     des = "将一个跟随者计分并收回"
     def use(self, user: 'Player') -> 'TAsync[bool]':
-        follower = yield from user.utilityChoosingFollower('messenger8')
+        follower = yield from user.utilityChoosingFollower('messenger8', criteria=lambda t: isinstance(t.parent, (Segment, CanScore)))
         if follower is None:
             return False
         if isinstance(follower.parent, Segment):
             scores = follower.parent.object.checkPlayerAndScore(False)
+        elif isinstance(follower.parent, Acrobat):
+            scores = [(user, 5)]
         elif isinstance(follower.parent, CanScore):
             scores = follower.parent.checkPlayerAndScore(False)
         else:
@@ -333,7 +335,8 @@ class Messenger8(Messenger):
         if len(lscore) != 0:
             score = lscore[0]
             yield from user.addScore(score, ScoreReason.Messenger)
-            yield from follower.scoreExtra()
+            if not isinstance(follower.parent, Acrobat):
+                yield from follower.scoreExtra()
         follower.putBackToHand(HomeReason.Messenger8)
         return False
 
@@ -461,6 +464,6 @@ class ScoreReason(IntEnum):
     Ranger = 20
 
 from .ccs import State, Tile, RoadSegment, Follower, Segment, BaseCloister, FieldSegment, CitySegment
-from .ccs import TAsync, Monastry, Object, CanScore
+from .ccs import TAsync, Monastry, Object, CanScore, Acrobat
 from .ccs_player import Player
 from .ccs_helper import RecievePos, RecieveId, Send
