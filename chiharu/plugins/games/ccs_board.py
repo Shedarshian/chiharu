@@ -650,6 +650,8 @@ class Board:
             self.state = State.Error
             raise
         # yield from self.endGameAskAbbey()
+        if self.checkPack(10, 'b'):
+            yield from self.bigtop.score()
         self.state = State.End
         self.endGameScore()
         return midEnd
@@ -1092,7 +1094,7 @@ class Board:
 
 
 from .ccs import Tile, Segment, Token, Gold, Dragon, Fairy, Robber, Ranger, Gingerbread, CanScore
-from .ccs import Cloister, Shrine, BaseCloister, Object, Barn, Follower, Tower, TAsync, King, Bigtop
+from .ccs import Cloister, Shrine, BaseCloister, Object, Barn, Follower, Tower, TAsync, King, Bigtop, Circus
 from .ccs_extra import Gift, LandCity, LandRoad, LandMonastry, ScoreReason, HomeReason, Messenger
 from .ccs_extra import ccsCityStat, ccsGameStat, ccsRoadStat, ccsFieldStat, ccsMonastryStat, ccsMeepleStat, ccsTowerStat
 from .ccs_player import Player
