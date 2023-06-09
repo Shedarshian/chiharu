@@ -183,6 +183,7 @@
         {
             "name": "Under the Big Top",
             "full_name": "扩展10：马戏帐篷之下（Under the Big Top）",
+            "help": "(a) 图块\n(b) 马戏帐篷\n(c) 杂技\n(d) 马戏指挥",
             "id": 10,
             "things": ["图块", "马戏帐篷", "杂技", "马戏指挥"],
             "undone": [0, 1, 2, 3],

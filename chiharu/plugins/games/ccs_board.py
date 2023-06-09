@@ -1,4 +1,5 @@
 from typing import Literal, Any, Type, Callable, Awaitable
+from collections import Counter
 import random, more_itertools, json, re
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 from .ccs_tile import Dir, open_img, readTileData, readPackData
@@ -159,6 +160,10 @@ class Board:
             random.shuffle(self.sheeps)
         if self.checkPack(9, 'c'):
             self.hill_tiles: list[Tile] = []
+        if self.checkPack(10, 'b'):
+            self.animals = [1, 3, 3, 3, 3, 4, 4, 4, 4, 4, 5, 5, 5, 6, 6, 7]
+            random.shuffle(self.animals)
+            self.bigtop = [token for token in self.tokens if isinstance(token, Bigtop)][0]
         if self.checkPack(14, 'a'):
             self.giftDeck = [Gift.make(i)() for i in range(5) for _ in range(5)]
             random.shuffle(self.giftDeck)
@@ -523,7 +528,13 @@ class Board:
         return self.current_player.handTileImage()
     def remainTileImages(self):
         remove_zero = len(self.deck) <= len(self.tiles)
-        extra = 40 if self.checkPack(9, 'b') else 0
+        extra = 0
+        if self.checkPack(9, 'b'):
+            sheep_begin = extra
+            extra += 40
+        if self.checkPack(10, 'b'):
+            animals_begin = extra
+            extra += 40
         def pos(w: int, h: int, *offsets: tuple[int, int]):
             return w * (64 + 8) + sum(c[0] for c in offsets) + 8, h * (64 + 20) + sum(c[1] for c in offsets) + 20 + extra
         x2: dict[int, int] = {}
@@ -544,7 +555,10 @@ class Board:
         if self.checkPack(9, 'b'):
             txt = "，".join(f"{s}羊：{self.sheeps.count(s)}" for s in (1, 2, 3, 4))
             txt += f"，狼：{self.sheeps.count(-1)}"
-            dr.text((10, 10), txt, "black", self.font_name, "lt")
+            dr.text((10, sheep_begin + 10), txt, "black", self.font_name, "lt")
+        if self.checkPack(10, 'b'):
+            txt = "，".join(f"{a}分x{num}" for a, num in sorted(Counter(self.animals).items()))
+            dr.text((10, animals_begin + 10), txt, "black", self.font_name, "lt")
         y: int = 0
         x: int = 0
         last_pack: int = 0
@@ -1078,7 +1092,7 @@ class Board:
 
 
 from .ccs import Tile, Segment, Token, Gold, Dragon, Fairy, Robber, Ranger, Gingerbread, CanScore
-from .ccs import Cloister, Shrine, BaseCloister, Object, Barn, Follower, Tower, TAsync, King
+from .ccs import Cloister, Shrine, BaseCloister, Object, Barn, Follower, Tower, TAsync, King, Bigtop
 from .ccs_extra import Gift, LandCity, LandRoad, LandMonastry, ScoreReason, HomeReason, Messenger
 from .ccs_extra import ccsCityStat, ccsGameStat, ccsRoadStat, ccsFieldStat, ccsMonastryStat, ccsMeepleStat, ccsTowerStat
 from .ccs_player import Player

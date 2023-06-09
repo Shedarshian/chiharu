@@ -218,4 +218,7 @@ class LogDragonMove(Log):
 class LogShepherd(Log):
     player_name: str
     sheep: int
+@dataclass
+class LogCircus(Log):
+    animal: int
 

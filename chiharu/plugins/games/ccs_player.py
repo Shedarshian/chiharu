@@ -914,6 +914,13 @@ class Player:
         yield from self.turnMoveWagon(objects)
         for obj in objects:
             obj.removeAllFollowers(HomeReason.Score)
+        if self.board.checkPack(10, 'b'):
+            tops = [f for f in tile.features if isinstance(f, Circus)]
+            if len(tops) > 0:
+                top = tops[0]
+                yield from self.board.bigtop.score()
+                self.board.bigtop.remove(None)
+                yield from self.board.bigtop.putOn(top)
         if rangered:
             from .ccs_helper import LogScore
             self.board.addLog(LogScore(self.long_name, "ranger", 3))
@@ -1217,7 +1224,7 @@ class Player:
         return img
 
 from .ccs import Tile, Segment, Object, Feature, Token, Follower, FieldSegment
-from .ccs import State, Connectable, Dir, CanScore, TAsync, Acrobat
+from .ccs import State, Connectable, Dir, CanScore, TAsync, Acrobat, Circus
 from .ccs import Barn, Builder, Pig, TileAddable, CitySegment, RoadSegment, AbbeyData, Wagon, Monastry
 from .ccs import Phantom, Tower, Abbot, BaseCloister, Flier, BigFollower, Addable, Gold, Shepherd
 from .ccs_extra import Gift, ScoreReason, HomeReason
