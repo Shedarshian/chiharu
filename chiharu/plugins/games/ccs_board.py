@@ -959,7 +959,7 @@ class Board:
             case State.ChoosingMessenger:
                 from .ccs_helper import SendInt
                 assert isinstance(ret, SendInt)
-                await send(f"你抽到了圣旨{ret.num}分，请选择使用还是不用（换2分）。")
+                await send(f"你抽到了圣旨{ret.num}，作用为{Messenger.make(ret.num).des}，请选择使用还是不用（换2分）。")
 
     async def parse_command(self, command: str, send: Callable[[Any], Awaitable], delete_func: Callable[[], Awaitable]):
         match self.state:

@@ -904,23 +904,24 @@ class Player:
                 break
         return gingered
 
-    def turnMessenger(self) -> 'TAsync[None]':
+    def turnMessenger(self) -> 'TAsync[bool]':
+        extra: bool = False
         while 1:
             if not (self.score % 5 == 0 and self.score != self.begin_score[0] or self.score2 % 5 == 0 and self.score2 != self.begin_score[1]):
-                return
+                return extra
             self.begin_score = self.score, self.score2
             mes = self.board.drawMessenger()
             if mes is None:
-                return
+                return extra
             self.board.state = State.ChoosingMessenger
             from .ccs_helper import SendInt, RecieveChoose
             ret = yield SendInt(0, mes.id)
             assert isinstance(ret, RecieveChoose)
             if ret.chosen:
-                yield from mes.use()
+                extra = yield from mes.use()
             else:
                 yield from self.addScore(2, ScoreReason.Messenger)
-        return
+        return extra
     def turnMoveGingerbread(self, complete: bool) -> 'TAsync[None]':
         ginger = self.board.gingerbread
         for t in self.board.tiles.values():
@@ -985,9 +986,14 @@ class Player:
         ChoosingGiftCard：使用礼物卡（-1：未找到礼物卡）
         AskingSynod：坐标+跟随者（-1：板块不存在，-2：不符合要求，-3：没有跟随者，-4：无法放置）
         ChoosingTileFigure：选择图块上的任意figure（-1：未找到，-2：不符合要求）
-        ChoosingShepherd：选择牧羊人动作[1羊2分]"""
+        ChoosingShepherd：选择牧羊人动作
+        ChoosingScoreMove：选择计分人走哪个
+        ChoosingMessenger：选择圣旨是否使用"""
         isBegin: bool = True
-        nextTurn: bool = False
+        turn: int = 0
+        remainTurns: int = 1
+        buildered: bool = False
+        messengered: bool = False
         princessed: bool = False
         rangered: bool = False
         ifBarn: bool = False
@@ -1001,11 +1007,12 @@ class Player:
             self.board.addLog(LogScore(self.long_name, "fairy", 1))
             yield from self.addScore(1, type=ScoreReason.Fairy)
 
-        for turn in range(2):
+        while remainTurns > 0:
             # draw river
             if len(self.board.riverDeck) != 0:
                 isBegin = yield from self.turnDrawRiver(isBegin)
-                nextTurn = len(self.board.riverDeck) == 0 and self.handTiles[0].addable == TileAddable.Volcano
+                if len(self.board.riverDeck) == 0 and self.handTiles[0].addable == TileAddable.Volcano:
+                    remainTurns += 1
 
                 # put tile
                 isBegin, pos, princessed, rangered = yield from self.turnPutTile(turn, isBegin)
@@ -1022,8 +1029,9 @@ class Player:
                     isBegin, pos, princessed, rangered = yield from self.turnPutTile(turn, isBegin)
 
                     # builder generate a second turn
-                    if turn == 0:
-                        nextTurn = yield from self.turnCheckBuilder()
+                    if not buildered and (yield from self.turnCheckBuilder()):
+                        remainTurns += 1
+                        buildered = True
             tile = self.handTiles.pop(0)
 
             # check dragon
@@ -1033,7 +1041,7 @@ class Player:
             if not princessed:
                 # put a follower
                 ifBarn = yield from self.turnPutFollower(tile, pos, rangered)
-            
+
             if self.board.checkPack(9, "b"):
                 yield from self.turnCheckShepherd(tile)
 
@@ -1047,15 +1055,15 @@ class Player:
             # move Gingerbread man
             if self.board.checkPack(14, "d") and (gingered or tile.addable == TileAddable.Gingerbread):
                 yield from self.turnMoveGingerbread(gingered)
-            
+
             # messenger
-            if self.board.checkPack(12, "c"):
-                yield from self.turnMessenger()
+            if self.board.checkPack(12, "c") and not messengered and (yield from self.turnMessenger()):
+                remainTurns += 1
+                messengered = True
 
             self.board.state = State.End
-            if nextTurn:
-                continue
-            break
+            remainTurns -= 1
+            turn += 1
 
     def image_pre(self):
         no_final_score: bool = self.board.imageArgs.get("no_final_score", False)

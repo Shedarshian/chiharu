@@ -249,16 +249,17 @@ class LandMonastry(Enum):
 class Messenger:
     __slots__ = ()
     id = -1
+    des = ""
     @classmethod
     def make(cls, id: int) -> 'Type[Messenger]':
         return [Messenger1, Messenger2, Messenger3, Messenger4, Messenger5, Messenger6, Messenger7, Messenger8][id - 1]
-    @abstractmethod
     def use(self, user: 'Player') -> 'TAsync[bool]':
         return False
         yield {}
 class Messenger1(Messenger):
     __slots__ = ()
     id = 1
+    des = "计分一个含你的最短路"
     def use(self, user: 'Player') -> 'TAsync[bool]':
         score = min(token.parent.object.checkScore([user], False, False)[0][1] for token in user.allTokens if isinstance(token.parent, RoadSegment))
         yield from user.addScore(score, ScoreReason.Messenger)
@@ -266,6 +267,7 @@ class Messenger1(Messenger):
 class Messenger2(Messenger):
     __slots__ = ()
     id = 2
+    des = "计分一个含你的最小城"
     def use(self, user: 'Player') -> 'TAsync[bool]':
         score = min(token.parent.object.checkScore([user], False, False)[0][1] for token in user.allTokens if isinstance(token.parent, CitySegment))
         yield from user.addScore(score, ScoreReason.Messenger)
@@ -273,6 +275,7 @@ class Messenger2(Messenger):
 class Messenger3(Messenger):
     __slots__ = ()
     id = 3
+    des = "计分一个含你的最小修道院"
     def use(self, user: 'Player') -> 'TAsync[bool]':
         score = min(token.parent.checkScore([user], False, False)[0][1] for token in user.allTokens if isinstance(token.parent, Monastry))
         yield from user.addScore(score, ScoreReason.Messenger)
@@ -280,12 +283,14 @@ class Messenger3(Messenger):
 class Messenger4(Messenger):
     __slots__ = ()
     id = 4
+    des = "再进行一个回合"
     def use(self, user: 'Player') -> 'TAsync[bool]':
         return True
         yield {}
 class Messenger5(Messenger):
     __slots__ = ()
     id = 5
+    des = "每个含你的城的盾徽计2分"
     def use(self, user: 'Player') -> 'TAsync[bool]':
         all_cities: list[Object] = []
         for token in user.allTokens:
@@ -297,6 +302,7 @@ class Messenger5(Messenger):
 class Messenger6(Messenger):
     __slots__ = ()
     id = 6
+    des = "每个你在城中的跟随者计2分"
     def use(self, user: 'Player') -> 'TAsync[bool]':
         score = sum(2 for token in user.allTokens if isinstance(token.parent, CitySegment) and isinstance(token, Follower))
         yield from user.addScore(score, ScoreReason.Messenger)
@@ -304,6 +310,7 @@ class Messenger6(Messenger):
 class Messenger7(Messenger):
     __slots__ = ()
     id = 7
+    des = "每个你在草地上的跟随者计2分"
     def use(self, user: 'Player') -> 'TAsync[bool]':
         score = sum(2 for token in user.allTokens if isinstance(token.parent, FieldSegment) and isinstance(token, Follower))
         yield from user.addScore(score, ScoreReason.Messenger)
@@ -311,6 +318,7 @@ class Messenger7(Messenger):
 class Messenger8(Messenger):
     __slots__ = ()
     id = 8
+    des = "将一个跟随者计分并收回"
     def use(self, user: 'Player') -> 'TAsync[bool]':
         follower = yield from user.utilityChoosingFollower('messenger8')
         if follower is None:
