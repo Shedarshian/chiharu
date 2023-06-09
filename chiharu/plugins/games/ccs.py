@@ -849,6 +849,11 @@ class Flier(Feature, CanScore):
         token.player.tokens.remove(token)
         yield from token.putOn(to_put)
         yield from super().putOnBy(token)
+class Circus(Feature):
+    pack = (12, "b")
+class Acrobat(Feature, CanScore):
+    def closed(self) -> bool:
+        return False
 
 class TokenMeta(type):
     def __new__(cls, name: str, base, attr):
@@ -1195,6 +1200,23 @@ class Mage(Figure):
 class Witch(Figure):
     key = (13, 2)
     name = "女巫"
+class Bigtop(Figure):
+    key = (10, 0)
+    name = "马戏帐篷"
+class Ringmaster(Follower):
+    key = (10, 1)
+    name = "马戏指挥"
+    def scoreExtra(self) -> TAsync[None]:
+        yield from super().scoreExtra()
+        tile: Tile | None = None
+        if isinstance(self.parent, Segment):
+            tile = self.parent.tile
+        elif isinstance(self.parent, CanScore) and isinstance(self.parent, Feature):
+            tile = self.parent.tile
+        if isinstance(self.player, Player) and tile is not None and (pos := self.board.findTilePos(tile)) is not None:
+            tiles = [self.board.tiles[p] for i in (-1, 0, 1) for j in (-1, 0, 1) if (p := (pos[0] + i, pos[0] + j)) in self.board.tiles]
+            extra = sum(2 for t in tiles for feature in t.features if isinstance(t, (Circus, Acrobat)))
+            yield from self.player.addScore(extra, ScoreReason.Ringmaster)
 
 Token.all_name["follower"] = BaseFollower
 

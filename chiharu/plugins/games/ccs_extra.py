@@ -450,12 +450,15 @@ class ScoreReason(IntEnum):
     King = 9
     Robber = 10
     Shepherd = 11
-    Messenger = 12
-    Gold = 13
-    ScoringRobber = 14
-    Gift = 15
-    Gingerbread = 16
-    Ranger = 17
+    Bigtop = 12
+    Acrobat = 13
+    Ringmaster = 14
+    Messenger = 15
+    Gold = 16
+    ScoringRobber = 17
+    Gift = 18
+    Gingerbread = 19
+    Ranger = 20
 
 from .ccs import State, Tile, RoadSegment, Follower, Segment, BaseCloister, FieldSegment, CitySegment
 from .ccs import TAsync, Monastry, Object, CanScore

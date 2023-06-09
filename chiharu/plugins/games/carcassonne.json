@@ -181,8 +181,27 @@
             "tokens": []
         },
         {
-            "name": "",
-            "id": 10
+            "name": "Under the Big Top",
+            "full_name": "扩展10：马戏帐篷之下（Under the Big Top）",
+            "id": 10,
+            "things": ["图块", "马戏帐篷", "杂技", "马戏指挥"],
+            "undone": [0, 1, 2, 3],
+            "tokens": [
+                {
+                    "name": "bigtop",
+                    "distribute": false,
+                    "thing_id": "b",
+                    "num": 1,
+                    "image": [0, 0, 15, 15]
+                },
+                {
+                    "name": "ringmaster",
+                    "distribute": false,
+                    "thing_id": "d",
+                    "num": 1,
+                    "image": [15, 0, 30, 15]
+                }
+            ]
         },
         {
             "name": "",
