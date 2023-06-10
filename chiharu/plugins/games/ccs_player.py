@@ -16,6 +16,8 @@ class Player:
         self.score_length: int = 0
         self.score_stat: dict[ScoreReason, int] = {s: 0 for s in ScoreReason.__members__.values()}
         self.last_pos: tuple[int, int] | None = None
+        self.score2: int = 0
+        self.begin_score = self.score, self.score2
         if self.board.checkPack(2, 'd'):
             self.tradeCounter = [0, 0, 0]
         if self.board.checkPack(5, 'b'):
@@ -27,9 +29,6 @@ class Player:
             self.king: bool = False
         if self.board.checkPack(6, "c"):
             self.robber: bool = False
-        if self.board.checkPack(12, "c"):
-            self.score2: int = 0
-            self.begin_score = self.score, self.score2
         if self.board.checkPack(14, 'a'):
             self.gifts: list[Gift] = []
     @property
