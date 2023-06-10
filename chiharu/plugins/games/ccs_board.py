@@ -617,7 +617,7 @@ class Board:
         name = 'ccs' + str(random.randint(0, 9) + self.current_player_id * 10) + '.png'
         self.image().save(config.img(name))
         if self.group_id is not None:
-            self.image().save(config.pag(f"ccs\\{self.group_id}.png"))
+            self.image().save(config.pag(f"cacason\\{self.group_id}.png"))
         return config.cq.img(name)
     def saveRemainTileImg(self):
         from .. import config
