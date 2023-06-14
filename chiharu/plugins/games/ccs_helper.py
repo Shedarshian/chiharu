@@ -27,6 +27,9 @@ class TileAddable(Enum):
     Hill = auto()
     Vineyard = auto()
     MageWitch = auto()
+    Rake = auto()
+    Club = auto()
+    Shield = auto()
 class Addable(Enum):
     No = auto()
     Cathedral = auto()
@@ -90,6 +93,9 @@ class State(Enum):
     ChoosingShepherd = auto()
     ChoosingScoreMove = auto()
     ChoosingMessenger = auto()
+    ChoosingCropCircle = auto()
+    ChoosingAddCropCircle = auto()
+    CropAddFollower = auto()
     Error = auto()
 @dataclass
 class Send(ABC):

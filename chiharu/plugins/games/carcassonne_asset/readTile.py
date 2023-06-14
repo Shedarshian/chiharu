@@ -40,7 +40,7 @@ class ParserError(Exception):
     pass
 
 addable = {"Cathedral", "Inn", "pennant", "Cloth", "Wine", "Grain", "Princess", "Pigherd"}
-tile_addable = {"Portal", "Volcano", "Dragon", "Gold", "Gingerbread", "Festival", "Hill", "Vineyard", "MageWitch"}
+tile_addable = {"Portal", "Volcano", "Dragon", "Gold", "Gingerbread", "Festival", "Hill", "Vineyard", "MageWitch", "Rake", "Club", "Shield"}
 tile_addable_pos = {"Garden", "Tower", "Cloister", "Shrine", "Flier", "Circus", "Acrobat"}
 shed = {"Farmhouse", "Cowshed", "Donkey", "Pigsty", "Watertower", "Highwaymen"}
 segments = {"City", "Road", "Field", "River", "Feature", "Junction", "Cut", "Bridge", "Roundabout", "Tunnel"}

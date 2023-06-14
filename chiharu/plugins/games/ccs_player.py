@@ -1,4 +1,4 @@
-from typing import Literal, Any, Sequence, Callable
+from typing import Literal, Any, Sequence, Callable, Type
 import more_itertools, random
 from PIL import Image, ImageDraw, ImageFont
 
@@ -1001,6 +1001,75 @@ class Player:
             ginger.remove(None)
             yield from ginger.putOn(city)
             break
+    def turnCropCircle(self, tile: 'Tile') -> 'TAsync[None]':
+        if tile.addable == TileAddable.Rake:
+            check: Type[Segment] = FieldSegment
+        elif tile.addable == TileAddable.Club:
+            check = RoadSegment
+        elif tile.addable == TileAddable.Shield:
+            check = CitySegment
+        else:
+            return
+        
+        self.board.state = State.ChoosingCropCircle
+        from .ccs_helper import RecieveChoose
+        ret = yield Send(0)
+        assert isinstance(ret, RecieveChoose)
+        for _ in range(len(self.board.players)):
+            self.board.nextAskingPlayer()
+            user = self.board.current_player
+            if not ret.chosen:
+                follower = yield from user.utilityChoosingFollower("cropremove", lambda t: isinstance(t.parent, check))
+                if follower is not None:
+                    follower.putBackToHand(HomeReason.CropCircle)
+                continue
+
+            pass_err: Literal[0, -1, -2, -3] = 0
+            while 1:
+                self.board.state = State.CropAddFollower
+                from .ccs_helper import RecievePosWhich
+                ret2 = yield Send(pass_err)
+                if isinstance(ret2, RecieveReturn):
+                    break
+                assert isinstance(ret2, RecievePosWhich)
+                if ret2.pos not in self.board.tiles:
+                    pass_err = -1
+                    continue
+                token_put = user.findToken(ret2.which)
+                if token_put is None or check not in token_put.canPutTypes:
+                    pass_err = -3
+                    continue
+                tile = self.board.tiles[ret2.pos]
+                followers = [token for token in tile.iterAllTokens() if isinstance(token, Follower) and token.player is user]
+                can_choose = [token for token in followers if isinstance(token.parent, check)]
+                if len(can_choose) == 0:
+                    pass_err = -2
+                    continue
+                if len(can_choose) == 1:
+                    follower = can_choose[0]
+                else:
+                    pass_err = 0
+                    while 1:
+                        self.board.state = State.ChoosingOwnFollower
+                        from .ccs_helper import SendPosSpecial
+                        ret3 = yield SendPosSpecial(pass_err, ret2.pos, "cropadd")
+                        assert isinstance(ret3, RecieveId)
+                        if ret3.id < 0 or ret3.id >= len(followers):
+                            pass_err = -2
+                            continue
+                        follower = followers[ret3.id]
+                        if follower not in can_choose:
+                            pass_err = -3
+                            continue
+                        break
+                assert isinstance(follower.parent, check)
+                if not token_put.canPut(follower.parent):
+                    break
+                user.tokens.remove(token_put)
+                yield from token_put.putOn(follower.parent)
+                break
+
+        self.board.current_player_id = self.board.current_turn_player_id
 
     def turn(self) -> 'TAsync[None]':
         """PuttingTile：坐标+方向（-1：已有连接, -2：无法连接，-3：没有挨着，-4：未找到可赎回的囚犯，-5：余分不足，-6：河流不能回环
@@ -1093,6 +1162,10 @@ class Player:
             if self.board.checkPack(12, "c") and not messengered and (yield from self.turnMessenger()):
                 remainTurns += 1
                 messengered = True
+
+            # crop circle
+            if self.board.checkPack(12, "f"):
+                yield from self.turnCropCircle(tile)
 
             self.board.state = State.End
             remainTurns -= 1

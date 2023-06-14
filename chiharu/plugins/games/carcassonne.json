@@ -205,8 +205,12 @@
             ]
         },
         {
-            "name": "",
-            "id": 11
+            "name": "Ghosts, Castles and Cemeteries",
+            "full_name": "扩展11：幽灵、城堡和墓地（Ghosts, Castles and Cemeteries）",
+            "help": "(a) 图块\n(b) 幽灵\n(c) 守卫与墓地\n(d) 城堡",
+            "id": 11,
+            "things": ["图块", "幽灵", "守卫与墓地", "城堡"],
+            "undone": [0, 1, 2, 3]
         },
         {
             "name": "小扩展合集",

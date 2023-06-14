@@ -777,6 +777,8 @@ class Board:
                         await send("请选择放置另一个金块的图块坐标。")
                     elif ret.special == "gold_take":
                         await send(f"请玩家{self.current_player.long_name}选择拿取金块的图块坐标。")
+                    elif ret.special == "cropremove":
+                        await send(f"请玩家{self.current_player.long_name}选择移除的跟随者坐标。")
                     else:
                         await send("请选择坐标（通用）。")
             case State.PuttingFollower:
@@ -896,6 +898,10 @@ class Board:
                         await send('请额外指定要兑现哪个跟随者。')
                     elif ret.special == "change_position":
                         await send('请额外指定要切换哪个跟随者。')
+                    elif ret.special == "cropadd":
+                        await send("请额外指定添加跟随者的跟随者。")
+                    elif ret.special == "cropremove":
+                        await send("请额外指定移除哪个跟随者。")
                     else:
                         await send("请选择跟随者（通用）。")
             case State.PrincessAsking:
@@ -956,6 +962,19 @@ class Board:
                     self.setImageArgs()
                     await send([self.saveImg()])
                     await send('请选择放置的修道院板块坐标以及跟随者。')
+            case State.CropAddFollower:
+                if ret.last_err == -1:
+                    await send("板块不存在！")
+                elif ret.last_err == -2:
+                    await send("不符合要求！")
+                elif ret.last_err == -3:
+                    await send("没有跟随者！")
+                elif ret.last_err == -4:
+                    await send("无法放置！")
+                else:
+                    self.setImageArgs()
+                    await send([self.saveImg()])
+                    await send('请选择添加跟随者的板块坐标，回复“不放”跳过。')
             case State.ChoosingTileFigure:
                 from .ccs_helper import SendPosSpecial
                 assert isinstance(ret, SendPosSpecial)
@@ -980,6 +999,8 @@ class Board:
                 from .ccs_helper import SendInt
                 assert isinstance(ret, SendInt)
                 await send(f"你抽到了圣旨{ret.num}，作用为{Messenger.make(ret.num).des}，请选择使用还是不用（换2分）。")
+            case State.ChoosingCropCircle:
+                await send("请选择所有人添加或是移除跟随者。")
 
     async def parse_command(self, command: str, send: Callable[[Any], Awaitable], delete_func: Callable[[], Awaitable]):
         match self.state:
@@ -1042,6 +1063,15 @@ class Board:
                     pos = self.tileNameToPos(xs, ys)
                     from .ccs_helper import RecievePosWhich
                     await self.advance(send, delete_func, RecievePosWhich(pos, name or "follower"))
+            case State.CropAddFollower:
+                if command == "不放":
+                    await self.advance(send, delete_func, RecieveReturn())
+                elif match := re.match(r"\s*([A-Z]+)([0-9]+)\s*(.*)?$", command):
+                    xs = match.group(1); ys = match.group(2)
+                    name = match.group(3)
+                    pos = self.tileNameToPos(xs, ys)
+                    from .ccs_helper import RecievePosWhich
+                    await self.advance(send, delete_func, RecievePosWhich(pos, name or "follower"))
             case State.ExchangingPrisoner:
                 if match := re.match(r"\s*(.*)$", command):
                     from .ccs_helper import RecieveWhich
@@ -1088,6 +1118,12 @@ class Board:
                 if command == "不用":
                     await self.advance(send, delete_func, RecieveChoose(False))
                 elif command == "使用":
+                    await self.advance(send, delete_func, RecieveChoose(True))
+            case State.ChoosingCropCircle:
+                from .ccs_helper import RecieveChoose
+                if command == "移除":
+                    await self.advance(send, delete_func, RecieveChoose(False))
+                elif command == "添加":
                     await self.advance(send, delete_func, RecieveChoose(True))
             case _:
                 pass
