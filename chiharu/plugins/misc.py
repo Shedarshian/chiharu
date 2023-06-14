@@ -61,8 +61,9 @@ config.CommandGroup('python', hide=True)
 @on_command(('python', 'exec'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
 @config.ErrorHandle
 async def PythonExec(session: CommandSession):
+    a = {}
     with stdoutIO() as s:
-        exec(session.current_arg_text, {}, {})
+        exec(session.current_arg_text, a, a)
     await session.send(s.getvalue()[:-1])
 
 @on_command(('python', 'await'), only_to_me=False, permission=permission.SUPERUSER, hide=True)
