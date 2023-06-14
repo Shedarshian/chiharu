@@ -100,7 +100,7 @@ async def ccs_extension(session: CommandSession):
             data = cacason.uncomplete[group_id]
             pas = True
     start_names = {0: "默认", 6: "卡卡颂城", 7: "河流"}
-    start_no_start = ((7, "c"),)
+    start_no_start = ((7, "c"), (6, "a"), (6, "b"), (6, "c"), (6, "d"), (6, "g"), (6, "h"))
     if pas:
         if session.current_arg_text.startswith("check"):
             if len(data['extensions']) == 0:
