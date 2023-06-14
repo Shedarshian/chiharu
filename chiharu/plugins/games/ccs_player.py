@@ -244,10 +244,10 @@ class Player:
                     continue
                 if len(rdrs) == 1:
                     t: list[int] = []
-                    if pos[0] < 0: t.append(Dir.LEFT.value)
-                    if pos[0] > 0: t.append(Dir.RIGHT.value)
-                    if pos[1] < 0: t.append(Dir.UP.value)
-                    if pos[1] > 0: t.append(Dir.DOWN.value)
+                    if pos[0] <= 0: t.append(Dir.LEFT.value)
+                    if pos[0] >= 0: t.append(Dir.RIGHT.value)
+                    if pos[1] <= 0: t.append(Dir.UP.value)
+                    if pos[1] >= 0: t.append(Dir.DOWN.value)
                     if rdrs[0] not in t:
                         pass_err = -7
                         continue
@@ -1154,14 +1154,14 @@ class Player:
             # score
             gingered = yield from self.turnScoring(tile, pos, ifBarn, rangered)
 
-            # move Gingerbread man
-            if self.board.checkPack(14, "d") and (gingered or tile.addable == TileAddable.Gingerbread):
-                yield from self.turnMoveGingerbread(gingered)
-
             # messenger
             if self.board.checkPack(12, "c") and not messengered and (yield from self.turnMessenger()):
                 remainTurns += 1
                 messengered = True
+
+            # move Gingerbread man
+            if self.board.checkPack(14, "d") and (gingered or tile.addable == TileAddable.Gingerbread):
+                yield from self.turnMoveGingerbread(gingered)
 
             # crop circle
             if self.board.checkPack(12, "f"):
