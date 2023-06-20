@@ -638,6 +638,9 @@ class Board:
                 yield from player.turnScoring(player.handTiles[0], pos, False, False)
                 player.handTiles.pop(0)
     def process(self) -> 'TAsync[bool]':
+        yield from self.current_player.turnPutFollower(self.tiles[3, 1], (3, 1), False)
+        yield from self.current_player.turnScoring(self.tiles[3, 1], (3, 1), False, False)
+        self.nextPlayer()
         try:
             while 1:
                 yield from self.current_player.turn()

@@ -826,9 +826,10 @@ class Flier(Feature, CanScore):
         ps = {0: (0, -1), 1: (1, -1), 2: (1, 0), 3: (1, 1), 4: (0, 1), 5: (-1, 1), 6: (-1, 0), 7: (-1, -1)}[(self.direction + self.tile.orient.value * 2) % 8]
         pos_new = pos[0] + ps[0] * dice, pos[1] + ps[1] * dice
         if pos_new not in self.board.tiles:
+            # token.putBackToHand(HomeReason.FlierInvalid)
             return
         tile = self.board.tiles[pos_new]
-        put_list: Sequence[Segment | Feature] = [segment for segment in tile.segments if not isinstance(segment, FieldSegment) and not segment.object.canPut() and token.canPut(segment)] + [feature for feature in tile.features if token.canPut(feature) and isinstance(feature, CanScore) and feature.canPut()]
+        put_list: Sequence[Segment | Feature] = [segment for segment in tile.segments if not isinstance(segment, FieldSegment) and segment.object.canPut() and token.canPut(segment)] + [feature for feature in tile.features if token.canPut(feature) and isinstance(feature, CanScore) and feature.canPut()]
         if len(put_list) == 0:
             return
         if len(put_list) == 1:
@@ -850,9 +851,7 @@ class Flier(Feature, CanScore):
                     pass_err = -2
                     continue
                 break
-        token.player.tokens.remove(token)
         yield from token.putOn(to_put)
-        yield from super().putOnBy(token)
 class Circus(Feature):
     pack = (12, "b")
 class Acrobat(Feature, CanScore):

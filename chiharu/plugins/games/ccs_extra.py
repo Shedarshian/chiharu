@@ -424,6 +424,7 @@ class HomeReason(IntEnum):
     RoadSweeper = 11
     CashOut = 12
     ChangePosition = 13
+    FlierInvalid = 14
 @dataclass
 class ccsMeepleStat:
     game: int

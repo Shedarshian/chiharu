@@ -220,10 +220,10 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         return
     if command == "查询礼物":
         await session.send("你手中的礼物卡有：" + board.players[user_id].giftsText(), ensure_private=True)
-    if board.current_player_id != user_id:
-        return
     if command == "重新查询":
         await session.send([board.saveImg()])
+        return
+    if board.current_player_id != user_id:
         return
     
     await board.parse_command(command, send, delete_func)
