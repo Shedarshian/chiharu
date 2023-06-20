@@ -732,8 +732,8 @@ class Player:
                 break
             elif len(adj) == 1:
                 from .ccs_helper import LogDragonMove
-                self.board.addLog(LogDragonMove(self.board.current_player.long_name, dr))
                 dr: Dir = adj[0]
+                self.board.addLog(LogDragonMove(self.board.current_player.long_name, dr))
             else:
                 while 1:
                     self.board.state = State.MovingDragon
