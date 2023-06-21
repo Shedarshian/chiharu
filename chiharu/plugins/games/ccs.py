@@ -85,7 +85,7 @@ class CanScore(ABC):
         self.addStat(False, False, players, False)
         if ifExtra:
             for token in self.iterTokens():
-                yield from token.scoreExtra()
+                token.scoreExtraFinal()
 
 class Tile:
     def __init__(self, board: 'Board', data: TileData, isAbbey: bool) -> None:
@@ -958,6 +958,12 @@ class Token(metaclass=TokenMeta):
             from .ccs_helper import LogScore
             self.board.addLog(LogScore(self.player.long_name, "fairy_complete", 3))
             yield from self.player.addScore(3, type=ScoreReason.Fairy)
+    def scoreExtraFinal(self):
+        if self.board.checkPack(3, "c") and self.board.fairy.follower is self and isinstance(self.player, Player):
+            self.fairy_3 += 1
+            from .ccs_helper import LogScore
+            self.board.addLog(LogScore(self.player.long_name, "fairy_complete", 3))
+            self.player.addScoreFinal(3, type=ScoreReason.Fairy)
     canEatByDragon: bool = True
     canPutTypes: 'tuple[Type[Segment] | Type[Feature] | Type[Tile],...]' = (FieldSegment, CitySegment, RoadSegment, Monastry, Flier, Tower)
     key: tuple[int, int] = (-1, -1)
@@ -1252,6 +1258,17 @@ class Ringmaster(Follower):
             tiles = [self.board.tiles[p] for i in (-1, 0, 1) for j in (-1, 0, 1) if (p := (pos[0] + i, pos[0] + j)) in self.board.tiles]
             extra = sum(2 for t in tiles for feature in t.features if isinstance(t, (Circus, Acrobat)))
             yield from self.player.addScore(extra, ScoreReason.Ringmaster)
+    def scoreExtraFinal(self):
+        super().scoreExtraFinal()
+        tile: Tile | None = None
+        if isinstance(self.parent, Segment):
+            tile = self.parent.tile
+        elif isinstance(self.parent, CanScore) and isinstance(self.parent, Feature):
+            tile = self.parent.tile
+        if isinstance(self.player, Player) and tile is not None and (pos := self.board.findTilePos(tile)) is not None:
+            tiles = [self.board.tiles[p] for i in (-1, 0, 1) for j in (-1, 0, 1) if (p := (pos[0] + i, pos[0] + j)) in self.board.tiles]
+            extra = sum(2 for t in tiles for feature in t.features if isinstance(t, (Circus, Acrobat)))
+            self.player.addScoreFinal(extra, ScoreReason.Ringmaster)
 
 Token.all_name["follower"] = BaseFollower
 
