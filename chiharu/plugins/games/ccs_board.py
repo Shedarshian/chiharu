@@ -638,9 +638,6 @@ class Board:
                 yield from player.turnScoring(player.handTiles[0], pos, False, False)
                 player.handTiles.pop(0)
     def process(self) -> 'TAsync[bool]':
-        yield from self.current_player.turnPutFollower(self.tiles[3, 1], (3, 1), False)
-        yield from self.current_player.turnScoring(self.tiles[3, 1], (3, 1), False, False)
-        self.nextPlayer()
         try:
             while 1:
                 yield from self.current_player.turn()
@@ -679,7 +676,7 @@ class Board:
             # game log
             from .. import config
             import datetime
-            config.userdata.execute("insert into ccs_gamelog (group_id, users, extensions, time, score, winner, winner_score) values (?, ?, ?, ?, ?, ?, ?)", (self.group_id or 0, ','.join(p.long_name for p in self.players), json.dumps(self.packs_options), datetime.datetime.now().isoformat(), ','.join(str(p.score) for p in self.players), ','.join(str(q) for q in players_win), score_win))
+            config.userdata.execute("insert into cacason_gamelog (group_id, users, extensions, time, score, winner, winner_score) values (?, ?, ?, ?, ?, ?, ?)", (self.group_id or 0, ','.join(p.long_name for p in self.players), json.dumps(self.packs_options), datetime.datetime.now().isoformat(), ','.join(str(p.score) for p in self.players), ','.join(str(q) for q in players_win), score_win))
             await delete_func()
             return
         if len(self.log) != 0:
