@@ -56,10 +56,15 @@ async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
         await session.send(f'玩家{name}已参与匹配，游戏开始')
     else:
         await session.send('游戏开始')
-    order = list(range(len(data['players'])))
-    random.shuffle(order)
-    data['players'] = [data['players'][i] for i in order]
-    data['names'] = [data['names'][i] for i in order]
+    if session.current_arg_text in '23456' and len(data['players']) == 1:
+        num = int(session.current_arg_text)
+        data['players'] = [data['players'][0] for _ in range(num)]
+        data['names'] = [data['names'][0] + str(i + 1) for i in range(num)]
+    else:
+        order = list(range(len(data['players'])))
+        random.shuffle(order)
+        data['players'] = [data['players'][i] for i in order]
+        data['names'] = [data['names'][i] for i in order]
     data['adding_extensions'] = True
     import os, shutil
     group_id = session.ctx['group_id']
@@ -227,7 +232,7 @@ async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Ca
         return
     
     await board.parse_command(command, send, delete_func)
-    
+
 @config.ErrorHandle
 async def ccs_rule(session: CommandSession):
     if match := re.match(r'ex(\d+)', session.current_arg_text):
