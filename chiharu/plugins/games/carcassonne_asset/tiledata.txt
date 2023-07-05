@@ -47,7 +47,7 @@ Picture0001
         *1 0a Garden 11,34; where Field 0 [8,16/8,48]
         *1 2a City 0 Grain
         *1 3a City 0 Princess
-        *1 3a Portal; where Field 0 [8,16/8,48]
+        *1 3a Portal; City 0 pennant; where Field 0 [8,16/8,48]
         *1 3a Dragon; Cloister 32,20; where City 0 [40,40]
 1 CCCF
     City u 16
@@ -90,8 +90,8 @@ Picture0002
 0 CCCR
     Road l 16
     City else [40,32]
-        *1 0a
         *2 0a City 0 pennant
+        *1 0a
         *1 2a City 0 Wine
         *1 4a Tower (u) 50,50; where City 0 [40,24]
 1 CCCR
@@ -107,8 +107,8 @@ Picture0002
     City u-r 16
     City d 16
     Road l-32,16 16
-    Field else (R0-d) [8,48/40,40]
-    Field else (R0-u) [8,16]
+    Field else (l-d) {0,1} [8,48/40,40]
+    Field else (l-u) {0} [8,16]
         *1 7c
 Picture0011
 0 CCFF
@@ -116,8 +116,8 @@ Picture0011
     Field else [24,40]
         *2 0a
         *1 0a City 0 pennant
-        *1 0a Garden 25,39; where Field 0 [36,28/8,56]
         *1 0a City 0 pennant; Garden 25,39; where Field 0 [36,28/8,56]
+        *1 0a Garden 25,39; where Field 0 [36,28/8,56]
         *1 2a City 0 Wine
         *1 2a City 0 Grain
         *1 3a Dragon
@@ -145,8 +145,8 @@ Picture0012
 0 CCFR
     City u-r 16
     Road l-32,16 16
-    Field else (R0-d) [32,48]
-    Field else (R0-u) [8,16]
+    Field else (l-d,d-l,d-r) {0} [32,48]
+    Field else (l-u) {0} [8,16]
         *1 1a Road 0 Inn
         *1 2a City 0 Grain
         *1 7c
@@ -170,7 +170,7 @@ Picture0021
     Field else (R0-r) [40,40/ud]
     Field else (R0-l) [16,32]
         *1 1a
-        *1 2a City 0 Cloth; Garden 17,41; where Field 1 [16,16]
+        *1 2a City 0 Cloth; Garden 17,41; where Field 1 [8,16]
 1 CCRF
     Road d 16
     Field l 16
@@ -375,8 +375,8 @@ Picture0202
         *1 4a Tower (l) 47,14
         *1 7c
 5 CRCR
-    Field else (l-u,l-d) [8,16/8,48]
     City else (u-l,u-r,d-l,d-r) [32,16/32,48]
+    Field else (l-u,l-d) {0} [8,16/8,48]
     Field else (r-u) {0} [56,16]
     Field else (r-d) {0} [56,48]
     Road l-10,32 0
@@ -700,7 +700,7 @@ Picture1133
     Field else (R0-l-d) [8,56]
     Field else (R0-r-u) [48,16]
         *1 7b Garden 43,20; where Field 1 [16,16/48,48]
-        *1 7b Field 0 Pigherd; where Field 1 [16,16/48,48]
+        *1 7b Field 1 Pigherd; where Field 1 [16,16/48,48]
         *1 7a
         *1 7a Garden 43,20; where Field 1 [16,16/48,48]
         *1 7d
@@ -747,8 +747,8 @@ Picture1323
     River l-r 0
     Road d-0,40 2
     Field else (R0-u) [16,16/48,16]
-    Field else (l-d) [8,60]
-    Field else (r-d) [56,56]
+    Field else (l-d,d-l) [8,60]
+    Field else (r-d,d-r) [56,56]
         *1 7d
 Picture1333
 0 FSSS

@@ -40,12 +40,13 @@ class ParserError(Exception):
     pass
 
 addable = {"Cathedral", "Inn", "pennant", "Cloth", "Wine", "Grain", "Princess", "Pigherd"}
-tile_addable = {"Portal", "Volcano", "Dragon", "Gold", "Gingerbread", "Festival", "Hill", "Vineyard"}
-tile_addable_pos = {"Garden", "Tower", "Cloister", "Shrine", "Flier"}
+tile_addable = {"Portal", "Volcano", "Dragon", "Gold", "Gingerbread", "Festival", "Hill", "Vineyard", "MageWitch", "Rake", "Club", "Shield"}
+tile_addable_pos = {"Garden", "Tower", "Cloister", "Shrine", "Flier", "Circus", "Acrobat"}
+shed = {"Farmhouse", "Cowshed", "Donkey", "Pigsty", "Watertower", "Highwaymen"}
 segments = {"City", "Road", "Field", "River", "Feature", "Junction", "Cut", "Bridge", "Roundabout", "Tunnel"}
 directions = ["u", "r", "d", "l"]
 elses = ["else", "where", "ud", "lr", "start", "R"]
-tokens = ["DIRECTION", "NUMBER", "WORD", "PACKNAME", "SIDES", "ADDABLE", "TILE_ADDABLE", "TILE_ADDABLE_POS", "PICTURE"] + [s.upper() for s in segments] + [s.upper() for s in elses]
+tokens = ["DIRECTION", "NUMBER", "WORD", "PACKNAME", "SIDES", "ADDABLE", "TILE_ADDABLE", "SHED", "TILE_ADDABLE_POS", "PICTURE"] + [s.upper() for s in segments] + [s.upper() for s in elses]
 literals = '()[]{}/-;,*'
 
 line_num = 0
@@ -77,6 +78,8 @@ def TileDataLexer():
             t.type = "DIRECTION"
             t.value = Dir(directions.index(t.value))
         elif t.value in addable:
+            t.type = "ADDABLE"
+        elif t.value in shed:
             t.type = "ADDABLE"
         elif t.value in tile_addable:
             t.type = "TILE_ADDABLE"
