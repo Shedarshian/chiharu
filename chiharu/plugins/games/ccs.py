@@ -1282,6 +1282,7 @@ from .ccs_helper import RecieveId
 from .ccs_board import Board
 
 if __name__ == "__main__":
+    from .ccs_tile import open_img
     b = Board({0: "a", 1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 6: "abcdefgh", 7: "abcd", 9: "abc", 10: "abcd", 12: "abe", 13: "abcdijk"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
     d = {
             "name": "follower",
@@ -1298,20 +1299,20 @@ if __name__ == "__main__":
         for i, s2 in enumerate(ss):
             t = b.tiles[i % 5, i // 5 + yshift] = [s for s in b.deck + b.riverDeck if s.picname == pic and s.serialNumber[1:] == s2][0]
             # t.turn(Dir.LEFT)
-            # for seg in t.segments:
-            #     b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-            #     for _ in b.players[0].tokens[-1].putOn(seg):
-            #         pass
-            # for feature in t.features:
-            #     if isinstance(feature, BaseCloister):
-            #         b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-            #         for _ in b.players[0].tokens[-1].putOn(feature):
-            #             pass
-            #     if isinstance(feature, Tower):
-            #         b.players[1].tokens.append(BaseFollower(b.players[1], d, open_img("token0").crop((0, 0, 16, 16))))
-            #         for _ in b.players[1].tokens[-1].putOn(feature):
-            #             pass
-            #         feature.height = random.randint(0, 9)
+            for seg in t.segments:
+                b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+                for _ in b.players[0].tokens[-1].putOn(seg):
+                    pass
+            for feature in t.features:
+                if isinstance(feature, BaseCloister):
+                    b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+                    for _ in b.players[0].tokens[-1].putOn(feature):
+                        pass
+                if isinstance(feature, Tower):
+                    b.players[1].tokens.append(BaseFollower(b.players[1], d, open_img("token0").crop((0, 0, 16, 16))))
+                    for _ in b.players[1].tokens[-1].putOn(feature):
+                        pass
+                    feature.height = random.randint(0, 9)
         yshift += (len(ss) + 4) // 5
     for p in b.players:
         p.last_pos = (0, p.id)
