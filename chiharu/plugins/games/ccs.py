@@ -691,7 +691,7 @@ class Feature:
         self.tokens: list[Token] = []
     @classmethod
     def make(cls, typ: str) -> Type["Feature"]:
-        return {"cloister": Cloister, "garden": Garden, "shrine": Shrine, "tower": Tower, "flier": Flier}[typ.lower()]
+        return {"cloister": Cloister, "garden": Garden, "shrine": Shrine, "tower": Tower, "flier": Flier, "circus": Circus, "acrobat": Acrobat}[typ.lower()]
     def putOnBy(self, token: 'Token') -> TAsync[None]:
         for token in self.tile.tokens:
             if isinstance(token, TileFigure):
@@ -1282,7 +1282,7 @@ from .ccs_helper import RecieveId
 from .ccs_board import Board
 
 if __name__ == "__main__":
-    b = Board({0: "a", 1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 6: "abcdefgh", 7: "abcd", 9: "abc", 12: "ab", 13: "abcdijk"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
+    b = Board({0: "a", 1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 6: "abcdefgh", 7: "abcd", 9: "abc", 10: "abcd", 12: "ab", 13: "abcdijk"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
     d = {
             "name": "follower",
             "distribute": True,
@@ -1291,7 +1291,7 @@ if __name__ == "__main__":
         }
     b.players[0].tokens.pop(0)
     yshift = 0
-    cri = lambda s: s.serialNumber[0] in (6, 9,)
+    cri = lambda s: s.serialNumber[0] in (10,)
     picnames = sorted(set(s.serialNumber[1] for s in b.deck + b.riverDeck if cri(s)))
     for pic in picnames:
         ss = sorted(set(s.serialNumber[1:] for s in b.deck + b.riverDeck if s.picname == pic if cri(s)))

@@ -177,6 +177,14 @@ Picture0021
     City else [28,36]
         *1 2a City 0 Wine
         *1 4a Tower (u) 42,22; where City 0 [28,36]
+2 CCRF
+    Road d-32,44 0
+    City u 16
+    City r 16
+    Field else (d-r) {1} [48,8]
+    Field else (d-l,l-u,l-d) {0,1} [16,32/ud]
+    Field else {0,1} [48,16]
+        *1 10a Circus 32,28
 Picture0022
 0 CCRR
     City u-r 16
@@ -199,6 +207,7 @@ Picture0022
     Field else (R0-u) [8,16]
         *1 2a City 0 Wine; Garden 16,48
         *1 7c
+        *1 10a Circus 32,32
 2 CCRR
     Road l 16
     Road d 16
@@ -236,6 +245,7 @@ Picture0101
     Field else (l-u,l-d) {0,1} [16,32]
     Field else (r-u,r-d) {0,1} [48,32]
         *1 9a Vineyard; where Field 0 [8,48]
+        *1 10a Circus 32,32; where City 0 [32,8]; where City 1 [32,56]
 Picture0102
 0 CFCR
     Road l 16
@@ -255,6 +265,7 @@ Picture0111
         *1 4a Tower (l) 47,46; where Field 0 [16,48]
         *1 6g Shrine 32,32
         *1 6a Cloister 36,44; where Field 0 [12,32/52,32]
+        *1 10a Circus 28,32
 1 CFFF
     Field l-d 16
     Field r 16
@@ -280,6 +291,11 @@ Picture0112
         *1 5a
         *1 6a Garden 44,47; where Field 0 [56,16/16,48]
         *1 13i Festival
+1 CFFR
+    City u 16
+    Road l-24,32 0
+    Field else (l-d,d-l,d-r,r-d,r-u) {0} [48,48]
+    Field else (l-u) {0} [8,16]
 Picture0121
 0 CFRF
     City u 16
@@ -296,6 +312,12 @@ Picture0121
     Road d-Feature0 0
     Field else [16,48/48,48]
         *1 6g Shrine Feature0
+2 CFRF
+    City u 16
+    Feature 32,32
+    Road d-Feature0 0
+    Field else [16,48/48,48]
+        *2 10a Circus Feature0
 Picture0122
 0 CFRR
     City u 16
@@ -406,6 +428,14 @@ Picture0212
     Field else (R0-d) [32,48]
     Field else (l-u) {0} [8,20]
         *1 4a Tower (l) 31,49; where Field 1 [48,48]
+2 CRFR
+    City u 16
+    Road l-24,32 0
+    Road r-40,32 0
+    Field else (r-u) {0} [56,16]
+    Field else (l-d,d-l,d-r,r-d) [32,48]
+    Field else (l-u) {0} [8,20]
+        *1 10a Circus 32,32
 Picture0221
 0 CRRF
     City u 16
@@ -467,6 +497,7 @@ Picture1111
         *1 13a Flier (6) 19,48; where Field 0 [12,12/52,12/52,52]
         *1 13a Flier (7) 22,24; Garden 45,46; where Field 0 [12,52/52,12]
         *1 6g Shrine 32,32
+        *1 10a Acrobat 32,32; Garden 48,16; where Field 0 [12,12/12,52/52,52]
 Picture1112
 0 FFFR
     Feature 32,32
@@ -476,6 +507,8 @@ Picture1112
         *1 3a Volcano
         *1 5a Garden 43,15; where Field 0 [12,12/12,52/52,52]
         *1 6g Shrine Feature0
+        *1 10a Acrobat Feature0
+        *1 10a Circus Feature0
 Picture1122
 0 FFRR
     Road l-d 16
@@ -499,6 +532,8 @@ Picture1122
         *1 4a Tower (l) 36,32
         *1 13i Festival; Cloister Feature0
         *1 9a Hill; Garden 22,12; where Field 0 [48,16/52,48]
+        *3 10a Acrobat Feature0
+        *1 10a Circus Feature0
 Picture1212
 0 FRFR
     Road l-r 16
@@ -521,6 +556,8 @@ Picture1212
         *1 1a Cloister Feature0
         *1 6g Shrine Feature0
         *1 9a Hill; where Field 0 [16,16]
+        *1 10a Acrobat Feature0
+        *1 10a Circus Feature0
 Picture1222
 0 FRRR
     Feature 32,32
@@ -533,6 +570,8 @@ Picture1222
         *1 2a Cloister Feature0
         *1 3a Cloister Feature0; Dragon; where Field 0 [16,12]
         *1 4a Tower (l) 36,32
+        *1 10a Acrobat Feature0
+        *1 10a Circus Feature0
 1 FRRR
     Junction 32,32
     Road l-Junction0 0
