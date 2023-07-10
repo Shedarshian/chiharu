@@ -451,7 +451,7 @@ Picture0212
     City u 16
     Road l-24,32 0
     Road r-40,32 0
-    Field else (r-u,l-u) {0} [56,16,8,20]
+    Field else (r-u,l-u) {0} [56,16/8,20]
     Field else (l-d,d-l,d-r,r-d) [32,48]
         *1 12e Rake
 Picture0221
@@ -627,7 +627,7 @@ Picture1222
 5 FRRR
     Road r-36,32 0
     Road l-d 16
-    Field else (R0-l-d) [8,56]
+    Field else (R1-l-d) [8,56]
     Field else (l-u,u-l,u-r,r-u) [8,8/56,8]
     Field else (r-d,d-r) [56,56]
         *1 12e Club
