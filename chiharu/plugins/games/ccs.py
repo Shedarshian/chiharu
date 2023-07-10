@@ -117,7 +117,7 @@ class Tile:
             elif isinstance(seg, FeatureSegmentData):
                 typ = Feature.make(seg.feature)
                 if typ.pack[0] == 0 or self.board.checkPack(*typ.pack):
-                    self.features.append(typ(self, seg, seg.params))
+                    self.features.append(t := typ(self, seg, seg.params))
             elif isinstance(seg, AddableSegmentData):
                 self.addable = TileAddable[seg.feature]
         for seg2 in self.segments:
@@ -1284,6 +1284,7 @@ from .ccs_board import Board
 if __name__ == "__main__":
     from .ccs_tile import open_img
     b = Board({0: "a", 1: "abcd", 2: "abcd", 3: "abcde", 4: "ab", 5: "abcde", 6: "abcdefgh", 7: "abcd", 9: "abc", 10: "abcd", 12: "abe", 13: "abcdijk"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
+    from .ccs import BaseCloister
     d = {
             "name": "follower",
             "distribute": True,

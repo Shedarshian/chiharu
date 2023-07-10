@@ -522,7 +522,7 @@ Picture1111
         *1 13a Flier (6) 19,48; where Field 0 [12,12/52,12/52,52]
         *1 13a Flier (7) 22,24; Garden 45,46; where Field 0 [12,52/52,12]
         *1 6g Shrine 32,32
-        *1 10a Acrobat 32,32; Garden 48,16; where Field 0 [12,12/12,52/52,52]
+        *1 10a Acrobat 32,32; Garden 50,14; where Field 0 [12,12/12,52/52,52]
 Picture1112
 0 FFFR
     Feature 32,32
@@ -558,7 +558,7 @@ Picture1122
         *1 13i Festival; Cloister Feature0
         *1 9a Hill; Garden 22,12; where Field 0 [48,16/52,48]
         *3 10a Acrobat Feature0
-        *1 10a Circus Feature0; Garden 48,16
+        *1 10a Circus Feature0; Garden 52,11
 Picture1212
 0 FRFR
     Road l-r 16
@@ -689,7 +689,7 @@ Picture2222
         *1 13c Gold
 4 RRRR
     Road l-u 16
-    Road r-40,32 0
+    Road r-48,32 0
     Road d-32,56 0
     Field else (R0-l-u) [8,8]
     Field else (l-d,d-l,r-u,u-r) [8,56/56,8]
