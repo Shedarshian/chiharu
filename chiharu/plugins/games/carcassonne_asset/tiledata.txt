@@ -38,6 +38,10 @@ Picture0000
     Field else {0,1} [48,16/48,48]
         *1 5a City 0 pennant
         *1 6a
+6 CCCC
+    City u-l 16
+    City r-d 16
+        *1 12e Shield
 Picture0001
 0 CCCF
     Field l 16
@@ -246,6 +250,7 @@ Picture0101
     Field else (r-u,r-d) {0,1} [48,32]
         *1 9a Vineyard; where Field 0 [8,48]
         *1 10a Circus 32,32; where City 0 [32,8]; where City 1 [32,56]
+        *1 12e Shield; where City 0 [32,8]; where City 1 [32,56]
 Picture0102
 0 CFCR
     Road l 16
@@ -318,6 +323,12 @@ Picture0121
     Road d-Feature0 0
     Field else [16,48/48,48]
         *2 10a Circus Feature0
+3 CFRF
+    City u 16
+    Feature 32,32
+    Road d-32,56 0
+    Field else [16,48/48,48]
+        *1 12e Rake
 Picture0122
 0 CFRR
     City u 16
@@ -436,6 +447,13 @@ Picture0212
     Field else (l-d,d-l,d-r,r-d) [32,48]
     Field else (l-u) {0} [8,20]
         *1 10a Circus 32,32
+3 CRFR
+    City u 16
+    Road l-24,32 0
+    Road r-40,32 0
+    Field else (r-u,l-u) {0} [56,16,8,20]
+    Field else (l-d,d-l,d-r,r-d) [32,48]
+        *1 12e Rake
 Picture0221
 0 CRRF
     City u 16
@@ -606,6 +624,13 @@ Picture1222
     Field else (R0-u) [32,16]
     Field else (R0-d) [8,56/56,56]
         *1 9a Vineyard; where Field 0 [16,16]
+5 FRRR
+    Road r-36,32 0
+    Road l-d 16
+    Field else (R0-l-d) [8,56]
+    Field else (l-u,u-l,u-r,r-u) [8,8/56,8]
+    Field else (r-d,d-r) [56,56]
+        *1 12e Club
 Picture2222
 0 RRRR
     Junction 32,32
@@ -655,6 +680,14 @@ Picture2222
     Field else (R0-l,R3-u) [8,8]
         *1 2a
         *1 13c Gold
+4 RRRR
+    Road l-u 16
+    Road r-40,32 0
+    Road d-56,32 0
+    Field else (R0-l-u) [8,8]
+    Field else (l-d,d-l,r-u,u-r) [8,56/56,8]
+    Field else (r-d,d-r) [56,56]
+        *1 12e Club
 Picture0033
 0 CCSS
     City u-r 16

@@ -1291,7 +1291,7 @@ if __name__ == "__main__":
         }
     b.players[0].tokens.pop(0)
     yshift = 0
-    cri = lambda s: s.serialNumber[0] in (10,)
+    cri = lambda s: s.serialNumber[0] in (10, 12)
     picnames = sorted(set(s.serialNumber[1] for s in b.deck + b.riverDeck if cri(s)))
     for pic in picnames:
         ss = sorted(set(s.serialNumber[1:] for s in b.deck + b.riverDeck if s.picname == pic if cri(s)))
