@@ -28,7 +28,10 @@ async def p24ans(session: CommandSession):
                     ret.append(c1.split('\t\t')[0])
             if len(ret) == 0:
                 session.finish("无解或数字过大。")
-            n = '\n'
-            session.finish(f"答案有：{n.join(ret)}")
+            if len(ret) == 1:
+                session.finish(f"答案是：{ret[0]}")
+            else:
+                n = '\n'
+                session.finish(f"答案有：\n{n.join(ret)}")
     except FileNotFoundError:
         session.finish("未找到此数字组合。")
