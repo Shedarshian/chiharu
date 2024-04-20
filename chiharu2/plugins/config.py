@@ -23,3 +23,6 @@ def pag(rel_path):
 
 selfqq = 2711644761
 is_chinatsu = True
+
+def ErrorHandle(a):
+    return a
