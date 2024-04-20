@@ -324,10 +324,10 @@ async def daily_update(buf: SessionBuffer) -> str:
     Game.userdatas.clear()
     new_me()
     word = await update_begin_word(is_daily=True)
-    await buf.flush()
+    # await buf.flush()
     if today.isoweekday() == 7:
         buf.send("本周星座为" + Sign(global_state["sign"]).description)
-        await buf.flush()
+        # await buf.flush()
     return "今日关键词：" + word + "\nid为【0】。"
 
 @on_natural_language(keywords="接", only_to_me=False, only_short_message=False)
