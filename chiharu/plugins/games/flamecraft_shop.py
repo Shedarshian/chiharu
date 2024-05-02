@@ -5,27 +5,17 @@ from collections import defaultdict
 class Slot:
     def __init__(self, award: 'Award | None'=None) -> None:
         self.award: 'Award' = award or Award()
-    @property
-    def isFilled(self):
-        return False
     def fill(self, player: 'Player') -> Generator: # TODO
         return
         yield
 class DragonSlot(Slot):
     def __init__(self, dragonType: 'tuple[Resource, ...]' = (), award: 'Award | None' = None) -> None:
         self.dragonType = dragonType
-        self.dragon: 'Dragon | None' = None
         super().__init__(award)
-    @property
-    def isFilled(self):
-        return self.dragon is not None
 class Coin2Slot(Slot):
     def __init__(self, award: 'Award | None' = None) -> None:
         self.filled: bool = False
         super().__init__(award)
-    @property
-    def isFilled(self):
-        return self.filled
 
 class Shop:
     allShops: 'dict[Resource, list[type[Shop]]]' = defaultdict(list)
@@ -50,10 +40,17 @@ class Shop:
         elif cls.isStarter == 2:
             pass # TODO
     def __init__(self) -> None:
-        if self.isStarter:
-            self.slot1 # TODO
+        self.dragons: list[Dragon | None] = [None, None, None]
+        if self.isStarter > 0:
+            assert isinstance(self.resource, Resource)
+            dragon = Dragon.get(self.resource)(self, True)
+            self.dragons[0] = dragon
         self.spells: list[Spell] = []
         self.players: list[Player] = []
+    def getSlot(self, i: int):
+        return (self.slot1, self.slot2, self.slot3)[i]
+    def getDragon(self, i: int):
+        return self.dragons[i]
     def special(self, player: 'Player') -> Generator:
         return
         yield
