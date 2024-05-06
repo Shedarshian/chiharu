@@ -26,7 +26,7 @@ class Shop:
     slot2: Slot
     slot3: Slot
     def __init_subclass__(cls) -> None:
-        if cls.__name__ == 'AltStarterShop': # 排除掉基类
+        if cls.__name__.endswith('Shop'): # 排除掉基类
             return
         if isinstance(cls.resource, Resource):
             Shop.allShops[cls.resource].append(cls)

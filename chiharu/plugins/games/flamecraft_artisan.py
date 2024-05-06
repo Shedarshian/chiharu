@@ -8,6 +8,9 @@ class Dragon:
     def __init__(self, parent: 'Player | Board | Shop', isStarter: bool=False) -> None:
         self.parent = parent
         self.isStarter = isStarter
+        self.goods: int = 0
+    def setParent(self, parent: 'Player | Board | Shop'):
+        self.parent = parent
     def ability(self, player: 'Player') -> 'TAsync[None]':
         return
         yield
@@ -23,8 +26,8 @@ from .flamecraft_board import Board
 class DragonBread:
     color = Resource.Bread
     def ability(self, player: Player) -> 'TAsync[None]':
-        return
-        yield
+        l = yield from player.chooseDragonStack(1)
+        yield from player.drawDragon(l)
 
 class DragonMeat:
     color = Resource.Meat
@@ -61,7 +64,6 @@ class DragonCrystal:
                 continue
             player.addResources(ret.resources)
             break
-        yield from player.board.dragons[0].ability(player)
 
 class DragonPlant:
     color = Resource.Plant
