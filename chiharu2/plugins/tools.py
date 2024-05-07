@@ -22,6 +22,7 @@ matcher = on_slash_command(name="tools",
 
 @concurrent.process(timeout=30)
 def calculate(s):
+    from .helper.function.function import parser, ParserError
     parser.reset()
     parser.max_sum = 10000
     try:
