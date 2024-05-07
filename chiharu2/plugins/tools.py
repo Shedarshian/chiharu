@@ -138,11 +138,7 @@ async def cal1(formula: CommandOption[str]):
     await matcher.edit_response(f"您想要计算的式子是：{formula}\n{ret}")
 
 @matcher.handle_sub_command('asc', 'check')
-<<<<<<< HEAD
 async def AscCheck(string: CommandOption[str], option: CommandOption[bool] = False):
-=======
-async def AscCheck(string: CommandOption[str], option: CommandOption[str|None]):
->>>>>>> d629880cef9de13e440158448383b8297c17808d
     '''转换输入字符串的所有字符到unicode码。
     可用选项：
         转换至U+xxxxx十六进制输出'''
