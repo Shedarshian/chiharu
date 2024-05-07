@@ -1,5 +1,5 @@
 from nonebot.adapters.discord.commands import CommandOption, on_slash_command
-from nonebot.adapters.discord.api import *
+from nonebot.adapters.discord.api import StringOption
 
 matcher = on_slash_command(name="echo",
     description="复读",

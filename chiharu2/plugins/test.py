@@ -48,17 +48,17 @@ from nonebot.adapters.discord.commands import (
 # )
 
 # @matcher.handle_sub_command("add")
-async def handle_user_add(
-    plugin: CommandOption[str], priority: CommandOption[Optional[int]]
-):
-    await matcher.send_deferred_response()
-    await asyncio.sleep(2)
-    await matcher.edit_response(f"你添加了插件 {plugin}，优先级 {priority}")
-    await asyncio.sleep(2)
-    fm = await matcher.send_followup_msg(
-        f"你添加了插件 {plugin}，优先级 {priority} (新消息)"
-    )
-    await asyncio.sleep(2)
-    await matcher.edit_followup_msg(
-        fm.id, f"你添加了插件 {plugin}，优先级 {priority} (新消息修改后)"
-    )
+# async def handle_user_add(
+#     plugin: CommandOption[str], priority: CommandOption[Optional[int]]
+# ):
+#     await matcher.send_deferred_response()
+#     await asyncio.sleep(2)
+#     await matcher.edit_response(f"你添加了插件 {plugin}，优先级 {priority}")
+#     await asyncio.sleep(2)
+#     fm = await matcher.send_followup_msg(
+#         f"你添加了插件 {plugin}，优先级 {priority} (新消息)"
+#     )
+#     await asyncio.sleep(2)
+#     await matcher.edit_followup_msg(
+#         fm.id, f"你添加了插件 {plugin}，优先级 {priority} (新消息修改后)"
+#     )
