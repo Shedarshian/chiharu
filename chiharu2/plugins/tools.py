@@ -1,12 +1,10 @@
 import asyncio
-from pebble import concurrent, ThreadPool
 from concurrent.futures import TimeoutError, ThreadPoolExecutor, _base
 from nonebot.adapters.discord.commands import CommandOption, on_slash_command
 from nonebot.adapters.discord.api import SubCommandGroupOption, SubCommandOption, StringOption
 from nonebot.adapters.discord import Bot, MessageEvent, MessageSegment, Message
 from nonebot import on_command
 from nonebot.params import CommandArg
-from .helper.function.function import parser, ParserError
 
 matcher = on_slash_command(name="tools",
     description="数理小工具",
@@ -19,18 +17,6 @@ matcher = on_slash_command(name="tools",
                 required=True,
             )])
     ])
-
-@concurrent.process(timeout=30)
-def calculate(s):
-    from .helper.function.function import parser, ParserError
-    parser.reset()
-    parser.max_sum = 10000
-    try:
-        return parser.parse(s)
-    except ParserError as e:
-        return 'SyntaxError: ' + str(e)
-    except Exception as e:
-        return type(e).__name__ + ': ' + str(e)
 
 async def calculator(formula: str):
     """计算器。计算给定式子的结果。别名：-cal
@@ -55,6 +41,7 @@ async def calculator(formula: str):
         均匀分布随机数random 高斯分布随机数gauss
     可以使用的常量：
         圆周率pi 自然对数的底e 欧拉常数gamma"""
+    from .helper.function_helper import calculate
     try:
         loop = asyncio.get_event_loop()
         future = calculate(formula) # type: ignore
