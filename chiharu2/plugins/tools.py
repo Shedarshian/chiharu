@@ -70,9 +70,9 @@ async def calculator(formula: str):
 
 @matcher.handle_sub_command("cal")
 async def cal1(formula: CommandOption[str]):
-    message = await matcher.send_followup_msg("少女计算中...")
+    await matcher.send_response("少女计算中...")
     ret = await calculator(formula)
-    await matcher.edit_followup_msg(message.id, ret)
+    await matcher.edit_response(ret)
 
 # matcher_console = on_command(("tools"))
 # @matcher_console.handle()
