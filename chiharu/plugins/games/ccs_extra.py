@@ -425,6 +425,7 @@ class HomeReason(IntEnum):
     CashOut = 12
     ChangePosition = 13
     FlierInvalid = 14
+    AcrobatScore = 15
 @dataclass
 class ccsMeepleStat:
     game: int

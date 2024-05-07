@@ -324,7 +324,7 @@ class Board:
                 side = pos + dr
                 if side in self.tiles:
                     ret = self.tiles[side].checkConnect(tile, -dr, orient)
-                    if ret < 0:
+                    if ret != 1:
                         return ret
         if self.checkPack(6, "h"):
             cl = more_itertools.only(0 if isinstance(feature, Cloister) else 1 if isinstance(feature, Shrine) else -1 for feature in tile.features if isinstance(feature, BaseCloister))
@@ -466,13 +466,13 @@ class Board:
             i = ord('a')
             for follower in tile.iterAllTokens():
                 if isinstance(follower, Follower) and follower.player is self.current_turn_player:
-                    draw(self.findTilePos(tile), tile.findTokenDrawPos(follower), i)
+                    draw(self.findTilePos(tile) , tile.findTokenDrawPos(follower), i) # type: ignore
                     i += 1
         if princess is not None:
             i = ord('a')
             for follower in princess.iterTokens():
                 if isinstance(follower, Follower) and isinstance(follower.parent, Segment):
-                    draw(self.findTilePos(follower.parent.tile), follower.parent.tile.findTokenDrawPos(follower), i)
+                    draw(self.findTilePos(follower.parent.tile), follower.parent.tile.findTokenDrawPos(follower), i) # type: ignore
                     i += 1
         if tower_pos is not None:
             tower = [feature for feature in self.tiles[tower_pos].features if isinstance(feature, Tower)][0]
@@ -480,7 +480,7 @@ class Board:
             i = ord('a')
             for follower in followers:
                 if isinstance(follower.parent, Segment):
-                    draw(self.findTilePos(follower.parent.tile), follower.parent.tile.findTokenDrawPos(follower), i)
+                    draw(self.findTilePos(follower.parent.tile), follower.parent.tile.findTokenDrawPos(follower), i) # type: ignore
                     i += 1
         if tile_figure is not None:
             tile = self.tiles[tile_figure]

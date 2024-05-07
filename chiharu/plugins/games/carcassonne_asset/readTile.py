@@ -349,9 +349,9 @@ class LineSegmentPic(SegmentPic):
                 d: float = ((last_pos[0] - pos[0]) ** 2 + (last_pos[1] - pos[1]) ** 2) ** 0.5
                 self.nodes.append((round(pos[0] + point.radius * (last_pos[0] - pos[0]) / d), round(pos[1] + point.radius * (last_pos[1] - pos[1]) / d)))
                 if node[0] in (SegmentType.Bridge, SegmentType.Roundabout):
-                    self.link = node
+                    self.link = node # type: ignore
             else:
-                self.nodes.append(node)
+                self.nodes.append(node) # type: ignore
         if len(self.nodes) == 2:
             self.center = (self.nodes[0][0] + self.nodes[1][0]) // 2, (self.nodes[0][1] + self.nodes[1][1]) // 2
         else:

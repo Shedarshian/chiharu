@@ -323,6 +323,7 @@ async def daily_update(buf: SessionBuffer) -> str:
     save_data()
     Game.userdatas.clear()
     new_me()
+    buf.clear()
     word = await update_begin_word(is_daily=True)
     # await buf.flush()
     if today.isoweekday() == 7:

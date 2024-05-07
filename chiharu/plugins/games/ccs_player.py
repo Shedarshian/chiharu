@@ -269,10 +269,10 @@ class Player:
         if self.board.checkPack(14, "a"):
             for segment in tile.segments:
                 if isinstance(segment, (RoadSegment, CitySegment)) and len(l := segment.object.checkPlayer(True)) > 0 and self not in l:
-                    if gift := self.board.drawGift():
+                    if gift2 := self.board.drawGift():
                         from .ccs_helper import LogDrawGift
-                        self.board.addLog(LogDrawGift(gift.name, self.giftsText()))
-                        self.gifts.append(gift)
+                        self.board.addLog(LogDrawGift(gift2.name, self.giftsText()))
+                        self.gifts.append(gift2)
                     break
         if len(self.handTiles) > 1:
             for tile2 in self.handTiles:
@@ -293,6 +293,7 @@ class Player:
             return -4
         yield from self.addScore(-3, ScoreReason.PayPrisoner)
         yield from player.addScore(3, ScoreReason.PayPrisoner)
+        assert isinstance(token, Follower)
         player.prisoners.remove(token)
         self.tokens.append(token)
         return 0
@@ -425,8 +426,9 @@ class Player:
                 break
             seg_put: Segment | Feature | Tile = tile_put
             if (ll := len(tile_put.segments) + len(tile_put.features)) > ret.id >= 0:
-                seg_put = tile_put.getSeg(ret.id)
-            elif self.board.checkPack(5, "e") and not tile_put.isAbbey and ll <= ret.id < ll + 4 and (pos := self.board.findTilePos(tile_put)):
+                seg_put = tile_put.getSeg(ret.id) # type: ignore
+            elif self.board.checkPack(5, "e") and not tile_put.isAbbey and ll <= ret.id < ll + 4 and (pos2 := self.board.findTilePos(tile_put)):
+                pos = pos2
                 # for barn
                 offset = [(-1, -1), (0, -1), (-1, 0), (0, 0)][ret.id - ll]
                 if (tile2 := self.board.tiles.get((pos_put[0] + offset[0], pos_put[1] + offset[1]))) is not None:
@@ -604,7 +606,7 @@ class Player:
         else:
             yield from acrobat.score(True, False)
             for token in acrobat.tokens:
-                token.putBackToHand()
+                token.putBackToHand(HomeReason.AcrobatScore)
         return 0
     def turnMovingFestival(self, ret: 'RecievePuttingFollower') -> 'TAsync[Literal[0, -14]]':
         pos: tuple[int, int] = ret.pos
@@ -684,6 +686,7 @@ class Player:
                     if token is None:
                         pass_err = -1
                         continue
+                    assert isinstance(token, Follower)
                     t[i] = token
                     break
                 if i == 1:
@@ -727,6 +730,7 @@ class Player:
         for i in range(6):
             pass_err = 0
             pos = self.board.findTilePos(dragon.tile)
+            assert pos is not None
             adj = [dr for dr in Dir if pos + dr in self.board.tiles and dragon.canMove(self.board.tiles[pos + dr])]
             if len(adj) == 0:
                 break
