@@ -56,7 +56,7 @@ async def calculator(formula: str):
         圆周率pi 自然对数的底e 欧拉常数gamma"""
     try:
         loop = asyncio.get_event_loop()
-        future = calculate(formula)
+        future = calculate(formula) # type: ignore
         with ThreadPoolExecutor() as pool:
             result = await loop.run_in_executor(pool, future.result)
     except (TimeoutError, _base.CancelledError):
