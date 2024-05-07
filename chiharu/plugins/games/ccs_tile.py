@@ -171,7 +171,7 @@ class AreaSegmentData(SegmentData):
                     t = road.lines[0].nodes_init[-1]
                     if isinstance(t, tuple) and isinstance(t[0], int):
                         for city in data.segments:
-                            if isinstance(city, CitySegmentData) and city.pic.onSelfEdge(t):
+                            if isinstance(city, CitySegmentData) and city.pic.onSelfEdge(t): # type: ignore
                                 checks[city.pic.begin()] = city
                                 checks[city.pic.end()] = city
                                 break
@@ -296,7 +296,7 @@ class FeatureSegmentData(AddableSegmentData):
                 assert isinstance(f, EmptyFeatureSegmentData)
                 self.pos: tuple[int, int] = f.pic.pos
             else:
-                self.pos = pos
+                self.pos = pos # type: ignore
         else:
             self.pos = pos.tilepos()
         self.pic = PointSegmentPic(SegmentType.Feature, self.pos, [])

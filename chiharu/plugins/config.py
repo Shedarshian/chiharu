@@ -265,8 +265,10 @@ class SessionBuffer:
                 await get_bot().send_group_msg(group_id=self.group_id, message=msg)
             else:
                 await self.session.send(msg)
-            self.buffer = ''
-            self.send_end = ''
+            self.clear()
+    def clear(self):
+        self.buffer = ''
+        self.send_end = ''
     def __getattr__(self, name: str):
         return getattr(self.session, name)
     def char(self, qq):

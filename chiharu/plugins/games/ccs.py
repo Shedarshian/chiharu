@@ -234,7 +234,7 @@ class Tile:
                         dr.line((0, corr[1], corr[0], corr[1]), seg.color, 2)
             elif isinstance(seg, AreaSegment):
                 for du in seg.side.keys():
-                    cr = {(Dir.UP, True): (16, 0), (Dir.UP, False): (48, 0), (Dir.RIGHT, True): (64, 16), (Dir.RIGHT, False): (64, 48), (Dir.DOWN, True): (48, 64), (Dir.DOWN, False): (16, 64), (Dir.LEFT, True): (0, 48), (Dir.LEFT, False): (0, 16)}[du]
+                    cr = {(Dir.UP, True): (16, 0), (Dir.UP, False): (48, 0), (Dir.RIGHT, True): (64, 16), (Dir.RIGHT, False): (64, 48), (Dir.DOWN, True): (48, 64), (Dir.DOWN, False): (16, 64), (Dir.LEFT, True): (0, 48), (Dir.LEFT, False): (0, 16)}[du] # type: ignore
                     dr.line(cr + corr, seg.color, 2)
                 if isinstance(seg, FieldSegment):
                     for city in seg.adjacentCity:
@@ -317,9 +317,9 @@ class Tile:
     def image(self, debug: bool=False):
         if debug:
             return self.debugImage()
-        if self.orient == Dir.UP:
+        if (ori := self.orient.transpose()) is None:
             return self.img
-        return self.img.transpose(self.orient.transpose())
+        return self.img.transpose(ori)
 
 class Segment(ABC):
     type = Connectable.City
@@ -974,10 +974,10 @@ class Follower(Token):
 class Figure(Token):
     pass
 class TileFigure(Figure):
-    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
+    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
         super().__init__(parent, data, img)
         self.draw_pos: tuple[int, int] | None = None
-    def findDrawPos(self, drawn_poses: list[tuple[int, int]] | None=None):
+    def findDrawPos(self, drawn_poses: list[tuple[int, int]] | None=None) -> tuple[int, int]:
         if not isinstance(self.parent, Tile):
             return (0, 0)
         if self.draw_pos is not None:
@@ -996,6 +996,8 @@ class TileFigure(Figure):
                     break
             else:
                 post = (random.randint(8, 56), random.randint(8, 56))
+        if self.draw_pos is None:
+            self.draw_pos = (0, 0)
         return self.draw_pos
     canPutTypes = (Tile,)
 class BaseFollower(Follower):
@@ -1063,7 +1065,7 @@ class Barn(Figure):
     key = (5, 2)
     name = "谷仓"
 class Dragon(TileFigure):
-    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
+    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
         super().__init__(parent, data, img)
         self.tile: Tile | None = None
         self.draw_pos = (32, 32)
@@ -1091,7 +1093,7 @@ class Dragon(TileFigure):
     key = (3, 0)
     name = "龙"
 class Fairy(Figure):
-    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
+    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
         super().__init__(parent, data, img)
         self.follower: Follower | None = None
         self.tile: Tile | None = None
@@ -1113,7 +1115,7 @@ class Abbot(Follower):
     key = (7, 0)
     name = "修道院长"
 class Ranger(Figure):
-    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
+    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
         super().__init__(parent, data, img)
         self.pos: tuple[int, int] | None = None
     def canMove(self, pos: tuple[int, int]):
@@ -1148,7 +1150,7 @@ class Phantom(Follower):
     key = (13, 4)
     name = "幽灵"
 class King(Figure):
-    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
+    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
         super().__init__(parent, data, img)
         self.max: int = 0
         self.complete_citys: list[Object] = []
@@ -1156,7 +1158,7 @@ class King(Figure):
     name = "国王"
     canEatByDragon = False
 class Robber(Figure):
-    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
+    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
         super().__init__(parent, data, img)
         self.max: int = 0
         self.complete_roads: list[Object] = []
@@ -1171,7 +1173,7 @@ class Gold(TileFigure):
     def score(cls, num: int):
         return (num + 2) // 3 * num
 class Shepherd(Figure):
-    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image) -> None:
+    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
         super().__init__(parent, data, img)
         self.sheeps: list[int] = []
     def canPut(self, seg: Segment | Feature | Tile):
