@@ -1,8 +1,8 @@
-import asyncio
+import asyncio, math
 from pebble import concurrent, ThreadPool
 from concurrent.futures import TimeoutError, ThreadPoolExecutor, _base
 from nonebot.adapters.discord.commands import CommandOption, on_slash_command
-from nonebot.adapters.discord.api import SubCommandGroupOption, SubCommandOption, StringOption
+from nonebot.adapters.discord.api import SubCommandGroupOption, SubCommandOption, IntegerOption, StringOption, BooleanOption, NumberOption
 from nonebot.adapters.discord import Bot, MessageEvent, MessageSegment, Message
 from nonebot import on_command
 from nonebot.params import CommandArg
@@ -31,10 +31,11 @@ matcher = on_slash_command(name="tools",
                             name="string",
                             description="字符串",
                             required=True,),
-                        StringOption(
-                            name="option",
-                            description="选项",
-                            required=False,)]),
+                        BooleanOption(
+                            name="hex",
+                            description="是否使用十六进制"
+                        ),
+                    ]),
                 SubCommandOption(
                     name="trans",
                     description="转换多个数字到Unicode字符",
@@ -43,6 +44,37 @@ matcher = on_slash_command(name="tools",
                             name="number_list",
                             description="用空格分隔的数字",
                             required=True,)])
+            ]
+        ),
+        SubCommandGroupOption(
+            name="maj",
+            description="麻将",
+            options=[
+                SubCommandOption(
+                    name="ten",
+                    description="日麻算点器",
+                    options=[
+                        IntegerOption(
+                            name="番数",
+                            description="和牌的番数",
+                            required=True
+                        ),
+                        IntegerOption(
+                            name="符数",
+                            description="和牌的符数",
+                            min_value=20,
+                            required=True
+                        ),
+                        BooleanOption(
+                            name="亲家",
+                            description="是否为亲家"
+                        ),
+                        BooleanOption(
+                            name="子家",
+                            description="是否为子家"
+                        )
+                    ]
+                ),
             ]
         ),
     ])
@@ -106,18 +138,20 @@ async def cal1(formula: CommandOption[str]):
     await matcher.edit_response(f"您想要计算的式子是：{formula}\n{ret}")
 
 @matcher.handle_sub_command('asc', 'check')
-async def AscCheck(string: CommandOption[str], option: CommandOption[str]|None):
+async def AscCheck(string: CommandOption[str], option: CommandOption[bool] = False):
     '''转换输入字符串的所有字符到unicode码。
     可用选项：
-        -h/--hex，转换至U+xxxxx十六进制输出'''
-    h = True if option and option in ['-h', '--hex'] else False
+        转换至U+xxxxx十六进制输出'''
+    await matcher.send_response("少女转换中...")
+    h = option
     format_string = "U+{:x}" if h else "{}"
     strout = ' '.join([format_string.format(ord(x)) for x in string])
-    await matcher.send_response('对应数字是：\n' + strout)
+    await matcher.edit_response('对应数字是：\n' + strout)
 
 @matcher.handle_sub_command('asc', 'trans')
 async def AscTrans(number_list: CommandOption[str]):
     '''转换多个数字到unicode字符。'''
+    await matcher.send_response("少女转换中...")
     strin = number_list.split(' ')
     def _(x):
         if x.startswith('U+'):
@@ -125,9 +159,46 @@ async def AscTrans(number_list: CommandOption[str]):
         return int(x)
     try:
         strout = ''.join([chr(_(i)) for i in strin])
-        await matcher.send_response('对应字符是：\n' + strout)
+        await matcher.edit_response('对应字符是：\n' + strout)
     except ValueError:
-        await matcher.send_response('请输入十进制数字或U+xxx十六进制数字。')
+        await matcher.edit_response('请输入十进制数字或U+xxx十六进制数字。')
+
+@matcher.handle_sub_command('maj', 'ten')
+async def maj_ten(han: CommandOption[int], pu: CommandOption[int], qin: CommandOption[bool] = False, zi: CommandOption[bool] = False):
+    """日麻算点器。
+    输入几番几符，可计算得点。可额外指定亲家或子家。"""
+    await matcher.send_response("少女计算中...")
+    def ceil(x, base = 100):
+        return base * math.ceil(x / base)
+    if pu % 10 != 0 and pu != 25:
+        pu = ceil(pu, 10)
+    if han <= 5:
+        ten_base = pu * 2 ** (han + 2)
+        ten_qin = ceil(6 * ten_base)
+        ten_zi = ceil(4 * ten_base)
+        if ten_qin >= 12000:
+            str_qin = '満贯，12000点，4000ALL'
+        else:
+            str_qin = '%i点，%iALL' % (ten_qin, ceil(ten_qin / 3))
+        if ten_zi >= 8000:
+            str_zi = '満贯，8000点，2000，4000'
+        else:
+            str_zi = '%i点，%i，%i' % (ten_zi, ceil(ten_base), ceil(2 * ten_base))
+    else:
+        if han >= 13:
+            i = 3
+        else:
+            i = {6: 0, 7: 0, 8: 1, 9: 1, 10: 1, 11: 2, 12: 2}[han]
+        str_i = ['跳満', '倍満', '三倍満', '役満'][i]
+        int_i = [3000, 4000, 6000, 8000][i]
+        str_qin = '%s，%i点，%iALL' % (str_i, int_i * 6, int_i * 2)
+        str_zi = '%s，%i点，%i，%i' % (str_i, int_i * 4, int_i, int_i * 2)
+    if qin and zi:
+        await matcher.edit_response('親家：%s\n子家：%s' % (str_qin, str_zi))
+    elif qin:
+        await matcher.edit_response(str_qin)
+    elif zi:
+        await matcher.edit_response(str_zi)
 
 # matcher_console = on_command(("tools"))
 # @matcher_console.handle()
