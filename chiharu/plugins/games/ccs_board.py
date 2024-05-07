@@ -324,7 +324,7 @@ class Board:
                 side = pos + dr
                 if side in self.tiles:
                     ret = self.tiles[side].checkConnect(tile, -dr, orient)
-                    if ret < 0:
+                    if ret != 1:
                         return ret
         if self.checkPack(6, "h"):
             cl = more_itertools.only(0 if isinstance(feature, Cloister) else 1 if isinstance(feature, Shrine) else -1 for feature in tile.features if isinstance(feature, BaseCloister))
