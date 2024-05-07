@@ -9,15 +9,42 @@ from nonebot.params import CommandArg
 from .helper.function.function import parser, ParserError
 
 matcher = on_slash_command(name="tools",
-    description="数理小工具",
+    description="小工具",
     options=[
-        SubCommandOption(name="cal",
+        SubCommandOption(
+            name="cal",
             description="计算器",
             options=[StringOption(
                 name="formula",
                 description="算式",
                 required=True,
-            )])
+            )]),
+        SubCommandGroupOption(
+            name="asc",
+            description="Unicode字符翻译",
+            options=[
+                SubCommandOption(
+                    name="check",
+                    description="转换字符串到Unicode码",
+                    options=[
+                        StringOption(
+                            name="string",
+                            description="字符串",
+                            required=True,),
+                        StringOption(
+                            name="option",
+                            description="选项",
+                            required=False,)]),
+                SubCommandOption(
+                    name="trans",
+                    description="转换多个数字到Unicode字符",
+                    options=[
+                        StringOption(
+                            name="number_list",
+                            description="用空格分隔的数字",
+                            required=True,)])
+            ]
+        ),
     ])
 
 @concurrent.process(timeout=30)
@@ -77,6 +104,30 @@ async def cal1(formula: CommandOption[str]):
         await matcher.edit_response(f"您想要计算的式子是：{formula}\ntime out!")
         return
     await matcher.edit_response(f"您想要计算的式子是：{formula}\n{ret}")
+
+@matcher.handle_sub_command('asc', 'check')
+async def AscCheck(string: CommandOption[str], option: CommandOption[str]|None):
+    '''转换输入字符串的所有字符到unicode码。
+    可用选项：
+        -h/--hex，转换至U+xxxxx十六进制输出'''
+    h = True if option and option in ['-h', '--hex'] else False
+    format_string = "U+{:x}" if h else "{}"
+    strout = ' '.join([format_string.format(ord(x)) for x in string])
+    await matcher.send_response('对应数字是：\n' + strout)
+
+@matcher.handle_sub_command('asc', 'trans')
+async def AscTrans(number_list: CommandOption[str]):
+    '''转换多个数字到unicode字符。'''
+    strin = number_list.split(' ')
+    def _(x):
+        if x.startswith('U+'):
+            return int(x[2:], 16)
+        return int(x)
+    try:
+        strout = ''.join([chr(_(i)) for i in strin])
+        await matcher.send_response('对应字符是：\n' + strout)
+    except ValueError:
+        await matcher.send_response('请输入十进制数字或U+xxx十六进制数字。')
 
 # matcher_console = on_command(("tools"))
 # @matcher_console.handle()
