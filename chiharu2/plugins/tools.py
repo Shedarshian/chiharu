@@ -59,7 +59,7 @@ async def calculator(formula: str):
         future = calculate(formula) # type: ignore
         with ThreadPoolExecutor() as pool:
             result = await loop.run_in_executor(pool, future.result)
-    except (TimeoutError, _base.CancelledError):
+    except (TimeoutError, asyncio.exceptions.TimeoutError, _base.CancelledError):
         return "time out!"
     if type(result) is float:
         return str(result)
@@ -73,7 +73,7 @@ async def cal1(formula: CommandOption[str]):
     await matcher.send_response(f"您想要计算的式子是：{formula}\n少女计算中...")
     try:
         ret = await calculator(formula)
-    except (TimeoutError, _base.CancelledError):
+    except (TimeoutError, asyncio.exceptions.TimeoutError, _base.CancelledError):
         await matcher.edit_response(f"您想要计算的式子是：{formula}\ntime out!")
         return
     await matcher.edit_response(f"您想要计算的式子是：{formula}\n{ret}")
