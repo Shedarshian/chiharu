@@ -19,8 +19,7 @@ matcher = on_slash_command(
 
 @matcher.handle()
 async def test(option: CommandOption[str], bot: Bot, event: InteractionCreateEvent):
-    await bot.send_to(1237726203029225484, "test message here")
-    await matcher.send_response(f"channel id: {event.channel_id}\n user id: {event.member.user.id}")
+    await matcher.send_response(f"channel id: {event.channel_id}\n user id: {event.member.user.id}") # type: ignore
 
 matcher2 = on_slash_command(
     name="python",

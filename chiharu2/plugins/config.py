@@ -31,4 +31,4 @@ is_chinatsu = True
 async def _(bot: Bot, event: MessageEvent, e: Exception):
     channel = MessageSegment.mention_channel(event.channel_id)
     user = MessageSegment.mention_user(event.user_id)
-    pass
+    await bot.send_to(1237726203029225484, "A Error occured in channel: " + channel + " by user " + user + ".\n The stack trace is:\n" + traceback.format_exc())
