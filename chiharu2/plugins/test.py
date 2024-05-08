@@ -17,7 +17,7 @@ matcher = on_slash_command(
 
 @matcher.handle()
 async def test(option: CommandOption[str], event: MessageEvent):
-    await matcher.finish(f"channel id: {event.channel_id}\n user id: {event.user_id}")
+    await matcher.send_response(f"channel id: {event.channel_id}\n user id: {event.user_id}")
 
 # matcher = on_slash_command(
 #     name="permission",
