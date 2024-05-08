@@ -54,7 +54,7 @@ def stdoutIO(stdout=None):
 async def python_exec(command: CommandOption[str], event: InteractionCreateEvent):
     import nonebot
     config = nonebot.get_driver().config
-    if event.member and event.member.user and event.member.user.id in config.superusers:
+    if event.member and event.member.user and str(event.member.user.id) in config.superusers:
         await matcher2.send_deferred_response()
         with stdoutIO() as s:
             exec(command)
@@ -64,7 +64,7 @@ async def python_exec(command: CommandOption[str], event: InteractionCreateEvent
 async def PythonAwait(command: CommandOption[str], event: InteractionCreateEvent):
     import nonebot
     config = nonebot.get_driver().config
-    if event.member and event.member.user and event.member.user.id in config.superusers:
+    if event.member and event.member.user and str(event.member.user.id) in config.superusers:
         await matcher2.send_deferred_response()
         with stdoutIO() as s:
             exec('async def main():\n  ' + '\n  '.join(command.split('\n')))
