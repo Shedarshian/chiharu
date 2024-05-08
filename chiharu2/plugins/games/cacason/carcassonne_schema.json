@@ -1,0 +1,114 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "./carcassonne_schema.json",
+    "title": "Carcassonne Data",
+    "description": "Carcassonne Data",
+    "type": "object",
+    "properties": {
+        "packs": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/PackData"
+            }
+        }
+    },
+    "$defs": {
+        "PackData": {
+            "description": "Data of a Pack.",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "descrption": "The name of this pack."
+                },
+                "id": {
+                    "type": "integer",
+                    "descrption": "The ID of this pack."
+                },
+                "tokens": {
+                    "type": "array",
+                    "description": "Tokens included by this pack.",
+                    "items": {
+                        "$ref": "#/$defs/TokenData"
+                    }
+                }
+            },
+            "required": [
+                "name",
+                "id"
+            ]
+        },
+        "TokenData": {
+            "description": "Data of a token.",
+            "type": "object",
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TokenFixedNumData"
+              },
+              {
+                "$ref": "#/$defs/TokenPlayerNumData"
+              }
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The name of this token."
+                },
+                "distribute": {
+                    "type": "boolean",
+                    "description": "Whether the token is given for everyone."
+                },
+                "image": {
+                    "type": "array",
+                    "description": "The bounding box of the image from assets.",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "minItems": 4,
+                    "maxItems": 4
+                },
+                "thing_id": {
+                    "type": "string",
+                    "description": "The small item id of this follower."
+                }
+            },
+            "required": [
+                "name",
+                "distribute",
+                "image"
+            ]
+        },
+        "TokenFixedNumData": {
+            "type": "object",
+            "properties": {
+                "num": {
+                    "type": "integer",
+                    "descrption": "The number of this token. If distribute, this number is the number everyone recieves."
+                }
+            },
+            "required": [
+                "num"
+            ]
+        },
+        "TokenPlayerNumData": {
+            "type": "object",
+            "properties": {
+                "numOfPlayers": {
+                    "type": "object",
+                    "descrption": "The number of this token according to player numbers. If distribute, this number is the number everyone recieves.",
+                    "properties": {
+                        "1": {"type": "integer"},
+                        "2": {"type": "integer"},
+                        "3": {"type": "integer"},
+                        "4": {"type": "integer"},
+                        "5": {"type": "integer"},
+                        "6": {"type": "integer"}
+                    }
+                }
+            },
+            "required": [
+                "numOfPlayers"
+            ]
+        }
+    }
+}
