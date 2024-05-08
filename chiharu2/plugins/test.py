@@ -1,6 +1,7 @@
 from typing import Optional
 import asyncio, sys, contextlib
 from io import StringIO
+from .helper.helper import Waiting
 from nonebot import on_command
 from nonebot.permission import SUPERUSER
 from nonebot.params import CommandArg
@@ -55,9 +56,9 @@ async def python_exec(command: CommandOption[str], event: InteractionCreateEvent
     import nonebot
     config = nonebot.get_driver().config
     if event.member and event.member.user and str(event.member.user.id) in config.superusers:
-        await matcher2.send_deferred_response()
-        with stdoutIO() as s:
-            exec(command)
+        async with Waiting(matcher2):
+            with stdoutIO() as s:
+                exec(command)
         await matcher2.edit_response(s.getvalue()[:-1])
 
 @matcher2.handle_sub_command("await")
@@ -65,10 +66,10 @@ async def PythonAwait(command: CommandOption[str], event: InteractionCreateEvent
     import nonebot
     config = nonebot.get_driver().config
     if event.member and event.member.user and str(event.member.user.id) in config.superusers:
-        await matcher2.send_deferred_response()
-        with stdoutIO() as s:
-            exec('async def main():\n  ' + '\n  '.join(command.split('\n')))
-            await locals()['main']()
+        async with Waiting(matcher2):
+            with stdoutIO() as s:
+                exec('async def main():\n  ' + '\n  '.join(command.split('\n')))
+                await locals()['main']()
         await matcher2.edit_response(s.getvalue()[:-1])
 
 # matcher = on_slash_command(
