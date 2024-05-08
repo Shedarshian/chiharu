@@ -9,11 +9,14 @@ from nonebot.adapters.discord.commands import CommandOption, on_slash_command
 matcher = on_slash_command(
     name="test",
     description="测试用指令",
-    options=[]
+    options=[StringOption(
+        name="option",
+        description="测试"
+    )]
 )
 
 @matcher.handle()
-async def test(event: MessageEvent):
+async def test(option: str, event: MessageEvent):
     await matcher.finish(f"channel id: {event.channel_id}\n user id: {event.user_id}")
 
 # matcher = on_slash_command(
