@@ -6,6 +6,9 @@ import getopt
 from functools import singledispatch
 from os import path
 import traceback
+from nonebot.message import run_postprocessor
+from nonebot.matcher import Matcher
+from nonebot.adapters.discord import Bot, MessageEvent, MessageSegment
 
 PATH = "C:\\coolq_data\\"
 PATH_IMG = "C:\\go\\data\\images"
@@ -24,5 +27,8 @@ def pag(rel_path: str):
 selfqq = 2711644761
 is_chinatsu = True
 
-def ErrorHandle(a):
-    return a
+@run_postprocessor
+async def _(bot: Bot, event: MessageEvent, e: Exception):
+    channel = MessageSegment.mention_channel(event.channel_id)
+    user = MessageSegment.mention_user(event.user_id)
+    pass
