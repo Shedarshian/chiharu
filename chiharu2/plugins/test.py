@@ -1,6 +1,8 @@
 from typing import Optional
-import asyncio
+import asyncio, sys, contextlib
+from io import StringIO
 from nonebot import on_command
+from nonebot.permission import SUPERUSER
 from nonebot.params import CommandArg
 from nonebot.adapters.discord import Bot, MessageEvent, MessageSegment, Message, Adapter
 from nonebot.adapters.discord.api import *
@@ -18,6 +20,51 @@ matcher = on_slash_command(
 @matcher.handle()
 async def test(option: CommandOption[str], event: MessageEvent):
     await matcher.send_response(f"channel id: {event.channel_id}\n user id: {event.user_id}")
+
+matcher2 = on_slash_command(
+    name="python",
+    description="测试用指令",
+    options=[SubCommandOption(
+        name="exec",
+        description="执行",
+        options=[StringOption(
+            name="command",
+            description="指令"
+        )]
+    ), SubCommandOption(
+        name="await",
+        description="异步执行",
+        options=[StringOption(
+            name="command",
+            description="指令"
+        )]
+    )],
+    permission=SUPERUSER
+)
+
+@contextlib.contextmanager
+def stdoutIO(stdout=None):
+    old = sys.stdout
+    if stdout is None:
+        stdout = StringIO()
+    sys.stdout = stdout
+    yield stdout
+    sys.stdout = old
+
+@matcher2.handle_sub_command("exec")
+async def python_exec(command: CommandOption[str]):
+    await matcher2.send_deferred_response()
+    with stdoutIO() as s:
+        exec(command)
+    await matcher2.edit_response(s.getvalue()[:-1])
+
+@matcher2.handle_sub_command("await")
+async def PythonAwait(command: CommandOption[str]):
+    await matcher2.send_deferred_response()
+    with stdoutIO() as s:
+        exec('async def main():\n  ' + '\n  '.join(command.split('\n')))
+        await locals()['main']()
+    await matcher2.edit_response(s.getvalue()[:-1])
 
 # matcher = on_slash_command(
 #     name="permission",
