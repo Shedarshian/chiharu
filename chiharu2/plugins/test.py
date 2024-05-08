@@ -8,7 +8,8 @@ from nonebot.adapters.discord.commands import CommandOption, on_slash_command
 
 matcher = on_slash_command(
     name="test",
-    description="测试用指令"
+    description="测试用指令",
+    options=[]
 )
 
 @matcher.handle()
