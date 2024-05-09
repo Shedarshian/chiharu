@@ -7,8 +7,9 @@ import json, inspect
 import random
 from nonebot.dependencies import Param
 from nonebot.params import Depends
+from nonebot.params import CommandArg
 from nonebot import on_message
-from nonebot.adapters.discord import on_slash_command, Event, Bot
+from nonebot.adapters.discord import on_slash_command, Event, Bot, Message
 from nonebot.adapters.discord.api import SubCommandOption, SubCommandGroupOption, Interaction, MessageGet
 
 # example usage for GameSameGroup:
@@ -80,21 +81,23 @@ matcher = on_slash_command(name="play",
 GameData = dict[str, Any]
 DeleteFunc = Coroutine[Any, Any, NoReturn]
 
+def get_group(event: Event):
+    if isinstance(event, (Interaction, MessageGet)) and (channel_id := event.channel_id):
+        return DiscordGroup(channel_id)
+    return None
 class GameSameGroup:
+    all_games: 'dict[str, GameSameGroup]' = {}
     # group: [{'players': [User], 'game': GameSameGroup instance, 'anything': anything}]
     def __init__(self, name: str, player: Tuple[int, int]):
         # group: {'players': [qq], 'anything': anything}
         self.uncomplete: dict[Group, dict[str, Any]] = {}
         self.center: dict[Group, dict[str, Any]] = {}
+        self.all_games[self.name] = self
         self.name = name
         self.begin_player = player
 
-    def get_group(self, event: Event):
-        if isinstance(event, (Interaction, MessageGet)) and (channel_id := event.channel_id):
-            return DiscordGroup(channel_id)
-        return None
     def get_event_data(self, event: Event):
-        if channel := self.get_event_data(event):
+        if channel := get_group(event):
             data = self.uncomplete.get(channel) or self.center.get(channel)
             return data
         return None
@@ -102,7 +105,7 @@ class GameSameGroup:
     def data(self):
         return Depends(self.get_event_data)
     def get_delete_func(self, event: Event):
-        if channel := self.get_group(event):
+        if channel := get_group(event):
             async def _h():
                 self.center.pop(channel)
             return _h
@@ -110,6 +113,26 @@ class GameSameGroup:
     @property
     def delete_func(self):
         return Depends(self.get_delete_func)
+    @classmethod
+    async def check_all_game(cls, bot: Bot, event: Interaction, msg: Message = CommandArg(), group: Group | None=Depends(get_group)):
+        # 以后可能搁到一起？
+        if group is None:
+            return
+        for game in cls.all_games.values():
+            if group in game.center:
+                this_game = game
+                break
+        else:
+            return
+        if not event.guild_id or not event.user or not event.user.id or not event.channel_id:
+            return
+        center = this_game.center[group]
+        user = DiscordUser(event.user.id)
+        if user not in center['players']:
+            return
+    @property
+    def check_game(self):
+        pass
 
     def process(self):
         matcher.handle_sub_command('play', self.name, 'begin')
@@ -220,33 +243,12 @@ class GameSameGroup:
             elif group_id in self.uncomplete and (is_admin or qq in self.uncomplete[group_id]['players']):
                 await _f(session, self.uncomplete[group_id])
                 self.uncomplete.pop(group_id)
-        matcher_message = on_message()
-        return matcher_message.handle()
-        def _(_f: Awaitable) -> Awaitable:
-            @on_natural_language(only_to_me=False, only_short_message=only_short_message)
-            async def _g(session: NLPSession):  # 以后可能搁到一起？
-                try:
-                    group_id = int(session.ctx['group_id'])
-                except KeyError:
-                    if self.can_private:
-                        group_id = int(session.ctx['user_id'])
-                    else:
-                        return
-                qq = int(session.ctx['user_id'])
-                if group_id not in self.center:
-                    return
-                l = list(filter(lambda x: x['game']
-                                is self, self.center[group_id]))
-                if len(l) == 0 or qq not in l[0]['players']:
-                    return
 
-                async def _h():
-                    self.center[group_id].remove(l[0])
-                    bot = get_bot()
-                    for group in config.group_id_dict['log']:
-                        await bot.send_group_msg(group_id=group, message='%s end in group %s' % (self.name, group_id))
-                return await _f(session, l[0], _h)
-            return _g
+        matcher_message = on_message()
+        @matcher_message.handle()
+        
+
+        return _g
         return _
     def open_data(self, qq):
         try:
