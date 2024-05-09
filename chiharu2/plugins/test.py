@@ -57,19 +57,19 @@ def stdoutIO(stdout=None):
         sys.stdout = old
 
 @matcher_exec.handle()
-async def python_exec(bot: Bot, event: InteractionCreateEvent, msg: Message = CommandArg()):
+async def python_exec(bot: Bot, event: MessageEvent, msg: Message = CommandArg()):
     import nonebot
     config = nonebot.get_driver().config
-    if event.member and event.member.user and str(event.member.user.id) in config.superusers:
+    if str(event.user_id) in config.superusers:
         with stdoutIO() as s:
             exec(msg.extract_plain_text())
         await matcher_exec.send(s.getvalue()[:-1])
 
 @matcher_await.handle()
-async def PythonAwait(bot: Bot, event: InteractionCreateEvent, msg: Message = CommandArg()):
+async def PythonAwait(bot: Bot, event: MessageEvent, msg: Message = CommandArg()):
     import nonebot
     config = nonebot.get_driver().config
-    if event.member and event.member.user and str(event.member.user.id) in config.superusers:
+    if str(event.user_id) in config.superusers:
         with stdoutIO() as s:
             exec('async def main():\n  ' + '\n  '.join(msg.extract_plain_text().split('\n')))
             await locals()['main']()
