@@ -1,6 +1,7 @@
 import contextlib
 from os import path
 from nonebot.adapters.discord.commands.matcher import ApplicationCommandMatcher
+from nonebot.matcher import Matcher
 
 PATH = "C:\\coolq_data\\"
 PATH_IMG = "C:\\go\\data\\images"
@@ -24,3 +25,12 @@ async def Waiting(matcher: type[ApplicationCommandMatcher]):
     except Exception:
         await matcher.edit_response("出现了异常，没有返回！")
         raise
+
+# @contextlib.asynccontextmanager
+# async def WaitingMessage(matcher: type[Matcher]):
+#     try:
+#         await matcher.send()
+#         yield
+#     except Exception:
+#         await matcher.edit_response("出现了异常，没有返回！")
+#         raise

@@ -22,25 +22,28 @@ matcher = on_slash_command(
 async def test(option: CommandOption[str], bot: Bot, event: InteractionCreateEvent):
     await matcher.send_response(f"channel id: {event.channel_id}\n user id: {event.member.user.id}") # type: ignore
 
-matcher2 = on_slash_command(
-    name="python",
-    description="测试用指令",
-    options=[SubCommandOption(
-        name="exec",
-        description="执行",
-        options=[StringOption(
-            name="command",
-            description="指令"
-        )]
-    ), SubCommandOption(
-        name="await",
-        description="异步执行",
-        options=[StringOption(
-            name="command",
-            description="指令"
-        )]
-    )]
-)
+matcher_exec = on_command(('python', 'exec'))
+matcher_await = on_command(('python', 'await'))
+
+# matcher2 = on_slash_command(
+#     name="python",
+#     description="测试用指令",
+#     options=[SubCommandOption(
+#         name="exec",
+#         description="执行",
+#         options=[StringOption(
+#             name="command",
+#             description="指令"
+#         )]
+#     ), SubCommandOption(
+#         name="await",
+#         description="异步执行",
+#         options=[StringOption(
+#             name="command",
+#             description="指令"
+#         )]
+#     )]
+# )
 
 @contextlib.contextmanager
 def stdoutIO(stdout=None):
@@ -51,26 +54,24 @@ def stdoutIO(stdout=None):
     yield stdout
     sys.stdout = old
 
-@matcher2.handle_sub_command("exec")
+@matcher_exec.handle()
 async def python_exec(command: CommandOption[str], event: InteractionCreateEvent):
     import nonebot
     config = nonebot.get_driver().config
     if event.member and event.member.user and str(event.member.user.id) in config.superusers:
-        async with Waiting(matcher2):
-            with stdoutIO() as s:
-                exec(command)
-        await matcher2.edit_response(s.getvalue()[:-1])
+        with stdoutIO() as s:
+            exec(command)
+        await matcher_exec.send(s.getvalue()[:-1])
 
-@matcher2.handle_sub_command("await")
+@matcher_await.handle("await")
 async def PythonAwait(command: CommandOption[str], event: InteractionCreateEvent):
     import nonebot
     config = nonebot.get_driver().config
     if event.member and event.member.user and str(event.member.user.id) in config.superusers:
-        async with Waiting(matcher2):
-            with stdoutIO() as s:
-                exec('async def main():\n  ' + '\n  '.join(command.split('\n')))
-                await locals()['main']()
-        await matcher2.edit_response(s.getvalue()[:-1])
+        with stdoutIO() as s:
+            exec('async def main():\n  ' + '\n  '.join(command.split('\n')))
+            await locals()['main']()
+        await matcher_await.send(s.getvalue()[:-1])
 
 # matcher = on_slash_command(
 #     name="permission",
