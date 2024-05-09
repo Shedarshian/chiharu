@@ -51,8 +51,10 @@ def stdoutIO(stdout=None):
     if stdout is None:
         stdout = StringIO()
     sys.stdout = stdout
-    yield stdout
-    sys.stdout = old
+    try:
+        yield stdout
+    finally:
+        sys.stdout = old
 
 @matcher_exec.handle()
 async def python_exec(command: CommandOption[str], event: InteractionCreateEvent):
