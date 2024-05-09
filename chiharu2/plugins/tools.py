@@ -83,14 +83,13 @@ matcher = on_slash_command(name="tools",
                     options=[
                         IntegerOption(
                             name="choice",
-                            description="""使用数字指定练习题。\n0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）\n2：清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）""",
+                            description="使用数字指定练习题",
                             choices=[OptionChoice(name="清一色听牌训练",value=0),OptionChoice(name="清一色加强型听牌训练",value=2)],
-                            required=True,
                         ),
                         BooleanOption(
                             name="past_answer",
                             description="是否查看上题答案",
-                        ),
+                        )
                     ]
                 ),
             ]
@@ -161,7 +160,7 @@ async def AscCheck(string: CommandOption[str], hex: CommandOption[bool]):
     可用选项：
         转换至U+xxxxx十六进制输出'''
     await matcher.send_response("少女转换中...")
-    h = hex
+    h = hex if hex else False
     format_string = "U+{:x}" if h else "{}"
     strout = ' '.join([format_string.format(ord(x)) for x in string])
     await matcher.edit_response('对应数字是：\n' + strout)
@@ -227,8 +226,7 @@ async def maj_train(choice: CommandOption[int], answer: Annotated[bool, CommandO
     0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）
     2：清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）
     可用选项：
-    -a：查看上题答案。
-    -p：使用天凤图。"""
+    -a：查看上题答案。"""
     global daan
     try:
         group_id = event.get_user_id
@@ -236,8 +234,7 @@ async def maj_train(choice: CommandOption[int], answer: Annotated[bool, CommandO
         await matcher.send_response('找不到当前用户')
         return
     text = str(choice)
-    if answer: a=bool(True)
-    if a:
+    if answer:
         if group_id not in daan:
             await matcher.send_response('没有当前题目')
         else:
