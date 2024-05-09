@@ -71,8 +71,8 @@ async def PythonAwait(bot: Bot, event: MessageEvent, msg: Message = CommandArg()
     config = nonebot.get_driver().config
     if str(event.user_id) in config.superusers:
         with stdoutIO() as s:
-            exec('async def main():\n  ' + '\n  '.join(msg.extract_plain_text().split('\n')))
-            await locals()['main']()
+            exec('async def main(bot, event):\n  ' + '\n  '.join(msg.extract_plain_text().split('\n')))
+            await locals()['main'](bot, event)
         await matcher_await.send(s.getvalue()[:-1])
 
 # matcher = on_slash_command(
