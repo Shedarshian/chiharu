@@ -63,7 +63,7 @@ async def python_exec(command: CommandOption[str], event: InteractionCreateEvent
             exec(command)
         await matcher_exec.send(s.getvalue()[:-1])
 
-@matcher_await.handle("await")
+@matcher_await.handle()
 async def PythonAwait(command: CommandOption[str], event: InteractionCreateEvent):
     import nonebot
     config = nonebot.get_driver().config
