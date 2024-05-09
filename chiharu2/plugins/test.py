@@ -5,7 +5,7 @@ from .helper.helper import Waiting
 from nonebot import on_command
 from nonebot.permission import SUPERUSER
 from nonebot.params import CommandArg
-from nonebot.adapters.discord import Bot, MessageEvent, Event, InteractionCreateEvent
+from nonebot.adapters.discord import Bot, MessageEvent, Event, InteractionCreateEvent, Message
 from nonebot.adapters.discord.api import *
 from nonebot.adapters.discord.commands import CommandOption, on_slash_command
 
@@ -57,21 +57,21 @@ def stdoutIO(stdout=None):
         sys.stdout = old
 
 @matcher_exec.handle()
-async def python_exec(bot: Bot, command: CommandOption[str], event: InteractionCreateEvent):
+async def python_exec(bot: Bot, event: InteractionCreateEvent, msg: Message = CommandArg()):
     import nonebot
     config = nonebot.get_driver().config
     if event.member and event.member.user and str(event.member.user.id) in config.superusers:
         with stdoutIO() as s:
-            exec(command)
+            exec(msg.extract_plain_text())
         await matcher_exec.send(s.getvalue()[:-1])
 
 @matcher_await.handle()
-async def PythonAwait(bot: Bot, command: CommandOption[str], event: InteractionCreateEvent):
+async def PythonAwait(bot: Bot, event: InteractionCreateEvent, msg: Message = CommandArg()):
     import nonebot
     config = nonebot.get_driver().config
     if event.member and event.member.user and str(event.member.user.id) in config.superusers:
         with stdoutIO() as s:
-            exec('async def main():\n  ' + '\n  '.join(command.split('\n')))
+            exec('async def main():\n  ' + '\n  '.join(msg.extract_plain_text().split('\n')))
             await locals()['main']()
         await matcher_await.send(s.getvalue()[:-1])
 
