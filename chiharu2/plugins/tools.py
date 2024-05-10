@@ -160,7 +160,7 @@ async def AscCheck(string: CommandOption[str], hex: CommandOption[bool]):
         转换至U+xxxxx十六进制输出'''
     await matcher.send_response("少女转换中...")
     h = hex if hex else False
-    await matcher.send_response('现在h的值是{}'.format(h))
+    await matcher.edit_response('现在h的值是{}'.format(h))
     format_string = "U+{:x}" if h else "{}"
     strout = ' '.join([format_string.format(ord(x)) for x in string])
     await matcher.edit_response('对应数字是：\n' + strout)
