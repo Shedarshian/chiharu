@@ -245,11 +245,7 @@ class GameSameGroup:
                 self.uncomplete.pop(group_id)
 
         matcher_message = on_message()
-        @matcher_message.handle()
-        
-
-        return _g
-        return _
+        return matcher_message.handle()
     def open_data(self, qq):
         try:
             with open(config.rel(f'games\\user_data\\{qq}.json'), encoding='utf-8') as f:
@@ -270,7 +266,7 @@ class GameSameGroup:
             f.write(json.dumps(data, ensure_ascii=False,
                                indent=4, separators=(',', ': ')))
     @classmethod
-    async def get_username(cls, session: CommandSession):
+    async def get_username(cls, session):
         import aiocqhttp
         qq = session.ctx['user_id']
         group = session.ctx['group_id']

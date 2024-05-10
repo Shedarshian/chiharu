@@ -15,4 +15,4 @@ if __name__ == "__main__":
     # nonebot.load_plugin("thirdparty_plugin")  # 第三方插件
     nonebot.load_plugins("chiharu2/plugins")  # 本地插件
 
-    nonebot.run()
+    # nonebot.run()
