@@ -35,8 +35,7 @@ matcher = on_slash_command(name="tools",
                             required=True,),
                         BooleanOption(
                             name="hex",
-                            description="是否使用十六进制"
-                        ),
+                            description="是否使用十六进制",),
                     ]),
                 SubCommandOption(
                     name="trans",
@@ -161,6 +160,7 @@ async def AscCheck(string: CommandOption[str], hex: CommandOption[bool]):
         转换至U+xxxxx十六进制输出'''
     await matcher.send_response("少女转换中...")
     h = hex if hex else False
+    await matcher.edit_response('现在h的值是{}'.format(h))
     format_string = "U+{:x}" if h else "{}"
     strout = ' '.join([format_string.format(ord(x)) for x in string])
     await matcher.edit_response('对应数字是：\n' + strout)
@@ -181,9 +181,9 @@ async def AscTrans(number_list: CommandOption[str]):
         await matcher.edit_response('请输入十进制数字或U+xxx十六进制数字。')
 
 @matcher.handle_sub_command('maj', 'ten')
-async def maj_ten(han: Annotated[int, CommandOptionType('番数')], pu: Annotated[int, CommandOptionType('符数')], qin: Annotated[bool, CommandOptionType('亲家')], zi: Annotated[bool, CommandOptionType('子家')]):
-    """日麻算点器。
-    输入几番几符，可计算得点。可额外指定亲家或子家。"""
+async def maj_ten(han: Annotated[int, CommandOptionType("番数")], pu: Annotated[int, CommandOptionType("符数")], qin: Annotated[bool, CommandOptionType("亲家")], zi: Annotated[bool, CommandOptionType("子家")]):
+    '''日麻算点器。
+    输入几番几符，可计算得点。可额外指定亲家或子家。'''
     await matcher.send_response("少女计算中...")
     def ceil(x, base = 100):
         return base * math.ceil(x / base)
