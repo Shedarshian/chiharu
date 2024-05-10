@@ -63,7 +63,7 @@ def stdoutIO(stdout=None):
         sys.stdout = old
 
 @matcher_exec.handle()
-async def python_exec(bot: Bot, event: MessageEvent, msg: Message = CommandArg()):
+async def python_exec(bot: Bot, event: MessageEvent, matcher: Matcher, msg: Message = CommandArg()):
     import nonebot
     config = nonebot.get_driver().config
     if str(event.user_id) in config.superusers:
@@ -72,7 +72,7 @@ async def python_exec(bot: Bot, event: MessageEvent, msg: Message = CommandArg()
         await matcher_exec.send(s.getvalue()[:-1])
 
 @matcher_await.handle()
-async def PythonAwait(bot: Bot, event: MessageEvent, msg: Message = CommandArg()):
+async def PythonAwait(bot: Bot, event: MessageEvent, matcher: Matcher, msg: Message = CommandArg()):
     import nonebot
     config = nonebot.get_driver().config
     if str(event.user_id) in config.superusers:
