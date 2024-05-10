@@ -145,14 +145,14 @@ class GameSameGroup:
                 await matcher.send_response(labels + buttons)
                 msg = await matcher.get_response()
                 self.uncomplete[group]["message_id"] = msg.id
-        f1 = matcher.handle_sub_command('play', self.name, 'begin',
+        f1 = matcher.handle_sub_command(self.name, 'begin',
                 parameterless=[Depends(onBegin), Depends(self.checkBegin, validate=Field(default=True, const=True))])
         f2 = click.handle([Depends(checkClick, validate=Field(default=True, const=True)),
                 Depends(self.checkBegin, validate=Field(default=True, const=True))])
         return lambda f: f2(f1(f))
 
     def process(self):
-        @matcher.handle_sub_command('play', self.name, 'end')
+        @matcher.handle_sub_command(self.name, 'end')
         async def play_end(bot: Bot, event: InteractionCreateEvent, group: DiscordGroup=Depends(getGroup)):
             if group is None or not event.guild_id or not event.user or not event.user.id or not event.channel_id:
                 await matcher.send_response("无法结束！")
