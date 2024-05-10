@@ -1,6 +1,9 @@
 import contextlib
+from dataclasses import dataclass
 from os import path
 from nonebot.adapters.discord.commands.matcher import ApplicationCommandMatcher
+from nonebot.adapters.discord import Event, MessageEvent
+from nonebot.adapters.discord.api import Interaction
 from nonebot.matcher import Matcher
 
 PATH = "C:\\coolq_data\\"
@@ -26,6 +29,43 @@ async def Waiting(matcher: type[ApplicationCommandMatcher]):
         await matcher.edit_response("出现了异常，没有返回！")
         raise
 
+@dataclass
+class Group:
+    pass
+@dataclass
+class QQGroup(Group):
+    group_id: int
+    def __str__(self):
+        return f"qq:{self.group_id}"
+@dataclass
+class DiscordGroup(Group):
+    channel_id: int
+    def __str__(self):
+        return f"discord:{self.channel_id}"
+@dataclass
+class User:
+    pass
+@dataclass
+class QQUser(User):
+    user_id: int
+    def __str__(self):
+        return f"qq:{self.user_id}"
+@dataclass
+class DiscordUser(User):
+    user_id: int
+    def __str__(self):
+        return f"discord:{self.user_id}"
+
+async def getGroup(event: Event, matcher: Matcher):
+    if isinstance(event, (Interaction, MessageEvent)) and (channel_id := event.channel_id):
+        return DiscordGroup(channel_id)
+    await matcher.finish()
+async def getUser(event: Event, matcher: Matcher):
+    if isinstance(event, Interaction) and event.member and event.member.user:
+        return DiscordUser(event.member.user.id)
+    if isinstance(event, MessageEvent):
+        return DiscordUser(event.author.id)
+    await matcher.finish()
 # @contextlib.asynccontextmanager
 # async def WaitingMessage(matcher: type[Matcher]):
 #     try:
