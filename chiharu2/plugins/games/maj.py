@@ -6,7 +6,7 @@ import asyncio
 import operator
 from copy import copy
 from enum import Enum, IntFlag, IntEnum, auto
-from typing import Sequence, Union, TypeVar, Generic, Type, Dict, List, Tuple, Set, FrozenSet, Iterable, Union, Generator, Any, Callable, Self
+from typing import Sequence, Union, TypeVar, Generic, Type, Dict, List, Tuple, Set, FrozenSet, Iterable, Union, Generator, Any, Callable
 
 H = TypeVar('H', bound='MajHai')
 class MajErr(Exception):
@@ -631,7 +631,6 @@ class Player(Generic[H]):
     def __init_subclass__(cls, Hai: Type[H], **kwargs):
         super().__init_subclass__(**kwargs)
         cls.Hai = Hai
-    self : Self
     doable_dahai = ('kiri', 'ankan', 'kakan', 'tsumo')
     doable_naku_shang = ('qi', 'pon', 'daiminkan', 'ron')
     doable_naku_all = ('pon', 'daiminkan', 'ron')
@@ -756,7 +755,7 @@ class Player(Generic[H]):
             return []
     def ron_do(self, tpl: Tuple[FuuRoStatus, H, None]) -> None:
         raise Win(self, tpl[1])
-    def do_dahai(self, status: PlayerStatus) -> Generator[Tuple[Self, PlayerOption, Dict[str, Any]], Tuple[PlayerOption, H, Any], Tuple[H, Generator]]:
+    def do_dahai(self, status: PlayerStatus) -> Generator[Tuple[P, PlayerOption, Dict[str, Any]], Tuple[PlayerOption, H, Any], Tuple[H, Generator]]:
         option = PlayerOption.NOTHING
         d = {}
         tpl = self.doable_dahai
