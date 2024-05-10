@@ -21,7 +21,10 @@ matcher = on_slash_command(
 
 @matcher.handle()
 async def test(option: CommandOption[str], bot: Bot, event: InteractionCreateEvent):
-    await matcher.send_response(f"channel id: {event.channel_id}\n user id: {event.member.user.id}") # type: ignore
+    if option == "check":
+        await matcher.send_response(f"channel id: {event.channel_id}\n user id: {event.member.user.id}") # type: ignore
+    else:
+        await matcher.send_response("unknown option!")
 
 matcher_exec = on_command(('python', 'exec'))
 matcher_await = on_command(('python', 'await'))
