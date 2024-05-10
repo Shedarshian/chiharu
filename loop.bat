@@ -1,13 +1,5 @@
 :label
-proxychain python ./bot-nb2.py
-echo "restarting in 5"
-timeout /T 1
-echo "restarting in 4"
-timeout /T 1
-echo "restarting in 3"
-timeout /T 1
-echo "restarting in 2"
-timeout /T 1
-echo "restarting in 1"
-timeout /T 1
-Go back to label
+"C:\Program Files\proxychains_0.6.8_win32_x64\proxychain.exe" python ./bot-nb2.py
+echo "restarting in 5 seconds"
+timeout /T 5
+goto label
