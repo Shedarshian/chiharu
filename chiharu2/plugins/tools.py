@@ -56,23 +56,25 @@ matcher = on_slash_command(name="tools",
                     description="日麻算点器",
                     options=[
                         IntegerOption(
-                            name="番数",
+                            name="han",
                             description="和牌的番数",
                             required=True
                         ),
                         IntegerOption(
-                            name="符数",
+                            name="pu",
                             description="和牌的符数",
                             min_value=20,
                             required=True
                         ),
                         BooleanOption(
-                            name="亲家",
-                            description="是否为亲家"
+                            name="qin",
+                            description="是否为亲家",
+                            required=True
                         ),
                         BooleanOption(
-                            name="子家",
-                            description="是否为子家"
+                            name="zi",
+                            description="是否为子家",
+                            required=True
                         )
                     ]
                 ),
@@ -154,7 +156,7 @@ async def cal1(formula: CommandOption[str]):
     await matcher.edit_response(f"您想要计算的式子是：{formula}\n{ret}")
 
 @matcher.handle_sub_command('asc', 'check')
-async def AscCheck(string: CommandOption[str], hex: CommandOption[bool] = False):
+async def AscCheck(string: CommandOption[str], hex: CommandOption[bool]):
     '''转换输入字符串的所有字符到unicode码。
     可用选项：
         转换至U+xxxxx十六进制输出'''
@@ -181,7 +183,7 @@ async def AscTrans(number_list: CommandOption[str]):
         await matcher.edit_response('请输入十进制数字或U+xxx十六进制数字。')
 
 @matcher.handle_sub_command('maj', 'ten')
-async def maj_ten(han: Annotated[int, CommandOptionType("番数")], pu: Annotated[int, CommandOptionType("符数")], qin: Annotated[bool, CommandOptionType("亲家")], zi: Annotated[bool, CommandOptionType("子家")]):
+async def maj_ten(han: CommandOption[int], pu: CommandOption[int], qin: CommandOption[bool], zi: CommandOption[bool]):
     '''日麻算点器。
     输入几番几符，可计算得点。可额外指定亲家或子家。'''
     await matcher.send_response("少女计算中...")
