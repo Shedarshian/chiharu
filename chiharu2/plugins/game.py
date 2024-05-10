@@ -112,8 +112,11 @@ class GameSameGroup:
                 continue
             if data.get("toBegin", False):
                 data.pop("toBegin")
-                self.uncomplete.pop(group)
-                self.center[group] = data
+                break
+        else:
+            return
+        self.uncomplete.pop(group)
+        self.center[group] = data
         matcher.skip()
     def begin(self):
         from pydantic import Field
