@@ -114,19 +114,18 @@ class GameSameGroup:
                 data.pop("toBegin")
                 break
         else:
-            return
+            matcher.skip()
         self.uncomplete.pop(group)
         self.center[group] = data
-        matcher.skip()
     def begin(self):
         from pydantic import Field
         async def onBegin(bot: Bot, group: DiscordGroup=Depends(getGroup), user: User=Depends(getUser)):
             if group in self.uncomplete:
                 await matcher.send_response("本群已有对局邀请！")
-                return
+                matcher.skip()
             if group in self.center:
                 await matcher.send_response("本群已有对局！")
-                return
+                matcher.skip()
             self.uncomplete[group] = {"players": [user], "game": self}
             if not await self.checkToBegin(group, bot):
                 labels = f"## {self.name_zh}游戏对局\n"
@@ -148,6 +147,7 @@ class GameSameGroup:
                 await matcher.send_response(labels + buttons)
                 msg = await matcher.get_response()
                 self.uncomplete[group]["message_id"] = msg.id
+                matcher.skip()
         f1 = matcher.handle_sub_command(self.name, 'begin',
                 parameterless=[Depends(onBegin), Depends(self.checkBegin)])
         f2 = click.handle([Depends(checkClick), Depends(self.checkBegin)])
