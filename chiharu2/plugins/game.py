@@ -201,7 +201,8 @@ async def checkClick(bot: Bot, matcher: Matcher, event: MessageComponentInteract
         await click.send(MessageSegment.mention_user(user.user_id) + "已成功加入对局！")
         if await game.checkToBegin(group, bot):
             await bot.delete_message(channel_id=group.channel_id, message_id=message_id)
-        matcher.skip()
+        else:
+            matcher.skip()
     elif button == "begin":
         if user not in GameSameGroup.uncomplete[group]["players"]:
             await click.send(MessageSegment.mention_user(user.user_id) + "不在对局中，无法启动游戏！")
