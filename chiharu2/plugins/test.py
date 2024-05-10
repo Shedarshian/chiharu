@@ -1,11 +1,12 @@
 from typing import Optional
-import asyncio, sys, contextlib
+import asyncio, sys, contextlib, subprocess
 from io import StringIO
-from .helper.helper import Waiting
+from .helper.helper import rel
 from nonebot import on_command
 from nonebot.permission import SUPERUSER
 from nonebot.params import CommandArg
-from nonebot.adapters.discord import Bot, MessageEvent, Event, InteractionCreateEvent, Message
+from nonebot.message import event_postprocessor
+from nonebot.adapters.discord import Bot, MessageEvent, Event, InteractionCreateEvent, Message, ReadyEvent
 from nonebot.adapters.discord.api import *
 from nonebot.adapters.discord.commands import CommandOption, on_slash_command
 
@@ -24,6 +25,8 @@ async def test(option: CommandOption[str], bot: Bot, event: InteractionCreateEve
 
 matcher_exec = on_command(('python', 'exec'))
 matcher_await = on_command(('python', 'await'))
+matcher_pull = on_command(('python', 'pull'))
+matcher_restart = on_command(('python', 'restart'))
 
 # matcher2 = on_slash_command(
 #     name="python",
@@ -75,56 +78,27 @@ async def PythonAwait(bot: Bot, event: MessageEvent, msg: Message = CommandArg()
             await locals()['main'](bot, event)
         await matcher_await.send(s.getvalue()[:-1])
 
-# matcher = on_slash_command(
-#     name="permission",
-#     description="权限管理",
-#     options=[
-#         SubCommandOption(
-#             name="add",
-#             description="添加",
-#             options=[
-#                 StringOption(
-#                     name="plugin",
-#                     description="插件名",
-#                     required=True,
-#                 ),
-#                 IntegerOption(
-#                     name="priority",
-#                     description="优先级",
-#                     required=False,
-#                 ),
-#             ],
-#         ),
-#         SubCommandOption(
-#             name="remove",
-#             description="移除",
-#             options=[
-#                 StringOption(name="plugin", description="插件名", required=True),
-#                 NumberOption(name="time", description="时长", required=False),
-#             ],
-#         ),
-#         SubCommandOption(
-#             name="ban",
-#             description="禁用",
-#             options=[
-#                 UserOption(name="user", description="用户", required=False),
-#             ],
-#         ),
-#     ],
-# )
+@matcher_pull.handle()
+async def PythonPull():
+    batcmd = "git pull"
+    result = subprocess.check_output(batcmd, shell=True)
+    await matcher_pull.send(result.decode('utf-8'))
 
-# @matcher.handle_sub_command("add")
-# async def handle_user_add(
-#     plugin: CommandOption[str], priority: CommandOption[Optional[int]]
-# ):
-#     await matcher.send_deferred_response()
-#     await asyncio.sleep(2)
-#     await matcher.edit_response(f"你添加了插件 {plugin}，优先级 {priority}")
-#     await asyncio.sleep(2)
-#     fm = await matcher.send_followup_msg(
-#         f"你添加了插件 {plugin}，优先级 {priority} (新消息)"
-#     )
-#     await asyncio.sleep(2)
-#     await matcher.edit_followup_msg(
-#         fm.id, f"你添加了插件 {plugin}，优先级 {priority} (新消息修改后)"
-#     )
+@matcher_restart.handle()
+async def PythonRestart(event: MessageEvent):
+    import nonebot
+    config = nonebot.get_driver().config
+    if str(event.user_id) in config.superusers:
+        with open(rel("restart.txt"), 'w') as f:
+            f.write(str(event.channel_id))
+        import sys
+        sys.exit(2)
+
+@event_postprocessor
+async def Ready(bot: Bot, event: ReadyEvent):
+    import os
+    if os.path.exists(rel("restart.txt")):
+        with open(rel("restart.txt"), 'r') as f:
+            channel_id = int(f.readline().strip())
+        os.remove(rel("restart.txt"))
+        await bot.send_to(channel_id, "restarted!")
