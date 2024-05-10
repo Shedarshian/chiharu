@@ -85,7 +85,10 @@ matcher = on_slash_command(name="tools",
                         IntegerOption(
                             name="choice",
                             description="使用数字指定练习题",
-                            choices=[OptionChoice(name="清一色听牌训练",value=0),OptionChoice(name="清一色加强型听牌训练",value=2)],
+                            # choices=[
+                            #     OptionChoice(name="清一色听牌训练",value=int(0)),
+                            #     OptionChoice(name="清一色加强听牌训练",value=int(2))
+                            # ],
                         ),
                         BooleanOption(
                             name="past_answer",
