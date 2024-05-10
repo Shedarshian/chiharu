@@ -9,6 +9,7 @@ from nonebot import on_message, on_notice
 from nonebot.adapters.discord import on_slash_command, Event, Bot, Message, MessageSegment, ReadyEvent
 from nonebot.adapters.discord.api import SubCommandOption, SubCommandGroupOption, Interaction, Button, ButtonStyle, ActionRow, StringOption
 from nonebot.adapters.discord.event import MessageComponentInteractionEvent, InteractionCreateEvent
+from nonebot.matcher import Matcher
 from .helper.helper import rel, getGroup, getUser, Group, DiscordGroup, User, DiscordUser
 
 # example usage for GameSameGroup:
@@ -105,7 +106,7 @@ class GameSameGroup:
             self.uncomplete[group]["toBegin"] = True
             return True
         return False
-    def checkBegin(self):
+    def checkBegin(self, matcher: Matcher):
         for group, data in self.uncomplete.items():
             if data["game"] is not self:
                 continue
@@ -113,8 +114,7 @@ class GameSameGroup:
                 data.pop("toBegin")
                 self.uncomplete.pop(group)
                 self.center[group] = data
-                return True
-        return False
+        matcher.skip()
     def begin(self):
         from pydantic import Field
         async def onBegin(bot: Bot, group: DiscordGroup=Depends(getGroup), user: User=Depends(getUser)):
@@ -146,9 +146,8 @@ class GameSameGroup:
                 msg = await matcher.get_response()
                 self.uncomplete[group]["message_id"] = msg.id
         f1 = matcher.handle_sub_command(self.name, 'begin',
-                parameterless=[Depends(onBegin), Depends(self.checkBegin, validate=Field(default=True, const=True))])
-        f2 = click.handle([Depends(checkClick, validate=Field(default=True, const=True)),
-                Depends(self.checkBegin, validate=Field(default=True, const=True))])
+                parameterless=[Depends(onBegin), Depends(self.checkBegin)])
+        f2 = click.handle([Depends(checkClick), Depends(self.checkBegin)])
         return lambda f: f2(f1(f))
 
     def process(self):
@@ -186,33 +185,33 @@ class GameSameGroup:
             f.write(json.dumps(data, ensure_ascii=False,
                                indent=4, separators=(',', ': ')))
 
-async def checkClick(bot: Bot, event: MessageComponentInteractionEvent, group: DiscordGroup=Depends(getGroup), user: DiscordUser=Depends(getUser)):
+async def checkClick(bot: Bot, matcher: Matcher, event: MessageComponentInteractionEvent, group: DiscordGroup=Depends(getGroup), user: DiscordUser=Depends(getUser)):
     if group not in GameSameGroup.uncomplete:
-        return False
+        matcher.skip()
     if event.message.id != GameSameGroup.uncomplete[group]["message_id"]:
-        return False
+        matcher.skip()
     button = event.data.custom_id
     game: GameSameGroup = GameSameGroup.uncomplete[group]["game"]
     if button == "attend":
         if user in GameSameGroup.uncomplete[group]["players"]:
             await click.send(MessageSegment.mention_user(user.user_id) + "已在对局中！")
-            return False
+            matcher.skip()
         GameSameGroup.uncomplete[group]["players"].append(user)
         message_id = GameSameGroup.uncomplete[group]["message_id"]
         await click.send(MessageSegment.mention_user(user.user_id) + "已成功加入对局！")
         if await game.checkToBegin(group, bot):
             await bot.delete_message(channel_id=group.channel_id, message_id=message_id)
+        matcher.skip()
     elif button == "begin":
         if user not in GameSameGroup.uncomplete[group]["players"]:
             await click.send(MessageSegment.mention_user(user.user_id) + "不在对局中，无法启动游戏！")
-            return False
+            matcher.skip()
         if len(GameSameGroup.uncomplete[group]["players"]) < game.begin_player[0]:
             await click.send("匹配人数未达下限，请耐心等待！")
-            return False
+            matcher.skip()
         message_id = GameSameGroup.uncomplete[group]["message_id"]
         await bot.delete_message(channel_id=group.channel_id, message_id=message_id)
         GameSameGroup.uncomplete[group]["toBegin"] = True
-        return True
+        return
     elif button == "close":
-        pass
-
+        matcher.skip()
