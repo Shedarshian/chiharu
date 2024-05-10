@@ -381,6 +381,8 @@ class MajHai:
 class MajZjHai(MajHai):
     @functools.total_ordering
     class HeZhong:
+        dict_str : Dict[Tuple[int, int, int], str]
+        dict_ten : Dict[Tuple[int, int, int], int]
         dict_str = {(0, 0, 1): "鸡和",
             (1, 1, 1): "平和", (1, 2, 1): "门前清", (1, 3, 1): "断幺九",
             (2, 1, 1): "混一色", (2, 1, 2): "清一色", (2, 2, 1): "九莲宝灯",
@@ -621,10 +623,10 @@ class MajZjHai(MajHai):
             m, ten = MajZjHai.HeZhong.ten(_now)
             if ten > _max[-1]:
                 _max = (_now, m, ten)
-        return _max
+        return _max # type: ignore
 
 P = TypeVar('P', bound='Player')
-class Player:
+class Player(Generic[H]):
     def __init_subclass__(cls, Hai: Type[H], **kwargs):
         super().__init_subclass__(**kwargs)
         cls.Hai = Hai
