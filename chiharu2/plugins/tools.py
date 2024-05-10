@@ -76,21 +76,21 @@ matcher = on_slash_command(name="tools",
                         )
                     ]
                 ),
-                SubCommandOption(
-                    name="train",
-                    description="麻将训练",
-                    options=[
-                        IntegerOption(
-                            name="choice",
-                            description="使用数字指定练习题",
-                            choices=[OptionChoice(name="清一色听牌训练",value=0),OptionChoice(name="清一色加强型听牌训练",value=2)],
-                        ),
-                        BooleanOption(
-                            name="past_answer",
-                            description="是否查看上题答案",
-                        )
-                    ]
-                ),
+                # SubCommandOption(
+                #     name="train",
+                #     description="麻将训练",
+                #     options=[
+                #         IntegerOption(
+                #             name="choice",
+                #             description="使用数字指定练习题",
+                #             choices=[OptionChoice(name="清一色听牌训练",value=0),OptionChoice(name="清一色加强型听牌训练",value=2)],
+                #         ),
+                #         BooleanOption(
+                #             name="past_answer",
+                #             description="是否查看上题答案",
+                #         )
+                #     ]
+                # ),
             ]
         ),
     ])
