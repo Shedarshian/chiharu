@@ -29,28 +29,28 @@ async def Waiting(matcher: type[ApplicationCommandMatcher]):
         await matcher.edit_response("出现了异常，没有返回！")
         raise
 
-@dataclass
+@dataclass(frozen=True)
 class Group:
     pass
-@dataclass
+@dataclass(frozen=True)
 class QQGroup(Group):
     group_id: int
     def __str__(self):
         return f"qq:{self.group_id}"
-@dataclass
+@dataclass(frozen=True)
 class DiscordGroup(Group):
     channel_id: int
     def __str__(self):
         return f"discord:{self.channel_id}"
-@dataclass
+@dataclass(frozen=True)
 class User:
     pass
-@dataclass
+@dataclass(frozen=True)
 class QQUser(User):
     user_id: int
     def __str__(self):
         return f"qq:{self.user_id}"
-@dataclass
+@dataclass(frozen=True)
 class DiscordUser(User):
     user_id: int
     def __str__(self):
