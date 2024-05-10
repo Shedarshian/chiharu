@@ -124,7 +124,7 @@ class GameSameGroup:
             if group in self.center:
                 await matcher.send_response("本群已有对局！")
                 return
-            self.uncomplete[group] = {"player": [user], "game": self}
+            self.uncomplete[group] = {"players": [user], "game": self}
             if not await self.checkToBegin(group, bot):
                 labels = f"## {self.name_zh}游戏对局\n"
                 if self.begin_player[0] == self.begin_player[1]:
@@ -194,16 +194,16 @@ async def checkClick(bot: Bot, event: MessageComponentInteractionEvent, group: D
     button = event.data.custom_id
     game: GameSameGroup = GameSameGroup.uncomplete[group]["game"]
     if button == "attend":
-        if user in GameSameGroup.uncomplete[group]["player"]:
+        if user in GameSameGroup.uncomplete[group]["players"]:
             await click.send(MessageSegment.mention_user(user.user_id) + "已在对局中！")
             return False
-        GameSameGroup.uncomplete[group]["player"].append(user)
+        GameSameGroup.uncomplete[group]["players"].append(user)
         message_id = GameSameGroup.uncomplete[group]["message_id"]
         await click.send(MessageSegment.mention_user(user.user_id) + "已成功加入对局！")
         if await game.checkToBegin(group, bot):
             await bot.delete_message(channel_id=group.channel_id, message_id=message_id)
     elif button == "begin":
-        if user not in GameSameGroup.uncomplete[group]["player"]:
+        if user not in GameSameGroup.uncomplete[group]["players"]:
             await click.send(MessageSegment.mention_user(user.user_id) + "不在对局中，无法启动游戏！")
             return False
         if len(GameSameGroup.uncomplete[group]["players"]) < game.begin_player[0]:
