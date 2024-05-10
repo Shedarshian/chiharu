@@ -8,7 +8,7 @@ from nonebot.params import CommandArg
 from nonebot import on_message, on_notice
 from nonebot.adapters.discord import on_slash_command, Event, Bot, Message, MessageSegment, ReadyEvent
 from nonebot.adapters.discord.api import SubCommandOption, SubCommandGroupOption, Interaction, Button, ButtonStyle, ActionRow, StringOption
-from nonebot.adapters.discord.event import MessageComponentInteractionEvent
+from nonebot.adapters.discord.event import MessageComponentInteractionEvent, InteractionCreateEvent
 from .helper.helper import rel, getGroup, getUser, Group, DiscordGroup, User, DiscordUser
 
 # example usage for GameSameGroup:
@@ -61,8 +61,8 @@ class GameSameGroup:
     uncomplete: 'dict[Group, dict[str, Any]]' = {}
     center: 'dict[Group, dict[str, Any]]' = {}
     def __init__(self, name: str, name_zh: str, player: Tuple[int, int]):
-        self.all_games[self.name] = self
         self.name = name
+        self.all_games[self.name] = self
         self.name_zh = name_zh
         self.begin_player = player
 
@@ -153,7 +153,7 @@ class GameSameGroup:
 
     def process(self):
         @matcher.handle_sub_command('play', self.name, 'end')
-        async def play_end(bot: Bot, event: Interaction, group: Group | None=Depends(getGroup)):
+        async def play_end(bot: Bot, event: InteractionCreateEvent, group: DiscordGroup=Depends(getGroup)):
             if group is None or not event.guild_id or not event.user or not event.user.id or not event.channel_id:
                 await matcher.send_response("无法结束！")
                 return
