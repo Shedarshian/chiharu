@@ -26,7 +26,7 @@ async def test(option: CommandOption[str], bot: Bot, event: InteractionCreateEve
 matcher_exec = on_command(('python', 'exec'))
 matcher_await = on_command(('python', 'await'))
 matcher_pull = on_command(('python', 'pull'))
-matcher_restart = on_command(('python', 'restart'))
+matcher_shutdown = on_command(('python', 'shutdown'))
 
 # matcher2 = on_slash_command(
 #     name="python",
@@ -84,7 +84,7 @@ async def PythonPull():
     result = subprocess.check_output(batcmd, shell=True)
     await matcher_pull.send(result.decode('utf-8'))
 
-@matcher_restart.handle()
+@matcher_shutdown.handle()
 async def PythonRestart(event: MessageEvent):
     import nonebot
     config = nonebot.get_driver().config
