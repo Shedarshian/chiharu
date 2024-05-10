@@ -733,18 +733,17 @@ async def chess_begin_complete(bot: Bot, data: GameData=xiangqi.data, group: Dis
 all_name = set('车車马馬象相士仕将帅炮砲兵卒')
 @xiangqi.process()
 async def chess_process(matcher: Matcher, data: GameData=xiangqi.data, delete_func: DeleteFunc=xiangqi.delete_func, message: Message=CommandArg(), user: DiscordUser=Depends(getUser)):
-    user_id = user.user_id
     board = data['board']
     command = message.extract_plain_text()
     if command in {"认输", "认负", "我认输", "我认负"}:
-        isRed = data['red'] == user_id
+        isRed = data['red'] == user
         await matcher.send(('红' if not isRed else '黑') + '方胜出')
         await delete_func()
     if len(command) != 4 and len(command) != 5:
         return
     if command[0] in '前中后' and command[1] in all_name or command[0] in all_name:
         if command[-2] in '进平退':
-            if (data['red'] == user_id) != data['nowRed']:
+            if (data['red'] == user) != data['nowRed']:
                 await matcher.send('现在应该' + ('红' if data['nowRed'] else '黑') + '方走')
                 return
             try:
