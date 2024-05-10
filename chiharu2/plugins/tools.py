@@ -85,6 +85,7 @@ matcher = on_slash_command(name="tools",
                         IntegerOption(
                             name="choice",
                             description="使用数字指定练习题",
+                            required=True,
                             # choices=[
                             #     OptionChoice(name="清一色听牌训练",value=int(0)),
                             #     OptionChoice(name="清一色加强听牌训练",value=int(2))
@@ -93,6 +94,7 @@ matcher = on_slash_command(name="tools",
                         BooleanOption(
                             name="past_answer",
                             description="是否查看上题答案",
+                            required=True,
                         )
                     ]
                 ),
@@ -225,7 +227,7 @@ async def maj_ten(han: CommandOption[int], pu: CommandOption[int], qin: CommandO
 daan = {}
 
 @matcher.handle_sub_command('maj', 'train')
-async def maj_train(choice: CommandOption[int], answer: Annotated[bool, CommandOptionType('past_answer')], event: InteractionCreateEvent):
+async def maj_train(choice: CommandOption[int], past_answer: CommandOption[bool], event: InteractionCreateEvent):
     """麻将训练。
     使用数字指定练习题，-a为查看上题答案。
     0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）
@@ -239,7 +241,7 @@ async def maj_train(choice: CommandOption[int], answer: Annotated[bool, CommandO
         await matcher.send_response('找不到当前用户')
         return
     text = str(choice)
-    if answer:
+    if past_answer:
         if group_id not in daan:
             await matcher.send_response('没有当前题目')
         else:
