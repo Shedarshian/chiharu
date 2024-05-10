@@ -6,7 +6,7 @@ import asyncio
 import operator
 from copy import copy
 from enum import Enum, IntFlag, IntEnum, auto
-from typing import Sequence, Union, TypeVar, Generic, Type, Dict, List, Tuple, Set, FrozenSet, Iterable, Union, Generator, Any, Callable
+from typing import Sequence, Union, TypeVar, Generic, Type, Dict, List, Tuple, Set, FrozenSet, Iterable, Union, Generator, Any, Callable, Self
 
 H = TypeVar('H', bound='MajHai')
 class MajErr(Exception):
@@ -218,7 +218,7 @@ class MajHai:
             result |= MajHai._3(d_temp, s_temp, hasTou)
         return result
     @staticmethod
-    def _chai(d: Iterable[int]) -> Tuple[Set[Tuple[Tuple[int,...],...]], List[List[int]]]:
+    def _chai(d: Iterable[int]) -> Set[Tuple[Tuple[int,...],...]]:
         barrel = MajHai._barrel(d)
         return MajHai._3(barrel, [], False)
     @staticmethod
@@ -262,7 +262,7 @@ class MajHai:
                 result = MajHai._chai(val) # type: Set[Tuple[Tuple[int,...],...]]
                 if len(result) == 0:
                     return {}
-                result_nonten = [r + [(key, r2)] for r in result_nonten for r2 in result]
+                result_nonten = [r + [(key, r2)] for r in result_nonten for r2 in result] # type: ignore
             else:
                 #字牌
                 def _(val):
@@ -270,7 +270,7 @@ class MajHai:
                         yield tuple(val[0:3])
                         val = val[3:]
                 result = tuple(_(val))
-                result_nonten = [r + [(key, result)] for r in result_nonten]
+                result_nonten = [r + [(key, result)] for r in result_nonten] # type: ignore
         if l == (1, 0):
             key, val = mod1_barrel[0]
             if key <= 2:
@@ -626,10 +626,12 @@ class MajZjHai(MajHai):
         return _max # type: ignore
 
 P = TypeVar('P', bound='Player')
+
 class Player(Generic[H]):
     def __init_subclass__(cls, Hai: Type[H], **kwargs):
         super().__init_subclass__(**kwargs)
         cls.Hai = Hai
+    self : Self
     doable_dahai = ('kiri', 'ankan', 'kakan', 'tsumo')
     doable_naku_shang = ('qi', 'pon', 'daiminkan', 'ron')
     doable_naku_all = ('pon', 'daiminkan', 'ron')
@@ -738,7 +740,7 @@ class Player(Generic[H]):
         for hai in tpl[2]:
             self.tehai.remove(hai)
         self.fuuro.append(FuuRo(tpl[0] | FuuRoStatus.PON, (tpl[1],) + tpl[2]))
-    def daiminkan_check(self, hai) -> List[Tuple[H, H, H]]:
+    def daiminkan_check(self, hai) -> List[Tuple[H, H, H]] | None:
         for i, j, k in itertools.combinations(self.tehai, 3):
             if i == j == k == hai:
                 return [(i, j, k)]
@@ -754,14 +756,14 @@ class Player(Generic[H]):
             return []
     def ron_do(self, tpl: Tuple[FuuRoStatus, H, None]) -> None:
         raise Win(self, tpl[1])
-    def do_dahai(self, status: PlayerStatus) -> Generator[Tuple[P, PlayerOption, Dict[str, Any]], Tuple[PlayerOption, H, Any], Tuple[H, Generator]]:
+    def do_dahai(self, status: PlayerStatus) -> Generator[Tuple[Self, PlayerOption, Dict[str, Any]], Tuple[PlayerOption, H, Any], Tuple[H, Generator]]:
         option = PlayerOption.NOTHING
         d = {}
         tpl = self.doable_dahai
         for s in tpl:
             l = self.__getattribute__(s + '_check')()
             if len(l) != 0:
-                option |= PlayerOption.__getattr__(s)
+                option |= PlayerOption[s]
                 d[s] = l
         option_chosen, hai, t = yield (self, option, d)
         gen = self.__getattribute__(option_chosen.name + '_do')(t)

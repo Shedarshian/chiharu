@@ -7,7 +7,7 @@ from nonebot.adapters.discord.api import SubCommandGroupOption, SubCommandOption
 from nonebot.adapters.discord import Bot, MessageEvent, MessageSegment, Message, InteractionCreateEvent
 from nonebot import on_command
 from nonebot.params import CommandArg
-# from .games import maj
+from .games import maj
 from .helper.function.function import parser, ParserError
 
 matcher = on_slash_command(name="tools",
@@ -76,21 +76,21 @@ matcher = on_slash_command(name="tools",
                         )
                     ]
                 ),
-                # SubCommandOption(
-                #     name="train",
-                #     description="麻将训练",
-                #     options=[
-                #         IntegerOption(
-                #             name="choice",
-                #             description="使用数字指定练习题",
-                #             choices=[OptionChoice(name="清一色听牌训练",value=0),OptionChoice(name="清一色加强型听牌训练",value=2)],
-                #         ),
-                #         BooleanOption(
-                #             name="past_answer",
-                #             description="是否查看上题答案",
-                #         )
-                #     ]
-                # ),
+                SubCommandOption(
+                    name="train",
+                    description="麻将训练",
+                    options=[
+                        IntegerOption(
+                            name="choice",
+                            description="使用数字指定练习题",
+                            choices=[OptionChoice(name="清一色听牌训练",value=0),OptionChoice(name="清一色加强型听牌训练",value=2)],
+                        ),
+                        BooleanOption(
+                            name="past_answer",
+                            description="是否查看上题答案",
+                        )
+                    ]
+                ),
             ]
         ),
     ])
@@ -217,87 +217,87 @@ async def maj_ten(han: Annotated[int, CommandOptionType("番数")], pu: Annotate
     elif zi:
         await matcher.edit_response(str_zi)
 
-# daan = {}
+daan = {}
 
-# @matcher.handle_sub_command('maj', 'train')
-# async def maj_train(choice: CommandOption[int], answer: Annotated[bool, CommandOptionType('past_answer')], event: InteractionCreateEvent):
-#     """麻将训练。
-#     使用数字指定练习题，-a为查看上题答案。
-#     0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）
-#     2：清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）
-#     可用选项：
-#     -a：查看上题答案。"""
-#     global daan
-#     try:
-#         group_id = event.get_user_id
-#     except:
-#         await matcher.send_response('找不到当前用户')
-#         return
-#     text = str(choice)
-#     if answer:
-#         if group_id not in daan:
-#             await matcher.send_response('没有当前题目')
-#         else:
-#             await matcher.send_response('答案为：' + str(daan.pop(group_id)))
-#     elif text == '0':
-#         str_title = '清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）\n'
-#         _continue = True
-#         while _continue:
-#             stack = []
-#             for i in range(4):
-#                 if random.random() < 0.3:
-#                     a = random.randint(1, 9)
-#                     stack.append(a)
-#                     stack.append(a)
-#                     stack.append(a)
-#                 else:
-#                     a = random.randint(1, 7)
-#                     stack.append(a)
-#                     stack.append(a + 1)
-#                     stack.append(a + 2)
-#             a = random.randint(1, 9)
-#             stack.append(a)
-#             stack.append(a)
-#             stack.sort()
-#             stack.pop(random.randint(0, len(stack) - 1))
-#             test = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-#             for i in stack:
-#                 test[i - 1] += 1
-#             _continue = False
-#             for i in test:
-#                 if i > 4:
-#                     _continue = True
-#         strout = str_title + ''.join(map(str, stack))
-#         await matcher.send_response(strout)
-#         result = maj.MajHai._ting(map(lambda x: x - 1, stack))
-#         daan[group_id] = \
-#             ''.join(map(lambda x: str(x[0] + 1), filter(lambda x: x[1] > 0, enumerate(map(len, result)))))
-#     elif text == '2':
-#         str_title = '清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）\n'
-#         stack = []
-#         for i in range(random.randint(5, 8)):
-#             if random.random() < 0.3:
-#                 a = random.randint(1, 9)
-#                 stack.append(a)
-#                 stack.append(a)
-#                 stack.append(a)
-#             else:
-#                 a = random.randint(1, 7)
-#                 stack.append(a)
-#                 stack.append(a + 1)
-#                 stack.append(a + 2)
-#         a = random.randint(1, 9)
-#         stack.append(a)
-#         stack.append(a)
-#         stack.sort()
-#         stack.pop(random.randint(0, len(stack) - 1))
-#         strout = str_title + ''.join(map(str, stack))
-#         await matcher.send_response(strout)
-#         result = maj.MajHai._ting(map(lambda x: x - 1, stack))
-#         daan[group_id] = \
-#             ''.join(map(lambda x: str(x[0] + 1), filter(lambda x: x[1] > 0, enumerate(map(len, result)))))
-#     else:
-#         pass
+@matcher.handle_sub_command('maj', 'train')
+async def maj_train(choice: CommandOption[int], answer: Annotated[bool, CommandOptionType('past_answer')], event: InteractionCreateEvent):
+    """麻将训练。
+    使用数字指定练习题，-a为查看上题答案。
+    0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）
+    2：清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）
+    可用选项：
+    -a：查看上题答案。"""
+    global daan
+    try:
+        group_id = event.get_user_id
+    except:
+        await matcher.send_response('找不到当前用户')
+        return
+    text = str(choice)
+    if answer:
+        if group_id not in daan:
+            await matcher.send_response('没有当前题目')
+        else:
+            await matcher.send_response('答案为：' + str(daan.pop(group_id)))
+    elif text == '0':
+        str_title = '清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）\n'
+        _continue = True
+        while _continue:
+            stack = []
+            for i in range(4):
+                if random.random() < 0.3:
+                    a = random.randint(1, 9)
+                    stack.append(a)
+                    stack.append(a)
+                    stack.append(a)
+                else:
+                    a = random.randint(1, 7)
+                    stack.append(a)
+                    stack.append(a + 1)
+                    stack.append(a + 2)
+            a = random.randint(1, 9)
+            stack.append(a)
+            stack.append(a)
+            stack.sort()
+            stack.pop(random.randint(0, len(stack) - 1))
+            test = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+            for i in stack:
+                test[i - 1] += 1
+            _continue = False
+            for i in test:
+                if i > 4:
+                    _continue = True
+        strout = str_title + ''.join(map(str, stack))
+        await matcher.send_response(strout)
+        result = maj.MajHai._ting(map(lambda x: x - 1, stack))
+        daan[group_id] = \
+            ''.join(map(lambda x: str(x[0] + 1), filter(lambda x: x[1] > 0, enumerate(map(len, result)))))
+    elif text == '2':
+        str_title = '清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）\n'
+        stack = []
+        for i in range(random.randint(5, 8)):
+            if random.random() < 0.3:
+                a = random.randint(1, 9)
+                stack.append(a)
+                stack.append(a)
+                stack.append(a)
+            else:
+                a = random.randint(1, 7)
+                stack.append(a)
+                stack.append(a + 1)
+                stack.append(a + 2)
+        a = random.randint(1, 9)
+        stack.append(a)
+        stack.append(a)
+        stack.sort()
+        stack.pop(random.randint(0, len(stack) - 1))
+        strout = str_title + ''.join(map(str, stack))
+        await matcher.send_response(strout)
+        result = maj.MajHai._ting(map(lambda x: x - 1, stack))
+        daan[group_id] = \
+            ''.join(map(lambda x: str(x[0] + 1), filter(lambda x: x[1] > 0, enumerate(map(len, result)))))
+    else:
+        pass
         # await matcher.send_response('使用数字指定练习题，-a为查看上题答案。\n0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）\n2：清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）')
 
 
