@@ -88,9 +88,9 @@ class GameSameGroup:
             return
         if user not in data['players']:
             return
-    async def checkInGroup(self, group: DiscordGroup=Depends(getGroup)):
+    async def checkInGroup(self, matcher: Matcher, group: DiscordGroup=Depends(getGroup)):
         if group not in self.center or self.center[group]["game"] is not self:
-            matcher_message.skip()
+            matcher.skip()
 
     async def checkToBegin(self, group: DiscordGroup, bot: Bot) -> bool:
         "True表示成功开始游戏"
