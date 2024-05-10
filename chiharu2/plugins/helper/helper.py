@@ -59,13 +59,13 @@ class DiscordUser(User):
 async def getGroup(event: Event, matcher: Matcher):
     if isinstance(event, (Interaction, MessageEvent)) and (channel_id := event.channel_id):
         return DiscordGroup(channel_id)
-    await matcher.finish()
+    matcher.skip()
 async def getUser(event: Event, matcher: Matcher):
     if isinstance(event, Interaction) and event.member and event.member.user:
         return DiscordUser(event.member.user.id)
     if isinstance(event, MessageEvent):
         return DiscordUser(event.author.id)
-    await matcher.finish()
+    matcher.skip()
 # @contextlib.asynccontextmanager
 # async def WaitingMessage(matcher: type[Matcher]):
 #     try:
