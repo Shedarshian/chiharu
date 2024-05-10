@@ -9,6 +9,7 @@ from nonebot.message import event_postprocessor
 from nonebot.adapters.discord import Bot, MessageEvent, Event, InteractionCreateEvent, Message, ReadyEvent
 from nonebot.adapters.discord.api import *
 from nonebot.adapters.discord.commands import CommandOption, on_slash_command
+from nonebot.matcher import Matcher
 
 matcher = on_slash_command(
     name="test",
