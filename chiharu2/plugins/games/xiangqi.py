@@ -2,11 +2,19 @@ import abc
 import itertools
 import functools
 from typing import Dict, Any, Callable, Awaitable
-from .. import config
-from ..game import GameSameGroup, ChessError, ChessWin
-from nonebot import on_command, CommandSession, get_bot, permission, NLPSession, IntentCommand
+from nonebot.params import Depends, CommandArg
+from nonebot.matcher import Matcher
+from nonebot.adapters.discord import Bot, Message
+from ..helper.helper import getGroup, getUser, DiscordGroup, DiscordUser
+from ..game import GameSameGroup, GameData, DeleteFunc
 
 name_dict = {}
+
+class ChessError(BaseException):
+    def __init__(self, arg):
+        self.arg = arg
+class ChessWin(ChessError):
+    pass
 
 def metastr(output):
     def _(class_name, class_parents, class_attr):
@@ -712,65 +720,39 @@ class ChessBoard:
         for i in to_delete:
             self.insert(i[1], i[0])
 
-xiangqi = GameSameGroup('xiangqi')
+xiangqi = GameSameGroup('xiangqi', "象棋", (2, 2))
 
-@xiangqi.begin_uncomplete(('play', 'xiangqi', 'begin'), (2, 2))
-async def chess_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):
-    # data: {'players': [qq], 'anything': anything}
-    await session.send('已为您安排红方，等候黑方')
-
-@xiangqi.begin_complete(('play', 'xiangqi', 'confirm'))
-async def chess_begin_complete(session: CommandSession, data: Dict[str, Any]):
+@xiangqi.begin()
+async def chess_begin_complete(bot: Bot, data: GameData=xiangqi.data, group: DiscordGroup=Depends(getGroup)):
     # data: {'players': [qq], 'game': GameSameGroup instance, 'anything': anything}
-    await session.send('已为您安排黑方')
     data['red'] = data['players'][0]
     data['board'] = ChessBoard()
     data['nowRed'] = True
-    await session.send(str(data['board']))
-
-@xiangqi.end(('play', 'xiangqi', 'end'))
-async def chess_end(session: CommandSession, data: Dict[str, Any]):
-    await session.send('已删除')
+    await bot.send_to(group.channel_id, str(data['board']))
 
 all_name = set('车車马馬象相士仕将帅炮砲兵卒')
-@xiangqi.process(only_short_message=True)
-async def chess_process(session: NLPSession, data: Dict[str, Any], delete_func: Awaitable):
-    command = session.msg_text
-    qq = int(session.ctx['user_id'])
+@xiangqi.process()
+async def chess_process(matcher: Matcher, data: GameData=xiangqi.data, delete_func: DeleteFunc=xiangqi.delete_func, message: Message=CommandArg(), user: DiscordUser=Depends(getUser)):
+    user_id = user.user_id
     board = data['board']
+    command = message.extract_plain_text()
     if command in {"认输", "认负", "我认输", "我认负"}:
-        isRed = data['red'] == qq
-        await session.send(('红' if not isRed else '黑') + '方胜出')
+        isRed = data['red'] == user_id
+        await matcher.send(('红' if not isRed else '黑') + '方胜出')
         await delete_func()
     if len(command) != 4 and len(command) != 5:
         return
     if command[0] in '前中后' and command[1] in all_name or command[0] in all_name:
         if command[-2] in '进平退':
-            if (data['red'] == qq) != data['nowRed']:
-                await session.send('现在应该' + ('红' if data['nowRed'] else '黑') + '方走')
+            if (data['red'] == user_id) != data['nowRed']:
+                await matcher.send('现在应该' + ('红' if data['nowRed'] else '黑') + '方走')
                 return
-            def _not_red():
+            try:
+                board.process(command, data['nowRed'])
                 data['nowRed'] = not data['nowRed']
-            return IntentCommand(100.0, ('play', 'xiangqi', 'process'),
-                args={'args': command, 'isRed': data['nowRed'], 'board': data['board'],
-                'ifSuccess': _not_red, 'ifWin': delete_func})
-
-@on_command(('play', 'xiangqi', 'process'), only_to_me=False, hide=True)
-@config.ErrorHandle
-async def chess_test(session: CommandSession):
-    board = session.get('board')
-    try:
-        board.process(session.get('args'), session.get('isRed'))
-        session.get('ifSuccess')()
-        await session.send(str(board))
-    except ChessWin as e:
-        await session.send(e.args[0])
-        await session.get('ifWin')()
-    except ChessError as e:
-        await session.send(e.args[0])
-
-config.CommandGroup('xiangqi', hide=True)
-@on_command(('xiangqi', 'check'), only_to_me=False, hide=True)
-@config.ErrorHandle
-async def chess_check(session: CommandSession):
-    await session.send(' '.join(map(str, filter(lambda x: xiangqi.center[x]['game'] is xiangqi, xiangqi.center.keys()))))
+                await matcher.send(str(board))
+            except ChessWin as e:
+                await matcher.send(e.args[0])
+                await delete_func()
+            except ChessError as e:
+                await matcher.send(e.args[0])

@@ -1,5 +1,5 @@
-from typing import Tuple, Any, NoReturn
-from collections.abc import Coroutine
+from typing import Tuple, Any, NoReturn, TypeAlias, Callable
+from collections.abc import Coroutine, Awaitable
 from functools import wraps
 import json
 from nonebot.dependencies import Param
@@ -50,8 +50,8 @@ matcher = on_slash_command(name="play",
             ]) for name, des in allGames
     ])
 
-GameData = dict[str, Any]
-DeleteFunc = Coroutine[Any, Any, NoReturn]
+GameData: TypeAlias = dict[str, Any]
+DeleteFunc: TypeAlias = Callable[[], Awaitable[NoReturn]]
 matcher_message = on_message()
 click = on_notice()
 

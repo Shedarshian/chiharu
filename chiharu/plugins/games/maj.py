@@ -684,7 +684,7 @@ class Player:
             self.board.playerstatus = self.board.status
             self.board.players[self.board.now].give(self.board.tsumo())
     def ankan_check(self) -> List[Tuple[H, H, H, H]]:
-        def _():
+        def _() -> Generator[tuple[H, H, H, H], Any, None]:
             for i, j, k, l in itertools.combinations(self.tehai, 4):
                 if i == j == k == l:
                     yield i, j, k, l
