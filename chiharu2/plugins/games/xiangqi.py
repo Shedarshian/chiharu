@@ -2,7 +2,7 @@ import abc
 import itertools
 import functools
 from typing import Dict, Any, Callable, Awaitable
-from nonebot.params import Depends, CommandArg
+from nonebot.params import Depends, EventMessage
 from nonebot.matcher import Matcher
 from nonebot.adapters.discord import Bot, Message
 from ..helper.helper import getGroup, getUser, DiscordGroup, DiscordUser
@@ -732,7 +732,7 @@ async def chess_begin_complete(bot: Bot, data: GameData=xiangqi.data, group: Dis
 
 all_name = set('车車马馬象相士仕将帅炮砲兵卒')
 @xiangqi.process()
-async def chess_process(matcher: Matcher, data: GameData=xiangqi.data, delete_func: DeleteFunc=xiangqi.delete_func, message: Message=CommandArg(), user: DiscordUser=Depends(getUser)):
+async def chess_process(matcher: Matcher, data: GameData=xiangqi.data, delete_func: DeleteFunc=xiangqi.delete_func, message: Message=EventMessage(), user: DiscordUser=Depends(getUser)):
     board: ChessBoard = data['board']
     command = message.extract_plain_text().strip()
     if command in {"认输", "认负", "我认输", "我认负"}:
