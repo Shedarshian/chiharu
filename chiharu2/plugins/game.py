@@ -118,13 +118,15 @@ class GameSameGroup:
         self.uncomplete.pop(group)
         self.center[group] = data
     @classmethod
-    def delete(cls, user: DiscordUser, group: DiscordGroup, is_admin: bool=False):
+    async def delete(cls, bot: Bot, user: DiscordUser, group: DiscordGroup, is_admin: bool=False):
         if group in cls.center:
             if user in cls.center[group]["players"] or is_admin:
                 cls.center.pop(group)
                 return True
         elif group in cls.uncomplete:
             if user in cls.uncomplete[group]["players"] or is_admin:
+                message_id = cls.uncomplete[group]["message_id"]
+                await bot.delete_message(channel_id=group.channel_id, message_id=message_id)
                 cls.uncomplete.pop(group)
                 return True
         return False
@@ -167,15 +169,15 @@ class GameSameGroup:
     def process(self):
         @matcher.handle_sub_command(self.name, 'end')
         async def play_end(bot: Bot, event: InteractionCreateEvent, group: DiscordGroup=Depends(getGroup), user: DiscordUser=Depends(getUser)):
-            if group is None or not event.guild_id or not event.user or not event.user.id or not event.channel_id:
-                await matcher.send_response("无法结束！")
-                return
-            member = await bot.get_guild_member(guild_id=event.guild_id, user_id=event.user.id)
+            # if not event.guild_id:
+            #     await matcher.send_response("无法结束！")
+            #     return
+            # member = await bot.get_guild_member(guild_id=event.guild_id, user_id=user.user_id)
             # if not member.permissions:
             #     await matcher.send_response("无法结束！")
             #     return
             # member.permissions & (1 << 3)
-            if self.delete(user, group, False):
+            if self.delete(bot, user, group, False):
                 await matcher.send_response("对局已结束。")
             else:
                 await matcher.send_response("无法结束！")
@@ -231,9 +233,7 @@ async def checkClick(bot: Bot, matcher: Matcher, event: MessageComponentInteract
         GameSameGroup.uncomplete[group]["toBegin"] = True
         return
     elif button == "close":
-        message_id = GameSameGroup.uncomplete[group]["message_id"]
-        if GameSameGroup.delete(user, group, False):
-            await bot.delete_message(channel_id=group.channel_id, message_id=message_id)
+        if await GameSameGroup.delete(bot, user, group, False):
             await click.send(MessageSegment.mention_user(user.user_id) + "已删除对局。")
         else:
             await click.send(MessageSegment.mention_user(user.user_id) + "不在对局中，无法删除！")
