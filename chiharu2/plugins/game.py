@@ -166,12 +166,10 @@ class GameSameGroup:
 
     def process(self):
         @matcher.handle_sub_command(self.name, 'end')
-        async def play_end(bot: Bot, event: InteractionCreateEvent, group: DiscordGroup=Depends(getGroup)):
+        async def play_end(bot: Bot, event: InteractionCreateEvent, group: DiscordGroup=Depends(getGroup), user: DiscordUser=Depends(getUser)):
             if group is None or not event.guild_id or not event.user or not event.user.id or not event.channel_id:
                 await matcher.send_response("无法结束！")
                 return
-            group = DiscordGroup(event.channel_id)
-            user = DiscordUser(event.user.id)
             member = await bot.get_guild_member(guild_id=event.guild_id, user_id=event.user.id)
             # if not member.permissions:
             #     await matcher.send_response("无法结束！")
@@ -236,5 +234,7 @@ async def checkClick(bot: Bot, matcher: Matcher, event: MessageComponentInteract
         message_id = GameSameGroup.uncomplete[group]["message_id"]
         if GameSameGroup.delete(user, group, False):
             await bot.delete_message(channel_id=group.channel_id, message_id=message_id)
-            await click.send("对局已删除。")
+            await click.send(MessageSegment.mention_user(user.user_id) + "已删除对局。")
+        else:
+            await click.send(MessageSegment.mention_user(user.user_id) + "不在对局中，无法删除！")
         matcher.skip()
