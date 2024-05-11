@@ -117,6 +117,17 @@ class GameSameGroup:
             matcher.skip()
         self.uncomplete.pop(group)
         self.center[group] = data
+    @classmethod
+    def delete(cls, user: DiscordUser, group: DiscordGroup, is_admin: bool=False):
+        if group in cls.center:
+            if user in cls.center[group]["players"] or is_admin:
+                cls.center.pop(group)
+                return True
+        elif group in cls.uncomplete:
+            if user in cls.uncomplete[group]["players"] or is_admin:
+                cls.uncomplete.pop(group)
+                return True
+        return False
     def begin(self):
         from pydantic import Field
         async def onBegin(bot: Bot, group: DiscordGroup=Depends(getGroup), user: User=Depends(getUser)):
@@ -162,10 +173,14 @@ class GameSameGroup:
             group = DiscordGroup(event.channel_id)
             user = DiscordUser(event.user.id)
             member = await bot.get_guild_member(guild_id=event.guild_id, user_id=event.user.id)
-            if not member.permissions:
-                await matcher.send_response("无法结束！")
-                return
+            # if not member.permissions:
+            #     await matcher.send_response("无法结束！")
+            #     return
             # member.permissions & (1 << 3)
+            if self.delete(user, group, False):
+                await matcher.send_response("对局已结束。")
+            else:
+                await matcher.send_response("无法结束！")
 
         return matcher_message.handle([Depends(self.checkInGroup)])
     def open_data(self, qq):
@@ -218,4 +233,8 @@ async def checkClick(bot: Bot, matcher: Matcher, event: MessageComponentInteract
         GameSameGroup.uncomplete[group]["toBegin"] = True
         return
     elif button == "close":
+        message_id = GameSameGroup.uncomplete[group]["message_id"]
+        if GameSameGroup.delete(user, group, False):
+            await bot.delete_message(channel_id=group.channel_id, message_id=message_id)
+            await click.send("对局已删除。")
         matcher.skip()
