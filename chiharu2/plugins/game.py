@@ -169,9 +169,9 @@ class GameSameGroup:
     def process(self):
         @matcher.handle_sub_command(self.name, 'end')
         async def play_end(bot: Bot, event: InteractionCreateEvent, group: DiscordGroup=Depends(getGroup), user: DiscordUser=Depends(getUser)):
-            if not event.guild_id:
-                await matcher.send_response("无法结束！")
-                return
+            # if not event.guild_id:
+            #     await matcher.send_response("无法结束！")
+            #     return
             # member = await bot.get_guild_member(guild_id=event.guild_id, user_id=user.user_id)
             # if not member.permissions:
             #     await matcher.send_response("无法结束！")
