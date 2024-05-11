@@ -56,23 +56,25 @@ matcher = on_slash_command(name="tools",
                     description="日麻算点器",
                     options=[
                         IntegerOption(
-                            name="番数",
+                            name="han",
                             description="和牌的番数",
                             required=True
                         ),
                         IntegerOption(
-                            name="符数",
+                            name="pu",
                             description="和牌的符数",
                             min_value=20,
                             required=True
                         ),
                         BooleanOption(
-                            name="亲家",
-                            description="是否为亲家"
+                            name="qin",
+                            description="是否为亲家",
+                            required=True
                         ),
                         BooleanOption(
-                            name="子家",
-                            description="是否为子家"
+                            name="zi",
+                            description="是否为子家",
+                            required=True
                         )
                     ]
                 ),
@@ -83,11 +85,16 @@ matcher = on_slash_command(name="tools",
                         IntegerOption(
                             name="choice",
                             description="使用数字指定练习题",
-                            choices=[OptionChoice(name="清一色听牌训练",value=0),OptionChoice(name="清一色加强型听牌训练",value=2)],
+                            required=True,
+                            # choices=[
+                            #     OptionChoice(name="清一色听牌训练",value=int(0)),
+                            #     OptionChoice(name="清一色加强听牌训练",value=int(2))
+                            # ],
                         ),
                         BooleanOption(
                             name="past_answer",
                             description="是否查看上题答案",
+                            required=True,
                         )
                     ]
                 ),
@@ -181,7 +188,7 @@ async def AscTrans(number_list: CommandOption[str]):
         await matcher.edit_response('请输入十进制数字或U+xxx十六进制数字。')
 
 @matcher.handle_sub_command('maj', 'ten')
-async def maj_ten(han: Annotated[int, CommandOptionType("番数")], pu: Annotated[int, CommandOptionType("符数")], qin: Annotated[bool, CommandOptionType("亲家")], zi: Annotated[bool, CommandOptionType("子家")]):
+async def maj_ten(han: CommandOption[int], pu: CommandOption[int], qin: CommandOption[bool], zi: CommandOption[bool]):
     '''日麻算点器。
     输入几番几符，可计算得点。可额外指定亲家或子家。'''
     await matcher.send_response("少女计算中...")
@@ -220,7 +227,7 @@ async def maj_ten(han: Annotated[int, CommandOptionType("番数")], pu: Annotate
 daan = {}
 
 @matcher.handle_sub_command('maj', 'train')
-async def maj_train(choice: CommandOption[int], answer: Annotated[bool, CommandOptionType('past_answer')], event: InteractionCreateEvent):
+async def maj_train(choice: CommandOption[int], past_answer: CommandOption[bool], event: InteractionCreateEvent):
     """麻将训练。
     使用数字指定练习题，-a为查看上题答案。
     0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）
@@ -234,7 +241,7 @@ async def maj_train(choice: CommandOption[int], answer: Annotated[bool, CommandO
         await matcher.send_response('找不到当前用户')
         return
     text = str(choice)
-    if answer:
+    if past_answer:
         if group_id not in daan:
             await matcher.send_response('没有当前题目')
         else:
