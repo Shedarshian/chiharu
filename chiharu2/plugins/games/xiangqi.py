@@ -16,7 +16,7 @@ class ChessError(BaseException):
 class ChessWin(ChessError):
     pass
 
-class Chess(abc.ABC):
+class Chess:
     """A Abstract Base Class for Cell"""
     row = {"一": 8, "二": 7, "三": 6, "四": 5, "五": 4, "六": 3, "七": 2, "八": 1, "九": 0,
         "1": 0, "2": 1, "3": 2, "4": 3, "5": 4, "6": 5, "7": 6, "8": 7, "9": 8}
