@@ -1,14 +1,14 @@
 import abc
 import itertools
 import functools
-from typing import Dict, Any, Callable, Awaitable
+from typing import Dict, Any, Callable, Awaitable, TypeVar, Literal
 from nonebot.params import Depends, EventMessage
 from nonebot.matcher import Matcher
 from nonebot.adapters.discord import Bot, Message
 from ..helper.helper import getGroup, getUser, DiscordGroup, DiscordUser
 from ..game import GameSameGroup, GameData, DeleteFunc
 
-name_dict = {}
+name_dict: dict[str, type] = {}
 
 class ChessError(BaseException):
     def __init__(self, arg):
@@ -16,94 +16,85 @@ class ChessError(BaseException):
 class ChessWin(ChessError):
     pass
 
-def metastr(output):
-    def _(class_name, class_parents, class_attr):
-        def __str__(self):
-            return output
-        _isRed = class_name.startswith('Hong')
-        def isRed(self):
-            return _isRed
-        class_attr['__str__'] = __str__
-        class_attr['isRed'] = isRed
-        name_dict[class_name] = type(class_name, class_parents, class_attr)
-        return name_dict[class_name]
-    return _
-
-class Chess(abc.ABC):
+class Chess:
     """A Abstract Base Class for Cell"""
     row = {"一": 8, "二": 7, "三": 6, "四": 5, "五": 4, "六": 3, "七": 2, "八": 1, "九": 0,
         "1": 0, "2": 1, "3": 2, "4": 3, "5": 4, "6": 5, "7": 6, "8": 7, "9": 8}
     step = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9,
         "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9}
-    def __init__(self, pos, board):
+    name = "None"
+    def __init__(self, pos: tuple[int, int], board: 'ChessBoard'):
         self.pos = pos
         self.board = board
-    @abc.abstractmethod
+    def __init_subclass__(cls, name: str) -> None:
+        cls.name = name
+    def isRed(self):
+        return self.__class__.__name__.startswith("Hong")
     def __str__(self):
-        pass
-    def TestMove(self, command):
-        return False
-    def Move(self, pos):
-        to_delete = ()
+        return self.name
+    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
+        return None
+    def Move(self, pos: tuple[int, int]):
+        to_delete: tuple[tuple[type[Chess], tuple[int, int]],...] = ()
         if pos in self.board.board:
             to_delete += ((type(self.board.board[pos]), pos),)
             self.board.pop(pos)
         to_delete += ((type(self), self.pos),)
-        to_add = (type(self), pos)
+        to_add: tuple[type[Chess], tuple[int, int]] = (type(self), pos)
         self.board.Moves.append((to_add, to_delete))
         self.board.board.pop(self.pos)
         self.board.board[pos] = self
         self.pos = pos
 
-class HongChe(Chess, metaclass=metastr("车")):
-    def TestMove(self, command):
+class HongChe(Chess, name="车"):
+    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
         if command[0] == 1: #进
             try:
                 step = Chess.step[command[1]]
             except KeyError:
                 raise ChessError('不明指令')
             if self.pos[0] - step < 0:
-                return (False, )
+                return None
             for i in range(step - 1):
                 if not self.board.isBlank((self.pos[0] - i - 1, self.pos[1])):
-                    return (False, )
+                    return None
             pos = (self.pos[0] - step, self.pos[1])
             if not self.board.isBlank(pos):
                 if self.board[pos].isRed():
-                    return (False, )
-            return (True, pos)
+                    return None
+            return pos
         elif command[0] == -1: #退
             try:
                 step = Chess.step[command[1]]
             except KeyError:
                 raise ChessError('不明指令')
             if self.pos[0] + step > 9:
-                return (False, )
+                return None
             for i in range(step - 1):
                 if not self.board.isBlank((self.pos[0] + i + 1, self.pos[1])):
-                    return (False, )
+                    return None
             pos = (self.pos[0] + step, self.pos[1])
             if not self.board.isBlank(pos):
                 if self.board[pos].isRed():
-                    return (False, )
-            return (True, pos)
+                    return None
+            return pos
         elif command[0] == 0: #平
             try:
                 lie = Chess.row[command[1]]
             except KeyError:
                 raise ChessError('不明指令')
             if lie == self.pos[1]:
-                return (False, )
+                return None
             small, big = sorted((lie, self.pos[1]))
             for i in range(small + 1, big):
                 if not self.board.isBlank((self.pos[0], i)):
-                    return (False, )
+                    return None
             pos = (self.pos[0], lie)
             if not self.board.isBlank(pos) and self.board[(self.pos[0], lie)].isRed():
-                return (False, )
-            return (True, pos)
-class HongMa(Chess, metaclass=metastr("马")):
-    def TestMove(self, command):
+                return None
+            return pos
+class HongMa(Chess, name="马"):
+    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
         try:
             lie = Chess.row[command[1]]
         except KeyError:
@@ -123,16 +114,16 @@ class HongMa(Chess, metaclass=metastr("马")):
         try:
             pos, tui = l[lie]
         except KeyError:
-            return (False, )
+            return None
         if pos[0] < 0 or pos[0] > 9 or pos[1] < 0 or pos[1] > 8:
-            return (False, )
+            return None
         if not self.board.isBlank(tui):
-            return (False, )
+            return None
         if not self.board.isBlank(pos) and self.board[pos].isRed():
-            return (False, )
-        return (True, pos)
-class HongXiang(Chess, metaclass=metastr("相")):
-    def TestMove(self, command):
+            return None
+        return pos
+class HongXiang(Chess, name="相"):
+    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
         try:
             lie = Chess.row[command[1]]
         except KeyError:
@@ -148,16 +139,16 @@ class HongXiang(Chess, metaclass=metastr("相")):
         try:
             pos, tui = l[lie]
         except KeyError:
-            return (False, )
+            return None
         if pos[0] < 5 or pos[0] > 9 or pos[1] < 0 or pos[1] > 8:
-            return (False, )
+            return None
         if not self.board.isBlank(tui):
-            return (False, )
+            return None
         if not self.board.isBlank(pos) and self.board[pos].isRed():
-            return (False, )
-        return (True, pos)
-class HongShi(Chess, metaclass=metastr("仕")):
-    def TestMove(self, command):
+            return None
+        return pos
+class HongShi(Chess, name="仕"):
+    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
         try:
             lie = Chess.row[command[1]]
         except KeyError:
@@ -173,14 +164,14 @@ class HongShi(Chess, metaclass=metastr("仕")):
         try:
             pos = l[lie]
         except KeyError:
-            return (False, )
+            return None
         if pos[0] < 7 or pos[0] > 9 or pos[1] < 3 or pos[1] > 5:
-            return (False, )
+            return None
         if not self.board.isBlank(pos) and self.board[pos].isRed():
-            return (False, )
-        return (True, pos)
-class HongShuai(Chess, metaclass=metastr("帅")):
-    def TestMove(self, command):
+            return None
+        return pos
+class HongShuai(Chess, name="帅"):
+    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
         if command[0] == 0: #平
             try:
                 lie = Chess.row[command[1]]
@@ -190,7 +181,7 @@ class HongShuai(Chess, metaclass=metastr("帅")):
                 raise ChessError('不明指令')
             pos = (self.pos[0], lie)
             if lie < 3 or lie > 5:
-                return (False, )
+                return None
         else: #进退
             try:
                 step = Chess.step[command[1]]
@@ -200,19 +191,19 @@ class HongShuai(Chess, metaclass=metastr("帅")):
                 raise ChessError('不明指令')
             pos = (self.pos[0] - step * command[0], self.pos[1])
             if pos[0] < 7 or pos[0] > 9:
-                return (False, )
+                return None
         if not self.board.isBlank(pos) and self.board[pos].isRed():
-            return (False, )
-        return (True, pos)
-class HongPao(Chess, metaclass=metastr("炮")):
-    def TestMove(self, command):
+            return None
+        return pos
+class HongPao(Chess, name="炮"):
+    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
         if command[0] == 1: #进
             try:
                 step = Chess.step[command[1]]
             except KeyError:
                 raise ChessError('不明指令')
             if self.pos[0] - step < 0:
-                return (False, )
+                return None
             num = 0
             for i in range(step - 1):
                 if not self.board.isBlank((self.pos[0] - i - 1, self.pos[1])):
@@ -220,20 +211,20 @@ class HongPao(Chess, metaclass=metastr("炮")):
             pos = (self.pos[0] - step, self.pos[1])
             if not self.board.isBlank(pos):
                 if self.board[pos].isRed():
-                    return (False, )
+                    return None
                 else:
                     if num != 1:
-                        return (False, )
+                        return None
             elif num != 0:
-                return (False, )
-            return (True, pos)
+                return None
+            return pos
         elif command[0] == -1: #退
             try:
                 step = Chess.step[command[1]]
             except KeyError:
                 raise ChessError('不明指令')
             if self.pos[0] + step > 9:
-                return (False, )
+                return None
             num = 0
             for i in range(step - 1):
                 if not self.board.isBlank((self.pos[0] + i + 1, self.pos[1])):
@@ -241,20 +232,20 @@ class HongPao(Chess, metaclass=metastr("炮")):
             pos = (self.pos[0] + step, self.pos[1])
             if not self.board.isBlank(pos):
                 if self.board[pos].isRed():
-                    return (False, )
+                    return None
                 else:
                     if num != 1:
-                        return (False, )
+                        return None
             elif num != 0:
-                return (False, )
-            return (True, pos)
+                return None
+            return pos
         elif command[0] == 0: #平
             try:
                 lie = Chess.row[command[1]]
             except KeyError:
                 raise ChessError('不明指令')
             if lie == self.pos[1]:
-                return (False, )
+                return None
             small, big = sorted((lie, self.pos[1]))
             num = 0
             for i in range(small + 1, big):
@@ -263,24 +254,24 @@ class HongPao(Chess, metaclass=metastr("炮")):
             pos = (self.pos[0], lie)
             if not self.board.isBlank(pos):
                 if self.board[pos].isRed():
-                    return (False, )
+                    return None
                 else:
                     if num != 1:
-                        return (False, )
+                        return None
             elif num != 0:
-                return (False, )
-            return (True, pos)
-class HongBing(Chess, metaclass=metastr("兵")):
-    def TestMove(self, command):
+                return None
+            return pos
+class HongBing(Chess, name="兵"):
+    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
         if command[0] == 0: #平
             try:
                 lie = Chess.row[command[1]]
             except KeyError:
                 raise ChessError('不明指令')
             if lie != self.pos[1] + 1 and lie != self.pos[1] - 1:
-                return (False,)
+                return None
             if self.pos[0] >= 5:
-                return (False,)
+                return None
             pos = (self.pos[0], lie)
         elif command[0] == 1: #进
             try:
@@ -288,64 +279,64 @@ class HongBing(Chess, metaclass=metastr("兵")):
             except KeyError:
                 raise ChessError('不明指令')
             if step != 1:
-                return (False,)
+                return None
             pos = (self.pos[0] - step, self.pos[1])
             if pos[0] < 0:
-                return (False, )
+                return None
         elif command[0] == -1: #退
             raise ChessError('不明指令')
         if not self.board.isBlank(pos) and self.board[pos].isRed():
-            return (False, )
-        return (True, pos)
-class HeiChe(Chess, metaclass=metastr("車")):
-    def TestMove(self, command):
+            return None
+        return pos
+class HeiChe(Chess, name="車"):
+    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
         if command[0] == -1: #退
             try:
                 step = Chess.step[command[1]]
             except KeyError:
                 raise ChessError('不明指令')
             if self.pos[0] - step < 0:
-                return (False, )
+                return None
             for i in range(step - 1):
                 if not self.board.isBlank((self.pos[0] - i - 1, self.pos[1])):
-                    return (False, )
+                    return None
             pos = (self.pos[0] - step, self.pos[1])
             if not self.board.isBlank(pos):
                 if not self.board[pos].isRed():
-                    return (False, )
-            return (True, pos)
+                    return None
+            return pos
         elif command[0] == 1: #进
             try:
                 step = Chess.step[command[1]]
             except KeyError:
                 raise ChessError('不明指令')
             if self.pos[0] + step > 9:
-                return (False, )
+                return None
             for i in range(step - 1):
                 if not self.board.isBlank((self.pos[0] + i + 1, self.pos[1])):
-                    return (False, )
+                    return None
             pos = (self.pos[0] + step, self.pos[1])
             if not self.board.isBlank(pos):
                 if not self.board[pos].isRed():
-                    return (False, )
-            return (True, pos)
+                    return None
+            return pos
         elif command[0] == 0: #平
             try:
                 lie = Chess.row[command[1]]
             except KeyError:
                 raise ChessError('不明指令')
             if lie == self.pos[1]:
-                return (False, )
+                return None
             small, big = sorted((lie, self.pos[1]))
             for i in range(small + 1, big):
                 if not self.board.isBlank((self.pos[0], i)):
-                    return (False, )
+                    return None
             pos = (self.pos[0], lie)
             if not self.board.isBlank(pos) and not self.board[(self.pos[0], lie)].isRed():
-                return (False, )
-            return (True, pos)
-class HeiMa(Chess, metaclass=metastr("馬")):
-    def TestMove(self, command):
+                return None
+            return pos
+class HeiMa(Chess, name="馬"):
+    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
         try:
             lie = Chess.row[command[1]]
         except KeyError:
@@ -365,16 +356,16 @@ class HeiMa(Chess, metaclass=metastr("馬")):
         try:
             pos, tui = l[lie]
         except KeyError:
-            return (False, )
+            return None
         if pos[0] < 0 or pos[0] > 9 or pos[1] < 0 or pos[1] > 8:
-            return (False, )
+            return None
         if not self.board.isBlank(tui):
-            return (False, )
+            return None
         if not self.board.isBlank(pos) and not self.board[pos].isRed():
-            return (False, )
-        return (True, pos)
-class HeiXiang(Chess, metaclass=metastr("象")):
-    def TestMove(self, command):
+            return None
+        return pos
+class HeiXiang(Chess, name="象"):
+    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
         try:
             lie = Chess.row[command[1]]
         except KeyError:
@@ -390,16 +381,16 @@ class HeiXiang(Chess, metaclass=metastr("象")):
         try:
             pos, tui = l[lie]
         except KeyError:
-            return (False, )
+            return None
         if pos[0] < 0 or pos[0] > 4 or pos[1] < 0 or pos[1] > 8:
-            return (False, )
+            return None
         if not self.board.isBlank(tui):
-            return (False, )
+            return None
         if not self.board.isBlank(pos) and not self.board[pos].isRed():
-            return (False, )
-        return (True, pos)
-class HeiShi(Chess, metaclass=metastr("士")):
-    def TestMove(self, command):
+            return None
+        return pos
+class HeiShi(Chess, name="士"):
+    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
         try:
             lie = Chess.row[command[1]]
         except KeyError:
@@ -415,14 +406,14 @@ class HeiShi(Chess, metaclass=metastr("士")):
         try:
             pos = l[lie]
         except KeyError:
-            return (False, )
+            return None
         if pos[0] < 0 or pos[0] > 2 or pos[1] < 3 or pos[1] > 5:
-            return (False, )
+            return None
         if not self.board.isBlank(pos) and not self.board[pos].isRed():
-            return (False, )
-        return (True, pos)
-class HeiShuai(Chess, metaclass=metastr("将")):
-    def TestMove(self, command):
+            return None
+        return pos
+class HeiShuai(Chess, name="将"):
+    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
         if command[0] == 0: #平
             try:
                 lie = Chess.row[command[1]]
@@ -432,7 +423,7 @@ class HeiShuai(Chess, metaclass=metastr("将")):
                 raise ChessError('不明指令')
             pos = (self.pos[0], lie)
             if lie < 3 or lie > 5:
-                return (False, )
+                return None
         else: #进退
             try:
                 step = Chess.step[command[1]]
@@ -442,19 +433,19 @@ class HeiShuai(Chess, metaclass=metastr("将")):
                 raise ChessError('不明指令')
             pos = (self.pos[0] + step * command[0], self.pos[1])
             if pos[0] < 0 or pos[0] > 2:
-                return (False, )
+                return None
         if not self.board.isBlank(pos) and self.board[pos].isRed():
-            return (False, )
-        return (True, pos)
-class HeiPao(Chess, metaclass=metastr("砲")):
-    def TestMove(self, command):
+            return None
+        return pos
+class HeiPao(Chess, name="砲"):
+    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
         if command[0] == -1: #退
             try:
                 step = Chess.step[command[1]]
             except KeyError:
                 raise ChessError('不明指令')
             if self.pos[0] - step < 0:
-                return (False, )
+                return None
             num = 0
             for i in range(step - 1):
                 if not self.board.isBlank((self.pos[0] - i - 1, self.pos[1])):
@@ -462,20 +453,20 @@ class HeiPao(Chess, metaclass=metastr("砲")):
             pos = (self.pos[0] - step, self.pos[1])
             if not self.board.isBlank(pos):
                 if not self.board[pos].isRed():
-                    return (False, )
+                    return None
                 else:
                     if num != 1:
-                        return (False, )
+                        return None
             elif num != 0:
-                return (False, )
-            return (True, pos)
+                return None
+            return pos
         elif command[0] == 1: #进
             try:
                 step = Chess.step[command[1]]
             except KeyError:
                 raise ChessError('不明指令')
             if self.pos[0] + step > 9:
-                return (False, )
+                return None
             num = 0
             for i in range(step - 1):
                 if not self.board.isBlank((self.pos[0] + i + 1, self.pos[1])):
@@ -483,20 +474,20 @@ class HeiPao(Chess, metaclass=metastr("砲")):
             pos = (self.pos[0] + step, self.pos[1])
             if not self.board.isBlank(pos):
                 if not self.board[pos].isRed():
-                    return (False, )
+                    return None
                 else:
                     if num != 1:
-                        return (False, )
+                        return None
             elif num != 0:
-                return (False, )
-            return (True, pos)
+                return None
+            return pos
         elif command[0] == 0: #平
             try:
                 lie = Chess.row[command[1]]
             except KeyError:
                 raise ChessError('不明指令')
             if lie == self.pos[1]:
-                return (False, )
+                return None
             small, big = sorted((lie, self.pos[1]))
             num = 0
             for i in range(small + 1, big):
@@ -505,24 +496,24 @@ class HeiPao(Chess, metaclass=metastr("砲")):
             pos = (self.pos[0], lie)
             if not self.board.isBlank(pos):
                 if not self.board[pos].isRed():
-                    return (False, )
+                    return None
                 else:
                     if num != 1:
-                        return (False, )
+                        return None
             elif num != 0:
-                return (False, )
-            return (True, pos)
-class HeiBing(Chess, metaclass=metastr("卒")):
-    def TestMove(self, command):
+                return None
+            return pos
+class HeiBing(Chess, name="卒"):
+    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
         if command[0] == 0: #平
             try:
                 lie = Chess.row[command[1]]
             except KeyError:
                 raise ChessError('不明指令')
             if lie != self.pos[1] + 1 and lie != self.pos[1] - 1:
-                return (False,)
+                return None
             if self.pos[0] <= 4:
-                return (False,)
+                return None
             pos = (self.pos[0], lie)
         elif command[0] == 1: #进
             try:
@@ -530,25 +521,25 @@ class HeiBing(Chess, metaclass=metastr("卒")):
             except KeyError:
                 raise ChessError('不明指令')
             if step != 1:
-                return (False,)
+                return None
             pos = (self.pos[0] + step, self.pos[1])
             if pos[0] > 9:
-                return (False, )
+                return None
         elif command[0] == -1: #退
             raise ChessError('不明指令')
         if not self.board.isBlank(pos) and not self.board[pos].isRed():
-            return (False, )
-        return (True, pos)
+            return None
+        return pos
 name_dict['HeiJiang'] = HeiShuai
 name_dict['HongJiang'] = HongShuai
 name_dict['HeiZu'] = HeiBing
 name_dict['HongZu'] = HongBing
 
 class ChessBoard:
-    insert_dict = {HeiChe: ("车", "車"), HeiMa: ("马", "馬"), HeiXiang: ("象",), HeiShi: ("仕", "士"), HeiShuai: ("将"), HeiPao: ("砲", "炮"), HeiBing: ("卒",), HongBing: ("兵",), HongPao: ("砲", "炮"), HongChe: ("车", "車"), HongMa: ("马", "馬"), HongXiang: ("相",), HongShi: ("仕", "士"), HongShuai: ("帅",)}
+    insert_dict: 'dict[type[Chess], tuple[str,...]]' = {HeiChe: ("车", "車"), HeiMa: ("马", "馬"), HeiXiang: ("象",), HeiShi: ("仕", "士"), HeiShuai: ("将",), HeiPao: ("砲", "炮"), HeiBing: ("卒",), HongBing: ("兵",), HongPao: ("砲", "炮"), HongChe: ("车", "車"), HongMa: ("马", "馬"), HongXiang: ("相",), HongShi: ("仕", "士"), HongShuai: ("帅",)}
     def __init__(self):
-        self.board = {}
-        self.find = {}
+        self.board: dict[tuple[int, int], Chess] = {}
+        self.find: dict[str, list[Chess]] = {}
         self.insert((0, 0), HeiChe)
         self.insert((0, 1), HeiMa)
         self.insert((0, 2), HeiXiang)
@@ -581,8 +572,8 @@ class ChessBoard:
         self.insert((9, 6), HongXiang)
         self.insert((9, 7), HongMa)
         self.insert((9, 8), HongChe)
-        self.Moves = []
-    def insert(self, pos, Name):
+        self.Moves: list[tuple[tuple[type[Chess], tuple[int, int]], tuple[tuple[type[Chess], tuple[int, int]],...]]] = []
+    def insert(self, pos: tuple[int, int], Name: type[Chess]):
         if pos in self.board:
             raise ChessError('已有棋子')
         chess = Name(pos, self)
@@ -592,7 +583,7 @@ class ChessBoard:
             if s not in self.find:
                 self.find[s] = []
             self.find[s].append(chess)
-    def pop(self, pos):
+    def pop(self, pos: tuple[int, int]):
         chess_to_remove = self.board[pos]
         if str(chess_to_remove) == '帅':
             raise ChessWin("黑方胜出")
@@ -603,7 +594,7 @@ class ChessBoard:
                 val.remove(chess_to_remove)
         self.find = dict(filter(lambda x: len(x[1]) != 0, self.find.items()))
         self.board.pop(pos)
-    def isBlank(self, pos):
+    def isBlank(self, pos: tuple[int, int]):
         return pos not in self.board
     def __str__(self):
         def _():
@@ -616,24 +607,24 @@ class ChessBoard:
                             yield str(self.board[(i, j)])
                 yield '┣' + ''.join(list(_())) + '┫'
         return '┏１２３４５６７８９┓\n' + '\n'.join(list(_())) + '\n┗九八七六五四三二一┛'
-    def __getitem__(self, key):
+    def __getitem__(self, key: tuple[int, int]):
         return self.board[key]
-    def __delitem__(self, key):
+    def __delitem__(self, key: tuple[int, int]):
         self.board.pop(key)
-    def __setitem__(self, key, val):
+    def __setitem__(self, key: tuple[int, int], val: Chess):
         self.board[key] = val
     def checkDuiJiang(self):
         jiang = self.find['将'][0].pos[1]
         shuai = self.find['帅'][0].pos[1]
         if jiang != shuai:
             return
-        l = []
+        l: list[Chess] = []
         for pos, chess in self.board.items():
             if pos[1] == jiang and chess is not self.find['将'][0] and chess is not self.find['帅'][0]:
                 l.append(chess)
         if len(l) == 1:
             return l[0]
-    def process(self, command, isRed):
+    def process(self, command: str, isRed: bool):
         """command: 4 char"""
         if command[0] in ['前', '中', '后']:
             if len(command) != 4 and len(command) != 5:
@@ -650,7 +641,7 @@ class ChessBoard:
                 except KeyError:
                     raise ChessError("不明指令")
                 chess_list = list(filter(lambda x: x.pos[1] == lie, chess_list))
-            chess_lie = {}
+            chess_lie: dict[int, list[Chess]] = {}
             for chess in chess_list:
                 if chess.pos[1] not in chess_lie:
                     chess_lie[chess.pos[1]] = []
@@ -692,26 +683,24 @@ class ChessBoard:
         except KeyError:
             raise ChessError("不明指令")
         if len(chess_list) != 1:
-            #TestMove returns (True, pos_mubiao) or (False, )
-            chess_list2 = list(filter(lambda x: x[1], list(map(lambda x: (x,) + \
-                x.TestMove(move_command), chess_list))))
+            chess_list2 = [(x, t) for x in chess_list if (t := x.TestMove(move_command)) is not None]
             if len(chess_list2) > 1:
                 raise ChessError("棋子不唯一")
             if len(chess_list2) == 0:
                 raise ChessError("未找到棋子")
+            chess_tomove, newpos = chess_list2[0]
             duijiang = self.checkDuiJiang()
-            if duijiang is not None and chess_list2[0][0] is duijiang and duijiang.pos[1] != chess_list2[0][2][1]:
+            if duijiang is not None and chess_tomove is duijiang and duijiang.pos[1] != newpos[1]:
                 raise ChessError("对将")
-            chess_list2[0][0].Move(chess_list2[0][2])
+            chess_tomove.Move(newpos)
         else:
-            #TestMove returns (True, pos_mubiao) or (False, )
             p = chess_list[0].TestMove(move_command)
-            if not p[0]:
+            if p is None:
                 raise ChessError("无法移动")
             duijiang = self.checkDuiJiang()
-            if duijiang is not None and chess_list[0] is duijiang and duijiang.pos[1] != p[1][1]:
+            if duijiang is not None and chess_list[0] is duijiang and duijiang.pos[1] != p[1]:
                 raise ChessError("对将")
-            chess_list[0].Move(p[1])
+            chess_list[0].Move(p)
     def redo(self):
         if len(self.Moves) == 0:
             raise ChessError('已回到最初')
@@ -722,7 +711,7 @@ class ChessBoard:
 
 xiangqi = GameSameGroup('xiangqi', "象棋", (2, 2))
 
-@xiangqi.begin()
+@xiangqi.start()
 async def chess_begin_complete(bot: Bot, data: GameData=xiangqi.data, group: DiscordGroup=Depends(getGroup)):
     # data: {'players': [qq], 'game': GameSameGroup instance, 'anything': anything}
     data['red'] = data['players'][0]

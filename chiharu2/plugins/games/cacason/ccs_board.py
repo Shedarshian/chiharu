@@ -21,7 +21,6 @@ class Board:
         self.tokenimgs: dict[int, Image.Image] = {}
         self.allTileimgs: dict[tuple[int, str, int, int], Image.Image] = {}
         self.connected: list[tuple[tuple[int, int], Dir]] = []
-        self.prompts: list[str] = []
         start_tile: Tile | None = None
         for tileData in all_packs:
             tile = Tile(self, tileData, False)
@@ -613,12 +612,10 @@ class Board:
         img.alpha_composite(tile_img, (tx, ty))
         return img
     def saveImg(self):
-        from ... import config
+        from ...helper.helper import img
         from nonebot.adapters.discord.message import MessageSegment
         name = 'ccs' + str(random.randint(0, 9) + self.current_player_id * 10) + '.png'
-        self.image().save(config.img(name))
-        if self.group_id is not None:
-            self.image().save(config.pag(f"cacason\\{self.group_id}.png"))
+        self.image().save(img(name))
         return MessageSegment.attachment(name)
     def saveRemainTileImg(self):
         from ... import config

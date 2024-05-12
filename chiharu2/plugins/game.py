@@ -1,10 +1,10 @@
-from typing import Tuple, Any, NoReturn, TypeAlias, Callable
+from typing import Tuple, Any, NoReturn, TypeAlias, Callable, ParamSpec
 from collections.abc import Coroutine, Awaitable
 from functools import wraps
 import json
 from nonebot.dependencies import Param
-from nonebot.params import Depends
-from nonebot.params import CommandArg
+from nonebot.params import Depends, CommandArg
+from nonebot.typing import T_State
 from nonebot import on_message, on_notice
 from nonebot.adapters.discord import on_slash_command, Event, Bot, Message, MessageSegment, ReadyEvent
 from nonebot.adapters.discord.api import SubCommandOption, SubCommandGroupOption, Interaction, Button, ButtonStyle, ActionRow, StringOption
@@ -15,21 +15,13 @@ from .helper.helper import rel, getGroup, getUser, Group, DiscordGroup, User, Di
 # example usage for GameSameGroup:
 # xiangqi = GameSameGroup('xiangqi', "象棋", (2, 2)) # need to register into this file
 #
-# @xiangqi.begin_uncomplete()
-# async def chess_begin_uncomplete(data: Gamedata=xiangqi.data, yilaizhuru):
-#     # data: {'players': [qq], 'args': [args], 'anything': anything}
-#     await session.send('已为您安排红方，等候黑方')
+# @xiangqi.begin
 #
-# @xiangqi.begin_complete()
+# @xiangqi.start()
 # async def chess_begin_complete(data: Annotated[GameData, xiangqi.data], yilaizhuru):
-#     # data: {'players': [qq], 'game': GameSameGroup instance, 'args': [args], 'anything': anything}
-#     await session.send('已为您安排黑方')
+#     # data: {'players': [user], 'game': GameSameGroup instance, 'args': [args], 'anything': anything}
 #     #开始游戏
 #     #data['board'] = board
-#
-# @xiangqi.end()
-# async def chess_end(data: Annotated[GameData, xiangqi.data], yilaizhuru):
-#     await session.send('已删除')
 #
 # @xiangqi.process()
 # async def chess_process(data: GameData=xiangqi.data,
@@ -56,6 +48,7 @@ DeleteFunc: TypeAlias = Callable[[], Awaitable[NoReturn]]
 matcher_message = on_message()
 click = on_notice()
 
+P = ParamSpec('P')
 class GameSameGroup:
     all_games: 'dict[str, GameSameGroup]' = {}
     # group: {'players': [User], 'game': GameSameGroup instance, 'anything': anything}
@@ -66,6 +59,8 @@ class GameSameGroup:
         self.all_games[self.name] = self
         self.name_zh = name_zh
         self.begin_player = player
+        self.getMessage: Callable = lambda: None
+        self.messageHandle: Callable = lambda: None
 
     async def get_event_data(self, channel: DiscordGroup=Depends(getGroup)):
         data = self.uncomplete.get(channel) or self.center.get(channel)
@@ -130,9 +125,20 @@ class GameSameGroup:
                 cls.uncomplete.pop(group)
                 return True
         return False
-    def begin(self):
+
+    def begin_message(self):
+        def deco(f: Callable[P, str | Message | MessageSegment | Awaitable[str | Message | MessageSegment]]):
+            self.getMessage = f
+            return f
+        return deco
+    def begin_message_handle(self):
+        def deco_handle(f: Callable):
+            self.messageHandle = f
+            return f
+        return deco_handle
+    def start(self):
         from pydantic import Field
-        async def onBegin(bot: Bot, group: DiscordGroup=Depends(getGroup), user: User=Depends(getUser)):
+        async def onBegin(bot: Bot, state: T_State, group: DiscordGroup=Depends(getGroup), user: User=Depends(getUser)):
             if group in self.uncomplete:
                 await matcher.send_response("本群已有对局邀请！")
                 matcher.skip()
@@ -140,30 +146,39 @@ class GameSameGroup:
                 await matcher.send_response("本群已有对局！")
                 matcher.skip()
             self.uncomplete[group] = {"players": [user], "game": self}
-            if not await self.checkToBegin(group, bot):
-                labels = f"## {self.name_zh}游戏对局\n"
-                if self.begin_player[0] == self.begin_player[1]:
-                    labels += f"游戏人数：{self.begin_player[0]}"
-                else:
-                    labels += f"游戏人数：{self.begin_player[0]}~{self.begin_player[1]}"
-                buttons = MessageSegment.component(
-                    ActionRow(components=[
-                        Button(label='参加',
-                            custom_id='attend',
-                            style=ButtonStyle.Primary),
-                        Button(label='立即开始',
-                            custom_id='begin',
-                            style=ButtonStyle.Success),
-                        Button(label='关闭',
-                            custom_id='close',
-                            style=ButtonStyle.Danger)]))
-                await matcher.send_response(labels + buttons)
-                msg = await matcher.get_response()
-                self.uncomplete[group]["message_id"] = msg.id
+            if await self.checkToBegin(group, bot):
                 matcher.skip()
+            labels = f"## {self.name_zh}游戏对局\n"
+            if self.begin_player[0] == self.begin_player[1]:
+                labels += f"游戏人数：{self.begin_player[0]}"
+            else:
+                labels += f"游戏人数：{self.begin_player[0]}~{self.begin_player[1]}"
+            buttons = MessageSegment.component(
+                ActionRow(components=[
+                    Button(label='参加',
+                        custom_id='attend',
+                        style=ButtonStyle.Primary),
+                    Button(label='立即开始',
+                        custom_id='begin',
+                        style=ButtonStyle.Success),
+                    Button(label='关闭',
+                        custom_id='close',
+                        style=ButtonStyle.Danger)]))
+            state["labels"] = labels
+            state["buttons"] = buttons
+        async def onBegin2(state: T_State, group: DiscordGroup=Depends(getGroup), middle: Any | None=Depends(self.getMessage)):
+            labels = state["labels"]
+            buttons = state["buttons"]
+            if middle is None:
+                await matcher.send_response(labels + buttons)
+            else:
+                await matcher.send_response(labels + middle + buttons)
+            msg = await matcher.get_response()
+            self.uncomplete[group]["message_id"] = msg.id
+            matcher.skip()
         f1 = matcher.handle_sub_command(self.name, 'begin',
-                parameterless=[Depends(onBegin), Depends(self.checkBegin)])
-        f2 = click.handle([Depends(checkClick), Depends(self.checkBegin)])
+                parameterless=[Depends(onBegin), Depends(onBegin2), Depends(self.checkBegin)])
+        f2 = click.handle([Depends(checkClick), Depends(self.messageHandle), Depends(self.checkBegin)])
         return lambda f: f2(f1(f))
 
     def process(self):
@@ -203,7 +218,8 @@ class GameSameGroup:
             f.write(json.dumps(data, ensure_ascii=False,
                                indent=4, separators=(',', ': ')))
 
-async def checkClick(bot: Bot, matcher: Matcher, event: MessageComponentInteractionEvent, group: DiscordGroup=Depends(getGroup), user: DiscordUser=Depends(getUser)):
+async def checkClick(bot: Bot, matcher: Matcher, event: MessageComponentInteractionEvent,
+        state: T_State, group: DiscordGroup=Depends(getGroup), user: DiscordUser=Depends(getUser)):
     if group not in GameSameGroup.uncomplete:
         matcher.skip()
     if event.message.id != GameSameGroup.uncomplete[group]["message_id"]:
@@ -231,10 +247,10 @@ async def checkClick(bot: Bot, matcher: Matcher, event: MessageComponentInteract
         message_id = GameSameGroup.uncomplete[group]["message_id"]
         await bot.delete_message(channel_id=group.channel_id, message_id=message_id)
         GameSameGroup.uncomplete[group]["toBegin"] = True
-        return
     elif button == "close":
         if await GameSameGroup.delete(bot, user, group, False):
             await click.send(MessageSegment.mention_user(user.user_id) + "已删除对局。")
         else:
             await click.send(MessageSegment.mention_user(user.user_id) + "不在对局中，无法删除！")
         matcher.skip()
+    state["button_id"] = button
