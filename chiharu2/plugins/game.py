@@ -19,7 +19,7 @@ from .helper.helper import rel, getGroup, getUser, Group, DiscordGroup, User, Di
 #
 # @xiangqi.start()
 # async def chess_begin_complete(data: Annotated[GameData, xiangqi.data], yilaizhuru):
-#     # data: {'players': [qq], 'game': GameSameGroup instance, 'args': [args], 'anything': anything}
+#     # data: {'players': [user], 'game': GameSameGroup instance, 'args': [args], 'anything': anything}
 #     #开始游戏
 #     #data['board'] = board
 #

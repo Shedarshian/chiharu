@@ -1,7 +1,12 @@
 from typing import Dict, Any, Callable, Awaitable, Literal
 import re, random, json, datetime, itertools
 from collections import defaultdict
-from ..game import GameSameGroup
+from nonebot.params import Depends, EventMessage
+from nonebot.matcher import Matcher
+from nonebot.adapters.discord import on_slash_command, Message, MessageSegment, CommandOption
+from nonebot.adapters.discord.api import SubCommandOption, StringOption
+from ..game import GameSameGroup, GameData, DeleteFunc
+from ..helper.helper import getUser, getGroup, DiscordGroup, DiscordUser
 from .cacason.ccs_helper import all_extensions
 from .cacason.ccs_tile import readPackData
 from .cacason.ccs_board import Board
@@ -9,66 +14,30 @@ from .cacason.ccs_board import Board
 version = (3, 0, 0)
 changelog = """ver 3.0.0
 · 迁移。"""
-
 cacason = GameSameGroup('cacason', "卡卡颂", (1, 6))
 
-@on_command(("cacason", "version"), hide=True, only_to_me=False)
-@config.ErrorHandle
-async def ccs_version(session: CommandSession):
-    await session.send("千春桌游大厅：卡卡颂 version" + ".".join(str(c) for c in version) + "。")
+def getSend(matcher: Matcher):
+    async def send(prompt, ensure_private: bool=False):
+        await matcher.send(prompt)
+    return send
 
-@on_command(("cacason", "changelog"), hide=True, only_to_me=False)
-@config.ErrorHandle
-async def ccs_changelog(session: CommandSession):
-    await session.send("千春桌游大厅：卡卡颂 changelog\n" + changelog)
-
-@cacason.begin_uncomplete(('play', 'cacason', 'begin'), (1, 6))
-async def ccs_begin_uncomplete(session: CommandSession, data: Dict[str, Any]):
-    # data: {'players': [qq], 'args': [args], 'anything': anything}
-    name = await game.GameSameGroup.get_name(session)
-    if 'names' in data:
-        data['names'].append(name)
-    else:
-        data['names'] = [name]
-    if 'extensions' not in data:
-        data['extensions'] = {}
-        data['starting_tile'] = 0
-    await session.send(f'玩家{name}已参与匹配，人数足够可使用-play.cacason.confirm开始比赛。')
-
-@cacason.begin_complete(('play', 'cacason', 'confirm'))
-async def ccs_begin_complete(session: CommandSession, data: Dict[str, Any]):
-    # data: {'players': [qq], 'game': GameSameGroup instance, 'args': [args], 'anything': anything}
-    qq = session.ctx['user_id']
-    name = await game.GameSameGroup.get_name(session)
-    if qq not in data['players']:
-        data['players'].append(qq)
-        if 'names' in data:
-            data['names'].append(name)
-        else:
-            data['names'] = [name]
-        await session.send(f'玩家{name}已参与匹配，游戏开始')
-    else:
-        await session.send('游戏开始')
-    if session.current_arg_text in '23456' and len(data['players']) == 1:
-        num = int(session.current_arg_text)
-        data['players'] = [data['players'][0] for _ in range(num)]
-        data['names'] = [data['names'][0] + str(i + 1) for i in range(num)]
+@cacason.start()
+async def ccs_start(matcher: Matcher,
+            data: GameData=Depends(cacason.get_event_data),
+            delete_func: DeleteFunc=Depends(cacason.get_delete_func),
+            user: DiscordUser=Depends(getUser),
+            group: DiscordGroup=Depends(getGroup)):
+    # data: {'players': [user], 'game': GameSameGroup instance, 'args': [args], 'anything': anything}
+    if len(data['players']) == 1:
+        data["waiting_player_num"] = True
+        await matcher.send("请输入你想模拟的玩家数")
     else:
         order = list(range(len(data['players'])))
         random.shuffle(order)
         data['players'] = [data['players'][i] for i in order]
-        data['names'] = [data['names'][i] for i in order]
-    data['adding_extensions'] = True
-    import os, shutil
-    group_id = session.ctx['group_id']
-    if not os.path.isfile(config.pag(f"cacason\\{group_id}.html")):
-        with open(config.pag(f"cacason\\{group_id}.html"), "w", encoding='utf-8') as f:
-            with open(config.pag("cacason\\index.html"), encoding='utf-8') as f2:
-                f.write(f2.read().replace("test", str(group_id)))
-        shutil.copy(config.pag("cacason\\test.json"), config.pag(f"cacason\\{group_id}.json"))
-        shutil.copy(config.pag("cacason\\test.png"), config.pag(f"cacason\\{group_id}.png"))
-    # 选择扩展
-    await session.send("请选择想开启或是关闭的扩展，发送如open ex1开启扩展，close ex1关闭，check查询，选择完毕后发送开始游戏即可开始。")
+        board: Board = Board(data['extensions'], data['names'], data['starting_tile'], group.channel_id)
+        send = getSend(matcher)
+        await board.advance(send, delete_func)
 
 @on_command(('play', 'cacason', 'extension'), only_to_me=False, hide_in_parent=True, display_parents=("cacason",), args=('[check/open/close]', '[ex??]'), short_des="修改卡卡颂对局使用的扩展。", display_id=999)
 @config.ErrorHandle
@@ -181,53 +150,66 @@ async def ccs_extension(session: CommandSession):
                 session.finish("已关闭。" + ret)
     await call_command(get_bot(), session.ctx, ('help',), current_arg="play.cacason.extension")
 
-@cacason.end(('play', 'cacason', 'end'))
-async def ccs_end(session: CommandSession, data: dict[str, Any]):
-    await session.send('已删除')
-
-@cacason.process(only_short_message=True)
-@config.ErrorHandle
-async def ccs_process(session: NLPSession, data: dict[str, Any], delete_func: Callable[[], Awaitable]):
-    async def send(prompt, ensure_private: bool=False):
-        if isinstance(prompt, str):
-            board.prompts.append(prompt)
-            if len(board.prompts) >= 6:
-                board.prompts.pop(0)
-        with open(config.pag(f"cacason\\{board.group_id}.json"), 'w', encoding='utf-8') as f:
-            f.write(json.dumps({"lastTime": datetime.datetime.now().isoformat(), "prompt": '· ' + '\n· '.join(board.prompts)}))
-        await session.send(prompt, ensure_private=ensure_private)
-    next_turn = False
-    command = session.msg_text.strip()
-    if data['adding_extensions']:
-        if command in ("开始游戏", "游戏开始"):
+@cacason.process()
+async def ccs_process(matcher: Matcher,
+            data: GameData=Depends(cacason.get_event_data),
+            delete_func: DeleteFunc=Depends(cacason.get_delete_func),
+            message: Message=EventMessage(),
+            user: DiscordUser=Depends(getUser),
+            group: DiscordGroup=Depends(getGroup)):
+    command = message.extract_plain_text().strip()
+    send = getSend(matcher)
+    if data['waiting_player_num']:
+        if command in "23456":
             # 开始游戏
             data['extensions'][0] = "a"
-            board: Board = Board(data['extensions'], data['names'], data['starting_tile'], session.ctx["group_id"])
+            board: Board = Board(data['extensions'], data['names'], data['starting_tile'], group.channel_id)
             data['board'] = board
             await board.advance(send, delete_func)
-            data['adding_extensions'] = False
-        elif match := re.match(r'(open|close)(( ex\d+[a-z]?)+| random\d+)|check', command):
-            await call_command(get_bot(), session.ctx, ('play', 'cacason', 'extension'), current_arg=command)
-        elif command.startswith('open') or command.startswith('close'):
-            await session.send(ccs_extension.__doc__.replace("-play.cacason.extension ", ""))
+            data['waiting_player_num'] = False
         return
-    user_id: int = data['players'].index(session.ctx['user_id'])
+    user_id: int = data['players'].index(user)
     board = data['board']
     if command.startswith("查询剩余"):
-        await session.send([board.saveRemainTileImg()])
+        await matcher.send(board.saveRemainTileImg())
         return
     if command == "查询礼物":
-        await session.send("你手中的礼物卡有：" + board.players[user_id].giftsText(), ensure_private=True)
+        await matcher.send("你手中的礼物卡有：" + board.players[user_id].giftsText(), ensure_private=True)
     if command == "重新查询":
-        await session.send([board.saveImg()])
+        await matcher.send(board.saveImg())
         return
     if board.current_player_id != user_id:
         return
     
     await board.parse_command(command, send, delete_func)
 
-@config.ErrorHandle
-async def ccs_rule(session: CommandSession):
+
+matcher_cacason = on_slash_command(name="cacason",
+    description="卡卡颂",
+    options=[
+        SubCommandOption(name="version",
+            description="查询卡卡颂版本"),
+        SubCommandOption(name="changelog",
+            description="查询changelog"),
+        SubCommandOption(name="help",
+            description="卡卡颂帮助"),
+        SubCommandOption(name="rule",
+            description="查询卡卡颂扩展及其规则"),
+        SubCommandOption(name="check",
+            description="查询卡卡颂图块内容",
+            options=[StringOption(name="extension",
+                description="扩展编号")])
+    ])
+
+matcher_cacason.handle("version")
+async def ccs_version():
+    await matcher_cacason.send_response("千春桌游大厅：卡卡颂 version" + ".".join(str(c) for c in version) + "。")
+
+matcher_cacason.handle("changelog")
+async def ccs_changelog():
+    await matcher_cacason.send_response("千春桌游大厅：卡卡颂 changelog\n" + changelog)
+
+async def ccs_rule():
     if match := re.match(r'ex(\d+)', session.current_arg_text):
         exa = int(match.group(1))
         packs = readPackData()["packs"]
@@ -241,29 +223,30 @@ ccs_rule.__doc__ = "查看卡卡颂规则（*为包含起始板块）。\n" + \
     '\n'.join((f"ex{pack['id']}. " + pack.get("full_name", pack["name"]) + "\n    " +
         '；'.join(f"({chr(ord('a') + i)}) {name}" for i, name in enumerate(pack["things"]) if i not in pack.get("undone", [])) + '。')
         for pack in packs if "things" in pack)
-on_command(('cacason', 'rule'), only_to_me=False, short_des="查询卡卡颂扩展列表与扩展规则。", args=("[ex?]",))(ccs_rule)
+matcher_cacason.handle_sub_command('rule')(ccs_rule)
 del packs
 
-@on_command(('cacason', 'check'), only_to_me=False, display_id=998)
-@config.ErrorHandle
-async def ccs_check(session: CommandSession):
+@matcher_cacason.handle_sub_command('check')
+async def ccs_check(extension: CommandOption[str]):
     """查询卡卡颂图块内容。"""
-    if match := re.match(r'ex(\d+)([a-z]*)', session.current_arg_text):
+    if match := re.match(r'ex(\d+)([a-z]*)', extension):
         exa, exb = int(match.group(1)), match.group(2)
         if not exb:
             if exa == 0:
                 exb = "a"
             elif exa not in all_extensions:
-                session.finish("未找到扩展" + str(exa))
+                await matcher_cacason.send_response("未找到扩展" + str(exa))
+                return
             else:
                 exb = all_extensions[exa]
         from PIL import Image, ImageDraw, ImageFont
-        from .ccs_tile import readTileData
+        from .cacason.ccs_tile import readTileData
         def pos(w: int, h: int, *offsets: tuple[int, int]):
             return w * (64 + 8) + sum(c[0] for c in offsets) + 8, h * (64 + 20) + sum(c[1] for c in offsets) + 20
         all_packs = readTileData({exa: exb})
         if len(all_packs) == 0:
-            session.finish("此扩展无图块！")
+            await matcher_cacason.send_response("此扩展无图块！")
+            return
         ss = list(sorted(set(tileData.serialNumber for tileData in all_packs)))
         s2: dict[str, list[tuple[Image.Image, int]]] = {}
         font_name = ImageFont.truetype("msyhbd.ttc", 16)
@@ -282,10 +265,10 @@ async def ccs_check(session: CommandSession):
                 img.paste(timg, pos(*p))
                 dr.text(pos(*p, (32, 65)), str(num), "black", font_name, "mt")
             y += (len(l) + 4) // 5
-        from .. import config
+        from ..helper.helper import img
         name = 'ccs' + str(random.randint(0, 9)) + '.png'
-        img.save(config.img(name))
-        await session.send(config.cq.img(name))
+        img.save(img(name))
+        await matcher_cacason.send_response(MessageSegment.attachment(name))
     else:
-        await session.send("请发送扩展编号如ex1ab")
+        await matcher_cacason.send_response("请发送扩展编号如ex1ab")
 

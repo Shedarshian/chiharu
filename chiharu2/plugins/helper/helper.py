@@ -53,8 +53,11 @@ class QQUser(User):
 @dataclass(frozen=True)
 class DiscordUser(User):
     user_id: int
+    name: str
+    def __hash__(self) -> int:
+        return hash(self.user_id)
     def __str__(self):
-        return f"discord:{self.user_id}"
+        return f"discord:{self.user_id}, name={self.name}"
 
 async def getGroup(event: Event, matcher: Matcher):
     if isinstance(event, (Interaction, MessageEvent)) and (channel_id := event.channel_id):
@@ -62,9 +65,9 @@ async def getGroup(event: Event, matcher: Matcher):
     matcher.skip()
 async def getUser(event: Event, matcher: Matcher):
     if isinstance(event, Interaction) and event.member and event.member.user:
-        return DiscordUser(event.member.user.id)
+        return DiscordUser(event.member.user.id, event.member.user.username)
     if isinstance(event, MessageEvent):
-        return DiscordUser(event.author.id)
+        return DiscordUser(event.author.id, event.author.username)
     matcher.skip()
 # @contextlib.asynccontextmanager
 # async def WaitingMessage(matcher: type[Matcher]):
