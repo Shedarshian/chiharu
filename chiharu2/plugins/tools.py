@@ -236,7 +236,7 @@ async def maj_train(choice: CommandOption[int], past_answer: CommandOption[bool]
     -a：查看上题答案。"""
     global daan
     try:
-        group_id = event.get_user_id()
+        group_id = event.member.user.id.__str__()
     except:
         await matcher.send_response('找不到当前用户')
         return
