@@ -1,10 +1,12 @@
 from typing import Dict, Any, Callable, Awaitable, Literal
 import re, random, json, datetime, itertools
 from collections import defaultdict
+from nonebot.typing import T_State
 from nonebot.params import Depends, EventMessage
 from nonebot.matcher import Matcher
 from nonebot.adapters.discord import on_slash_command, Message, MessageSegment, CommandOption
-from nonebot.adapters.discord.api import SubCommandOption, StringOption
+from nonebot.adapters.discord.api import SubCommandOption, StringOption, SelectMenu, SelectOption, ComponentType
+from nonebot.adapters.discord.event import MessageComponentInteractionEvent
 from ..game import GameSameGroup, GameData, DeleteFunc
 from ..helper.helper import getUser, getGroup, DiscordGroup, DiscordUser
 from .cacason.ccs_helper import all_extensions
@@ -20,6 +22,55 @@ def getSend(matcher: Matcher):
     async def send(prompt, private: bool=False):
         await matcher.send(prompt)
     return send
+
+@cacason.begin_message()
+async def ccs_choose_menu():
+    from .cacason.ccs_tile import readPackData
+    all_options: list[tuple[str, str]] = []
+    for pack in readPackData()["packs"]:
+        if pack.get("big"):
+            all_options.append((pack["full_name"], str(pack["id"])))
+        elif pack.get("small"):
+            for i, s in enumerate(pack.get("small_name")):
+                all_options.append((pack["full_name"] + s, f"{pack['id']}_{i}"))
+    all_options.extend([("随机2大4小", "random1"), ("随机3大6小", "random2")])
+    menu = MessageSegment.component(SelectMenu(type=ComponentType.StringSelect,
+            custom_id="extension_menu",
+            options=[SelectOption(label=name, value=i) for name, i in all_options],
+            min_values=1,
+            max_values=len(all_options)))
+    return menu
+
+@cacason.begin_message_handle()
+async def ccs_choose(state: T_State, event: MessageComponentInteractionEvent,
+            matcher: Matcher,
+            user: DiscordUser=Depends(getUser),
+            group: DiscordGroup=Depends(getGroup)):
+    button = state["button_id"]
+    if button == "extension_menu":
+        if user not in cacason.uncomplete[group]["players"]:
+            await matcher.send(MessageSegment.mention_user(user.user_id) + "不在对局中，无法修改扩展！")
+            return
+        if not event.data.values:
+            return
+        packs = readPackData()["packs"]
+        if (r2 := "random2" in event.data.values) or "random1" in event.data.values:
+            big, small = (3, 6) if r2 else (2, 4)
+            bigs: list[int] = [pack["id"] for pack in packs if pack.get("big", False)]
+            smalls: list[tuple[int, int]] = list(itertools.chain(*([(pack['id'], c) for c in range(len(pack.get("small", [])))] for pack in packs)))
+            random.shuffle(bigs)
+            random.shuffle(smalls)
+            to_add = bigs[:big] + smalls[:small]
+        else:
+            to_add = [((int((ij := s.split('_'))[0]), int(ij[1])) if "_" in s else int(s)) for s in event.data.values]
+        extensions: dict[int, str] = {}
+        for a in to_add:
+            if isinstance(a, int):
+                extensions[a] = all_extensions[a]
+            else:
+                ls: list[int] = packs[a[0]]["small"][a[1]]
+                extensions[a[0]] = extensions.get(a[0], "") + ''.join(chr(ord('a') + i) for i in ls)
+        await matcher.send(MessageSegment.mention_user(user.user_id) + "已开的扩展为：\n* " + '\n* '.join((packs[item]["full_name"] + "\n    * " + '，'.join(packs[item]["things"][ord(c) - ord('a')] for c in value)) for item, value in extensions.items()))
 
 @cacason.start()
 async def ccs_start(matcher: Matcher,
@@ -48,22 +99,8 @@ async def ccs_extension():
 -play.cacason.extension close ex1a：关闭扩展包1中a小项的内容。
 -play.cacason.extension open random1：随机开启2个大扩与4个小扩。
 -play.cacason.extension open random2：随机开启3个大扩与6个小扩。"""
-    try:
-        group_id = int(session.ctx['group_id'])
-    except KeyError:
-        await session.send("请在群里玩")
-        return
     qq = int(session.ctx['user_id'])
     pas: bool = False
-    if group_id in cacason.center:
-        for dct in cacason.center[group_id]:
-            if qq in dct['players']:
-                data = dct
-                pas = True
-    if group_id in cacason.uncomplete:
-        if qq in cacason.uncomplete[group_id]['players']:
-            data = cacason.uncomplete[group_id]
-            pas = True
     start_names = {0: "默认", 6: "卡卡颂城", 7: "河流"}
     start_no_start = ((7, "c"), (6, "a"), (6, "b"), (6, "c"), (6, "d"), (6, "g"), (6, "h"))
     if pas:
@@ -80,34 +117,7 @@ async def ccs_extension():
             exabs: defaultdict[int, str] = defaultdict(lambda: "")
             start_to_change: int = -1
             if exs[0].startswith('ndom'):
-                packs = readPackData()["packs"]
-                n = int(exs[0][4:])
-                if n <= 0 or n >= 3:
-                    await session.send("random预设只有1，2！")
-                    return
-                big, small = [(2, 4), (3, 6)][n - 1]
-                bigs = [pack for pack in packs if pack.get("big", False)]
-                smalls = list(itertools.chain(*([(pack, c) for c in pack.get("small", [])] for pack in packs)))
-                random.shuffle(bigs)
-                random.shuffle(smalls)
-                for i in range(big):
-                    p = bigs[i]
-                    if isinstance(p["big"], list):
-                        exabs[p["id"]] += ''.join(chr(ord('a') + j) for j in p["big"])
-                    else:
-                        exabs[p["id"]] += all_extensions[p["id"]]
-                    if p["id"] in (6, 11):
-                        start_to_change = p['id']
-                for p, ln in smalls:
-                    pb = p.get('has_begin', [])
-                    if any(j in pb for j in ln):
-                        if start_to_change != -1:
-                            continue
-                        start_to_change = p['id']
-                    exabs[p["id"]] += ''.join(chr(ord('a') + j) for j in ln)
-                    small -= 1
-                    if small <= 0:
-                        break
+                pass
             else:
                 for ex in exs:
                     match2 = re.match(r'(\d+)([a-z]*)', ex)
