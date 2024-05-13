@@ -17,7 +17,7 @@ changelog = """ver 3.0.0
 cacason = GameSameGroup('cacason', "卡卡颂", (1, 6))
 
 def getSend(matcher: Matcher):
-    async def send(prompt, ensure_private: bool=False):
+    async def send(prompt, private: bool=False):
         await matcher.send(prompt)
     return send
 
@@ -39,9 +39,7 @@ async def ccs_start(matcher: Matcher,
         send = getSend(matcher)
         await board.advance(send, delete_func)
 
-@on_command(('play', 'cacason', 'extension'), only_to_me=False, hide_in_parent=True, display_parents=("cacason",), args=('[check/open/close]', '[ex??]'), short_des="修改卡卡颂对局使用的扩展。", display_id=999)
-@config.ErrorHandle
-async def ccs_extension(session: CommandSession):
+async def ccs_extension():
     """修改卡卡颂对局使用的扩展。查询扩展列表请使用-cacason.rule。
 
 使用例：-play.cacason.extension check：查询目前开启了哪些扩展包。
@@ -194,32 +192,35 @@ matcher_cacason = on_slash_command(name="cacason",
         SubCommandOption(name="help",
             description="卡卡颂帮助"),
         SubCommandOption(name="rule",
-            description="查询卡卡颂扩展及其规则"),
+            description="查询卡卡颂扩展及其规则",
+            options=[StringOption(name="extension",
+                description="扩展编号")]),
         SubCommandOption(name="check",
             description="查询卡卡颂图块内容",
             options=[StringOption(name="extension",
                 description="扩展编号")])
     ])
 
-matcher_cacason.handle("version")
+@matcher_cacason.handle("version")
 async def ccs_version():
     await matcher_cacason.send_response("千春桌游大厅：卡卡颂 version" + ".".join(str(c) for c in version) + "。")
 
-matcher_cacason.handle("changelog")
+@matcher_cacason.handle("changelog")
 async def ccs_changelog():
     await matcher_cacason.send_response("千春桌游大厅：卡卡颂 changelog\n" + changelog)
 
-async def ccs_rule():
-    if match := re.match(r'ex(\d+)', session.current_arg_text):
+@matcher_cacason.handle("rule")
+async def ccs_rule(extension: CommandOption[str]):
+    if match := re.match(r'ex(\d+)', extension):
         exa = int(match.group(1))
         packs = readPackData()["packs"]
         for pack in packs:
             if pack["id"] == exa and "help" in pack:
-                await session.send(pack.get("full_name", pack["name"]) + "\n" + pack["help"])
+                await matcher_cacason.send(pack.get("full_name", pack["name"]) + "\n" + pack["help"])
                 return
-    await call_command(get_bot(), session.ctx, ('help',), current_arg="cacason.rule")
+    await matcher_cacason.send(rule_doc)
 packs = readPackData()["packs"]
-ccs_rule.__doc__ = "查看卡卡颂规则（*为包含起始板块）。\n" + \
+ccs_rule.__doc__ = rule_doc = "查看卡卡颂规则（*为包含起始板块）。\n" + \
     '\n'.join((f"ex{pack['id']}. " + pack.get("full_name", pack["name"]) + "\n    " +
         '；'.join(f"({chr(ord('a') + i)}) {name}" for i, name in enumerate(pack["things"]) if i not in pack.get("undone", [])) + '。')
         for pack in packs if "things" in pack)
