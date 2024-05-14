@@ -616,13 +616,14 @@ class Board:
         from nonebot.adapters.discord.message import MessageSegment
         name = 'ccs' + str(random.randint(0, 9) + self.current_player_id * 10) + '.png'
         self.image().save(img(name))
-        return MessageSegment.attachment(name)
+        return MessageSegment.attachment(img(name))
     def saveRemainTileImg(self):
         from ... import config
         from nonebot.adapters.discord.message import MessageSegment
         name = 'ccsr' + str(random.randint(0, 9) + self.current_player_id * 10) + '.png'
-        self.remainTileImages().save(config.img(name))
-        return MessageSegment.attachment(name)
+        from ...helper.helper import img
+        self.remainTileImages().save(img(name))
+        return MessageSegment.attachment(img(name))
 
     def endGameAskAbbey(self) -> 'TAsync[None]':
         if not self.checkPack(5, "b") or not self.checkHole():
