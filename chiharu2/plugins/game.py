@@ -192,7 +192,7 @@ class GameSameGroup:
             #     await matcher.send_response("无法结束！")
             #     return
             # member.permissions & (1 << 3)
-            if self.delete(bot, user, group, False):
+            if GameSameGroup.delete(bot, user, group, False):
                 await matcher.send_response("对局已结束。")
             else:
                 await matcher.send_response("无法结束！")

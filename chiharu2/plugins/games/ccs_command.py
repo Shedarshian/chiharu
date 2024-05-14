@@ -32,7 +32,7 @@ async def ccs_choose_menu():
             all_options.append((pack["full_name"], str(pack["id"])))
         elif pack.get("small"):
             for i, s in enumerate(pack.get("small_name")):
-                all_options.append((pack["full_name"] + s, f"{pack['id']}_{i}"))
+                all_options.append((pack["full_name"] + "：" + s, f"{pack['id']}_{i}"))
     menu = MessageSegment.component(SelectMenu(type=ComponentType.StringSelect,
             custom_id="extension_menu",
             options=[SelectOption(label=name, value=i) for name, i in all_options],
@@ -101,7 +101,9 @@ async def ccs_start(matcher: Matcher, state: T_State,
         order = list(range(len(data['players'])))
         random.shuffle(order)
         data['players'] = [data['players'][i] for i in order]
-        board: Board = Board(state.get("extensions", {0: "a"}), [p.name for p in data['players']], state.get("starting_tile", 0), group.channel_id)
+        extensions = state.get("extensions", {})
+        extensions[0] = "a"
+        board: Board = Board(extensions, [p.name for p in data['players']], state.get("starting_tile", 0), group.channel_id)
         send = getSend(matcher)
         await board.advance(send, delete_func)
 
@@ -126,24 +128,28 @@ async def ccs_process(matcher: Matcher, state: T_State,
     if data['waiting_player_num']:
         if command in "23456":
             # 开始游戏
-            board: Board = Board(state.get("extensions", {0: "a"}), [data['players'][0].name] * int(command), state.get("starting_tile", 0), group.channel_id)
+            extensions = state.get("extensions", {})
+            extensions[0] = "a"
+            board: Board = Board(extensions, [data['players'][0].name] * int(command), state.get("starting_tile", 0), group.channel_id)
             data['board'] = board
             await board.advance(send, delete_func)
             data['waiting_player_num'] = False
         return
-    user_id: int = data['players'].index(user)
     board = data['board']
     if command.startswith("查询剩余"):
         await matcher.send(board.saveRemainTileImg())
         return
-    if command == "查询礼物":
-        await matcher.send("你手中的礼物卡有：" + board.players[user_id].giftsText(), ensure_private=True)
     if command == "重新查询":
         await matcher.send(board.saveImg())
         return
+    if user not in data['players']:
+        return
+    user_id: int = data['players'].index(user)
+    if command == "查询礼物":
+        await matcher.send("你手中的礼物卡有：" + board.players[user_id].giftsText(), ensure_private=True)
     if board.current_player_id != user_id:
         return
-    
+
     await board.parse_command(command, send, delete_func)
 
 
