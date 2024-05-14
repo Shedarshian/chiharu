@@ -28,7 +28,7 @@ from .helper.helper import rel, getGroup, getUser, Group, DiscordGroup, User, Di
 #        delete_func: DeleteFunc=xiangqi.delete_func, yilaizhuru):
 #     pass
 
-allGames = (('xiangqi', "象棋"), ('bw', "黑白棋"))
+allGames = (('xiangqi', "象棋"), ('bw', "黑白棋"), ('cacason', "卡卡颂"))
 
 matcher = on_slash_command(name="play",
     description="开始游戏",

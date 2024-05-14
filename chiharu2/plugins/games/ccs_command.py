@@ -232,9 +232,9 @@ async def ccs_check(extension: CommandOption[str]):
                 img.paste(timg, pos(*p))
                 dr.text(pos(*p, (32, 65)), str(num), "black", font_name, "mt")
             y += (len(l) + 4) // 5
-        from ..helper.helper import img
+        from ..helper.helper import img as img_save
         name = 'ccs' + str(random.randint(0, 9)) + '.png'
-        img.save(img(name))
+        img.save(img_save(name))
         await matcher_cacason.send_response(MessageSegment.attachment(name))
     else:
         await matcher_cacason.send_response("请发送扩展编号如ex1ab")
