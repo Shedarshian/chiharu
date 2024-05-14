@@ -182,9 +182,9 @@ async def ccs_rule(extension: CommandOption[str]):
         packs = readPackData()["packs"]
         for pack in packs:
             if pack["id"] == exa and "help" in pack:
-                await matcher_cacason.send(pack.get("full_name", pack["name"]) + "\n" + pack["help"])
+                await matcher_cacason.send_response(pack.get("full_name", pack["name"]) + "\n" + pack["help"])
                 return
-    await matcher_cacason.send(rule_doc)
+    await matcher_cacason.send_response(rule_doc)
 packs = readPackData()["packs"]
 ccs_rule.__doc__ = rule_doc = "查看卡卡颂规则（*为包含起始板块）。\n" + \
     '\n'.join((f"ex{pack['id']}. " + pack.get("full_name", pack["name"]) + "\n    " +
