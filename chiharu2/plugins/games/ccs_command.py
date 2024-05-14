@@ -26,14 +26,13 @@ def getSend(matcher: Matcher):
 @cacason.begin_message()
 async def ccs_choose_menu():
     from .cacason.ccs_tile import readPackData
-    all_options: list[tuple[str, str]] = []
+    all_options: list[tuple[str, str]] = [("随机2大4小", "random1"), ("随机3大6小", "random2")]
     for pack in readPackData()["packs"]:
         if pack.get("big"):
             all_options.append((pack["full_name"], str(pack["id"])))
         elif pack.get("small"):
             for i, s in enumerate(pack.get("small_name")):
                 all_options.append((pack["full_name"] + s, f"{pack['id']}_{i}"))
-    all_options.extend([("随机2大4小", "random1"), ("随机3大6小", "random2")])
     menu = MessageSegment.component(SelectMenu(type=ComponentType.StringSelect,
             custom_id="extension_menu",
             options=[SelectOption(label=name, value=i) for name, i in all_options],
@@ -64,16 +63,32 @@ async def ccs_choose(state: T_State, event: MessageComponentInteractionEvent,
         else:
             to_add = [((int((ij := s.split('_'))[0]), int(ij[1])) if "_" in s else int(s)) for s in event.data.values]
         extensions: dict[int, str] = {}
+        begin: int = 0
+        for a in to_add:
+            if isinstance(a, int):
+                if packs[a].get("has_begin"):
+                    if begin != a:
+                        await matcher.send(MessageSegment.mention_user(user.user_id) + "起始板块冲突！")
+                        return
+                    begin = a
+            else:
+                if (l := packs[a[0]].get("has_begin")) and a[1] in l:
+                    if begin != a[0]:
+                        await matcher.send(MessageSegment.mention_user(user.user_id) + "起始板块冲突！")
+                        return
+                    begin = a[0]
         for a in to_add:
             if isinstance(a, int):
                 extensions[a] = all_extensions[a]
             else:
                 ls: list[int] = packs[a[0]]["small"][a[1]]
                 extensions[a[0]] = extensions.get(a[0], "") + ''.join(chr(ord('a') + i) for i in ls)
-        await matcher.send(MessageSegment.mention_user(user.user_id) + "已开的扩展为：\n* " + '\n* '.join((packs[item]["full_name"] + "\n    * " + '，'.join(packs[item]["things"][ord(c) - ord('a')] for c in value)) for item, value in extensions.items()))
+        state["starting_tile"] = begin
+        state["extensions"] = extensions
+        await matcher.send(MessageSegment.mention_user(user.user_id) + "已开的扩展为：\n* " + '\n* '.join((packs[item]["full_name"] + "\n  " + '，'.join(packs[item]["things"][ord(c) - ord('a')] for c in value)) for item, value in extensions.items()))
 
 @cacason.start()
-async def ccs_start(matcher: Matcher,
+async def ccs_start(matcher: Matcher, state: T_State,
             data: GameData=Depends(cacason.get_event_data),
             delete_func: DeleteFunc=Depends(cacason.get_delete_func),
             user: DiscordUser=Depends(getUser),
@@ -86,11 +101,10 @@ async def ccs_start(matcher: Matcher,
         order = list(range(len(data['players'])))
         random.shuffle(order)
         data['players'] = [data['players'][i] for i in order]
-        board: Board = Board(data['extensions'], data['names'], data['starting_tile'], group.channel_id)
+        board: Board = Board(state.get("extensions", {0: "a"}), data['names'], state.get("starting_tile", 0), group.channel_id)
         send = getSend(matcher)
         await board.advance(send, delete_func)
 
-async def ccs_extension():
     """修改卡卡颂对局使用的扩展。查询扩展列表请使用-cacason.rule。
 
 使用例：-play.cacason.extension check：查询目前开启了哪些扩展包。
@@ -99,67 +113,9 @@ async def ccs_extension():
 -play.cacason.extension close ex1a：关闭扩展包1中a小项的内容。
 -play.cacason.extension open random1：随机开启2个大扩与4个小扩。
 -play.cacason.extension open random2：随机开启3个大扩与6个小扩。"""
-    qq = int(session.ctx['user_id'])
-    pas: bool = False
-    start_names = {0: "默认", 6: "卡卡颂城", 7: "河流"}
-    start_no_start = ((7, "c"), (6, "a"), (6, "b"), (6, "c"), (6, "d"), (6, "g"), (6, "h"))
-    if pas:
-        if session.current_arg_text.startswith("check"):
-            if len(data['extensions']) == 0:
-                session.finish("目前未开启任何扩展包。")
-            packs = readPackData()["packs"]
-            data['extensions'] = {c: data['extensions'][c] for c in sorted(data['extensions'].keys())}
-            await session.send("目前开启的扩展包有：\n" + '\n'.join(packs[packid]["name"] + "\n\t" + "；".join('(' + c + ') ' + packs[packid]["things"][ord(c) - ord('a')] for c in s) for packid, s in data['extensions'].items() if packid != 0) + "\n目前的起始板块是：\n" + start_names[data['starting_tile']])
-            return
-        if match := re.match(r'(open|close)(( ex\d+[a-z]*)+| random\d+)', session.current_arg_text):
-            command = match.group(1)
-            exs = [ex[2:] for ex in match.group(2)[1:].split(' ')]
-            exabs: defaultdict[int, str] = defaultdict(lambda: "")
-            start_to_change: int = -1
-            if exs[0].startswith('ndom'):
-                pass
-            else:
-                for ex in exs:
-                    match2 = re.match(r'(\d+)([a-z]*)', ex)
-                    if not match2:
-                        continue
-                    exas, exbs = match2.groups()
-                    exa = int(exas)
-                    if exa not in all_extensions:
-                        session.finish("不存在扩展" + exas + "！")
-                    exb = exbs or all_extensions[exa]
-                    for c in exb:
-                        if c not in all_extensions[exa]:
-                            session.finish("扩展" + exas + "不存在" + c + "小项！")
-                        exabs[exa] += c
-                        if command == "open" and exa in data['extensions'] and c in data['extensions'][exa]:
-                            session.finish("扩展" + exas + "的" + c + "小项已被添加过！")
-                        if command == "close" and not (exa in data['extensions'] and c in data['extensions'][exa]):
-                            session.finish("扩展" + exas + "的" + c + "小项未被添加过！")
-                        if command == "open" and (data['starting_tile'] not in (0, exa) or start_to_change not in (-1, exa)) and exa in start_names and (exa, c) not in start_no_start:
-                            session.finish("起始板块冲突！")
-                        if exa in start_names and (exa, c) not in start_no_start:
-                            start_to_change = exa if command == "open" else 0
-            ret = ""
-            for exa, c in exabs.items():
-                if command == "open":
-                    if exa not in data['extensions']:
-                        data['extensions'][exa] = c
-                    else:
-                        data['extensions'][exa] = ''.join(sorted(set(data['extensions'][exa] + c)))
-                else:
-                    data['extensions'][exa] = data['extensions'][exa].replace(c, "")
-            if start_to_change >= 0:
-                data['starting_tile'] = start_to_change
-                ret = "起始板块已修改为" + start_names[start_to_change] + "。"
-            if command == "open":
-                session.finish("已开启。" + ret)
-            else:
-                session.finish("已关闭。" + ret)
-    await call_command(get_bot(), session.ctx, ('help',), current_arg="play.cacason.extension")
 
 @cacason.process()
-async def ccs_process(matcher: Matcher,
+async def ccs_process(matcher: Matcher, state: T_State,
             data: GameData=Depends(cacason.get_event_data),
             delete_func: DeleteFunc=Depends(cacason.get_delete_func),
             message: Message=EventMessage(),
@@ -171,7 +127,7 @@ async def ccs_process(matcher: Matcher,
         if command in "23456":
             # 开始游戏
             data['extensions'][0] = "a"
-            board: Board = Board(data['extensions'], data['names'], data['starting_tile'], group.channel_id)
+            board: Board = Board(state.get("extensions", {0: "a"}), data['names'], state.get("starting_tile", 0), group.channel_id)
             data['board'] = board
             await board.advance(send, delete_func)
             data['waiting_player_num'] = False
