@@ -167,15 +167,15 @@ matcher_cacason = on_slash_command(name="cacason",
                 description="扩展编号")])
     ])
 
-@matcher_cacason.handle("version")
+@matcher_cacason.handle_sub_command("version")
 async def ccs_version():
     await matcher_cacason.send_response("千春桌游大厅：卡卡颂 version" + ".".join(str(c) for c in version) + "。")
 
-@matcher_cacason.handle("changelog")
+@matcher_cacason.handle_sub_command("changelog")
 async def ccs_changelog():
     await matcher_cacason.send_response("千春桌游大厅：卡卡颂 changelog\n" + changelog)
 
-@matcher_cacason.handle("rule")
+@matcher_cacason.handle_sub_command("rule")
 async def ccs_rule(extension: CommandOption[str]):
     if match := re.match(r'ex(\d+)', extension):
         exa = int(match.group(1))
