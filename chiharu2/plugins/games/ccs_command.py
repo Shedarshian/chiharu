@@ -44,7 +44,8 @@ async def ccs_choose_menu():
 async def ccs_choose(state: T_State, event: MessageComponentInteractionEvent,
             matcher: Matcher,
             user: DiscordUser=Depends(getUser),
-            group: DiscordGroup=Depends(getGroup)):
+            group: DiscordGroup=Depends(getGroup),
+            data: GameData=Depends(cacason.get_event_data)):
     button = state["button_id"]
     if button == "extension_menu":
         if user not in cacason.uncomplete[group]["players"]:
@@ -83,12 +84,12 @@ async def ccs_choose(state: T_State, event: MessageComponentInteractionEvent,
             else:
                 ls: list[int] = packs[a[0]]["small"][a[1]]
                 extensions[a[0]] = extensions.get(a[0], "") + ''.join(chr(ord('a') + i) for i in ls)
-        state["starting_tile"] = begin
-        state["extensions"] = extensions
+        data["starting_tile"] = begin
+        data["extensions"] = extensions
         await matcher.send(MessageSegment.mention_user(user.user_id) + "已开的扩展为：\n* " + '\n* '.join((packs[item]["full_name"] + "\n  " + '，'.join(packs[item]["things"][ord(c) - ord('a')] for c in value)) for item, value in extensions.items()))
 
 @cacason.start()
-async def ccs_start(matcher: Matcher, state: T_State,
+async def ccs_start(matcher: Matcher,
             data: GameData=Depends(cacason.get_event_data),
             delete_func: DeleteFunc=Depends(cacason.get_delete_func),
             user: DiscordUser=Depends(getUser),
@@ -101,9 +102,9 @@ async def ccs_start(matcher: Matcher, state: T_State,
         order = list(range(len(data['players'])))
         random.shuffle(order)
         data['players'] = [data['players'][i] for i in order]
-        extensions = state.get("extensions", {})
+        extensions = data.get("extensions", {})
         extensions[0] = "a"
-        board: Board = Board(extensions, [p.name for p in data['players']], state.get("starting_tile", 0), group.channel_id)
+        board: Board = Board(extensions, [p.name for p in data['players']], data.get("starting_tile", 0), group.channel_id)
         send = getSend(matcher)
         await board.advance(send, delete_func)
 
