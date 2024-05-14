@@ -235,7 +235,9 @@ async def ccs_check(extension: CommandOption[str]):
         from ..helper.helper import img as img_save
         name = 'ccs' + str(random.randint(0, 9)) + '.png'
         img.save(img_save(name))
-        await matcher_cacason.send_response(MessageSegment.attachment(name, content=img.tobytes()))
+        with open(img_save(name), 'rb') as f:
+            from nonebot.adapters.discord.api.model import File
+            await matcher_cacason.send_response(MessageSegment.attachment(File(content=f.read(), filename=name)))
     else:
         await matcher_cacason.send_response("请发送扩展编号如ex1ab")
 
