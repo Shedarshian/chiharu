@@ -67,13 +67,13 @@ async def ccs_choose(state: T_State, event: MessageComponentInteractionEvent,
         for a in to_add:
             if isinstance(a, int):
                 if packs[a].get("has_begin"):
-                    if begin != a:
+                    if begin not in (0, a):
                         await matcher.send(MessageSegment.mention_user(user.user_id) + "起始板块冲突！")
                         return
                     begin = a
             else:
                 if (l := packs[a[0]].get("has_begin")) and a[1] in l:
-                    if begin != a[0]:
+                    if begin not in (0, a[0]):
                         await matcher.send(MessageSegment.mention_user(user.user_id) + "起始板块冲突！")
                         return
                     begin = a[0]
@@ -126,7 +126,6 @@ async def ccs_process(matcher: Matcher, state: T_State,
     if data['waiting_player_num']:
         if command in "23456":
             # 开始游戏
-            data['extensions'][0] = "a"
             board: Board = Board(state.get("extensions", {0: "a"}), data['names'], state.get("starting_tile", 0), group.channel_id)
             data['board'] = board
             await board.advance(send, delete_func)
