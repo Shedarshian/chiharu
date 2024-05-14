@@ -1,2 +1,2 @@
 from . import xiangqi
-# from . import ccs_command
+from . import ccs_command
