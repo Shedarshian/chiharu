@@ -101,7 +101,7 @@ async def ccs_start(matcher: Matcher, state: T_State,
         order = list(range(len(data['players'])))
         random.shuffle(order)
         data['players'] = [data['players'][i] for i in order]
-        board: Board = Board(state.get("extensions", {0: "a"}), data['names'], state.get("starting_tile", 0), group.channel_id)
+        board: Board = Board(state.get("extensions", {0: "a"}), [p.name for p in data['players']], state.get("starting_tile", 0), group.channel_id)
         send = getSend(matcher)
         await board.advance(send, delete_func)
 
@@ -126,7 +126,7 @@ async def ccs_process(matcher: Matcher, state: T_State,
     if data['waiting_player_num']:
         if command in "23456":
             # 开始游戏
-            board: Board = Board(state.get("extensions", {0: "a"}), data['names'], state.get("starting_tile", 0), group.channel_id)
+            board: Board = Board(state.get("extensions", {0: "a"}), [data['players'][0].name] * int(command), state.get("starting_tile", 0), group.channel_id)
             data['board'] = board
             await board.advance(send, delete_func)
             data['waiting_player_num'] = False
