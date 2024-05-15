@@ -126,7 +126,7 @@ async def ccs_process(matcher: Matcher, state: T_State,
             group: DiscordGroup=Depends(getGroup)):
     command = message.extract_plain_text().strip()
     send = getSend(matcher)
-    if data['waiting_player_num']:
+    if data.get('waiting_player_num'):
         if command in "23456":
             # 开始游戏
             extensions = state.get("extensions", {})

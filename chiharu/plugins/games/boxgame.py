@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, TypeVar, List, Tuple
+from typing import TYPE_CHECKING, Dict, TypeVar, List, Tuple, Generic
 import functools
 from typing_extensions import Self
 
@@ -46,11 +46,11 @@ class Grid2D(IPos):
         return self.__class__(self.x - other.x, self.y - other.y)
     def __isub__(self: TGrid2D, other: TGrid2D):
         return self.__class__(self.x - other.x, self.y - other.y)
-    def __mul__(self: TGrid2D, other):
+    def __mul__(self, other):
         if isinstance(other, int):
             return self.__class__(other * self.x, other * self.y)
         return NotImplemented
-    def __imul__(self: TGrid2D, other):
+    def __imul__(self, other):
         if isinstance(other, int):
             return self.__class__(other * self.x, other * self.y)
         return NotImplemented
@@ -63,10 +63,10 @@ class Grid2D(IPos):
 
 class Grid2DSquare(Grid2D):
     class Directions:
-        UP: 'Grid2DSquare' = None
-        RIGHT: 'Grid2DSquare' = None
-        DOWN: 'Grid2DSquare' = None
-        LEFT: 'Grid2DSquare' = None
+        UP: 'Grid2DSquare'
+        RIGHT: 'Grid2DSquare'
+        DOWN: 'Grid2DSquare'
+        LEFT: 'Grid2DSquare'
 Grid2DSquare.Directions.UP = Grid2DSquare(0, -1)
 Grid2DSquare.Directions.RIGHT = Grid2DSquare(1, 0)
 Grid2DSquare.Directions.DOWN = Grid2DSquare(0, 1)
@@ -74,12 +74,12 @@ Grid2DSquare.Directions.LEFT = Grid2DSquare(-1, 0)
 
 class Grid2DHexagonH(Grid2D):
     class Directions:
-        UPLEFT: 'Grid2DHexagonH' = None
-        UPRIGHT: 'Grid2DHexagonH' = None
-        RIGHT: 'Grid2DHexagonH' = None
-        DOWNRIGHT: 'Grid2DHexagonH' = None
-        DOWNLEFT: 'Grid2DHexagonH' = None
-        LEFT: 'Grid2DHexagonH' = None
+        UPLEFT: 'Grid2DHexagonH'
+        UPRIGHT: 'Grid2DHexagonH'
+        RIGHT: 'Grid2DHexagonH'
+        DOWNRIGHT: 'Grid2DHexagonH'
+        DOWNLEFT: 'Grid2DHexagonH'
+        LEFT: 'Grid2DHexagonH'
 Grid2DHexagonH.Directions.UPLEFT = Grid2DHexagonH(0, -1)
 Grid2DHexagonH.Directions.UPRIGHT = Grid2DHexagonH(1, -1)
 Grid2DHexagonH.Directions.RIGHT = Grid2DHexagonH(1, 0)
@@ -89,12 +89,12 @@ Grid2DHexagonH.Directions.DOWNLEFT = Grid2DHexagonH(-1, 1)
 
 class Grid2DHexagonV(Grid2D):
     class Directions:
-        UP: 'Grid2DHexagonV' = None
-        UPRIGHT: 'Grid2DHexagonV' = None
-        DOWN: 'Grid2DHexagonV' = None
-        DOWNRIGHT: 'Grid2DHexagonV' = None
-        DOWNLEFT: 'Grid2DHexagonV' = None
-        UPLEFT: 'Grid2DHexagonV' = None
+        UP: 'Grid2DHexagonV'
+        UPRIGHT: 'Grid2DHexagonV'
+        DOWN: 'Grid2DHexagonV'
+        DOWNRIGHT: 'Grid2DHexagonV'
+        DOWNLEFT: 'Grid2DHexagonV'
+        UPLEFT: 'Grid2DHexagonV'
 Grid2DHexagonV.Directions.UP = Grid2DHexagonV(0, -1)
 Grid2DHexagonV.Directions.UPRIGHT = Grid2DHexagonV(1, -1)
 Grid2DHexagonV.Directions.DOWNRIGHT = Grid2DHexagonV(1, 0)
@@ -109,12 +109,12 @@ class Grid3D(IPos):
     y: int
     z: int
     class Directions:
-        UP: 'Grid3D' = None
-        DOWN: 'Grid3D' = None
-        FRONT: 'Grid3D' = None
-        BACK: 'Grid3D' = None
-        LEFT: 'Grid3D' = None
-        RIGHT: 'Grid3D' = None
+        UP: 'Grid3D'
+        DOWN: 'Grid3D'
+        FRONT: 'Grid3D'
+        BACK: 'Grid3D'
+        LEFT: 'Grid3D'
+        RIGHT: 'Grid3D'
     def __add__(self: TGrid3D, other: TGrid3D):
         return self.__class__(self.x + other.x, self.y + other.y, self.z + other.z)
     def __iadd__(self: TGrid3D, other: TGrid3D):
@@ -123,11 +123,11 @@ class Grid3D(IPos):
         return self.__class__(self.x - other.x, self.y - other.y, self.z - other.z)
     def __isub__(self: TGrid3D, other: TGrid3D):
         return self.__class__(self.x - other.x, self.y - other.y, self.z - other.z)
-    def __mul__(self: TGrid3D, other):
+    def __mul__(self, other):
         if isinstance(other, int):
             return self.__class__(other * self.x, other * self.y, other * self.z)
         return NotImplemented
-    def __imul__(self: TGrid3D, other):
+    def __imul__(self, other):
         if isinstance(other, int):
             return self.__class__(other * self.x, other * self.y, other * self.z)
         return NotImplemented
@@ -144,19 +144,18 @@ Grid3D.Directions.BACK = Grid3D(0, 1, 0)
 Grid3D.Directions.LEFT = Grid3D(-1, 0, 0)
 Grid3D.Directions.RIGHT = Grid3D(1, 0, 0)
 
-class IBox(ABC):
+class IBox(ABC, Generic[TPos]):
     pos_type = None
-    def __init__(self, pos: TPos, space: 'TSpace', *args, **kwargs):
-        assert(isinstance(pos, self.pos_type))
+    def __init__(self, pos: TPos, space: 'ISpace', *args, **kwargs):
         self.pos = pos
         self.space = space
     def move(self, dir: TPos):
-        self.space.move(self, dir)
+        pass # self.space.move(self, dir)
     def canMove(self, dir: TPos):
-        return self.space.canMoveIn(self, self.pos + dir)
+        return self.space.canMoveIn(self.pos + dir)
 TBox = TypeVar('TBox', bound=IBox)
 
-class ISpace(ABC):
+class ISpace(ABC, Generic[TPos, TBox]):
     box_type = None
     data = {}
     def __getitem__(self, index):
@@ -168,7 +167,7 @@ class ISpace(ABC):
     def _add(self, box: TBox):
         pass
     def move_bunch(self, boxes: Dict[TBox, TPos]):
-        map(boxes.keys(), self._pop)
+        # map(boxes.keys(), self._pop)
         for box, dir in boxes.items():
             box.pos += dir
             self._add(box)
@@ -181,8 +180,9 @@ class ISpace(ABC):
     @abstractmethod
     def isPosValid(self, pos: TPos) -> bool:
         pass
+TSpace = TypeVar('TSpace', bound=ISpace)
 
-class ISpaceOverlap(ISpace):
+class ISpaceOverlap(ISpace, Generic[TPos, TBox]):
     data: Dict[TPos, List[TBox]] = {}
     def _pop(self, box: TBox):
         if len(self.data[box.pos]) == 1:
@@ -203,7 +203,7 @@ class ISpaceOverlap(ISpace):
     def canMoveIn(self, pos: TPos) -> bool:
         return self.isPosValid(pos)
 
-class ISpaceNoOverlap(ISpace):
+class ISpaceNoOverlap(ISpace, Generic[TPos, TBox]):
     data: Dict[TPos, TBox] = {}
     def _pop(self, box: TBox):
         self.data.pop(box.pos)
@@ -223,5 +223,5 @@ class ISpaceNoOverlap(ISpace):
 
 class IBoxGame(ABC):
     def __init_subclass__(cls, space_cls):
-        cls.space_cls = space_cls
-    
+        cls.space_cls = space_cls # type: ignore
+
