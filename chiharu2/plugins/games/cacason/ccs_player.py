@@ -379,7 +379,7 @@ class Player:
                     continue
                 break
             if self.board.checkPack(13, "k") and not if_portal and (ph_put := ret.phantom) != -1:
-                r = yield from self.turnCheckPhantom(ret, ph_put, tile_put, if_portal)
+                pass_err = yield from self.turnCheckPhantom(ret, ph_put, tile_put, if_portal)
                 if pass_err < 0:
                     continue
             if self.board.checkPack(3, "c") and ret.special == "fairy":
