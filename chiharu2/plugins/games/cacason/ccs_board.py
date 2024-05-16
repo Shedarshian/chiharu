@@ -1,11 +1,16 @@
-from typing import Literal, Any, Type, Callable, Awaitable
+from typing import Literal, Any, Type, Callable, Awaitable, Protocol
+from mypy_extensions import DefaultNamedArg
 from collections import Counter
 import random, more_itertools, json, re
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 from .ccs_tile import Dir, open_img, readTileData, readPackData
 from .ccs_helper import CantPutError, NoDeckEnd, TileAddable
 from .ccs_helper import findAllMax, State, Log, Send, Recieve
+from ...helper.helper import User
 
+class SendFunc(Protocol):
+    def __call__(self, first: Any, /, private: bool=False, user: list[User] | User | None=None) -> Awaitable:
+        ...
 class Board:
     def __init__(self, packs_options: dict[int, str], player_names: list[str],
                  start_tile_pack: int=0, group_id: int | None = None) -> None:
@@ -660,7 +665,7 @@ class Board:
         self.endGameScore()
         return midEnd
 
-    async def advance(self, send: Callable[[Any], Awaitable], delete_func: Callable[[], Awaitable],
+    async def advance(self, send: SendFunc, delete_func: Callable[[], Awaitable],
             to_send: Recieve | None=None):
         try:
             if to_send is None:
@@ -674,9 +679,9 @@ class Board:
             await send([self.saveImg()])
             score_win, players_win = self.winner()
             if len(players_win) == 1:
-                await send(f'玩家{players_win[0].name}以{score_win}分获胜！')
+                await send(f'以{score_win}分获胜！', user=players_win[0].user)
             else:
-                await send('玩家' + '，'.join(p.name for p in players_win) + f'以{score_win}分获胜！')
+                await send(f'以{score_win}分获胜！', user=[x.user for x in players_win])
             # game log
             from ... import config
             import datetime
@@ -684,7 +689,7 @@ class Board:
             await delete_func()
             return
         if len(self.log) != 0:
-            outputs = []
+            outputs: list[str] = []
             from .ccs_helper import LogScore, LogRedraw, LogPutBackBuilder, LogExchangePrisoner
             from .ccs_helper import LogTradeCounter, LogChallengeFailed, LogDrawGift, LogUseGift
             from .ccs_helper import LogTake2NoTile, LogDice, LogDragonMove, LogShepherd
@@ -752,7 +757,7 @@ class Board:
                         await send("玩家继续第二回合")
                     self.setImageArgs()
                     await send([self.saveImg()])
-                    await send((f'玩家{self.current_turn_player.long_name}开始行动，' if ret.begin else "") + '请选择放图块的坐标，以及用URDL将指定方向旋转至向上。' + ("此时可发送“赎回玩家nxxx”花3分赎回囚犯。" if not ret.second_turn and self.checkPack(4, "b") else "") + ('回复礼物+第几张使用礼物卡，“查询礼物”查询。' if self.checkPack(14, "a") and not ret.gifted else ""))
+                    await send((f'开始行动，' if ret.begin else "") + '请选择放图块的坐标，以及用URDL将指定方向旋转至向上。' + ("此时可发送“赎回玩家nxxx”花3分赎回囚犯。" if not ret.second_turn and self.checkPack(4, "b") else "") + ('回复礼物+第几张使用礼物卡，“查询礼物”查询。' if self.checkPack(14, "a") and not ret.gifted else ""), user=self.current_turn_player.user)
             case State.ChoosingPos:
                 from .ccs_helper import SendChoosingPos
                 assert isinstance(ret, SendChoosingPos)
@@ -874,7 +879,7 @@ class Board:
                     if ret.begin:
                         self.setImageArgs()
                         await send([self.saveImg()])
-                    await send((f'玩家{self.current_player.long_name}' if ret.begin or self.state == State.FinalAbbeyAsking else "") + ("开始行动，选择" if ret.begin else "选择最后" if self.state == State.FinalAbbeyAsking else "请选择") + "是否放置僧院板块，回复“不放”跳过。")
+                    await send(("开始行动，选择" if ret.begin else "选择最后" if self.state == State.FinalAbbeyAsking else "请选择") + "是否放置僧院板块，回复“不放”跳过。", user=(self.current_player.user if ret.begin or self.state == State.FinalAbbeyAsking else None))
             case State.MovingDragon:
                 from .ccs_helper import SendInt
                 assert isinstance(ret, SendInt)
@@ -883,7 +888,7 @@ class Board:
                 else:
                     self.setImageArgs()
                     await send([self.saveImg()])
-                    await send(f'玩家{self.current_player.long_name}第{ret.num + 1}次移动龙，请输入URDL移动。')
+                    await send(f'第{ret.num + 1}次移动龙，请输入URDL移动。', user=self.current_player.user)
             case State.ChoosingOwnFollower:
                 from .ccs_helper import SendPosSpecial
                 assert isinstance(ret, SendPosSpecial)
@@ -1006,7 +1011,7 @@ class Board:
             case State.ChoosingCropCircle:
                 await send("请选择所有人添加或是移除跟随者。")
 
-    async def parse_command(self, command: str, send: Callable[[Any], Awaitable], delete_func: Callable[[], Awaitable]):
+    async def parse_command(self, command: str, send: SendFunc, delete_func: Callable[[], Awaitable]):
         match self.state:
             case State.PuttingTile:
                 if match := re.match(r"\s*([a-z])?\s*([A-Z]+)([0-9]+)\s*([URDL])$", command):

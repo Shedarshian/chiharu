@@ -1,6 +1,7 @@
 from typing import Literal, Any, Sequence, Callable, Type, TYPE_CHECKING
 import more_itertools, random
 from PIL import Image, ImageDraw, ImageFont
+from ...helper.helper import User, DiscordUser
 
 class Player:
     def __init__(self, board: 'Board', id: int, name: str) -> None:
@@ -31,6 +32,9 @@ class Player:
             self.robber: bool = False
         if self.board.checkPack(14, 'a'):
             self.gifts: list[Gift] = []
+    @property
+    def user(self):
+        return DiscordUser(self.id, self.name)
     @property
     def tokenColor(self):
         return ["green", "blue", "gray", "violet", "black", "yellow"][self.id]

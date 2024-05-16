@@ -8,7 +8,7 @@ from nonebot.adapters.discord import on_slash_command, Message, MessageSegment, 
 from nonebot.adapters.discord.api import SubCommandOption, StringOption, SelectMenu, SelectOption, ComponentType
 from nonebot.adapters.discord.event import MessageComponentInteractionEvent
 from ..game import GameSameGroup, GameData, DeleteFunc
-from ..helper.helper import getUser, getGroup, DiscordGroup, DiscordUser
+from ..helper.helper import getUser, getGroup, DiscordGroup, DiscordUser, User
 from .cacason.ccs_helper import all_extensions
 from .cacason.ccs_tile import readPackData
 from .cacason.ccs_board import Board
@@ -19,8 +19,13 @@ changelog = """ver 3.0.0
 cacason = GameSameGroup('cacason', "卡卡颂", (1, 6))
 
 def getSend(matcher: Matcher):
-    async def send(prompt, private: bool=False):
-        await matcher.send(prompt)
+    async def send(prompt: str, /, private: bool=False, user: list[User] | User | None=None):
+        if user is None:
+            await matcher.send(prompt)
+        elif isinstance(user, list):
+            await matcher.send(Message([MessageSegment.mention_user(u.user_id) for u in user if isinstance(u, DiscordUser)]) + prompt)
+        elif isinstance(user, DiscordUser):
+            await matcher.send(MessageSegment.mention_user(user.user_id) + prompt)
     return send
 
 @cacason.begin_message()
