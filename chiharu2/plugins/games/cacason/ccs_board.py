@@ -1,5 +1,4 @@
 from typing import Literal, Any, Type, Callable, Awaitable, Protocol
-from mypy_extensions import DefaultNamedArg
 from collections import Counter
 import random, more_itertools, json, re
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
