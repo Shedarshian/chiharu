@@ -225,7 +225,7 @@ Picture0022
     Field else (d-r) {0} [48,56]
     Field else (l-d,d-l) [8,56]
     Field else (l-u) {0} [8,16]
-        *1 10a Circus 32,32
+        *1 5a
 4 CCRR
     City u-r 16
     Road l-32,16 16
@@ -308,6 +308,7 @@ Picture0112
     Road l-24,32 0
     Field else (l-d,d-l,d-r,r-d,r-u) {0} [48,48]
     Field else (l-u) {0} [8,16]
+        *1 10a Circus 32,32
 Picture0121
 0 CFRF
     City u 16
@@ -581,7 +582,7 @@ Picture1212
         *1 1a Cloister Feature0
         *1 6g Shrine Feature0
         *1 9a Hill; where Field 0 [16,16]
-        *1 10a Acrobat Feature0
+        *2 10a Acrobat Feature0
         *1 10a Circus Feature0
 Picture1222
 0 FRRR
