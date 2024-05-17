@@ -15,7 +15,9 @@ from .cacason.ccs_board import Board
 
 version = (3, 0, 0)
 changelog = """ver 3.0.0
-· 迁移。"""
+· 迁移。
+var 3.1.0
+· 九扩与十扩完成。"""
 cacason = GameSameGroup('cacason', "卡卡颂", (1, 6))
 
 def getSend(matcher: Matcher):
