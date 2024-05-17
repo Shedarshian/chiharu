@@ -280,9 +280,14 @@ class Tile:
         for feature in self.features:
             poses = feature.drawPos(len(feature.tokens))
             drawn_poses.extend(poses)
-            for i, token in enumerate(feature.tokens):
-                t = token.image()
-                img.alpha_composite(t, pos(*turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2), add))
+            if isinstance(feature, Acrobat) and len(feature.tokens) > 0:
+                t = feature.tokens[0].image().rotate(-45)
+                for i, token in enumerate(feature.tokens):
+                    img.alpha_composite(t, pos(*turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2), add))
+            else:
+                for i, token in enumerate(feature.tokens):
+                    t = token.image()
+                    img.alpha_composite(t, pos(*turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2), add))
             if isinstance(feature, Tower):
                 dr = ImageDraw.Draw(img)
                 font_tower = ImageFont.truetype("calibrib.ttf", 10)
@@ -854,9 +859,9 @@ class Flier(Feature, CanScore):
                 break
         yield from token.putOn(to_put)
 class Circus(Feature):
-    pack = (12, "b")
+    pack = (10, "b")
 class Acrobat(Feature, CanScore):
-    pack = (12, "c")
+    pack = (10, "c")
     def closed(self) -> bool:
         return False
     def canPut(self) -> bool:
@@ -877,6 +882,8 @@ class Acrobat(Feature, CanScore):
         return players
     def checkScore(self, players: 'list[Player]', complete: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
         return [(player, 5 * sum(1 for token in self.iterTokens() if token.player is player)) for player in players]
+    def drawPos(self, num: int):
+        return [(self.pos[0] - 10, self.pos[1]), (self.pos[0], self.pos[1] + 10), (self.pos[0] + 4, self.pos[1] - 4)][:num]
 
 class TokenMeta(type):
     def __new__(cls, name: str, base, attr):
@@ -1286,7 +1293,7 @@ from .ccs_board import Board
 
 if __name__ == "__main__":
     from .ccs_tile import open_img
-    b = Board({0: 'a', 10: "abcd"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
+    b = Board({0: 'a', 9: 'abcde', 10: "abcd"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
     from .ccs import BaseCloister
     d = {
             "name": "follower",
@@ -1296,29 +1303,36 @@ if __name__ == "__main__":
         }
     b.players[0].tokens.pop(0)
     yshift = 0
-    cri = lambda s: s.serialNumber[0] in (10, 12)
+    cri = lambda s: s.serialNumber[0] in (9, 10)
     picnames = sorted(set(s.serialNumber[1] for s in b.deck + b.riverDeck if cri(s)))
     for pic in picnames:
         ss = sorted(set(s.serialNumber[1:] for s in b.deck + b.riverDeck if s.picname == pic if cri(s)))
         for i, s2 in enumerate(ss):
             t = b.tiles[i % 5, i // 5 + yshift] = [s for s in b.deck + b.riverDeck if s.picname == pic and s.serialNumber[1:] == s2][0]
             # t.turn(Dir.LEFT)
-            for seg in t.segments:
-                b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-                for _ in b.players[0].tokens[-1].putOn(seg):
-                    pass
-            for feature in t.features:
-                if isinstance(feature, BaseCloister):
-                    b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
-                    for _ in b.players[0].tokens[-1].putOn(feature):
-                        pass
-                if isinstance(feature, Tower):
-                    b.players[1].tokens.append(BaseFollower(b.players[1], d, open_img("token0").crop((0, 0, 16, 16))))
-                    for _ in b.players[1].tokens[-1].putOn(feature):
-                        pass
-                    feature.height = random.randint(0, 9)
+            # for seg in t.segments:
+            #     b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+            #     for _ in b.players[0].tokens[-1].putOn(seg):
+            #         pass
+            # for feature in t.features:
+            #     if isinstance(feature, BaseCloister):
+            #         b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
+            #         for _ in b.players[0].tokens[-1].putOn(feature):
+            #             pass
+            #     if isinstance(feature, Tower):
+            #         b.players[1].tokens.append(BaseFollower(b.players[1], d, open_img("token0").crop((0, 0, 16, 16))))
+            #         for _ in b.players[1].tokens[-1].putOn(feature):
+            #             pass
+            #         feature.height = random.randint(0, 9)
+            #     if feature.__class__.__name__ == "Acrobat":
+            #         b.players[1].tokens.append(BaseFollower(b.players[1], d, open_img("token0").crop((0, 0, 16, 16))))
+            #         b.players[1].tokens.append(BaseFollower(b.players[1], d, open_img("token0").crop((0, 0, 16, 16))))
+            #         b.players[1].tokens.append(BaseFollower(b.players[1], d, open_img("token0").crop((0, 0, 16, 16))))
+            #         for i in range(random.randint(1, 3)):
+            #             for _ in b.players[1].tokens[-1].putOn(feature):
+            #                 pass
         yshift += (len(ss) + 4) // 5
     for p in b.players:
         p.last_pos = (0, p.id)
-    # b.setImageArgs(debug=True)
+    b.setImageArgs(debug=True)
     b.image().show()

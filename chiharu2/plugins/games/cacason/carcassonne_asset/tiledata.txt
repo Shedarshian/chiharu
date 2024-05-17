@@ -186,7 +186,7 @@ Picture0021
     City u 16
     City r 16
     Field else (d-r) {1} [48,56]
-    Field else (d-l,l-u,l-d) {0,1} [12,32/ud]
+    Field else (d-l,l-u,l-d) {0} [12,32/ud]
     Field else {0,1} [48,16]
         *1 10a Circus 32,28
 Picture0022
@@ -230,9 +230,9 @@ Picture0022
     City u-r 16
     Road l-24,32 16
     Road d-32,40 16
-    Field else (d-r) [48,56]
+    Field else (d-r) {0} [48,56]
     Field else (l-d,d-l) [16,48/8,56]
-    Field else (l-u) [8,16]
+    Field else (l-u) {0} [8,16]
         *1 10a Circus 32,32
 Picture0101
 0 CFCF
@@ -329,7 +329,8 @@ Picture0121
     City u 16
     Feature 32,32
     Road d-Feature0 0
-    Field else [16,48/48,48]
+    Field else (l-u,l-d,d-l) {0} [16,48]
+    Field else (r-u,r-d,d-r) {0} [48,48]
         *2 10a Circus Feature0
 3 CFRF
     City u 16
@@ -451,7 +452,7 @@ Picture0212
     City u 16
     Road l-24,32 0
     Road r-40,32 0
-    Field else (r-u) {0} [56,16]
+    Field else (r-u) {0} [56,20]
     Field else (l-d,d-l,d-r,r-d) [32,48]
     Field else (l-u) {0} [8,20]
         *1 10a Circus 32,32; where Field 1 [8,56/56,56]
