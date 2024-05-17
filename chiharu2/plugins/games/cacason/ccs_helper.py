@@ -47,7 +47,7 @@ class Shed(Enum):
     Pigsty = auto()
     Watertower = auto()
     Highwaymen = auto()
-all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 6: 'abcdefgh', 7: 'abcd', 9: 'abcde', 12: 'abcdef', 13: 'abcdefghijk', 14: 'abcdefg'}
+all_extensions = {1: 'abcd', 2: 'abcd', 3: 'abcde', 4: 'ab', 5: 'abcde', 6: 'abcdefgh', 7: 'abcd', 9: 'abcde', 10: 'abcd', 12: 'abcdef', 13: 'abcdefghijk', 14: 'abcdefg'}
 
 T = TypeVar('T')
 def findAllMax(items: Sequence[T], key: Callable[[T], int], criteria=None) -> tuple[int, list[T]]:
