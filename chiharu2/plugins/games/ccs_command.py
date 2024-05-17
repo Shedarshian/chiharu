@@ -13,7 +13,7 @@ from .cacason.ccs_helper import all_extensions
 from .cacason.ccs_tile import readPackData
 from .cacason.ccs_board import Board
 
-version = (3, 0, 0)
+version = (3, 1, 0)
 changelog = """ver 3.0.0
 · 迁移。
 var 3.1.0
