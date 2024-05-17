@@ -228,11 +228,11 @@ Picture0022
         *1 5a
 4 CCRR
     City u-r 16
-    Road l-32,16 16
-    Road d-48,32 16
-    Field else (R1-r) [48,56]
-    Field else (R0-d,R1-l) [24,40/8,56]
-    Field else (R0-u) [8,16]
+    Road l-24,32 16
+    Road d-32,40 16
+    Field else (d-r) [48,56]
+    Field else (l-d,d-l) [16,48/8,56]
+    Field else (l-u) [8,16]
         *1 10a Circus 32,32
 Picture0101
 0 CFCF
