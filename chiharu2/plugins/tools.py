@@ -276,7 +276,7 @@ async def maj_train(choice: CommandOption[int], past_answer: CommandOption[bool]
                     _continue = True
         strout = str_title + ''.join(map(str, stack))
         await matcher.send_response(strout)
-        result = maj.MajHai._ting(map(lambda x: x - 1, stack))
+        result = maj.MajHai.getTenOneColor(map(lambda x: x - 1, stack))
         daan[group_id] = \
             ''.join(map(lambda x: str(x[0] + 1), filter(lambda x: x[1] > 0, enumerate(map(len, result)))))
     elif text == '2':
@@ -300,7 +300,7 @@ async def maj_train(choice: CommandOption[int], past_answer: CommandOption[bool]
         stack.pop(random.randint(0, len(stack) - 1))
         strout = str_title + ''.join(map(str, stack))
         await matcher.send_response(strout)
-        result = maj.MajHai._ting(map(lambda x: x - 1, stack))
+        result = maj.MajHai.getTenOneColor(map(lambda x: x - 1, stack))
         daan[group_id] = \
             ''.join(map(lambda x: str(x[0] + 1), filter(lambda x: x[1] > 0, enumerate(map(len, result)))))
     else:
