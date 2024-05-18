@@ -2,7 +2,7 @@ import contextlib
 from dataclasses import dataclass
 from os import path
 from nonebot.adapters.discord.commands.matcher import ApplicationCommandMatcher
-from nonebot.adapters.discord import Event, MessageEvent
+from nonebot.adapters.discord import Event, MessageEvent, DirectMessageCreateEvent, GuildMessageCreateEvent
 from nonebot.adapters.discord.api import Interaction
 from nonebot.matcher import Matcher
 
@@ -69,6 +69,24 @@ async def getUser(event: Event, matcher: Matcher):
     if isinstance(event, MessageEvent):
         return DiscordUser(event.author.id, event.author.username)
     matcher.skip()
+async def requireNoDM(event: Event, matcher: Matcher):
+    if isinstance(event, Interaction) and event.channel:
+        from nonebot.adapters.discord.api.types import ChannelType
+        if event.channel.type != ChannelType.GUILD_TEXT:
+            await matcher.send("本指令不允许DM。")
+            matcher.skip()
+    if isinstance(event, DirectMessageCreateEvent):
+        await matcher.send("本指令不允许DM。")
+        matcher.skip()
+async def requireDM(event: Event, matcher: Matcher):
+    if isinstance(event, Interaction) and event.channel:
+        from nonebot.adapters.discord.api.types import ChannelType
+        if event.channel.type != ChannelType.GROUP_DM:
+            await matcher.send("本指令只允许DM。")
+            matcher.skip()
+    if isinstance(event, GuildMessageCreateEvent):
+        await matcher.send("本指令只允许DM。")
+        matcher.skip()
 # @contextlib.asynccontextmanager
 # async def WaitingMessage(matcher: type[Matcher]):
 #     try:

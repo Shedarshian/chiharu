@@ -1,3 +1,4 @@
+# mypy: disable-error-code="typeddict-item"
 from typing import Dict, Any, Callable, Awaitable, Literal
 import re, random, json, datetime, itertools
 from collections import defaultdict
@@ -109,9 +110,9 @@ async def ccs_start(matcher: Matcher,
         order = list(range(len(data['players'])))
         random.shuffle(order)
         data['players'] = [data['players'][i] for i in order]
-        extensions = data.get("extensions", {})
+        extensions: dict[int, str] = data.get("extensions", {}) # type: ignore
         extensions[0] = "a"
-        board: Board = Board(extensions, data['players'], data.get("starting_tile", 0), group.channel_id)
+        board: Board = Board(extensions, data['players'], data.get("starting_tile", 0), group.channel_id) # type: ignore
         data['board'] = board
         send = getSend(matcher)
         await board.advance(send, delete_func)
