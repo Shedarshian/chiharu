@@ -1293,7 +1293,8 @@ from .ccs_board import Board
 
 if __name__ == "__main__":
     from .ccs_tile import open_img
-    b = Board({0: 'a', 9: 'abcde', 10: "abcd"}, ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"])
+    from ...helper.helper import DiscordUser
+    b = Board({0: 'a', 9: 'abcde', 10: "abcd"}, [DiscordUser(0, x) for x in ["任意哈斯塔", "哈斯塔网络整体意识", "当且仅当哈斯塔", "到底几个哈斯塔", "普通的哈斯塔", "不是哈斯塔"]])
     from .ccs import BaseCloister
     d = {
             "name": "follower",

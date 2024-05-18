@@ -195,14 +195,14 @@
                     "distribute": false,
                     "thing_id": "b",
                     "num": 1,
-                    "image": [0, 0, 15, 15]
+                    "image": [0, 0, 64, 48]
                 },
                 {
                     "name": "ringmaster",
-                    "distribute": false,
+                    "distribute": true,
                     "thing_id": "d",
                     "num": 1,
-                    "image": [15, 0, 30, 15]
+                    "image": [0, 48, 16, 64]
                 }
             ]
         },

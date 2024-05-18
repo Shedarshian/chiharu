@@ -4,11 +4,12 @@ from PIL import Image, ImageDraw, ImageFont
 from ...helper.helper import User, DiscordUser
 
 class Player:
-    def __init__(self, board: 'Board', id: int, name: str) -> None:
+    def __init__(self, board: 'Board', id: int, user: DiscordUser) -> None:
         self.board = board
         self.id = id
-        self.long_name = name
-        self.name = name[:20]
+        self.long_name = user.name
+        self.name = user.name[:20]
+        self.user = user
         self.tokens: list[Token] = []
         self.allTokens: list[Token] = []
         self.score: int = 0
@@ -32,9 +33,6 @@ class Player:
             self.robber: bool = False
         if self.board.checkPack(14, 'a'):
             self.gifts: list[Gift] = []
-    @property
-    def user(self):
-        return DiscordUser(self.id, self.name)
     @property
     def tokenColor(self):
         return ["green", "blue", "gray", "violet", "black", "yellow"][self.id]

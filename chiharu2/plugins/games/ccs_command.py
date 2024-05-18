@@ -111,7 +111,7 @@ async def ccs_start(matcher: Matcher,
         data['players'] = [data['players'][i] for i in order]
         extensions = data.get("extensions", {})
         extensions[0] = "a"
-        board: Board = Board(extensions, [p.name for p in data['players']], data.get("starting_tile", 0), group.channel_id)
+        board: Board = Board(extensions, data['players'], data.get("starting_tile", 0), group.channel_id)
         data['board'] = board
         send = getSend(matcher)
         await board.advance(send, delete_func)
@@ -139,7 +139,7 @@ async def ccs_process(matcher: Matcher, state: T_State,
             # 开始游戏
             extensions = state.get("extensions", {})
             extensions[0] = "a"
-            board: Board = Board(extensions, [data['players'][0].name] * int(command), state.get("starting_tile", 0), group.channel_id)
+            board: Board = Board(extensions, [data['players'][0]] * int(command), state.get("starting_tile", 0), group.channel_id)
             data['board'] = board
             await board.advance(send, delete_func)
             data['waiting_player_num'] = False

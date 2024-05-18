@@ -5,13 +5,13 @@ from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 from .ccs_tile import Dir, open_img, readTileData, readPackData
 from .ccs_helper import CantPutError, NoDeckEnd, TileAddable
 from .ccs_helper import findAllMax, State, Log, Send, Recieve
-from ...helper.helper import User
+from ...helper.helper import User, DiscordUser
 
 class SendFunc(Protocol):
     def __call__(self, first: Any, /, private: bool=False, user: list[User] | User | None=None) -> Awaitable:
         ...
 class Board:
-    def __init__(self, packs_options: dict[int, str], player_names: list[str],
+    def __init__(self, packs_options: dict[int, str], players: list[DiscordUser],
                  start_tile_pack: int=0, group_id: int | None = None) -> None:
         all_packs = readTileData(packs_options)
         packs: list[dict[str, Any]] = readPackData()["packs"]
@@ -21,7 +21,7 @@ class Board:
         self.riverDeck: list[Tile] = []
         self.deck: list[Tile] = []
         self.tokens: list[Token] = []
-        self.players: list[Player] = [Player(self, i, name) for i, name in enumerate(player_names)]
+        self.players: list[Player] = [Player(self, i, p) for i, p in enumerate(players)]
         self.tokenimgs: dict[int, Image.Image] = {}
         self.allTileimgs: dict[tuple[int, str, int, int], Image.Image] = {}
         self.connected: list[tuple[tuple[int, int], Dir]] = []
