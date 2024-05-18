@@ -310,6 +310,26 @@ class GamePrivate:
         self.types: dict[str, tuple[int, int]] = {'': (0, 32767)}
     def set_types(self, types: dict[str, tuple[int, int]]):
         self.types = types
+    def get_event_data(self, user: DiscordUser=Depends(getUser)):
+        data = self.players_status.get(user)
+        if data:
+            return data[1]
+    @property
+    def data(self):
+        return Depends(self.get_event_data)
+    def get_delete_func(self, user: DiscordUser=Depends(getUser)):
+        async def _h():
+            room = self.get_event_data(user)
+            if room:
+                self.end_room(room)
+        return _h
+    @property
+    def delete_func(self):
+        return Depends(self.get_delete_func)
+    async def checkInGame(self, matcher: Matcher, user: DiscordUser=Depends(getUser)):
+        room = self.get_event_data(user)
+        if room is None or not room["begin"] or room["game"] is not self:
+            matcher.skip()
 
     def open(self):
         async def onOpen(type: CommandOption[str], password: CommandOption[str],
@@ -325,12 +345,12 @@ class GamePrivate:
                 await matcher.send_response('密码只能包含字母与数字！')
                 matcher.skip()
             else:
-                prefix = 0
+                prefix = 100
                 while 1:
                     r = [i for i in range(
-                        prefix, prefix + 1000) if i not in self.center]
+                        prefix, prefix + 100) if i not in self.center]
                     if len(r) == 0:
-                        prefix += 1000
+                        prefix += 100
                     else:
                         break
                 room_id = random.choice(r)
@@ -403,26 +423,8 @@ class GamePrivate:
             room["begin"] = True
 
         return matcher.handle_sub_command(self.name, "confirm", parameterless=[Depends(onConfirm)])
-    def process(self, only_short_message: bool = True):
-        def _(_f: Callable[[NLPSession, TRoomPrivate, Callable[[], Awaitable]], Awaitable]) \
-                -> Callable[[NLPSession, TRoomPrivate, Callable[[], Awaitable]], Awaitable]:
-            @on_natural_language(only_to_me=False, only_short_message=only_short_message)
-            async def _g(session: NLPSession):  # 以后可能搁到一起？
-                qq = int(session.ctx['user_id'])
-                if qq not in self.players_status:
-                    return
-                begin, room = self.players_status[qq]
-                if not begin:
-                    return
-
-                async def _h():
-                    self.end_room(room)
-                    bot = get_bot()
-                    for group in config.group_id_dict['log']:
-                        await bot.send_group_msg(group_id=group, message='%s end in room %i' % (self.name, room['id']))
-                return await _f(session, room, _h)
-            return _f
-        return _
+    def process(self):
+        return matcher_message.handle([Depends(requireDM), Depends(self.checkInGame)])
     def end_room(self, room: TRoomPrivate):
         for p in room['players']:
             self.players_status.pop(p)
