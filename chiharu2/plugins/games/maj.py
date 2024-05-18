@@ -7,6 +7,7 @@ import operator
 from copy import copy, deepcopy
 from enum import Enum, IntFlag, IntEnum, auto
 from typing import Sequence, TypeVar, Generic, Iterable, Generator, Any, Callable
+from typing_extensions import Self
 from collections import Counter
 
 H = TypeVar('H', bound='MajHai')
@@ -199,15 +200,15 @@ class MajHai:
             return cls.NUM_COLOR + cls.NUM_SHU + num
     @classmethod
     def splitThree(cls, d: Counter[int],
-            s: list[tuple[int, int] | tuple[int, int, int]],
+            s: list[tuple[int,...]],
             hasQueTou: bool) \
-            -> set[tuple[tuple[int, int] | tuple[int, int, int],...]]: # s: [(pai's),(pai's)]
+            -> set[tuple[tuple[int,...],...]]: # s: [(pai's),(pai's)]
         for key, val in d.items():
             if val > 0:
                 break
         else:
             return {tuple(sorted(s))}
-        result: set[tuple[tuple[int, int] | tuple[int, int, int],...]] = set()
+        result: set[tuple[tuple[int,...],...]] = set()
         if d[key + 1] > 0 and d[key + 2] > 0:
             d_temp = deepcopy(d)
             s_temp = deepcopy(s)
@@ -228,13 +229,13 @@ class MajHai:
             result |= cls.splitThree(d_temp, s_temp, hasQueTou)
         return result
     @classmethod
-    def splitOneColor(cls, d: Iterable[int]) -> set[tuple[tuple[int, int] | tuple[int, int, int],...]]:
+    def splitOneColor(cls, d: Iterable[int]) -> set[tuple[tuple[int,...],...]]:
         barrel = Counter(d)
         return cls.splitThree(barrel, [], False)
     @classmethod
     def getTenOneColor(cls, d: Iterable[int]):
         barrel = Counter(d)
-        results: list[set[tuple[tuple[int, int] | tuple[int, int, int], ...]]] = []
+        results: list[set[tuple[tuple[int,...], ...]]] = []
         for i in range(MajHai.NUM_SHU):
             barrel[i] += 1
             result = MajHai.splitThree(barrel, [], False)
@@ -249,7 +250,7 @@ class MajHai:
         return d_c
     @classmethod
     def getTenAllColor(cls, barrel_all: list[list[int]]) \
-        -> dict[int, list[dict[int, tuple[tuple[int, int] | tuple[int, int, int],...]]]]:
+        -> dict[int, list[dict[int, tuple[tuple[int,...],...]]]]:
         mod1_barrel: dict[int, list[int]] = {}
         mod2_barrel: dict[int, list[int]] = {}
         mod3_barrel: dict[int, list[int]] = {}
@@ -263,9 +264,9 @@ class MajHai:
         l = (len(mod1_barrel), len(mod2_barrel))
         if not (l == (1, 0) or l == (0, 2)):
             return {}
-        resultsWithTen: dict[int, list[dict[int, tuple[tuple[int, int] | tuple[int, int, int],...]]]] = {}
+        resultsWithTen: dict[int, list[dict[int, tuple[tuple[int,...],...]]]] = {}
         # {26: [[(0, ((1,1),(1,2,3),(4,4,4)))], [(0, ((1,1,1),(2,3,4),(4,4)))]]}
-        resultAllInHand: list[dict[int, tuple[tuple[int, int] | tuple[int, int, int],...]]] = []
+        resultAllInHand: list[dict[int, tuple[tuple[int,...],...]]] = []
         # [[(0, ((1,1,1),(2,2,2),(3,3,3)))], [(0, ((1,2,3),(1,2,3),(1,2,3)))]]
         for key, val in mod3_barrel.items():
             if key < cls.NUM_COLOR:
@@ -314,7 +315,7 @@ class MajHai:
                     resultsWithTen[hai] = [{k1: r1, k2: r2, **r} for r in resultAllInHand for r1 in re for r2 in result6]
         return resultsWithTen
     @classmethod
-    def ten(cls, tehai: list[H]) -> dict[int, list[dict[int, tuple[tuple[int, int] | tuple[int, int, int], ...]]]]:
+    def ten(cls, tehai: Sequence[Self]) -> dict[int, list[dict[int, tuple[tuple[int,...], ...]]]]:
         if len(tehai) % 3 != 1:
             return {}
         # 标准型
@@ -324,15 +325,15 @@ class MajHai:
         ting = MajHai.getTenAllColor(barrel_all)
         return ting
     @classmethod
-    def tenQiTui(cls, tehai: list[H]) -> dict[int, list[dict[int, tuple[tuple[int, int], ...]]]]:
+    def tenQiTui(cls, tehai: Sequence[Self]) -> dict[int, list[dict[int, tuple[tuple[int,...], ...]]]]:
         if len(tehai) != 13:
             return {}
         # 七对子，龙七对包含
-        tehai.sort()
-        tui_stack: list[tuple[H, H]] = []
-        fu: H | None = None
-        last: H | None = None
-        for hai in tehai:
+        tehai_l = sorted(tehai)
+        tui_stack: list[tuple[Self, Self]] = []
+        fu: Self | None = None
+        last: Self | None = None
+        for hai in tehai_l:
             if last is None:
                 last = hai
             elif hai == last:
@@ -346,7 +347,7 @@ class MajHai:
         if fu is None and last is not None:
             fu = last
         assert(fu is not None)
-        val: dict[int, tuple[tuple[int, int],...]] = {fu.barrel: ((fu.num, fu.num),)}
+        val: dict[int, tuple[tuple[int,...],...]] = {fu.barrel: ((fu.num, fu.num),)}
         for hai1, hai2 in tui_stack:
             if hai1.barrel not in val:
                 val[hai1.barrel] = ((hai1.num, hai2.num),)
@@ -354,7 +355,7 @@ class MajHai:
                 val[hai1.barrel] += ((hai1.num, hai2.num),)
         return {fu.hai: [val]}
     @classmethod
-    def tenKokuShi(cls, tehai: list[H]) -> dict[int, list[dict[int, tuple[tuple[int,...],...]]]]:
+    def tenKokuShi(cls, tehai: Sequence[Self]) -> dict[int, list[dict[int, tuple[tuple[int,...],...]]]]:
         """need to be standard maj nums for this to work."""
         if len(tehai) != 13:
             return {}
@@ -377,7 +378,7 @@ class MajHai:
             d = tuple(all)
             return {t: [{0: (d,), 1: ((t,),)}] for t in all}
     @classmethod
-    def tenShiSanBuKao(cls, tehai: list[H]) -> dict[int, list[dict[int, tuple[tuple[int,...],...]]]]:
+    def tenShiSanBuKao(cls, tehai: Sequence[Self]) -> dict[int, list[dict[int, tuple[tuple[int,...],...]]]]:
         return {}
     @classmethod
     def tensu(cls, hai: int, results: list[dict[int, tuple[tuple[int,...],...]]], fuuro: list[FuuRo], els):
@@ -385,7 +386,7 @@ class MajHai:
 
 class MajZjHai(MajHai):
     @functools.total_ordering
-    class HeZhong:
+    class HeZhong(MajHai.HeZhong):
         dict_name: dict[tuple[int, int, int], str]
         dict_ten: dict[tuple[int, int, int], int]
         dict_name = {(0, 0, 1): "鸡和",
@@ -430,8 +431,6 @@ class MajZjHai(MajHai):
             self.tuple = t
         def __str__(self):
             return MajZjHai.HeZhong.dict_name[self.tuple]
-        def int(self):
-            return MajZjHai.HeZhong.dict_ten[self.tuple]
         @classmethod
         def ten(cls, l: 'list[MajZjHai.HeZhong]') -> 'tuple[MajZjHai.HeZhong.Status, int]':
             l.sort()
@@ -449,11 +448,15 @@ class MajZjHai(MajHai):
                         ten = 320
             return (status, ten)
         def __lt__(self, other):
+            if not isinstance(other, MajZjHai.HeZhong):
+                return NotImplemented
             return self.tuple < other.tuple
         def __eq__(self, other):
+            if not isinstance(other, MajZjHai.HeZhong):
+                return NotImplemented
             return self.tuple == other.tuple
     @classmethod
-    def ten(cls, tehai: 'list[MajZjHai]') -> dict[int, list[dict[int, tuple[tuple[int,...],...]]]]:
+    def ten(cls, tehai: Sequence[Self]) -> dict[int, list[dict[int, tuple[tuple[int,...],...]]]]:
         ten = MajHai.ten(tehai)
         for d in (MajHai.tenQiTui(tehai).items(), MajHai.tenKokuShi(tehai).items()):
             for key, val in d:
@@ -493,7 +496,7 @@ class MajZjHai(MajHai):
                     return True
                 minke = (_t(result[barrel]), barrel, num)
             else:
-                minke = (False,)
+                minke = (False, 0, 0)
             for barrel, vals in result.items():
                 for val in vals:
                     if len(val) == 2:
