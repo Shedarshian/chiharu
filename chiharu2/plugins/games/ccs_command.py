@@ -157,7 +157,7 @@ async def ccs_process(matcher: Matcher, state: T_State,
     user_id: int = data['players'].index(user)
     if command == "查询礼物":
         await matcher.send("你手中的礼物卡有：" + board.players[user_id].giftsText(), ensure_private=True)
-    if board.current_player_id != user_id:
+    if data['players'][board.current_player_id] != user:
         return
 
     await board.parse_command(command, send, delete_func)
