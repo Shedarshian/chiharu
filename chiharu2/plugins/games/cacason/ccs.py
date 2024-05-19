@@ -1244,14 +1244,14 @@ class Bigtop(Figure):
     def score(self) -> TAsync[None]:
         if isinstance(self.parent, Circus) and (pos := self.board.findTilePos(self.parent.tile)) is not None:
             score = self.board.animals.pop(0)
-            from .ccs_helper import LogCircus
+            from chiharu2.plugins.games.cacason.ccs_helper import LogCircus
             self.board.addLog(LogCircus(score))
             tiles = [self.board.tiles[p] for i in (-1, 0, 1) for j in (-1, 0, 1) if (p := (pos[0] + i, pos[0] + j)) in self.board.tiles]
             followers = [token for tile in tiles for token in tile.iterAllTokens() if isinstance(token, Follower)]
             players: dict[Player, int] = {}
             for follower in followers:
-                if isinstance(follower.parent, Player):
-                    players[follower.parent] = players.get(follower.parent, 0) + self.board.animals[0]
+                if isinstance(follower.player, Player):
+                    players[follower.player] = players.get(follower.player, 0) + self.board.animals[0]
             for player, s in players.items():
                 yield from player.addScore(s, ScoreReason.Bigtop)
 class Ringmaster(Follower):
