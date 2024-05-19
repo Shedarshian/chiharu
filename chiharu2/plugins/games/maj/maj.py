@@ -6,7 +6,7 @@ import asyncio
 import operator
 from copy import copy, deepcopy
 from enum import Enum, IntFlag, IntEnum, auto
-from typing import Sequence, TypeVar, Generic, Iterable, Generator, Any, Callable
+from typing import Sequence, TypeVar, Generic, Iterable, Generator, Any, Callable, TypeAlias
 from typing_extensions import Self
 from collections import Counter
 
@@ -93,7 +93,7 @@ class HaiHoStatus(IntFlag):
     TSUMOKIRI = 1
     NAKARERU = 2
     RICHI = 4
-class FuuRo:
+class FuuRo(Generic[H]):
     def __init__(self, status: FuuRoStatus, hai: tuple[H,...]):
         self.status = status
         self.hai = hai
@@ -466,10 +466,10 @@ class MajZjHai(MajHai):
                     ten[key] = val
         return ten
     @classmethod
-    def tensu(cls, hai: int, results: list[dict[int, tuple[tuple[int,...],...]]], fuuros: list[FuuRo], els: tuple[PlayerPos, PlayerStatus]) -> 'tuple[list[MajZjHai.HeZhong], MajZjHai.HeZhong.Status, int]':
+    def tensu(cls, hai: int, results: list[dict[int, tuple[tuple[int,...],...]]], fuuros: list[FuuRo], els: tuple[PlayerPos, PlayerStatus]):
         def _f(result: dict[int, tuple[tuple[int,...],...]], fuuros: list[FuuRo], els: tuple[PlayerPos, PlayerStatus, int]) -> 'list[MajZjHai.HeZhong]':
-            HeZhong = MajZjHai.HeZhong
-            l = []
+            HeZhong: TypeAlias = MajZjHai.HeZhong
+            l: list[HeZhong] = []
             #偶然类
             if els[1] & PlayerStatus.FIRST:
                 l.append(HeZhong((9, 4, int(els[1] & PlayerStatus.NAKU) + 1)))    #天和&地和
@@ -484,12 +484,16 @@ class MajZjHai(MajHai):
                 l.append(HeZhong((10, 1, 1)))   #十三幺九，不加算其余
                 return l
             #排序
-            shun, ke, gang, dui = [], [], [], []
+            tl: TypeAlias = list[tuple[tuple[int,...], int, bool]]
+            shun: tl = []
+            ke: tl = []
+            gang: tl = []
+            dui: tl = []
             #如果荣和，且只在暗刻中出现，则暗刻取消。暗顺对点数无影响故不判断
             if els[1] & PlayerStatus.NAKU:
                 num = els[2] % 9
                 barrel = els[2] // 9 if els[2] // 9 != 3 else num + els[2] // 9
-                def _t(r):
+                def _t(r: tuple[tuple[int,...],...]):
                     for val in r:
                         if len(val) == 3 and val[0] != val[1]:
                             return False
@@ -538,8 +542,7 @@ class MajZjHai(MajHai):
             if len(colors & {0, 1, 2}) == 1:
                 if len(colors) == 1:
                     l.append(HeZhong((2, 1, 2)))    #清一色
-                    hais = list(functools.reduce(operator.add, result[colors.pop()]))
-                    print(hais)
+                    hais: list[int] = list(functools.reduce(operator.add, result[colors.pop()]))
                     hais.remove(els[2] % 9)
                     hais.sort()
                     if tuple(hais) == (0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8):
@@ -548,7 +551,7 @@ class MajZjHai(MajHai):
                     l.append(HeZhong((2, 1, 1)))    #混一色
             elif len(colors & {0, 1, 2}) == 0:
                 l.append(HeZhong((3, 10, 1)))   #字一色
-            zi = set(filter(lambda x: x >= 3, map(lambda x: x[1], ke)))
+            zi = set(x[1] for x in ke if x[1] >= 3)
             zi_dui = dui[0][1]
             for i in (7, 8, 9):
                 if i in zi:
@@ -591,16 +594,16 @@ class MajZjHai(MajHai):
                     l.append(HeZhong((5, 1, 2)))    #两般高
             elif len(t) == 1:
                 l.append(HeZhong((5, 1, 1)))    #一般高
-            for i, j, k in itertools.combinations(shun, 3):
-                if i[0] == j[0] == k[0] and (i[1], j[1], k[1]) == (0, 1, 2):
+            for i2, j, k in itertools.combinations(shun, 3):
+                if i2[0] == j[0] == k[0] and (i2[1], j[1], k[1]) == (0, 1, 2):
                     l.append(HeZhong((6, 1, 1)))    #三色同顺
                     break
-                elif i[1] == j[1] == k[1] and (i[0], j[0], k[0]) == ((0, 1, 2), (3, 4, 5), (6, 7, 8)):
+                elif i2[1] == j[1] == k[1] and (i2[0], j[0], k[0]) == ((0, 1, 2), (3, 4, 5), (6, 7, 8)):
                     l.append(HeZhong((7, 1, 1)))    #一气通贯
                     break
             if len(ke) >= 2:
-                for i, j, k in itertools.combinations(itertools.chain(ke, dui), 3):
-                    if i[0][0] == j[0][0] == k[0][0] and {i[1], j[1], k[1]} == {0, 1, 2}:
+                for i2, j, k in itertools.combinations(itertools.chain(ke, dui), 3):
+                    if i2[0][0] == j[0][0] == k[0][0] and {i2[1], j[1], k[1]} == {0, 1, 2}:
                         if len(k[0]) == 2:
                             l.append(HeZhong((6, 2, 1)))    #三色小同刻
                         else:
@@ -609,8 +612,8 @@ class MajZjHai(MajHai):
             if len(ke) == 4 and ke[0][1] == ke[1][1] == ke[2][1] == ke[3][1] and ke[0][0][0] + 3 == ke[1][0][0] + 2 == ke[2][0][0] + 1 == ke[3][0][0]:
                 l.append(HeZhong((7, 2, 2)))    #四连刻
             else:
-                for i, j, k in itertools.combinations(ke, 3):
-                    if i[1] == j[1] == k[1] and i[0][0] + 2 == j[0][0] + 1 == k[0][0]:
+                for i2, j, k in itertools.combinations(ke, 3):
+                    if i2[1] == j[1] == k[1] and i2[0][0] + 2 == j[0][0] + 1 == k[0][0]:
                         l.append(HeZhong((7, 2, 1)))    #三连刻
                         break
             if all(map(lambda x: x[1] <= 2 and all(map(lambda y: y == 0 or y == 8, x[0])), al)):
@@ -624,40 +627,43 @@ class MajZjHai(MajHai):
             if len(l) == 0:
                 l.append(HeZhong((0, 0, 1)))    #鸡和
             return l
-        _max = (None, MajZjHai.HeZhong.Status.nomangan, 0)
-        els += (hai,)
+        _max: tuple[list[MajZjHai.HeZhong], MajZjHai.HeZhong.Status, int] \
+             = ([], MajZjHai.HeZhong.Status.nomangan, 0)
+        els2 = els + (hai,)
         for result in results:
-            _now = _f(result, fuuros, els)
+            _now = _f(result, fuuros, els2)
             m, ten = MajZjHai.HeZhong.ten(_now)
             if ten > _max[-1]:
                 _max = (_now, m, ten)
-        return _max # type: ignore
+        return _max
 
 P = TypeVar('P', bound='Player')
 
 class Player(Generic[H]):
-    def __init_subclass__(cls, Hai: Type[H], **kwargs):
+    Hai: type[H]
+    def __init_subclass__(cls, Hai: type[H], **kwargs):
         super().__init_subclass__(**kwargs)
         cls.Hai = Hai
-    doable_dahai = ('kiri', 'ankan', 'kakan', 'tsumo')
-    doable_naku_shang = ('qi', 'pon', 'daiminkan', 'ron')
-    doable_naku_all = ('pon', 'daiminkan', 'ron')
-    doable_kakan = ('ron',)
-    doable_ankan = ()
-    def __init__(self, board, pos):
-        self.tehai = [] # type: list[H]
-        self.fuuro = [] # type: list[FuuRo]
-        self.ho = [] # type: list[tuple[H, HaiHoStatus]]
-        self.ten = {}
+    TDoable: TypeAlias = tuple[str,...]
+    doable_dahai: TDoable = ('kiri', 'ankan', 'kakan', 'tsumo')
+    doable_naku_shang: TDoable = ('qi', 'pon', 'daiminkan', 'ron')
+    doable_naku_all: TDoable = ('pon', 'daiminkan', 'ron')
+    doable_kakan: TDoable = ('ron',)
+    doable_ankan: TDoable = ()
+    def __init__(self, board: 'MajBoard', pos: int):
+        self.tehai: list[H] = []
+        self.fuuro: list[FuuRo] = []
+        self.ho: list[tuple[H, HaiHoStatus]] = []
+        self.ten: dict[int, list[dict[int, tuple[tuple[int, ...], ...]]]] = {}
         self.board = board
-        self.tensu = 0
+        self.tensu: int = 0
         self.pos = pos
     @property
     def index(self):
         return self.board.players.index(self)
-    def give(self, tehai: Union[Sequence[H], H]):
+    def give(self, tehai: Sequence[H] | H):
         if isinstance(tehai, MajHai):
-            self.tehai.append(tehai)
+            self.tehai.append(tehai) # type: ignore
         else:
             self.tehai.extend(tehai)
     def sort(self):
@@ -675,10 +681,10 @@ class Player(Generic[H]):
     def tsumo_do(self, n: None) -> Generator[PlayerStatus, PlayerOption, None]:
         raise Win(self, None)
         yield PlayerStatus.DAHAI
-    def kiri_check(self) -> list[H]:
-        l = []
+    def kiri_check(self):
+        l: list[H] = []
         for hai in self.tehai:
-            if all(lambda x: not hai.isAllSame(x), l):
+            if all(not hai.isAllSame(x) for x in l):
                 l.append(hai)
         return l
     def kiri_do(self, hai: H) -> Generator[PlayerStatus, PlayerOption, None]:
@@ -689,17 +695,13 @@ class Player(Generic[H]):
         self.ho.append((hai, status))
         ret = yield PlayerStatus.DAHAI
         if not ret:
-            self.ho[-1][1] |= HaiHoStatus.NAKARERU
+            self.ho[-1] = self.ho[-1][0], self.ho[-1][1] | HaiHoStatus.NAKARERU
         else:
             self.board.now = self.board.next(self.board.now)
             self.board.playerstatus = self.board.status
             self.board.players[self.board.now].give(self.board.tsumo())
     def ankan_check(self) -> list[tuple[H, H, H, H]]:
-        def _():
-            for i, j, k, l in itertools.combinations(self.tehai, 4):
-                if i == j == k == l:
-                    yield i, j, k, l
-        return list(_())
+        return [(i, j, k, l) for i, j, k, l in itertools.combinations(self.tehai, 4) if i == j == k == l]
     def ankan_do(self, tpl: tuple[H, H, H, H]) -> Generator[PlayerStatus, PlayerOption, None]:
         for i in tpl:
             self.tehai.remove(i)
@@ -725,11 +727,11 @@ class Player(Generic[H]):
             fuuro.sorted = tuple(sorted(map(lambda x: x.num, fuuro.hai)))
         self.board.playerstatus |= PlayerStatus.RINSHAN
         self.give(self.board.rinshan())
-    def qi_check(self, hai) -> list[tuple[H, H]]:
-        l = []
+    def qi_check(self, hai: H) -> list[tuple[H, H]]:
+        l: list[tuple[H, H]] = []
         for i, j in itertools.combinations(self.tehai, 2):
             if i.isaddOne(j) and j.isaddOne(hai) or i.isaddOne(hai) and hai.isaddOne(j) or hai.isaddOne(i) and i.isaddOne(j):
-                if not any(map(lambda x: x[0].isSame(i) and x[1].isSame(j), l)):
+                if not any(x0.isAllSame(i) and x1.isAllSame(j) for x0, x1 in l):
                     l.append((i, j))
         return l
     def qi_do(self, tpl: tuple[FuuRoStatus, H, tuple[H, H]]) -> None:
@@ -737,10 +739,10 @@ class Player(Generic[H]):
             self.tehai.remove(hai)
         self.fuuro.append(FuuRo(tpl[0] | FuuRoStatus.QI, (tpl[1],) + tpl[2]))
     def pon_check(self, hai) -> list[tuple[H, H]]:
-        l = []
+        l: list[tuple[H, H]] = []
         for i, j in itertools.combinations(self.tehai, 2):
             if i == j == hai:
-                if not any(map(lambda x: x[0].isSame(i) and x[1].isSame(j), l)):
+                if not any(map(lambda x: x[0].isAllSame(i) and x[1].isAllSame(j), l)):
                     l.append((i, j))
         return l
     def pon_do(self, tpl: tuple[FuuRoStatus, H, tuple[H, H]]) -> None:
@@ -751,6 +753,7 @@ class Player(Generic[H]):
         for i, j, k in itertools.combinations(self.tehai, 3):
             if i == j == k == hai:
                 return [(i, j, k)]
+        return None
     def daiminkan_do(self, tpl: tuple[FuuRoStatus, H, tuple[H, H, H]]) -> None:
         for hai in tpl[2]:
             self.tehai.remove(hai)
@@ -763,7 +766,7 @@ class Player(Generic[H]):
             return []
     def ron_do(self, tpl: tuple[FuuRoStatus, H, None]) -> None:
         raise Win(self, tpl[1])
-    def do_dahai(self, status: PlayerStatus) -> Generator[tuple[P, PlayerOption, dict[str, Any]], tuple[PlayerOption, H, Any], tuple[H, Generator]]:
+    def do_dahai(self, status: PlayerStatus) -> Generator[tuple[Self, PlayerOption, dict[str, Any]], tuple[PlayerOption, H, Any], tuple[H, Generator]]:
         option = PlayerOption.NOTHING
         d = {}
         tpl = self.doable_dahai
@@ -773,8 +776,11 @@ class Player(Generic[H]):
                 option |= PlayerOption[s]
                 d[s] = l
         option_chosen, hai, t = yield (self, option, d)
-        gen = self.__getattribute__(option_chosen.name + '_do')(t)
-        return hai, gen
+        if option_chosen != PlayerOption.NOTHING:
+            name = option_chosen.name
+            gen = self.__getattribute__(name + '_do')(t) # type: ignore
+            return hai, gen
+        raise ValueError
     def do_naku(self, status: PlayerStatus, pos: FuuRoStatus, hai: H) -> Generator[tuple[PlayerOption, dict[str, Any]], tuple[PlayerOption, Any], None]:
         option = PlayerOption.NOTHING
         d = {}
@@ -789,22 +795,24 @@ class Player(Generic[H]):
         for s in tpl:
             l = self.__getattribute__(s + '_check')(hai)
             if len(l) != 0:
-                option |= PlayerOption.__getattr__(s)
+                option |= PlayerOption[s]
                 d[s] = l
         option_chosen, t = yield (option, d)
-        self.__getattribute__(option_chosen.name + '_do')((pos, hai, t))
+        self.__getattribute__(option_chosen.name + '_do')((pos, hai, t)) # type: ignore
         return
 
 B = TypeVar('B', bound='MajBoard')
 O = TypeVar('O', bound='MajBoard.NakuOption')
-class MajBoard:
-    def __init_subclass__(cls, Hai: Type[H], Player: Type[P], **kwargs):
+class MajBoard(Generic[H, P]):
+    Hai: type[H]
+    Player: type[P]
+    def __init_subclass__(cls, Hai: type[H], Player: type[P], **kwargs):
         super().__init_subclass__(**kwargs)
         cls.Hai = Hai
         cls.Player = Player
     def __init__(self):
         self.yama = None
-        self.players = [self.Player(self, PlayerPos.TON), self.Player(self, PlayerPos.NAN), self.Player(self, PlayerPos.SHA), self.Player(self, PlayerPos.PE)]
+        self.players: list[Player] = [self.Player(self, PlayerPos.TON), self.Player(self, PlayerPos.NAN), self.Player(self, PlayerPos.SHA), self.Player(self, PlayerPos.PE)]
         self.toncha = 0
         self.chiicha = 0
         self.isBegin = False

@@ -99,7 +99,7 @@ async def PythonRestart(event: MessageEvent):
         sys.exit(2)
 
 @event_postprocessor
-async def Ready(bot: Bot, event: ReadyEvent):
+async def ready(bot: Bot, event: ReadyEvent):
     import os
     if os.path.exists(rel("restart.txt")):
         with open(rel("restart.txt"), 'r') as f:

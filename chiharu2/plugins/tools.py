@@ -7,7 +7,7 @@ from nonebot.adapters.discord.api import SubCommandGroupOption, SubCommandOption
 from nonebot.adapters.discord import Bot, MessageEvent, MessageSegment, Message, InteractionCreateEvent
 from nonebot import on_command
 from nonebot.params import CommandArg
-from .games import maj
+from .games.maj import maj
 from .helper.function.function import parser, ParserError
 
 matcher = on_slash_command(name="tools",
