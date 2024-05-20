@@ -854,7 +854,7 @@ class MajBoard(Generic[H, P]):
             return self.options == PlayerOption.NOTHING
         def isLargerThan(self, other):
             return self.chosen > other.options
-    def nakujun(self, d_send: dict[int, O]) -> Generator[Union[bool, dict[int, O]], Union[None, tuple[int, O]], Union[None, tuple[int, O]]]:
+    def nakujun(self, d_send: dict[int, O]) -> Generator[bool | dict[int, O], tuple[int, O] | None, tuple[int, O] | None]:
         n = len(d_send)
         if n == 0:
             yield d_send
