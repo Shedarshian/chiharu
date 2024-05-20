@@ -294,8 +294,8 @@ class Tile:
             poses = feature.drawPos(len(feature.tokens))
             drawn_poses.extend(poses)
             if isinstance(feature, Acrobat) and len(feature.tokens) > 0:
-                t = feature.tokens[0].image().rotate(-45)
                 for i, token in enumerate(feature.tokens):
+                    t = token.image().rotate(-45)
                     img.alpha_composite(t, pos(turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2), add))
             else:
                 for i, token in enumerate(feature.tokens):
@@ -895,7 +895,7 @@ class Acrobat(Feature, CanScore):
     def checkScore(self, players: 'list[Player]', complete: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
         return [(player, 5 * sum(1 for token in self.iterTokens() if token.player is player)) for player in players]
     def drawPos(self, num: int):
-        return [(self.pos.x - 10, self.pos.y), (self.pos.x, self.pos.y + 10), (self.pos.x + 4, self.pos.y - 4)][:num]
+        return [Pos(self.pos.x - 10, self.pos.y), Pos(self.pos.x, self.pos.y + 10), Pos(self.pos.x + 4, self.pos.y - 4)][:num]
 
 class TokenMeta(type):
     def __new__(cls, name: str, base, attr):
