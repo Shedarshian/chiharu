@@ -23,6 +23,6 @@ async def _(bot: Bot, event: Event, e: Exception):
         msg = "An Error occured.\n The stack trace is:\n```\n" + ''.join(traceback.format_exception(e)) + "```"
     from .helper.helper import rel
     import datetime
-    with open(rel("error.txt"), '+') as f:
+    with open(rel("error.txt"), 'r+') as f:
         f.write(datetime.datetime.now().isoformat() + msg + "\n\n")
     await bot.send_to(1237726203029225484, msg)
