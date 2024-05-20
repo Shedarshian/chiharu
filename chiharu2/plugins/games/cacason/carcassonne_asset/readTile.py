@@ -289,29 +289,29 @@ class SegmentType(Enum):
     Tunnel = auto()
 class SegmentPic(ABC):
     __slots__ = ("type", "hint", "hint_line")
-    def __init__(self, type: SegmentType, hint: list[Pos | str]) -> None:
+    def __init__(self, type: SegmentType, hint: list[tuple[int, int] | str]) -> None:
         self.type = type
         self.hint_line: str | None = None
         self.hint: list[Pos] = []
         self.makeHint(hint)
-    def makeHint(self, hint: list[Pos | str]):
+    def makeHint(self, hint: list[tuple[int, int] | str]):
         if "ud" in hint:
             self.hint_line = "ud"
             hint.remove("ud")
         elif "lr" in hint:
             self.hint_line = "lr"
             hint.remove("lr")
-        if not all(isinstance(s, Pos) for s in hint):
+        if not all(isinstance(s, tuple) for s in hint):
             raise ParserError("ud/lr not right")
-        self.hint = [s for s in hint if isinstance(s, Pos)]
+        self.hint = [Pos(*s) for s in hint if isinstance(s, tuple)]
 class TunnelSegmentPic(SegmentPic):
-    def __init__(self, type: SegmentType, num1: int, num2: int, hint: list[Pos | str]) -> None:
+    def __init__(self, type: SegmentType, num1: int, num2: int, hint: list[tuple[int, int] | str]) -> None:
         super().__init__(type, hint)
         self.num1 = num1
         self.num2 = num2
 class PointSegmentPic(SegmentPic):
     __slots__ = ("pos",)
-    def __init__(self, type: SegmentType, pos: Pos, hint: list[Pos | str]) -> None:
+    def __init__(self, type: SegmentType, pos: Pos, hint: list[tuple[int, int] | str]) -> None:
         super().__init__(type, hint)
         self.pos = pos
     @property
@@ -330,7 +330,7 @@ class PointSegmentPic(SegmentPic):
         return self.pos
 class LineSegmentPic(SegmentPic):
     __slots__ = ("nodes", "sides", "nodes_init", "width", "link", "center")
-    def __init__(self, type: SegmentType, nodes: list[Pos | Dir | tuple[SegmentType, int]], width: int, hint: list[Pos | str]) -> None:
+    def __init__(self, type: SegmentType, nodes: list[Pos | Dir | tuple[SegmentType, int]], width: int, hint: list[tuple[int, int] | str]) -> None:
         super().__init__(type, hint)
         self.nodes_init: list[Pos | Dir | tuple[SegmentType, int]] = nodes
         self.sides: list[Dir] = [n for n in nodes if isinstance(n, Dir)]
@@ -379,7 +379,7 @@ class LineSegmentPic(SegmentPic):
         return Pos(0, 0)
 class AreaSegmentPic(SegmentPic):
     __slots__ = ("radius",)
-    def __init__(self, type: SegmentType, hint: list[Pos | str]) -> None:
+    def __init__(self, type: SegmentType, hint: list[tuple[int, int] | str]) -> None:
         super().__init__(type, hint)
         self.radius = 6
     def onSelfEdge(self, pos: Pos) -> bool:
@@ -426,7 +426,7 @@ class AreaSegmentPic(SegmentPic):
         return self.hint[p1]
 class SmallSegmentPic(AreaSegmentPic):
     __slots__ = ("side", "width")
-    def __init__(self, type: SegmentType, side: tuple[Dir, bool], width: int, hint: list[Pos | str]) -> None:
+    def __init__(self, type: SegmentType, side: tuple[Dir, bool], width: int, hint: list[tuple[int, int] | str]) -> None:
         super().__init__(type, hint)
         self.radius = 4
         self.side = side
@@ -435,7 +435,7 @@ class SmallSegmentPic(AreaSegmentPic):
             self.hint = [Pos(32, 32) + (32 - width // 2) * side[0].corr() + 16 * (side[0] + (Dir.LEFT if side[1] else Dir.RIGHT)).corr()]
 class OneSideSegmentPic(AreaSegmentPic):
     __slots__ = ("dir", "width")
-    def __init__(self, type: SegmentType, dir: Dir, width: int, hint: list[Pos | str]) -> None:
+    def __init__(self, type: SegmentType, dir: Dir, width: int, hint: list[tuple[int, int] | str]) -> None:
         super().__init__(type, hint)
         self.dir = dir
         self.width = width
@@ -450,7 +450,7 @@ class OneSideSegmentPic(AreaSegmentPic):
         return (self.dir, False)
 class DoubleSideSegmentPic(AreaSegmentPic):
     __slots__ = ("dirs", "width")
-    def __init__(self, type: SegmentType, dirs: tuple[Dir, Dir], width: int, hint: list[Pos | str]) -> None:
+    def __init__(self, type: SegmentType, dirs: tuple[Dir, Dir], width: int, hint: list[tuple[int, int] | str]) -> None:
         super().__init__(type, hint)
         self.dirs: tuple[Dir, Dir] = tuple(Dir(x) for x in sorted(dir.value for dir in dirs)) # type: ignore
         if dirs == (Dir.UP, Dir.LEFT):
@@ -498,7 +498,7 @@ class DoubleSideSegmentPic(AreaSegmentPic):
         return self.hint[p1] + Pos(self.radius, 0)
 class ElseSegmentPic(AreaSegmentPic):
     __slots__ = ("road_sides", "adjCity")
-    def __init__(self, type: SegmentType, road_sides: 'list[RoadSideTuple] | list[tuple[Dir, Dir]]', adjCity: list[int], hint: list[Pos | str]) -> None:
+    def __init__(self, type: SegmentType, road_sides: 'list[RoadSideTuple] | list[tuple[Dir, Dir]]', adjCity: list[int], hint: list[tuple[int, int] | str]) -> None:
         super().__init__(type, hint)
         self.road_sides = road_sides
         self.adjCity = adjCity
