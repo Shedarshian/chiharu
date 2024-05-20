@@ -14,7 +14,7 @@ def readTileData(packData: dict[int, str]):
         for name, tilets in data:
             img = open_img(name)
             for tilet in tilets:
-                # print(name, tilet.id, tilet.sides)
+                print(name, tilet.id, tilet.sides)
                 tile = TileData(name, tilet.id, tilet.sides, tilet.segments)
                 for i0, (num, packname, extra_orders) in enumerate(tilet.nums):
                     match = re.match(r"(\d+)([a-z])", packname)
@@ -169,9 +169,9 @@ class AreaSegmentData(SegmentData):
                                 checks[sd] = road
                                 data.all_sides.remove(sd)
                     t = road.lines[0].nodes_init[-1]
-                    if isinstance(t, tuple) and isinstance(t[0], int):
+                    if isinstance(t, Pos):
                         for city in data.segments:
-                            if isinstance(city, CitySegmentData) and city.pic.onSelfEdge(t): # type: ignore
+                            if isinstance(city, CitySegmentData) and city.pic.onSelfEdge(t):
                                 checks[city.pic.begin()] = city
                                 checks[city.pic.end()] = city
                                 break
@@ -293,6 +293,7 @@ class FeatureSegmentData(AddableSegmentData):
         if isinstance(pos, Pos):
             self.pos = pos
         elif isinstance(pos, tuple):
+            print(type, pos, params, data)
             f = [seg for seg in data.segments if seg.type == pos[0]][pos[1]]
             assert isinstance(f, EmptyFeatureSegmentData)
             self.pos = f.pic.pos
