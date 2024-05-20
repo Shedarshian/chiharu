@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, TypeVar, List, Tuple, Generic
+from typing import TYPE_CHECKING, TypeVar, List, Tuple, Generic, Any, Generator
 import functools
 from typing_extensions import Self
 
@@ -32,21 +32,32 @@ class IPos(ABC):
 TPos = TypeVar('TPos', bound=IPos)
 
 TGrid2D = TypeVar('TGrid2D', bound='Grid2D')
-@dataclass(frozen=True, unsafe_hash=True)
+@dataclass(frozen=True, unsafe_hash=True, order=True)
 class Grid2D(IPos):
     x: int
     y: int
     class Directions:
         pass
-    def __add__(self: TGrid2D, other: TGrid2D):
+    def __add__(self, other):
+        if not isinstance(other, Grid2D):
+            return NotImplemented
         return self.__class__(self.x + other.x, self.y + other.y)
-    def __iadd__(self: TGrid2D, other: TGrid2D):
+    def __iadd__(self, other):
+        if not isinstance(other, Grid2D):
+            return NotImplemented
         return self.__class__(self.x + other.x, self.y + other.y)
-    def __sub__(self: TGrid2D, other: TGrid2D):
+    def __sub__(self, other):
+        if not isinstance(other, Grid2D):
+            return NotImplemented
         return self.__class__(self.x - other.x, self.y - other.y)
-    def __isub__(self: TGrid2D, other: TGrid2D):
+    def __isub__(self, other):
+        if not isinstance(other, Grid2D):
+            return NotImplemented
         return self.__class__(self.x - other.x, self.y - other.y)
     def __mul__(self, other):
+        if isinstance(other, int):
+            return self.__class__(other * self.x, other * self.y)
+    def __rmul__(self, other):
         if isinstance(other, int):
             return self.__class__(other * self.x, other * self.y)
         return NotImplemented
@@ -54,26 +65,45 @@ class Grid2D(IPos):
         if isinstance(other, int):
             return self.__class__(other * self.x, other * self.y)
         return NotImplemented
+    def __floordiv__(self, other):
+        if isinstance(other, int):
+            return self.__class__(self.x // other, self.y // other)
+        return NotImplemented
+    def __ifloordiv__(self, other):
+        if isinstance(other, int):
+            return self.__class__(self.x // other, self.y // other)
+        return NotImplemented
     def __neg__(self):
         return self.__class__(-self.x, -self.y)
     def __bool__(self):
         return self.x != 0 or self.y != 0
-    def dot(self: TGrid2D, other: TGrid2D):
+    def mag2(self) -> int:
+        return self.dot(self)
+    def mag(self) -> float:
+        return self.mag2() ** 0.5
+    def dot(self, other: Self):
         return self.x * other.x + self.y * other.y
+    def toTuple(self):
+        return (self.x, self.y)
 
 class Grid2DSquare(Grid2D):
-    class Directions:
+    class Directions(Grid2D.Directions):
         UP: 'Grid2DSquare'
         RIGHT: 'Grid2DSquare'
         DOWN: 'Grid2DSquare'
         LEFT: 'Grid2DSquare'
+    def around(self) -> Generator[Self, Any, None]:
+        for p in (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1):
+            yield self + Grid2DSquare(*p)
+    def isAround(self, other: Self):
+        return self.x - other.x in (-1, 0, 1) and self.y - other.y in (-1, 0, 1)
 Grid2DSquare.Directions.UP = Grid2DSquare(0, -1)
 Grid2DSquare.Directions.RIGHT = Grid2DSquare(1, 0)
 Grid2DSquare.Directions.DOWN = Grid2DSquare(0, 1)
 Grid2DSquare.Directions.LEFT = Grid2DSquare(-1, 0)
 
 class Grid2DHexagonH(Grid2D):
-    class Directions:
+    class Directions(Grid2D.Directions):
         UPLEFT: 'Grid2DHexagonH'
         UPRIGHT: 'Grid2DHexagonH'
         RIGHT: 'Grid2DHexagonH'
@@ -88,7 +118,7 @@ Grid2DHexagonH.Directions.DOWNRIGHT = Grid2DHexagonH(0, -1)
 Grid2DHexagonH.Directions.DOWNLEFT = Grid2DHexagonH(-1, 1)
 
 class Grid2DHexagonV(Grid2D):
-    class Directions:
+    class Directions(Grid2D.Directions):
         UP: 'Grid2DHexagonV'
         UPRIGHT: 'Grid2DHexagonV'
         DOWN: 'Grid2DHexagonV'
@@ -103,7 +133,7 @@ Grid2DHexagonV.Directions.DOWNLEFT = Grid2DHexagonV(-1, 1)
 Grid2DHexagonV.Directions.UPLEFT = Grid2DHexagonV(-1, 0)
 
 TGrid3D = TypeVar("TGrid3D", bound='Grid3D')
-@dataclass(frozen=True, unsafe_hash=True)
+@dataclass(frozen=True, unsafe_hash=True, order=True)
 class Grid3D(IPos):
     x: int
     y: int
@@ -157,7 +187,7 @@ TBox = TypeVar('TBox', bound=IBox)
 
 class ISpace(ABC, Generic[TPos, TBox]):
     box_type = None
-    data = {}
+    data: dict[TPos, Any] = {}
     def __getitem__(self, index):
         return self.getObjs(index)
     @abstractmethod
@@ -166,7 +196,7 @@ class ISpace(ABC, Generic[TPos, TBox]):
     @abstractmethod
     def _add(self, box: TBox):
         pass
-    def move_bunch(self, boxes: Dict[TBox, TPos]):
+    def move_bunch(self, boxes: dict[TBox, TPos]):
         # map(boxes.keys(), self._pop)
         for box, dir in boxes.items():
             box.pos += dir
@@ -182,8 +212,8 @@ class ISpace(ABC, Generic[TPos, TBox]):
         pass
 TSpace = TypeVar('TSpace', bound=ISpace)
 
-class ISpaceOverlap(ISpace, Generic[TPos, TBox]):
-    data: Dict[TPos, List[TBox]] = {}
+class ISpaceOverlap(ISpace[TPos, TBox]):
+    data: dict[TPos, List[TBox]] = {}
     def _pop(self, box: TBox):
         if len(self.data[box.pos]) == 1:
             self.data.pop(box.pos)
@@ -203,8 +233,8 @@ class ISpaceOverlap(ISpace, Generic[TPos, TBox]):
     def canMoveIn(self, pos: TPos) -> bool:
         return self.isPosValid(pos)
 
-class ISpaceNoOverlap(ISpace, Generic[TPos, TBox]):
-    data: Dict[TPos, TBox] = {}
+class ISpaceNoOverlap(ISpace[TPos, TBox]):
+    data: dict[TPos, TBox] = {}
     def _pop(self, box: TBox):
         self.data.pop(box.pos)
     def _add(self, box: TBox):

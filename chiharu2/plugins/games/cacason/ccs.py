@@ -1,12 +1,12 @@
 from typing import Literal, Any, Generator, Type, TypeVar, Iterable, Callable, Sequence, Awaitable
-import random, itertools, more_itertools, json
+import random, itertools, more_itertools, json, functools, operator
 from abc import ABC, abstractmethod
 from PIL import Image, ImageDraw, ImageFont
-from .ccs_tile import Dir, TileData, OneSideSegmentPic
+from .ccs_tile import Dir, TileData, OneSideSegmentPic, Pos
 from .ccs_tile import CitySegmentData, RoadSegmentData, RiverSegmentData, FieldSegmentData, FeatureSegmentData, AddableSegmentData
 from .ccs_tile import AreaSegmentPic, LineSegmentPic, SegmentData
 from .ccs_helper import Connectable, TileAddable, Addable, Shed
-from .ccs_helper import findAllMax, turn, dist2, State, Log, Send, Recieve
+from .ccs_helper import findAllMax, turn, State, Log, Send, Recieve
 
 T = TypeVar('T')
 TAsync = Generator[Send, Recieve, T]
@@ -50,7 +50,11 @@ class CanScore(ABC):
                 strengths[token.player.id] += token.strength
         players = findAllMax(self.board.players, lambda player: strengths[player.id], lambda player: strengths[player.id] != 0)[1]
         if self.board.checkPack(9, "d"):
-            on_hills = [token.player for token in self.iterTokens() if token.player in players and isinstance(token, Follower) and (isinstance(token.parent, (Segment, Feature)) and token.parent.tile.addable == TileAddable.Hill or isinstance(token.parent, Tile) and token.parent.addable == TileAddable.Hill)]
+            on_hills = [token.player for token in self.iterTokens() if isinstance(token.player, Player) and
+                token.player in players and
+                isinstance(token, Follower) and
+                (isinstance(token.parent, (Segment, Feature)) and token.parent.tile.addable == TileAddable.Hill
+                        or isinstance(token.parent, Tile) and token.parent.addable == TileAddable.Hill)]
             on_hills = list(more_itertools.unique_everseen(on_hills))
             if len(on_hills) != 0:
                 return on_hills
@@ -88,6 +92,16 @@ class CanScore(ABC):
             for token in self.iterTokens():
                 token.scoreExtraFinal()
 
+def addPos(beg_pos: Pos):
+    def _add(*offsets: Pos | tuple[int, int]) -> tuple[int, int]:
+        p = beg_pos
+        for offset in offsets:
+            if isinstance(offset, Pos):
+                p += offset
+            elif isinstance(offset, tuple):
+                p += Pos(*offset)
+        return p.toTuple()
+    return _add
 class Tile:
     def __init__(self, board: 'Board', data: TileData, isAbbey: bool) -> None:
         super().__init__()
@@ -226,68 +240,67 @@ class Tile:
             if isinstance(seg, LineSegment):
                 for dir in seg.side.keys():
                     if dir == Dir.UP:
-                        dr.line((corr[0], 0, corr[0], corr[1]), seg.color, 2)
+                        dr.line((corr.x, 0, corr.x, corr.y), seg.color, 2)
                     elif dir == Dir.RIGHT:
-                        dr.line((64, corr[1], corr[0], corr[1]), seg.color, 2)
+                        dr.line((64, corr.y, corr.x, corr.y), seg.color, 2)
                     elif dir == Dir.DOWN:
-                        dr.line((corr[0], 64, corr[0], corr[1]), seg.color, 2)
+                        dr.line((corr.x, 64, corr.x, corr.y), seg.color, 2)
                     elif dir == Dir.LEFT:
-                        dr.line((0, corr[1], corr[0], corr[1]), seg.color, 2)
+                        dr.line((0, corr.y, corr.x, corr.y), seg.color, 2)
             elif isinstance(seg, AreaSegment):
                 for du in seg.side.keys():
-                    cr = {(Dir.UP, True): (16, 0), (Dir.UP, False): (48, 0), (Dir.RIGHT, True): (64, 16), (Dir.RIGHT, False): (64, 48), (Dir.DOWN, True): (48, 64), (Dir.DOWN, False): (16, 64), (Dir.LEFT, True): (0, 48), (Dir.LEFT, False): (0, 16)}[du] # type: ignore
-                    dr.line(cr + corr, seg.color, 2)
+                    cr = {(Dir.UP, True): (16, 0), (Dir.UP, False): (48, 0), (Dir.RIGHT, True): (64, 16), (Dir.RIGHT, False): (64, 48), (Dir.DOWN, True): (48, 64), (Dir.DOWN, False): (16, 64), (Dir.LEFT, True): (0, 48), (Dir.LEFT, False): (0, 16)}[du]
+                    dr.line(cr + corr.toTuple(), seg.color, 2)
                 if isinstance(seg, FieldSegment):
                     for city in seg.adjacentCity:
-                        dr.line((citycorrs[self.segments.index(city)], corr), "gray", 2)
-            citycorrs.append(corr)
+                        dr.line((citycorrs[self.segments.index(city)], corr.toTuple()), "gray", 2)
+            citycorrs.append(corr.toTuple())
             ci += 1
         ci = 1
         for seg in self.segments:
             corr = seg.drawPos(1)[0]
             if isinstance(seg, CitySegment):
-                dr.ellipse((corr[0] - 3, corr[1] - 3, corr[0] + 3, corr[1] + 3), seg.color)
+                dr.ellipse((corr.x - 3, corr.y - 3, corr.x + 3, corr.y + 3), seg.color)
                 if seg.pennant != 0:
                     font = ImageFont.truetype("msyhbd.ttc", 10)
-                    dr.text((corr[0] + 1, corr[1]), str(seg.pennant), "black", font, anchor="mm")
+                    dr.text((corr.x + 1, corr.y), str(seg.pennant), "black", font, anchor="mm")
             elif isinstance(seg, RoadSegment):
-                dr.ellipse((corr[0] - 3, corr[1] - 3, corr[0] + 3, corr[1] + 3), "white", outline="black", width=2)
+                dr.ellipse((corr.x - 3, corr.y - 3, corr.x + 3, corr.y + 3), "white", outline="black", width=2)
             elif isinstance(seg, RiverSegment):
-                dr.ellipse((corr[0] - 3, corr[1] - 3, corr[0] + 3, corr[1] + 3), seg.color)
+                dr.ellipse((corr.x - 3, corr.y - 3, corr.x + 3, corr.y + 3), seg.color)
             elif isinstance(seg, FieldSegment):
-                dr.ellipse((corr[0] - 3, corr[1] - 3, corr[0] + 3, corr[1] + 3), seg.color)
+                dr.ellipse((corr.x - 3, corr.y - 3, corr.x + 3, corr.y + 3), seg.color)
                 for city in seg.adjacentCity:
                     citycorrs[self.segments.index(city)]
             ci += 1
         return img
-    def drawToken(self, img: Image.Image, beg_pos: tuple[int, int]):
-        def pos(i, j, *offsets: tuple[int, int]):
-            return beg_pos[0] + i + sum(x[0] for x in offsets), beg_pos[1] + j + sum(x[1] for x in offsets)
+    def drawToken(self, img: Image.Image, beg_pos: Pos):
+        pos = addPos(beg_pos)
         if self.addable == TileAddable.Hill:
-            add = (-2, -4)
+            add = Pos(-2, -4)
         else:
-            add = (0, 0)
-        drawn_poses: list[tuple[int, int]] = []
+            add = Pos(0, 0)
+        drawn_poses: list[Pos] = []
         for seg in self.segments:
             poses = seg.drawPos(len(seg.tokens))
             drawn_poses.extend(poses)
             for i, token in enumerate(seg.tokens):
                 t = token.image()
                 if isinstance(token, Barn):
-                    img.alpha_composite(t, pos(64, 64, (-t.size[0] // 2, -t.size[1] // 2)))
+                    img.alpha_composite(t, pos(Pos(64, 64)))
                 else:
-                    img.alpha_composite(t, pos(*turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2), add))
+                    img.alpha_composite(t, pos(turn(poses[i], self.orient), -t.size[0] // 2, -t.size[1] // 2, add))
         for feature in self.features:
             poses = feature.drawPos(len(feature.tokens))
             drawn_poses.extend(poses)
             if isinstance(feature, Acrobat) and len(feature.tokens) > 0:
                 t = feature.tokens[0].image().rotate(-45)
                 for i, token in enumerate(feature.tokens):
-                    img.alpha_composite(t, pos(*turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2), add))
+                    img.alpha_composite(t, pos(turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2), add))
             else:
                 for i, token in enumerate(feature.tokens):
                     t = token.image()
-                    img.alpha_composite(t, pos(*turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2), add))
+                    img.alpha_composite(t, pos(turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2), add))
             if isinstance(feature, Tower):
                 dr = ImageDraw.Draw(img)
                 font_tower = ImageFont.truetype("calibrib.ttf", 10)
@@ -296,13 +309,12 @@ class Tile:
             assert isinstance(token, TileFigure)
             t = token.image()
             img.alpha_composite(t, pos(*turn(token.findDrawPos(drawn_poses), self.orient), (-t.size[0] // 2, -t.size[1] // 2), add))
-    def drawPutToken(self, img: Image.Image, beg_pos: tuple[int, int], draw_occupied_seg: bool, drawBarn: bool):
-        def pos(i, j, *offsets: tuple[int, int]):
-            return beg_pos[0] + i + sum(x[0] for x in offsets), beg_pos[1] + j + sum(x[1] for x in offsets)
+    def drawPutToken(self, img: Image.Image, beg_pos: Pos, draw_occupied_seg: bool, drawBarn: bool):
+        pos = addPos(beg_pos)
         dr = ImageDraw.Draw(img)
         font = ImageFont.truetype("msyhbd.ttc", 10)
-        def draw(tpos: tuple[int, int], i: int):
-            dr.ellipse((pos(tpos[0] - 6, tpos[1] - 6), pos(tpos[0] + 6, tpos[1] + 6)), "white", "black", 1)
+        def draw(tpos: Pos, i: int):
+            dr.ellipse((pos(tpos - Pos(6, 6)), pos(tpos + Pos(6, 6))), "white", "black", 1)
             text = chr(i) if i <= ord('a') + 25 else chr((i - ord('a')) // 26) + chr((i - ord('a')) % 26)
             dr.text(pos(*tpos), text, "black", font, "mm")
         i = ord('a')
@@ -355,10 +367,10 @@ class Segment(ABC):
     def selfClosed(self) -> bool:
         return False
     @abstractmethod
-    def drawPos(self, num: int) -> Sequence[tuple[int, int]]:
+    def drawPos(self, num: int) -> Sequence[Pos]:
         pass
     @abstractmethod
-    def putPos(self, num: int) -> tuple[int, int]:
+    def putPos(self, num: int) -> Pos:
         pass
     def key(self):
         return (-1,)
@@ -417,7 +429,7 @@ class LineSegment(Segment):
             return [self.pic[i].center for i in range(num)]
         repeat = num // len(self.pic)
         p1 = num % len(self.pic)
-        ret: list[tuple[int, int]] = []
+        ret: list[Pos] = []
         for i, p in enumerate(self.pic):
             r = repeat + (1 if i < p1 else 0)
             if r == 1:
@@ -722,7 +734,7 @@ class BaseCloister(Feature, CanScore):
         pos = self.tile.board.findTilePos(self.tile)
         if pos is None:
             return [self.tile]
-        return [self.tile.board.tiles[pos[0] + i, pos[1] + j] for i in (-1, 0, 1) for j in (-1, 0, 1) if (pos[0] + i, pos[1] + j) in self.tile.board.tiles]
+        return [self.tile.board.tiles[np] for np in pos.around() if np in self.tile.board.tiles]
     def checkScore(self, players: 'list[Player]', complete: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
         score = len(self.getTile())
         return [(player, score) for player in players]
@@ -731,9 +743,9 @@ class BaseCloister(Feature, CanScore):
         pos = self.board.findTilePos(self.tile)
         if pos is None:
             return None
-        return more_itertools.only(feature for i in (-1, 0, 1) for j in (-1, 0, 1)
-                    if (pos[0] + i, pos[1] + j) in self.board.tiles
-                    for feature in self.board.tiles[pos[0] + i, pos[1] + j].features
+        return more_itertools.only(feature for np in pos.around()
+                    if np in self.board.tiles
+                    for feature in self.board.tiles[np].features
                     if isinstance(feature, typ))
     def addStat(self, complete: bool, putBarn: bool, score: 'list[tuple[Player, int]]', isBarn: bool):
         if len(score) == 0:
@@ -804,7 +816,7 @@ class Tower(Feature):
     @property
     def num_pos(self):
         cor = self.num_dir.corr()
-        return self.pic.pos[0] + 11 * cor[0], self.pic.pos[1] + 11 * cor[1]
+        return self.pic.pos + 11 * cor
 class Flier(Feature, CanScore):
     pack = (13, "b")
     def __init__(self, parent: Tile, pic: FeatureSegmentData, data: list[Any]) -> None:
@@ -829,8 +841,8 @@ class Flier(Feature, CanScore):
         dice = random.randint(1, 3)
         from .ccs_helper import LogDice
         self.board.addLog(LogDice(dice))
-        ps = {0: (0, -1), 1: (1, -1), 2: (1, 0), 3: (1, 1), 4: (0, 1), 5: (-1, 1), 6: (-1, 0), 7: (-1, -1)}[(self.direction + self.tile.orient.value * 2) % 8]
-        pos_new = pos[0] + ps[0] * dice, pos[1] + ps[1] * dice
+        ps = Pos(*{0: (0, -1), 1: (1, -1), 2: (1, 0), 3: (1, 1), 4: (0, 1), 5: (-1, 1), 6: (-1, 0), 7: (-1, -1)}[(self.direction + self.tile.orient.value * 2) % 8])
+        pos_new = pos + dice * ps
         if pos_new not in self.board.tiles:
             token.putBackToHand(HomeReason.FlierInvalid)
             return
@@ -883,7 +895,7 @@ class Acrobat(Feature, CanScore):
     def checkScore(self, players: 'list[Player]', complete: bool, putBarn: bool) -> 'list[tuple[Player, int]]':
         return [(player, 5 * sum(1 for token in self.iterTokens() if token.player is player)) for player in players]
     def drawPos(self, num: int):
-        return [(self.pos[0] - 10, self.pos[1]), (self.pos[0], self.pos[1] + 10), (self.pos[0] + 4, self.pos[1] - 4)][:num]
+        return [(self.pos.x - 10, self.pos.y), (self.pos.x, self.pos.y + 10), (self.pos.x + 4, self.pos.y - 4)][:num]
 
 class TokenMeta(type):
     def __new__(cls, name: str, base, attr):
@@ -984,10 +996,10 @@ class Figure(Token):
 class TileFigure(Figure):
     def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
         super().__init__(parent, data, img)
-        self.draw_pos: tuple[int, int] | None = None
-    def findDrawPos(self, drawn_poses: list[tuple[int, int]] | None=None) -> tuple[int, int]:
+        self.draw_pos: Pos | None = None
+    def findDrawPos(self, drawn_poses: list[Pos] | None=None) -> Pos:
         if not isinstance(self.parent, Tile):
-            return (0, 0)
+            return Pos(0, 0)
         if self.draw_pos is not None:
             return self.draw_pos
         if drawn_poses is None:
@@ -998,14 +1010,14 @@ class TileFigure(Figure):
                 drawn_poses.extend(feature.drawPos(len(feature.tokens)))
         if self.draw_pos is None:
             for _ in range(10):
-                post = (random.randint(8, 56), random.randint(8, 56))
-                if all(dist2(post, p) >= 256 for p in drawn_poses):
+                post = Pos(random.randint(8, 56), random.randint(8, 56))
+                if all((post - p).mag2() >= 256 for p in drawn_poses):
                     self.draw_pos = post
                     break
             else:
-                post = (random.randint(8, 56), random.randint(8, 56))
+                post = Pos(random.randint(8, 56), random.randint(8, 56))
         if self.draw_pos is None:
-            self.draw_pos = (0, 0)
+            self.draw_pos = Pos(0, 0)
         return self.draw_pos
     canPutTypes = (Tile,)
 class BaseFollower(Follower):
@@ -1056,12 +1068,13 @@ class Wagon(Follower):
 class Barn(Figure):
     def canPut(self, seg: Segment | Feature | Tile):
         return isinstance(seg, Tile) and (pos := self.board.findTilePos(seg)) and \
-            all((pos[0] + i, pos[1] + j) in self.board.tiles and not self.board.tiles[pos[0] + i, pos[1] + j].isAbbey for i in (0, 1) for j in (0, 1)) and \
+            all(pos + Pos(i, j) in self.board.tiles and
+                not self.board.tiles[pos + Pos(i, j)].isAbbey for i in (0, 1) for j in (0, 1)) and \
             (barnseg := seg.getBarnSeg()) is not None and \
             all(not isinstance(t, Barn) for s in barnseg.object.segments for t in s.tokens) and \
-            self.board.tiles[pos[0] + 1, pos[1] + 1].getBarnSeg((Dir.LEFT, Dir.UP)) is not None and \
-            self.board.tiles[pos[0] + 1, pos[1]].getBarnSeg((Dir.DOWN, Dir.LEFT)) is not None and \
-            self.board.tiles[pos[0], pos[1] + 1].getBarnSeg((Dir.UP, Dir.RIGHT)) is not None
+            self.board.tiles[pos + Pos(1, 1)].getBarnSeg((Dir.LEFT, Dir.UP)) is not None and \
+            self.board.tiles[pos + Pos(1, 0)].getBarnSeg((Dir.DOWN, Dir.LEFT)) is not None and \
+            self.board.tiles[pos + Pos(0, 1)].getBarnSeg((Dir.UP, Dir.RIGHT)) is not None
     def selfPutOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
         if isinstance(seg, Tile) and (s := seg.getBarnSeg()):
             s.tokens.append(self)
@@ -1076,9 +1089,9 @@ class Dragon(TileFigure):
     def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
         super().__init__(parent, data, img)
         self.tile: Tile | None = None
-        self.draw_pos = (32, 32)
-    def findDrawPos(self, drawn_poses: list[tuple[int, int]] | None=None):
-        return (32, 32)
+        self.draw_pos = Pos(32, 32)
+    def findDrawPos(self, drawn_poses: list[Pos] | None=None):
+        return Pos(32, 32)
     def canMove(self, tile: Tile):
         if self.board.checkPack(3, "c") and self.board.fairy.tile is tile:
             return False
@@ -1105,12 +1118,12 @@ class Fairy(Figure):
         super().__init__(parent, data, img)
         self.follower: Follower | None = None
         self.tile: Tile | None = None
-        self.drawpos: tuple[int, int] = 32, 32
+        self.drawpos: Pos = Pos(32, 32)
     def moveTo(self, follower: Follower, tile: Tile):
         self.tile = tile
         self.follower = follower
         pos = tile.findTokenDrawPos(follower)
-        self.drawpos = pos[0], pos[1] + 8
+        self.drawpos = pos + Pos(0, 8)
     def putBackToHand(self, reason: 'HomeReason'):
         self.follower = None
         self.tile = None
@@ -1125,10 +1138,10 @@ class Abbot(Follower):
 class Ranger(Figure):
     def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
         super().__init__(parent, data, img)
-        self.pos: tuple[int, int] | None = None
-    def canMove(self, pos: tuple[int, int]):
+        self.pos: Pos | None = None
+    def canMove(self, pos: Pos):
         return pos not in self.board.tiles and any(pos + dr in self.board.tiles for dr in Dir)
-    def moveTo(self, pos: tuple[int, int]):
+    def moveTo(self, pos: Pos):
         self.pos = pos
     key = (14, 0)
     name = "护林员"
@@ -1246,7 +1259,7 @@ class Bigtop(Figure):
             score = self.board.animals.pop(0)
             from chiharu2.plugins.games.cacason.ccs_helper import LogCircus
             self.board.addLog(LogCircus(score))
-            tiles = [self.board.tiles[p] for i in (-1, 0, 1) for j in (-1, 0, 1) if (p := (pos[0] + i, pos[0] + j)) in self.board.tiles]
+            tiles = [self.board.tiles[p] for p in pos.around() if p in self.board.tiles]
             followers = [token for tile in tiles for token in tile.iterAllTokens() if isinstance(token, Follower)]
             players: dict[Player, int] = {}
             for follower in followers:
@@ -1265,7 +1278,7 @@ class Ringmaster(Follower):
         elif isinstance(self.parent, CanScore) and isinstance(self.parent, Feature):
             tile = self.parent.tile
         if isinstance(self.player, Player) and tile is not None and (pos := self.board.findTilePos(tile)) is not None:
-            tiles = [self.board.tiles[p] for i in (-1, 0, 1) for j in (-1, 0, 1) if (p := (pos[0] + i, pos[0] + j)) in self.board.tiles]
+            tiles = [self.board.tiles[p] for p in pos.around() if p in self.board.tiles]
             extra = sum(2 for t in tiles for feature in t.features if isinstance(t, (Circus, Acrobat)))
             yield from self.player.addScore(extra, ScoreReason.Ringmaster)
     def scoreExtraFinal(self):
@@ -1276,14 +1289,14 @@ class Ringmaster(Follower):
         elif isinstance(self.parent, CanScore) and isinstance(self.parent, Feature):
             tile = self.parent.tile
         if isinstance(self.player, Player) and tile is not None and (pos := self.board.findTilePos(tile)) is not None:
-            tiles = [self.board.tiles[p] for i in (-1, 0, 1) for j in (-1, 0, 1) if (p := (pos[0] + i, pos[0] + j)) in self.board.tiles]
+            tiles = [self.board.tiles[p] for p in pos.around() if p in self.board.tiles]
             extra = sum(2 for t in tiles for feature in t.features if isinstance(t, (Circus, Acrobat)))
             self.player.addScoreFinal(extra, ScoreReason.Ringmaster)
 
 Token.all_name["follower"] = BaseFollower
 
 AbbeyData = TileData("abbey", 0, "FFFF", [])
-AbbeyData.segments.append(FeatureSegmentData("Cloister", (32, 32), [], AbbeyData))
+AbbeyData.segments.append(FeatureSegmentData("Cloister", Pos(32, 32), [], AbbeyData))
 
 from .ccs_extra import LandCity, LandRoad, LandMonastry, ScoreReason, HomeReason
 from .ccs_extra import ccsCityStat, ccsGameStat, ccsRoadStat, ccsFieldStat, ccsMonastryStat, ccsMeepleStat, ccsTowerStat
@@ -1309,7 +1322,7 @@ if __name__ == "__main__":
     for pic in picnames:
         ss = sorted(set(s.serialNumber[1:] for s in b.deck + b.riverDeck if s.picname == pic if cri(s)))
         for i, s2 in enumerate(ss):
-            t = b.tiles[i % 5, i // 5 + yshift] = [s for s in b.deck + b.riverDeck if s.picname == pic and s.serialNumber[1:] == s2][0]
+            t = b.tiles[Pos(i % 5, i // 5 + yshift)] = [s for s in b.deck + b.riverDeck if s.picname == pic and s.serialNumber[1:] == s2][0]
             # t.turn(Dir.LEFT)
             # for seg in t.segments:
             #     b.players[0].tokens.append(BaseFollower(b.players[0], d, open_img("token0").crop((0, 0, 16, 16))))
@@ -1334,6 +1347,6 @@ if __name__ == "__main__":
             #                 pass
         yshift += (len(ss) + 4) // 5
     for p in b.players:
-        p.last_pos = (0, p.id)
+        p.last_pos = Pos(0, p.id)
     b.setImageArgs(debug=True)
     b.image().show()

@@ -270,7 +270,7 @@ class RoadSegmentData(LineSegmentData):
         ret: list[SegmentData] = []
         cor = segment.dir.corr()
         ret.append(RoadSegmentData(LineSegmentPic(SegmentType.Road,
-                [segment.dir, (32 + (32 - segment.width) * cor[0], 32 + (32 - segment.width) * cor[1])], 0, []), data))
+                [segment.dir, Pos(32, 32) + (32 - segment.width) * cor], 0, []), data))
         ret.append(FieldSegmentData(SmallSegmentPic(SegmentType.Field, (segment.dir, True), segment.width, []), data))
         ret.append(FieldSegmentData(SmallSegmentPic(SegmentType.Field, (segment.dir, False), segment.width, []), data))
         return ret
@@ -288,15 +288,14 @@ class AddableSegmentData(SegmentData):
         self.feature = type
         self.params = params
 class FeatureSegmentData(AddableSegmentData):
-    def __init__(self, type: str, pos: tuple[int, int] | Dir | tuple[SegmentType, int], params: list[Any], data: TileData) -> None:
+    def __init__(self, type: str, pos: Pos | Dir | tuple[SegmentType, int], params: list[Any], data: TileData) -> None:
         AddableSegmentData.__init__(self, type, params)
-        if isinstance(pos, tuple):
-            if isinstance(pos[0], SegmentType):
-                f = [seg for seg in data.segments if seg.type == pos[0]][pos[1]]
-                assert isinstance(f, EmptyFeatureSegmentData)
-                self.pos: tuple[int, int] = f.pic.pos
-            else:
-                self.pos = pos # type: ignore
+        if isinstance(pos, Pos):
+            self.pos = pos
+        elif isinstance(pos, tuple):
+            f = [seg for seg in data.segments if seg.type == pos[0]][pos[1]]
+            assert isinstance(f, EmptyFeatureSegmentData)
+            self.pos = f.pic.pos
         else:
             self.pos = pos.tilepos()
         self.pic = PointSegmentPic(SegmentType.Feature, self.pos, [])

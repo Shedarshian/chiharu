@@ -180,7 +180,15 @@
             "big": true,
             "things": ["图块", "牧羊人", "高山（藏图块）", "高山（破平局）", "葡萄园"],
             "undone": [],
-            "tokens": []
+            "tokens": [
+                {
+                    "name": "shepherd",
+                    "distribute": true,
+                    "thing_id": "b",
+                    "num": 1,
+                    "image": [0, 0, 24, 24]
+                }
+            ]
         },
         {
             "name": "Under the Big Top",

@@ -2,7 +2,7 @@ from typing import Callable, Sequence, TypeVar, Generator, Any
 from enum import Enum, auto
 from abc import ABC
 from dataclasses import dataclass
-from .carcassonne_asset.readTile import Dir
+from .carcassonne_asset.readTile import Dir, Pos
 
 class CantPutError(Exception):
     pass
@@ -63,16 +63,14 @@ def findAllMax(items: Sequence[T], key: Callable[[T], int], criteria=None) -> tu
             maxPlayer.append(player)
     return maxScore, maxPlayer
 
-def turn(pos: tuple[int, int], dir: Dir):
+def turn(pos: Pos, dir: Dir):
     if dir == Dir.UP:
         return pos
     if dir == Dir.RIGHT:
-        return 64 - pos[1], pos[0]
+        return Pos(64 - pos.y, pos.x)
     if dir == Dir.DOWN:
-        return 64 - pos[0], 64 - pos[1]
-    return pos[1], 64 - pos[0]
-def dist2(pos1: tuple[int, int], pos2: tuple[int, int]) -> float:
-    return (pos1[0] - pos2[0]) ** 2 + (pos1[1] - pos2[1]) ** 2
+        return Pos(64, 64) - pos
+    return Pos(pos.y, 64 - pos.x)
 
 class State(Enum):
     End = auto()
@@ -109,10 +107,10 @@ class SendBegin(Send):
     second_turn: bool
 @dataclass
 class SendPos(Send):
-    pos: tuple[int, int]
+    pos: Pos
 @dataclass
 class RecievePos(Recieve):
-    pos: tuple[int, int]
+    pos: Pos
 @dataclass
 class RecieveReturn(Recieve):
     pass
@@ -139,7 +137,7 @@ class SendChoosingPos(Send):
     special: str = ''
 @dataclass
 class SendPuttingFollower(Send):
-    last_put: tuple[int, int]
+    last_put: Pos
     portaled: bool
     rangered: bool
     special: str = ''
@@ -148,7 +146,7 @@ class RecievePuttingFollower(RecieveId):
     which: str
     phantom: int
     special: str = ''
-    pos: tuple[int, int] = (0, 0)
+    pos: Pos = Pos(0, 0)
 @dataclass
 class SendMovingWagon(SendPos):
     player_id: int

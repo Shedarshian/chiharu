@@ -2,7 +2,7 @@ from typing import Literal, Any, Type, Callable, Awaitable, Protocol
 from collections import Counter
 import random, more_itertools, json, re
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
-from .ccs_tile import Dir, open_img, readTileData, readPackData
+from .ccs_tile import Dir, open_img, readTileData, readPackData, Pos
 from .ccs_helper import CantPutError, NoDeckEnd, TileAddable
 from .ccs_helper import findAllMax, State, Log, Send, Recieve
 from ...helper.helper import User, DiscordUser
@@ -17,14 +17,15 @@ class Board:
         packs: list[dict[str, Any]] = readPackData()["packs"]
         self.group_id = group_id
         self.packs_options = packs_options
-        self.tiles: dict[tuple[int, int], Tile] = {}
+        self.tiles: dict[Pos, Tile] = {}
         self.riverDeck: list[Tile] = []
         self.deck: list[Tile] = []
         self.tokens: list[Token] = []
         self.players: list[Player] = [Player(self, i, p) for i, p in enumerate(players)]
         self.tokenimgs: dict[int, Image.Image] = {}
         self.allTileimgs: dict[tuple[int, str, int, int], Image.Image] = {}
-        self.connected: list[tuple[tuple[int, int], Dir]] = []
+        self.connected: list[tuple[Pos, Dir]] = []
+        self.placeOrder: list[Pos] = []
         start_tile: Tile | None = None
         for tileData in all_packs:
             tile = Tile(self, tileData, False)
@@ -49,7 +50,7 @@ class Board:
                     for p in self.players:
                         p.towerPieces = num
                 else:
-                    img = self.tokenimgs[pack_id].crop(tuple(t["image"]))
+                    img = self.tokenimgs[pack_id].crop(tuple(t["image"])) # type: ignore
                     if t["distribute"]:
                         for p in self.players:
                             p.tokens.extend(Token.make(t["name"])(p, t, img) for i in range(num))
@@ -85,18 +86,18 @@ class Board:
             self.popRiverTile(start_tile)
             if not self.checkPack(7, "d"):
                 start_tile.turn(Dir.LEFT)
-            self.tiles[0, 0] = start_tile
-            self.connected.append(((0, 0), Dir.RIGHT))
+            self.tiles[Pos(0, 0)] = start_tile
+            self.connected.append((Pos(0, 0), Dir.RIGHT))
             if self.checkPack(7, "d"):
                 start_tile2 = [t for t in self.riverDeck if t.serialNumber == (7, "1323", 1, 0)][0]
                 self.popRiverTile(start_tile2)
-                self.tiles[1, 0] = start_tile2
-                self.tiles[0, 0].addConnect(self.tiles[1, 0], Dir.RIGHT)
+                self.tiles[Pos(1, 0)] = start_tile2
+                self.tiles[Pos(0, 0)].addConnect(self.tiles[Pos(1, 0)], Dir.RIGHT)
         else:
             if start_tile is None:
                 raise NotImplementedError
             self.popTile(start_tile)
-            self.tiles[0, 0] = start_tile
+            self.tiles[Pos(0, 0)] = start_tile
         self.current_player_id = 0
         self.current_turn_player_id = 0
         random.shuffle(self.deck)
@@ -130,7 +131,7 @@ class Board:
         self.players[0].tokens.sort(key=lambda x: x.key)
         self.token_pos: dict[Type[Token], int] = {}
         xpos = 0
-        last_key: tuple[int, int] = (-1, -2)
+        last_key: Pos = Pos(-1, -2)
         for t in self.players[0].tokens:
             if t.key != last_key:
                 self.token_pos[type(t)] = xpos
@@ -200,13 +201,13 @@ class Board:
         return self.players[self.current_turn_player_id]
     @property
     def lrborder(self):
-        leftmost = min(i for i, j in self.tiles.keys())
-        rightmost = max(i for i, j in self.tiles.keys())
+        leftmost = min(pos.x for pos in self.tiles.keys())
+        rightmost = max(pos.x for pos in self.tiles.keys())
         return leftmost, rightmost
     @property
     def udborder(self):
-        uppermost = min(j for i, j in self.tiles.keys())
-        lowermost = max(j for i, j in self.tiles.keys())
+        uppermost = min(pos.y for pos in self.tiles.keys())
+        lowermost = max(pos.y for pos in self.tiles.keys())
         return uppermost, lowermost
 
     def popTile(self, tile: 'Tile'):
@@ -316,7 +317,7 @@ class Board:
                 player.addScoreFinal(Gold.score(gold_num), type=ScoreReason.Gold)
     def winner(self):
         return findAllMax(self.players, lambda player: player.score)
-    def canPutTile(self, tile: 'Tile', pos: tuple[int, int], orient: Dir) -> Literal[-1, -2, -3, -8, 0]:
+    def canPutTile(self, tile: 'Tile', pos: Pos, orient: Dir) -> Literal[-1, -2, -3, -8, 0]:
         """-1：已有连接, -2：无法连接，-3：没有挨着。"""
         if pos in self.tiles:
             return -1
@@ -330,15 +331,23 @@ class Board:
                     if ret != 1:
                         return ret
         if self.checkPack(6, "h"):
-            cl = more_itertools.only(0 if isinstance(feature, Cloister) else 1 if isinstance(feature, Shrine) else -1 for feature in tile.features if isinstance(feature, BaseCloister))
+            cl = more_itertools.only(0 if isinstance(feature, Cloister) else
+                                     1 if isinstance(feature, Shrine) else
+                                     -1 for feature in tile.features
+                                     if isinstance(feature, BaseCloister))
             if cl in (0, 1):
-                around = [(pos[0] + i, pos[1] + j) for i in (-1, 0, 1) for j in (-1, 0, 1) if (pos[0] + i, pos[1] + j) in self.tiles]
-                l = [pos for pos in around for feature in self.tiles[pos].features if isinstance(feature, (Shrine, Cloister)[cl])]
+                around = [np for np in pos.around()
+                          if np in self.tiles]
+                l = [pos for pos in around for feature in self.tiles[pos].features
+                     if isinstance(feature, (Shrine, Cloister)[cl])]
                 if len(l) >= 2:
                     return -8
                 if len(l) == 1:
                     pos_new = l[0]
-                    around = [(i, j) for i in (-1, 0, 1) for j in (-1, 0, 1) if (pos_new[0] + i, pos_new[1] + j) in self.tiles for feature in self.tiles[pos_new[0] + i, pos_new[1] + j].features if isinstance(feature, (Cloister, Shrine)[cl])]
+                    around = [np for np in pos_new.around()
+                              if np in self.tiles
+                              for feature in self.tiles[np].features
+                              if isinstance(feature, (Cloister, Shrine)[cl])]
                     if len(around) >= 1:
                         return -8
         return 0
@@ -350,7 +359,7 @@ class Board:
         for i in range(leftmost - 1, rightmost + 2):
             for j in range(uppermost - 1, lowermost + 2):
                 for orient in Dir:
-                    if self.canPutTile(tile, (i, j), orient) == 0:
+                    if self.canPutTile(tile, Pos(i, j), orient) == 0:
                         return True
         return False
     def findTilePos(self, tile: 'Tile'):
@@ -360,13 +369,13 @@ class Board:
         y = int(ys)
         leftmost, rightmost = self.lrborder
         uppermost, lowermost = self.udborder
-        return (x + leftmost - 1, y + uppermost - 1)
+        return Pos(x + leftmost - 1, y + uppermost - 1)
     def checkHole(self):
         leftmost, rightmost = self.lrborder
         uppermost, lowermost = self.udborder
         for i in range(leftmost + 1, rightmost):
             for j in range(uppermost + 1, lowermost):
-                if (i, j) not in self.tiles and all((i, j) + dir in self.tiles for dir in Dir):
+                if Pos(i, j) not in self.tiles and all(Pos(i, j) + dir in self.tiles for dir in Dir):
                     return True
         return False
 
@@ -376,13 +385,13 @@ class Board:
         pass
 
     def tileImages(self):
-        draw_tile_seg: tuple[int, int] | list[tuple[int, int]] | None = self.imageArgs.get("draw_tile_seg")
+        draw_tile_seg: Pos | list[Pos] | None = self.imageArgs.get("draw_tile_seg")
         debug: bool = self.imageArgs.get("debug", False)
-        draw_tile_follower: tuple[int, int] | None = self.imageArgs.get("draw_tile_follower")
+        draw_tile_follower: Pos | None = self.imageArgs.get("draw_tile_follower")
         princess: Object | None = self.imageArgs.get("princess")
-        tower_pos: tuple[int, int] | None = self.imageArgs.get("tower_pos")
+        tower_pos: Pos | None = self.imageArgs.get("tower_pos")
         draw_occupied_seg: bool = self.imageArgs.get("draw_occupied_seg", False)
-        tile_figure: tuple[int, int] | None = self.imageArgs.get("tile_figure")
+        tile_figure: Pos | None = self.imageArgs.get("tile_figure")
 
         leftmost, rightmost = self.lrborder
         uppermost, lowermost = self.udborder
@@ -392,8 +401,8 @@ class Board:
             return w * 64 + sum(c[0] for c in offsets) + 32, h * 64 + sum(c[1] for c in offsets) + 32
         def posshift(w: int, h: int, *offsets: tuple[int, int]):
             return (w - leftmost) * 64 + sum(c[0] for c in offsets) + 32, (h - uppermost) * 64 + sum(c[1] for c in offsets) + 32
-        for (i, j), tile in self.tiles.items():
-            img.paste(tile.image(debug), posshift(i, j))
+        for p, tile in self.tiles.items():
+            img.paste(tile.image(debug), posshift(p.x, p.y))
         # grid
         width = rightmost - leftmost
         height = lowermost - uppermost
@@ -415,21 +424,22 @@ class Board:
         for player in self.players:
             if player.last_pos is not None:
                 color = "white" if player.tokenColor == "gray" else player.tokenColor
-                dr.rectangle(posshift(*player.last_pos, (0, 0)) + posshift(*player.last_pos, (63, 1)), color)
-                dr.rectangle(posshift(*player.last_pos, (0, 0)) + posshift(*player.last_pos, (1, 63)), color)
-                dr.rectangle(posshift(*player.last_pos, (62, 0)) + posshift(*player.last_pos, (63, 63)), color)
-                dr.rectangle(posshift(*player.last_pos, (0, 62)) + posshift(*player.last_pos, (63, 63)), color)
+                lp = player.last_pos
+                dr.rectangle(posshift(lp.x, lp.y, (0, 0)) + posshift(lp.x, lp.y, (63, 1)), color)
+                dr.rectangle(posshift(lp.x, lp.y, (0, 0)) + posshift(lp.x, lp.y, (1, 63)), color)
+                dr.rectangle(posshift(lp.x, lp.y, (62, 0)) + posshift(lp.x, lp.y, (63, 63)), color)
+                dr.rectangle(posshift(lp.x, lp.y, (0, 62)) + posshift(lp.x, lp.y, (63, 63)), color)
         # hill
         if self.checkPack(9, 'c'):
-            to_paste: list[tuple[tuple[int, int], Image.Image]] = []
+            to_paste: list[tuple[Pos, Image.Image]] = []
             for p, tile in self.tiles.items():
                 if tile.addable == TileAddable.Hill:
-                    imgt = img.crop(posshift(*p) + posshift(*p, (64, 64)))
+                    imgt = img.crop(posshift(p.x, p.y) + posshift(p.x, p.y, (64, 64)))
                     to_paste.append((p, imgt))
             to_paste.sort(key=lambda x: x[0])
             for p, imgt in to_paste:
-                dr.rectangle(posshift(*p) + posshift(*p, (64, 64)), "gray")
-                img.paste(imgt, posshift(*p, (-1, -3)))
+                dr.rectangle(posshift(p.x, p.y) + posshift(p.x, p.y, (64, 64)), "gray")
+                img.paste(imgt, posshift(p.x, p.y, (-1, -3)))
         # text
         font = ImageFont.truetype("msyhbd.ttc", 10)
         def alpha(n):
@@ -444,18 +454,18 @@ class Board:
             dr.text(pos(0, j, (-15, 32)), str(j + 1), "black", font, "rm")
         dr.text(pos(0, height + 1, (-15, 5)), str(height + 2), "black", font, "rm")
         # tokens
-        for (i, j), tile in self.tiles.items():
-            tile.drawToken(img, posshift(i, j))
+        for p, tile in self.tiles.items():
+            tile.drawToken(img, posshift(p.x, p.y))
         if self.checkPack(3, "c") and self.fairy.tile is not None and (p := self.findTilePos(self.fairy.tile)) is not None:
             tf = self.fairy.image()
-            img.alpha_composite(tf, posshift(*p, self.fairy.drawpos, (-tf.size[0] // 2, -tf.size[1] // 2)))
+            img.alpha_composite(tf, posshift(p.x, p.y, self.fairy.drawpos.toTuple(), (-tf.size[0] // 2, -tf.size[1] // 2)))
         # choose follower
         def draw(c: tuple[int, int], tpos: tuple[int, int], i: int):
             dr.ellipse((posshift(*c, (tpos[0] - 6, tpos[1] - 6)), posshift(*c, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
             text = chr(i) if i <= ord('a') + 25 else chr((i - ord('a')) // 26) + chr((i - ord('a')) % 26)
             dr.text(posshift(*c, tpos), text, "black", font, "mm")
         if draw_tile_seg is not None:
-            if isinstance(draw_tile_seg, tuple):
+            if isinstance(draw_tile_seg, Pos):
                 choose_follower2 = [draw_tile_seg]
             else:
                 choose_follower2 = draw_tile_seg
@@ -463,23 +473,28 @@ class Board:
                 if c not in self.tiles:
                     continue
                 tile = self.tiles[c]
-                tile.drawPutToken(img, posshift(*c), draw_occupied_seg, self.checkPack(5, "e") and len(choose_follower2) == 1 and any(isinstance(token, Barn) for token in self.current_turn_player.tokens))
+                tile.drawPutToken(img, posshift(c.x, c.y), draw_occupied_seg, self.checkPack(5, "e") and len(choose_follower2) == 1 and any(isinstance(token, Barn) for token in self.current_turn_player.tokens))
         if draw_tile_follower is not None and draw_tile_follower in self.tiles:
             tile = self.tiles[draw_tile_follower]
             i = ord('a')
             for follower in tile.iterAllTokens():
                 if isinstance(follower, Follower) and follower.player is self.current_turn_player:
-                    draw(self.findTilePos(tile) , tile.findTokenDrawPos(follower), i) # type: ignore
+                    draw(self.findTilePos(tile) , tile.findTokenDrawPos(follower), i)
                     i += 1
         if princess is not None:
             i = ord('a')
             for follower in princess.iterTokens():
                 if isinstance(follower, Follower) and isinstance(follower.parent, Segment):
-                    draw(self.findTilePos(follower.parent.tile), follower.parent.tile.findTokenDrawPos(follower), i) # type: ignore
+                    draw(self.findTilePos(follower.parent.tile), follower.parent.tile.findTokenDrawPos(follower), i)
                     i += 1
         if tower_pos is not None:
             tower = [feature for feature in self.tiles[tower_pos].features if isinstance(feature, Tower)][0]
-            followers = [token for token in self.tiles[tower_pos].iterAllTokens() if isinstance(token, Follower)] + [token for dr in Dir for i in range(tower.height) if (tower_pos[0] + dr.corr()[0] * (i + 1), tower_pos[1] + dr.corr()[1] * (i + 1)) in self.tiles for token in self.tiles[tower_pos[0] + dr.corr()[0] * (i + 1), tower_pos[1] + dr.corr()[1] * (i + 1)].iterAllTokens() if isinstance(token, Follower)]
+            followers = [token for token in self.tiles[tower_pos].iterAllTokens()
+                         if isinstance(token, Follower)] + \
+                [token for dr in Dir for i in range(tower.height)
+                 if tower_pos + dr.corr() * (i + 1) in self.tiles
+                 for token in self.tiles[tower_pos + dr.corr() * (i + 1)].iterAllTokens()
+                 if isinstance(token, Follower)]
             i = ord('a')
             for follower in followers:
                 if isinstance(follower.parent, Segment):
@@ -489,28 +504,28 @@ class Board:
             tile = self.tiles[tile_figure]
             i = ord('a')
             for token in list(tile.iterAllTokens()) + tile.tokens + [token for seg in tile.segments for token in seg.object.tokens]:
-                draw(tile_figure, tile.findTokenDrawPos(token), i)
+                draw(tile_figure.toTuple(), tile.findTokenDrawPos(token), i)
                 i += 1
         # tiles dragon has moved
         if self.checkPack(3, "b"):
             for tile in self.dragonMoved:
                 p = self.findTilePos(tile)
                 if p is not None:
-                    tileimg = img.crop(posshift(*p) + posshift(*p, (64, 64)))
+                    tileimg = img.crop(posshift(p.x, p.y) + posshift(p.x, p.y, (64, 64)))
                     enhancer = ImageEnhance.Brightness(tileimg)
-                    img.paste(enhancer.enhance(0.7), posshift(*p))
+                    img.paste(enhancer.enhance(0.7), posshift(p.x, p.y))
         # ranger
         if self.checkPack(14, "b") and (pos_ranger := self.ranger.pos) is not None and pos_ranger not in self.tiles:
             offset_edge = (32, 32)
-            if pos_ranger[0] == leftmost - 1:
+            if pos_ranger.x == leftmost - 1:
                 offset_edge = (59, offset_edge[1])
-            if pos_ranger[0] == rightmost + 1:
+            if pos_ranger.x == rightmost + 1:
                 offset_edge = (5, offset_edge[1])
-            if pos_ranger[1] == uppermost - 1:
+            if pos_ranger.y == uppermost - 1:
                 offset_edge = (offset_edge[0], 59)
-            if pos_ranger[1] == lowermost + 1:
+            if pos_ranger.y == lowermost + 1:
                 offset_edge = (offset_edge[0], 5)
-            img.alpha_composite(self.ranger.image(), posshift(*pos_ranger, offset_edge, (-13, -8)))
+            img.alpha_composite(self.ranger.image(), posshift(pos_ranger.x, pos_ranger.y, offset_edge, (-13, -8)))
         # remain tiles
         dr.text((0, 0), str(len(self.riverDeck) if len(self.riverDeck) != 0 else len(self.deck)), "black", self.font_name, "lt")
         # remain gift
@@ -862,7 +877,7 @@ class Board:
                     await send("无法放置！")
                 else:
                     pos = ret.pos
-                    self.setImageArgs(draw_tile_seg=[(pos[0] + i, pos[1] + j) for i in (-1, 0, 1) for j in (-1, 0, 1)])
+                    self.setImageArgs(draw_tile_seg=[pos + Pos(i, j) for i in (-1, 0, 1) for j in (-1, 0, 1)])
                     await send([self.saveImg()])
                     await send("请选择马车要移动到的图块，以及该图块上的位置（小写字母），回复“不放”收回马车。")
             case State.AbbeyAsking | State.FinalAbbeyAsking:

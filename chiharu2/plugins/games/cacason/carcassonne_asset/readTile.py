@@ -2,27 +2,36 @@ import re, math, more_itertools
 from PIL import Image, ImageDraw
 from enum import Enum, auto
 from abc import ABC, abstractmethod
-from typing import NamedTuple, Any, Sequence
-import ply.lex as lex, ply.yacc as yacc
+from typing import NamedTuple, Any, Sequence, TypeAlias
+import ply.lex as lex, ply.yacc as yacc # type: ignore
+from ....helper.boxgame import Grid2DSquare as Pos
 
 class Dir(Enum):
     UP = 0
     RIGHT = 1
     DOWN = 2
     LEFT = 3
-    def corr(self) -> tuple[int, int]:
-        return ((0, -1), (1, 0), (0, 1), (-1, 0))[self.value]
-    def tilepos(self) -> tuple[int, int]:
-        return [(32, 0), (64, 32), (32, 64), (0, 32)][self.value]
+    def corr(self) -> Pos:
+        return (Pos.Directions.UP, Pos.Directions.RIGHT, Pos.Directions.DOWN, Pos.Directions.LEFT)[self.value]
+    def tilepos(self) -> Pos:
+        return Pos(*((32, 0), (64, 32), (32, 64), (0, 32))[self.value])
     @classmethod
-    def fromCorr(cls, corr: tuple[int, int]):
-        return Dir(((0, -1), (1, 0), (0, 1), (-1, 0)).index(corr))
-    def __add__(self, other: 'Dir'):
-        return Dir((self.value + other.value) % 4)
-    def __sub__(self, other: 'Dir'):
+    def fromCorr(cls, corr: Pos):
+        return Dir(((0, -1), (1, 0), (0, 1), (-1, 0)).index((corr.x, corr.y)))
+    def __add__(self, other):
+        if isinstance(other, Dir):
+            return Dir((self.value + other.value) % 4)
+        if isinstance(other, Pos):
+            return other + self.corr()
+        return NotImplemented
+    def __sub__(self, other):
+        if not isinstance(other, Dir):
+            return NotImplemented
         return Dir((self.value - other.value + 4) % 4)
-    def __radd__(self, other: tuple[int, int]):
-        return other[0] + self.corr()[0], other[1] + self.corr()[1]
+    def __radd__(self, other):
+        if not isinstance(other, Pos):
+            return NotImplemented
+        return other + self.corr()
     def __neg__(self):
         return Dir((self.value + 2) % 4)
     def transpose(self):
@@ -244,27 +253,27 @@ class TileDataParser:
 parser = TileDataParser()
 parser.build()
 
-def disCir(pos: tuple[int, int], radius: float, r: int):
-    ret: list[tuple[int, int]] = []
+def disCir(pos: Pos, radius: float, r: int):
+    ret: list[Pos] = []
     ang = r % 2 * math.pi / 2
     d = math.pi * 2 / r
     for _ in range(r):
-        ret.append((pos[0] + round(radius * math.cos(ang)), pos[1] - round(radius * math.sin(ang))))
+        ret.append(pos + Pos(round(radius * math.cos(ang)), -round(radius * math.sin(ang))))
         ang += d
     return ret
-def disLine(line: str, pos: tuple[int, int], radius: float, r: int):
-    ret: list[tuple[int, int]] = []
+def disLine(line: str, pos: Pos, radius: float, r: int):
+    ret: list[Pos] = []
     if line == "ud":
         ang: float = -radius
         d = 2 * radius / (r - 1)
         for _ in range(r):
-            ret.append((pos[0], pos[1] + round(ang)))
+            ret.append(pos + Pos(0, round(ang)))
             ang += d
     elif line == "lr":
         ang = -radius
         d = 2 * radius / (r - 1)
         for _ in range(r):
-            ret.append((pos[0] + round(ang), pos[1]))
+            ret.append(pos + Pos(round(ang), 0))
             ang += d
     return ret
 class SegmentType(Enum):
@@ -280,55 +289,55 @@ class SegmentType(Enum):
     Tunnel = auto()
 class SegmentPic(ABC):
     __slots__ = ("type", "hint", "hint_line")
-    def __init__(self, type: SegmentType, hint: list[tuple[int, int] | str]) -> None:
+    def __init__(self, type: SegmentType, hint: list[Pos | str]) -> None:
         self.type = type
         self.hint_line: str | None = None
-        self.hint: list[tuple[int, int]] = []
+        self.hint: list[Pos] = []
         self.makeHint(hint)
-    def makeHint(self, hint: list[tuple[int, int] | str]):
+    def makeHint(self, hint: list[Pos | str]):
         if "ud" in hint:
             self.hint_line = "ud"
             hint.remove("ud")
         elif "lr" in hint:
             self.hint_line = "lr"
             hint.remove("lr")
-        if not all(isinstance(s, tuple) for s in hint):
+        if not all(isinstance(s, Pos) for s in hint):
             raise ParserError("ud/lr not right")
-        self.hint = [s for s in hint if isinstance(s, tuple)]
+        self.hint = [s for s in hint if isinstance(s, Pos)]
 class TunnelSegmentPic(SegmentPic):
-    def __init__(self, type: SegmentType, num1: int, num2: int, hint) -> None:
+    def __init__(self, type: SegmentType, num1: int, num2: int, hint: list[Pos | str]) -> None:
         super().__init__(type, hint)
         self.num1 = num1
         self.num2 = num2
 class PointSegmentPic(SegmentPic):
     __slots__ = ("pos",)
-    def __init__(self, type: SegmentType, pos: tuple[int, int], hint) -> None:
+    def __init__(self, type: SegmentType, pos: Pos, hint: list[Pos | str]) -> None:
         super().__init__(type, hint)
         self.pos = pos
     @property
     def radius(self):
         return 8 if self.type == SegmentType.Feature else 0
-    def drawPos(self, num: int) -> Sequence[tuple[int, int]]:
+    def drawPos(self, num: int) -> Sequence[Pos]:
         if num == 1:
             return [self.pos]
         if num == 0:
             return []
-        ret: list[tuple[int, int]] = disCir(self.pos, self.radius, num)
+        ret: list[Pos] = disCir(self.pos, self.radius, num)
         return ret
-    def putPos(self, num: int) -> tuple[int, int]:
+    def putPos(self, num: int) -> Pos:
         if num == 1:
-            return self.pos[0] + self.radius, self.pos[1]
+            return self.pos + Pos(self.radius, 0)
         return self.pos
 class LineSegmentPic(SegmentPic):
     __slots__ = ("nodes", "sides", "nodes_init", "width", "link", "center")
-    def __init__(self, type: SegmentType, nodes: list[tuple[int, int] | Dir | tuple[SegmentType, int]], width: int, hint) -> None:
+    def __init__(self, type: SegmentType, nodes: list[Pos | Dir | tuple[SegmentType, int]], width: int, hint: list[Pos | str]) -> None:
         super().__init__(type, hint)
-        self.nodes_init: list[tuple[int, int] | Dir | tuple[SegmentType, int]] = nodes
+        self.nodes_init: list[Pos | Dir | tuple[SegmentType, int]] = nodes
         self.sides: list[Dir] = [n for n in nodes if isinstance(n, Dir)]
-        self.nodes: list[tuple[int, int]] = []
+        self.nodes: list[Pos] = []
         self.width = width
         self.link: tuple[SegmentType, int] | None = None
-        self.center: tuple[int, int] = 0, 0
+        self.center: Pos = Pos(0, 0)
     def makeNodes(self, points: list[PointSegmentPic]):
         for i, node in enumerate(self.nodes_init):
             if isinstance(node, Dir):
@@ -339,63 +348,65 @@ class LineSegmentPic(SegmentPic):
                 else:
                     if i == 0:
                         self.nodes.append(pos)
-                    self.nodes.append((pos[0] + self.width * offset[0], pos[1] + self.width * offset[1]))
+                    self.nodes.append(pos + self.width * offset)
                     if i != 0:
                         self.nodes.append(pos)
-            elif isinstance(node[0], SegmentType):
-                point = [seg for seg in points if seg.type == node[0]][node[1]]
-                pos = point.pos
-                last_pos = self.nodes[-1]
-                d: float = ((last_pos[0] - pos[0]) ** 2 + (last_pos[1] - pos[1]) ** 2) ** 0.5
-                self.nodes.append((round(pos[0] + point.radius * (last_pos[0] - pos[0]) / d), round(pos[1] + point.radius * (last_pos[1] - pos[1]) / d)))
-                if node[0] in (SegmentType.Bridge, SegmentType.Roundabout):
-                    self.link = node # type: ignore
+            elif isinstance(node, Pos):
+                self.nodes.append(node)
             else:
-                self.nodes.append(node) # type: ignore
+                point = [seg for seg in points if seg.type == node[0]][node[1]]
+                pos2 = point.pos
+                last_pos = self.nodes[-1]
+                dpos = last_pos - pos2
+                d = dpos.mag()
+                self.nodes.append(pos2 + Pos(round(point.radius * dpos.x / d), round(point.radius * dpos.y / d)))
+                if node[0] in (SegmentType.Bridge, SegmentType.Roundabout):
+                    self.link = node
         if len(self.nodes) == 2:
-            self.center = (self.nodes[0][0] + self.nodes[1][0]) // 2, (self.nodes[0][1] + self.nodes[1][1]) // 2
+            t = self.nodes[0] + self.nodes[1]
+            self.center = Pos(t.x // 2, t.y // 2)
         else:
             self.center = self.getPortion(0.5)
-    def getPortion(self, f: float) -> tuple[int, int]:
-        lens: list[float] = [((i[0] - j[0]) ** 2 + (i[1] - j[1]) ** 2) ** 0.5 for i, j in more_itertools.windowed(self.nodes, 2, fillvalue=(0, 0))]
+    def getPortion(self, f: float) -> Pos:
+        lens: list[float] = [(i - j).mag() for i, j in more_itertools.windowed(self.nodes, 2, fillvalue=Pos(0, 0))]
         l = sum(lens) * f
         for i, le in enumerate(lens):
             if l < le:
-                d2 = self.nodes[i + 1][0] - self.nodes[i][0], self.nodes[i + 1][1] - self.nodes[i][1]
-                ds = l / (d2[0] ** 2 + d2[1] ** 2) ** 0.5
-                return round(ds * d2[0] + self.nodes[i][0]), round(ds * d2[1] + self.nodes[i][1])
+                d2 = self.nodes[i + 1] - self.nodes[i]
+                ds = l / d2.mag()
+                return Pos(round(ds * d2.x + self.nodes[i].x), round(ds * d2.y + self.nodes[i].y))
             l -= le
-        return 0, 0
+        return Pos(0, 0)
 class AreaSegmentPic(SegmentPic):
     __slots__ = ("radius",)
-    def __init__(self, type: SegmentType, hint) -> None:
+    def __init__(self, type: SegmentType, hint: list[Pos | str]) -> None:
         super().__init__(type, hint)
         self.radius = 6
-    def onSelfEdge(self, pos: tuple[int, int]) -> bool:
+    def onSelfEdge(self, pos: Pos) -> bool:
         return False
     def begin(self) -> tuple[Dir, bool]:
         raise NotImplementedError
     def end(self) -> tuple[Dir, bool]:
         raise NotImplementedError
-    def drawPos(self, num: int) -> Sequence[tuple[int, int]]:
+    def drawPos(self, num: int) -> Sequence[Pos]:
         if num == 1:
             return [self.hint[0]]
         if num <= len(self.hint):
             return self.hint[:num]
         repeat = num // len(self.hint)
         p1 = num % len(self.hint)
-        ret: list[tuple[int, int]] = []
+        ret: list[Pos] = []
         for i, p in enumerate(self.hint):
             r = repeat + (1 if i < p1 else 0)
             if r == 1:
                 ret.append(p)
             elif r == 2:
                 if self.hint_line == "ud":
-                    ret.append((p[0], p[1] - self.radius))
-                    ret.append((p[0], p[1] + self.radius))
+                    ret.append(p - Pos(0, self.radius))
+                    ret.append(p + Pos(0, self.radius))
                 else:
-                    ret.append((p[0] - self.radius, p[1]))
-                    ret.append((p[0] + self.radius, p[1]))
+                    ret.append(p - Pos(self.radius, 0))
+                    ret.append(p + Pos(self.radius, 0))
             elif self.hint_line is not None:
                 ret.extend(disLine(self.hint_line, p, 16, r))
             else:
@@ -408,70 +419,70 @@ class AreaSegmentPic(SegmentPic):
         p1 = num % len(self.hint)
         if self.hint_line is not None:
             if (self.hint_line == "ud") == (repeat == 1):
-                return self.hint[p1][0], self.hint[p1][1] + self.radius
-            return self.hint[p1][0] + self.radius, self.hint[p1][1]
+                return self.hint[p1] + Pos(0, self.radius)
+            return self.hint[p1] + Pos(self.radius, 0)
         if repeat == 1:
-            return self.hint[p1][0] + self.radius, self.hint[p1][1]
+            return self.hint[p1] + Pos(self.radius, 0)
         return self.hint[p1]
 class SmallSegmentPic(AreaSegmentPic):
     __slots__ = ("side", "width")
-    def __init__(self, type: SegmentType, side: tuple[Dir, bool], width: int, hint) -> None:
+    def __init__(self, type: SegmentType, side: tuple[Dir, bool], width: int, hint: list[Pos | str]) -> None:
         super().__init__(type, hint)
         self.radius = 4
         self.side = side
         self.width = width
         if self.hint == []:
-            self.hint = [(32 + (32 - width // 2) * (cor := side[0].corr())[0] + 16 * (cor2 := (side[0] + (Dir.LEFT if side[1] else Dir.RIGHT)).corr())[0], 32 + (32 - width // 2) * cor[1] + 16 * cor2[1])]
+            self.hint = [Pos(32, 32) + (32 - width // 2) * side[0].corr() + 16 * (side[0] + (Dir.LEFT if side[1] else Dir.RIGHT)).corr()]
 class OneSideSegmentPic(AreaSegmentPic):
     __slots__ = ("dir", "width")
-    def __init__(self, type: SegmentType, dir: Dir, width: int, hint) -> None:
+    def __init__(self, type: SegmentType, dir: Dir, width: int, hint: list[Pos | str]) -> None:
         super().__init__(type, hint)
         self.dir = dir
         self.width = width
         if self.hint == []:
-            self.hint = [(32 + (32 - width // 2) * (cor := dir.corr())[0], 32 + (32 - width // 2) * cor[1])]
+            self.hint = [Pos(32, 32) + (32 - width // 2) * dir.corr()]
             self.hint_line = "lr" if dir in (Dir.UP, Dir.DOWN) else "ud"
-    def onSelfEdge(self, pos: tuple[int, int]):
-        return self.dir == Dir.UP and pos[1] == self.width or self.dir == Dir.DOWN and pos[1] == 64 - self.width or self.dir == Dir.LEFT and pos[0] == self.width or self.dir == Dir.RIGHT and pos[0] == 64 - self.width
+    def onSelfEdge(self, pos: Pos):
+        return self.dir == Dir.UP and pos.y == self.width or self.dir == Dir.DOWN and pos.y == 64 - self.width or self.dir == Dir.LEFT and pos.x == self.width or self.dir == Dir.RIGHT and pos.x == 64 - self.width
     def begin(self):
         return (self.dir, True)
     def end(self):
         return (self.dir, False)
 class DoubleSideSegmentPic(AreaSegmentPic):
     __slots__ = ("dirs", "width")
-    def __init__(self, type: SegmentType, dirs: tuple[Dir, Dir], width: int, hint) -> None:
+    def __init__(self, type: SegmentType, dirs: tuple[Dir, Dir], width: int, hint: list[Pos | str]) -> None:
         super().__init__(type, hint)
         self.dirs: tuple[Dir, Dir] = tuple(Dir(x) for x in sorted(dir.value for dir in dirs)) # type: ignore
         if dirs == (Dir.UP, Dir.LEFT):
             self.dirs = (Dir.LEFT, Dir.UP)
         if self.hint == []:
-            self.hint = [(32 + (32 - width // 2) * (cor := dir.corr())[0], 32 + (32 - width // 2) * cor[1]) for dir in self.dirs]
+            self.hint = [Pos(32, 32) + (32 - width // 2) * dir.corr() for dir in self.dirs]
             self.width = width
-    def onSelfEdge(self, pos: tuple[int, int]):
-        return Dir.UP in self.dirs and pos[1] == self.width or Dir.DOWN in self.dirs and pos[1] == 64 - self.width or Dir.LEFT in self.dirs and pos[0] == self.width or Dir.RIGHT in self.dirs and pos[0] == 64 - self.width
+    def onSelfEdge(self, pos: Pos):
+        return Dir.UP in self.dirs and pos.y == self.width or Dir.DOWN in self.dirs and pos.y == 64 - self.width or Dir.LEFT in self.dirs and pos.x == self.width or Dir.RIGHT in self.dirs and pos.x == 64 - self.width
     def begin(self):
         return (self.dirs[0], True)
     def end(self):
         return (self.dirs[1], False)
-    def drawPos(self, num: int) -> Sequence[tuple[int, int]]:
+    def drawPos(self, num: int) -> Sequence[Pos]:
         if num == 1:
             return [self.hint[0]]
         if num <= 2:
             return self.hint[:num]
         repeat = num // 2
         p1 = num % 2
-        ret: list[tuple[int, int]] = []
+        ret: list[Pos] = []
         for i, p in enumerate(self.hint):
             r = repeat + (1 if i < p1 else 0)
             if r == 1:
                 ret.append(p)
             elif r == 2:
                 if self.dirs[i] in (Dir.LEFT, Dir.RIGHT):
-                    ret.append((p[0], p[1] - self.radius))
-                    ret.append((p[0], p[1] + self.radius))
+                    ret.append(p - Pos(0, self.radius))
+                    ret.append(p + Pos(0, self.radius))
                 else:
-                    ret.append((p[0] - self.radius, p[1]))
-                    ret.append((p[0] + self.radius, p[1]))
+                    ret.append(p - Pos(self.radius, 0))
+                    ret.append(p + Pos(self.radius, 0))
             elif self.dirs[i] in (Dir.LEFT, Dir.RIGHT):
                 ret.extend(disLine("lr", p, 16, r))
             else:
@@ -483,11 +494,11 @@ class DoubleSideSegmentPic(AreaSegmentPic):
         repeat = num // 2
         p1 = num % 2
         if (self.dirs[p1] in (Dir.UP, Dir.DOWN)) == (repeat == 1):
-            return self.hint[p1][0], self.hint[p1][1] + self.radius
-        return self.hint[p1][0] + self.radius, self.hint[p1][1]
+            return self.hint[p1] + Pos(0, self.radius)
+        return self.hint[p1] + Pos(self.radius, 0)
 class ElseSegmentPic(AreaSegmentPic):
     __slots__ = ("road_sides", "adjCity")
-    def __init__(self, type: SegmentType, road_sides: 'list[RoadSideTuple] | list[tuple[Dir, Dir]]', adjCity: list[int], hint) -> None:
+    def __init__(self, type: SegmentType, road_sides: 'list[RoadSideTuple] | list[tuple[Dir, Dir]]', adjCity: list[int], hint: list[Pos | str]) -> None:
         super().__init__(type, hint)
         self.road_sides = road_sides
         self.adjCity = adjCity
@@ -499,7 +510,7 @@ class StartExtraOrderData(NamedTuple):
 class AddableExtraOrderData(NamedTuple):
     feature: str
     params: list[Any]
-    pos: tuple[int, int] | Dir | tuple[SegmentType, int] | None
+    pos: Pos | Dir | tuple[SegmentType, int] | None
 class FeatureExtraOrderData(NamedTuple):
     type: SegmentType
     id: int
@@ -508,7 +519,7 @@ class FeatureExtraOrderData(NamedTuple):
 class HintExtraOrderData(NamedTuple):
     type: SegmentType
     id: int
-    hint: list[tuple[int, int] | str]
+    hint: list[Pos | str]
 class RoadWidthExtraOrderData(NamedTuple):
     type: SegmentType
     id: int
