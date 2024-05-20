@@ -1261,12 +1261,12 @@ class Bigtop(Figure):
             self.board.addLog(LogCircus(score))
             tiles = [self.board.tiles[p] for p in pos.around() if p in self.board.tiles]
             followers = [token for tile in tiles for token in tile.iterAllTokens() if isinstance(token, Follower)]
-            players: dict[Player, int] = {}
+            players: dict[int, int] = {}
             for follower in followers:
                 if isinstance(follower.player, Player):
-                    players[follower.player] = players.get(follower.player, 0) + self.board.animals[0]
-            for player, s in players.items():
-                yield from player.addScore(s, ScoreReason.Bigtop)
+                    players[follower.player.id] = players.get(follower.player.id, 0) + self.board.animals[0]
+            for player_id, s in players.items():
+                yield from self.board.players[player_id].addScore(s, ScoreReason.Bigtop)
 class Ringmaster(Follower):
     key = (10, 1)
     name = "马戏指挥"
