@@ -378,6 +378,13 @@ class Board:
                 if Pos(i, j) not in self.tiles and all(Pos(i, j) + dir in self.tiles for dir in Dir):
                     return True
         return False
+    def placeTile(self, tile: 'Tile', pos: Pos, orient: Dir):
+        tile.turn(orient)
+        self.tiles[pos] = tile
+        for dr in Dir:
+            if pos + dr in self.tiles:
+                self.tiles[pos + dr].addConnect(tile, -dr)
+        self.placeOrder.append(pos)
 
     def addLog(self, log: Log):
         self.log.append(log)

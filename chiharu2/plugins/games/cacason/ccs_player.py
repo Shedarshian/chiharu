@@ -259,23 +259,21 @@ class Player:
                         pass_err = -7
                         continue
             break
-        tile.turn(orient)
-        self.board.tiles[pos] = tile
         self.last_pos = pos
-        for dr in Dir:
-            if pos + dr in self.board.tiles:
-                self.board.tiles[pos + dr].addConnect(tile, -dr)
+        self.board.placeTile(tile, pos, orient)
         if tile.addable == TileAddable.Hill and self.board.checkPack(9, 'c') and len(self.board.deck) > 0:
             self.board.hill_tiles.append(self.board.drawTile())
         rangered: bool = self.board.checkPack(14, "b") and self.board.ranger.pos == pos
         princessed: bool = False
-        if self.board.checkPack(3, "e") and (seg := more_itertools.only(seg for seg in tile.segments if seg.addable == Addable.Princess)):
+        if self.board.checkPack(3, "e") and \
+                (seg := more_itertools.only(seg for seg in tile.segments if seg.addable == Addable.Princess)):
             princessed = yield from self.turnAskPrincess(seg)
         if self.board.checkPack(13, 'd') and tile.addable == TileAddable.Gold:
             yield from self.turnPutGold(pos)
         if self.board.checkPack(14, "a"):
             for segment in tile.segments:
-                if isinstance(segment, (RoadSegment, CitySegment)) and len(l := segment.object.checkPlayer(True)) > 0 and self not in l:
+                if isinstance(segment, (RoadSegment, CitySegment)) and \
+                        len(l := segment.object.checkPlayer(True)) > 0 and self not in l:
                     if gift2 := self.board.drawGift():
                         from .ccs_helper import LogDrawGift
                         self.board.addLog(LogDrawGift(gift2.name, self.giftsText()))
