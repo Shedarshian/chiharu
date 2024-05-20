@@ -295,7 +295,7 @@ class Tile:
             drawn_poses.extend(poses)
             if isinstance(feature, Acrobat) and len(feature.tokens) > 0:
                 for i, token in enumerate(feature.tokens):
-                    t = token.image().rotate(-45)
+                    t = token.image().rotate(-45 if self.orient in (Dir.UP, Dir.DOWN) else 45)
                     img.alpha_composite(t, pos(turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2), add))
             else:
                 for i, token in enumerate(feature.tokens):
@@ -874,6 +874,9 @@ class Circus(Feature):
     pack = (10, "b")
 class Acrobat(Feature, CanScore):
     pack = (10, "c")
+    def __init__(self, tile: Tile, segment: FeatureSegmentData, data: list[Any]) -> None:
+        Feature.__init__(tile, segment, data)
+        CanScore.__init__(tile.board)
     def closed(self) -> bool:
         return False
     def canPut(self) -> bool:
