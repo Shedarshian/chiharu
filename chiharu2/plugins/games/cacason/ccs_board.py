@@ -467,10 +467,10 @@ class Board:
             tf = self.fairy.image()
             img.alpha_composite(tf, posshift(p.x, p.y, self.fairy.drawpos.toTuple(), (-tf.size[0] // 2, -tf.size[1] // 2)))
         # choose follower
-        def draw(c: tuple[int, int], tpos: tuple[int, int], i: int):
-            dr.ellipse((posshift(*c, (tpos[0] - 6, tpos[1] - 6)), posshift(*c, (tpos[0] + 6, tpos[1] + 6))), "white", "black", 1)
+        def draw(c: Pos, tpos: Pos, i: int):
+            dr.ellipse((posshift(c.x, c.y, (tpos.x - 6, tpos.y - 6)), posshift(c.x, c.y, (tpos.x + 6, tpos.y + 6))), "white", "black", 1)
             text = chr(i) if i <= ord('a') + 25 else chr((i - ord('a')) // 26) + chr((i - ord('a')) % 26)
-            dr.text(posshift(*c, tpos), text, "black", font, "mm")
+            dr.text(posshift(c.x, c.y, tpos.toTuple()), text, "black", font, "mm")
         if draw_tile_seg is not None:
             if isinstance(draw_tile_seg, Pos):
                 choose_follower2 = [draw_tile_seg]
@@ -486,7 +486,7 @@ class Board:
             i = ord('a')
             for follower in tile.iterAllTokens():
                 if isinstance(follower, Follower) and follower.player is self.current_turn_player:
-                    draw(self.findTilePos(tile) , tile.findTokenDrawPos(follower), i)
+                    draw(self.findTilePos(tile), tile.findTokenDrawPos(follower), i)
                     i += 1
         if princess is not None:
             i = ord('a')
@@ -505,13 +505,13 @@ class Board:
             i = ord('a')
             for follower in followers:
                 if isinstance(follower.parent, Segment):
-                    draw(self.findTilePos(follower.parent.tile), follower.parent.tile.findTokenDrawPos(follower), i) # type: ignore
+                    draw(self.findTilePos(follower.parent.tile), follower.parent.tile.findTokenDrawPos(follower), i)
                     i += 1
         if tile_figure is not None:
             tile = self.tiles[tile_figure]
             i = ord('a')
             for token in list(tile.iterAllTokens()) + tile.tokens + [token for seg in tile.segments for token in seg.object.tokens]:
-                draw(tile_figure.toTuple(), tile.findTokenDrawPos(token), i)
+                draw(tile_figure, tile.findTokenDrawPos(token), i)
                 i += 1
         # tiles dragon has moved
         if self.checkPack(3, "b"):

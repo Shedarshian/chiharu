@@ -199,24 +199,24 @@ class Tile:
         else:
             add = (0, 0)
         if isinstance(token, Barn) and (seg := self.getBarnSeg()) and token in seg.tokens:
-            return (64, 64)
+            return Pos(64, 64)
         for seg in self.segments:
             if token in seg.tokens:
                 id = seg.tokens.index(token)
                 t = turn(seg.drawPos(len(seg.tokens))[id], self.orient)
-                return t[0] + add[0], t[1] + add[1]
+                return t + add
             if token in seg.object.tokens:
                 pass # TODO for castle
         for feature in self.features:
             if token in feature.tokens:
                 id = feature.tokens.index(token)
                 t = turn(feature.drawPos(len(feature.tokens))[id], self.orient)
-                return t[0] + add[0], t[1] + add[1]
+                return t + add
         if token in self.tokens:
             assert isinstance(token, TileFigure)
             t = turn(token.findDrawPos(), self.orient)
-            return t[0] + add[0], t[1] + add[1]
-        return (32, 32)
+            return t + add
+        return Pos(32, 32)
     def getSeg(self, i: int):
         if i < len(self.features):
             return self.features[i]
