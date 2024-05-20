@@ -610,8 +610,7 @@ class Player:
             yield from token.putOn(acrobat)
         else:
             yield from acrobat.score(True, False)
-            for token in acrobat.tokens:
-                token.putBackToHand(HomeReason.AcrobatScore)
+            acrobat.removeAllFollowers(HomeReason.AcrobatScore)
         return 0
     def turnMovingFestival(self, ret: 'RecievePuttingFollower') -> 'TAsync[Literal[0, -14]]':
         pos: Pos = ret.pos

@@ -744,7 +744,7 @@ class Board:
                         outputs.append(f"玩家{name}抽到了{'狼' if sheep == -1 else str(sheep) + '只羊'}。")
                     case LogCircus(score, players_score):
                         outputs.append(f"马戏团翻开了{score}点的动物。")
-                        outputs.extend([f"玩家{name}获得了{score}分。" for name, score in players_score])
+                        outputs.extend([f"玩家{name}获得了{score}分。" for name, score in players_score.items()])
             await send("\n".join(outputs))
             self.log = []
         match self.state:
