@@ -289,7 +289,7 @@ class Tile:
                 if isinstance(token, Barn):
                     img.alpha_composite(t, pos(Pos(64, 64)))
                 else:
-                    img.alpha_composite(t, pos(turn(poses[i], self.orient), -t.size[0] // 2, -t.size[1] // 2, add))
+                    img.alpha_composite(t, pos(turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2), add))
         for feature in self.features:
             poses = feature.drawPos(len(feature.tokens))
             drawn_poses.extend(poses)

@@ -138,9 +138,9 @@ async def ccs_process(matcher: Matcher, state: T_State,
     if data.get('waiting_player_num'):
         if command in "23456":
             # 开始游戏
-            extensions = data.get("extensions", {})
+            extensions: dict[int, Any] = data.get("extensions", {}) # type: ignore
             extensions[0] = "a"
-            board: Board = Board(extensions, [data['players'][0]] * int(command), data.get("starting_tile", 0), group.channel_id)
+            board: Board = Board(extensions, [data['players'][0]] * int(command), data.get("starting_tile", 0), group.channel_id) # type: ignore
             data['board'] = board
             await board.advance(send, delete_func)
             data['waiting_player_num'] = False
