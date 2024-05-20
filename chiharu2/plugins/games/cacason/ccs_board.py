@@ -462,7 +462,7 @@ class Board:
         dr.text(pos(0, height + 1, (-15, 5)), str(height + 2), "black", font, "rm")
         # tokens
         for p, tile in self.tiles.items():
-            tile.drawToken(img, posshift(p.x, p.y))
+            tile.drawToken(img, Pos(*posshift(p.x, p.y)))
         if self.checkPack(3, "c") and self.fairy.tile is not None and (p := self.findTilePos(self.fairy.tile)) is not None:
             tf = self.fairy.image()
             img.alpha_composite(tf, posshift(p.x, p.y, self.fairy.drawpos.toTuple(), (-tf.size[0] // 2, -tf.size[1] // 2)))
