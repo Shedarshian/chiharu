@@ -316,7 +316,7 @@ class Tile:
         def draw(tpos: Pos, i: int):
             dr.ellipse((pos(tpos - Pos(6, 6)), pos(tpos + Pos(6, 6))), "white", "black", 1)
             text = chr(i) if i <= ord('a') + 25 else chr((i - ord('a')) // 26) + chr((i - ord('a')) % 26)
-            dr.text(pos(*tpos), text, "black", font, "mm")
+            dr.text(pos(tpos.x, tpos.y), text, "black", font, "mm")
         i = ord('a')
         for feature in self.features:
             if isinstance(feature, CanScore) and (draw_occupied_seg or len([token for token in feature.tokens if isinstance(token.player, Player)]) == 0):
