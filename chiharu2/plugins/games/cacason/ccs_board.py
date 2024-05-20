@@ -336,7 +336,7 @@ class Board:
                                      -1 for feature in tile.features
                                      if isinstance(feature, BaseCloister))
             if cl in (0, 1):
-                around = [np for np in pos.around()
+                around = [np for np in pos.aroundNoSelf()
                           if np in self.tiles]
                 l = [pos for pos in around for feature in self.tiles[pos].features
                      if isinstance(feature, (Shrine, Cloister)[cl])]
@@ -344,7 +344,7 @@ class Board:
                     return -8
                 if len(l) == 1:
                     pos_new = l[0]
-                    around = [np for np in pos_new.around()
+                    around = [np for np in pos_new.aroundNoSelf()
                               if np in self.tiles
                               for feature in self.tiles[np].features
                               if isinstance(feature, (Cloister, Shrine)[cl])]

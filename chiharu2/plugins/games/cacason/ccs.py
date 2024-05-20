@@ -1267,7 +1267,7 @@ class Bigtop(Figure):
             players: dict[int, int] = {}
             for follower in followers:
                 if isinstance(follower.player, Player):
-                    players[follower.player.id] = players.get(follower.player.id, 0) + self.board.animals[0]
+                    players[follower.player.id] = players.get(follower.player.id, 0) + score
             for player_id, s in players.items():
                 yield from self.board.players[player_id].addScore(s, ScoreReason.Bigtop)
 class Ringmaster(Follower):

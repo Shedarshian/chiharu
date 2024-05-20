@@ -28,4 +28,4 @@ async def _(bot: Bot, event: Event, e: Exception):
     import datetime
     await bot.send_to(1237726203029225484, msg)
     with open(rel("error.txt"), 'r+') as f:
-        f.write(datetime.datetime.now().isoformat() + traceback.format_exception(e) + "\n\n")
+        f.write(datetime.datetime.now().isoformat() + ''.join(traceback.format_exception(e)) + "\n\n")

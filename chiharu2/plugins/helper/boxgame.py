@@ -93,8 +93,14 @@ class Grid2DSquare(Grid2D):
         DOWN: 'Grid2DSquare'
         LEFT: 'Grid2DSquare'
     def around(self) -> Generator[Self, Any, None]:
-        for p in (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1):
-            yield self + Grid2DSquare(*p)
+        for x in (-1, 0, 1):
+            for y in (-1, 0, 1):
+                yield self + Grid2DSquare(x, y)
+    def aroundNoSelf(self) -> Generator[Self, Any, None]:
+        for x in (-1, 0, 1):
+            for y in (-1, 0, 1):
+                if x != 0 or y != 0:
+                    yield self + Grid2DSquare(x, y)
     def isAround(self, other: Self):
         return self.x - other.x in (-1, 0, 1) and self.y - other.y in (-1, 0, 1)
 Grid2DSquare.Directions.UP = Grid2DSquare(0, -1)
