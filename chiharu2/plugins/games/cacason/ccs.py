@@ -875,8 +875,8 @@ class Circus(Feature):
 class Acrobat(Feature, CanScore):
     pack = (10, "c")
     def __init__(self, tile: Tile, segment: FeatureSegmentData, data: list[Any]) -> None:
-        Feature.__init__(tile, segment, data)
-        CanScore.__init__(tile.board)
+        Feature.__init__(self, tile, segment, data)
+        CanScore.__init__(self, tile.board)
     def closed(self) -> bool:
         return False
     def canPut(self) -> bool:
