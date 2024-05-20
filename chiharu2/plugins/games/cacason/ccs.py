@@ -295,7 +295,7 @@ class Tile:
             drawn_poses.extend(poses)
             if isinstance(feature, Acrobat) and len(feature.tokens) > 0:
                 for i, token in enumerate(feature.tokens):
-                    t = token.image().rotate(-45 if self.orient in (Dir.UP, Dir.DOWN) else 45)
+                    t = token.image().rotate(-45 if self.orient in (Dir.UP, Dir.DOWN) else -135)
                     img.alpha_composite(t, pos(turn(poses[i], self.orient), (-t.size[0] // 2, -t.size[1] // 2), add))
             else:
                 for i, token in enumerate(feature.tokens):
@@ -1261,7 +1261,6 @@ class Bigtop(Figure):
         if isinstance(self.parent, Circus) and (pos := self.board.findTilePos(self.parent.tile)) is not None:
             score = self.board.animals.pop(0)
             from chiharu2.plugins.games.cacason.ccs_helper import LogCircus
-            self.board.addLog(LogCircus(score))
             tiles = [self.board.tiles[p] for p in pos.around() if p in self.board.tiles]
             followers = [token for tile in tiles for token in tile.iterAllTokens() if isinstance(token, Follower)]
             players: dict[int, int] = {}
@@ -1270,6 +1269,7 @@ class Bigtop(Figure):
                     players[follower.player.id] = players.get(follower.player.id, 0) + score
             for player_id, s in players.items():
                 yield from self.board.players[player_id].addScore(s, ScoreReason.Bigtop)
+            self.board.addLog(LogCircus(score, {self.board.players[i].long_name: v for i, v in players.items()}))
 class Ringmaster(Follower):
     key = (10, 1)
     name = "马戏指挥"

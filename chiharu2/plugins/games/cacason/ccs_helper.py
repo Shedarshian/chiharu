@@ -225,4 +225,5 @@ class LogShepherd(Log):
 @dataclass
 class LogCircus(Log):
     animal: int
+    player_score: dict[str, int]
 

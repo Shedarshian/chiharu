@@ -713,7 +713,7 @@ class Board:
             outputs: list[str] = []
             from .ccs_helper import LogScore, LogRedraw, LogPutBackBuilder, LogExchangePrisoner
             from .ccs_helper import LogTradeCounter, LogChallengeFailed, LogDrawGift, LogUseGift
-            from .ccs_helper import LogTake2NoTile, LogDice, LogDragonMove, LogShepherd
+            from .ccs_helper import LogTake2NoTile, LogDice, LogDragonMove, LogShepherd, LogCircus
             for d in self.log:
                 match d:
                     case LogScore(player_name=name, source=source, num=num):
@@ -742,6 +742,9 @@ class Board:
                         outputs.append(f"玩家{name}自动向{dr.name[0]}方向动了一次龙。")
                     case LogShepherd(player_name=name, sheep=sheep):
                         outputs.append(f"玩家{name}抽到了{'狼' if sheep == -1 else str(sheep) + '只羊'}。")
+                    case LogCircus(score, players_score):
+                        outputs.append(f"马戏团翻开了{score}点的动物。")
+                        outputs.extend([f"玩家{name}获得了{score}分。" for name, score in players_score])
             await send("\n".join(outputs))
             self.log = []
         match self.state:
