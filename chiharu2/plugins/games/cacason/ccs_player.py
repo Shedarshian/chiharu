@@ -1320,6 +1320,10 @@ class Player:
     def load(self, dct: 'PlayerSave'):
         self.score = dct["score"]
         self.score2 = dct["score2"]
+        for t in dct["handtiles"]:
+            tile = more_itertools.first(tile for tile in self.board.deck if repr(tile.serialNumber) == t)
+            self.board.deck.remove(tile)
+            self.handTiles.append(tile)
 
 from .ccs import Tile, Segment, Object, Feature, Token, Follower, FieldSegment
 from .ccs import State, Connectable, Dir, CanScore, TAsync, Acrobat, Circus

@@ -1185,6 +1185,7 @@ class Board:
         for t in dct["tiles"]:
             pos = Pos(t["x"], t["y"])
             tile = more_itertools.first(tl for tl in board.deck if repr(tl.serialNumber) == t["serial_number"])
+            board.deck.remove(tile)
             board.placeTile(tile, pos, Dir[t["orient"]])
             tile.load(t)
         for player, p in zip(board.players, dct["players"]):
