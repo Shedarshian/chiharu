@@ -6,8 +6,8 @@ from nonebot.adapters.discord import Event, MessageEvent, DirectMessageCreateEve
 from nonebot.adapters.discord.api import Interaction
 from nonebot.matcher import Matcher
 
-PATH = "C:\\coolq_data\\"
-PATH_IMG = "C:\\go\\data\\images"
+PATH = "C:\\coolq_data2\\"
+PATH_IMG = "C:\\coolq_data2\\images"
 PATH_REC = "C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\record"
 PATH_PAGE = "C:\\games"
 
