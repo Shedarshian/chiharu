@@ -36,7 +36,7 @@ allGames: tuple[tuple[str, str],...] = \
      ('cacason', "卡卡颂"))
 allDMGames: tuple[tuple[str, str],...] = \
     (('maj', "麻将"),)
-options: list[SubCommandGroupOption] = [
+options: list[AnyCommandOption] = [
         SubCommandGroupOption(name=name,
             description=des,
             options=[
@@ -45,7 +45,8 @@ options: list[SubCommandGroupOption] = [
                 SubCommandOption(name="end",
                     description=f"中止{des}")
             ]) for name, des in allGames
-    ] + [
+    ]
+options += [
         SubCommandGroupOption(name=name,
             description=des,
             options=[
@@ -75,7 +76,7 @@ options: list[SubCommandGroupOption] = [
     ]
 matcher = on_slash_command(name="play",
     description="开始游戏",
-    options=options) # type: ignore
+    options=options)
 
 class GameData(TypedDict):
     players: list[DiscordUser]

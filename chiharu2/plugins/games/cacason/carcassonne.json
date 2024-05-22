@@ -203,14 +203,14 @@
                     "distribute": false,
                     "thing_id": "b",
                     "num": 1,
-                    "image": [0, 0, 64, 48]
+                    "image": [0, 0, 32, 32]
                 },
                 {
                     "name": "ringmaster",
                     "distribute": true,
                     "thing_id": "d",
                     "num": 1,
-                    "image": [0, 48, 16, 64]
+                    "image": [0, 32, 11, 17]
                 }
             ]
         },
