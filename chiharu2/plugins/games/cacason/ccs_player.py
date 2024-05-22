@@ -1311,11 +1311,21 @@ class Player:
                 dr.text((166 + i * 96, 48), "R", "black", font, "lm")
         return img
 
+    def save(self):
+        dct: PlayerSave = {"name": self.user.name,
+                           "user_id": self.user.user_id,
+                           "score": self.score,
+                           "score2": self.score2}
+        return dct
+    def load(self, dct: 'PlayerSave'):
+        self.score = dct["score"]
+        self.score2 = dct["score2"]
+
 from .ccs import Tile, Segment, Object, Feature, Token, Follower, FieldSegment
 from .ccs import State, Connectable, Dir, CanScore, TAsync, Acrobat, Circus
 from .ccs import Barn, Builder, Pig, TileAddable, CitySegment, RoadSegment, AbbeyData, Wagon, Monastry
 from .ccs import Phantom, Tower, Abbot, BaseCloister, Flier, BigFollower, Addable, Gold, Shepherd
 from .ccs_extra import Gift, ScoreReason, HomeReason
 from .ccs_helper import RecieveBuyPrisoner, RecievePos, RecieveReturn, RecievePuttingFollower, RecieveId
-from .ccs_helper import Send, CantPutError
+from .ccs_helper import Send, CantPutError, PlayerSave
 from .ccs_board import Board

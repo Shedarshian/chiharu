@@ -1,4 +1,5 @@
-from typing import Callable, Sequence, TypeVar, Generator, Any
+from typing import Callable, Sequence, TypeVar, Generator, Any, TypedDict, Literal
+from typing_extensions import NotRequired
 from enum import Enum, auto
 from abc import ABC
 from dataclasses import dataclass
@@ -71,6 +72,30 @@ def turn(pos: Pos, dir: Dir):
     if dir == Dir.DOWN:
         return Pos(64, 64) - pos
     return Pos(pos.y, 64 - pos.x)
+
+class TokenPlaceSave(TypedDict):
+    name: str
+    place: Literal['segment', 'feature', 'tile']
+    player_id: NotRequired[int]
+    segment_id: NotRequired[int]
+class TileSave(TypedDict):
+    x: int
+    y: int
+    serial_number: str
+    orient: str
+    tokens: list[TokenPlaceSave]
+class PlayerSave(TypedDict):
+    user_id: int
+    name: str
+    score: int
+    score2: int
+class BoardSave(TypedDict):
+    pack: dict[int, str]
+    start_tile_pack: int
+    group_id: int | None
+    state: str
+    tiles: list[TileSave]
+    players: list[PlayerSave]
 
 class State(Enum):
     End = auto()

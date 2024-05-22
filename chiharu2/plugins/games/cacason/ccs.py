@@ -338,6 +338,40 @@ class Tile:
         if (ori := self.orient.transpose()) is None:
             return self.img
         return self.img.transpose(ori)
+    def save(self, pos: Pos):
+        tokens: list[TokenPlaceSave] = []
+        for token in self.iterAllTokens():
+            t: TokenPlaceSave = {"name": type(token).__name__,
+                                 "place": "tile"}
+            if isinstance(token.parent, Segment):
+                t["segment_id"] = self.segments.index(token.parent)
+            elif isinstance(token.parent, Feature):
+                t["place"] = "feature"
+                t["segment_id"] = self.features.index(token.parent)
+            elif isinstance(token.parent, Tile):
+                t["place"] = "tile"
+            if isinstance(token.player, Player):
+                t['player_id'] = token.player.id
+            tokens.append(t)
+        dct: TileSave = {"x": pos.x,
+                         "y": pos.y,
+                         "serial_number": repr(self.serialNumber),
+                         "orient": self.orient.name,
+                         "tokens": tokens}
+        return dct
+    def load(self, t: "TileSave"):
+        for tk in t["tokens"]:
+            token = more_itertools.first(token for token in (
+                    self.board.players[tk["player_id"]].tokens if "player_id" in tk else self.board.tokens
+                ) if type(token).__name__ == tk["name"])
+            if tk["place"] == "tile":
+                to_put: Segment | Feature | Tile = self
+            elif tk["place"] == "segment":
+                to_put = self.segments[tk["segment_id"]]
+            else:
+                to_put = self.features[tk["segment_id"]]
+            token.parent.tokens.remove(token)
+            token.silentPutOn(to_put)
 
 class Segment(ABC):
     type = Connectable.City
@@ -935,9 +969,11 @@ class Token(metaclass=TokenMeta):
     def putOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
         yield from self.selfPutOn(seg)
         yield from seg.putOnBy(self)
-    def selfPutOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
+    def silentPutOn(self, seg: Segment | Feature | Tile):
         seg.tokens.append(self)
         self.parent = seg
+    def selfPutOn(self, seg: Segment | Feature | Tile) -> TAsync[None]:
+        self.silentPutOn(seg)
         return
         yield {}
     def image(self):
@@ -1304,7 +1340,7 @@ AbbeyData.segments.append(FeatureSegmentData("Cloister", Pos(32, 32), [], AbbeyD
 from .ccs_extra import LandCity, LandRoad, LandMonastry, ScoreReason, HomeReason
 from .ccs_extra import ccsCityStat, ccsGameStat, ccsRoadStat, ccsFieldStat, ccsMonastryStat, ccsMeepleStat, ccsTowerStat
 from .ccs_player import Player
-from .ccs_helper import RecieveId
+from .ccs_helper import RecieveId, TileSave, TokenPlaceSave
 from .ccs_board import Board
 
 if __name__ == "__main__":

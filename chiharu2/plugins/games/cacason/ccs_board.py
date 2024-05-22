@@ -24,8 +24,9 @@ class Board:
         self.players: list[Player] = [Player(self, i, p) for i, p in enumerate(players)]
         self.tokenimgs: dict[int, Image.Image] = {}
         self.allTileimgs: dict[tuple[int, str, int, int], Image.Image] = {}
-        self.connected: list[tuple[Pos, Dir]] = []
+        self.connected: list[tuple[Pos, Dir]] = [] # TODO
         self.placeOrder: list[Pos] = []
+        self.start_tile_pack: int = start_tile_pack
         start_tile: Tile | None = None
         for tileData in all_packs:
             tile = Tile(self, tileData, False)
@@ -1161,10 +1162,32 @@ class Board:
             case _:
                 pass
 
+    def save(self):
+        dct: BoardSave = {"pack": self.packs_options,
+                          "state": self.state.name,
+                          "start_tile_pack": self.start_tile_pack,
+                          "group_id": self.group_id,
+                          "tiles": [self.tiles[pos].save(pos) for pos in self.placeOrder],
+                          "players": [player.save() for player in self.players]}
+        from ...helper.helper import rel
+        with open(rel("cacason_save.json"), 'w') as f:
+            json.dump(dct, f, ensure_ascii=False, indent=4)
+        return dct
+    @classmethod
+    def load(cls, dct: 'BoardSave'):
+        board = Board(dct["pack"], [DiscordUser(x["user_id"], x["name"]) for x in dct["players"]], dct["start_tile_pack"], dct["group_id"])
+        board.state = State[dct["state"]]
+        for t in dct["tiles"]:
+            pos = Pos(t["x"], t["y"])
+            tile = more_itertools.first(tl for tl in board.deck if repr(tl.serialNumber) == t["serial_number"])
+            board.placeTile(tile, pos, Dir[t["orient"]])
+            tile.load(t)
+        for player, p in zip(board.players, dct["players"]):
+            player.load(p)
 
 from .ccs import Tile, Segment, Token, Gold, Dragon, Fairy, Robber, Ranger, Gingerbread, CanScore
 from .ccs import Cloister, Shrine, BaseCloister, Object, Barn, Follower, Tower, TAsync, King, Bigtop, Circus
 from .ccs_extra import Gift, LandCity, LandRoad, LandMonastry, ScoreReason, HomeReason, Messenger
 from .ccs_extra import ccsCityStat, ccsGameStat, ccsRoadStat, ccsFieldStat, ccsMonastryStat, ccsMeepleStat, ccsTowerStat
 from .ccs_player import Player
-from .ccs_helper import RecieveId, RecieveReturn, RecievePos
+from .ccs_helper import RecieveId, RecieveReturn, RecievePos, BoardSave
