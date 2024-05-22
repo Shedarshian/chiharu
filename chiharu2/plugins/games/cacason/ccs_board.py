@@ -1170,11 +1170,14 @@ class Board:
                           "tiles": [self.tiles[pos].save(pos) for pos in self.placeOrder],
                           "players": [player.save() for player in self.players]}
         from ...helper.helper import rel
-        with open(rel("cacason_save.json"), 'w') as f:
+        with open(rel(f"cacason_save/{self.group_id}.json"), 'w') as f:
             json.dump(dct, f, ensure_ascii=False, indent=4)
         return dct
     @classmethod
-    def load(cls, dct: 'BoardSave'):
+    def load(cls, group_id: int):
+        from ...helper.helper import rel
+        with open(rel(f"cacason_save/{group_id}.json"), 'r') as f:
+            dct: BoardSave = json.load(f)
         board = Board(dct["pack"], [DiscordUser(x["user_id"], x["name"]) for x in dct["players"]], dct["start_tile_pack"], dct["group_id"])
         board.state = State[dct["state"]]
         for t in dct["tiles"]:
