@@ -89,6 +89,7 @@ class PlayerSave(TypedDict):
     name: str
     score: int
     score2: int
+    handtiles: list[str]
 class BoardSave(TypedDict):
     pack: dict[int, str]
     start_tile_pack: int
@@ -96,6 +97,7 @@ class BoardSave(TypedDict):
     state: str
     tiles: list[TileSave]
     players: list[PlayerSave]
+    hills_len: NotRequired[int]
 
 class State(Enum):
     End = auto()

@@ -182,7 +182,6 @@ class Player:
                 if r < 0:
                     pass_err = -8 if r == -8 else -1
                     continue
-                self.handTiles.append(tile)
                 self.board.tiles[pos] = tile
                 for dr in Dir:
                     self.board.tiles[pos + dr].closeSideAbbey(-dr)
@@ -260,6 +259,7 @@ class Player:
                         continue
             break
         self.last_pos = pos
+        self.handTiles.remove(tile)
         self.board.placeTile(tile, pos, orient)
         if tile.addable == TileAddable.Hill and self.board.checkPack(9, 'c') and len(self.board.deck) > 0:
             self.board.hill_tiles.append(self.board.drawTile())
@@ -279,11 +279,10 @@ class Player:
                         self.board.addLog(LogDrawGift(gift2.name, self.giftsText()))
                         self.gifts.append(gift2)
                     break
-        if len(self.handTiles) > 1:
+        if len(self.handTiles) > 0:
             for tile2 in self.handTiles:
-                if tile2 is not tile:
-                    self.board.deck.append(tile2)
-            self.handTiles = [tile]
+                self.board.deck.append(tile2)
+            self.handTiles = []
             random.shuffle(self.board.deck)
         return isBegin, pos, princessed, rangered
     def turnExchangePrisoner(self, ret: 'RecieveBuyPrisoner') -> 'TAsync[Literal[0, -4, -5]]':
@@ -1150,7 +1149,7 @@ class Player:
                     if not buildered and (yield from self.turnCheckBuilder()):
                         remainTurns += 1
                         buildered = True
-            tile = self.handTiles.pop(0)
+            tile = self.board.tiles[pos]
 
             # check dragon
             if self.board.checkPack(3, "b") and tile.addable == TileAddable.Volcano:
@@ -1315,7 +1314,8 @@ class Player:
         dct: PlayerSave = {"name": self.user.name,
                            "user_id": self.user.user_id,
                            "score": self.score,
-                           "score2": self.score2}
+                           "score2": self.score2,
+                           "handtiles": [repr(t.serialNumber) for t in self.handTiles]}
         return dct
     def load(self, dct: 'PlayerSave'):
         self.score = dct["score"]

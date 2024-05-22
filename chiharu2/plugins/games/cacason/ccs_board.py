@@ -1169,6 +1169,8 @@ class Board:
                           "group_id": self.group_id,
                           "tiles": [self.tiles[pos].save(pos) for pos in self.placeOrder],
                           "players": [player.save() for player in self.players]}
+        if self.checkPack(9, 'c'):
+            dct["hills_len"] = len(self.hill_tiles)
         from ...helper.helper import rel
         with open(rel(f"cacason_save/{self.group_id}.json"), 'w') as f:
             json.dump(dct, f, ensure_ascii=False, indent=4)
@@ -1187,6 +1189,9 @@ class Board:
             tile.load(t)
         for player, p in zip(board.players, dct["players"]):
             player.load(p)
+        if board.checkPack(9, 'c'):
+            for _ in range(dct["hills_len"]):
+                board.hill_tiles.append(board.drawTile())
 
 from .ccs import Tile, Segment, Token, Gold, Dragon, Fairy, Robber, Ranger, Gingerbread, CanScore
 from .ccs import Cloister, Shrine, BaseCloister, Object, Barn, Follower, Tower, TAsync, King, Bigtop, Circus
