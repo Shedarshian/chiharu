@@ -310,7 +310,7 @@ class Board:
             if self.checkPack(6, "b") and player.king:
                 player.addScoreFinal(len(self.king.complete_citys), type=ScoreReason.King)
             if self.checkPack(6, "c") and player.robber:
-                player.addScoreFinal(len(self.robber.complete_roads), type=ScoreReason.Robber)
+                player.addScoreFinal(len(self.robber.complete_citys), type=ScoreReason.Robber)
             if self.checkPack(14, 'a') and len(player.gifts) >= 0:
                 player.addScoreFinal(2 * len(player.gifts), type=ScoreReason.Gift)
             if self.checkPack(13, 'd'):
@@ -1171,6 +1171,24 @@ class Board:
                           "players": [player.save() for player in self.players]}
         if self.checkPack(9, 'c'):
             dct["hills_len"] = len(self.hill_tiles)
+        if self.checkPack(3, "c"):
+            fairy: FairySave = {"pos": None}
+            if (tile := self.fairy.tile) is not None and (pos := self.findTilePos(tile)) is not None:
+                pos = self.findTilePos(tile)
+                fairy["pos"] = [pos.x, pos.y]
+            if (follower := self.fairy.follower) is not None:
+                fairy["follower_name"] = follower.__class__.__name__
+                p = follower.player
+                assert isinstance(p, Player)
+                fairy["player_id"] = p.id
+            dct["fairy"] = fairy
+        if self.checkPack(10, 'b'):
+            from copy import copy
+            dct["animals"] = copy(self.animals)
+        if self.checkPack(12, "c"):
+            dct["messengerDiscard"] = [m.id for m in self.messengerDiscard]
+        if self.checkPack(14, 'a'):
+            dct["giftDiscard"] = [m.id for m in self.giftDiscard]
         from ...helper.helper import rel
         with open(rel(f"cacason_save/{self.group_id}.json"), 'w') as f:
             json.dump(dct, f, ensure_ascii=False, indent=4)
@@ -1182,21 +1200,51 @@ class Board:
             dct: BoardSave = json.load(f)
         board = Board(dct["pack"], [DiscordUser(x["user_id"], x["name"]) for x in dct["players"]], dct["start_tile_pack"], dct["group_id"])
         board.state = State[dct["state"]]
+        todo: list[tuple[Tile, TileSave]] = []
         for t in dct["tiles"]:
             pos = Pos(t["x"], t["y"])
-            tile = more_itertools.first(tl for tl in board.deck if repr(tl.serialNumber) == t["serial_number"])
+            tile = more_itertools.first((tl for tl in board.deck if repr(tl.serialNumber) == t["serial_number"]), None)
+            if tile is None:
+                tile = more_itertools.first(tl for tl in board.riverDeck if repr(tl.serialNumber) == t["serial_number"])
             board.deck.remove(tile)
             board.placeTile(tile, pos, Dir[t["orient"]])
+            todo.append((tile, t))
+        for tile, t in todo:
             tile.load(t)
         for player, p in zip(board.players, dct["players"]):
             player.load(p)
+        if board.checkPack(3, "c"):
+            fairy = dct["fairy"]
+            posl = fairy["pos"]
+            if posl is not None and (pos := Pos(posl[0], posl[1])) in board.tiles:
+                tile = board.tiles[pos]
+                if (player_id := fairy.get("player_id")) is not None:
+                    f2 = more_itertools.first(follower for follower in tile.iterAllTokens()
+                        if isinstance(follower, Follower) and
+                        isinstance(follower.player, Player) and
+                        follower.player.id == player_id and
+                        follower.__class__.__name__ == fairy.get("follower_name"))
+                    board.fairy.moveTo(f2, tile)
         if board.checkPack(9, 'c'):
             for _ in range(dct["hills_len"]):
                 board.hill_tiles.append(board.drawTile())
+        if board.checkPack(10, 'b'):
+            from copy import copy
+            board.animals = copy(dct["animals"])
+        if board.checkPack(12, "c"):
+            for i in dct["messengerDiscard"]:
+                messenge = more_itertools.first(m for m in board.messengerDeck if m.id == i)
+                board.messengerDeck.remove(messenge)
+                board.messengerDiscard.append(messenge)
+        if board.checkPack(14, 'a'):
+            for i in dct["giftDiscard"]:
+                gift = more_itertools.first(g for g in board.giftDeck if g.id == i)
+                board.giftDeck.remove(gift)
+                board.giftDiscard.append(gift)
 
 from .ccs import Tile, Segment, Token, Gold, Dragon, Fairy, Robber, Ranger, Gingerbread, CanScore
 from .ccs import Cloister, Shrine, BaseCloister, Object, Barn, Follower, Tower, TAsync, King, Bigtop, Circus
 from .ccs_extra import Gift, LandCity, LandRoad, LandMonastry, ScoreReason, HomeReason, Messenger
 from .ccs_extra import ccsCityStat, ccsGameStat, ccsRoadStat, ccsFieldStat, ccsMonastryStat, ccsMeepleStat, ccsTowerStat
 from .ccs_player import Player
-from .ccs_helper import RecieveId, RecieveReturn, RecievePos, BoardSave
+from .ccs_helper import RecieveId, RecieveReturn, RecievePos, BoardSave, FairySave, TileSave

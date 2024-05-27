@@ -352,6 +352,7 @@ class Tile:
                 t["place"] = "tile"
             if isinstance(token.player, Player):
                 t['player_id'] = token.player.id
+            token.savePlaceExtra(t)
             tokens.append(t)
         dct: TileSave = {"x": pos.x,
                          "y": pos.y,
@@ -372,6 +373,7 @@ class Tile:
                 to_put = self.features[tk["segment_id"]]
             token.parent.tokens.remove(token)
             token.silentPutOn(to_put)
+            token.loadPlaceExtra(tk)
 
 class Segment(ABC):
     type = Connectable.City
@@ -414,6 +416,12 @@ class Segment(ABC):
                 token.draw_pos = None
         return
         yield {}
+    def save(self):
+        pos = self.tile.board.findTilePos(self.tile)
+        if pos is None:
+            raise ValueError
+        d: SegmentSave = {"tile_x": pos.x, "tile_y": pos.y, "segment_id": self.tile.segments.index(self)}
+        return d
 class AreaSegment(Segment):
     def __init__(self, tile: Tile, side: list[tuple[Dir, bool]], pic: AreaSegmentPic) -> None:
         super().__init__(tile)
@@ -1023,6 +1031,14 @@ class Token(metaclass=TokenMeta):
             from .ccs_helper import LogScore
             self.board.addLog(LogScore(self.player.long_name, "fairy_complete", 3))
             self.player.addScoreFinal(3, type=ScoreReason.Fairy)
+    def save(self):
+        t: TokenSave = {"name": self.__class__.__name__,
+                        "player_id": self.player.id if isinstance(self.player, Player) else None}
+        return t
+    def savePlaceExtra(self, dct: 'TokenPlaceSave'):
+        return dct
+    def loadPlaceExtra(self, dct: 'TokenPlaceSave'):
+        return
     canEatByDragon: bool = True
     canPutTypes: 'tuple[Type[Segment] | Type[Feature] | Type[Tile],...]' = (FieldSegment, CitySegment, RoadSegment, Monastry, Flier, Tower)
     key: tuple[int, int] = (-1, -1)
@@ -1158,11 +1174,12 @@ class Fairy(Figure):
         self.follower: Follower | None = None
         self.tile: Tile | None = None
         self.drawpos: Pos = Pos(32, 32)
-    def moveTo(self, follower: Follower, tile: Tile):
+    def moveTo(self, follower: Follower | None, tile: Tile):
         self.tile = tile
-        self.follower = follower
-        pos = tile.findTokenDrawPos(follower)
-        self.drawpos = pos + Pos(0, 8)
+        if follower is not None:
+            self.follower = follower
+            pos = tile.findTokenDrawPos(follower)
+            self.drawpos = pos + Pos(0, 8)
     def putBackToHand(self, reason: 'HomeReason'):
         self.follower = None
         self.tile = None
@@ -1182,6 +1199,14 @@ class Ranger(Figure):
         return pos not in self.board.tiles and any(pos + dr in self.board.tiles for dr in Dir)
     def moveTo(self, pos: Pos):
         self.pos = pos
+    def savePlaceExtra(self, dct: 'TokenPlaceSave'):
+        if self.pos is not None:
+            dct["ranger_x"] = self.pos.x
+            dct["ranger_y"] = self.pos.y
+        return dct
+    def loadPlaceExtra(self, dct: 'TokenPlaceSave'):
+        if (x := dct.get("ranger_x")) is not None and (y := dct.get("ranger_y")) is not None:
+            self.pos = Pos(x, y)
     key = (14, 0)
     name = "护林员"
 class Gingerbread(Figure):
@@ -1209,22 +1234,28 @@ class Phantom(Follower):
         return self.board.tokenimgs[13].crop(((id % 3) * 17, (id // 3) * 14, (id % 3 + 1) * 17, (id // 3 + 1) * 14))
     key = (13, 4)
     name = "幽灵"
-class King(Figure):
+class KingAndRobber(Figure):
     def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
         super().__init__(parent, data, img)
         self.max: int = 0
         self.complete_citys: list[Object] = []
+    def savePlaceExtra(self, dct: 'TokenPlaceSave'):
+        dct["king_robber_max"] = self.max
+        dct["king_robber_completed"] = [obj.segments[0].save() for obj in self.complete_citys]
+        return dct
+    def loadPlaceExtra(self, dct: 'TokenPlaceSave'):
+        self.max = dct["king_robber_max"]
+        for save in dct["king_robber_completed"]:
+            pos = Pos(save["tile_x"], save["tile_y"])
+            seg = self.board.tiles[pos].segments[save["segment_id"]]
+            self.complete_citys.append(seg.object)
+    canEatByDragon = False
+class King(KingAndRobber):
     key = (6, 0)
     name = "国王"
-    canEatByDragon = False
-class Robber(Figure):
-    def __init__(self, parent: 'Player | Board', data: dict[str, Any], img: Image.Image) -> None:
-        super().__init__(parent, data, img)
-        self.max: int = 0
-        self.complete_roads: list[Object] = []
+class Robber(KingAndRobber):
     key = (6, 1)
     name = "小偷"
-    canEatByDragon = False
 class Gold(TileFigure):
     key = (13, 0)
     name = "金块"
@@ -1281,6 +1312,14 @@ class Shepherd(Figure):
         text = str(sum(self.sheeps))
         dr.text((18, 18), text, "black", font, "mm")
         return img
+    def savePlaceExtra(self, dct: 'TokenPlaceSave'):
+        super().savePlaceExtra(dct)
+        from copy import copy
+        dct["shepherd"] = copy(self.sheeps)
+        return dct
+    def loadPlaceExtra(self, dct: 'TokenPlaceSave'):
+        from copy import copy
+        self.sheeps = copy(dct["shepherd"])
     key = (9, 0)
     name = "牧羊人"
     canPutTypes = (FieldSegment,)
@@ -1340,7 +1379,7 @@ AbbeyData.segments.append(FeatureSegmentData("Cloister", Pos(32, 32), [], AbbeyD
 from .ccs_extra import LandCity, LandRoad, LandMonastry, ScoreReason, HomeReason
 from .ccs_extra import ccsCityStat, ccsGameStat, ccsRoadStat, ccsFieldStat, ccsMonastryStat, ccsMeepleStat, ccsTowerStat
 from .ccs_player import Player
-from .ccs_helper import RecieveId, TileSave, TokenPlaceSave
+from .ccs_helper import RecieveId, TileSave, TokenPlaceSave, TokenSave, SegmentSave
 from .ccs_board import Board
 
 if __name__ == "__main__":

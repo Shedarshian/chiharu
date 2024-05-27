@@ -917,8 +917,8 @@ class Player:
                         for player in self.board.players:
                             player.robber = False
                         self.robber = True
-                    if obj not in self.board.robber.complete_roads:
-                        self.board.robber.complete_roads.append(obj)
+                    if obj not in self.board.robber.complete_citys:
+                        self.board.robber.complete_citys.append(obj)
             if (yield from obj.score(ifBarn)):
                 gingered = True
         yield from self.turnMoveWagon(objects)
@@ -1204,7 +1204,7 @@ class Player:
             if self.board.checkPack(6, 'b'):
                 score_str = score_str[:-1] + "+" + str(len(self.board.king.complete_citys) if self.king else 0) + score_str[-1]
             if self.board.checkPack(6, 'c'):
-                score_str = score_str[:-1] + "+" + str(len(self.board.robber.complete_roads) if self.robber else 0) + score_str[-1]
+                score_str = score_str[:-1] + "+" + str(len(self.board.robber.complete_citys) if self.robber else 0) + score_str[-1]
             if self.board.checkPack(13, 'd'):
                 gold_num = sum(1 for token in self.tokens if isinstance(token, Gold))
                 score_str = score_str[:-1] + "+" + str(Gold.score(gold_num)) + score_str[-1]
@@ -1310,12 +1310,23 @@ class Player:
                 dr.text((166 + i * 96, 48), "R", "black", font, "lm")
         return img
 
+    def findSavedTokenInHand(self, name: str):
+        return more_itertools.first(token for token in self.tokens if token.__class__.__name__ == name)
     def save(self):
         dct: PlayerSave = {"name": self.user.name,
                            "user_id": self.user.user_id,
                            "score": self.score,
                            "score2": self.score2,
                            "handtiles": [repr(t.serialNumber) for t in self.handTiles]}
+        if self.board.checkPack(2, 'd'):
+            dct["tradeCounter"] = self.tradeCounter
+        if self.board.checkPack(4, 'b'):
+            dct["towerPieces"] = self.towerPieces
+            dct["prisoners"] = [token.save() for token in self.prisoners]
+        if self.board.checkPack(5, 'b'):
+            dct["hasAbbey"] = self.hasAbbey
+        if self.board.checkPack(14, 'a'):
+            dct["gifts"] = [g.id for g in self.gifts]
         return dct
     def load(self, dct: 'PlayerSave'):
         self.score = dct["score"]
@@ -1324,6 +1335,17 @@ class Player:
             tile = more_itertools.first(tile for tile in self.board.deck if repr(tile.serialNumber) == t)
             self.board.deck.remove(tile)
             self.handTiles.append(tile)
+        if self.board.checkPack(2, 'd'):
+            self.tradeCounter = dct["tradeCounter"]
+        if self.board.checkPack(4, 'b'):
+            self.towerPieces = dct["towerPieces"]
+            self.prisoners.extend(self.board.players[t2["player_id"]].findSavedTokenInHand(t2["name"]) # type: ignore
+                                  for t2 in dct["prisoners"]) # type: ignore
+        if self.board.checkPack(5, 'b'):
+            self.hasAbbey = dct["hasAbbey"]
+        if self.board.checkPack(14, 'a'):
+            for i in dct["gifts"]:
+                self.gifts.append(more_itertools.first(g for g in self.board.giftDeck if g.id == i))
 
 from .ccs import Tile, Segment, Object, Feature, Token, Follower, FieldSegment
 from .ccs import State, Connectable, Dir, CanScore, TAsync, Acrobat, Circus

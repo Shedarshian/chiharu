@@ -73,11 +73,23 @@ def turn(pos: Pos, dir: Dir):
         return Pos(64, 64) - pos
     return Pos(pos.y, 64 - pos.x)
 
+class TokenSave(TypedDict):
+    name: str
+    player_id: int | None
+class SegmentSave(TypedDict):
+    tile_x: int
+    tile_y: int
+    segment_id: int
 class TokenPlaceSave(TypedDict):
     name: str
     place: Literal['segment', 'feature', 'tile']
     player_id: NotRequired[int]
     segment_id: NotRequired[int]
+    king_robber_max: NotRequired[int]
+    king_robber_completed: NotRequired[list[SegmentSave]]
+    shepherd: NotRequired[list[int]]
+    ranger_x: NotRequired[int]
+    ranger_y: NotRequired[int]
 class TileSave(TypedDict):
     x: int
     y: int
@@ -90,6 +102,16 @@ class PlayerSave(TypedDict):
     score: int
     score2: int
     handtiles: list[str]
+    tradeCounter: NotRequired[list[int]]
+    towerPieces: NotRequired[int]
+    prisoners: NotRequired[list[TokenSave]]
+    hasAbbey: NotRequired[bool]
+    gifts: NotRequired[list[int]]
+class FairySave(TypedDict):
+    pos: list[int] | None
+    segment_id: NotRequired[int]
+    player_id: NotRequired[int]
+    follower_name: NotRequired[str]
 class BoardSave(TypedDict):
     pack: dict[int, str]
     start_tile_pack: int
@@ -98,6 +120,10 @@ class BoardSave(TypedDict):
     tiles: list[TileSave]
     players: list[PlayerSave]
     hills_len: NotRequired[int]
+    fairy: NotRequired[FairySave]
+    animals: NotRequired[list[int]]
+    messengerDiscard: NotRequired[list[int]]
+    giftDiscard: NotRequired[list[int]]
 
 class State(Enum):
     End = auto()
