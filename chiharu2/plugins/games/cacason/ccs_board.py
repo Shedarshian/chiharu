@@ -433,8 +433,8 @@ class Board:
             pss = sorted(ps.x for ps, dir in self.connected if ps.y == i and dir == Dir.DOWN)
             last = 0
             for x in pss:
-                dr.line(pos(last, j, (-10, 0)) + pos(last, j, (10, 0)), "gray")
-                dr.line(pos(last, j, (-10, 63)) + pos(last, j, (10, 63)), "gray")
+                dr.line(pos(last, j, (-10, 0)) + pos(x, j, (10, 0)), "gray")
+                dr.line(pos(last, j, (-10, 63)) + pos(x, j, (10, 63)), "gray")
                 last = x + 1
             dr.line(pos(last, j, (-10, 0)) + pos(width + 1, j, (10, 0)), "gray")
             dr.line(pos(last, j, (-10, 63)) + pos(width + 1, j, (10, 63)), "gray")
