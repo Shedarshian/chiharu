@@ -124,6 +124,7 @@ class BoardSave(TypedDict):
     animals: NotRequired[list[int]]
     messengerDiscard: NotRequired[list[int]]
     giftDiscard: NotRequired[list[int]]
+    landDiscard: NotRequired[list[list[str]]]
 
 class State(Enum):
     End = auto()

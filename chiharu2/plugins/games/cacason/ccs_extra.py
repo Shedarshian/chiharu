@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from datalite import datalite
+from datalite import datalite # type: ignore
 from enum import IntEnum
 from dataclasses import dataclass
 from enum import Enum, auto

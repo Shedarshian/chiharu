@@ -24,7 +24,7 @@ class Board:
         self.players: list[Player] = [Player(self, i, p) for i, p in enumerate(players)]
         self.tokenimgs: dict[int, Image.Image] = {}
         self.allTileimgs: dict[tuple[int, str, int, int], Image.Image] = {}
-        self.connected: list[tuple[Pos, Dir]] = [] # TODO
+        self.connected: list[tuple[Pos, Literal[Dir.RIGHT] | Literal[Dir.DOWN]]] = []
         self.placeOrder: list[Pos] = []
         self.start_tile_pack: int = start_tile_pack
         start_tile: Tile | None = None
@@ -90,7 +90,7 @@ class Board:
             self.tiles[Pos(0, 0)] = start_tile
             self.connected.append((Pos(0, 0), Dir.RIGHT))
             if self.checkPack(7, "d"):
-                start_tile2 = [t for t in self.riverDeck if t.serialNumber == (7, "1323", 1, 0)][0]
+                start_tile2 = more_itertools.first(t for t in self.riverDeck if t.serialNumber == (7, "1323", 1, 0))
                 self.popRiverTile(start_tile2)
                 self.tiles[Pos(1, 0)] = start_tile2
                 self.tiles[Pos(0, 0)].addConnect(self.tiles[Pos(1, 0)], Dir.RIGHT)
@@ -417,13 +417,25 @@ class Board:
         dr.line(pos(0, 0, (-10, -10)) + pos(0, height + 1, (-10, 10)), "gray")
         dr.line(pos(0, 0, (-1, -10)) + pos(0, height + 1, (-1, 10)), "gray")
         for i in range(0, width + 1):
-            dr.line(pos(i, 0, (0, -10)) + pos(i, height + 1, (0, 10)), "gray")
-            dr.line(pos(i, 0, (63, -10)) + pos(i, height + 1, (63, 10)), "gray")
+            pss = sorted(ps.y for ps, dir in self.connected if ps.x == i and dir == Dir.RIGHT)
+            last = 0
+            for y in pss:
+                dr.line(pos(i, last, (0, -10)) + pos(i, y, (0, 10)), "gray")
+                dr.line(pos(i, last, (63, -10)) + pos(i, y, (63, 10)), "gray")
+                last = y + 1
+            dr.line(pos(i, last, (0, -10)) + pos(i, height + 1, (0, 10)), "gray")
+            dr.line(pos(i, last, (63, -10)) + pos(i, height + 1, (63, 10)), "gray")
         dr.line(pos(width + 1, 0, (0, -10)) + pos(width + 1, height + 1, (0, 10)), "gray")
         dr.line(pos(width + 1, 0, (10, -10)) + pos(width + 1, height + 1, (10, 10)), "gray")
         dr.line(pos(0, 0, (-10, -10)) + pos(width + 1, 0, (10, -10)), "gray")
         dr.line(pos(0, 0, (-10, -1)) + pos(width + 1, 0, (10, -1)), "gray")
         for j in range(0, height + 1):
+            pss = sorted(ps.x for ps, dir in self.connected if ps.y == i and dir == Dir.DOWN)
+            last = 0
+            for x in pss:
+                dr.line(pos(last, j, (-10, 0)) + pos(last, j, (10, 0)), "gray")
+                dr.line(pos(last, j, (-10, 63)) + pos(last, j, (10, 63)), "gray")
+                last = x + 1
             dr.line(pos(0, j, (-10, 0)) + pos(width + 1, j, (10, 0)), "gray")
             dr.line(pos(0, j, (-10, 63)) + pos(width + 1, j, (10, 63)), "gray")
         dr.line(pos(0, height + 1, (-10, 0)) + pos(width + 1, height + 1, (10, 0)), "gray")
@@ -1189,6 +1201,8 @@ class Board:
             dct["messengerDiscard"] = [m.id for m in self.messengerDiscard]
         if self.checkPack(14, 'a'):
             dct["giftDiscard"] = [m.id for m in self.giftDiscard]
+        if self.checkPack(15, "a"):
+            dct["landDiscard"] = [[x.name for x in c] for c in (self.landCityDiscard, self.landRoadDiscard, self.landMonastryDiscard)] # type: ignore
         from ...helper.helper import rel
         with open(rel(f"cacason_save/{self.group_id}.json"), 'w') as f:
             json.dump(dct, f, ensure_ascii=False, indent=4)
@@ -1241,6 +1255,19 @@ class Board:
                 gift = more_itertools.first(g for g in board.giftDeck if g.id == i)
                 board.giftDeck.remove(gift)
                 board.giftDiscard.append(gift)
+        if board.checkPack(15, "a"):
+            for i2 in dct["landDiscard"][0]:
+                land = more_itertools.first(g for g in board.landCity if g.name == i2)
+                board.landCity.remove(land)
+                board.landCityDiscard.append(land)
+            for i2 in dct["landDiscard"][1]:
+                land2 = more_itertools.first(g for g in board.landRoad if g.name == i2)
+                board.landRoad.remove(land2)
+                board.landRoadDiscard.append(land2)
+            for i2 in dct["landDiscard"][1]:
+                land3 = more_itertools.first(g for g in board.landMonastry if g.name == i2)
+                board.landMonastry.remove(land3)
+                board.landMonastryDiscard.append(land3)
 
 from .ccs import Tile, Segment, Token, Gold, Dragon, Fairy, Robber, Ranger, Gingerbread, CanScore
 from .ccs import Cloister, Shrine, BaseCloister, Object, Barn, Follower, Tower, TAsync, King, Bigtop, Circus
