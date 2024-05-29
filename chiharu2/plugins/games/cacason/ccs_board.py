@@ -436,8 +436,8 @@ class Board:
                 dr.line(pos(last, j, (-10, 0)) + pos(last, j, (10, 0)), "gray")
                 dr.line(pos(last, j, (-10, 63)) + pos(last, j, (10, 63)), "gray")
                 last = x + 1
-            dr.line(pos(0, j, (-10, 0)) + pos(width + 1, j, (10, 0)), "gray")
-            dr.line(pos(0, j, (-10, 63)) + pos(width + 1, j, (10, 63)), "gray")
+            dr.line(pos(last, j, (-10, 0)) + pos(width + 1, j, (10, 0)), "gray")
+            dr.line(pos(last, j, (-10, 63)) + pos(width + 1, j, (10, 63)), "gray")
         dr.line(pos(0, height + 1, (-10, 0)) + pos(width + 1, height + 1, (10, 0)), "gray")
         dr.line(pos(0, height + 1, (-10, 10)) + pos(width + 1, height + 1, (10, 10)), "gray")
         # last pos
