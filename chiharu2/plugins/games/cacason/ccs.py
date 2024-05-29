@@ -109,7 +109,7 @@ class Tile:
         self.packid = data.packid
         self.id = data.id
         self.sub_id = data.sub_id
-        self.sides = tuple({"C": Connectable.City, "R": Connectable.Road, "F": Connectable.Field, "S": Connectable.River}[c] for c in data.sides)
+        self.sides = tuple(Connectable.fromChar(c) for c in data.sides)
         self.img: Image.Image = board.abbeyImg if isAbbey else data.img
         self.segments: list[Segment] = []
         self.features: list[Feature] = []
@@ -162,12 +162,18 @@ class Tile:
         if self.connectTile[dir.value] is not None:
             return -1
         sides = tile.sides[4 - orient.value:] + tile.sides[:4 - orient.value]
-        if self.sides[dir.value] != sides[(-dir).value]:
-            return -2
-        return 1
+        if self.sides[dir.value] == sides[(-dir).value] or \
+            self.sides[dir.value] == Connectable.Gate and sides[(-dir).value] in (Connectable.Field, Connectable.Road) or \
+            sides[(-dir).value] == Connectable.Gate and self.sides[dir.value] in (Connectable.Field, Connectable.Road):
+            return 1
+        return -2
     def addConnect(self, tile: 'Tile', dir: Dir):
         if (s1 := self.sidesToSegment(dir)) is not None and (s2 := tile.sidesToSegment(-dir)) is not None:
             s1.combine(s2, dir)
+        if tile.sides[(-dir).value] == Connectable.Gate and s1 is not None:
+            s1.closeAbbey(dir)
+        if self.sides[dir.value] == Connectable.Gate and s2 is not None:
+            s2.closeAbbey(-dir)
         if (s1 := self.sidesToSegmentA(dir, False)) is not None and (s2 := tile.sidesToSegmentA(-dir, True)) is not None:
             s1.combineA(s2, dir, False)
         if (s1 := self.sidesToSegmentA(dir, True)) is not None and (s2 := tile.sidesToSegmentA(-dir, False)) is not None:
@@ -233,7 +239,7 @@ class Tile:
         img.paste(self.img)
         ci = 1
         for i, c in zip(range(4), self.sides):
-            dr.rectangle([(0, 0, 64, 2), (62, 0, 64, 64), (0, 62, 64, 64), (0, 0, 2, 64)][i], {Connectable.City: "brown", Connectable.Field: "green", Connectable.Road: "black", Connectable.River: "blue"}[c])
+            dr.rectangle([(0, 0, 64, 2), (62, 0, 64, 64), (0, 62, 64, 64), (0, 0, 2, 64)][i], {Connectable.City: "brown", Connectable.Field: "green", Connectable.Road: "black", Connectable.River: "blue", Connectable.Gate: "purple"}[c])
         citycorrs: list[tuple[float, float]] = []
         for seg in self.segments:
             corr = seg.drawPos(1)[0]

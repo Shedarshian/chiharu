@@ -14,9 +14,10 @@ class Connectable(Enum):
     Field = auto()
     Road = auto()
     River = auto()
+    Gate = auto()
     @classmethod
     def fromChar(cls, char: str):
-        return {"C": Connectable.City, "F": Connectable.Field, "R": Connectable.Road, "S": Connectable.River}[char]
+        return {"C": Connectable.City, "F": Connectable.Field, "R": Connectable.Road, "S": Connectable.River, "G": Connectable.Gate}[char]
 class TileAddable(Enum):
     No = auto()
     Volcano = auto()
