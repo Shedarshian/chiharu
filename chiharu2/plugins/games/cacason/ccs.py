@@ -615,7 +615,7 @@ class Object(CanScore):
         players = [(p, score) for p in ps]
         return players
     def checkBarn(self):
-        return self.board.checkPack(5, 'e') and self.type == Connectable.Field and any(isinstance(token, Barn) for token in self.iterTokens())
+        return self.board.checkPack(5, 'e') and self.type == Connectable.Field and self.checkToken(Barn)
     def checkPlayer(self, complete: bool) -> 'list[Player]':
         if self.board.checkPack(15, "a") and complete and self.type == Connectable.City and self.board.landCity[0] == LandCity.CitizensJury:
             players = []
@@ -628,7 +628,7 @@ class Object(CanScore):
         match self.type:
             case Connectable.City:
                 base = 2 if complete else 1
-                if self.board.checkPack(1, "d") and any(seg.addable == Addable.Cathedral for seg in self.segments):
+                if self.board.checkPack(1, "d") and self.checkAddable(Addable.Cathedral):
                     if complete:
                         base += 1
                     else:
@@ -645,7 +645,7 @@ class Object(CanScore):
                 new_players: list[tuple[Player, int]] = [(player, score) for player in players]
             case Connectable.Road:
                 base = 1
-                if self.board.checkPack(1, "c") and any(seg.addable == Addable.Inn for seg in self.segments):
+                if self.board.checkPack(1, "c") and self.checkAddable(Addable.Inn):
                     if complete:
                         base += 1
                     else:
@@ -665,9 +665,9 @@ class Object(CanScore):
                     new_players = []
                     for player in players:
                         base = 3 if putBarn else 1
-                        if any(isinstance(token, Pig) and token.player is player for token in self.iterTokens()):
+                        if self.checkToken(lambda token: isinstance(token, Pig) and token.player is player):
                             base += 1
-                        elif any(seg.addable == Addable.Pigherd for seg in self.segments):
+                        elif self.checkAddable(Addable.Pigherd):
                             base += 1
                         new_players.append((player, base * len(complete_city)))
                 else:
@@ -683,7 +683,7 @@ class Object(CanScore):
             return
         ts = [token for seg in self.segments for token in seg.tokens if isinstance(token, (Builder, Pig))]
         for t in ts:
-            if not any(token.player is t.player for seg in self.segments for token in seg.tokens if isinstance(token, Follower)):
+            if not self.checkToken(lambda token: isinstance(token, Follower) and token.player is t.player):
                 from .ccs_helper import LogPutBackBuilder
                 assert isinstance(t.player, Player)
                 self.board.addLog(LogPutBackBuilder(t.player.long_name, t.__class__.__name__))
@@ -699,7 +699,7 @@ class Object(CanScore):
     def scoreFinal(self, ifExtra: bool=True):
         super().scoreFinal(ifExtra)
         # barn
-        if self.type == Connectable.Field and any(isinstance(token, Barn) for seg in self.segments for token in seg.tokens):
+        if self.type == Connectable.Field and self.checkToken(Barn):
             players = self.checkBarnAndScore()
             for player, score in players:
                 if score != 0:
@@ -746,6 +746,16 @@ class Object(CanScore):
                     stat3.pigherd = sum(1 for seg in self.segments if seg.addable == Addable.Pigherd)
                     stat3.pig = json.dumps([token.player.id for token in self.iterTokens() if isinstance(token, Pig) and isinstance(token.player, Player)])
                 self.board.stats[2].append(stat3)
+    def checkToken(self, criteria: 'Callable[[Token], bool] | type[Token] | tuple[type[Token], ...]'):
+        if isinstance(criteria, (type, tuple)):
+            return any(isinstance(token, criteria) for token in self.iterTokens())
+        return any(criteria(token) for token in self.iterTokens())
+    def checkAddable(self, criteria: 'Callable[[Segment], bool] | Addable | tuple[Addable,...]'):
+        if isinstance(criteria, Addable):
+            return any(seg.addable == criteria for seg in self.segments)
+        if isinstance(criteria, tuple):
+            return any(seg.addable in criteria for seg in self.segments)
+        return any(criteria(seg) for seg in self.segments)
 
 TCloister = TypeVar('TCloister', bound='BaseCloister')
 class Feature:
@@ -1098,7 +1108,7 @@ class Builder(Figure):
         if not super().canPut(seg):
             return False
         if isinstance(seg, Segment):
-            return any(t.player is self.player for s in seg.object.segments for t in s.tokens if isinstance(t, Follower))
+            return seg.object.checkToken(lambda token: isinstance(token, Follower) and token.player is self.player)
         return False
     canPutTypes = (CitySegment, RoadSegment)
     key = (2, 0)
@@ -1108,7 +1118,7 @@ class Pig(Figure):
         if not super().canPut(seg):
             return False
         if isinstance(seg, FieldSegment):
-            return any(t.player is self.player for s in seg.object.segments for t in s.tokens if isinstance(t, Follower))
+            return seg.object.checkToken(lambda token: isinstance(token, Follower) and token.player is self.player)
         return False
     canPutTypes = (FieldSegment,)
     key = (2, 1)
@@ -1276,7 +1286,7 @@ class Shepherd(Figure):
     def canPut(self, seg: Segment | Feature | Tile):
         if not super().canPut(seg):
             return False
-        if isinstance(seg, FieldSegment) and any(isinstance(t, Shepherd) for t in seg.object.iterTokens()):
+        if isinstance(seg, FieldSegment) and seg.object.checkToken(Shepherd):
             return False
         return True
     def putBackToHand(self, reason: 'HomeReason'):
@@ -1332,9 +1342,11 @@ class Shepherd(Figure):
 class Mage(Figure):
     key = (13, 1)
     name = "法师"
+    canPutTypes = (CitySegment, RoadSegment)
 class Witch(Figure):
     key = (13, 2)
     name = "女巫"
+    canPutTypes = (CitySegment, RoadSegment)
 class Bigtop(Figure):
     key = (10, 0)
     name = "马戏帐篷"

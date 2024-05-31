@@ -96,7 +96,7 @@ class Player:
     def giftsText(self):
         return "\n".join(str(i + 1) + "." + card.name for i, card in enumerate(self.gifts))
 
-    def utilityChoosingFollower(self, special: str, criteria: 'Callable[[Token], bool] | None'=None,
+    def utilityChoosingFollower(self, special: str, criteria: 'Callable[[Follower], bool] | None'=None,
             pos_beg: Pos | None=None) -> 'TAsync[Follower | None]':
         pass_err: Literal[0, -1, -2, -3, -4] = 0
         if criteria is None:
