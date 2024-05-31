@@ -925,8 +925,10 @@ class Player:
             if (yield from obj.score(ifBarn)):
                 gingered = True
         yield from self.turnMoveWagon(objects)
+        from .ccs import Mage, Witch
         for obj in objects:
             obj.removeAllFollowers(HomeReason.Score)
+            obj.removeAllFollowers(HomeReason.Score, criteria=lambda t: isinstance(t, (Mage, Witch)))
         if self.board.checkPack(10, 'b'):
             tops = [f for f in tile.features if isinstance(f, Circus)]
             if len(tops) > 0:

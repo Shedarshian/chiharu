@@ -1,4 +1,4 @@
-from typing import Literal, Any, Type, Callable, Awaitable, Protocol
+from typing import Literal, Any, Type, Callable, Awaitable, Protocol, TypeVar
 from collections import Counter
 import random, more_itertools, json, re
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
@@ -7,6 +7,7 @@ from .ccs_helper import CantPutError, NoDeckEnd, TileAddable
 from .ccs_helper import findAllMax, State, Log, Send, Recieve
 from ...helper.helper import User, DiscordUser
 
+TToken = TypeVar('TToken', bound="Token")
 class SendFunc(Protocol):
     def __call__(self, first: Any, /, private: bool=False, user: list[User] | User | None=None) -> Awaitable:
         ...
@@ -152,14 +153,14 @@ class Board:
         self.log: list[Log] = []
         self.stats: tuple[list[ccsCityStat], list[ccsRoadStat], list[ccsFieldStat], list[ccsMonastryStat], list[ccsMeepleStat]] = ([], [], [], [], [])
         if self.checkPack(3, "b"):
-            self.dragon = [token for token in self.tokens if isinstance(token, Dragon)][0]
+            self.dragon = self.findToken(Dragon)
             self.dragonMoved: list[Tile] = []
         if self.checkPack(3, "c"):
-            self.fairy = [token for token in self.tokens if isinstance(token, Fairy)][0]
+            self.fairy = self.findToken(Fairy)
         if self.checkPack(6, "b"):
-            self.king = [token for token in self.tokens if isinstance(token, King)][0]
+            self.king = self.findToken(King)
         if self.checkPack(6, "c"):
-            self.robber = [token for token in self.tokens if isinstance(token, Robber)][0]
+            self.robber = self.findToken(Robber)
         if self.checkPack(9, 'b'):
             self.sheeps = [1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, -1, -1]
             random.shuffle(self.sheeps)
@@ -168,7 +169,10 @@ class Board:
         if self.checkPack(10, 'b'):
             self.animals = [1, 3, 3, 3, 3, 4, 4, 4, 4, 4, 5, 5, 5, 6, 6, 7]
             random.shuffle(self.animals)
-            self.bigtop = [token for token in self.tokens if isinstance(token, Bigtop)][0]
+            self.bigtop = self.findToken(Bigtop)
+        if self.checkPack(13, 'f'):
+            self.mage = self.findToken(Mage)
+            self.witch = self.findToken(Witch)
         if self.checkPack(14, 'a'):
             self.giftDeck = [Gift.make(i)() for i in range(5) for _ in range(5)]
             random.shuffle(self.giftDeck)
@@ -178,9 +182,9 @@ class Board:
             random.shuffle(self.messengerDeck)
             self.messengerDiscard: list[Messenger] = []
         if self.checkPack(14, "b"):
-            self.ranger = [token for token in self.tokens if isinstance(token, Ranger)][0]
+            self.ranger = self.findToken(Ranger)
         if self.checkPack(14, "d"):
-            self.gingerbread = [token for token in self.tokens if isinstance(token, Gingerbread)][0]
+            self.gingerbread = self.findToken(Gingerbread)
         if self.checkPack(15, "a"):
             self.landCity = [x for x in LandCity]
             random.shuffle(self.landCity)
@@ -192,6 +196,8 @@ class Board:
             random.shuffle(self.landMonastry)
             self.landMonastryDiscard: list[LandMonastry] = []
         self.imageArgs: dict[str, Any] = {}
+    def findToken(self, token: 'type[TToken]') -> TToken:
+        return more_itertools.first(t for t in self.tokens if isinstance(t, token))
     def checkPack(self, packid: int, thingid: str):
         return packid in self.packs_options and thingid in self.packs_options[packid]
     @property
@@ -1270,7 +1276,7 @@ class Board:
                 board.landMonastryDiscard.append(land3)
 
 from .ccs import Tile, Segment, Token, Gold, Dragon, Fairy, Robber, Ranger, Gingerbread, CanScore
-from .ccs import Cloister, Shrine, BaseCloister, Object, Barn, Follower, Tower, TAsync, King, Bigtop, Circus
+from .ccs import Cloister, Shrine, BaseCloister, Object, Barn, Follower, Tower, TAsync, King, Bigtop, Circus, Mage, Witch
 from .ccs_extra import Gift, LandCity, LandRoad, LandMonastry, ScoreReason, HomeReason, Messenger
 from .ccs_extra import ccsCityStat, ccsGameStat, ccsRoadStat, ccsFieldStat, ccsMonastryStat, ccsMeepleStat, ccsTowerStat
 from .ccs_player import Player
