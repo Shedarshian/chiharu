@@ -356,6 +356,9 @@ class Player:
                     return True
         return False
         yield {}
+    def turnMageWitch(self) -> 'TAsync[None]':
+        return
+        yield
 
     def turnPutFollower(self, tile: 'Tile', pos: Pos, rangered: bool) -> 'TAsync[bool]':
         pass_err: int = 0
@@ -1150,6 +1153,10 @@ class Player:
                         remainTurns += 1
                         buildered = True
             tile = self.board.tiles[pos]
+
+            # check mage & witch TODO check connecting
+            if self.board.checkPack(13, "f") and tile.addable == TileAddable.MageWitch:
+                yield from self.turnMageWitch()
 
             # check dragon
             if self.board.checkPack(3, "b") and tile.addable == TileAddable.Volcano:

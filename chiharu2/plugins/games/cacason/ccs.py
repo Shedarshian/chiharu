@@ -637,6 +637,10 @@ class Object(CanScore):
                 if self.board.checkPack(15, "a") and complete and self.board.landCity[0] == LandCity.Siege:
                     base_pennant += 1
                 score = base * self.checkTile(self.board.checkPack(15, "a") and complete and self.board.landCity[0] == LandCity.BadNeighborhood) + base_pennant * self.checkPennant()
+                if self.board.checkPack(13, "f") and self.checkToken(Mage):
+                    score += self.checkTile()
+                if self.board.checkPack(13, "f") and self.checkToken(Witch):
+                    score = score // 2
                 if self.board.checkPack(15, "a") and complete:
                     if self.board.landCity[0] == LandCity.Wealth:
                         score += 3
@@ -653,6 +657,10 @@ class Object(CanScore):
                 if self.board.checkPack(15, "a") and complete and self.board.landRoad[0] == LandRoad.StreetFair:
                     base += 1
                 score = base * self.checkTile(self.board.checkPack(15, "a") and complete and self.board.landRoad[0] == LandRoad.PeasantUprising)
+                if self.board.checkPack(13, "f") and self.checkToken(Mage):
+                    score += self.checkTile()
+                if self.board.checkPack(13, "f") and self.checkToken(Witch):
+                    score = score // 2
                 if self.board.checkPack(15, "a") and complete:
                     if self.board.landRoad[0] == LandRoad.Poverty:
                         score -= 3
