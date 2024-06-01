@@ -72,8 +72,8 @@ class PlayerPos(IntEnum):
     NAN = 1
     SHA = 2
     PE = 3
-    def __sub__(self, other) -> FuuRoStatus:
-        v = other.value - self.value - 1
+    def fuuro(self, other: 'PlayerPos'):
+        v = other - self - 1
         if v < 0:
             v += 4
         return FuuRoStatus(v)
@@ -97,7 +97,7 @@ class FuuRo(Generic[H]):
     def __init__(self, status: FuuRoStatus, hai: tuple[H,...]):
         self.status = status
         self.hai = hai
-        self.sorted = tuple(sorted(map(lambda x: x.num, hai)))
+        self.sorted = tuple(sorted(x.num for x in hai))
     def __str__(self):
         return '(%s %s %s)' % (self.status.what_str, self.status.who_str, ' '.join(map(str, self.hai)))
     @property
@@ -107,10 +107,10 @@ class FuuRo(Generic[H]):
     def isValid(self):
         if self.status.what == FuuRoStatus.QI:
             return len(self.hai) == 3 \
-                and functools.reduce(lambda x, y: x and y, map(lambda x: x.barrel == self.hai[0].barrel, self.hai)) \
+                and all(x.barrel == self.hai[0].barrel for x in self.hai) \
                 and self.sorted[2] == self.sorted[1] + 1 == self.sorted[0] + 2
         else:
-            return functools.reduce(lambda x, y: x and y, map(lambda x: x.hai == self.hai[0].hai, self.hai)) \
+            return all(x.hai == self.hai[0].hai for x in self.hai) \
                 and (self.status.what == FuuRoStatus.PON and len(self.hai) == 3 \
                 or self.status.what != FuuRoStatus.PON and len(self.hai) == 4)
 
