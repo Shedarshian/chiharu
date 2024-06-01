@@ -523,9 +523,12 @@ class RoadSegment(LineSegment):
         return (1, super().key())
     def __init__(self, tile: Tile, data: RoadSegmentData) -> None:
         super().__init__(tile, data.side, data.lines)
+        self.well: int = 0
         for addable in data.addables:
             if addable.feature in Shed.__members__:
                 self.shed = Shed[addable.feature]
+            elif addable.feature == "well":
+                self.well += 1
             elif tile.board.checkPack(1, "c") and addable.feature == "Inn":
                 self.addable = Addable.Inn
 class RiverSegment(LineSegment):
@@ -599,6 +602,8 @@ class Object(CanScore):
         return len(self.getTile())
     def checkPennant(self):
         return sum(seg.pennant for seg in self.segments if isinstance(seg, CitySegment))
+    def checkWell(self):
+        return sum(seg.well for seg in self.segments if isinstance(seg, RoadSegment))
     def checkBarnAndScore(self) -> 'list[tuple[Player, int]]':
         ps: list[Player] = []
         for token in self.iterTokens():
@@ -636,7 +641,8 @@ class Object(CanScore):
                 base_pennant = base
                 if self.board.checkPack(15, "a") and complete and self.board.landCity[0] == LandCity.Siege:
                     base_pennant += 1
-                score = base * self.checkTile(self.board.checkPack(15, "a") and complete and self.board.landCity[0] == LandCity.BadNeighborhood) + base_pennant * self.checkPennant()
+                score = base * self.checkTile(self.board.checkPack(15, "a") and complete and self.board.landCity[0] == LandCity.BadNeighborhood)\
+                      + base_pennant * self.checkPennant()
                 if self.board.checkPack(13, "f") and self.checkToken(Mage):
                     score += self.checkTile()
                 if self.board.checkPack(13, "f") and self.checkToken(Witch):
@@ -656,7 +662,8 @@ class Object(CanScore):
                         base = 0
                 if self.board.checkPack(15, "a") and complete and self.board.landRoad[0] == LandRoad.StreetFair:
                     base += 1
-                score = base * self.checkTile(self.board.checkPack(15, "a") and complete and self.board.landRoad[0] == LandRoad.PeasantUprising)
+                score = base * self.checkTile(self.board.checkPack(15, "a") and complete and self.board.landRoad[0] == LandRoad.PeasantUprising) \
+                      + base * self.checkWell()
                 if self.board.checkPack(13, "f") and self.checkToken(Mage):
                     score += self.checkTile()
                 if self.board.checkPack(13, "f") and self.checkToken(Witch):
@@ -737,6 +744,7 @@ class Object(CanScore):
                 self.board.stats[0].append(stat)
             case Connectable.Road:
                 stat2 = ccsRoadStat(0, players, len(self.getTile()), complete, score[0][1], scores)
+                stat2.wells = self.checkWell()
                 if self.board.checkPack(1, "c"):
                     stat2.inn = sum(1 for seg in self.segments if seg.addable == Addable.Inn)
                 if self.board.checkPack(13, "f"):

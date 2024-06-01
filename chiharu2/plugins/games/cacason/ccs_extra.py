@@ -382,6 +382,7 @@ class ccsRoadStat:
     scores: str = ''
     inn: int = 0
     ferry: int = 0
+    wells: int = 0
     mage_witch: int = 0
     land_surveyor: int = 0
 @dataclass
