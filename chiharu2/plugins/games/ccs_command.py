@@ -1,6 +1,6 @@
 # mypy: disable-error-code="typeddict-item"
 from typing import Dict, Any, Callable, Awaitable, Literal
-import re, random, json, datetime, itertools
+import re, random, json, datetime, itertools, more_itertools
 from collections import defaultdict
 from nonebot.typing import T_State
 from nonebot.params import Depends, EventMessage
@@ -159,7 +159,17 @@ async def ccs_process(matcher: Matcher, state: T_State,
         await matcher.send("你手中的礼物卡有：" + board.players[user_id].giftsText(), ensure_private=True)
     if len(data['players']) != 1 and data['players'][board.current_player_id] != user:
         return
-
+    if len(data['players']) == 1 and data['players'][board.current_player_id] == user:
+        if command.startswith("修改起始") and (match := re.match(" *(\d+) ([A-Z]+) (\d+) (\d+)", command[5:])):
+            serial = int(match.group(1)), match.group(2), int(match.group(3)), int(match.group(4))
+            tile = more_itertools.first((t for t in board.deck if t.serialNumber == serial), None)
+            if tile is None:
+                await matcher.send("未找到此图块。")
+            else:
+                board.deck.remove(tile)
+                board.deck.insert(0, tile)
+                await matcher.send("已将此图块置于牌堆顶。")
+            return
     await board.parse_command(command, send, delete_func)
 
 
