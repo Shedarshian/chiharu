@@ -16,24 +16,16 @@ class Status:
         self.num = num
         self.same = [set(range(base))]
         self.history = []
-        self.same_stack = []
+    def set_same(self):
+        s = set(y for x in self.history for y in x[0])
+        self.same = [set((y,)) for y in s]
+        self.same.append(set(range(self.base)) - s)
     def set(self, p: Tuple[int, ...], result: Tuple[int, int]):
-        self.same_stack.append(deepcopy(self.same))
         self.history.append((p, result))
-        same2 = []
-        if len(self.same) == 1 and self.base != self.num:
-            self.same = [set(p), self.same[0] - set(p)]
-        else:
-            if len(self.same) == 2:
-                self.same = [{x} for x in self.same[0]] + self.same[1:]
-            self.same[-1] -= set(p)
-            self.same = [{x} for x in p] + self.same
-            self.same = [s for s in self.same if len(s) != 0]
-            self.same.sort(key=min)
-            self.same = list(more_itertools.unique_justseen(self.same))
+        self.set_same()
     def unset(self):
-        self.same = self.same_stack.pop()
         self.history.pop()
+        self.set_same()
     def space_gen(self):
         if len(self.history) == 0:
             self.space = list(itertools.permutations(range(self.base), self.num))
@@ -90,6 +82,47 @@ class Status:
                     yield (a, b)
     def valid_result(self, t: Tuple[int, ...]):
         return set(test(t, p) for p in self.space)
+    def tree_better(self, max=10, strategy=0):
+        assert(len(self.history) == 0)
+        self.space_gen()
+        todo = [((0, 1, 2, 3), list(self.valid_result((0, 1, 2, 3))), 0)]
+        tree = [{'id': 0, 'history': [], 'space_len': len(self.space), 'do': (0, 1, 2, 3), 'results': {}}]
+        # {'id': int, 'history': list, 'space_len': int, 'do': list, 'results': dict, 'success': tuple}
+        max_id = 1
+        print('todo {}'.format((0, 1, 2, 3)))
+        while len(todo):
+            if len(todo[-1][1]) == 0:
+                # 回溯
+                todo.pop()
+                if len(self.history) == 0:
+                    return tree
+                self.unset()
+            else:
+                r = todo[-1]
+                t = r[0]
+                res = r[1].pop(0)
+                self.set(t, res)
+                self.space_gen()
+                if len(self.space) == 1:
+                    # 结束
+                    tree.append({'id': max_id, 'history': deepcopy(self.history), 'space_len': len(self.space), 'success': self.space[0]})
+                    print('{} success'.format(self.history))
+                    self.unset()
+                else:
+                    m = self.check(strategy)
+                    s2 = set(m[0]) & set(self.space)
+                    if len(s2) != 0:
+                        m2 = min(s2)
+                    else:
+                        m2 = m[0][0]
+                    if len(self.history) <= max:
+                        todo.append((m2, list(self.valid_result(m2)), max_id))
+                    else:
+                        todo.append((m2, [], max_id))
+                    tree.append({'id': max_id, 'history': deepcopy(self.history), 'space_len': len(self.space), 'do': m2, 'results': {}})
+                    print('{} todo'.format(self.history))
+                tree[r[2]]['results'][str(res)] = max_id
+                max_id += 1
     def tree(self, max=10, strategy=0):
         assert(len(self.history) == 0)
         self.space_gen()
@@ -133,9 +166,21 @@ class Status:
                 max_id += 1
 
 if __name__ == '__main__':
-    # s = Status()
-    # with open('result.json', 'w', encoding='utf-8') as f:
-    #     f.write(json.dumps(s.tree(), indent=4, separators=(',', ': ')))
-    with open('result.json', encoding='utf-8') as f:
-        result = json.load(f)
+    s = Status()
+    with open('result.json', 'w', encoding='utf-8') as f:
+        f.write(json.dumps(s.tree_better(), indent=4, separators=(',', ': ')))
+    # s = set(tuple((q, test(p, q)) for q in ((1, 2, 3, 4), (2,3,4,5), (3,4,5,6), (4,5,6,7), (5,6,7,8)))
+    #         for p in itertools.permutations(range(10), 4))
+    # for inp in s:
+    #     st = Status()
+    #     for p, q in inp:
+    #         st.set(p, q)
+    #     st.space_gen()
+    #     m = st.check()
+    #     if m[1] == 1:
+    #         continue
+    #     print(m[0][0])
+    #     break
+    # with open('result.json', encoding='utf-8') as f:
+    #     result = json.load(f)
     

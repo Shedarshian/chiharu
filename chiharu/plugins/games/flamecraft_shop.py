@@ -55,7 +55,7 @@ class Shop:
         return
         yield
 
-from flamecraft_resource import Resource, Award, Spell
+from .flamecraft_resource import Resource, Award, Spell
 
 class DracoBell(Shop):
     isStarter = 1
@@ -80,5 +80,5 @@ class AltStarterShop(Shop): # 所有另一组起始商店的基类，因为它�
     def special(self, player: 'Player') -> Generator:
         return super().special(player) # TODO
 
-from flamecraft_artisan import Dragon
-from flamecraft_player import Player
+from .flamecraft_artisan import Dragon
+from .flamecraft_player import Player

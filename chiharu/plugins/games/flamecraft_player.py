@@ -3,7 +3,8 @@ from enum import Enum, auto
 from typing import Callable
 
 class Player:
-    def __init__(self, board: 'Board', isDummy: bool=False) -> None:
+    def __init__(self, id: int, board: 'Board', isDummy: bool=False) -> None:
+        self.id = id
         self.hand: 'list[Dragon]' = []
         self.fancy: 'list[Fancy]' = []
         self.reserved: Spell | None = None
@@ -15,18 +16,21 @@ class Player:
         self.isDummy = isDummy
         self.board = board
 
+        self.step: Player.Step = Player.Step.EndTurn
+
         self.filledShopThisTurn: int = 0
-        self.Magiced: bool = False
+        self.magiced: bool = False
     def addResource(self, resource: 'Resource'):
         self.resources[resource] += 1
     def addResources(self, resources: 'Counter[Resource]'):
         self.resources.update(resources)
     def setTurnCounter(self):
         self.filledShopThisTurn = 0
-        self.Magiced = False
+        self.magiced = False
 
     def chooseDragonStack(self, maxNum: int) -> 'TAsync[list[Dragon]]':
-        if len(self.board.park) == 0 and len(self.board.dragondeck) == 0:
+        """选择一定张数的龙。可以从牌堆选。"""
+        if len(self.board.park) == 0 and len(self.board.dragonDeck) == 0:
             return []
         self.board.state = State.ChooseDragonStack
         last_err: int = 0
@@ -34,12 +38,12 @@ class Player:
         while 1:
             ret = yield SendChooseDragonStack(last_err, maxNum)
             assert isinstance(ret, RecieveListInt)
+            if len(ret.nums) > maxNum:
+                last_err = -2 # 选择数量超出要求
+                continue
             l = self.board.popDragons(ret.nums)
             if l is None:
                 last_err = -1 # 数据不合法，包含超出范围或重复
-                continue
-            if len(l) > maxNum:
-                last_err = -2 # 选择数量超出要求
                 continue
             if len(l) == 0:
                 last_err = -3 # 牌堆剩余数量不足
@@ -85,12 +89,52 @@ class Player:
             yield from self.turnShopAbility()
         else:
             yield from self.turnMagic()
-            self.Magiced = True
+            self.magiced = True
             yield from self.turnFireAll()
         yield from self.endTurn()
     def turnChooseShop(self) -> 'TAsync[None]':
-        return
-        yield
+        self.step = Player.Step.ChooseShop
+        self.board.state = State.ChooseShop
+        last_err: int = 0
+        from .flamecraft_resource import SendChooseShop, RecieveInt
+        while 1:
+            ret = yield SendChooseShop(last_err)
+            assert isinstance(ret, RecieveInt)
+            shop = self.board.getShop(ret.num)
+            if shop is None:
+                last_err = -1 # 不在范围内
+                continue
+            if self.place is shop:
+                last_err = -2 # 不能不动
+                continue
+            if self.resources.total() < len(shop.players):
+                last_err = -3 # 资源不够支付
+                continue
+
+            if self.place is not None:
+                self.place.players.remove(self)
+            self.place = shop
+            shop.players.append(self)
+            for player in shop.players:
+                if player is self:
+                    continue
+                self.board.state = State.ChooseResourceToGive
+                last_err = 0
+                from .flamecraft_resource import SendChooseResourceToGive, RecieveResources
+                while 1:
+                    ret = yield SendChooseResourceToGive(last_err, player.id)
+                    assert isinstance(ret, RecieveResources)
+                    if ret.resources.total() != 1:
+                        last_err = -1 # 选择个数不正确
+                        continue
+                    if not ret.resources < self.resources:
+                        last_err = -2 # 资源不够
+                        continue
+
+                    self.resources -= ret.resources
+                    player.resources += ret.resources
+                    break
+            break
     def turnChooseGather(self) -> 'TAsync[bool]':
         return True
         yield

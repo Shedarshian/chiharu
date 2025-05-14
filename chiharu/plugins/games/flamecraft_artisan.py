@@ -51,16 +51,16 @@ class DragonCrystal:
     color = Resource.Crystal
     def ability(self, player: Player) -> 'TAsync[None]':
         from .flamecraft_resource import State, Send, RecieveResources
-        player.board.state = State.ChooseDiamondArtisan
+        player.board.state = State.ChooseCrystalArtisan
         last_err: int = 0
         while 1:
             ret = yield Send(last_err)
             assert isinstance(ret, RecieveResources)
             if len(ret.resources) > 3:
-                last_err = -1
+                last_err = -1 # 选择多于三种
                 continue
             if not all(x == 1 for x in ret.resources.values()):
-                last_err = -2
+                last_err = -2 # 选择同一种多于一个
                 continue
             player.addResources(ret.resources)
             break
