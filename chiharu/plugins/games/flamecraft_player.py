@@ -73,22 +73,22 @@ class Player:
         AfterDiscard = auto()
     def turn(self) -> 'TAsync[None]':
         # 第一步，选择去哪个商店，选择给谁商品
-        # 第二步，选择收集或魔法，收集选择wildcard
+        # 第二步，选择收集或魔法，魔法则直接选择魔法卡
         # 第三步，若收集，选择放龙或跳过
         # 第四步，选择火某一个龙或跳过，给火的龙的参数
         # 第五步，商店特效
-        # 第六步，若魔法，选择魔法卡
+        # 第六步，若魔法，执行魔法效果
         # 第七步，选择火任一个龙，循环
         # 第八步，结束回合，选择fancy或弃牌或跳过
         yield from self.turnChooseShop()
-        gather = yield from self.turnChooseGather()
-        if gather:
+        spell = yield from self.turnChooseGather()
+        if spell is None:
             yield from self.turnGatherResource()
             yield from self.turnPutDragon()
             yield from self.turnFireOne()
             yield from self.turnShopAbility()
         else:
-            yield from self.turnMagic()
+            yield from self.turnMagic(spell)
             self.magiced = True
             yield from self.turnFireAll()
         yield from self.endTurn()
@@ -135,9 +135,29 @@ class Player:
                     player.resources += ret.resources
                     break
             break
-    def turnChooseGather(self) -> 'TAsync[bool]':
-        return True
-        yield
+    def turnChooseGather(self) -> 'TAsync[Spell | None]':
+        last_err: int = 0
+        self.board.state = State.ChooseMagic
+        from .flamecraft_resource import Send, RecieveMagic
+        while 1:
+            ret = yield Send(last_err)
+            assert isinstance(ret, RecieveMagic)
+            if not -1 <= ret.id < len(self.board.spells):
+                last_err = -1 # 超出范围
+                continue
+            if ret.id == -1:
+                return None
+
+            spell = self.board.spells[ret.id]
+            if spell.maxLevel != 0 and not 1 <= ret.level <= spell.maxLevel:
+                last_err = -2 # 等级超出范围
+                continue
+            consume = spell.resources(ret.level)
+            if not Resource.canPay(self.resources, consume):
+                last_err = -3 # 资源不够
+                continue
+
+            return spell
     def turnGatherResource(self) -> 'TAsync[None]':
         return
         yield
@@ -150,7 +170,7 @@ class Player:
     def turnShopAbility(self) -> 'TAsync[None]':
         return
         yield
-    def turnMagic(self) -> 'TAsync[None]':
+    def turnMagic(self, spell: Spell) -> 'TAsync[None]':
         return
         yield
     def turnFireAll(self) -> 'TAsync[None]':

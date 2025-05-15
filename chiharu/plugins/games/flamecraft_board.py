@@ -8,6 +8,8 @@ class Board:
         self.park: 'list[Dragon]' = []
         self.dragonDeck: 'list[Dragon]' = []
         self.fancys: 'list[Fancy]' = []
+        self.spells: 'list[Spell]' = []
+        self.spellDeck: 'list[Spell]' = []
         self.state: State = State.End
     def popDragons(self, l: list[int]) -> 'list[Dragon] | None':
         l.sort()
@@ -30,4 +32,4 @@ from .flamecraft_shop import Shop
 from .flamecraft_player import Player
 from .flamecraft_artisan import Dragon
 from .flamecraft_fancy import Fancy
-from .flamecraft_resource import Resource, State
+from .flamecraft_resource import Resource, State, Spell
