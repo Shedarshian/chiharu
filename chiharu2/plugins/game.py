@@ -33,7 +33,8 @@ from .helper.helper import rel, getGroup, getUser, Group, DiscordGroup, User, Di
 allGames: tuple[tuple[str, str],...] = \
     (('xiangqi', "象棋"),
      ('bw', "黑白棋"),
-     ('cacason', "卡卡颂"))
+     ('cacason', "卡卡颂"),
+     ('splendor2', "璀璨宝石：对决"))
 allDMGames: tuple[tuple[str, str],...] = \
     (('maj', "麻将"),)
 options: list[AnyCommandOption] = [

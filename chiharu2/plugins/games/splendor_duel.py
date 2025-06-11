@@ -527,26 +527,22 @@ class Board:
 
 sp2 = GameSameGroup('splendor2', '璀璨宝石：对决。', (2, 2))
 
-@sp2.begin_message()
-async def sp2_begin_uncomplete(matcher: Matcher,
-                               data: GameData=Depends(sp2.get_event_data),
-                               user: DiscordUser=Depends(getUser)):
-    name = user.name
-    data['names'] = [name]
-    await matcher.send(f'玩家{name}已参与匹配，等待第二人。')
+# @sp2.begin_message()
+# async def sp2_begin_uncomplete(data: GameData=Depends(sp2.get_event_data),
+#                                user: DiscordUser=Depends(getUser)):
+#     name = user.name
+#     data['names'] = [name]
+#     return f'玩家{name}已参与匹配，等待第二人。'
 
 @sp2.start()
 async def sp2_begin_complete(matcher: Matcher,
                              data: GameData=Depends(sp2.get_event_data),
                              user: DiscordUser=Depends(getUser)):
-    name = user.name
-    data['names'].append(name)
     data['vertical'] = [True, True]
-    await matcher.send(f'玩家{name}已参与匹配，游戏开始。游戏时可随时使用“切换横向”或“切换纵向”来切换ui排布。')
     # 开始游戏
     data['board'] = board = Board()
     await matcher.send([board.SaveImg(0, data['vertical'][0])])
-    await matcher.send(f"玩家{data['names'][0]}先手，请选择操作：使用特权、填充宝石、拿宝石、买卡、预购卡。回复“帮助”查询如何使用指令。")
+    await matcher.send(f"玩家{data['players'][0].name}先手，请选择操作：使用特权、填充宝石、拿宝石、买卡、预购卡。回复“帮助”查询如何使用指令。可随时使用“切换横向”或“切换纵向”来切换ui排布。")
 
 @sp2.process()
 async def sp2_process(matcher: Matcher,
@@ -729,6 +725,6 @@ async def sp2_process(matcher: Matcher,
             await matcher.send([board.SaveImg(player.id, data['vertical'][player.id])])
             board.NextTurn()
             player = board.current_player
-            await matcher.send(f"轮到玩家{data['names'][player.id]}的回合，请选择操作：使用特权、填充宝石、拿宝石、买卡、预购卡。回复“帮助”查询如何使用指令。")
+            await matcher.send(f"轮到玩家{data['players'][player.id].name}的回合，请选择操作：使用特权、填充宝石、拿宝石、买卡、预购卡。回复“帮助”查询如何使用指令。")
             await matcher.send([board.SaveImg(player.id, data['vertical'][player.id])])
 
