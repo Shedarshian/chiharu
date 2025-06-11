@@ -14,7 +14,7 @@ __all__ = ('achievement',)
 # if achievement.snakebird.get('1569603950'):
 #     await session.send(achievement.snakebird.get_str())
 
-_achievement_game = GameSameGroup('achievement')
+_achievement_game = GameSameGroup('achievement', '成就', (1, 1))
 _open_data = _achievement_game.open_data
 _save_data = _achievement_game.save_data
 

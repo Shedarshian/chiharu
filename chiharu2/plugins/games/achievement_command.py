@@ -15,8 +15,8 @@ from .. import config
 #     else:
 #         await session.send('game not found')
 
-matcher = on_slash_command(name="play",
-    description="开始游戏",
+matcher = on_slash_command(name="achievement",
+    description="成就相关",
     options=[
         SubCommandOption(
             name='check',

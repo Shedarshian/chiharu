@@ -160,7 +160,7 @@ async def ccs_process(matcher: Matcher, state: T_State,
     if len(data['players']) != 1 and data['players'][board.current_player_id] != user:
         return
     if len(data['players']) == 1 and data['players'][board.current_player_id] == user:
-        if command.startswith("修改起始") and (match := re.match(" *(\d+) ([A-Z]+) (\d+) (\d+)", command[5:])):
+        if command.startswith("修改起始") and (match := re.match(r" *(\d+) ([A-Z]+) (\d+) (\d+)", command[5:])):
             serial = int(match.group(1)), match.group(2), int(match.group(3)), int(match.group(4))
             tile = more_itertools.first((t for t in board.deck if t.serialNumber == serial), None)
             if tile is None:
