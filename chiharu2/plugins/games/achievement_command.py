@@ -42,6 +42,7 @@ async def achievement_check(event: InteractionCreateEvent, name: CommandOption[s
     for key, val in _all.items():
         if name == val.val['name'] and ('hide' not in val.val or val.check(user_id)):
             await matcher.send(val.get_des(user_id))
+            return
     else:
         await matcher.send('未发现此成就。')
 
