@@ -6,10 +6,10 @@ from nonebot.adapters.discord import Event, MessageEvent, DirectMessageCreateEve
 from nonebot.adapters.discord.api import Interaction
 from nonebot.matcher import Matcher
 
-PATH = "C:\\coolq_data2\\"
-PATH_IMG = "C:\\coolq_data2\\images"
-PATH_REC = "C:\\Users\\Administrator\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\record"
-PATH_PAGE = "C:\\games"
+PATH = "/Users/shedarshian/Desktop/bot/data"
+PATH_IMG = "/Users/shedarshian/Desktop/bot/data/images"
+PATH_REC = "/Users/shedarshian/Desktop/bot/data/record"
+PATH_PAGE = "/Users/shedarshian/Desktop/bot/page"
 
 def rel(rel_path: str):
     return path.join(PATH, rel_path)
