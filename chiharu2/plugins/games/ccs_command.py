@@ -200,7 +200,7 @@ async def ccs_version():
 async def ccs_changelog():
     await matcher_cacason.send_response("千春桌游大厅：卡卡颂 changelog\n" + changelog)
 
-@matcher_cacason.handle_sub_command("rule")
+# @matcher_cacason.handle_sub_command("rule")
 async def ccs_rule(extension: CommandOption[str]):
     if match := re.match(r'ex(\d+)', extension):
         exa = int(match.group(1))

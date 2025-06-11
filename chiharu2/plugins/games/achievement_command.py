@@ -35,7 +35,7 @@ matcher = on_slash_command(name="play",
         )
     ])
 
-@matcher.handle()
+@matcher.handle_sub_command('check')
 async def achievement_check(event: InteractionCreateEvent, name: CommandOption[str]):
     """查看成就信息。"""
     user_id = event.member.user.id
@@ -45,7 +45,7 @@ async def achievement_check(event: InteractionCreateEvent, name: CommandOption[s
     else:
         await matcher.send('未发现此成就。')
 
-@matcher.handle()
+@matcher.handle_sub_command('list')
 async def achievement_list(event: InteractionCreateEvent):
     """列出已获得成就。"""
     user_id = event.member.user.id
