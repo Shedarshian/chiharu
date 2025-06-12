@@ -208,12 +208,16 @@ class GameSameGroup:
             msg = await matcher.get_response()
             self.uncomplete[group]["message_id"] = msg.id
             matcher.skip()
-        pml = [Depends(onBegin), Depends(onBegin2), Depends(self.checkBegin)]
+        pml = [Depends(onBegin, use_cache=False),
+               Depends(onBegin2, use_cache=False),
+               Depends(self.checkBegin, use_cache=False)]
         if not self.allow_private:
             pml = [Depends(requireNoDM)] + pml
         f1 = matcher.handle_sub_command(self.name, 'begin',
                 parameterless=pml)
-        f2 = click.handle([Depends(checkClick), Depends(self.messageHandle), Depends(self.checkBegin)])
+        f2 = click.handle([Depends(checkClick, use_cache=False),
+                           Depends(self.messageHandle, use_cache=False),
+                           Depends(self.checkBegin, use_cache=False)])
         return lambda f: f2(f1(f))
 
     def process(self):

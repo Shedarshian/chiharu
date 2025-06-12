@@ -4,7 +4,7 @@ from collections import Counter
 from enum import Enum, auto
 from PIL import Image, ImageDraw, ImageFont
 from nonebot.params import Depends, EventMessage
-from nonebot.adapters.discord import Message
+from nonebot.adapters.discord import Message, Bot
 from nonebot.matcher import Matcher
 from .. import config
 from ..game import GameSameGroup, GameData, DeleteFunc
@@ -525,29 +525,22 @@ class Board:
         self.Img(player_id, vertical).save(config.img(name))
         return config.cq.img(name)
 
-sp2 = GameSameGroup('splendor2', '璀璨宝石：对决。', (2, 2))
-
-# @sp2.begin_message()
-# async def sp2_begin_uncomplete(data: GameData=Depends(sp2.get_event_data),
-#                                user: DiscordUser=Depends(getUser)):
-#     name = user.name
-#     data['names'] = [name]
-#     return f'玩家{name}已参与匹配，等待第二人。'
+sp2 = GameSameGroup('splendor2', '璀璨宝石：对决', (2, 2))
 
 @sp2.start()
-async def sp2_begin_complete(matcher: Matcher,
-                             data: GameData=Depends(sp2.get_event_data),
-                             user: DiscordUser=Depends(getUser)):
+async def sp2_begin_complete(bot: Bot,
+                             data: GameData=sp2.data,
+                             group: DiscordGroup=Depends(getGroup)):
     data['vertical'] = [True, True]
     # 开始游戏
     data['board'] = board = Board()
-    await matcher.send([board.SaveImg(0, data['vertical'][0])])
-    await matcher.send(f"玩家{data['players'][0].name}先手，请选择操作：使用特权、填充宝石、拿宝石、买卡、预购卡。回复“帮助”查询如何使用指令。可随时使用“切换横向”或“切换纵向”来切换ui排布。")
+    await bot.send_to(group.channel_id, [board.SaveImg(0, data['vertical'][0])])
+    await bot.send_to(group.channel_id, f"玩家{data['players'][0].name}先手，请选择操作：使用特权、填充宝石、拿宝石、买卡、预购卡。回复“帮助”查询如何使用指令。可随时使用“切换横向”或“切换纵向”来切换ui排布。")
 
 @sp2.process()
 async def sp2_process(matcher: Matcher,
-            data: GameData=Depends(sp2.get_event_data),
-            delete_func: DeleteFunc=Depends(sp2.get_delete_func),
+            data: GameData=sp2.data,
+            delete_func: DeleteFunc=sp2.delete_func,
             message: Message=EventMessage(),
             user: DiscordUser=Depends(getUser),
             group: DiscordGroup=Depends(getGroup)):
