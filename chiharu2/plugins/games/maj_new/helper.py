@@ -12,6 +12,7 @@ class HaiConfig:
     shoupaiNum: int = 13            # 手牌数量
     hasBaopai: bool = False         # 是否有宝牌
     hasLibaopai: bool = False       # 是否有里宝牌
+    hasGangbaopai: bool = False     # 是否有杠宝牌
     hasHongbaopai: bool = False     # 是否有红宝牌
 @dataclass
 class RuleConfig:
@@ -23,11 +24,13 @@ class RuleConfig:
         angang = 1 << 3
         jiagang = 1 << 4
     banMingpai: BanMingpai = 0          # 禁止吃碰杠
+    penghougang: bool = False           # 是否允许吃碰后杠牌
     banShiti: bool = False              # 是否禁止食替
     shepaizhenting: bool = False        # 是否存在舍牌振听
     lizhizhenting: bool = False         # 是否存在立直振听
     tongxunzhenting: bool = False       # 是否存在同巡振听
     genzhangmianze: bool = False        # 是否存在跟张免责
+    genzhangmianzeUpgrade: bool = False # 是否存在高级版跟张免责
     class Tuzhongliuju(IntFlag):
         none = 0
         jiuzhongjiupai = 1 << 0
@@ -56,7 +59,7 @@ class SpecialTypeConfig:
     kongtingfafu: bool = False      # 空听（听的所有牌都在自己手中）是否罚符
     alllastLianzhuang: bool = False # 是否允许all last连庄
     toutiao: bool = False           # 是否存在头跳
-    fanfu: bool = 1                 # 番缚
+    qihe: bool = 1                  # 起和/番缚
     gangbaopaijifan: bool = False   # （非暗杠的）杠宝牌是否立即翻开
     leijiyiman: bool = False        # 是否存在累计役满
 
@@ -65,6 +68,7 @@ class Config:
     hai: HaiConfig = HaiConfig()
     rule: RuleConfig = RuleConfig()
     procedure: ProcedureConfig = ProcedureConfig()
+    special: SpecialTypeConfig = SpecialTypeConfig()
 
 @dataclass
 class Send:
