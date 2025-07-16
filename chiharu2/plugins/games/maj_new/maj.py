@@ -1,4 +1,4 @@
-import random
+import random, itertools
 from enum import Enum, auto
 from typing import TypeVar, Generic, TYPE_CHECKING, Iterable, Any, NewType
 from copy import deepcopy
@@ -27,8 +27,12 @@ class Pai:
     color: Color
     num: int
 
+@dataclass
+class Shoupai:
+    pai: Pai
+
 class Fulu:
-    def __init__(self, type: FuuroType, hai: tuple[Pai], fromPlayerPos: int = -1):
+    def __init__(self, type: FuuroType, hai: tuple[Shoupai], fromPlayerPos: int = -1):
         self.type = type
         self.hai = hai
         self.fromPlayerPos: int = fromPlayerPos
@@ -40,29 +44,37 @@ class Paili:
         Kezi = auto()
         Quetou = auto()
     @dataclass(frozen=True, eq=True, order=True)
-    class Mianzi(Generic[T]):
+    class Mianzi:
         type: 'Paili.MianziType'
-        pai: tuple[T,...]
-    MianziSet = tuple[Mianzi[T],...]
-    SplitResult = set[MianziSet[T]]
+        pai: tuple[int,...]
+    MianziSet = tuple[Mianzi,...]
+    SplitResult = set[MianziSet]
     Barrel = NewType('Barrel', Pai)
     @classmethod
     def toBarrel(cls, pai: Pai) -> Barrel:
         if pai.color == Color.h or pai.color == Color.z:
             return Paili.Barrel(pai)
         return Paili.Barrel(Pai(pai.color, 0))
-    BarrelwiseSplitResult = dict[Barrel, SplitResult[T]]
+    @classmethod
+    def inBarrel(cls, pai: Pai, barrel: Barrel):
+        if pai.color != barrel.color:
+            return False
+        if pai.color in (Color.h, Color.z) and pai.num != barrel.num:
+            return False
+        return True
+    BarrelwiseSplitResult = dict[Barrel, SplitResult]
+    SplitResultWithBarrel = dict[Barrel, MianziSet]
     @classmethod
     def splitThree(cls, paiCount: Counter[int],
-            splitedPai: 'list[Paili.Mianzi[int]]',
+            splitedPai: 'list[Paili.Mianzi]',
             hasQuetou: bool) \
-            -> 'SplitResult[int]':
+            -> 'SplitResult':
         for key, val in paiCount.items():
             if val > 0:
                 break
         else:
             return {tuple(sorted(splitedPai))}
-        result: set[tuple[Paili.Mianzi[int],...]] = set()
+        result: set[tuple[Paili.Mianzi,...]] = set()
         if paiCount[key + 1] > 0 and paiCount[key + 2] > 0:
             paiCount_temp = deepcopy(paiCount)
             splitedPai_temp = deepcopy(splitedPai)
@@ -83,7 +95,7 @@ class Paili:
             result |= cls.splitThree(paiCount_temp, splitedPai_temp, hasQuetou)
         return result
     @classmethod
-    def splitOneColor(cls, pais: Iterable[int], hasQuetou: bool=True) -> 'SplitResult[int]':
+    def splitOneColor(cls, pais: Iterable[int], hasQuetou: bool=True) -> 'SplitResult':
         barrel = Counter(pais)
         return cls.splitThree(barrel, [], not hasQuetou)
     @classmethod
@@ -91,7 +103,7 @@ class Paili:
                         considerRange: Iterable[int]=range(9),
                         hasQuetou: bool=True):
         barrel = Counter(pais)
-        results: dict[int, Paili.SplitResult[int]] = {}
+        results: dict[int, Paili.SplitResult] = {}
         for i in considerRange:
             barrel[i] += 1
             result = cls.splitThree(barrel, [], not hasQuetou)
@@ -101,7 +113,7 @@ class Paili:
     @classmethod
     def getTingAllColor(cls, pais: dict[Barrel, list[int]],
                         considerRange: Iterable[int]=range(9)) \
-                        -> dict[Pai, BarrelwiseSplitResult[int]]:
+                        -> dict[Pai, list[SplitResultWithBarrel]]:
         mod1_barrel: dict[Paili.Barrel, list[int]] = {}
         mod2_barrel: dict[Paili.Barrel, list[int]] = {}
         mod3_barrel: dict[Paili.Barrel, list[int]] = {}
@@ -115,12 +127,12 @@ class Paili:
         l = (len(mod1_barrel), len(mod2_barrel))
         if not (l == (1, 0) or l == (0, 2)):
             return {}
-        resultsWithTen: dict[Pai, Paili.BarrelwiseSplitResult[int]] = {}
-        resultAllInHand: Paili.BarrelwiseSplitResult[int] = {}
+        resultsWithTen: dict[Pai, Paili.BarrelwiseSplitResult] = {}
+        resultAllInHand: Paili.BarrelwiseSplitResult = {}
         for key, val in mod3_barrel.items():
             if key.color != Color.z:
                 #数牌
-                result: Paili.SplitResult[int] = Paili.splitOneColor(val, hasQuetou=False)
+                result: Paili.SplitResult = Paili.splitOneColor(val, hasQuetou=False)
                 if len(result) == 0:
                     return {}
             else:
@@ -160,16 +172,21 @@ class Paili:
                         continue
                     pai = Pai(k1.color, tingpaiInt)
                     resultsWithTen[pai] = {k1: splitResult, k2: result6}
-        return resultsWithTen
+        return {key: Paili.breakBarrelwiseSplitResult(val) for key, val in resultsWithTen.items()}
+    @classmethod
+    def breakBarrelwiseSplitResult(cls, splitResult: BarrelwiseSplitResult) \
+        -> list[SplitResultWithBarrel]:
+        return [dict(x) for x in itertools.product(*([(barrel, s) for s in sr] for barrel, sr in splitResult.items()))]
+SplitResultWithBarrel = Paili.SplitResultWithBarrel
 
 class Player:
     def __init__(self, board: 'Board', pos: int):
         self.board = board
         self.pos = pos
         self.point: int = 0
-        self.shoupai: list[Pai] = []
+        self.shoupai: list[Shoupai] = []
         self.fulu: list[Fulu] = []
-        self.paihe: list[Pai] = []
+        self.paihe: list[Shoupai] = []
         self.active: bool = False
         self.noDraw: bool = False
     def prepareNewRound(self):
@@ -188,30 +205,30 @@ class Player:
         yield
 
 class Board:
-    PLAYER_NUM = 4
     def __init__(self, config: Config):
-        self.players: list[Player] = [self.createPlayer(i) for i in range(self.PLAYER_NUM)]
-        self.allPai: list[Pai] = self.preparePai()
-        self.paishan: list[Pai] = []
-        self.wangpai: list[Pai] = []
+        self.players: list[Player] = [self.createPlayer(i) for i in range(4)]
+        self.allPai: list[Shoupai] = self.preparePai()
+        self.paishan: list[Shoupai] = []
+        self.wangpai: list[Shoupai] = []
         self.chang: int = 0
         self.ju: int = 0
         self.benchang: int = 0
         self.lianzhuang: bool = False
         self.activePlayerPos: int = 0
+        self.config = config
     def createPlayer(self, pos: int) -> Player:
-        return Player(pos)
-    def preparePai(self) -> list[Pai]:
-        pai = []
+        return Player(self, pos)
+    def preparePai(self) -> list[Shoupai]:
+        pai: list[Shoupai] = []
         for color in Color:
             if color == Color.z:
                 continue
             for num in range(1, 10):
                 for _ in range(4):
-                    pai.append(Pai(color, num))
+                    pai.append(Shoupai(Pai(color, num)))
         for num in range(1, 8):
             for _ in range(4):
-                pai.append(Pai(Color.z, num))
+                pai.append(Shoupai(Pai(Color.z, num)))
         return pai
     def shufflePaishan(self):
         random.shuffle(self.paishan)
@@ -266,3 +283,4 @@ class Board:
         self.dongjia.active = True
         self.dongjia.noDraw = True
         self.activePlayerPos = self.dongjiaPos
+

@@ -23,7 +23,7 @@ class RuleConfig:
         minggang = 1 << 2
         angang = 1 << 3
         jiagang = 1 << 4
-    banMingpai: BanMingpai = 0          # 禁止吃碰杠
+    banMingpai: BanMingpai = BanMingpai.none          # 禁止吃碰杠
     penghougang: bool = False           # 是否允许吃碰后杠牌
     banShiti: bool = False              # 是否禁止食替
     shepaizhenting: bool = False        # 是否存在舍牌振听
