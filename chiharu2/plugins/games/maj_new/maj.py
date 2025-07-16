@@ -1,6 +1,10 @@
 import random
 from enum import Enum, auto
-from typing import TypeVar, Generic, TYPE_CHECKING
+from typing import TypeVar, Generic, TYPE_CHECKING, Iterable, Any, NewType
+from copy import deepcopy
+from dataclasses import dataclass
+from collections import Counter
+from functools import total_ordering
 from .helper import Send, Recieve, TAsync, Config
 
 class Color(Enum):
@@ -18,24 +22,145 @@ class FuuroType(Enum):
     babei = auto()
     buhua = auto()
 
+@dataclass(frozen=True, eq=True, order=True)
 class Pai:
-    def __init__(self, color: Color, num: int):
-        self.color = color
-        self.num = num
-    def __eq__(self, value: 'Pai') -> bool:
-        return self.color == value.color and self.num == value.num
-    def __lt__(self, value: 'Pai') -> bool:
-        if self.color != value.color:
-            return self.color.value < value.color.value
-        return self.num < value.num
-    def __hash__(self) -> int:
-        return hash((self.color, self.num))
+    color: Color
+    num: int
 
 class Fulu:
     def __init__(self, type: FuuroType, hai: tuple[Pai], fromPlayerPos: int = -1):
         self.type = type
         self.hai = hai
         self.fromPlayerPos: int = fromPlayerPos
+
+T = TypeVar("T")
+class Paili:
+    class MianziType(Enum):
+        Shunzi = auto()
+        Kezi = auto()
+        Quetou = auto()
+    @dataclass(frozen=True, eq=True, order=True)
+    class Mianzi(Generic[T]):
+        type: 'Paili.MianziType'
+        pai: tuple[T,...]
+    MianziSet = tuple[Mianzi[T],...]
+    SplitResult = set[MianziSet[T]]
+    Barrel = NewType('Barrel', Pai)
+    @classmethod
+    def toBarrel(cls, pai: Pai) -> Barrel:
+        if pai.color == Color.h or pai.color == Color.z:
+            return Paili.Barrel(pai)
+        return Paili.Barrel(Pai(pai.color, 0))
+    BarrelwiseSplitResult = dict[Barrel, SplitResult[T]]
+    @classmethod
+    def splitThree(cls, paiCount: Counter[int],
+            splitedPai: 'list[Paili.Mianzi[int]]',
+            hasQuetou: bool) \
+            -> 'SplitResult[int]':
+        for key, val in paiCount.items():
+            if val > 0:
+                break
+        else:
+            return {tuple(sorted(splitedPai))}
+        result: set[tuple[Paili.Mianzi[int],...]] = set()
+        if paiCount[key + 1] > 0 and paiCount[key + 2] > 0:
+            paiCount_temp = deepcopy(paiCount)
+            splitedPai_temp = deepcopy(splitedPai)
+            paiCount_temp[key] -= 1; paiCount_temp[key + 1] -= 1; paiCount_temp[key + 2] -= 1
+            splitedPai_temp.append(Paili.Mianzi(Paili.MianziType.Shunzi, (key, key + 1, key + 2)))
+            result |= cls.splitThree(paiCount_temp, splitedPai_temp, hasQuetou)
+        if val >= 2 and not hasQuetou:
+            paiCount_temp = deepcopy(paiCount)
+            splitedPai_temp = deepcopy(splitedPai)
+            paiCount_temp[key] -= 2
+            splitedPai_temp.append(Paili.Mianzi(Paili.MianziType.Quetou, (key, key)))
+            result |= cls.splitThree(paiCount_temp, splitedPai_temp, True)
+        if val >= 3:
+            paiCount_temp = deepcopy(paiCount)
+            splitedPai_temp = deepcopy(splitedPai)
+            paiCount_temp[key] -= 3
+            splitedPai_temp.append(Paili.Mianzi(Paili.MianziType.Kezi, (key, key, key)))
+            result |= cls.splitThree(paiCount_temp, splitedPai_temp, hasQuetou)
+        return result
+    @classmethod
+    def splitOneColor(cls, pais: Iterable[int], hasQuetou: bool=True) -> 'SplitResult[int]':
+        barrel = Counter(pais)
+        return cls.splitThree(barrel, [], not hasQuetou)
+    @classmethod
+    def getTingOneColor(cls, pais: Iterable[int],
+                        considerRange: Iterable[int]=range(9),
+                        hasQuetou: bool=True):
+        barrel = Counter(pais)
+        results: dict[int, Paili.SplitResult[int]] = {}
+        for i in considerRange:
+            barrel[i] += 1
+            result = cls.splitThree(barrel, [], not hasQuetou)
+            results[i] = result
+            barrel[i] -= 1
+        return results
+    @classmethod
+    def getTingAllColor(cls, pais: dict[Barrel, list[int]],
+                        considerRange: Iterable[int]=range(9)) \
+                        -> dict[Pai, BarrelwiseSplitResult[int]]:
+        mod1_barrel: dict[Paili.Barrel, list[int]] = {}
+        mod2_barrel: dict[Paili.Barrel, list[int]] = {}
+        mod3_barrel: dict[Paili.Barrel, list[int]] = {}
+        for key, val in pais.items():
+            if len(val) % 3 == 1:
+                mod1_barrel[key] = val
+            elif len(val) % 3 == 2:
+                mod2_barrel[key] = val
+            elif len(val) != 0:
+                mod3_barrel[key] = val
+        l = (len(mod1_barrel), len(mod2_barrel))
+        if not (l == (1, 0) or l == (0, 2)):
+            return {}
+        resultsWithTen: dict[Pai, Paili.BarrelwiseSplitResult[int]] = {}
+        resultAllInHand: Paili.BarrelwiseSplitResult[int] = {}
+        for key, val in mod3_barrel.items():
+            if key.color != Color.z:
+                #数牌
+                result: Paili.SplitResult[int] = Paili.splitOneColor(val, hasQuetou=False)
+                if len(result) == 0:
+                    return {}
+            else:
+                #字牌
+                def _(val: list[int]):
+                    while len(val) >= 3:
+                        yield Paili.Mianzi(Paili.MianziType.Kezi, (val[0], val[1], val[2]))
+                        val = val[3:]
+                result = {tuple(_(val))}
+            resultAllInHand[key] = result
+        if l == (1, 0): # 单骑
+            key, val = list(mod1_barrel.items())[0]
+            if key.color != Color.z:
+                #数牌
+                for tingpaiInt, splitResult in Paili.getTingOneColor(val, considerRange=considerRange).items():
+                    if len(splitResult) == 0:
+                        continue
+                    pai = Pai(key.color, tingpaiInt)
+                    resultsWithTen[pai] = {key: splitResult}
+            else:
+                #字牌单骑
+                def _(val: list[int]):
+                    while len(val) >= 3:
+                        yield Paili.Mianzi(Paili.MianziType.Kezi, (val[0], val[1], val[2]))
+                        val = val[3:]
+                result4: Paili.SplitResult = {tuple(_(val)) + (Paili.Mianzi(Paili.MianziType.Quetou, (val[0], val[0])),)}
+                resultsWithTen[key] = {key: result4}
+        else: # 双碰
+            (key1, val1), (key2, val2) = list(mod2_barrel.items())
+            for k1, t1, k2, t2 in ((key1, val1, key2, val2), (key2, val2, key1, val1)):
+                result5 = Paili.getTingOneColor(t1, considerRange=considerRange, hasQuetou=False)
+                result6 = Paili.splitOneColor(t2)
+                if len(result6) == 0:
+                    continue
+                for tingpaiInt, splitResult in result5.items():
+                    if len(splitResult) == 0:
+                        continue
+                    pai = Pai(k1.color, tingpaiInt)
+                    resultsWithTen[pai] = {k1: splitResult, k2: result6}
+        return resultsWithTen
 
 class Player:
     def __init__(self, board: 'Board', pos: int):
