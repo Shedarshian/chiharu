@@ -1,4 +1,4 @@
-import random, itertools
+import random, itertools, more_itertools
 from enum import Enum, auto, IntEnum, IntFlag
 from typing import TypeVar, Generic, TYPE_CHECKING, Iterable, Any, NewType
 from copy import deepcopy
@@ -42,6 +42,10 @@ class ChangStatus(IntEnum):
     NanChang = 4
     XiChang = 8
     BeiChang = 12
+    def ZijiaToPai(self):
+        return Pai(Color.z, self & 3)
+    def ChangToPai(self):
+        return Pai(Color.z, (self & 12) // 4)
 class PaiStatus(IntFlag):
     none = 0
     Ronghe = 1
@@ -67,6 +71,15 @@ class Fulu:
         self.type = type
         self.pai = pai
         self.fromPlayerPos: int = fromPlayerPos
+class FuluList(list[Fulu]):
+    def allPai(self):
+        return itertools.chain(*(x.pai for x in self))
+    def onlyExtra(self):
+        return all(x.type.isExtra() for x in self)
+    def menqianqing(self):
+        return all(x.type.menqianqing() for x in self)
+    def removeExtra(self):
+        return FuluList(x for x in self if not x.type.isExtra())
 
 T = TypeVar("T")
 class Paili:
@@ -115,10 +128,15 @@ class Paili:
     class SplitResultWithBarrel(dict[Barrel, MianziSet]):
         def allPai(self):
             return sorted(Pai(v.color, p) for v, s in self.items() for m in s for p in m.pai)
-        def allPaiWithFulu(self, f: list[Fulu]):
-            return sorted(itertools.chain(self.allPai(), *(y.pai for y in f if not y.type.isExtra())))
+        def allPaiWithFulu(self, f: FuluList):
+            return sorted(itertools.chain(self.allPai(), f.allPai()))
         def allShoupai(self):
             return sorted(Pai(v.color, p) for v, s in self.items() for m in s for p in m.withoutHepai())
+        def keziList(self, f: FuluList | None = None) -> Iterable[Pai]:
+            return [Pai(v.color, m.pai[0]) for v, s in self.items() for m in s if m.type == Paili.MianziType.Kezi] + \
+                ([] if f is None else [m.pai[0] for m in f if m.type.isKezi()])
+        def quetou(self):
+            return more_itertools.one(Pai(v.color, m.pai[0]) for v, s in self.items() for m in s if m.type == Paili.MianziType.Quetou)
     @classmethod
     def splitThree(cls, paiCount: Counter[int],
             splitedPai: 'list[Paili.Mianzi]',
