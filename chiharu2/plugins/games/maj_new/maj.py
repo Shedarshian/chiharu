@@ -74,14 +74,25 @@ class Paili:
         Shunzi = auto()
         Kezi = auto()
         Quetou = auto()
+        Rongke = auto()
+        Rongshun = auto()
         def isShunziOrQuetou(self):
-            return self in (Paili.MianziType.Shunzi, Paili.MianziType.Quetou)
+            return self in (Paili.MianziType.Shunzi, Paili.MianziType.Rongshun, Paili.MianziType.Quetou)
         def isKeziOrQuetou(self):
-            return self in (Paili.MianziType.Kezi, Paili.MianziType.Quetou)
+            return self in (Paili.MianziType.Kezi, Paili.MianziType.Rongke, Paili.MianziType.Quetou)
     @dataclass(frozen=True, eq=True, order=True)
     class Mianzi:
         type: 'Paili.MianziType'
         pai: tuple[int,...]
+        hepaiPos: int = -1
+        def getHepai(self):
+            if self.type in (Paili.MianziType.Rongke, Paili.MianziType.Rongshun):
+                return (self.pai[self.hepaiPos],)
+            return ()
+        def withoutHepai(self):
+            if self.type in (Paili.MianziType.Rongke, Paili.MianziType.Rongshun):
+                return self.pai[:self.hepaiPos] + self.pai[self.hepaiPos + 1:]
+            return self.pai
     MianziSet = tuple[Mianzi,...]
     SplitResult = set[MianziSet]
     @dataclass(frozen=True, eq=True, order=True)
@@ -105,7 +116,9 @@ class Paili:
         def allPai(self):
             return sorted(Pai(v.color, p) for v, s in self.items() for m in s for p in m.pai)
         def allPaiWithFulu(self, f: list[Fulu]):
-            return sorted(itertools.chain(self.allPai(), *(y.pai for y in f)))
+            return sorted(itertools.chain(self.allPai(), *(y.pai for y in f if not y.type.isExtra())))
+        def allShoupai(self):
+            return sorted(Pai(v.color, p) for v, s in self.items() for m in s for p in m.withoutHepai())
     @classmethod
     def splitThree(cls, paiCount: Counter[int],
             splitedPai: 'list[Paili.Mianzi]',
