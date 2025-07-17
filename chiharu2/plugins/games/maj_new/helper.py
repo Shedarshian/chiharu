@@ -59,7 +59,7 @@ class SpecialTypeConfig:
     kongtingfafu: bool = False      # 空听（听的所有牌都在自己手中）是否罚符
     alllastLianzhuang: bool = False # 是否允许all last连庄
     toutiao: bool = False           # 是否存在头跳
-    qihe: bool = 1                  # 起和/番缚
+    qihe: int = 1                  # 起和/番缚
     gangbaopaijifan: bool = False   # （非暗杠的）杠宝牌是否立即翻开
     leijiyiman: bool = False        # 是否存在累计役满
 
