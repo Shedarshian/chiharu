@@ -57,14 +57,14 @@ class PaiStatus(IntFlag):
     Qianggang = 1 << 6
     Qiangangang = 1 << 7
 
-@dataclass(eq=True, order=True)
+@dataclass(frozen=True, eq=True, order=True)
 class Pai:
     color: Color
     num: int
 
 @dataclass(eq=True, order=True)
-class RealPai(Pai):
-    pass
+class RealPai:
+    pai: Pai
 
 class Fulu:
     def __init__(self, type: FuluType, pai: tuple[RealPai], fromPlayerPos: int = -1):
@@ -134,7 +134,7 @@ class Paili:
             return sorted(Pai(v.color, p) for v, s in self.items() for m in s for p in m.withoutHepai())
         def keziList(self, f: FuluList | None = None) -> Iterable[Pai]:
             return [Pai(v.color, m.pai[0]) for v, s in self.items() for m in s if m.type == Paili.MianziType.Kezi] + \
-                ([] if f is None else [m.pai[0] for m in f if m.type.isKezi()])
+                ([] if f is None else [m.pai[0].pai for m in f if m.type.isKezi()])
         def quetou(self):
             return more_itertools.one(Pai(v.color, m.pai[0]) for v, s in self.items() for m in s if m.type == Paili.MianziType.Quetou)
     @classmethod
@@ -299,10 +299,10 @@ class Board:
                 continue
             for num in range(1, 10):
                 for _ in range(4):
-                    pai.append(RealPai(color, num))
+                    pai.append(RealPai(Pai(color, num)))
         for num in range(1, 8):
             for _ in range(4):
-                pai.append(RealPai(Color.z, num))
+                pai.append(RealPai(Pai(Color.z, num)))
         return pai
     def shufflePaishan(self):
         random.shuffle(self.paishan)

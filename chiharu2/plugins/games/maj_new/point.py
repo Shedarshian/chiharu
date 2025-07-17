@@ -24,9 +24,9 @@ class AllCheckers:
                             2 if sorted(x.num for x in s.allShoupai()) == [1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9] else \
                             1 if Counter(x.num for x in ap) >= Counter([1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9]) else 0
     Changfeng:              PaixingRanker = \
-        lambda s, f, c, p: pai.num + 1 if (pai := c.ChangToPai()) in s.keziList(f) else 0
+        lambda s, f, c, p: pai.num if (pai := c.ChangToPai()) in s.keziList(f) else 0
     Zifeng:                 PaixingRanker = \
-        lambda s, f, c, p: pai.num + 1 if (pai := c.ZijiaToPai()) in s.keziList(f) else 0
+        lambda s, f, c, p: pai.num if (pai := c.ZijiaToPai()) in s.keziList(f) else 0
     XiaoDaSanyuan:          PaixingRanker = \
         lambda s, f, c, p: sum(d := set(1 << (i - 5) for i in (5, 6, 7) if Pai(Color.z, i) in s.keziList(f))) + \
                             (16 if len(d) == 3 else 8 if len(d) == 2 and (q := s.quetou()).color == Color.z and q.num not in d else 0)
