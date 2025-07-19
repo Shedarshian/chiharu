@@ -54,6 +54,10 @@ class MianziType(IntFlag):
         return self & 12 == 8
     def menqianqing(self):
         return self & 12 in (0, 8)
+    def isFulu(self):
+        return self.menqianqing() and self != MianziType.angang
+    def isGang(self):
+        return self & 3 == 2
 class ChangStatus(IntEnum):
     Dong = 0
     Nan = 1
@@ -107,21 +111,24 @@ class Paili:
             if self.type.isRong():
                 return (self.pai[self.hepaiPos],)
             return ()
-        def withoutHepai(self):
+        def withoutHepaiExtra(self):
             if self.type.isRong():
                 return self.pai[:self.hepaiPos] + self.pai[self.hepaiPos + 1:]
+            if self.type.isExtra():
+                return ()
             return self.pai
     class MianziTuple(tuple[Mianzi,...]):
         def toPai(self) -> Iterable[Pai]:
             return itertools.chain(*((Pai(x.color, p) for p in x.pai) for x in self))
         def onlyExtra(self):
             return all(x.type.isExtra() for x in self)
+        @cache
         def removeExtra(self):
             return Paili.MianziTuple(x for x in self if not x.type.isExtra())
         def menqianqing(self):
             return all(x.type.menqianqing() for x in self)
         def allShoupai(self):
-            return sorted(Pai(m.color, p) for m in self for p in m.withoutHepai())
+            return sorted(Pai(m.color, p) for m in self for p in m.withoutHepaiExtra())
         def keziList(self) -> Iterable[Pai]:
             return (Pai(m.color, m.pai[0]) for m in self if m.type.isKezi())
         def quetou(self):
@@ -197,7 +204,7 @@ class Paili:
     @classmethod
     def getTingAllColor(cls, pais: dict[Barrel, list[int]],
                         considerRange: Iterable[int]=range(9)) \
-                        -> dict[Pai, list[SplitResultWithBarrel]]:
+                        -> dict[Pai, list[MianziTuple]]:
         mod1_barrel: dict[Paili.Barrel, list[int]] = {}
         mod2_barrel: dict[Paili.Barrel, list[int]] = {}
         mod3_barrel: dict[Paili.Barrel, list[int]] = {}
