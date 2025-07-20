@@ -74,13 +74,14 @@ class ChangStatus(IntEnum):
 class PaiStatus(IntFlag):
     none = 0
     Ronghe = 1
-    Ricchi = 1 << 1
-    FirstPai = 1 << 2       # 是庄家打出的第一张牌
-    FirstXun = 1 << 3       # 开局直至自己打出第一张牌前且无人鸣牌
-    Lingshang = 1 << 4
-    Haidi = 1 << 5
-    Qianggang = 1 << 6
-    Qiangangang = 1 << 7
+    Menqianqing = 1 << 1
+    Ricchi = 1 << 2
+    FirstPai = 1 << 3       # 是庄家打出/摸的第一张牌
+    FirstXun = 1 << 4       # 开局直至自己打出第一张牌前且无人鸣牌
+    Lingshang = 1 << 5
+    Haidi = 1 << 6
+    Qianggang = 1 << 7
+    Qiangangang = 1 << 8
 
 @dataclass(frozen=True, eq=True, order=True)
 class Pai:
