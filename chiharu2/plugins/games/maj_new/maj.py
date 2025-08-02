@@ -82,6 +82,17 @@ class PaiStatus(IntFlag):
     Haidi = 1 << 6
     Qianggang = 1 << 7
     Qiangangang = 1 << 8
+class Button(Enum):
+    Pass = auto()
+    Chi = auto()
+    Peng = auto()
+    Minggang = auto()
+    Angang = auto()
+    Jiagang = auto()
+    Babei = auto()
+    Buhua = auto()
+    Lizhi = auto()
+    Jiuzhongjiupai = auto()
 
 @dataclass(frozen=True, eq=True, order=True)
 class Pai:
@@ -295,23 +306,35 @@ class Player:
         self.active = False
         while 1:
             angang = self.checkAngang()
+            babei = self.checkBei()
+            buhua = self.checkHua()
+            jzjp = self.checkJiuzhongjiupai()
+            from .helper import SendInTurn, RecieveInTurn
+            last_err = -1
+            while 1:
+                ret = yield SendInTurn(last_err, self.pos,
+                {Button.Angang: angang, Button.Babei: babei, Button.Buhua: buhua, Button.Jiuzhongjiupai: jzjp})
+                assert isinstance(ret, RecieveInTurn)
+                break
             break
         return False
         yield
     def getPaiCombination(self, lpai: list[Counter[Pai]]):
-        l = []
+        l: list[tuple[RealPai, ...]] = []
         for tpai in lpai:
-            itertools.combinations
-        pass
+            l += [sum(x, ()) for x in itertools.product(
+                *(more_itertools.distinct_combinations(sorted(p for p in self.shoupai if p.pai == pai), num)
+                for pai, num in tpai.items()))]
+        return l
     def checkFulu(self, pai: RealPai):
         return
     def checkAngang(self):
         lpai = [Counter({key: 4}) for key, val in Counter(p.pai for p in self.shoupai).items() if val == 4]
         return self.getPaiCombination(lpai)
     def checkHua(self):
-        return [pai for pai in self.shoupai if pai.pai.color == Color.h]
+        return [(pai,) for pai in self.shoupai if pai.pai.color == Color.h]
     def checkBei(self):
-        return [pai for pai in self.shoupai if pai.pai == Pai(Color.z, 4)]
+        return [(pai,) for pai in self.shoupai if pai.pai == Pai(Color.z, 4)]
     def checkJiuzhongjiupai(self):
         return len(set(pai.pai for pai in self.shoupai if pai.pai.color == Color.z or pai.pai.num in (1, 9))) >= 9
     

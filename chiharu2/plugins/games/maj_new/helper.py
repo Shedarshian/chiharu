@@ -1,6 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import Generator, TypeVar, Literal
+from typing import Generator, TypeVar, Literal, Sequence
 from enum import IntFlag
 
 @dataclass
@@ -74,8 +74,18 @@ class Config:
 class Send:
     last_err: int
 @dataclass
+class SendInTurn(Send):
+    player_pos: int
+    cando_list: 'dict[Button, Sequence[tuple[RealPai, ...]] | bool]'
+@dataclass
 class Recieve:
     pass
+@dataclass
+class RecieveInTurn(Recieve):
+    button: 'Button'
+    choice: 'tuple[RealPai] | None'
 
 T = TypeVar('T')
 TAsync = Generator[Send, Recieve, T]
+
+from .maj import RealPai, Button
