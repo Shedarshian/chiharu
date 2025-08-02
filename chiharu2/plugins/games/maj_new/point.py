@@ -4,8 +4,8 @@ from typing import Callable, TypeAlias, Iterable, Annotated, get_type_hints
 
 type PaixingChecker =   'Callable[[Paili.MianziTuple, ChangStatus, PaiStatus], bool]'
 type PaixingRanker =    'Callable[[Paili.MianziTuple, ChangStatus, PaiStatus], int]'
-type PaiChecker =       'Callable[[Iterable[Pai]], bool]' # please remove bei and hua
-type PaiRanker =        'Callable[[Iterable[Pai]], int]'
+type PaiChecker =       'Callable[[Iterable[Pai], Paili.MianziTuple], bool]' # move bei and hua to second arg
+type PaiRanker =        'Callable[[Iterable[Pai], Paili.MianziTuple], int]'
 type StatusChecker =    'Callable[[ChangStatus, PaiStatus], bool]'
 type StatusRanker =    'Callable[[ChangStatus, PaiStatus], int]'
 class AllCheckers:
@@ -14,9 +14,9 @@ class AllCheckers:
     MenqianqingZj:          StatusChecker = \
         lambda c, p: p & PaiStatus.Menqianqing != 0
     Duanyaojiu:             PaiChecker = \
-        lambda p: all(x.color != Color.z and 2 <= x.num <= 8 for x in p)
+        lambda p, t: all(x.color != Color.z and 2 <= x.num <= 8 for x in p)
     HunQingZiyise:          PaiRanker = \
-        lambda p: 1 if len(st := set(x.color for x in p)) == 2 and Color.z in st else \
+        lambda p, t: 1 if len(st := set(x.color for x in p)) == 2 and Color.z in st else \
                 2 if len(st) == 1 and Color.z not in st else \
                 3 if len(st) == 1 and Color.z in st else 0
     Jiulianbaodeng:         PaixingRanker = \
@@ -73,7 +73,7 @@ class AllCheckers:
                         1 if all(m for m in s.removeExtra() if 1 in m.pai or 9 in m.pai or m.color == Color.z) and \
                             not all(m for m in s.removeExtra() if m.color == Color.z) else 0
     Laotou:                 PaiRanker = \
-        lambda p: 2 if all(pai.num in (1, 9) and pai.color != Color.z for pai in p) else \
+        lambda p, t: 2 if all(pai.num in (1, 9) and pai.color != Color.z for pai in p) else \
                     1 if all(pai.num in (1, 9) or pai.color != Color.z for pai in p) and \
                     not all(pai for pai in p if pai.color == Color.z) else 0
     Ouran:                  StatusRanker = \

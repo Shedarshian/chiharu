@@ -1,4 +1,5 @@
 {
     "python.linting.pylintEnabled": true,
-    "python.analysis.typeCheckingMode": "standard"
+    "python.analysis.typeCheckingMode": "standard",
+    "editor.fontFamily": "Fira Code"
 }

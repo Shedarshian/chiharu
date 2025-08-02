@@ -293,8 +293,28 @@ class Player:
             self.drawHai()
         self.noDraw = False
         self.active = False
+        while 1:
+            angang = self.checkAngang()
+            break
         return False
         yield
+    def getPaiCombination(self, lpai: list[Counter[Pai]]):
+        l = []
+        for tpai in lpai:
+            itertools.combinations
+        pass
+    def checkFulu(self, pai: RealPai):
+        return
+    def checkAngang(self):
+        lpai = [Counter({key: 4}) for key, val in Counter(p.pai for p in self.shoupai).items() if val == 4]
+        return self.getPaiCombination(lpai)
+    def checkHua(self):
+        return [pai for pai in self.shoupai if pai.pai.color == Color.h]
+    def checkBei(self):
+        return [pai for pai in self.shoupai if pai.pai == Pai(Color.z, 4)]
+    def checkJiuzhongjiupai(self):
+        return len(set(pai.pai for pai in self.shoupai if pai.pai.color == Color.z or pai.pai.num in (1, 9))) >= 9
+    
 
 class Board:
     def __init__(self, config: Config):
@@ -348,10 +368,10 @@ class Board:
                 self.lianzhuang = False
     def Round(self) -> TAsync[None]:
         self.RoundPrepareHaiyama()
-        self.RoundPrepareWanpai()
+        self.RoundPrepareWangpai()
         for player in self.players:
             player.prepareNewRound()
-        self.RoundBeginHai()
+        self.RoundBeginPai()
         while True:
             if len(self.paishan) == 0:
                 break
@@ -361,10 +381,10 @@ class Board:
     def RoundPrepareHaiyama(self):
         self.paishan = self.allPai.copy()
         self.shufflePaishan()
-    def RoundPrepareWanpai(self):
+    def RoundPrepareWangpai(self):
         self.wangpai = self.paishan[-14:]
         self.paishan = self.paishan[:-14]
-    def RoundBeginHai(self):
+    def RoundBeginPai(self):
         for _ in range(3):
             for player in self.players:
                 for _ in range(4):
