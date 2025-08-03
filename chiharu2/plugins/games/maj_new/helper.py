@@ -33,11 +33,11 @@ class RuleConfig:
     genzhangmianzeUpgrade: bool = False # 是否存在高级版跟张免责
     class Tuzhongliuju(IntFlag):
         none = 0
-        jiuzhongjiupai = 1 << 0
-        sifenglianda = 1 << 1
-        sigangsanliao = 1 << 2
-        sijializhi = 1 << 3
-        sanjiaheliao = 1 << 4
+        Jiuzhongjiupai = 1 << 0
+        Sifenglianda = 1 << 1
+        Sigangsanliao = 1 << 2
+        Sijializhi = 1 << 3
+        Sanjiaheliao = 1 << 4
     tuzhongiuju: Tuzhongliuju = Tuzhongliuju.none
     liujumanguan: bool = False          # 是否存在流局满贯
     angangmingpai: bool = True          # 暗杠是否明牌
@@ -59,7 +59,7 @@ class SpecialTypeConfig:
     kongtingfafu: bool = False      # 空听（听的所有牌都在自己手中）是否罚符
     alllastLianzhuang: bool = False # 是否允许all last连庄
     toutiao: bool = False           # 是否存在头跳
-    qihe: int = 1                  # 起和/番缚
+    qihe: int = 1                   # 起和/番缚
     gangbaopaijifan: bool = False   # （非暗杠的）杠宝牌是否立即翻开
     leijiyiman: bool = False        # 是否存在累计役满
 
@@ -70,20 +70,20 @@ class Config:
     procedure: ProcedureConfig = ProcedureConfig()
     special: SpecialTypeConfig = SpecialTypeConfig()
 
-@dataclass
+@dataclass(frozen=True)
 class Send:
     last_err: int
-@dataclass
+@dataclass(frozen=True)
 class SendInTurn(Send):
     player_pos: int
     cando_list: 'dict[Button, Sequence[tuple[RealPai, ...]] | bool]'
-@dataclass
+@dataclass(frozen=True)
 class Recieve:
     pass
-@dataclass
+@dataclass(frozen=True)
 class RecieveInTurn(Recieve):
     button: 'Button'
-    choice: 'tuple[RealPai] | None'
+    choice: 'tuple[RealPai,...] | None'
 
 T = TypeVar('T')
 TAsync = Generator[Send, Recieve, T]
