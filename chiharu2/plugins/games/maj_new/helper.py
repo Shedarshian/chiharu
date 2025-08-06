@@ -78,12 +78,20 @@ class SendInTurn(Send):
     player_pos: int
     cando_list: 'dict[Button, Sequence[tuple[RealPai, ...]] | bool]'
 @dataclass(frozen=True)
+class SendFuluCheck(Send):
+    cando_list: 'dict[int, dict[Button, list[tuple[RealPai, ...]]]]'
+@dataclass(frozen=True)
 class Recieve:
     pass
 @dataclass(frozen=True)
 class RecieveInTurn(Recieve):
     button: 'Button'
     choice: 'tuple[RealPai,...] | None'
+@dataclass(frozen=True)
+class RecieveFulu(Recieve):
+    player_pos: int
+    button: 'Button'
+    choice: 'tuple[RealPai, ...]'
 
 T = TypeVar('T')
 TAsync = Generator[Send, Recieve, T]

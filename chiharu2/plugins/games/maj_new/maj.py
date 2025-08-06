@@ -117,7 +117,7 @@ class RealPai:
 class Fulu:
     type: MianziType
     pai: tuple[RealPai,...]
-    fromPlayerPos: int = -1
+    fromPlayerPos: int = -1 # 默认最后一张牌当作从别人那里拿来的牌
     def toMianzi(self):
         return Paili.Mianzi(self.type, self.pai[0].pai.color, tuple(n.pai.num for n in self.pai))
 
@@ -354,13 +354,9 @@ class Player:
                     return EndStatus.Dapai
                 elif ret.button == Button.Jiagang:
                     pass # TODO
+                    break
                 else:
-                    pais: list[RealPai] = []
-                    for p in ret.choice:
-                        pai = self.findEqualRealPai(p)
-                        self.shoupai.remove(pai)
-                        pais.append(pai)
-                    self.fulu.append(Fulu(MianziType[ret.button.name.lower()], tuple(pais)))
+                    self.makeFulu(ret.choice, MianziType[ret.button.name.lower()])
                     if ret.button == Button.Buhua:
                         pai = self.board.drawPaishan()
                     else:
@@ -413,6 +409,13 @@ class Player:
     def checkJiuzhongjiupai(self):
         return len(set(pai.pai for pai in self.shoupai if pai.pai.color == Color.z or pai.pai.num in (1, 9))) >= 9
 
+    def makeFulu(self, findInShoupai: tuple[RealPai, ...], type: MianziType, fromPlayerPos: int = -1):
+        pais: list[RealPai] = []
+        for p in findInShoupai:
+            pai = self.findEqualRealPai(p)
+            self.shoupai.remove(pai)
+            pais.append(pai)
+        self.fulu.append(Fulu(type, tuple(pais), fromPlayerPos))
 
 class Board:
     def __init__(self, config: Config):
@@ -463,6 +466,9 @@ class Board:
         pai = self.wangpai.pop(-1)
         self.wangpai.insert(0, self.paishan.pop(-1))
         return pai
+    @classmethod
+    def nextPos(cls, pos: int):
+        return (pos + 1) % 4
 
     def Game(self) -> TAsync[None]:
         while self.chang < 4:
@@ -510,5 +516,46 @@ class Board:
         self.dongjia.noDraw = True
         self.activePlayerPos = self.dongjiaPos
     def RoundCheckMingpai(self) -> TAsync[None]:
-        return
-        yield
+        player = self.activePlayer
+        pai = player.paihe[-1]
+        if not self.canDrawPaishan():
+            pass
+            return
+        choice: dict[int, dict[Button, list[tuple[RealPai, ...]]]] = {}
+        for player_check in self.players:
+            chi = player_check.checkChi(pai) if self.nextPos(self.activePlayerPos) == player_check.pos else []
+            peng = player_check.checkPeng(pai)
+            minggang = player_check.checkMingGang(pai)
+            choice[player_check.pos] = {
+                Button.Chi: chi,
+                Button.Peng: peng,
+                Button.Minggang: minggang,
+            }
+        passed_player = set()
+        last_err = -1
+        while 1:
+            from .helper import SendFuluCheck, RecieveFulu
+            ret = yield SendFuluCheck(last_err, choice)
+            assert isinstance(ret, RecieveFulu)
+            if ret.player_pos in passed_player:
+                last_err = 4
+                continue
+            if ret.button == Button.Pass:
+                passed_player.add(ret.player_pos)
+                if len(passed_player) == 3:
+                    break
+                continue
+            if ret.button not in (Button.Chi, Button.Peng, Button.Minggang):
+                last_err = 1
+                continue
+            if not any(True for c in choice[ret.player_pos][ret.button] if c == ret.choice):
+                last_err = 2
+                continue
+            if ret.button == Button.Chi and ret.player_pos != self.nextPos(self.activePlayerPos):
+                last_err = 3
+                continue
+            player_do = self.players[ret.player_pos]
+            player.paihe.remove(pai)
+            player_do.makeFulu(ret.choice + (pai,), MianziType[ret.button.name.lower()]) # not done check priority
+            self.activePlayerPos = ret.player_pos
+            break
