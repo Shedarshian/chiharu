@@ -1,6 +1,6 @@
 import random, itertools, more_itertools
 from enum import Enum, auto, IntEnum, IntFlag
-from typing import TypeVar, Generic, TYPE_CHECKING, Iterable, Any, NewType
+from typing import TypeVar, Generic, TYPE_CHECKING, Iterable, Any, NewType, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from collections import Counter
@@ -95,6 +95,7 @@ class Button(Enum):
     Lizhi = auto()
     Jiuzhongjiupai = auto()
 class EndStatus(Enum):
+    Dapai = auto()
     Hepai = auto()
     Huangpailiuju = auto()
     Jiuzhongjiupai = auto()
@@ -305,50 +306,58 @@ class Player:
         self.shoupai.clear()
         self.fulu.clear()
         self.paihe.clear()
-    def drawHai(self, pai: RealPai):
+    def drawPai(self, pai: RealPai):
         self.shoupai.append(pai)
-    def findEqualPai(self, pai: RealPai):
+    def findEqualRealPai(self, pai: RealPai):
         return more_itertools.first(c for c in self.shoupai if c == pai)
-    def hasEqualPai(self, pai: RealPai):
+    def hasEqualRealPai(self, pai: RealPai):
         return any(True for c in self.shoupai if c == pai)
+    def findPai(self, pai: Pai):
+        return [c for c in self.shoupai if c.pai == pai]
+    def hasPai(self, pai: Pai):
+        return any(True for c in self.shoupai if c.pai == pai)
     def turn(self) -> TAsync[EndStatus]:
         if not self.noDraw:
-            self.drawHai(self.board.drawPaishan())
+            self.drawPai(self.board.drawPaishan())
         self.noDraw = False
         self.active = False
-        cont = True
-        while cont:
+        while 1:
             # TODO 碰后不能杠
             canLingshang = self.board.canDrawLingshang()
-            angang = canLingshang and self.checkAngang()
-            babei = canLingshang and self.checkBei()
-            buhua = self.board.canDrawPaishan() and self.checkHua()
+            angang = self.checkAngang() if canLingshang else []
+            jiagang = self.checkJiagang() if canLingshang else []
+            babei = self.checkBei() if canLingshang else []
+            buhua = self.checkHua() if self.board.canDrawPaishan() else []
             jzjp = bool(self.board.status & PaiStatus.FirstXun) and self.checkJiuzhongjiupai()
             from .helper import SendInTurn, RecieveInTurn
             last_err = -1
             while 1:
-                choice = {Button.Angang: angang, Button.Babei: babei, Button.Buhua: buhua, Button.Jiuzhongjiupai: jzjp}
+                choice: dict[Button, Sequence[tuple[RealPai, ...]] | bool] \
+                    = {Button.Angang: angang, Button.Babei: babei, Button.Buhua: buhua, Button.Jiuzhongjiupai: jzjp, Button.Jiagang: jiagang}
                 ret = yield SendInTurn(last_err, self.pos, choice)
                 assert isinstance(ret, RecieveInTurn)
-                if ret.button not in (Button.Angang, Button.Babei, Button.Buhua, Button.Jiuzhongjiupai, Button.Dapai):
-                    last_err = -1
+                if ret.button not in (Button.Angang, Button.Babei, Button.Buhua, Button.Jiuzhongjiupai, Button.Dapai, Button.Jiagang):
+                    last_err = 1
                     continue
                 if ret.button == Button.Jiuzhongjiupai:
                     return EndStatus.Jiuzhongjiupai
-                if ret.choice is None or not any(True for c in choice[ret.button] if c == ret.choice):
-                    last_err = -2
+                if ret.choice is None or not any(True for c in choice[ret.button] if c == ret.choice): # type: ignore
+                    last_err = 2
                     continue
                 if ret.button == Button.Dapai:
-                    if len(ret.choice) != 1 or self.hasEqualPai(ret.choice[0]):
-                        last_err = -2
+                    if len(ret.choice) != 1 or self.hasEqualRealPai(ret.choice[0]):
+                        last_err = 2
                         continue
-                    cont = False
-                    pai = self.findEqualPai(ret.choice[0])
-                    pass
+                    pai = self.findEqualRealPai(ret.choice[0])
+                    self.shoupai.remove(pai)
+                    self.paihe.append(pai)
+                    return EndStatus.Dapai
+                elif ret.button == Button.Jiagang:
+                    pass # TODO
                 else:
                     pais: list[RealPai] = []
                     for p in ret.choice:
-                        pai = self.findEqualPai(p)
+                        pai = self.findEqualRealPai(p)
                         self.shoupai.remove(pai)
                         pais.append(pai)
                     self.fulu.append(Fulu(MianziType[ret.button.name.lower()], tuple(pais)))
@@ -356,11 +365,9 @@ class Player:
                         pai = self.board.drawPaishan()
                     else:
                         pai = self.board.drawLingshang()
-                    self.drawHai(pai)
-                break
-            break
+                    self.drawPai(pai)
+                    break
         return EndStatus.Huangpailiuju
-        yield
     def getPaiCombination(self, lpai: list[Counter[Pai]]):
         l: list[tuple[RealPai, ...]] = []
         for tpai in lpai:
@@ -368,18 +375,44 @@ class Player:
                 *(more_itertools.distinct_combinations(sorted(p for p in self.shoupai if p.pai == pai), num)
                 for pai, num in tpai.items()))]
         return l
-    def checkFulu(self, pai: RealPai):
-        return
+    def checkChi(self, pai: RealPai) -> list[tuple[RealPai, ...]]:
+        if pai.pai.color == Color.z or pai.pai.color == Color.h:
+            return []
+        pais = {i: p for i in range(-2, 3) if self.hasPai(p := Pai(pai.pai.color, pai.pai.num + i))}
+        l: list[Counter[Pai]] = []
+        if -2 in pais and -1 in pais:
+            l.append(Counter({pais[-2]: 1, pais[-1]: 1}))
+        if -1 in pais and 1 in pais:
+            l.append(Counter({pais[-1]: 1, pais[1]: 1}))
+        if 1 in pais and 2 in pais:
+            l.append(Counter({pais[1]: 1, pais[2]: 1}))
+        return self.getPaiCombination(l)
+    def checkPeng(self, pai: RealPai) -> list[tuple[RealPai, ...]]:
+        if not self.hasPai(pai.pai):
+            return []
+        pais = self.findPai(pai.pai)
+        if len(pais) < 2:
+            return []
+        return self.getPaiCombination([Counter({pai.pai: 2})])
+    def checkMingGang(self, pai: RealPai) -> list[tuple[RealPai, ...]]:
+        if not self.hasPai(pai.pai):
+            return []
+        pais = self.findPai(pai.pai)
+        if len(pais) < 3:
+            return []
+        return self.getPaiCombination([Counter({pai.pai: 3})])
     def checkAngang(self):
         lpai = [Counter({key: 4}) for key, val in Counter(p.pai for p in self.shoupai).items() if val == 4]
         return self.getPaiCombination(lpai)
+    def checkJiagang(self):
+        return [(pai,) for pai in self.shoupai if any(fulu.type == MianziType.mingke and fulu.pai[0].pai == pai.pai for fulu in self.fulu)]
     def checkHua(self):
         return [(pai,) for pai in self.shoupai if pai.pai.color == Color.h]
     def checkBei(self):
         return [(pai,) for pai in self.shoupai if pai.pai == Pai(Color.z, 4)]
     def checkJiuzhongjiupai(self):
         return len(set(pai.pai for pai in self.shoupai if pai.pai.color == Color.z or pai.pai.num in (1, 9))) >= 9
-    
+
 
 class Board:
     def __init__(self, config: Config):
@@ -450,12 +483,14 @@ class Board:
             player.prepareNewRound()
         self.RoundBeginPai()
         self.status = PaiStatus.FirstPai | PaiStatus.FirstXun
+        ret = EndStatus.Dapai
         while True:
             if len(self.paishan) == 0:
                 break
             ret = yield from self.activePlayer.turn()
-            if ret:
+            if ret != EndStatus.Dapai:
                 break
+            yield from self.RoundCheckMingpai()
     def RoundPrepareHaiyama(self):
         self.paishan = self.allPai.copy()
         self.shufflePaishan()
@@ -474,3 +509,6 @@ class Board:
         self.dongjia.active = True
         self.dongjia.noDraw = True
         self.activePlayerPos = self.dongjiaPos
+    def RoundCheckMingpai(self) -> TAsync[None]:
+        return
+        yield
