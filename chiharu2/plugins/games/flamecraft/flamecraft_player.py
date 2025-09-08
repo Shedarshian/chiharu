@@ -215,9 +215,8 @@ class Player:
 
             dragon = self.hand[ret.nums[0]]
             self.hand.remove(dragon)
-            
-        return
-        yield
+            self.place.dragons[ret.nums[1]] = dragon
+            yield from self.place.slots[ret.nums[1]].fill(self)
     def turnFireOne(self) -> 'TAsync[None]':
         return
         yield

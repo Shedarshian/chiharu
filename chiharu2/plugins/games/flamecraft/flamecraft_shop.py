@@ -5,7 +5,7 @@ from collections import defaultdict
 class Slot:
     def __init__(self, award: 'Award | None'=None) -> None:
         self.award: 'Award' = award or Award()
-    def fill(self, player: 'Player') -> Generator: # TODO
+    def fill(self, player: 'Player') -> 'TAsync[None]': # TODO
         return
         yield
 class DragonSlot(Slot):
@@ -80,3 +80,4 @@ class AltStarterShop(Shop): # 所有另一组起始商店的基类，因为它�
 
 from .flamecraft_artisan import Dragon
 from .flamecraft_player import Player
+from .flamecraft_resource import TAsync
