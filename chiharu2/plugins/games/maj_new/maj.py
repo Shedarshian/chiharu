@@ -90,6 +90,8 @@ class Button(Enum):
     Minggang = auto()
     Angang = auto()
     Jiagang = auto()
+    Rong = auto()
+    Zimo = auto()
     Babei = auto()
     Buhua = auto()
     Lizhi = auto()
@@ -316,10 +318,9 @@ class Player:
         return [c for c in self.shoupai if c.pai == pai]
     def hasPai(self, pai: Pai):
         return any(True for c in self.shoupai if c.pai == pai)
-    def turn(self) -> TAsync[EndStatus]:
-        if not self.noDraw:
+    def turn(self, if_draw: bool) -> TAsync[EndStatus]:
+        if if_draw:
             self.drawPai(self.board.drawPaishan())
-        self.noDraw = False
         self.active = False
         while 1:
             # TODO 碰后不能杠
@@ -471,7 +472,7 @@ class Board:
         return (pos + 1) % 4
 
     def Game(self) -> TAsync[None]:
-        while self.chang < 4:
+        while self.chang < 2:
             yield from self.Round()
             if not self.lianzhuang:
                 self.benchang = 0
@@ -490,13 +491,13 @@ class Board:
         self.RoundBeginPai()
         self.status = PaiStatus.FirstPai | PaiStatus.FirstXun
         ret = EndStatus.Dapai
-        while True:
-            if len(self.paishan) == 0:
-                break
-            ret = yield from self.activePlayer.turn()
+        if_draw = True
+        while len(self.paishan) > 0:
+            ret = yield from self.activePlayer.turn(if_draw)
             if ret != EndStatus.Dapai:
                 break
-            yield from self.RoundCheckMingpai()
+            if_draw = yield from self.RoundCheckMingpai()
+        pass # TODO
     def RoundPrepareHaiyama(self):
         self.paishan = self.allPai.copy()
         self.shufflePaishan()
@@ -515,12 +516,11 @@ class Board:
         self.dongjia.active = True
         self.dongjia.noDraw = True
         self.activePlayerPos = self.dongjiaPos
-    def RoundCheckMingpai(self) -> TAsync[None]:
+    def RoundCheckMingpai(self) -> TAsync[bool]:
         player = self.activePlayer
         pai = player.paihe[-1]
         if not self.canDrawPaishan():
-            pass
-            return
+            return True
         choice: dict[int, dict[Button, list[tuple[RealPai, ...]]]] = {}
         for player_check in self.players:
             chi = player_check.checkChi(pai) if self.nextPos(self.activePlayerPos) == player_check.pos else []
@@ -530,20 +530,22 @@ class Board:
                 Button.Chi: chi,
                 Button.Peng: peng,
                 Button.Minggang: minggang,
+                Button.Rong: [],
             }
-        passed_player = set()
+        passed_player = set(p.pos for p in self.players if all(len(x) == 0 for x in choice[p.pos].values()))
+        from .helper import SendFuluCheck, RecieveFulu
+        chosen_player: dict[int, RecieveFulu] = {}
         last_err = -1
-        while 1:
-            from .helper import SendFuluCheck, RecieveFulu
-            ret = yield SendFuluCheck(last_err, choice)
+        # TODO add a new priority system
+        while len(passed_player) + len(chosen_player) < 3:
+            ret = yield SendFuluCheck(last_err, choice, passed_player)
             assert isinstance(ret, RecieveFulu)
-            if ret.player_pos in passed_player:
+            if ret.player_pos in passed_player or ret.player_pos in chosen_player:
                 last_err = 4
                 continue
             if ret.button == Button.Pass:
                 passed_player.add(ret.player_pos)
-                if len(passed_player) == 3:
-                    break
+                last_err = -1
                 continue
             if ret.button not in (Button.Chi, Button.Peng, Button.Minggang):
                 last_err = 1
@@ -554,8 +556,25 @@ class Board:
             if ret.button == Button.Chi and ret.player_pos != self.nextPos(self.activePlayerPos):
                 last_err = 3
                 continue
-            player_do = self.players[ret.player_pos]
+            chosen_player[ret.player_pos] = ret
+            if ret.button in (Button.Peng, Button.Minggang):
+                for p in self.players:
+                    if p.pos == ret.player_pos:
+                        continue
+                    if len(choice[p.pos][Button.Chi]) > 0:
+                        passed_player.add(p.pos)
+        ret2 = more_itertools.first((c for c in chosen_player.values() if c.button in (Button.Peng, Button.Minggang)), None)
+        if ret2 is None:
+            ret2 = more_itertools.first((c for c in chosen_player.values() if c.button == Button.Chi), None)
+        if ret2 is not None:
+            player_do = self.players[ret2.player_pos]
             player.paihe.remove(pai)
-            player_do.makeFulu(ret.choice + (pai,), MianziType[ret.button.name.lower()]) # not done check priority
-            self.activePlayerPos = ret.player_pos
-            break
+            player_do.makeFulu(ret2.choice + (pai,), MianziType[ret2.button.name.lower()]) # not done check priority
+            self.activePlayerPos = ret2.player_pos
+            if ret2.button == Button.Minggang:
+                self.lingshangDrawn += 1
+                player_do.drawPai(self.drawLingshang())
+                return False
+        else:
+            self.activePlayerPos = self.nextPos(self.activePlayerPos)
+        return True

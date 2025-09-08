@@ -80,6 +80,7 @@ class SendInTurn(Send):
 @dataclass(frozen=True)
 class SendFuluCheck(Send):
     cando_list: 'dict[int, dict[Button, list[tuple[RealPai, ...]]]]'
+    passed_player: 'set[int]'
 @dataclass(frozen=True)
 class Recieve:
     pass
