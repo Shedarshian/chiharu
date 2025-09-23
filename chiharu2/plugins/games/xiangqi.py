@@ -16,6 +16,7 @@ class ChessError(BaseException):
 class ChessWin(ChessError):
     pass
 
+TCommand = tuple[Literal[1, 0, -1], str]
 class Chess:
     """A Abstract Base Class for Cell"""
     row = {"一": 8, "二": 7, "三": 6, "四": 5, "五": 4, "六": 3, "七": 2, "八": 1, "九": 0,
@@ -32,7 +33,7 @@ class Chess:
         return self.__class__.__name__.startswith("Hong")
     def __str__(self):
         return self.name
-    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
+    def TestMove(self, command: TCommand) -> tuple[int, int] | None:
         return None
     def Move(self, pos: tuple[int, int]):
         to_delete: tuple[tuple[type[Chess], tuple[int, int]],...] = ()
@@ -47,7 +48,7 @@ class Chess:
         self.pos = pos
 
 class HongChe(Chess, name="车"):
-    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
+    def TestMove(self, command: TCommand) -> tuple[int, int] | None:
         if command[0] == 1: #进
             try:
                 step = Chess.step[command[1]]
@@ -94,7 +95,7 @@ class HongChe(Chess, name="车"):
                 return None
             return pos
 class HongMa(Chess, name="马"):
-    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
+    def TestMove(self, command: TCommand) -> tuple[int, int] | None:
         try:
             lie = Chess.row[command[1]]
         except KeyError:
@@ -109,7 +110,7 @@ class HongMa(Chess, name="马"):
                 self.pos[1] + 1: ((self.pos[0] + 2, self.pos[1] + 1), (self.pos[0] + 1, self.pos[1])),
                 self.pos[1] - 2: ((self.pos[0] + 1, self.pos[1] - 2), (self.pos[0], self.pos[1] - 1)),
                 self.pos[1] + 2: ((self.pos[0] + 1, self.pos[1] + 2), (self.pos[0], self.pos[1] + 1))}
-        elif command[0] == 0: #平
+        else: #平
             raise ChessError('不明指令')
         try:
             pos, tui = l[lie]
@@ -123,7 +124,7 @@ class HongMa(Chess, name="马"):
             return None
         return pos
 class HongXiang(Chess, name="相"):
-    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
+    def TestMove(self, command: TCommand) -> tuple[int, int] | None:
         try:
             lie = Chess.row[command[1]]
         except KeyError:
@@ -134,7 +135,7 @@ class HongXiang(Chess, name="相"):
         elif command[0] == -1: #退
             l = {self.pos[1] - 2: ((self.pos[0] + 2, self.pos[1] - 2), (self.pos[0] + 1, self.pos[1] - 1)),
                 self.pos[1] + 2: ((self.pos[0] + 2, self.pos[1] + 2), (self.pos[0] + 1, self.pos[1] + 1))}
-        elif command[0] == 0: #平
+        else: #平
             raise ChessError('不明指令')
         try:
             pos, tui = l[lie]
@@ -148,7 +149,7 @@ class HongXiang(Chess, name="相"):
             return None
         return pos
 class HongShi(Chess, name="仕"):
-    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
+    def TestMove(self, command: TCommand) -> tuple[int, int] | None:
         try:
             lie = Chess.row[command[1]]
         except KeyError:
@@ -159,7 +160,7 @@ class HongShi(Chess, name="仕"):
         elif command[0] == -1: #退
             l = {self.pos[1] - 1: (self.pos[0] + 1, self.pos[1] - 1),
                 self.pos[1] + 1: (self.pos[0] + 1, self.pos[1] + 1)}
-        elif command[0] == 0: #平
+        else: #平
             raise ChessError('不明指令')
         try:
             pos = l[lie]
@@ -171,7 +172,7 @@ class HongShi(Chess, name="仕"):
             return None
         return pos
 class HongShuai(Chess, name="帅"):
-    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
+    def TestMove(self, command: TCommand) -> tuple[int, int] | None:
         if command[0] == 0: #平
             try:
                 lie = Chess.row[command[1]]
@@ -196,7 +197,7 @@ class HongShuai(Chess, name="帅"):
             return None
         return pos
 class HongPao(Chess, name="炮"):
-    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
+    def TestMove(self, command: TCommand) -> tuple[int, int] | None:
         if command[0] == 1: #进
             try:
                 step = Chess.step[command[1]]
@@ -262,7 +263,7 @@ class HongPao(Chess, name="炮"):
                 return None
             return pos
 class HongBing(Chess, name="兵"):
-    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
+    def TestMove(self, command: TCommand) -> tuple[int, int] | None:
         if command[0] == 0: #平
             try:
                 lie = Chess.row[command[1]]
@@ -283,13 +284,13 @@ class HongBing(Chess, name="兵"):
             pos = (self.pos[0] - step, self.pos[1])
             if pos[0] < 0:
                 return None
-        elif command[0] == -1: #退
+        else: #退
             raise ChessError('不明指令')
         if not self.board.isBlank(pos) and self.board[pos].isRed():
             return None
         return pos
 class HeiChe(Chess, name="車"):
-    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
+    def TestMove(self, command: TCommand) -> tuple[int, int] | None:
         if command[0] == -1: #退
             try:
                 step = Chess.step[command[1]]
@@ -336,7 +337,7 @@ class HeiChe(Chess, name="車"):
                 return None
             return pos
 class HeiMa(Chess, name="馬"):
-    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
+    def TestMove(self, command: TCommand) -> tuple[int, int] | None:
         try:
             lie = Chess.row[command[1]]
         except KeyError:
@@ -351,7 +352,7 @@ class HeiMa(Chess, name="馬"):
                 self.pos[1] + 1: ((self.pos[0] + 2, self.pos[1] + 1), (self.pos[0] + 1, self.pos[1])),
                 self.pos[1] - 2: ((self.pos[0] + 1, self.pos[1] - 2), (self.pos[0], self.pos[1] - 1)),
                 self.pos[1] + 2: ((self.pos[0] + 1, self.pos[1] + 2), (self.pos[0], self.pos[1] + 1))}
-        elif command[0] == 0: #平
+        else: #平
             raise ChessError('不明指令')
         try:
             pos, tui = l[lie]
@@ -365,7 +366,7 @@ class HeiMa(Chess, name="馬"):
             return None
         return pos
 class HeiXiang(Chess, name="象"):
-    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
+    def TestMove(self, command: TCommand) -> tuple[int, int] | None:
         try:
             lie = Chess.row[command[1]]
         except KeyError:
@@ -376,7 +377,7 @@ class HeiXiang(Chess, name="象"):
         elif command[0] == 1: #进
             l = {self.pos[1] - 2: ((self.pos[0] + 2, self.pos[1] - 2), (self.pos[0] + 1, self.pos[1] - 1)),
                 self.pos[1] + 2: ((self.pos[0] + 2, self.pos[1] + 2), (self.pos[0] + 1, self.pos[1] + 1))}
-        elif command[0] == 0: #平
+        else: #平
             raise ChessError('不明指令')
         try:
             pos, tui = l[lie]
@@ -390,7 +391,7 @@ class HeiXiang(Chess, name="象"):
             return None
         return pos
 class HeiShi(Chess, name="士"):
-    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
+    def TestMove(self, command: TCommand) -> tuple[int, int] | None:
         try:
             lie = Chess.row[command[1]]
         except KeyError:
@@ -401,7 +402,7 @@ class HeiShi(Chess, name="士"):
         elif command[0] == 1: #进
             l = {self.pos[1] - 1: (self.pos[0] + 1, self.pos[1] - 1),
                 self.pos[1] + 1: (self.pos[0] + 1, self.pos[1] + 1)}
-        elif command[0] == 0: #平
+        else: #平
             raise ChessError('不明指令')
         try:
             pos = l[lie]
@@ -413,7 +414,7 @@ class HeiShi(Chess, name="士"):
             return None
         return pos
 class HeiShuai(Chess, name="将"):
-    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
+    def TestMove(self, command: TCommand) -> tuple[int, int] | None:
         if command[0] == 0: #平
             try:
                 lie = Chess.row[command[1]]
@@ -438,7 +439,7 @@ class HeiShuai(Chess, name="将"):
             return None
         return pos
 class HeiPao(Chess, name="砲"):
-    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
+    def TestMove(self, command: TCommand) -> tuple[int, int] | None:
         if command[0] == -1: #退
             try:
                 step = Chess.step[command[1]]
@@ -504,7 +505,7 @@ class HeiPao(Chess, name="砲"):
                 return None
             return pos
 class HeiBing(Chess, name="卒"):
-    def TestMove(self, command: tuple[int, str]) -> tuple[int, int] | None:
+    def TestMove(self, command: TCommand) -> tuple[int, int] | None:
         if command[0] == 0: #平
             try:
                 lie = Chess.row[command[1]]
@@ -525,7 +526,7 @@ class HeiBing(Chess, name="卒"):
             pos = (self.pos[0] + step, self.pos[1])
             if pos[0] > 9:
                 return None
-        elif command[0] == -1: #退
+        else: #退
             raise ChessError('不明指令')
         if not self.board.isBlank(pos) and not self.board[pos].isRed():
             return None
@@ -678,10 +679,9 @@ class ChessBoard:
             except KeyError:
                 raise ChessError("不明指令")
             chess_list = list(filter(lambda x: x.pos[1] == lie, chess_list))
-        try:
-            move_command = ({'进': 1, '平': 0, '退': -1}[command[-2]], command[-1])
-        except KeyError:
+        if command[-2] not in "进平退":
             raise ChessError("不明指令")
+        move_command = (1 if command[-2] == '进' else 0 if command[-2] == '平' else -1, command[-1])
         if len(chess_list) != 1:
             chess_list2 = [(x, t) for x in chess_list if (t := x.TestMove(move_command)) is not None]
             if len(chess_list2) > 1:
