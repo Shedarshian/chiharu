@@ -249,6 +249,7 @@ class Player:
                 self.board.cards[i].pop(j)
         else:
             self.reserve_cards.pop(j)
+        c = Color.black
         if card.color == "imitate":
             while 1:
                 c: Color = yield 2
@@ -276,9 +277,12 @@ class Player:
             elif sp == "gem":
                 cl = Color[card.color]
                 if any(any(y == cl for y in x) for x in self.board.board_tokens):
+                    it: Any = 0
+                    jt: Any = 0
                     while 1:
                         it, jt = yield 4
-                        if not isinstance(it, int) or not isinstance(jt, int) or not (0 <= it < 5 and 0 <= jt < 5 and self.board.board_tokens[it][jt] == cl):
+                        if not isinstance(it, int) or not isinstance(jt, int) or \
+                            not (0 <= it < 5 and 0 <= jt < 5 and self.board.board_tokens[it][jt] == cl):
                             continue
                         break
                     t = self.board.popToken(it, jt)
@@ -289,6 +293,7 @@ class Player:
             crown = self.crown
             curr = len(list(c for c in self.cards[Color.gray] if c.level == 3))
             if curr == 0 and crown >= 3 or curr == 1 and crown >= 6:
+                ic: Any = 0
                 while 1:
                     ic = yield 5
                     if not isinstance(ic, int) or not 0 <= ic < len(self.board.pyramid[3]):
@@ -686,28 +691,28 @@ async def sp2_process(matcher: Matcher,
                 await matcher.send("请正确选择模仿颜色，使用宝石颜色指定，如红。")
                 return
             color = Color.choose(match.group(0))
-            await proceed_buy(lambda: player.buyCardState.send(color), this=2)
+            await proceed_buy(lambda: player.buyCardState.send(color), this=2) # type: ignore
         elif player.state == 3: # 3: 选择偷取颜色
             match = re.search(r"白|黑|红|绿|蓝|粉|珍珠|钻石", command)
             if not match:
                 await matcher.send("请正确选择偷取宝石颜色，如红绿蓝粉。")
                 return
             color = Color.choose(match.group(0))
-            await proceed_buy(lambda: player.buyCardState.send(color), this=3)
+            await proceed_buy(lambda: player.buyCardState.send(color), this=3) # type: ignore
         elif player.state == 4: # 4: 选择获取token
             match = re.search(r"[A-E][1-5]", command)
             if not match:
                 await matcher.send("请正确选择拿取宝石位置，如A1 C5。")
                 return
             corr = GemCorr(match.group(0))
-            await proceed_buy(lambda: player.buyCardState.send(corr), this=4)
+            await proceed_buy(lambda: player.buyCardState.send(corr), this=4) # type: ignore
         elif player.state == 5: # 5: 选择皇冠卡
             match = re.search(r"[s-v]", command)
             if not match:
                 await matcher.send("请正确选择皇冠卡，如卡t。")
                 return
             k = "stuv".index(match.group(0))
-            await proceed_buy(lambda: player.buyCardState.send(k), this=5)
+            await proceed_buy(lambda: player.buyCardState.send(k), this=5) # type: ignore
         if player.state != begin_state:
             if player.state > 1:
                 await matcher.send(board.SaveImg(player.id, data.vertical[player.id]))
