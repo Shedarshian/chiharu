@@ -1,15 +1,18 @@
 from typing import Any, Awaitable, Callable, Literal, Generator, Annotated
+from pydantic.dataclasses import dataclass
+from pydantic import ConfigDict
+from dataclasses import field
 import itertools, random, math, re
 from collections import Counter
 from enum import Enum, auto
 from PIL import Image, ImageDraw, ImageFont
 from nonebot.params import Depends, EventMessage
-from nonebot.adapters.discord import Message, Bot
+from nonebot.adapters.discord import Message, Bot, MessageSegment
 from nonebot.matcher import Matcher
 from .. import config
 from ..game import GameSameGroup, GameData, DeleteFunc
 from .achievement import achievement
-from ..helper.helper import DiscordGroup, DiscordUser, getUser, getGroup
+from ..helper.helper import DiscordGroup, DiscordUser, getUser, getGroup, img
 
 class Color(Enum):
     white = auto()
@@ -522,42 +525,49 @@ class Board:
         return img
     def SaveImg(self, player_id: int, vertical: bool):
         name = 'sp2' + str(random.randint(0, 9) + player_id * 10) + '.png'
-        self.Img(player_id, vertical).save(config.img(name))
-        return config.cq.img(name)
+        self.Img(player_id, vertical).save(img(name))
+        return MessageSegment.attachment(name)
 
-sp2 = GameSameGroup('splendor2', '璀璨宝石：对决', (2, 2))
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
+class Sp2GameData(GameData):
+    vertical: list[bool] = field(default_factory=lambda: [True, True])
+    board: Board | None = None
+
+sp2 = GameSameGroup('splendor2', '璀璨宝石：对决', (2, 2), Sp2GameData)
 
 @sp2.start()
 async def sp2_begin_complete(bot: Bot,
-                             data: GameData=sp2.data,
+                             data: Sp2GameData=sp2.data,
                              group: DiscordGroup=Depends(getGroup)):
-    data['vertical'] = [True, True]
     # 开始游戏
-    data['board'] = board = Board()
-    await bot.send_to(group.channel_id, [board.SaveImg(0, data['vertical'][0])])
-    await bot.send_to(group.channel_id, f"玩家{data['players'][0].name}先手，请选择操作：使用特权、填充宝石、拿宝石、买卡、预购卡。回复“帮助”查询如何使用指令。可随时使用“切换横向”或“切换纵向”来切换ui排布。")
+    data.board = board = Board()
+    await bot.send_to(group.channel_id, board.SaveImg(0, data.vertical[0]))
+    await bot.send_to(group.channel_id, f"玩家{data.players[0].name}先手，请选择操作：使用特权、填充宝石、拿宝石、买卡、预购卡。回复“帮助”查询如何使用指令。可随时使用“切换横向”或“切换纵向”来切换ui排布。")
 
 @sp2.process()
 async def sp2_process(matcher: Matcher,
-            data: GameData=sp2.data,
+            data: Sp2GameData=sp2.data,
             delete_func: DeleteFunc=sp2.delete_func,
             message: Message=EventMessage(),
             user: DiscordUser=Depends(getUser),
             group: DiscordGroup=Depends(getGroup)):
     command = message.extract_plain_text().strip()
-    user_id: Literal[0] | Literal[1] = data['players'].index(user.user_id)
+    user_id = data.players.index(user)
+    assert user_id == 0 or user_id == 1
     if command.startswith("帮助"):
         await matcher.send("例1：使用特权B2；使用卷轴B4 C1\n例2：填充宝石；填充\n例3：拿A1 B2 C3；拿宝石A4 B4\n例4：买j；买卡r\n例5：预购a C2；预购卡i 宝石B3")
     elif command == "切换横向":
-        data['vertical'][user_id] = False
+        data.vertical[user_id] = False
         await matcher.send("已切换。")
     elif command == "切换纵向":
-        data['vertical'][user_id] = True
+        data.vertical[user_id] = True
         await matcher.send("已切换。")
     elif command == "查看版面":
-        await matcher.send([data['board'].SaveImg(user_id, data['vertical'][user_id])])
+        assert data.board is not None
+        await matcher.send(data.board.SaveImg(user_id, data.vertical[user_id]))
     else:
-        board: Board = data['board']
+        assert data.board is not None
+        board: Board = data.board
         if user_id != board.current_player_id:
             return
         player = board.current_player
@@ -602,14 +612,14 @@ async def sp2_process(matcher: Matcher,
                 elif ret == -2:
                     await matcher.send("无法拿取空格子或金子！")
                 else:
-                    await matcher.send([board.SaveImg(player.id, data['vertical'][player.id])])
+                    await matcher.send(board.SaveImg(player.id, data.vertical[player.id]))
                     await matcher.send("请继续您的动作。")
             elif command.startswith("填充"):
                 ret = player.RefillToken()
                 if ret == -1:
                     await matcher.send("没有剩余宝石，无法重填！")
                 else:
-                    await matcher.send([board.SaveImg(player.id, data['vertical'][player.id])])
+                    await matcher.send(board.SaveImg(player.id, data.vertical[player.id]))
                     await matcher.send("请继续您的动作。")
             elif command.startswith("拿"):
                 lm = re.findall(r"([A-Z][0-9])", command[1:].strip())
@@ -700,24 +710,24 @@ async def sp2_process(matcher: Matcher,
             await proceed_buy(lambda: player.buyCardState.send(k), this=5)
         if player.state != begin_state:
             if player.state > 1:
-                await matcher.send([board.SaveImg(player.id, data['vertical'][player.id])])
+                await matcher.send(board.SaveImg(player.id, data.vertical[player.id]))
             elif player.state == 1:
                 if player.total_tokens > 10:
                     await matcher.send("你需要将宝石弃至10枚，请选择要弃的宝石。")
-                    await matcher.send([board.SaveImg(player.id, data['vertical'][player.id])])
+                    await matcher.send(board.SaveImg(player.id, data.vertical[player.id]))
                 else:
                     player.state = 0
                     next_turn = True
         if next_turn:
             if (ret := player.CheckWin())[0] != 0:
                 await matcher.send(f"恭喜你，你因获得了{ret[1]}" + ["单色分", "皇冠", "总分"][ret[0] - 1] + "而赢了！")
-                await matcher.send([board.SaveImg(player.id, data['vertical'][player.id])])
+                await matcher.send(board.SaveImg(player.id, data.vertical[player.id]))
                 await delete_func()
                 return
             await matcher.send("你的回合已结束。")
-            await matcher.send([board.SaveImg(player.id, data['vertical'][player.id])])
+            await matcher.send(board.SaveImg(player.id, data.vertical[player.id]))
             board.NextTurn()
             player = board.current_player
-            await matcher.send(f"轮到玩家{data['players'][player.id].name}的回合，请选择操作：使用特权、填充宝石、拿宝石、买卡、预购卡。回复“帮助”查询如何使用指令。")
-            await matcher.send([board.SaveImg(player.id, data['vertical'][player.id])])
+            await matcher.send(f"轮到玩家{data.players[player.id].name}的回合，请选择操作：使用特权、填充宝石、拿宝石、买卡、预购卡。回复“帮助”查询如何使用指令。")
+            await matcher.send(board.SaveImg(player.id, data.vertical[player.id]))
 

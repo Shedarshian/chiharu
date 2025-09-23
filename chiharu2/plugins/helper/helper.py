@@ -5,6 +5,8 @@ from nonebot.adapters.discord.commands.matcher import ApplicationCommandMatcher
 from nonebot.adapters.discord import Event, MessageEvent, DirectMessageCreateEvent, GuildMessageCreateEvent
 from nonebot.adapters.discord.api import Interaction
 from nonebot.matcher import Matcher
+from pydantic import ConfigDict
+from pydantic.dataclasses import dataclass
 
 PATH = "/Users/shedarshian/Desktop/bot/data"
 PATH_IMG = "/Users/shedarshian/Desktop/bot/data/images"
@@ -45,12 +47,12 @@ class DiscordGroup(Group):
 @dataclass(frozen=True)
 class User:
     pass
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=True)
 class QQUser(User):
     user_id: int
     def __str__(self):
         return f"qq:{self.user_id}"
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=True)
 class DiscordUser(User):
     user_id: int
     name: str

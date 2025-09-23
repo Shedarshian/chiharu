@@ -67,6 +67,7 @@ def stdoutIO(stdout=None):
 async def python_exec(bot: Bot, event: MessageEvent, matcher: Matcher, msg: Message = CommandArg()):
     import nonebot
     config = nonebot.get_driver().config
+    print(config.superusers, event.user_id)
     if str(event.user_id) in config.superusers:
         with stdoutIO() as s:
             exec(msg.extract_plain_text())

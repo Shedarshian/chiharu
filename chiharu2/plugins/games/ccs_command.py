@@ -1,5 +1,8 @@
 # mypy: disable-error-code="typeddict-item"
 from typing import Dict, Any, Callable, Awaitable, Literal
+from pydantic import ConfigDict
+from pydantic.dataclasses import dataclass
+from dataclasses import field
 import re, random, json, datetime, itertools, more_itertools
 from collections import defaultdict
 from nonebot.typing import T_State
@@ -19,7 +22,15 @@ changelog = """ver 3.0.0
 · 迁移。
 var 3.1.0
 · 九扩与十扩完成。"""
-cacason = GameSameGroup('cacason', "卡卡颂", (1, 6))
+
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
+class CacasonGameData(GameData):
+    starting_tile: int = 0
+    extensions: dict[int, str] = field(default_factory=dict)
+    waiting_player_num: bool = False
+    board: Board | None = None
+
+cacason = GameSameGroup('cacason', "卡卡颂", (1, 6), CacasonGameData)
 
 def getSend(matcher: Matcher):
     async def send(prompt: str, /, private: bool=False, user: list[User] | User | None=None):
@@ -53,10 +64,10 @@ async def ccs_choose(state: T_State, event: MessageComponentInteractionEvent,
             matcher: Matcher,
             user: DiscordUser=Depends(getUser),
             group: DiscordGroup=Depends(getGroup),
-            data: GameData=Depends(cacason.get_event_data)):
+            data: CacasonGameData=Depends(cacason.get_event_data)):
     button = state["button_id"]
     if button == "extension_menu":
-        if user not in cacason.uncomplete[group]["players"]:
+        if user not in cacason.uncomplete[group].players:
             await matcher.send(MessageSegment.mention_user(user.user_id) + "不在对局中，无法修改扩展！")
             return
         if not event.data.values:
@@ -92,28 +103,28 @@ async def ccs_choose(state: T_State, event: MessageComponentInteractionEvent,
             else:
                 ls: list[int] = packs[a[0]]["small"][a[1]]
                 extensions[a[0]] = extensions.get(a[0], "") + ''.join(chr(ord('a') + i) for i in ls)
-        data["starting_tile"] = begin
-        data["extensions"] = extensions
+        data.starting_tile = begin
+        data.extensions = extensions
         await matcher.send(MessageSegment.mention_user(user.user_id) + "已开的扩展为：\n* " + '\n* '.join((packs[item]["full_name"] + "\n  " + '，'.join(packs[item]["things"][ord(c) - ord('a')] for c in value)) for item, value in extensions.items()))
 
 @cacason.start()
 async def ccs_start(matcher: Matcher,
-            data: GameData=Depends(cacason.get_event_data),
+            data: CacasonGameData=Depends(cacason.get_event_data),
             delete_func: DeleteFunc=Depends(cacason.get_delete_func),
             user: DiscordUser=Depends(getUser),
             group: DiscordGroup=Depends(getGroup)):
     # data: {'players': [user], 'game': GameSameGroup instance, 'args': [args], 'anything': anything}
-    if len(data['players']) == 1:
-        data["waiting_player_num"] = True
+    if len(data.players) == 1:
+        data.waiting_player_num = True
         await matcher.send("请输入你想模拟的玩家数")
     else:
-        order = list(range(len(data['players'])))
+        order = list(range(len(data.players)))
         random.shuffle(order)
-        data['players'] = [data['players'][i] for i in order]
-        extensions: dict[int, str] = data.get("extensions", {}) # type: ignore
+        data.players = [data.players[i] for i in order]
+        extensions: dict[int, str] = data.extensions
         extensions[0] = "a"
-        board: Board = Board(extensions, data['players'], data.get("starting_tile", 0), group.channel_id) # type: ignore
-        data['board'] = board
+        board: Board = Board(extensions, data.players, data.starting_tile, group.channel_id)
+        data.board = board
         send = getSend(matcher)
         await board.advance(send, delete_func)
 
@@ -128,38 +139,40 @@ async def ccs_start(matcher: Matcher,
 
 @cacason.process()
 async def ccs_process(matcher: Matcher, state: T_State,
-            data: GameData=Depends(cacason.get_event_data),
+            data: CacasonGameData=Depends(cacason.get_event_data),
             delete_func: DeleteFunc=Depends(cacason.get_delete_func),
             message: Message=EventMessage(),
             user: DiscordUser=Depends(getUser),
             group: DiscordGroup=Depends(getGroup)):
     command = message.extract_plain_text().strip()
     send = getSend(matcher)
-    if data.get('waiting_player_num'):
+    if data.waiting_player_num:
         if command in "23456":
             # 开始游戏
             extensions: dict[int, Any] = data.get("extensions", {}) # type: ignore
             extensions[0] = "a"
-            board: Board = Board(extensions, [data['players'][0]] * int(command), data.get("starting_tile", 0), group.channel_id) # type: ignore
-            data['board'] = board
+            board: Board = Board(extensions, [data.players[0]] * int(command), data.starting_tile, group.channel_id)
+            data.board = board
             await board.advance(send, delete_func)
-            data['waiting_player_num'] = False
+            data.waiting_player_num = False
         return
-    board = data['board']
+    assert data.board is not None
+    board = data.board
+
     if command.startswith("查询剩余"):
         await matcher.send(board.saveRemainTileImg())
         return
     if command == "重新查询":
         await matcher.send(board.saveImg())
         return
-    if user not in data['players']:
+    if user not in data.players:
         return
-    user_id: int = data['players'].index(user)
+    user_id: int = data.players.index(user)
     if command == "查询礼物":
         await matcher.send("你手中的礼物卡有：" + board.players[user_id].giftsText(), ensure_private=True)
-    if len(data['players']) != 1 and data['players'][board.current_player_id] != user:
+    if len(data.players) != 1 and data.players[board.current_player_id] != user:
         return
-    if len(data['players']) == 1 and data['players'][board.current_player_id] == user:
+    if len(data.players) == 1 and data.players[board.current_player_id] == user:
         if command.startswith("修改起始") and (match := re.match(r" *(\d+) ([A-Z]+) (\d+) (\d+)", command[5:])):
             serial = int(match.group(1)), match.group(2), int(match.group(3)), int(match.group(4))
             tile = more_itertools.first((t for t in board.deck if t.serialNumber == serial), None)

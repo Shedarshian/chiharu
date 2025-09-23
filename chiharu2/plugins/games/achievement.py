@@ -1,7 +1,7 @@
 from typing import Callable, Any
 import functools
 import json
-from ..game import GameSameGroup
+from ..game import GameSameGroup, GameData
 from .. import config
 from ..helper.helper import rel
 
@@ -14,7 +14,7 @@ __all__ = ('achievement',)
 # if achievement.snakebird.get('1569603950'):
 #     await session.send(achievement.snakebird.get_str())
 
-_achievement_game = GameSameGroup('achievement', '成就', (1, 1))
+_achievement_game = GameSameGroup('achievement', '成就', (1, 1), GameData)
 _open_data = _achievement_game.open_data
 _save_data = _achievement_game.save_data
 

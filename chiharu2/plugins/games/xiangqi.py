@@ -1,7 +1,7 @@
-import abc
-import itertools
-import functools
 from typing import Dict, Any, Callable, Awaitable, TypeVar, Literal
+from pydantic import ConfigDict
+from pydantic.dataclasses import dataclass
+from dataclasses import field
 from nonebot.params import Depends, EventMessage
 from nonebot.matcher import Matcher
 from nonebot.adapters.discord import Bot, Message
@@ -709,35 +709,48 @@ class ChessBoard:
         for i in to_delete:
             self.insert(i[1], i[0])
 
-xiangqi = GameSameGroup('xiangqi', "象棋", (2, 2))
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
+class XiangqiGameData(GameData):
+    red_id: int = 0
+    board: ChessBoard | None = None
+    nowRed: bool = True
+    @property
+    def red(self):
+        return self.players[self.red_id]
+
+xiangqi = GameSameGroup('xiangqi', "象棋", (2, 2), XiangqiGameData)
 
 @xiangqi.start()
-async def chess_begin_complete(bot: Bot, data: GameData=xiangqi.data, group: DiscordGroup=Depends(getGroup)):
+async def chess_begin_complete(bot: Bot, data: XiangqiGameData=xiangqi.data, group: DiscordGroup=Depends(getGroup)):
     # data: {'players': [qq], 'game': GameSameGroup instance, 'anything': anything}
-    data['red'] = data['players'][0]
-    data['board'] = ChessBoard()
-    data['nowRed'] = True
-    await bot.send_to(group.channel_id, str(data['board']))
+    data.board = ChessBoard()
+    data.nowRed = True
+    await bot.send_to(group.channel_id, str(data.board))
 
 all_name = set('车車马馬象相士仕将帅炮砲兵卒')
 @xiangqi.process()
-async def chess_process(matcher: Matcher, data: GameData=xiangqi.data, delete_func: DeleteFunc=xiangqi.delete_func, message: Message=EventMessage(), user: DiscordUser=Depends(getUser)):
-    board: ChessBoard = data['board']
+async def chess_process(matcher: Matcher,
+                        data: XiangqiGameData=xiangqi.data,
+                        delete_func: DeleteFunc=xiangqi.delete_func,
+                        message: Message=EventMessage(),
+                        user: DiscordUser=Depends(getUser)):
+    assert data.board is not None
+    board: ChessBoard = data.board
     command = message.extract_plain_text().strip()
     if command in {"认输", "认负", "我认输", "我认负"}:
-        isRed = data['red'] == user
+        isRed = data.red == user
         await matcher.send(('红' if not isRed else '黑') + '方胜出')
         await delete_func()
     if len(command) != 4 and len(command) != 5:
         return
     if command[0] in '前中后' and command[1] in all_name or command[0] in all_name:
         if command[-2] in '进平退':
-            if (data['red'] == user) != data['nowRed']:
-                await matcher.send('现在应该' + ('红' if data['nowRed'] else '黑') + '方走')
+            if (data.red == user) != data.nowRed:
+                await matcher.send('现在应该' + ('红' if data.nowRed else '黑') + '方走')
                 return
             try:
-                board.process(command, data['nowRed'])
-                data['nowRed'] = not data['nowRed']
+                board.process(command, data.nowRed)
+                data.nowRed = not data.nowRed
                 await matcher.send(str(board))
             except ChessWin as e:
                 await matcher.send(e.args[0])
