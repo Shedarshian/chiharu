@@ -626,7 +626,7 @@ Picture1222
     Road l-Feature0 0
     Field else (R0-u-l) [48,16/8,56]
     Field else (R0-r-d) [56,56]
-        *1 9a Cloister Feature 0
+        *1 9a Cloister Feature0
 4 FRRR
     Road l-r 0
     Road d-32,48 0
@@ -865,5 +865,3 @@ Picture2323
         *1 7a
         *1 7d
         *1 7d Garden 18,50
-
-

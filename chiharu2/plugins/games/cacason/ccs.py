@@ -168,7 +168,9 @@ class Tile:
             return 1
         return -2
     def addConnect(self, tile: 'Tile', dir: Dir):
-        if (s1 := self.sidesToSegment(dir)) is not None and (s2 := tile.sidesToSegment(-dir)) is not None:
+        s1 = self.sidesToSegment(dir)
+        s2 = tile.sidesToSegment(-dir)
+        if s1 is not None and s2 is not None:
             s1.combine(s2, dir)
         if tile.sides[(-dir).value] == Connectable.Gate and s1 is not None:
             s1.closeAbbey(dir)
@@ -336,7 +338,7 @@ class Tile:
             i += 1
         if drawBarn:
             for tpos in ((0, 0), (64, 0), (0, 64), (64, 64)):
-                draw(tpos, i)
+                draw(Pos(*tpos), i)
                 i += 1
     def image(self, debug: bool=False):
         if debug:
@@ -402,9 +404,9 @@ class Segment(ABC):
         return self.object.closed()
     def canPut(self):
         return self.object.canPut()
-    def inSide(self, dir: Dir):
+    def inSide(self, dir: Dir) -> bool:
         return False
-    def inSideA(self, dir: Dir, up: bool):
+    def inSideA(self, dir: Dir, up: bool) -> bool:
         return False
     def selfClosed(self) -> bool:
         return False
@@ -414,7 +416,7 @@ class Segment(ABC):
     @abstractmethod
     def putPos(self, num: int) -> Pos:
         pass
-    def key(self):
+    def key(self) -> tuple[Any,...]:
         return (-1,)
     def putOnBy(self, token: 'Token') -> TAsync[None]:
         for token in self.tile.tokens:
@@ -775,7 +777,7 @@ class Object(CanScore):
 
 TCloister = TypeVar('TCloister', bound='BaseCloister')
 class Feature:
-    pack = (0, "a")
+    pack: tuple[int, str] = (0, "a")
     def __init__(self, tile: Tile, segment: FeatureSegmentData, data: list[Any]) -> None:
         self.pic = segment.pic
         self.pos = segment.pos
