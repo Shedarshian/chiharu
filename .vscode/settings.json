@@ -1,5 +1,12 @@
 {
     "python.linting.pylintEnabled": true,
     "python.analysis.typeCheckingMode": "standard",
-    "editor.fontFamily": "Fira Code"
+    "editor.fontFamily": "Fira Code",
+    "python-envs.pythonProjects": [
+        {
+            "path": ".",
+            "envManager": "ms-python.python:system",
+            "packageManager": "ms-python.python:pip"
+        }
+    ]
 }
