@@ -94,3 +94,11 @@ class test:
 get_type_hints(test)["fa"].__name__
 
 ((l := [i.index(0) for i in [[]]]) for j in range(10))
+
+class Checker:
+    def __call__(self, s: str, i: int) -> int:
+        return 0
+    
+class FirstChecker(Checker):
+    def __call__(self, s, i):
+        return s + 1
