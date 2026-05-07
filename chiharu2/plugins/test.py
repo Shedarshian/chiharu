@@ -27,10 +27,10 @@ async def test(option: CommandOption[str], bot: Bot, event: InteractionCreateEve
     else:
         await matcher.send_response("unknown option!")
 
-matcher_exec = on_command(('python', 'exec'))
-matcher_await = on_command(('python', 'await'))
-matcher_pull = on_command(('python', 'pull'))
-matcher_shutdown = on_command(('python', 'shutdown'))
+matcher_exec = on_command(('python', 'exec'), permission=SUPERUSER)
+matcher_await = on_command(('python', 'await'), permission=SUPERUSER)
+matcher_pull = on_command(('python', 'pull'), permission=SUPERUSER)
+matcher_shutdown = on_command(('python', 'shutdown'), permission=SUPERUSER)
 
 # matcher2 = on_slash_command(
 #     name="python",
