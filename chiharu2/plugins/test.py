@@ -27,10 +27,10 @@ async def test(option: CommandOption[str], bot: Bot, event: InteractionCreateEve
     else:
         await matcher.send_response("unknown option!")
 
-matcher_exec = on_command(('python', 'exec'), permission=SUPERUSER)
-matcher_await = on_command(('python', 'await'), permission=SUPERUSER)
-matcher_pull = on_command(('python', 'pull'), permission=SUPERUSER)
-matcher_shutdown = on_command(('python', 'shutdown'), permission=SUPERUSER)
+matcher_exec = on_command(('python', 'exec'))
+matcher_await = on_command(('python', 'await'))
+matcher_pull = on_command(('python', 'pull'))
+matcher_shutdown = on_command(('python', 'shutdown'))
 
 # matcher2 = on_slash_command(
 #     name="python",
@@ -67,7 +67,6 @@ def stdoutIO(stdout=None):
 async def python_exec(bot: Bot, event: MessageEvent, matcher: Matcher, msg: Message = CommandArg()):
     import nonebot
     config = nonebot.get_driver().config
-    print(config.superusers, event.user_id)
     if str(event.user_id) in config.superusers:
         with stdoutIO() as s:
             exec(msg.extract_plain_text())
@@ -84,10 +83,13 @@ async def PythonAwait(bot: Bot, event: MessageEvent, matcher: Matcher, msg: Mess
         await matcher_await.send(s.getvalue()[:-1])
 
 @matcher_pull.handle()
-async def PythonPull():
+async def PythonPull(event: MessageEvent):
+    import nonebot
     batcmd = "git pull"
-    result = subprocess.check_output(batcmd, shell=True)
-    await matcher_pull.send(result.decode('utf-8'))
+    config = nonebot.get_driver().config
+    if str(event.user_id) in config.superusers:
+        result = subprocess.check_output(batcmd, shell=True)
+        await matcher_pull.send(result.decode('utf-8'))
 
 @matcher_shutdown.handle()
 async def PythonRestart(event: MessageEvent):
