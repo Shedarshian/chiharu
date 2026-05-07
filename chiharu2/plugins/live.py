@@ -65,7 +65,7 @@ async def ready(bot: Bot, event: ReadyEvent):
     id = bot.self_id
     scheduler.add_job(monitor_live_status,
                       IntervalTrigger(seconds=60),
-                      id=0,
+                      id=0, max_instances=1, coalesce=True,
                       kwargs={"bot_id": id})
 
 async def monitor_live_status(bot_id: str):
