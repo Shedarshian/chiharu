@@ -60,13 +60,18 @@ async def get_live_status(room_id: int) -> dict[str, Any] | None:
         return {}
     return None
 
+is_ready = False
 @event_postprocessor
 async def ready(bot: Bot, event: ReadyEvent):
+    global is_ready
+    if is_ready:
+        return
     id = bot.self_id
     scheduler.add_job(monitor_live_status,
                       IntervalTrigger(seconds=60),
                       id=0, max_instances=1, coalesce=True,
                       kwargs={"bot_id": id})
+    is_ready = True
 
 async def monitor_live_status(bot_id: str):
     bot = get_bot(bot_id)
