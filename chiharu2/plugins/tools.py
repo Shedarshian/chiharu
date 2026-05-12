@@ -1,14 +1,19 @@
 import asyncio, math, random
 from typing import Annotated
 from pebble import concurrent, ThreadPool
+import numpy, matplotlib, hashlib
+from matplotlib import pyplot
 from concurrent.futures import TimeoutError, ThreadPoolExecutor, _base
 from nonebot.adapters.discord.commands import CommandOption, on_slash_command, CommandOptionType
-from nonebot.adapters.discord.api import SubCommandGroupOption, SubCommandOption, IntegerOption, StringOption, BooleanOption, NumberOption, OptionChoice
+from nonebot.adapters.discord.api import SubCommandGroupOption, SubCommandOption, IntegerOption, StringOption, BooleanOption, NumberOption, OptionChoice, File
 from nonebot.adapters.discord import Bot, MessageEvent, MessageSegment, Message, InteractionCreateEvent
 from nonebot import on_command
 from nonebot.params import CommandArg
 from .games.maj import maj
 from .helper.function.function import parser, ParserError
+from .helper import helper
+pyplot.ioff()
+matplotlib.use('Agg')
 
 matcher = on_slash_command(name="tools",
     description="小工具",
@@ -21,6 +26,26 @@ matcher = on_slash_command(name="tools",
                 description="算式",
                 required=True,
             )]),
+        SubCommandOption(
+            name="function",
+            description="函数绘制",
+            options=[StringOption(
+                name="formula",
+                description="算式",
+                required=True,
+            ),
+            StringOption(
+                name="begin",
+                description="起始范围，默认为0",
+            ),
+            StringOption(
+                name="end",
+                description="结束范围，默认为10",
+            ),
+            StringOption(
+                name="step",
+                description="步长，默认为0.01",
+            )],),
         SubCommandGroupOption(
             name="asc",
             description="Unicode字符翻译",
@@ -140,6 +165,8 @@ async def calculator(formula: str):
         均匀分布随机数random 高斯分布随机数gauss
     可以使用的常量：
         圆周率pi 自然对数的底e 欧拉常数gamma"""
+    if formula == "help":
+        return calculator.__doc__
     try:
         loop = asyncio.get_event_loop()
         future = calculate(formula) # type: ignore
@@ -163,6 +190,76 @@ async def cal1(formula: CommandOption[str]):
         await matcher.edit_response(f"您想要计算的式子是：{formula}\ntime out!")
         return
     await matcher.edit_response(f"您想要计算的式子是：{formula}\n{ret}")
+
+@matcher.handle_sub_command("function")
+async def plot_function(formula: CommandOption[str],
+                        begin: CommandOption[str] = "0",
+                        end: CommandOption[str] = "10",
+                        step: CommandOption[str] = "0.01"):
+    """绘制函数。语法见-tools.calculator的帮助。
+    可用选项：
+        -b, --begin: 起始范围，默认为0。
+        -e, --end: 结束范围，默认为10。
+        -s, --step: 步长，默认为0.01。
+        以上三个选项均可以输入表达式，但是在包含空格时需要用引号包裹。
+    函数自变量符号为x。
+    函数不可包含换行符。在函数包含空格时，请用引号包裹函数体部分。
+    也可以在第一行输入选项，换行后输入函数体。"""
+    loop = asyncio.get_event_loop()
+    begin_val, end_val, step_val = 0.0, 10.0, 0.01
+    try:
+        with ThreadPoolExecutor() as pool:
+            if begin != "0":
+                future = calculate(begin)
+                begin_val = await loop.run_in_executor(pool, future.result)
+                if isinstance(begin_val, str):
+                    await matcher.finish(begin_val)
+            if end != "10":
+                future = calculate(end)
+                end_val = await loop.run_in_executor(pool, future.result)
+                if isinstance(end_val, str):
+                    await matcher.finish(end_val)
+            if step != "0.01":
+                future = calculate(step)
+                step_val = await loop.run_in_executor(pool, future.result)
+                if isinstance(step_val, str):
+                    await matcher.finish(step_val)
+    except (TimeoutError, asyncio.exceptions.TimeoutError, _base.CancelledError):
+        await matcher.finish("time out!")
+    num = math.ceil((end_val - begin_val) / step_val)
+    if num > 10000:
+        await matcher.finish('点数不能大于10000。')
+    parser.reset()
+    parser.setstate('x')
+    try:
+        result = parser.parse(formula)
+        if isinstance(result, float):
+            result2 = result
+            result = lambda *args: result2
+        result(begin_val)
+        x = numpy.linspace(begin_val, end_val, num)
+        loop = asyncio.get_event_loop()
+        # ufunc = numpy.frompyfunc(result, 1, 1)
+        # future = _f(ufunc, x)
+        with ThreadPool() as pool:
+            future = pool.map(result, x, timeout=30)
+            y = await loop.run_in_executor(None, lambda: list(future.result()))
+    except (TimeoutError, asyncio.exceptions.TimeoutError, _base.CancelledError):
+        await matcher.finish("time out!")
+    except IndexError:
+        await matcher.finish('请输入一元函数。')
+    except ParserError as e:
+        await matcher.finish('SyntaxError: ' + str(e))
+    except Exception as e:
+        await matcher.finish(type(e).__name__ + ': ' + str(e))
+    pyplot.clf()
+    pyplot.plot(x, y)
+    h = hashlib.sha256(f"{formula} {begin_val} {end_val} {step_val}".encode()).hexdigest()[:32]
+    name = f'func_{h}.png'
+    pyplot.savefig(helper.img(name))
+    with open(helper.img(name), 'rb') as f:
+        file = File(content=f.read(), filename=name)
+    await matcher.send(MessageSegment.attachment(file))
 
 @matcher.handle_sub_command('asc', 'check')
 async def AscCheck(string: CommandOption[str], hex: CommandOption[bool]):
