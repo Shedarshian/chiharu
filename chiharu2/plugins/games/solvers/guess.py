@@ -49,7 +49,7 @@ class Status:
                                 break
                             j.remove(min(j))
                     yield tuple(t2)
-    def check(self, strategy=0):
+    def check(self, strategy=0) -> tuple[list[tuple[int, ...]], int]:
         # 0: 最坏情况候选项最少
         # 1: 总情况数最多
         m = ([], -1 if strategy==1 else len(self.space))
