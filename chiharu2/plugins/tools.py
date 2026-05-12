@@ -107,7 +107,11 @@ def calculate(s):
     parser.reset()
     parser.max_sum = 10000
     try:
-        return parser.parse(s)
+        ret = parser.parse(s)
+        if isinstance(ret, float):
+            return ret
+        else:
+            return ret()
     except ParserError as e:
         return 'SyntaxError: ' + str(e)
     except Exception as e:
@@ -143,9 +147,9 @@ async def calculator(formula: str):
             result = await loop.run_in_executor(pool, future.result)
     except (TimeoutError, asyncio.exceptions.TimeoutError, _base.CancelledError):
         return "time out!"
-    if type(result) is float:
+    if isinstance(result, float):
         return str(result)
-    elif type(result) is str:
+    elif isinstance(result, str):
         return result
     else:
         return 'TypeError ' + str(result)
