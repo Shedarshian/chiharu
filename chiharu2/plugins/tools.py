@@ -125,6 +125,15 @@ matcher = on_slash_command(name="tools",
                 ),
             ]
         ),
+        SubCommandOption(
+            name="r",
+            description="随机骰子",
+            options=[StringOption(
+                name="formula",
+                description="骰子表达式",
+                required=True,
+            )]
+        ),
     ])
 
 @concurrent.process(timeout=30)
@@ -169,7 +178,7 @@ async def calculator(formula: str):
         return calculator.__doc__
     try:
         loop = asyncio.get_event_loop()
-        future = calculate(formula) # type: ignore
+        future: asyncio.Future = calculate(formula) # type: ignore
         with ThreadPoolExecutor() as pool:
             result = await loop.run_in_executor(pool, future.result)
     except (TimeoutError, asyncio.exceptions.TimeoutError, _base.CancelledError):
@@ -210,17 +219,17 @@ async def plot_function(formula: CommandOption[str],
     try:
         with ThreadPoolExecutor() as pool:
             if begin != "0":
-                future = calculate(begin)
+                future: asyncio.Future = calculate(begin) # type: ignore
                 begin_val = await loop.run_in_executor(pool, future.result)
                 if isinstance(begin_val, str):
                     await matcher.finish(begin_val)
             if end != "10":
-                future = calculate(end)
+                future: asyncio.Future = calculate(end) # type: ignore
                 end_val = await loop.run_in_executor(pool, future.result)
                 if isinstance(end_val, str):
                     await matcher.finish(end_val)
             if step != "0.01":
-                future = calculate(step)
+                future: asyncio.Future = calculate(step) # type: ignore
                 step_val = await loop.run_in_executor(pool, future.result)
                 if isinstance(step_val, str):
                     await matcher.finish(step_val)
@@ -237,7 +246,7 @@ async def plot_function(formula: CommandOption[str],
             result2 = result
             result = lambda *args: result2
         result(begin_val)
-        x = numpy.linspace(begin_val, end_val, num)
+        x = numpy.linspace(begin_val, end_val, num + 1)
         loop = asyncio.get_event_loop()
         # ufunc = numpy.frompyfunc(result, 1, 1)
         # future = _f(ufunc, x)
@@ -350,6 +359,7 @@ async def maj_train(choice: CommandOption[int], past_answer: CommandOption[bool]
     elif text == '0':
         str_title = '清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）\n'
         _continue = True
+        stack = []
         while _continue:
             stack = []
             for i in range(4):
@@ -408,6 +418,19 @@ async def maj_train(choice: CommandOption[int], past_answer: CommandOption[bool]
         pass
         # await matcher.send_response('使用数字指定练习题，-a为查看上题答案。\n0：清一色听牌训练（排序，无暗杠，无鸣牌，不含七对）\n2：清一色加强型听牌训练（排序，无暗杠，无鸣牌，不含七对）')
 
+@matcher.handle_sub_command('r')
+async def roll(formula: CommandOption[str]):
+    """随机骰子。
+    使用例：-misc.r 3d20+d6+2d
+    d前不填默认为1，d后不填默认为100"""
+    from .helper.dice.dice import parser, ParserError
+    try:
+        l = parser.parse(formula).compute()
+        await matcher.send_response('骰子结果为：\n' + '\n='.join(l))
+    except ParserError as e:
+        await matcher.send_response('SyntaxError: ' + str(e))
+    except Exception as e:
+        await matcher.send_response(type(e).__name__ + ': ' + str(e))
 
 # matcher_console = on_command(("tools"))
 # @matcher_console.handle()
