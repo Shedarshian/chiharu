@@ -431,11 +431,3 @@ async def roll(formula: CommandOption[str]):
         await matcher.send_response('SyntaxError: ' + str(e))
     except Exception as e:
         await matcher.send_response(type(e).__name__ + ': ' + str(e))
-
-# matcher_console = on_command(("tools"))
-# @matcher_console.handle()
-# async def calculator2():
-# # async def calculator2(bot: Bot, event: MessageEvent, msg: Message = CommandArg()):
-#     await matcher_console.send("begin")
-#     # ret = await calculator(msg.extract_plain_text())
-#     # await matcher_console.send(ret)

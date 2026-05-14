@@ -27,8 +27,8 @@ class IPos(ABC):
     def __isub__(self, other):
         pass
     @abstractmethod
-    def __bool__(self):
-        pass
+    def __bool__(self) -> bool:
+        return False
 TPos = TypeVar('TPos', bound=IPos)
 
 TGrid2D = TypeVar('TGrid2D', bound='Grid2D')
